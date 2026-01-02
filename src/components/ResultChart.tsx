@@ -118,7 +118,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             return {
                 time: timeMs,
                 concE2: calibratedE2, // Use E2 for positioning on left Y-axis
-                event: e
+                event: e,
+                isEvent: true
             };
         });
     }, [sim, events, calibrationFn]);
@@ -365,17 +366,37 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             isAnimationActive={false}
                             activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
                         />
+                        {eventPoints.length > 0 && (
+                            <Scatter
+                                data={eventPoints}
+                                yAxisId="left"
+                                isAnimationActive={false}
+                                onClick={(entry) => {
+                                    if (entry && entry.payload && entry.payload.event) {
+                                        onPointClick(entry.payload.event);
+                                    }
+                                }}
+                                shape={({ cx, cy }: any) => (
+                                    <g className="cursor-pointer">
+                                        <circle cx={cx} cy={cy} r={6} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.6} />
+                                        <circle cx={cx} cy={cy} r={3} fill="#f97316" />
+                                    </g>
+                                )}
+                            />
+                        )}
                         <Scatter
                             data={nowPoint ? [nowPoint] : []}
                             yAxisId="left"
                             isAnimationActive={false}
-                            shape={({ cx, cy }: any) => {
+                            shape={({ cx, cy, payload }: any) => {
+                                const conc = payload?.concE2 ?? 0;
+                                const radius = Math.max(4, Math.min(7, 4 + conc / 80)); // Scale dot size with live E2 but cap size
                                 return (
                                     <g className="group">
                                         <circle cx={cx} cy={cy} r={1} fill="transparent" />
                                         <circle
                                             cx={cx} cy={cy}
-                                            r={4}
+                                            r={radius}
                                             fill="#bfdbfe"
                                             stroke="white"
                                             strokeWidth={1.5}
@@ -388,13 +409,15 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             data={nowPoint ? [nowPoint] : []}
                             yAxisId="right"
                             isAnimationActive={false}
-                            shape={({ cx, cy }: any) => {
+                            shape={({ cx, cy, payload }: any) => {
+                                const conc = payload?.concCPA ?? 0;
+                                const radius = Math.max(4, Math.min(9, 4 + conc / 8)); // Scale dot size with live CPA but cap size
                                 return (
                                     <g className="group">
                                         <circle cx={cx} cy={cy} r={1} fill="transparent" />
                                         <circle
                                             cx={cx} cy={cy}
-                                            r={4}
+                                            r={radius}
                                             fill="#c4b5fd"
                                             stroke="white"
                                             strokeWidth={1.5}
