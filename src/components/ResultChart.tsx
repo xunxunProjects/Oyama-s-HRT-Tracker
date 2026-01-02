@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
-import { SimulationResult, DoseEvent, interpolateConcentration, LabResult, convertToPgMl } from '../../logic';
+import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, LabResult, convertToPgMl } from '../../logic';
 import { Activity, RotateCcw, Info, FlaskConical } from 'lucide-react';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush
@@ -33,17 +33,33 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
             );
         }
 
+        const dataPoint = payload[0].payload;
+        const concE2 = dataPoint.concE2 || 0;
+        const concCPA = dataPoint.concCPA || 0; // Already in ng/mL
+
         return (
             <div className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-pink-100/50 shadow-sm">
                 <p className="text-[10px] font-medium text-gray-400 mb-0.5">
                     {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                 </p>
-                <div className="flex items-baseline gap-1">
-                    <span className="text-base font-black text-pink-500 tracking-tight">
-                        {payload[0].value.toFixed(1)}
-                    </span>
-                    <span className="text-[10px] font-bold text-pink-300">pg/mL</span>
-                </div>
+                {concE2 > 0 && (
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-[9px] font-bold text-pink-400">E2:</span>
+                        <span className="text-sm font-black text-pink-500 tracking-tight">
+                            {concE2.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-bold text-pink-300">pg/mL</span>
+                    </div>
+                )}
+                {concCPA > 0 && (
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-[9px] font-bold text-purple-400">CPA:</span>
+                        <span className="text-sm font-black text-purple-600 tracking-tight">
+                            {concCPA.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-bold text-purple-300">ng/mL</span>
+                    </div>
+                )}
             </div>
         );
     }
@@ -61,9 +77,13 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         return sim.timeH.map((t, i) => {
             const timeMs = t * 3600000;
             const scale = calibrationFn(t);
+            // Only apply calibration to E2, not CPA (lab results only measure E2)
+            const calibratedE2 = sim.concPGmL_E2[i] * scale; // pg/mL
+            const rawCPA_ngmL = sim.concPGmL_CPA[i]; // ng/mL
             return {
-                time: timeMs, 
-                conc: sim.concPGmL[i] * scale
+                time: timeMs,
+                concE2: calibratedE2, // pg/mL for left Y-axis
+                concCPA: rawCPA_ngmL // ng/mL for right Y-axis
             };
         });
     }, [sim, calibrationFn]);
@@ -82,19 +102,22 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
 
     const eventPoints = useMemo(() => {
         if (!sim || events.length === 0) return [];
-        
+
         // Map events to data points, find closest concentration from sim
         return events.map(e => {
             const timeMs = e.timeH * 3600000;
             const scale = calibrationFn(e.timeH);
             // Find closest time in sim
-            const closestIdx = sim.timeH.reduce((prev, curr, i) => 
+            const closestIdx = sim.timeH.reduce((prev, curr, i) =>
                 Math.abs(curr * 3600000 - timeMs) < Math.abs(sim.timeH[prev] * 3600000 - timeMs) ? i : prev
             , 0);
-            
+
+            // Only calibrate E2, not CPA
+            const calibratedE2 = sim.concPGmL_E2[closestIdx] * scale; // pg/mL
+
             return {
                 time: timeMs,
-                conc: sim.concPGmL[closestIdx] * scale,
+                concE2: calibratedE2, // Use E2 for positioning on left Y-axis
                 event: e
             };
         });
@@ -113,9 +136,25 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     const nowPoint = useMemo(() => {
         if (!sim || data.length === 0) return null;
         const h = now / 3600000;
-        const conc = interpolateConcentration(sim, h);
-        if (conc === null || Number.isNaN(conc)) return null;
-        return { time: now, conc: conc * calibrationFn(h) };
+
+        const concE2 = interpolateConcentration_E2(sim, h);
+        const concCPA = interpolateConcentration_CPA(sim, h);
+
+        // If both are null/NaN, return null
+        const hasE2 = concE2 !== null && !Number.isNaN(concE2);
+        const hasCPA = concCPA !== null && !Number.isNaN(concCPA);
+
+        if (!hasE2 && !hasCPA) return null;
+
+        // Only calibrate E2, not CPA
+        const calibratedE2 = hasE2 ? concE2 * calibrationFn(h) : 0;
+        const finalCPA = hasCPA ? concCPA : 0;
+
+        return {
+            time: now,
+            concE2: calibratedE2, // pg/mL
+            concCPA: finalCPA // ng/mL
+        };
     }, [sim, data, now, calibrationFn]);
 
     // Slider helpers for quick panning (helps mobile users)
@@ -198,17 +237,6 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         setXDomain(clampDomain([start, end]));
     };
 
-    const getLevelStatus = (conc: number) => {
-        if (conc > 300) return { label: 'status.level.high', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', icon: Info };
-        if (conc >= 100 && conc <= 200) return { label: 'status.level.mtf', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: Info };
-        if (conc >= 70 && conc <= 300) return { label: 'status.level.luteal', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', icon: Info };
-        if (conc >= 30 && conc < 70) return { label: 'status.level.follicular', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200', icon: Info };
-        if (conc >= 8 && conc < 30) return { label: 'status.level.male', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200', icon: Info };
-        return { label: 'status.level.low', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', icon: Info };
-    };
-
-    const status = nowPoint ? getLevelStatus(nowPoint.conc) : null;
-
     if (!sim || sim.timeH.length === 0) return (
         <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
             <Activity className="w-12 h-12 mb-4 text-gray-200" strokeWidth={1.5} />
@@ -252,14 +280,6 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             <div
                 ref={containerRef}
                 className="h-64 md:h-80 lg:h-96 w-full touch-none relative select-none px-2 pb-2">
-                {status && (
-                    <div className={`absolute top-3 right-4 z-10 px-2.5 py-1 rounded-lg border ${status.bg} ${status.border} shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90`}>
-                        <status.icon size={12} className={status.color} />
-                        <span className={`text-[10px] md:text-xs font-bold ${status.color}`}>
-                            {t(status.label)}
-                        </span>
-                    </div>
-                )}
                 {(() => {
                     const factorNow = calibrationFn(now / 3600000);
                     return Math.abs(factorNow - 1) > 0.001 ? (
@@ -272,17 +292,21 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                     ) : null;
                 })()}
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={data} margin={{ top: 12, right: 8, bottom: 0, left: -12 }}>
+                    <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
                         <defs>
                             <linearGradient id="colorConc" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#f6c4d7" stopOpacity={0.18}/>
                                 <stop offset="95%" stopColor="#f6c4d7" stopOpacity={0}/>
                             </linearGradient>
+                            <linearGradient id="colorCPA" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.18}/>
+                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                            </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f2f4f7" />
-                        <XAxis 
-                            dataKey="time" 
-                            type="number" 
+                        <XAxis
+                            dataKey="time"
+                            type="number"
                             domain={xDomain || ['auto', 'auto']}
                             allowDataOverflow={true}
                             tickFormatter={(ms) => formatDate(new Date(ms), lang)}
@@ -292,75 +316,97 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             tickLine={false}
                             dy={10}
                         />
-                        <YAxis 
-                            dataKey="conc"
-                            tick={{fontSize: 10, fill: '#9aa3b1', fontWeight: 600}}
+                        <YAxis
+                            yAxisId="left"
+                            dataKey="concE2"
+                            tick={{fontSize: 10, fill: '#ec4899', fontWeight: 600}}
                             axisLine={false}
                             tickLine={false}
+                            width={50}
+                            label={{ value: 'E2 (pg/mL)', angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
+                        />
+                        <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            dataKey="concCPA"
+                            tick={{fontSize: 10, fill: '#8b5cf6', fontWeight: 600}}
+                            axisLine={false}
+                            tickLine={false}
+                            width={50}
+                            label={{ value: 'CPA (ng/mL)', angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
                         />
                         <Tooltip 
                             content={<CustomTooltip t={t} lang={lang} />} 
                             cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }} 
                             trigger="hover"
                         />
-                        <ReferenceLine x={now} stroke="#f6c4d7" strokeDasharray="3 3" strokeWidth={1.2} />
-                        <Area 
+                        <ReferenceLine x={now} stroke="#f6c4d7" strokeDasharray="3 3" strokeWidth={1.2} yAxisId="left" />
+                        <Area
                             data={data}
-                            type="monotone" 
-                            dataKey="conc" 
-                            stroke="#f6c4d7" 
-                            strokeWidth={2.2} 
-                            fillOpacity={0.95} 
-                            fill="url(#colorConc)" 
+                            type="monotone"
+                            dataKey="concE2"
+                            yAxisId="left"
+                            stroke="#f6c4d7"
+                            strokeWidth={2.2}
+                            fillOpacity={0.95}
+                            fill="url(#colorConc)"
                             isAnimationActive={false}
-                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }} 
+                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
                         />
-                        <Scatter 
-                            data={nowPoint ? [nowPoint] : []}
+                        <Area
+                            data={data}
+                            type="monotone"
+                            dataKey="concCPA"
+                            yAxisId="right"
+                            stroke="#8b5cf6"
+                            strokeWidth={2.2}
+                            fillOpacity={0.95}
+                            fill="url(#colorCPA)"
                             isAnimationActive={false}
-                            shape={({ cx, cy, payload }: any) => {
-                                const conc = payload?.conc ?? 0;
-                                const radius = Math.min(7, Math.max(3, Math.sqrt(Math.max(conc, 0)) * 0.25));
+                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
+                        />
+                        <Scatter
+                            data={nowPoint ? [nowPoint] : []}
+                            yAxisId="left"
+                            isAnimationActive={false}
+                            shape={({ cx, cy }: any) => {
                                 return (
                                     <g className="group">
                                         <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                        <circle 
-                                            cx={cx} cy={cy} 
-                                            r={radius} 
-                                            fill="#bfdbfe" 
-                                            stroke="white" 
-                                            strokeWidth={1.5} 
+                                        <circle
+                                            cx={cx} cy={cy}
+                                            r={4}
+                                            fill="#bfdbfe"
+                                            stroke="white"
+                                            strokeWidth={1.5}
                                         />
                                     </g>
                                 );
                             }}
                         />
-                        <Scatter 
-                            data={eventPoints} 
+                        <Scatter
+                            data={nowPoint ? [nowPoint] : []}
+                            yAxisId="right"
                             isAnimationActive={false}
-                            shape={(props: any) => {
-                                const { cx, cy, payload } = props;
-                                // Calculate radius based on dose (min 2px, max 6px approx)
-                                // Standard dose ranges: 0.5mg - 10mg
-                                const dose = payload.event.doseMG;
-                                const radius = Math.min(6, Math.max(2, Math.sqrt(dose) * 2));
-                                
+                            shape={({ cx, cy }: any) => {
                                 return (
                                     <g className="group">
-                                        {/* Invisible hit target for hovering */}
                                         <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                        {/* Visible dot with scale effect */}
-                                        <circle 
-                                            cx={cx} cy={cy} r={radius} 
-                                            fill="#f6c4d7" stroke="white" strokeWidth={1.5} 
+                                        <circle
+                                            cx={cx} cy={cy}
+                                            r={4}
+                                            fill="#c4b5fd"
+                                            stroke="white"
+                                            strokeWidth={1.5}
                                         />
                                     </g>
                                 );
                             }}
                         />
                         {labPoints.length > 0 && (
-                            <Scatter 
-                                data={labPoints} 
+                            <Scatter
+                                data={labPoints}
+                                yAxisId="left"
                                 isAnimationActive={false}
                                 shape={({ cx, cy }: any) => (
                                     <g>

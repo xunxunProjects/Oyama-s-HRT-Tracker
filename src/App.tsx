@@ -4,7 +4,7 @@ import { Settings, Plus, Activity, Calendar, Languages, Upload, Download, Trash2
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { APP_VERSION } from './constants';
-import { DoseEvent, Route, Ester, ExtraKey, SimulationResult, runSimulation, interpolateConcentration, encryptData, decryptData, getToE2Factor, LabResult, createCalibrationInterpolator } from '../logic';
+import { DoseEvent, Route, Ester, ExtraKey, SimulationResult, runSimulation, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, encryptData, decryptData, getToE2Factor, LabResult, createCalibrationInterpolator } from '../logic';
 import { formatDate, formatTime, getRouteIcon } from './utils/helpers';
 import { Lang } from './i18n/translations';
 import ResultChart from './components/ResultChart';
@@ -120,9 +120,34 @@ const AppContent = () => {
     const currentLevel = useMemo(() => {
         if (!simulation) return 0;
         const h = currentTime.getTime() / 3600000;
-        const base = interpolateConcentration(simulation, h) || 0;
-        return base * calibrationFn(h);
+        // Only use E2 for level status (calibrated), not CPA
+        const baseE2 = interpolateConcentration_E2(simulation, h) || 0;
+        return baseE2 * calibrationFn(h);
     }, [simulation, currentTime, calibrationFn]);
+
+    const currentCPA = useMemo(() => {
+        if (!simulation) return 0;
+        const h = currentTime.getTime() / 3600000;
+        const concCPA = interpolateConcentration_CPA(simulation, h) || 0;
+        return concCPA; // ng/mL, no calibration for CPA
+    }, [simulation, currentTime]);
+
+    const getLevelStatus = (conc: number) => {
+        if (conc > 300) return { label: 'status.level.high', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
+        if (conc >= 100 && conc <= 200) return { label: 'status.level.mtf', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' };
+        if (conc >= 70 && conc <= 300) return { label: 'status.level.luteal', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
+        if (conc >= 30 && conc < 70) return { label: 'status.level.follicular', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' };
+        if (conc >= 8 && conc < 30) return { label: 'status.level.male', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+        return { label: 'status.level.low', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
+    };
+
+    const currentStatus = useMemo(() => {
+        // 只有当 E2 浓度大于 0 时才显示状态
+        if (currentLevel > 0) {
+            return getLevelStatus(currentLevel);
+        }
+        return null; // 没有 E2 数据时不显示状态
+    }, [currentLevel]);
 
     const groupedEvents = useMemo(() => {
         const sorted = [...events].sort((a, b) => b.timeH - a.timeH);
@@ -417,32 +442,70 @@ const AppContent = () => {
                 </div>
 
                 <div
+                    ref={mainScrollRef}
                     key={currentView}
-                    className={`flex-1 flex flex-col overflow-hidden page-transition ${transitionDirection === 'forward' ? 'page-forward' : 'page-backward'}`}
+                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide page-transition ${transitionDirection === 'forward' ? 'page-forward' : 'page-backward'}`}
                 >
                     {/* Header */}
                     {currentView === 'home' && (
                         <header className="relative px-4 md:px-8 pt-6 pb-4">
                             <div className="grid md:grid-cols-3 gap-3 md:gap-4">
-                                <div className="md:col-span-2 bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-5 flex items-start justify-between">
-                                    <div className="space-y-2">
+                                <div className="md:col-span-2 bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-5">
+                                    <div className="flex items-center mb-3">
                                         <h1 className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 text-[11px] md:text-xs font-semibold text-gray-700 border border-gray-200">
                                             <Activity size={14} className="text-gray-500" />
                                             {t('status.estimate')}
                                         </h1>
-                                        <div className="flex items-end gap-2">
-                                            <span className="text-6xl md:text-7xl font-black text-gray-900 tracking-tight">
-                                                {currentLevel.toFixed(0)}
-                                            </span>
-                                            <span className="text-lg md:text-xl font-bold text-gray-400">pg/mL</span>
-                                        </div>
                                     </div>
-                                    <div className="text-right text-xs font-semibold text-gray-500 space-y-1 md:hidden">
-                                        <div className="px-3 py-1 rounded-lg bg-gray-50 border border-gray-200 inline-flex items-center gap-2">
-                                            <Calendar size={14} className="text-gray-500" />
-                                            <span className="text-xs md:text-sm">{formatDate(currentTime, lang)}</span>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* E2 Display */}
+                                        <div className="space-y-1">
+                                            <div className="text-[10px] md:text-xs font-bold text-pink-400 uppercase tracking-wider">
+                                                E2
+                                            </div>
+                                            <div className="flex items-end gap-2">
+                                                {currentLevel > 0 ? (
+                                                    <>
+                                                        <span className="text-4xl md:text-5xl font-black text-pink-500 tracking-tight">
+                                                            {currentLevel.toFixed(0)}
+                                                        </span>
+                                                        <span className="text-sm md:text-base font-bold text-pink-300 mb-1">pg/mL</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-4xl md:text-5xl font-black text-gray-300 tracking-tight">
+                                                        --
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {currentStatus && (
+                                                <div className={`px-2.5 py-1 rounded-lg border ${currentStatus.bg} ${currentStatus.border} flex items-center gap-1.5 mt-2 w-fit`}>
+                                                    <Info size={10} className={currentStatus.color} />
+                                                    <span className={`text-[9px] md:text-[10px] font-bold ${currentStatus.color}`}>
+                                                        {t(currentStatus.label)}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="font-mono text-gray-700">{formatTime(currentTime)}</div>
+                                        {/* CPA Display */}
+                                        <div className="space-y-1">
+                                            <div className="text-[10px] md:text-xs font-bold text-purple-400 uppercase tracking-wider">
+                                                CPA
+                                            </div>
+                                            <div className="flex items-end gap-2">
+                                                {currentCPA > 0 ? (
+                                                    <>
+                                                        <span className="text-4xl md:text-5xl font-black text-purple-600 tracking-tight">
+                                                            {currentCPA.toFixed(0)}
+                                                        </span>
+                                                        <span className="text-sm md:text-base font-bold text-purple-300 mb-1">ng/mL</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-4xl md:text-5xl font-black text-gray-300 tracking-tight">
+                                                        --
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
@@ -472,7 +535,7 @@ const AppContent = () => {
                         </header>
                     )}
 
-                    <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-white w-full scrollbar-hide px-4 py-6">
+                    <main className="bg-white w-full px-4 py-6">
                         {/* Chart */}
                         {currentView === 'home' && (
                             <ResultChart 
@@ -546,7 +609,7 @@ const AppContent = () => {
                                                             {ev.route !== Route.patchRemove && !ev.extras[ExtraKey.releaseRateUGPerDay] && (
                                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-700">
                                                                     <span>{`${t('timeline.dose_label')}: ${ev.doseMG.toFixed(2)} mg`}</span>
-                                                                    {ev.ester !== Ester.E2 && (
+                                                                    {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && (
                                                                         <span className="text-gray-500 text-[11px]">
                                                                             {`(${ (ev.doseMG * getToE2Factor(ev.ester)).toFixed(2) } mg E2)`}
                                                                         </span>

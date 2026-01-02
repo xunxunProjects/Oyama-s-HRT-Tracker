@@ -278,13 +278,24 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
 
     // Calculate availableEsters unconditionally
     const availableEsters = useMemo(() => {
-        switch (route) {
-            case Route.injection: return [Ester.EB, Ester.EV, Ester.EC, Ester.EN];
-            case Route.oral: 
-            case Route.sublingual: return [Ester.E2, Ester.EV];
-            default: return [Ester.E2];
-        }
-    }, [route]);
+    switch (route) {
+        case Route.injection: 
+            return [Ester.EB, Ester.EV, Ester.EC, Ester.EN];
+        
+        // === 修改开始 ===
+        // 把 Oral (口服) 单独提出来，加上 Ester.CPA
+        case Route.oral: 
+            return [Ester.E2, Ester.EV, Ester.CPA]; 
+
+        // 舌下含服保持原样 (CPA 一般不含服)
+        case Route.sublingual: 
+            return [Ester.E2, Ester.EV];
+        // === 修改结束 ===
+
+        default: 
+            return [Ester.E2];
+    }
+}, [route]);
 
     // Ensure ester is valid when route changes (e.g. switching from Injection to Gel should force E2)
     useEffect(() => {
@@ -294,6 +305,9 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
     }, [availableEsters, ester]);
 
     const doseGuide = useMemo(() => {
+        // CPA 没有剂量提示，因为参考范围不同
+        if (ester === Ester.CPA) return null;
+
         const cfg = DOSE_GUIDE_CONFIG[route];
         if (!cfg) return null;
         if (route === Route.patchApply && patchMode === "dose" && cfg.requiresRate) {
@@ -313,7 +327,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
         }
 
         return { config: cfg, level, value, showRateHint: false as const };
-    }, [route, patchMode, patchRate, e2Dose]);
+    }, [route, patchMode, patchRate, e2Dose, ester]);
 
     if (!isOpen) return null;
 
@@ -451,25 +465,29 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                                 <>
                                     <div className="grid grid-cols-2 gap-4">
                                         {(ester !== Ester.E2) && (
-                                            <div className={`space-y-2 ${ (ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) ? 'col-span-2' : '' }`}>
+                                            <div className={`space-y-2 ${ (ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) || ester === Ester.CPA ? 'col-span-2' : '' }`}>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">{t('field.dose_raw')}</label>
-                                                <input 
+                                                <input
                                                     type="number" inputMode="decimal"
-                                                    value={rawDose} onChange={e => handleRawChange(e.target.value)} 
-                                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-mono" 
+                                                    min="0"
+                                                    step="0.001"
+                                                    value={rawDose} onChange={e => handleRawChange(e.target.value)}
+                                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-mono"
                                                     placeholder="0.0"
                                                 />
                                             </div>
                                         )}
-                                        {!(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) && (
+                                        {!(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) && ester !== Ester.CPA && (
                                             <div className={`space-y-2 ${(ester === Ester.E2 && route !== Route.gel && route !== Route.oral && route !== Route.sublingual) ? "col-span-2" : ""}`}>
                                                 <label className="block text-xs font-bold text-pink-400 uppercase tracking-wider">
                                                     {route === Route.patchApply ? t('field.dose_raw') : t('field.dose_e2')}
                                                 </label>
-                                                <input 
+                                                <input
                                                     type="number" inputMode="decimal"
-                                                    value={e2Dose} onChange={e => handleE2Change(e.target.value)} 
-                                                    className="w-full p-4 bg-pink-50 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-bold text-pink-500 font-mono" 
+                                                    min="0"
+                                                    step="0.001"
+                                                    value={e2Dose} onChange={e => handleE2Change(e.target.value)}
+                                                    className="w-full p-4 bg-pink-50 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-bold text-pink-500 font-mono"
                                                     placeholder="0.0"
                                                 />
                                             </div>
@@ -486,7 +504,16 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                             {route === Route.patchApply && patchMode === "rate" && (
                                 <div className="space-y-2">
                                     <label className="block text-sm font-bold text-gray-700">{t('field.patch_rate')}</label>
-                                    <input type="number" inputMode="decimal" value={patchRate} onChange={e => setPatchRate(e.target.value)} className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none" placeholder="e.g. 50" />
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="1"
+                                        value={patchRate}
+                                        onChange={e => setPatchRate(e.target.value)}
+                                        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none"
+                                        placeholder="e.g. 50"
+                                    />
                                 </div>
                             )}
 

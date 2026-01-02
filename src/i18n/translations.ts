@@ -18,7 +18,7 @@ export const TRANSLATIONS_BASE = {
         "status.level.high": "高于参考范围",
         "status.level.low": "低于参考范围",
 
-        "chart.title": "雌二醇浓度 (pg/mL)",
+        "chart.title": "血药浓度",
         "chart.tooltip.conc": "浓度",
         "chart.tooltip.time": "时间",
         "chart.now": "现在",
@@ -157,6 +157,7 @@ export const TRANSLATIONS_BASE = {
         "ester.EB": "苯甲酸雌二醇 (EB)",
         "ester.EC": "环戊丙酸雌二醇 (EC)",
         "ester.EN": "庚酸雌二醇 (EN)",
+        "ester.CPA": "醋酸环丙孕酮 (CPA)",
 
         "drawer.lang": "语言设置",
         "drawer.lang_hint": "切换界面显示语言。",
@@ -211,7 +212,7 @@ export const TRANSLATIONS_BASE = {
         "status.level.high": "Above Reference Range",
         "status.level.low": "Below Reference Range",
 
-        "chart.title": "E2 Level (pg/mL)",
+        "chart.title": "Hormone Levels",
         "chart.tooltip.conc": "Conc.",
         "chart.tooltip.time": "Time",
         "chart.now": "NOW",
@@ -350,6 +351,7 @@ export const TRANSLATIONS_BASE = {
         "ester.EB": "Estradiol Benzoate (EB)",
         "ester.EC": "Estradiol Cypionate (EC)",
         "ester.EN": "Estradiol Enanthate (EN)",
+        "ester.CPA": "Cyproterone Acetate (CPA)",
 
         "drawer.lang": "Language",
         "drawer.lang_hint": "Switch interface language.",
@@ -404,7 +406,7 @@ export const TRANSLATIONS_BASE = {
         "status.level.high": "Выше нормы",
         "status.level.low": "Ниже нормы",
 
-        "chart.title": "Концентрация E2 (пг/мл)",
+        "chart.title": "Концентрация гормонов",
         "chart.tooltip.conc": "Конц.",
         "chart.tooltip.time": "Время",
         "chart.now": "СЕЙЧАС",
@@ -578,6 +580,7 @@ export const TRANSLATIONS_BASE = {
         "ester.EB": "Эстрадиол бензоат (EB)",
         "ester.EC": "Эстрадиол ципионат (EC)",
         "ester.EN": "Эстрадиол энантат (EN)",
+        "ester.CPA": "Ципротерон ацетат (CPA)",
     }
 };
 
@@ -601,7 +604,7 @@ export const TRANSLATIONS = {
         "status.level.high": "高於參考範圍",
         "status.level.low": "低於參考範圍",
 
-        "chart.title": "雌二醇濃度（pg/mL）",
+        "chart.title": "血藥濃度",
         "chart.tooltip.conc": "濃度",
         "chart.tooltip.time": "時間",
         "chart.now": "現在",
@@ -747,6 +750,7 @@ export const TRANSLATIONS = {
         "ester.EB": "苯甲酸雌二醇（EB）",
         "ester.EC": "環戊丙酸雌二醇（EC）",
         "ester.EN": "庚酸雌二醇（EN）",
+        "ester.CPA": "醋酸環丙孕酮（CPA）",
 
         "settings.group.general": "一般設定",
         "settings.group.data": "資料管理",
@@ -804,7 +808,7 @@ export const TRANSLATIONS = {
         "status.level.high": "高過參考範圍",
         "status.level.low": "低過參考範圍",
 
-        "chart.title": "雌二醇濃度 (pg/mL)",
+        "chart.title": "血藥濃度",
         "chart.tooltip.conc": "濃度",
         "chart.tooltip.time": "時間",
         "chart.now": "而家",
@@ -944,6 +948,7 @@ export const TRANSLATIONS = {
         "ester.EB": "苯甲酸雌二醇 (EB)",
         "ester.EC": "環戊丙酸雌二醇 (EC)",
         "ester.EN": "庚酸雌二醇 (EN)",
+        "ester.CPA": "醋酸環丙孕酮 (CPA)",
 
         "settings.group.general": "常規設定",
         "settings.group.data": "數據管理",
@@ -1007,7 +1012,7 @@ export const TRANSLATIONS = {
         "status.level.high": "Вище норми",
         "status.level.low": "Нижче норми",
 
-        "chart.title": "Концентрація E2 (pg/mL)",
+        "chart.title": "Концентрація гормонів",
         "chart.tooltip.conc": "Конц.",
         "chart.tooltip.time": "Час",
         "chart.now": "ЗАРАЗ",
@@ -1148,6 +1153,7 @@ export const TRANSLATIONS = {
         "ester.EB": "Естрадіол бензоат (EB)",
         "ester.EC": "Естрадіол ципіонат (EC)",
         "ester.EN": "Естрадіол енантат (EN)",
+        "ester.CPA": "Ципротерон ацетат (CPA)",
 
         "settings.group.general": "Загальні",
         "settings.group.data": "Дані",
@@ -1200,7 +1206,7 @@ export const TRANSLATIONS = {
         "status.level.high": "参考範囲以上",
         "status.level.low": "参考範囲以下",
 
-        "chart.title": "エストラジオール濃度 (pg/mL)",
+        "chart.title": "ホルモン濃度",
         "chart.tooltip.conc": "濃度",
         "chart.tooltip.time": "時間",
         "chart.now": "現在",
@@ -1339,6 +1345,7 @@ export const TRANSLATIONS = {
         "ester.EB": "安息香酸エストラジオール (EB)",
         "ester.EC": "シピオン酸エストラジオール (EC)",
         "ester.EN": "エナン酸エストラジオール (EN)",
+        "ester.CPA": "酢酸シプロテロン (CPA)",
 
         "drawer.lang": "言語設定",
         "drawer.lang_hint": "表示言語を切り替えます。",

@@ -8,8 +8,3 @@ directory = "./dist"
 [observability]
 enabled = true
 head_sampling_rate = 1
-
-[[d1_databases]]
-binding = "DB"
-database_name = "hrt-app-db"
-database_id = "34ba4383-ef1b-4281-a410-1f2456c94bc4"
