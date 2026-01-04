@@ -24,6 +24,12 @@ export const TRANSLATIONS_BASE = {
         "chart.now": "现在",
         "chart.reset": "重置缩放",
 
+        "label.e2": "雌二醇",
+        "label.cpa": "醋酸环丙孕酮",
+        "label.cpa_chart": "醋酸环丙孕酮",
+        "label.e2_unit": "雌二醇 (pg/mL)",
+        "label.cpa_unit": "醋酸环丙孕酮 (ng/mL)",
+
         "timeline.title": "用药记录",
         "timeline.empty": "暂无记录",
         "timeline.delete_confirm": "确定删除这条记录吗？",
@@ -79,6 +85,7 @@ export const TRANSLATIONS_BASE = {
         "qr.help": "数据可能包含个人隐私，请谨慎分享。",
 
         "error.nonPositive": "不能输入小于等于 0 的值。",
+        "error.slHoldMinOne": "含服时长需大于等于 1 分钟。",
 
         "export.encrypt_ask": "是否加密导出？",
         "export.encrypt_ask_desc": "加密后将生成随机密码，导入时必须输入该密码。",
@@ -135,6 +142,9 @@ export const TRANSLATIONS_BASE = {
         "sl.mode.casual": "随意 (5 分钟)",
         "sl.mode.standard": "标准 (10 分钟)",
         "sl.mode.strict": "严格 (15 分钟)",
+        "sl.custom_mode": "自定义",
+        "sl.custom_hint": "输入任意含服时间自动估算 θ",
+        "sl.custom_range": "建议范围 1–60 分钟（超出将近似外推）",
 
         "route.injection": "肌肉注射 (Injection)",
         "route.oral": "口服 (Oral)",
@@ -218,6 +228,12 @@ export const TRANSLATIONS_BASE = {
         "chart.now": "NOW",
         "chart.reset": "Reset Zoom",
 
+        "label.e2": "Estradiol",
+        "label.cpa": "Cyproterone Acetate",
+        "label.cpa_chart": "CPA",
+        "label.e2_unit": "Estradiol (pg/mL)",
+        "label.cpa_unit": "Cyproterone Acetate (ng/mL)",
+
         "timeline.title": "Dose History",
         "timeline.empty": "No records yet.",
         "timeline.delete_confirm": "Are you sure you want to delete this record?",
@@ -273,6 +289,7 @@ export const TRANSLATIONS_BASE = {
         "qr.help": "Contains personal dosage data. Share carefully.",
 
         "error.nonPositive": "Value must be greater than zero.",
+        "error.slHoldMinOne": "Sublingual hold time must be at least 1 minute.",
 
         "export.encrypt_ask": "Encrypt export?",
         "export.encrypt_ask_desc": "A random password will be generated and required for import.",
@@ -329,6 +346,9 @@ export const TRANSLATIONS_BASE = {
         "sl.mode.casual": "5 min",
         "sl.mode.standard": "10 min",
         "sl.mode.strict": "15 min",
+        "sl.custom_mode": "Custom",
+        "sl.custom_hint": "Enter any hold time; θ is estimated automatically.",
+        "sl.custom_range": "Suggested range 1–60 min; beyond this is extrapolated.",
 
         "route.injection": "Injection",
         "route.oral": "Oral",
@@ -411,6 +431,12 @@ export const TRANSLATIONS_BASE = {
         "chart.tooltip.time": "Время",
         "chart.now": "СЕЙЧАС",
         "chart.reset": "Сбросить масштаб",
+
+        "label.e2": "Эстрадиол",
+        "label.cpa": "Ципротерон ацетат",
+        "label.cpa_chart": "CPA",
+        "label.e2_unit": "Эстрадиол (pg/mL)",
+        "label.cpa_unit": "Ципротерон ацетат (ng/mL)",
 
         "timeline.title": "История приёма",
         "timeline.empty": "Записей пока нет.",
@@ -502,6 +528,7 @@ export const TRANSLATIONS_BASE = {
         "qr.help": "Содержит ваши данные. Делитесь с осторожностью.",
 
         "error.nonPositive": "Значение должно быть больше нуля.",
+        "error.slHoldMinOne": "Время удержания должно быть не менее 1 минуты.",
 
         "export.encrypt_ask": "Зашифровать экспорт?",
         "export.encrypt_ask_desc": "Будет сгенерирован случайный пароль, необходимый для импорта.",
@@ -558,6 +585,9 @@ export const TRANSLATIONS_BASE = {
         "sl.mode.casual": "5 мин",
         "sl.mode.standard": "10 мин",
         "sl.mode.strict": "15 мин",
+        "sl.custom_mode": "Custom",
+        "sl.custom_hint": "Введите любое время удержания; θ вычисляется автоматически.",
+        "sl.custom_range": "Рекомендуемый диапазон 1–60 мин; дальше применяется экстраполяция.",
 
         "route.injection": "Инъекция",
         "route.oral": "Перорально",
@@ -609,6 +639,12 @@ export const TRANSLATIONS = {
         "chart.tooltip.time": "時間",
         "chart.now": "現在",
         "chart.reset": "重設縮放",
+
+        "label.e2": "雌二醇",
+        "label.cpa": "醋酸環丙孕酮",
+        "label.cpa_chart": "醋酸環丙孕酮",
+        "label.e2_unit": "雌二醇 (pg/mL)",
+        "label.cpa_unit": "醋酸環丙孕酮 (ng/mL)",
 
         "timeline.title": "用藥紀錄",
         "timeline.empty": "目前沒有紀錄",
@@ -667,6 +703,7 @@ export const TRANSLATIONS = {
         "qr.help": "資料可能包含個人資訊，請謹慎分享。",
 
         "error.nonPositive": "不能輸入小於或等於 0 的值",
+        "error.slHoldMinOne": "含服時長需大於等於 1 分鐘",
 
         "export.encrypt_ask": "要加密匯出嗎？",
         "export.encrypt_ask_desc": "加密後會產生一組隨機密碼，匯入時必須輸入該密碼。",
@@ -726,6 +763,9 @@ export const TRANSLATIONS = {
         "sl.mode.casual": "隨意（5 分）",
         "sl.mode.standard": "標準（10 分）",
         "sl.mode.strict": "嚴格（15 分）",
+        "sl.custom_mode": "自訂",
+        "sl.custom_hint": "輸入任意含服時間並自動估算 θ",
+        "sl.custom_range": "建議 1–60 分鐘，超出將近似外推",
 
         "route.injection": "肌肉注射（Injection）",
         "route.oral": "口服（Oral）",
@@ -814,6 +854,12 @@ export const TRANSLATIONS = {
         "chart.now": "而家",
         "chart.reset": "重置縮放",
 
+        "label.e2": "雌二醇",
+        "label.cpa": "醋酸環丙孕酮",
+        "label.cpa_chart": "醋酸環丙孕酮",
+        "label.e2_unit": "雌二醇 (pg/mL)",
+        "label.cpa_unit": "醋酸環丙孕酮 (ng/mL)",
+
         "timeline.title": "用藥記錄",
         "timeline.empty": "暫時未有記錄",
         "timeline.delete_confirm": "確認刪除呢條記錄？",
@@ -870,6 +916,7 @@ export const TRANSLATIONS = {
         "qr.help": "含有個人數據，分享要小心。",
 
         "error.nonPositive": "唔可以輸入小於等於 0 嘅值",
+        "error.slHoldMinOne": "含服時間要大於等於 1 分鐘",
 
         "export.encrypt_ask": "要唔要加密匯出？",
         "export.encrypt_ask_desc": "加密之後會生成隨機密碼，匯入嗰陣要用。",
@@ -926,6 +973,9 @@ export const TRANSLATIONS = {
         "sl.mode.casual": "隨意 (5 分)",
         "sl.mode.standard": "標準 (10 分)",
         "sl.mode.strict": "嚴格 (15 分)",
+        "sl.custom_mode": "自定",
+        "sl.custom_hint": "輸入任何含服時間，自動計 θ",
+        "sl.custom_range": "建議 1–60 分鐘，超出將近似外推",
 
         "route.injection": "肌注 (Injection)",
         "route.oral": "口服 (Oral)",
@@ -1018,6 +1068,12 @@ export const TRANSLATIONS = {
         "chart.now": "ЗАРАЗ",
         "chart.reset": "Скинути масштаб",
 
+        "label.e2": "Естрадіол",
+        "label.cpa": "Ципротерон ацетат",
+        "label.cpa_chart": "CPA",
+        "label.e2_unit": "Естрадіол (pg/mL)",
+        "label.cpa_unit": "Ципротерон ацетат (ng/mL)",
+
         "timeline.title": "Історія доз",
         "timeline.empty": "Записів поки немає.",
         "timeline.delete_confirm": "Видалити цей запис?",
@@ -1075,6 +1131,7 @@ export const TRANSLATIONS = {
         "qr.help": "Містить ваші дані, діліться обережно.",
 
         "error.nonPositive": "Значення має бути > 0.",
+        "error.slHoldMinOne": "Час утримання має бути не менше 1 хвилини.",
 
         "export.encrypt_ask": "Шифрувати експорт?",
         "export.encrypt_ask_desc": "Буде згенеровано пароль, який знадобиться для імпорту.",
@@ -1131,6 +1188,9 @@ export const TRANSLATIONS = {
         "sl.mode.casual": "5 хв",
         "sl.mode.standard": "10 хв",
         "sl.mode.strict": "15 хв",
+        "sl.custom_mode": "Custom",
+        "sl.custom_hint": "Введіть будь-який час утримання — θ рахується автоматично.",
+        "sl.custom_range": "Рекомендовано 1–60 хв; поза діапазоном — екстраполяція.",
 
         "route.injection": "Ін'єкція",
         "route.oral": "Перорально",
@@ -1212,6 +1272,12 @@ export const TRANSLATIONS = {
         "chart.now": "現在",
         "chart.reset": "ズームをリセット",
 
+        "label.e2": "エストラジオール",
+        "label.cpa": "酢酸シプロテロン",
+        "label.cpa_chart": "CPA",
+        "label.e2_unit": "エストラジオール (pg/mL)",
+        "label.cpa_unit": "酢酸シプロテロン (ng/mL)",
+
         "timeline.title": "投薬記録",
         "timeline.empty": "まだ記録がありません。",
         "timeline.delete_confirm": "この記録を削除してもよろしいですか？",
@@ -1267,6 +1333,7 @@ export const TRANSLATIONS = {
         "qr.help": "個人データを含む可能性があります。共有にはご注意ください。",
 
         "error.nonPositive": "0 以下の値は入力できません。",
+        "error.slHoldMinOne": "舌下保持時間は 1 分以上必要です。",
 
         "export.encrypt_ask": "暗号化してエクスポートしますか？",
         "export.encrypt_ask_desc": "暗号化するとランダムなパスワードが生成され、インポート時にそのパスワードが必要になります。",
@@ -1323,6 +1390,9 @@ export const TRANSLATIONS = {
         "sl.mode.casual": "カジュアル (5分)",
         "sl.mode.standard": "標準 (10分)",
         "sl.mode.strict": "厳格 (15分)",
+        "sl.custom_mode": "カスタム",
+        "sl.custom_hint": "任意の保持時間を入力すると θ を推定します。",
+        "sl.custom_range": "推奨 1〜60 分（超過は外挿計算）",
 
         "route.injection": "筋注 (Injection)",
         "route.oral": "経口 (Oral)",

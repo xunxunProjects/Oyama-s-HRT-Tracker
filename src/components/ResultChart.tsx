@@ -44,7 +44,7 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
                 </p>
                 {concE2 > 0 && (
                     <div className="flex items-baseline gap-1">
-                        <span className="text-[9px] font-bold text-pink-400">E2:</span>
+                        <span className="text-[9px] font-bold text-pink-400">{t('label.e2')}:</span>
                         <span className="text-sm font-black text-pink-500 tracking-tight">
                             {concE2.toFixed(1)}
                         </span>
@@ -53,7 +53,7 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
                 )}
                 {concCPA > 0 && (
                     <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-[9px] font-bold text-purple-400">CPA:</span>
+                        <span className="text-[9px] font-bold text-purple-400">{t('label.cpa_chart')}:</span>
                         <span className="text-sm font-black text-purple-600 tracking-tight">
                             {concCPA.toFixed(1)}
                         </span>
@@ -71,6 +71,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     const containerRef = useRef<HTMLDivElement>(null);
     const [xDomain, setXDomain] = useState<[number, number] | null>(null);
     const initializedRef = useRef(false);
+    const [showCPA, setShowCPA] = useState(true);
 
     const data = useMemo(() => {
         if (!sim || sim.timeH.length === 0) return [];
@@ -106,18 +107,15 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         // Map events to data points, find closest concentration from sim
         return events.map(e => {
             const timeMs = e.timeH * 3600000;
-            const scale = calibrationFn(e.timeH);
-            // Find closest time in sim
-            const closestIdx = sim.timeH.reduce((prev, curr, i) =>
-                Math.abs(curr * 3600000 - timeMs) < Math.abs(sim.timeH[prev] * 3600000 - timeMs) ? i : prev
-            , 0);
-
-            // Only calibrate E2, not CPA
-            const calibratedE2 = sim.concPGmL_E2[closestIdx] * scale; // pg/mL
+            // Use interpolated value so the marker sits on the curve rather than the nearest sample
+            const concE2 = interpolateConcentration_E2(sim, e.timeH);
+            const calibratedE2 = concE2 !== null && !Number.isNaN(concE2)
+                ? concE2 * calibrationFn(e.timeH)
+                : 0; // pg/mL
 
             return {
                 time: timeMs,
-                concE2: calibratedE2, // Use E2 for positioning on left Y-axis
+                concE2: calibratedE2,
                 event: e,
                 isEvent: true
             };
@@ -255,26 +253,29 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                     {t('chart.title')}
                 </h2>
 
-                <div className="flex bg-gray-50 rounded-xl p-1 gap-1 border border-gray-100">
-                    <button
-                        onClick={() => zoomToDuration(30)}
-                        className="px-3 py-1.5 text-xs md:text-sm font-bold text-gray-600 rounded-lg hover:bg-white transition-all">
-                        1M
-                    </button>
-                    <button
-                        onClick={() => zoomToDuration(7)}
-                        className="px-3 py-1.5 text-xs md:text-sm font-bold text-gray-600 rounded-lg hover:bg-white transition-all">
-                        1W
-                    </button>
-                    <div className="w-px h-4 bg-gray-200 self-center mx-1"></div>
-                    <button
-                        onClick={() => {
-                            zoomToDuration(7);
-                        }}
-                        className="p-1.5 text-gray-600 rounded-lg hover:bg-white transition-all"
-                    >
-                        <RotateCcw size={14} className="md:w-4 md:h-4" />
-                    </button>
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 px-2 py-1 rounded-lg border border-amber-100 bg-amber-50 text-amber-700 text-xs font-semibold">
+                        <input
+                            type="checkbox"
+                            className="accent-amber-500 h-4 w-4"
+                            checked={showCPA}
+                            onChange={(e) => setShowCPA(e.target.checked)}
+                        />
+                        <span className="flex items-center gap-1">
+                            {t('label.cpa_chart')}
+                            <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-white text-amber-600 border border-amber-100">β</span>
+                        </span>
+                    </label>
+                    <div className="flex bg-gray-50 rounded-xl p-1 gap-1 border border-gray-100">
+                        <button
+                            onClick={() => {
+                                zoomToDuration(7);
+                            }}
+                            className="p-1.5 text-gray-600 rounded-lg hover:bg-white transition-all"
+                        >
+                            <RotateCcw size={14} className="md:w-4 md:h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -324,18 +325,20 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             axisLine={false}
                             tickLine={false}
                             width={50}
-                            label={{ value: 'E2 (pg/mL)', angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
+                            label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
                         />
-                        <YAxis
-                            yAxisId="right"
-                            orientation="right"
-                            dataKey="concCPA"
-                            tick={{fontSize: 10, fill: '#8b5cf6', fontWeight: 600}}
-                            axisLine={false}
-                            tickLine={false}
-                            width={50}
-                            label={{ value: 'CPA (ng/mL)', angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
-                        />
+                        {showCPA && (
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                dataKey="concCPA"
+                                tick={{fontSize: 10, fill: '#8b5cf6', fontWeight: 600}}
+                                axisLine={false}
+                                tickLine={false}
+                                width={50}
+                                label={{ value: t('label.cpa_unit'), angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
+                            />
+                        )}
                         <Tooltip 
                             content={<CustomTooltip t={t} lang={lang} />} 
                             cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }} 
@@ -354,18 +357,20 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             isAnimationActive={false}
                             activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
                         />
-                        <Area
-                            data={data}
-                            type="monotone"
-                            dataKey="concCPA"
-                            yAxisId="right"
-                            stroke="#8b5cf6"
-                            strokeWidth={2.2}
-                            fillOpacity={0.95}
-                            fill="url(#colorCPA)"
-                            isAnimationActive={false}
-                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
-                        />
+                        {showCPA && (
+                            <Area
+                                data={data}
+                                type="monotone"
+                                dataKey="concCPA"
+                                yAxisId="right"
+                                stroke="#8b5cf6"
+                                strokeWidth={2.2}
+                                fillOpacity={0.95}
+                                fill="url(#colorCPA)"
+                                isAnimationActive={false}
+                                activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
+                            />
+                        )}
                         {eventPoints.length > 0 && (
                             <Scatter
                                 data={eventPoints}
@@ -405,27 +410,29 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 );
                             }}
                         />
-                        <Scatter
-                            data={nowPoint ? [nowPoint] : []}
-                            yAxisId="right"
-                            isAnimationActive={false}
-                            shape={({ cx, cy, payload }: any) => {
-                                const conc = payload?.concCPA ?? 0;
-                                const radius = Math.max(4, Math.min(9, 4 + conc / 8)); // Scale dot size with live CPA but cap size
-                                return (
-                                    <g className="group">
-                                        <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                        <circle
-                                            cx={cx} cy={cy}
-                                            r={radius}
-                                            fill="#c4b5fd"
-                                            stroke="white"
-                                            strokeWidth={1.5}
-                                        />
-                                    </g>
-                                );
-                            }}
-                        />
+                        {showCPA && (
+                            <Scatter
+                                data={nowPoint ? [nowPoint] : []}
+                                yAxisId="right"
+                                isAnimationActive={false}
+                                shape={({ cx, cy, payload }: any) => {
+                                    const conc = payload?.concCPA ?? 0;
+                                    const radius = Math.max(4, Math.min(9, 4 + conc / 8)); // Scale dot size with live CPA but cap size
+                                    return (
+                                        <g className="group">
+                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                            <circle
+                                                cx={cx} cy={cy}
+                                                r={radius}
+                                                fill="#c4b5fd"
+                                                stroke="white"
+                                                strokeWidth={1.5}
+                                            />
+                                        </g>
+                                    );
+                                }}
+                            />
+                        )}
                         {labPoints.length > 0 && (
                             <Scatter
                                 data={labPoints}

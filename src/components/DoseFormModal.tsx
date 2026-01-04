@@ -46,6 +46,62 @@ const formatGuideNumber = (val: number) => {
     return rounded.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 };
 
+const SL_POINTS = SL_TIER_ORDER
+    .map((k, idx) => ({ idx, key: k, hold: SublingualTierParams[k].hold, theta: SublingualTierParams[k].theta }))
+    .sort((a, b) => a.hold - b.hold);
+
+const thetaFromHold = (holdMin: number): number => {
+    if (holdMin <= 0) return 0;
+    if (SL_POINTS.length === 0) return 0.11;
+    const h = Math.max(1, holdMin);
+    // Linear interpolation with endpoint extrapolation
+    for (let i = 0; i < SL_POINTS.length - 1; i++) {
+        const p1 = SL_POINTS[i];
+        const p2 = SL_POINTS[i + 1];
+        if (h >= p1.hold && h <= p2.hold) {
+            const t = (h - p1.hold) / (p2.hold - p1.hold || 1);
+            return Math.min(1, Math.max(0, p1.theta + (p2.theta - p1.theta) * t));
+        }
+    }
+    // Extrapolate below first or above last segment
+    if (h < SL_POINTS[0].hold) {
+        const p1 = SL_POINTS[0];
+        const p2 = SL_POINTS[1];
+        const slope = (p2.theta - p1.theta) / (p2.hold - p1.hold || 1);
+        return Math.min(1, Math.max(0, p1.theta + (h - p1.hold) * slope));
+    }
+    const pLast = SL_POINTS[SL_POINTS.length - 1];
+    const pPrev = SL_POINTS[SL_POINTS.length - 2];
+    const slope = (pLast.theta - pPrev.theta) / (pLast.hold - pPrev.hold || 1);
+    return Math.min(1, Math.max(0, pLast.theta + (h - pLast.hold) * slope));
+};
+
+const holdFromTheta = (thetaVal: number): number => {
+    if (SL_POINTS.length === 0) return 10;
+    const th = thetaVal;
+    for (let i = 0; i < SL_POINTS.length - 1; i++) {
+        const p1 = SL_POINTS[i];
+        const p2 = SL_POINTS[i + 1];
+        const minTh = Math.min(p1.theta, p2.theta);
+        const maxTh = Math.max(p1.theta, p2.theta);
+        if (th >= minTh && th <= maxTh) {
+            const t = (th - p1.theta) / (p2.theta - p1.theta || 1);
+            return p1.hold + (p2.hold - p1.hold) * t;
+        }
+    }
+    // Extrapolate
+    if (th < SL_POINTS[0].theta) {
+        const p1 = SL_POINTS[0];
+        const p2 = SL_POINTS[1];
+        const slope = (p2.hold - p1.hold) / (p2.theta - p1.theta || 1);
+        return Math.max(1, p1.hold + (th - p1.theta) * slope);
+    }
+    const pLast = SL_POINTS[SL_POINTS.length - 1];
+    const pPrev = SL_POINTS[SL_POINTS.length - 2];
+    const slope = (pLast.hold - pPrev.hold) / (pLast.theta - pPrev.theta || 1);
+    return Math.max(1, pLast.hold + (th - pLast.theta) * slope);
+};
+
 const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
@@ -66,19 +122,18 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
 
     const [slTier, setSlTier] = useState(2);
     const [useCustomTheta, setUseCustomTheta] = useState(false);
-    const [customTheta, setCustomTheta] = useState("");
+    const [customHoldInput, setCustomHoldInput] = useState<string>("10");
+    const [customHoldValue, setCustomHoldValue] = useState<number>(10);
     const [lastEditedField, setLastEditedField] = useState<'raw' | 'bio'>('bio');
 
     const slExtras = useMemo(() => {
         if (route !== Route.sublingual) return null;
         if (useCustomTheta) {
-            const parsed = parseFloat(customTheta);
-            const theta = Number.isFinite(parsed) ? parsed : 0.11;
-            const clamped = Math.max(0, Math.min(1, theta));
-            return { [ExtraKey.sublingualTheta]: clamped };
+            const theta = thetaFromHold(customHoldValue);
+            return { [ExtraKey.sublingualTheta]: theta };
         }
         return { [ExtraKey.sublingualTier]: slTier };
-    }, [route, useCustomTheta, customTheta, slTier]);
+    }, [route, useCustomTheta, customHoldValue, slTier]);
 
     const bioMultiplier = useMemo(() => {
         const extrasForCalc = slExtras ?? {};
@@ -123,17 +178,25 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                     if (eventToEdit.extras[ExtraKey.sublingualTier] !== undefined) {
                          setSlTier(eventToEdit.extras[ExtraKey.sublingualTier]);
                          setUseCustomTheta(false);
-                         setCustomTheta("");
+                         const tierKey = SL_TIER_ORDER[eventToEdit.extras[ExtraKey.sublingualTier]] || 'standard';
+                         const hold = SublingualTierParams[tierKey]?.hold ?? 10;
+                         setCustomHoldValue(hold);
+                         setCustomHoldInput(hold.toString());
                     } else if (eventToEdit.extras[ExtraKey.sublingualTheta] !== undefined) {
+                        const thetaVal = eventToEdit.extras[ExtraKey.sublingualTheta];
                         setUseCustomTheta(true);
-                        setCustomTheta(eventToEdit.extras[ExtraKey.sublingualTheta].toString());
+                        const hold = holdFromTheta(typeof thetaVal === 'number' ? thetaVal : 0.11);
+                        setCustomHoldValue(hold);
+                        setCustomHoldInput(hold.toString());
                     } else {
                         setUseCustomTheta(false);
-                        setCustomTheta("");
+                        setCustomHoldValue(10);
+                        setCustomHoldInput("10");
                     }
                 } else {
                     setUseCustomTheta(false);
-                    setCustomTheta("");
+                    setCustomHoldValue(10);
+                    setCustomHoldInput("10");
                 }
 
                 if (eventToEdit.route === Route.gel) {
@@ -155,7 +218,8 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                 setSlTier(2);
                 setGelSite(0);
                 setUseCustomTheta(false);
-                setCustomTheta("");
+                setCustomHoldValue(10);
+                setCustomHoldInput("10");
                 setLastEditedField('bio');
             }
         }
@@ -226,6 +290,15 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
 
         const extras: any = {};
         const nonPositiveMsg = t('error.nonPositive');
+
+        // Validate sublingual custom hold time
+        if (route === Route.sublingual && useCustomTheta) {
+            if (!Number.isFinite(customHoldValue) || customHoldValue < 1) {
+                showDialog('alert', t('error.slHoldMinOne'));
+                setIsSaving(false);
+                return;
+            }
+        }
 
         if (route === Route.patchApply && patchMode === "rate") {
             const rateVal = parseFloat(patchRate);
@@ -334,11 +407,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
     const tierKey = SL_TIER_ORDER[slTier] || "standard";
     const currentTheta = SublingualTierParams[tierKey]?.theta || 0.11;
 
-    const activeTheta = useCustomTheta
-        ? (slExtras && slExtras[ExtraKey.sublingualTheta] !== undefined
-            ? slExtras[ExtraKey.sublingualTheta]!
-            : 0.11)
-        : currentTheta;
+    const customTheta = thetaFromHold(customHoldValue);
 
     const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : "";
     const guideRangeText = doseGuide?.config
@@ -554,7 +623,10 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                                             <Clock size={16} /> {t('field.sl_duration')}
                                         </label>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-medium text-teal-600">{t('field.sl_custom')}</span>
+                                            <span className="text-xs font-semibold text-teal-700 flex items-center gap-1">
+                                                {t('sl.custom_mode')}
+                                                <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-white text-amber-600 border border-amber-100">β</span>
+                                            </span>
                                             <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${useCustomTheta ? 'bg-teal-500' : 'bg-gray-300'}`} onClick={() => setUseCustomTheta(!useCustomTheta)}>
                                                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${useCustomTheta ? 'translate-x-4' : ''}`} />
                                             </div>
@@ -575,14 +647,37 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                                                 <span>{t('sl.mode.strict')}</span>
                                             </div>
                                             <div className="text-xs text-teal-600 bg-white/50 p-2 rounded-lg flex justify-between items-center">
-                                                <span>Absorption θ ≈ {currentTheta.toFixed(2)}</span>
+                                                <span>θ ≈ {currentTheta.toFixed(2)}</span>
+                                                <span className="text-[11px] text-teal-500">{SublingualTierParams[tierKey]?.hold ?? 0} min</span>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            <input type="number" step="0.01" max="1" min="0" value={customTheta} onChange={e => setCustomTheta(e.target.value)} className="w-full p-3 border border-teal-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none" placeholder="0.0 - 1.0" />
-                                            <div className="text-xs text-teal-600 bg-white/50 p-2 rounded-lg flex justify-between items-center">
-                                                <span>Absorption θ ≈ {activeTheta.toFixed(2)}</span>
+                                            <label className="block text-xs font-bold text-teal-700">{t('field.sl_duration')}</label>
+                                            <input
+                                                type="number"
+                                                inputMode="decimal"
+                                                min="1"
+                                                max="60"
+                                                step="0.5"
+                                                value={customHoldInput}
+                                                onChange={e => {
+                                                    const raw = e.target.value;
+                                                    setCustomHoldInput(raw);
+                                                    if (raw.trim() === '') {
+                                                        setCustomHoldValue(0);
+                                                    } else {
+                                                        const val = parseFloat(raw);
+                                                        if (Number.isFinite(val)) {
+                                                            setCustomHoldValue(val);
+                                                        }
+                                                    }
+                                                }}
+                                                className="w-full p-3 border border-teal-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                                                placeholder="e.g. 7.5"
+                                            />
+                                            <div className="text-xs text-teal-600">
+                                                θ ≈ {customTheta.toFixed(3)} · {t('sl.custom_hint')} · {t('sl.custom_range')}
                                             </div>
                                         </div>
                                     )}

@@ -460,8 +460,8 @@ const AppContent = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         {/* E2 Display */}
                                         <div className="space-y-1">
-                                            <div className="text-[10px] md:text-xs font-bold text-pink-400 uppercase tracking-wider">
-                                                E2
+                                            <div className="text-[10px] md:text-xs font-bold text-pink-400 tracking-tight">
+                                                {t('label.e2')}
                                             </div>
                                             <div className="flex items-end gap-2">
                                                 {currentLevel > 0 ? (
@@ -488,8 +488,9 @@ const AppContent = () => {
                                         </div>
                                         {/* CPA Display */}
                                         <div className="space-y-1">
-                                            <div className="text-[10px] md:text-xs font-bold text-purple-400 uppercase tracking-wider">
-                                                CPA
+                                            <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-purple-400 tracking-tight">
+                                                <span>{t('label.cpa')}</span>
+                                                <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-purple-50 text-purple-600 border border-purple-100">β</span>
                                             </div>
                                             <div className="flex items-end gap-2">
                                                 {currentCPA > 0 ? (
