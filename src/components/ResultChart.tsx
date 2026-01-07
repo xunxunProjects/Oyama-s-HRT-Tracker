@@ -71,7 +71,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     const containerRef = useRef<HTMLDivElement>(null);
     const [xDomain, setXDomain] = useState<[number, number] | null>(null);
     const initializedRef = useRef(false);
-    const [showCPA, setShowCPA] = useState(true);
+
+    // Auto-detect if we have E2 or CPA data
+    const hasE2Data = useMemo(() => events.some(e => e.ester !== 'CPA'), [events]);
+    const hasCPAData = useMemo(() => events.some(e => e.ester === 'CPA'), [events]);
 
     const data = useMemo(() => {
         if (!sim || sim.timeH.length === 0) return [];
@@ -282,18 +285,6 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 px-2 py-1 rounded-lg border border-amber-100 bg-amber-50 text-amber-700 text-xs font-semibold">
-                        <input
-                            type="checkbox"
-                            className="accent-amber-500 h-4 w-4"
-                            checked={showCPA}
-                            onChange={(e) => setShowCPA(e.target.checked)}
-                        />
-                        <span className="flex items-center gap-1">
-                            {t('label.cpa_chart')}
-                            <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-white text-amber-600 border border-amber-100">β</span>
-                        </span>
-                    </label>
                     <div className="flex bg-gray-50 rounded-xl p-1 gap-1 border border-gray-100">
                         <button
                             onClick={() => {
@@ -346,16 +337,18 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             tickLine={false}
                             dy={10}
                         />
-                        <YAxis
-                            yAxisId="left"
-                            dataKey="concE2"
-                            tick={{fontSize: 10, fill: '#ec4899', fontWeight: 600}}
-                            axisLine={false}
-                            tickLine={false}
-                            width={50}
-                            label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
-                        />
-                        {showCPA && (
+                        {hasE2Data && (
+                            <YAxis
+                                yAxisId="left"
+                                dataKey="concE2"
+                                tick={{fontSize: 10, fill: '#ec4899', fontWeight: 600}}
+                                axisLine={false}
+                                tickLine={false}
+                                width={50}
+                                label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
+                            />
+                        )}
+                        {hasCPAData && (
                             <YAxis
                                 yAxisId="right"
                                 orientation="right"
@@ -372,27 +365,31 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }} 
                             trigger="hover"
                         />
-                        <ReferenceLine 
-                            x={now} 
-                            stroke="#f6c4d7" 
-                            strokeDasharray="3 3" 
-                            strokeWidth={1.2} 
-                            yAxisId="left"
-                            ifOverflow="extendDomain"
-                        />
-                        <Area
-                            data={data}
-                            type="monotone"
-                            dataKey="concE2"
-                            yAxisId="left"
-                            stroke="#f6c4d7"
-                            strokeWidth={2.2}
-                            fillOpacity={0.95}
-                            fill="url(#colorConc)"
-                            isAnimationActive={false}
-                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
-                        />
-                        {showCPA && (
+                        {hasE2Data && (
+                            <ReferenceLine 
+                                x={now} 
+                                stroke="#f6c4d7" 
+                                strokeDasharray="3 3" 
+                                strokeWidth={1.2} 
+                                yAxisId="left"
+                                ifOverflow="extendDomain"
+                            />
+                        )}
+                        {hasE2Data && (
+                            <Area
+                                data={data}
+                                type="monotone"
+                                dataKey="concE2"
+                                yAxisId="left"
+                                stroke="#f6c4d7"
+                                strokeWidth={2.2}
+                                fillOpacity={0.95}
+                                fill="url(#colorConc)"
+                                isAnimationActive={false}
+                                activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
+                            />
+                        )}
+                        {hasCPAData && (
                             <Area
                                 data={data}
                                 type="monotone"
@@ -426,7 +423,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             />
                         )}
                         {/* CPA Event Points */}
-                        {showCPA && cpaEventPoints.length > 0 && (
+                        {hasCPAData && cpaEventPoints.length > 0 && (
                             <Scatter
                                 data={cpaEventPoints}
                                 yAxisId="right"
@@ -444,28 +441,30 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 )}
                             />
                         )}
-                        <Scatter
-                            data={nowPoint ? [nowPoint] : []}
-                            yAxisId="left"
-                            isAnimationActive={false}
-                            shape={({ cx, cy, payload }: any) => {
-                                const conc = payload?.concE2 ?? 0;
-                                const radius = Math.max(4, Math.min(7, 4 + conc / 80)); // Scale dot size with live E2 but cap size
-                                return (
-                                    <g className="group">
-                                        <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                        <circle
-                                            cx={cx} cy={cy}
-                                            r={radius}
-                                            fill="#bfdbfe"
-                                            stroke="white"
-                                            strokeWidth={1.5}
-                                        />
-                                    </g>
-                                );
-                            }}
-                        />
-                        {showCPA && (
+                        {hasE2Data && (
+                            <Scatter
+                                data={nowPoint ? [nowPoint] : []}
+                                yAxisId="left"
+                                isAnimationActive={false}
+                                shape={({ cx, cy, payload }: any) => {
+                                    const conc = payload?.concE2 ?? 0;
+                                    const radius = Math.max(4, Math.min(7, 4 + conc / 80)); // Scale dot size with live E2 but cap size
+                                    return (
+                                        <g className="group">
+                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                            <circle
+                                                cx={cx} cy={cy}
+                                                r={radius}
+                                                fill="#bfdbfe"
+                                                stroke="white"
+                                                strokeWidth={1.5}
+                                            />
+                                        </g>
+                                    );
+                                }}
+                            />
+                        )}
+                        {hasCPAData && (
                             <Scatter
                                 data={nowPoint ? [nowPoint] : []}
                                 yAxisId="right"
