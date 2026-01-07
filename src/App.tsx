@@ -218,11 +218,35 @@ const AppContent = () => {
             .filter((item): item is LabResult => item !== null);
     };
 
+    const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .map((item: any) => {
+                if (!item || typeof item !== 'object') return null;
+                const { name, route, ester, doseMG, extras, createdAt } = item;
+                if (!Object.values(Route).includes(route)) return null;
+                if (!Object.values(Ester).includes(ester)) return null;
+                const doseNum = Number(doseMG);
+                if (!Number.isFinite(doseNum) || doseNum < 0) return null;
+                return {
+                    id: typeof item.id === 'string' ? item.id : uuidv4(),
+                    name: typeof name === 'string' ? name : 'Template',
+                    route,
+                    ester,
+                    doseMG: doseNum,
+                    extras: (extras && typeof extras === 'object') ? extras : {},
+                    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now()
+                } as DoseTemplate;
+            })
+            .filter((item): item is DoseTemplate => item !== null);
+    };
+
     const processImportedData = (parsed: any): boolean => {
         try {
             let newEvents: DoseEvent[] = [];
             let newWeight: number | undefined = undefined;
             let newLabs: LabResult[] = [];
+            let newTemplates: DoseTemplate[] = [];
 
             if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
@@ -236,13 +260,17 @@ const AppContent = () => {
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
                 }
+                if (Array.isArray(parsed.doseTemplates)) {
+                    newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
+                }
             }
 
-            if (!newEvents.length && !newWeight && !newLabs.length) throw new Error('No valid entries');
+            if (!newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
             
             if (newEvents.length > 0) setEvents(newEvents);
             if (newWeight !== undefined) setWeight(newWeight);
             if (newLabs.length > 0) setLabResults(newLabs);
+            if (newTemplates.length > 0) setDoseTemplates(newTemplates);
 
             showDialog('alert', t('drawer.import_success'));
             return true;
@@ -352,7 +380,8 @@ const AppContent = () => {
             meta: { version: 1, exportedAt: new Date().toISOString() },
             weight: weight,
             events: events,
-            labResults: labResults
+            labResults: labResults,
+            doseTemplates: doseTemplates
         };
         const json = JSON.stringify(exportData, null, 2);
         navigator.clipboard.writeText(json).then(() => {
@@ -378,7 +407,8 @@ const AppContent = () => {
             meta: { version: 1, exportedAt: new Date().toISOString() },
             weight: weight,
             events: events,
-            labResults: labResults
+            labResults: labResults,
+            doseTemplates: doseTemplates
         };
         const json = JSON.stringify(exportData, null, 2);
         
@@ -953,6 +983,12 @@ const AppContent = () => {
             <DisclaimerModal
                 isOpen={isDisclaimerOpen}
                 onClose={() => setIsDisclaimerOpen(false)}
+            />
+
+            <ImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImportJson={importEventsFromJson}
             />
 
             <LabResultModal
