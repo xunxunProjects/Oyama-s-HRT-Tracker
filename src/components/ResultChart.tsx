@@ -104,10 +104,13 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     const eventPoints = useMemo(() => {
         if (!sim || events.length === 0) return [];
 
-        // Map events to data points, find closest concentration from sim
-        return events.map(e => {
+        // Split events by ester type
+        const e2Events = events.filter(e => e.ester !== 'CPA');
+        const cpaEvents = events.filter(e => e.ester === 'CPA');
+
+        // Map E2 events to data points
+        const e2Points = e2Events.map(e => {
             const timeMs = e.timeH * 3600000;
-            // Use interpolated value so the marker sits on the curve rather than the nearest sample
             const concE2 = interpolateConcentration_E2(sim, e.timeH);
             const calibratedE2 = concE2 !== null && !Number.isNaN(concE2)
                 ? concE2 * calibrationFn(e.timeH)
@@ -116,11 +119,36 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             return {
                 time: timeMs,
                 concE2: calibratedE2,
+                concCPA: 0,
                 event: e,
-                isEvent: true
+                isEvent: true,
+                isCPAEvent: false
             };
         });
+
+        return { e2Points, cpaEvents };
     }, [sim, events, calibrationFn]);
+
+    const cpaEventPoints = useMemo(() => {
+        if (!sim || eventPoints.cpaEvents.length === 0) return [];
+
+        // Map CPA events to data points
+        // Use interpolation to get the exact concentration at the event time
+        return eventPoints.cpaEvents.map(e => {
+            const timeMs = e.timeH * 3600000;
+            const concCPA = interpolateConcentration_CPA(sim, e.timeH);
+            const finalCPA = (concCPA !== null && Number.isFinite(concCPA)) ? concCPA : 0; // ng/mL
+
+            return {
+                time: timeMs,
+                concE2: 0,
+                concCPA: finalCPA,
+                event: e,
+                isEvent: true,
+                isCPAEvent: true
+            };
+        });
+    }, [sim, eventPoints.cpaEvents]);
 
     const { minTime, maxTime, now } = useMemo(() => {
         const n = new Date().getTime();
@@ -344,7 +372,14 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }} 
                             trigger="hover"
                         />
-                        <ReferenceLine x={now} stroke="#f6c4d7" strokeDasharray="3 3" strokeWidth={1.2} yAxisId="left" />
+                        <ReferenceLine 
+                            x={now} 
+                            stroke="#f6c4d7" 
+                            strokeDasharray="3 3" 
+                            strokeWidth={1.2} 
+                            yAxisId="left"
+                            ifOverflow="extendDomain"
+                        />
                         <Area
                             data={data}
                             type="monotone"
@@ -371,9 +406,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
                             />
                         )}
-                        {eventPoints.length > 0 && (
+                        {/* E2 Event Points */}
+                        {eventPoints.e2Points.length > 0 && (
                             <Scatter
-                                data={eventPoints}
+                                data={eventPoints.e2Points}
                                 yAxisId="left"
                                 isAnimationActive={false}
                                 onClick={(entry) => {
@@ -385,6 +421,25 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     <g className="cursor-pointer">
                                         <circle cx={cx} cy={cy} r={6} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.6} />
                                         <circle cx={cx} cy={cy} r={3} fill="#f97316" />
+                                    </g>
+                                )}
+                            />
+                        )}
+                        {/* CPA Event Points */}
+                        {showCPA && cpaEventPoints.length > 0 && (
+                            <Scatter
+                                data={cpaEventPoints}
+                                yAxisId="right"
+                                isAnimationActive={false}
+                                onClick={(entry) => {
+                                    if (entry && entry.payload && entry.payload.event) {
+                                        onPointClick(entry.payload.event);
+                                    }
+                                }}
+                                shape={({ cx, cy }: any) => (
+                                    <g className="cursor-pointer">
+                                        <circle cx={cx} cy={cy} r={6} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.6} />
+                                        <circle cx={cx} cy={cy} r={3} fill="#8b5cf6" />
                                     </g>
                                 )}
                             />

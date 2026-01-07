@@ -5,7 +5,17 @@ import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import { getRouteIcon } from '../utils/helpers';
 import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
-import { Calendar, X, Clock, Info, Save, Trash2 } from 'lucide-react';
+import { Calendar, X, Clock, Info, Save, Trash2, Bookmark, BookmarkCheck } from 'lucide-react';
+
+export interface DoseTemplate {
+    id: string;
+    name: string;
+    route: Route;
+    ester: Ester;
+    doseMG: number;
+    extras: Partial<Record<ExtraKey, number>>;
+    createdAt: number;
+}
 
 type DoseLevelKey = 'low' | 'medium' | 'high' | 'very_high' | 'above';
 
@@ -102,10 +112,14 @@ const holdFromTheta = (thetaVal: number): number => {
     return Math.max(1, pLast.hold + (th - pLast.theta) * slope);
 };
 
-const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) => {
+const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templates = [], onSaveTemplate, onDeleteTemplate }: any) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
     const dateInputRef = useRef<HTMLInputElement>(null);
+    const isInitializingRef = useRef(false);
+    const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+    const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+    const [templateName, setTemplateName] = useState('');
     
     // Form State
     const [dateStr, setDateStr] = useState("");
@@ -145,6 +159,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
 
     useEffect(() => {
         if (isOpen) {
+            isInitializingRef.current = true;
             if (eventToEdit) {
                 const d = new Date(eventToEdit.timeH * 3600000);
                 const iso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
@@ -157,7 +172,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                     setPatchRate(eventToEdit.extras[ExtraKey.releaseRateUGPerDay].toString());
                     setE2Dose("");
                     setRawDose("");
-                    setLastEditedField('bio');
+                    // Don't set lastEditedField when doses are empty in rate mode
                 } else {
                     setPatchMode("dose");
                     // Fix: Show E2 Equivalent (MW only), not Bioavailable dose
@@ -185,7 +200,9 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                     } else if (eventToEdit.extras[ExtraKey.sublingualTheta] !== undefined) {
                         const thetaVal = eventToEdit.extras[ExtraKey.sublingualTheta];
                         setUseCustomTheta(true);
-                        const hold = holdFromTheta(typeof thetaVal === 'number' ? thetaVal : 0.11);
+                        // Better error handling for theta conversion
+                        const safeTheta = (typeof thetaVal === 'number' && Number.isFinite(thetaVal)) ? thetaVal : 0.11;
+                        const hold = Math.max(1, Math.min(60, holdFromTheta(safeTheta))); // Clamp to valid range
                         setCustomHoldValue(hold);
                         setCustomHoldInput(hold.toString());
                     } else {
@@ -222,6 +239,10 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                 setCustomHoldInput("10");
                 setLastEditedField('bio');
             }
+            // Clear initialization flag after a brief delay to allow state updates to complete
+            setTimeout(() => {
+                isInitializingRef.current = false;
+            }, 0);
         }
     }, [isOpen, eventToEdit]);
 
@@ -255,18 +276,86 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
     };
 
     useEffect(() => {
-        if (lastEditedField === 'raw' && rawDose) {
-            handleRawChange(rawDose);
-        }
+        // Skip if initializing or if field is empty
+        if (isInitializingRef.current || lastEditedField !== 'raw' || !rawDose) return;
+        handleRawChange(rawDose);
     }, [bioMultiplier, ester, route]);
 
     useEffect(() => {
-        if (lastEditedField === 'bio' && e2Dose) {
-            handleE2Change(e2Dose);
-        }
+        // Skip if initializing or if field is empty
+        if (isInitializingRef.current || lastEditedField !== 'bio' || !e2Dose) return;
+        handleE2Change(e2Dose);
     }, [bioMultiplier, ester, route]);
 
     const [isSaving, setIsSaving] = useState(false);
+
+    const handleSaveAsTemplate = () => {
+        if (!templateName.trim()) {
+            showDialog('alert', t('template.name_required'));
+            return;
+        }
+
+        const template: DoseTemplate = {
+            id: uuidv4(),
+            name: templateName.trim(),
+            route,
+            ester,
+            doseMG: parseFloat(rawDose) || 0,
+            extras: {},
+            createdAt: Date.now()
+        };
+
+        // Add route-specific extras
+        if (route === Route.sublingual && slExtras) {
+            Object.assign(template.extras, slExtras);
+        }
+        if (route === Route.gel) {
+            template.extras[ExtraKey.gelSite] = gelSite;
+        }
+        if (route === Route.patchApply && patchMode === 'rate') {
+            template.extras[ExtraKey.releaseRateUGPerDay] = parseFloat(patchRate) || 0;
+        }
+
+        onSaveTemplate(template);
+        setShowSaveTemplateDialog(false);
+        setTemplateName('');
+        showDialog('alert', t('template.saved'));
+    };
+
+    const handleLoadTemplate = (template: DoseTemplate) => {
+        setRoute(template.route);
+        setEster(template.ester);
+        setRawDose(template.doseMG.toFixed(3));
+        
+        const factor = getToE2Factor(template.ester) || 1;
+        const e2Val = template.doseMG * factor;
+        setE2Dose(e2Val.toFixed(3));
+        
+        if (template.route === Route.patchApply && template.extras[ExtraKey.releaseRateUGPerDay]) {
+            setPatchMode('rate');
+            setPatchRate(template.extras[ExtraKey.releaseRateUGPerDay].toString());
+        }
+        
+        if (template.route === Route.sublingual) {
+            if (template.extras[ExtraKey.sublingualTier] !== undefined) {
+                setSlTier(template.extras[ExtraKey.sublingualTier]);
+                setUseCustomTheta(false);
+            } else if (template.extras[ExtraKey.sublingualTheta] !== undefined) {
+                const theta = template.extras[ExtraKey.sublingualTheta];
+                const hold = Math.max(1, Math.min(60, holdFromTheta(typeof theta === 'number' ? theta : 0.11)));
+                setCustomHoldValue(hold);
+                setCustomHoldInput(hold.toString());
+                setUseCustomTheta(true);
+            }
+        }
+        
+        if (template.route === Route.gel && template.extras[ExtraKey.gelSite] !== undefined) {
+            setGelSite(template.extras[ExtraKey.gelSite]);
+        }
+        
+        setShowTemplateMenu(false);
+        showDialog('alert', t('template.loaded'));
+    };
 
     const handleSave = () => {
         if (isSaving) return;
@@ -310,15 +399,17 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
             finalDose = 0;
             extras[ExtraKey.releaseRateUGPerDay] = rateVal;
         } else if (route === Route.patchApply && patchMode === "dose") {
+            // Validate rawDose input for patch dose mode
             const raw = parseFloat(rawDose);
-            if (!Number.isFinite(raw) || raw <= 0) {
+            if (!rawDose || rawDose.trim() === '' || !Number.isFinite(raw) || raw <= 0) {
                 showDialog('alert', nonPositiveMsg);
                 setIsSaving(false);
                 return;
             }
             finalDose = raw; // patch input is compound dose on patch
         } else if (route !== Route.patchRemove) {
-            if (!Number.isFinite(e2Equivalent) || e2Equivalent <= 0) {
+            // Validate dose input for all other routes
+            if (!e2Dose || e2Dose.trim() === '' || !Number.isFinite(e2Equivalent) || e2Equivalent <= 0) {
                 showDialog('alert', nonPositiveMsg);
                 setIsSaving(false);
                 return;
@@ -429,14 +520,88 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
+            {/* Save Template Dialog */}
+            {showSaveTemplateDialog && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">{t('template.save_title')}</h4>
+                        <input
+                            type="text"
+                            value={templateName}
+                            onChange={(e) => setTemplateName(e.target.value)}
+                            placeholder={t('template.name_placeholder')}
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none mb-4"
+                            autoFocus
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowSaveTemplateDialog(false); setTemplateName(''); }}
+                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold"
+                            >
+                                {t('btn.cancel')}
+                            </button>
+                            <button
+                                onClick={handleSaveAsTemplate}
+                                className="flex-1 px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 font-semibold"
+                            >
+                                {t('btn.save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-md shadow-gray-900/10 w-full max-w-lg md:max-w-2xl h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
                 <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
                     <h3 className="text-xl font-semibold text-gray-900">
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
-                    <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
-                        <X size={20} className="text-gray-500" />
-                    </button>
+                    <div className="flex gap-2">
+                        {!eventToEdit && templates.length > 0 && (
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                                    className="p-2 bg-amber-50 rounded-full hover:bg-amber-100 transition border border-amber-200"
+                                    title={t('template.load_title')}
+                                >
+                                    <Bookmark size={20} className="text-amber-600" />
+                                </button>
+                                {showTemplateMenu && (
+                                    <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 w-64 max-h-80 overflow-y-auto z-20">
+                                        <div className="p-2">
+                                            {templates.map((template: DoseTemplate) => (
+                                                <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                                                    <button
+                                                        onClick={() => handleLoadTemplate(template)}
+                                                        className="flex-1 text-left"
+                                                    >
+                                                        <div className="text-sm font-semibold text-gray-900">{template.name}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {t(`route.${template.route}`)} · {t(`ester.${template.ester}`)} · {template.doseMG.toFixed(2)} mg
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            showDialog('confirm', t('template.delete_confirm'), () => {
+                                                                onDeleteTemplate(template.id);
+                                                            });
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition"
+                                                    >
+                                                        <Trash2 size={14} className="text-red-500" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                            <X size={20} className="text-gray-500" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-6 space-y-6 flex-1 overflow-y-auto">
@@ -695,6 +860,15 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete }: any) 
                 </div>
 
                 <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-3 shrink-0 safe-area-pb">
+                    {!eventToEdit && (
+                        <button 
+                            onClick={() => setShowSaveTemplateDialog(true)}
+                            className="h-14 px-4 flex items-center justify-center bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 border border-amber-200 transition-colors"
+                            title={t('template.save_title')}
+                        >
+                            <BookmarkCheck size={20} />
+                        </button>
+                    )}
                     {eventToEdit && (
                         <button 
                             onClick={() => {

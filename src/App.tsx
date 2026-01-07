@@ -9,7 +9,7 @@ import { formatDate, formatTime, getRouteIcon } from './utils/helpers';
 import { Lang } from './i18n/translations';
 import ResultChart from './components/ResultChart';
 import WeightEditorModal from './components/WeightEditorModal';
-import DoseFormModal from './components/DoseFormModal';
+import DoseFormModal, { DoseTemplate } from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
 import ExportModal from './components/ExportModal';
 import PasswordDisplayModal from './components/PasswordDisplayModal';
@@ -39,6 +39,10 @@ const AppContent = () => {
     });
     const [labResults, setLabResults] = useState<LabResult[]>(() => {
         const saved = localStorage.getItem('hrt-lab-results');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => {
+        const saved = localStorage.getItem('hrt-dose-templates');
         return saved ? JSON.parse(saved) : [];
     });
 
@@ -92,6 +96,7 @@ const AppContent = () => {
     useEffect(() => { localStorage.setItem('hrt-events', JSON.stringify(events)); }, [events]);
     useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
     useEffect(() => { localStorage.setItem('hrt-lab-results', JSON.stringify(labResults)); }, [labResults]);
+    useEffect(() => { localStorage.setItem('hrt-dose-templates', JSON.stringify(doseTemplates)); }, [doseTemplates]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -297,6 +302,14 @@ const AppContent = () => {
         showDialog('confirm', t('lab.clear_confirm'), () => {
             setLabResults([]);
         });
+    };
+
+    const handleSaveTemplate = (template: DoseTemplate) => {
+        setDoseTemplates(prev => [...prev, template]);
+    };
+
+    const handleDeleteTemplate = (id: string) => {
+        setDoseTemplates(prev => prev.filter(t => t.id !== id));
     };
 
     const handleSaveEvent = (e: DoseEvent) => {
@@ -932,15 +945,9 @@ const AppContent = () => {
                 eventToEdit={editingEvent}
                 onSave={handleSaveEvent}
                 onDelete={handleDeleteEvent}
-            />
-
-            <ImportModal
-                isOpen={isImportModalOpen}
-                onClose={() => setIsImportModalOpen(false)}
-                onImportJson={(payload) => {
-                    const ok = importEventsFromJson(payload);
-                    return ok;
-                }}
+                templates={doseTemplates}
+                onSaveTemplate={handleSaveTemplate}
+                onDeleteTemplate={handleDeleteTemplate}
             />
 
             <DisclaimerModal

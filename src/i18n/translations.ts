@@ -103,6 +103,14 @@ export const TRANSLATIONS_BASE = {
         "btn.ok": "确定",
         "btn.copy": "复制",
 
+        "template.save_title": "保存为模板",
+        "template.load_title": "加载模板",
+        "template.name_placeholder": "输入模板名称",
+        "template.name_required": "请输入模板名称",
+        "template.saved": "模板已保存",
+        "template.loaded": "模板已加载",
+        "template.delete_confirm": "确定删除此模板吗？",
+
         "dialog.confirm_title": "确认",
         "dialog.alert_title": "提示",
 
@@ -306,6 +314,14 @@ export const TRANSLATIONS_BASE = {
         "btn.edit": "Edit",
         "btn.ok": "OK",
         "btn.copy": "Copy",
+
+        "template.save_title": "Save as Template",
+        "template.load_title": "Load Template",
+        "template.name_placeholder": "Enter template name",
+        "template.name_required": "Please enter a template name",
+        "template.saved": "Template saved",
+        "template.loaded": "Template loaded",
+        "template.delete_confirm": "Delete this template?",
 
         "dialog.confirm_title": "Confirm",
         "dialog.alert_title": "Alert",
@@ -546,6 +562,14 @@ export const TRANSLATIONS_BASE = {
         "btn.ok": "ОК",
         "btn.copy": "Копировать",
 
+        "template.save_title": "Сохранить как шаблон",
+        "template.load_title": "Загрузить шаблон",
+        "template.name_placeholder": "Введите название шаблона",
+        "template.name_required": "Пожалуйста, введите название шаблона",
+        "template.saved": "Шаблон сохранён",
+        "template.loaded": "Шаблон загружен",
+        "template.delete_confirm": "Удалить этот шаблон?",
+
         "dialog.confirm_title": "Подтверждение",
         "dialog.alert_title": "Внимание",
 
@@ -722,6 +746,14 @@ export const TRANSLATIONS = {
         "btn.edit": "編輯",
         "btn.ok": "確定",
         "btn.copy": "複製",
+
+        "template.save_title": "儲存為範本",
+        "template.load_title": "載入範本",
+        "template.name_placeholder": "輸入範本名稱",
+        "template.name_required": "請輸入範本名稱",
+        "template.saved": "範本已儲存",
+        "template.loaded": "範本已載入",
+        "template.delete_confirm": "確定刪除此範本嗎？",
 
         "dialog.confirm_title": "確認",
         "dialog.alert_title": "提示",
@@ -933,6 +965,14 @@ export const TRANSLATIONS = {
         "btn.edit": "編輯",
         "btn.ok": "確定",
         "btn.copy": "複製",
+
+        "template.save_title": "儲存為範本",
+        "template.load_title": "載入範本",
+        "template.name_placeholder": "輸入範本名稱",
+        "template.name_required": "請輸入範本名稱",
+        "template.saved": "範本已儲存",
+        "template.loaded": "範本已載入",
+        "template.delete_confirm": "確定刪除呢個範本？",
 
         "dialog.confirm_title": "確認",
         "dialog.alert_title": "提示",
@@ -1149,6 +1189,14 @@ export const TRANSLATIONS = {
         "btn.ok": "OK",
         "btn.copy": "Копіювати",
 
+        "template.save_title": "Зберегти як шаблон",
+        "template.load_title": "Завантажити шаблон",
+        "template.name_placeholder": "Введіть назву шаблону",
+        "template.name_required": "Будь ласка, введіть назву шаблону",
+        "template.saved": "Шаблон збережено",
+        "template.loaded": "Шаблон завантажено",
+        "template.delete_confirm": "Видалити цей шаблон?",
+
         "dialog.confirm_title": "Підтвердження",
         "dialog.alert_title": "Увага",
 
@@ -1350,6 +1398,14 @@ export const TRANSLATIONS = {
         "btn.edit": "編集",
         "btn.ok": "OK",
         "btn.copy": "コピー",
+
+        "template.save_title": "テンプレートとして保存",
+        "template.load_title": "テンプレートを読み込む",
+        "template.name_placeholder": "テンプレート名を入力",
+        "template.name_required": "テンプレート名を入力してください",
+        "template.saved": "テンプレートが保存されました",
+        "template.loaded": "テンプレートが読み込まれました",
+        "template.delete_confirm": "このテンプレートを削除しますか？",
 
         "dialog.confirm_title": "確認",
         "dialog.alert_title": "お知らせ",
