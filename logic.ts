@@ -196,7 +196,7 @@ export function getBioavailabilityMultiplier(
     extras: Partial<Record<ExtraKey, number>> = {}
 ): number {
     const mwFactor = getToE2Factor(ester);
-    
+
     switch (route) {
         case Route.injection: {
             const formation = InjectionPK.formationFraction[ester] ?? 0.08;
@@ -373,11 +373,11 @@ class PrecomputedEventModel {
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
-                         const doseFast = dose * params.Frac_fast;
-                         const doseSlow = dose * (1.0 - params.Frac_fast);
+                    const doseFast = dose * params.Frac_fast;
+                    const doseSlow = dose * (1.0 - params.Frac_fast);
 
-                         return _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
-                             _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3);
+                    return _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
+                        _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3);
                 };
                 break;
             case Route.gel:
@@ -397,30 +397,30 @@ class PrecomputedEventModel {
                         const doseF = dose * params.Frac_fast;
                         const doseS = dose * (1.0 - params.Frac_fast);
                         return _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3) +
-                               _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2, params.k3);
+                            _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2, params.k3);
                     } else {
                         // E2 Sublingual
                         const doseF = dose * params.Frac_fast;
                         const doseS = dose * (1.0 - params.Frac_fast);
-                        
+
                         // Helper for dual branch 1st order
                         const branch = (d: number, F: number, ka: number, ke: number, t: number) => {
-                             if (Math.abs(ka - ke) < 1e-9) return d * F * ka * t * Math.exp(-ke * t);
-                             return d * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
+                            if (Math.abs(ka - ke) < 1e-9) return d * F * ka * t * Math.exp(-ke * t);
+                            return d * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
                         };
                         return branch(doseF, params.F_fast, params.k1_fast, params.k3, tau) +
-                               branch(doseS, params.F_slow, params.k1_slow, params.k3, tau);
+                            branch(doseS, params.F_slow, params.k1_slow, params.k3, tau);
                     }
                 };
                 break;
             case Route.patchApply:
                 const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > startTime);
                 const wearH = (remove?.timeH ?? Number.MAX_VALUE) - startTime;
-                
+
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
-                    
+
                     // Zero Order
                     if (params.rateMGh > 0) {
                         if (tau <= wearH) {
@@ -474,9 +474,12 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     let auc = 0;
 
     const stepSize = (endTime - startTime) / (steps - 1);
+    const gridTimes = Array.from({ length: steps }, (_, i) => startTime + i * stepSize);
+    const eventTimes = sortedEvents.map(e => e.timeH);
+    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes])).sort((a, b) => a - b);
 
-    for (let i = 0; i < steps; i++) {
-        const t = startTime + i * stepSize;
+    for (let i = 0; i < allTimes.length; i++) {
+        const t = allTimes[i];
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
 
@@ -504,7 +507,8 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         concPGmL_CPA.push(currentConc_CPA); // ng/mL
 
         if (i > 0) {
-            auc += 0.5 * (currentConc + concPGmL[i - 1]) * stepSize;
+            const dt = t - allTimes[i - 1];
+            auc += 0.5 * (currentConc + concPGmL[i - 1]) * dt;
         }
     }
 

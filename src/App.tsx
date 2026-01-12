@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Trash2, Download, Upload, Copy, Settings, ChevronRight, Activity, Calendar, FlaskConical, Languages, Info, Github, AlertTriangle, Monitor, Sun, Moon, Palette, Plus } from 'lucide-react';
+import { Trash2, Download, Upload, Copy, Settings, ChevronRight, Activity, Calendar, FlaskConical, Languages, Info, Github, AlertTriangle, Monitor, Sun, Moon, Palette, Plus, X } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { APP_VERSION } from './constants';
@@ -10,6 +10,7 @@ import { Lang } from './i18n/translations';
 import ResultChart from './components/ResultChart';
 import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal, { DoseTemplate } from './components/DoseFormModal';
+import DoseForm from './components/DoseForm';
 import ImportModal from './components/ImportModal';
 import ExportModal from './components/ExportModal';
 import PasswordDisplayModal from './components/PasswordDisplayModal';
@@ -18,6 +19,7 @@ import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import LabResultModal from './components/LabResultModal';
+import LabResultForm from './components/LabResultForm';
 import CustomSelect from './components/CustomSelect';
 import flagCN from './flag_svg/🇨🇳.svg';
 import flagTW from './flag_svg/🇹🇼.svg';
@@ -59,6 +61,8 @@ const AppContent = () => {
     const [generatedPassword, setGeneratedPassword] = useState("");
     const [isPasswordDisplayOpen, setIsPasswordDisplayOpen] = useState(false);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
+    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+    const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
         const saved = localStorage.getItem('app-theme');
@@ -382,6 +386,18 @@ const AppContent = () => {
         });
     };
 
+    const handleSaveLabResult = (res: LabResult) => {
+        setLabResults(prev => {
+            const exists = prev.find(r => r.id === res.id);
+            if (exists) {
+                return prev.map(r => r.id === res.id ? res : r);
+            }
+            return [...prev, res];
+        });
+    };
+
+
+
     const handleClearAllEvents = () => {
         if (!events.length) return;
         showDialog('confirm', t('drawer.clear_confirm'), () => {
@@ -594,14 +610,31 @@ const AppContent = () => {
                                             <Activity size={24} className="text-[#f6c4d7]" /> {t('timeline.title')}
                                         </h2>
                                         <button
-                                            onClick={handleAddEvent}
-                                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-bold shadow-lg shadow-gray-900/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all"
+                                            onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                                            className={`inline-flex items-center justify-center w-11 h-11 rounded-full text-white dark:text-gray-900 shadow-lg shadow-gray-900/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all ${isQuickAddOpen ? 'bg-gray-500 dark:bg-gray-400' : 'bg-gray-900 dark:bg-gray-100'}`}
                                         >
-                                            <Plus size={18} />
-                                            <span>{t('btn.add')}</span>
+                                            {isQuickAddOpen ? <X size={20} /> : <Plus size={24} />}
                                         </button>
                                     </div>
                                 </div>
+
+                                {isQuickAddOpen && (
+                                    <div className="mx-4 mb-6 animate-in slide-in-from-top-4 fade-in duration-300">
+                                        <DoseForm
+                                            eventToEdit={null}
+                                            onSave={(e) => {
+                                                handleSaveEvent(e);
+                                                setIsQuickAddOpen(false);
+                                            }}
+                                            onCancel={() => setIsQuickAddOpen(false)}
+                                            onDelete={() => { }}
+                                            templates={doseTemplates}
+                                            onSaveTemplate={handleSaveTemplate}
+                                            onDeleteTemplate={handleDeleteTemplate}
+                                            isInline={true}
+                                        />
+                                    </div>
+                                )}
 
                                 {Object.keys(groupedEvents).length === 0 && (
                                     <div className="mx-4 text-center py-16 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800 transition-colors duration-300">
@@ -675,15 +708,29 @@ const AppContent = () => {
                                         </h2>
                                         <div className="flex items-center gap-3">
                                             <button
-                                                onClick={handleAddLabResult}
-                                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-bold shadow-lg shadow-gray-900/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all"
+                                                onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
+                                                className={`inline-flex items-center justify-center w-11 h-11 rounded-full text-white dark:text-gray-900 shadow-lg shadow-gray-900/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all ${isQuickAddLabOpen ? 'bg-gray-500 dark:bg-gray-400' : 'bg-gray-900 dark:bg-gray-100'}`}
                                             >
-                                                <Plus size={18} />
-                                                <span>{t('lab.add_title')}</span>
+                                                {isQuickAddLabOpen ? <X size={20} /> : <Plus size={24} />}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+
+                                {isQuickAddLabOpen && (
+                                    <div className="mx-4 mb-6 animate-in slide-in-from-top-4 fade-in duration-300">
+                                        <LabResultForm
+                                            resultToEdit={null}
+                                            onSave={(res) => {
+                                                handleSaveLabResult(res);
+                                                setIsQuickAddLabOpen(false);
+                                            }}
+                                            onCancel={() => setIsQuickAddLabOpen(false)}
+                                            onDelete={() => { }}
+                                            isInline={true}
+                                        />
+                                    </div>
+                                )}
 
                                 {labResults.length === 0 ? (
                                     <div className="mx-4 text-center py-16 text-gray-400 dark:text-gray-600 bg-white dark:bg-gray-900 rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800 transition-colors duration-300">
@@ -980,20 +1027,8 @@ const AppContent = () => {
             <LabResultModal
                 isOpen={isLabModalOpen}
                 onClose={() => setIsLabModalOpen(false)}
-                onSave={(res) => {
-                    setLabResults(prev => {
-                        const exists = prev.find(r => r.id === res.id);
-                        if (exists) {
-                            return prev.map(r => r.id === res.id ? res : r);
-                        }
-                        return [...prev, res];
-                    });
-                }}
-                onDelete={(id) => {
-                    showDialog('confirm', t('lab.delete_confirm'), () => {
-                        setLabResults(prev => prev.filter(r => r.id !== id));
-                    });
-                }}
+                onSave={handleSaveLabResult}
+                onDelete={handleDeleteLabResult}
                 resultToEdit={editingLab}
             />
         </div>
