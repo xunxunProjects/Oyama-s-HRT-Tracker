@@ -604,7 +604,7 @@ const AppContent = () => {
                                 </div>
 
                                 {Object.keys(groupedEvents).length === 0 && (
-                                    <div className="mx-4 text-center py-16 text-gray-400 bg-white rounded-[2rem] border border-dashed border-gray-200">
+                                    <div className="mx-4 text-center py-16 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800 transition-colors duration-300">
                                         <p className="font-medium">{t('timeline.empty')}</p>
                                     </div>
                                 )}
