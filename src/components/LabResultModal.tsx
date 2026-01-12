@@ -42,7 +42,7 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
 
     const handleSave = () => {
         if (!date || !time || !value) return;
-        
+
         const dateTimeStr = `${date}T${time}`;
         const timeH = new Date(dateTimeStr).getTime() / 3600000;
         const numValue = parseFloat(value);
@@ -71,24 +71,24 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300">
-                
+            <div className="bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300 transition-colors duration-300">
+
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 shrink-0 transition-colors duration-300">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <FlaskConical className="text-teal-500" size={20} />
                         {resultToEdit ? t('lab.edit_title') : t('lab.add_title')}
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X size={20} className="text-gray-500" />
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <X size={20} className="text-gray-500 dark:text-gray-400" />
                     </button>
                 </div>
 
                 <div className="p-6 overflow-y-auto space-y-6">
                     {/* Date & Time */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <Calendar size={16} className="text-gray-400" />
+                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Calendar size={16} className="text-gray-400 dark:text-gray-500" />
                             {t('lab.date')}
                         </label>
                         <div className="flex gap-3">
@@ -96,21 +96,21 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block w-full p-3 font-medium"
+                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block w-full p-3 font-medium transition-colors"
                             />
                             <input
                                 type="time"
                                 value={time}
                                 onChange={(e) => setTime(e.target.value)}
-                                className="w-32 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block p-3 font-medium text-center"
+                                className="w-32 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block p-3 font-medium text-center transition-colors"
                             />
                         </div>
                     </div>
 
                     {/* Value & Unit */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <Activity size={16} className="text-gray-400" />
+                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Activity size={16} className="text-gray-400 dark:text-gray-500" />
                             {t('lab.value')}
                         </label>
                         <div className="flex gap-3">
@@ -121,19 +121,19 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                                     placeholder="0.0"
                                     value={value}
                                     onChange={(e) => setValue(e.target.value)}
-                                    className="bg-gray-50 border border-gray-200 text-gray-900 text-lg rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block w-full p-3 font-bold placeholder-gray-300"
+                                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-lg rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block w-full p-3 font-bold placeholder-gray-300 dark:placeholder-gray-600 transition-colors"
                                 />
                             </div>
-                            <div className="flex bg-gray-100 rounded-xl p-1 border border-gray-200">
+                            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
                                 <button
                                     onClick={() => setUnit('pmol/l')}
-                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pmol/l' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pmol/l' ? 'bg-white dark:bg-gray-700 shadow-sm text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                 >
                                     pmol/L
                                 </button>
                                 <button
                                     onClick={() => setUnit('pg/ml')}
-                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pg/ml' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pg/ml' ? 'bg-white dark:bg-gray-700 shadow-sm text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                 >
                                     pg/mL
                                 </button>
@@ -143,11 +143,11 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex gap-3 shrink-0 safe-area-pb">
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex gap-3 shrink-0 safe-area-pb transition-colors duration-300">
                     {resultToEdit && onDelete && (
                         <button
                             onClick={handleDelete}
-                            className="p-4 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                            className="p-4 text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors"
                         >
                             <Trash2 size={20} />
                         </button>
@@ -155,7 +155,7 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                     <button
                         onClick={handleSave}
                         disabled={!value || !date || !time}
-                        className="flex-1 bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-gray-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100"
+                        className="flex-1 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold py-4 rounded-xl hover:bg-gray-800 dark:hover:bg-white active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100"
                     >
                         <Check size={20} />
                         {t('btn.save')}

@@ -34,20 +34,20 @@ const DOSE_GUIDE_CONFIG: Partial<Record<Route, DoseGuideConfig>> = {
 };
 
 const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
-    low: 'bg-emerald-100 text-emerald-800',
-    medium: 'bg-sky-100 text-sky-800',
-    high: 'bg-amber-100 text-amber-800',
-    very_high: 'bg-rose-100 text-rose-800',
-    above: 'bg-red-100 text-red-800'
+    low: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200',
+    medium: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200',
+    high: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200',
+    very_high: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200',
+    above: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
 };
 
 const LEVEL_CONTAINER_STYLES: Record<DoseLevelKey | 'neutral', string> = {
-    low: 'bg-emerald-50 border-emerald-100',
-    medium: 'bg-sky-50 border-sky-100',
-    high: 'bg-amber-50 border-amber-100',
-    very_high: 'bg-rose-50 border-rose-100',
-    above: 'bg-red-50 border-red-100',
-    neutral: 'bg-gray-50 border-gray-200'
+    low: 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-900/30',
+    medium: 'bg-sky-50 border-sky-100 dark:bg-sky-900/10 dark:border-sky-900/30',
+    high: 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30',
+    very_high: 'bg-rose-50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/30',
+    above: 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30',
+    neutral: 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700'
 };
 
 const formatGuideNumber = (val: number) => {
@@ -120,15 +120,15 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
     const [templateName, setTemplateName] = useState('');
-    
+
     // Form State
     const [dateStr, setDateStr] = useState("");
     const [route, setRoute] = useState<Route>(Route.injection);
     const [ester, setEster] = useState<Ester>(Ester.EV);
-    
+
     const [rawDose, setRawDose] = useState("");
     const [e2Dose, setE2Dose] = useState("");
-    
+
     const [patchMode, setPatchMode] = useState<"dose" | "rate">("dose");
     const [patchRate, setPatchRate] = useState("");
 
@@ -166,7 +166,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                 setDateStr(iso);
                 setRoute(eventToEdit.route);
                 setEster(eventToEdit.ester);
-                
+
                 if (eventToEdit.route === Route.patchApply && eventToEdit.extras[ExtraKey.releaseRateUGPerDay]) {
                     setPatchMode("rate");
                     setPatchRate(eventToEdit.extras[ExtraKey.releaseRateUGPerDay].toString());
@@ -191,12 +191,12 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
 
                 if (eventToEdit.route === Route.sublingual) {
                     if (eventToEdit.extras[ExtraKey.sublingualTier] !== undefined) {
-                         setSlTier(eventToEdit.extras[ExtraKey.sublingualTier]);
-                         setUseCustomTheta(false);
-                         const tierKey = SL_TIER_ORDER[eventToEdit.extras[ExtraKey.sublingualTier]] || 'standard';
-                         const hold = SublingualTierParams[tierKey]?.hold ?? 10;
-                         setCustomHoldValue(hold);
-                         setCustomHoldInput(hold.toString());
+                        setSlTier(eventToEdit.extras[ExtraKey.sublingualTier]);
+                        setUseCustomTheta(false);
+                        const tierKey = SL_TIER_ORDER[eventToEdit.extras[ExtraKey.sublingualTier]] || 'standard';
+                        const hold = SublingualTierParams[tierKey]?.hold ?? 10;
+                        setCustomHoldValue(hold);
+                        setCustomHoldInput(hold.toString());
                     } else if (eventToEdit.extras[ExtraKey.sublingualTheta] !== undefined) {
                         const thetaVal = eventToEdit.extras[ExtraKey.sublingualTheta];
                         setUseCustomTheta(true);
@@ -326,16 +326,16 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
         setRoute(template.route);
         setEster(template.ester);
         setRawDose(template.doseMG.toFixed(3));
-        
+
         const factor = getToE2Factor(template.ester) || 1;
         const e2Val = template.doseMG * factor;
         setE2Dose(e2Val.toFixed(3));
-        
+
         if (template.route === Route.patchApply && template.extras[ExtraKey.releaseRateUGPerDay]) {
             setPatchMode('rate');
             setPatchRate(template.extras[ExtraKey.releaseRateUGPerDay].toString());
         }
-        
+
         if (template.route === Route.sublingual) {
             if (template.extras[ExtraKey.sublingualTier] !== undefined) {
                 setSlTier(template.extras[ExtraKey.sublingualTier]);
@@ -348,11 +348,11 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                 setUseCustomTheta(true);
             }
         }
-        
+
         if (template.route === Route.gel && template.extras[ExtraKey.gelSite] !== undefined) {
             setGelSite(template.extras[ExtraKey.gelSite]);
         }
-        
+
         setShowTemplateMenu(false);
         showDialog('alert', t('template.loaded'));
     };
@@ -364,7 +364,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
         if (isNaN(timeH)) {
             timeH = new Date().getTime() / 3600000;
         }
-        
+
         let e2Equivalent = parseFloat(e2Dose);
         if (isNaN(e2Equivalent)) e2Equivalent = 0;
         // For EV injection/sublingual/oral, derive E2-equivalent from raw dose (hidden field) to avoid drift
@@ -442,24 +442,24 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
 
     // Calculate availableEsters unconditionally
     const availableEsters = useMemo(() => {
-    switch (route) {
-        case Route.injection: 
-            return [Ester.EB, Ester.EV, Ester.EC, Ester.EN];
-        
-        // === 修改开始 ===
-        // 把 Oral (口服) 单独提出来，加上 Ester.CPA
-        case Route.oral: 
-            return [Ester.E2, Ester.EV, Ester.CPA]; 
+        switch (route) {
+            case Route.injection:
+                return [Ester.EB, Ester.EV, Ester.EC, Ester.EN];
 
-        // 舌下含服保持原样 (CPA 一般不含服)
-        case Route.sublingual: 
-            return [Ester.E2, Ester.EV];
-        // === 修改结束 ===
+            // === 修改开始 ===
+            // 把 Oral (口服) 单独提出来，加上 Ester.CPA
+            case Route.oral:
+                return [Ester.E2, Ester.EV, Ester.CPA];
 
-        default: 
-            return [Ester.E2];
-    }
-}, [route]);
+            // 舌下含服保持原样 (CPA 一般不含服)
+            case Route.sublingual:
+                return [Ester.E2, Ester.EV];
+            // === 修改结束 ===
+
+            default:
+                return [Ester.E2];
+        }
+    }, [route]);
 
     // Ensure ester is valid when route changes (e.g. switching from Injection to Gel should force E2)
     useEffect(() => {
@@ -522,27 +522,27 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
             {/* Save Template Dialog */}
             {showSaveTemplateDialog && (
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">{t('template.save_title')}</h4>
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 transition-all duration-300">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4 border border-gray-100 dark:border-gray-800">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('template.save_title')}</h4>
                         <input
                             type="text"
                             value={templateName}
                             onChange={(e) => setTemplateName(e.target.value)}
                             placeholder={t('template.name_placeholder')}
-                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none mb-4"
+                            className="w-full p-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-pink-300 outline-none mb-4 placeholder-gray-400 dark:placeholder-gray-500"
                             autoFocus
                         />
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setShowSaveTemplateDialog(false); setTemplateName(''); }}
-                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold"
+                                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold transition-colors"
                             >
                                 {t('btn.cancel')}
                             </button>
                             <button
                                 onClick={handleSaveAsTemplate}
-                                className="flex-1 px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 font-semibold"
+                                className="flex-1 px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 font-semibold shadow-lg shadow-pink-200 dark:shadow-none transition-colors"
                             >
                                 {t('btn.save')}
                             </button>
@@ -550,33 +550,33 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                     </div>
                 </div>
             )}
-            
-            <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-md shadow-gray-900/10 w-full max-w-lg md:max-w-2xl h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
-                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                    <h3 className="text-xl font-semibold text-gray-900">
+
+            <div className="bg-white dark:bg-gray-900 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl shadow-gray-900/20 w-full max-w-lg md:max-w-xl h-[92vh] md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 transition-colors duration-300">
+                <div className="p-6 md:p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2">
                         {!eventToEdit && templates.length > 0 && (
                             <div className="relative">
-                                <button 
+                                <button
                                     onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                                    className="p-2 bg-amber-50 rounded-full hover:bg-amber-100 transition border border-amber-200"
+                                    className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/40 transition border border-amber-100 dark:border-amber-900/30"
                                     title={t('template.load_title')}
                                 >
-                                    <Bookmark size={20} className="text-amber-600" />
+                                    <Bookmark size={20} className="text-amber-600 dark:text-amber-500" />
                                 </button>
                                 {showTemplateMenu && (
-                                    <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 w-64 max-h-80 overflow-y-auto z-20">
+                                    <div className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-64 max-h-80 overflow-y-auto z-20">
                                         <div className="p-2">
                                             {templates.map((template: DoseTemplate) => (
-                                                <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                                                <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
                                                     <button
                                                         onClick={() => handleLoadTemplate(template)}
                                                         className="flex-1 text-left"
                                                     >
-                                                        <div className="text-sm font-semibold text-gray-900">{template.name}</div>
-                                                        <div className="text-xs text-gray-500 mt-1">
+                                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{template.name}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                             {t(`route.${template.route}`)} · {t(`ester.${template.ester}`)} · {template.doseMG.toFixed(2)} mg
                                                         </div>
                                                     </button>
@@ -587,7 +587,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                                                                 onDeleteTemplate(template.id);
                                                             });
                                                         }}
-                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition"
+                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition"
                                                     >
                                                         <Trash2 size={14} className="text-red-500" />
                                                     </button>
@@ -598,8 +598,8 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                                 )}
                             </div>
                         )}
-                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
-                            <X size={20} className="text-gray-500" />
+                        <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                            <X size={20} className="text-gray-500 dark:text-gray-400" />
                         </button>
                     </div>
                 </div>
@@ -607,20 +607,20 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                 <div className="p-6 space-y-6 flex-1 overflow-y-auto">
                     {/* Time */}
                     <div className="space-y-2">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('field.time')}</label>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('field.time')}</label>
                         <div className="flex items-center gap-3">
-                            <input 
+                            <input
                                 ref={dateInputRef}
-                                type="datetime-local" 
-                                value={dateStr} 
-                                onChange={e => setDateStr(e.target.value)} 
-                                className="text-xl font-bold text-gray-900 font-mono bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
+                                type="datetime-local"
+                                value={dateStr}
+                                onChange={e => setDateStr(e.target.value)}
+                                className="text-xl font-bold text-gray-900 dark:text-white font-mono bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
                             />
-                            <button 
+                            <button
                                 onClick={() => dateInputRef.current?.focus()}
-                                className="p-2 bg-gray-100 hover:bg-pink-100 text-gray-600 hover:text-pink-600 rounded-lg transition-colors"
+                                className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-pink-50 dark:hover:bg-pink-900/20 text-gray-400 dark:text-gray-500 hover:text-pink-500 dark:hover:text-pink-400 rounded-2xl transition-colors"
                             >
-                                <Calendar size={18} />
+                                <Calendar size={20} />
                             </button>
                         </div>
                     </div>
@@ -674,21 +674,21 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                             {/* Patch Mode */}
                             {route === Route.patchApply && (
                                 <div className="space-y-2">
-                                    <div className="p-1 bg-gray-100 rounded-xl flex">
-                                        <button 
-                                            onClick={() => setPatchMode("dose")} 
-                                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "dose" ? "bg-white shadow text-gray-800" : "text-gray-500"}`}
+                                    <div className="p-1 bg-gray-100 dark:bg-gray-800 rounded-xl flex">
+                                        <button
+                                            onClick={() => setPatchMode("dose")}
+                                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "dose" ? "bg-white dark:bg-gray-700 shadow text-gray-800 dark:text-gray-200" : "text-gray-500 dark:text-gray-400"}`}
                                         >
                                             {t('field.patch_total')}
                                         </button>
-                                        <button 
-                                            onClick={() => setPatchMode("rate")} 
-                                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "rate" ? "bg-white shadow text-gray-800" : "text-gray-500"}`}
+                                        <button
+                                            onClick={() => setPatchMode("rate")}
+                                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "rate" ? "bg-white dark:bg-gray-700 shadow text-gray-800 dark:text-gray-200" : "text-gray-500 dark:text-gray-400"}`}
                                         >
                                             {t('field.patch_rate')}
                                         </button>
                                     </div>
-                                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                                    <div className="text-xs text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-xl">
                                         {t('beta.patch')}
                                     </div>
                                 </div>
@@ -699,14 +699,14 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                                 <>
                                     <div className="grid grid-cols-2 gap-4">
                                         {(ester !== Ester.E2) && (
-                                            <div className={`space-y-2 ${ (ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) || ester === Ester.CPA ? 'col-span-2' : '' }`}>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">{t('field.dose_raw')}</label>
+                                            <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) || ester === Ester.CPA ? 'col-span-2' : ''}`}>
+                                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('field.dose_raw')}</label>
                                                 <input
                                                     type="number" inputMode="decimal"
                                                     min="0"
                                                     step="0.001"
                                                     value={rawDose} onChange={e => handleRawChange(e.target.value)}
-                                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-mono"
+                                                    className="w-full p-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-mono text-gray-900 dark:text-white font-bold"
                                                     placeholder="0.0"
                                                 />
                                             </div>
@@ -721,7 +721,7 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                                                     min="0"
                                                     step="0.001"
                                                     value={e2Dose} onChange={e => handleE2Change(e.target.value)}
-                                                    className="w-full p-4 bg-pink-50 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none font-bold text-pink-500 font-mono"
+                                                    className="w-full p-4 bg-pink-50/50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-pink-500 dark:text-pink-400 font-mono"
                                                     placeholder="0.0"
                                                 />
                                             </div>
@@ -752,27 +752,27 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                             )}
 
                             {doseGuide && (
-                                <div className={`p-4 rounded-2xl border ${guideContainerClass} flex gap-3`}>
-                                    <Info className="w-5 h-5 text-gray-600 shrink-0 mt-0.5" />
+                                <div className={`p-4 rounded-2xl border ${guideContainerClass} flex gap-3 transition-colors duration-300`}>
+                                    <Info className="w-5 h-5 text-gray-600 dark:text-gray-400 shrink-0 mt-0.5" />
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-bold text-gray-800">{t('dose.guide.title')}</span>
+                                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('dose.guide.title')}</span>
                                             {doseGuide.level && (
                                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${guideBadgeClass}`}>
                                                     {t(`dose.guide.level.${doseGuide.level}`)}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-gray-700">
+                                        <p className="text-xs text-gray-700 dark:text-gray-300">
                                             {t('dose.guide.current')}: {doseGuide.value !== null ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}` : t('dose.guide.current_blank')}
                                         </p>
                                         {guideRangeText && (
-                                            <p className="text-[11px] text-gray-600 leading-relaxed">
+                                            <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
                                                 {t('dose.guide.reference')}: {guideRangeText}
                                             </p>
                                         )}
                                         {doseGuide.showRateHint && (
-                                            <p className="text-xs text-amber-700 leading-relaxed">
+                                            <p className="text-xs text-amber-700 dark:text-amber-500 leading-relaxed">
                                                 {t('dose.guide.patch_rate_hint')}
                                             </p>
                                         )}
@@ -782,43 +782,43 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
 
                             {/* Sublingual Specifics */}
                             {route === Route.sublingual && (
-                                <div className="bg-teal-50 p-4 rounded-2xl border border-teal-100 space-y-4">
+                                <div className="bg-teal-50 dark:bg-teal-900/20 p-4 rounded-2xl border border-teal-100 dark:border-teal-900/30 space-y-4 transition-colors duration-300">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-sm font-bold text-teal-800 flex items-center gap-2">
+                                        <label className="text-sm font-bold text-teal-800 dark:text-teal-200 flex items-center gap-2">
                                             <Clock size={16} /> {t('field.sl_duration')}
                                         </label>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-teal-700 flex items-center gap-1">
+                                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300 flex items-center gap-1">
                                                 {t('sl.custom_mode')}
-                                                <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-white text-amber-600 border border-amber-100">β</span>
+                                                <span className="px-1 py-0.5 text-[9px] font-black rounded-md bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-500 border border-amber-100 dark:border-amber-900/30">β</span>
                                             </span>
-                                            <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${useCustomTheta ? 'bg-teal-500' : 'bg-gray-300'}`} onClick={() => setUseCustomTheta(!useCustomTheta)}>
+                                            <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${useCustomTheta ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`} onClick={() => setUseCustomTheta(!useCustomTheta)}>
                                                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${useCustomTheta ? 'translate-x-4' : ''}`} />
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {!useCustomTheta ? (
                                         <div className="space-y-3">
-                                            <input 
-                                                type="range" min="0" max="3" step="1" 
-                                                value={slTier} onChange={e => setSlTier(parseInt(e.target.value))} 
-                                                className="w-full h-2 bg-teal-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                                            <input
+                                                type="range" min="0" max="3" step="1"
+                                                value={slTier} onChange={e => setSlTier(parseInt(e.target.value))}
+                                                className="w-full h-2 bg-teal-200 dark:bg-teal-900 rounded-lg appearance-none cursor-pointer accent-teal-600 dark:accent-teal-400"
                                             />
-                                            <div className="flex justify-between text-xs font-medium text-teal-700">
+                                            <div className="flex justify-between text-xs font-medium text-teal-700 dark:text-teal-300">
                                                 <span>{t('sl.mode.quick')}</span>
                                                 <span>{t('sl.mode.casual')}</span>
                                                 <span>{t('sl.mode.standard')}</span>
                                                 <span>{t('sl.mode.strict')}</span>
                                             </div>
-                                            <div className="text-xs text-teal-600 bg-white/50 p-2 rounded-lg flex justify-between items-center">
+                                            <div className="text-xs text-teal-600 dark:text-teal-400 bg-white/50 dark:bg-black/20 p-2 rounded-lg flex justify-between items-center">
                                                 <span>θ ≈ {currentTheta.toFixed(2)}</span>
-                                                <span className="text-[11px] text-teal-500">{SublingualTierParams[tierKey]?.hold ?? 0} min</span>
+                                                <span className="text-[11px] text-teal-500 dark:text-teal-500">{SublingualTierParams[tierKey]?.hold ?? 0} min</span>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-bold text-teal-700">{t('field.sl_duration')}</label>
+                                            <label className="block text-xs font-bold text-teal-700 dark:text-teal-300">{t('field.sl_duration')}</label>
                                             <input
                                                 type="number"
                                                 inputMode="decimal"
@@ -838,18 +838,18 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                                                         }
                                                     }
                                                 }}
-                                                className="w-full p-3 border border-teal-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                                                className="w-full p-3 border border-teal-200 dark:border-teal-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
                                                 placeholder="e.g. 7.5"
                                             />
-                                            <div className="text-xs text-teal-600">
+                                            <div className="text-xs text-teal-600 dark:text-teal-400">
                                                 θ ≈ {customTheta.toFixed(3)} · {t('sl.custom_hint')} · {t('sl.custom_range')}
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="flex gap-3 items-start p-3 bg-white rounded-xl border border-teal-100">
+                                    <div className="flex gap-3 items-start p-3 bg-white dark:bg-gray-800 rounded-xl border border-teal-100 dark:border-teal-900/30">
                                         <Info className="w-5 h-5 text-teal-500 shrink-0 mt-0.5" />
-                                        <p className="text-xs text-teal-700 leading-relaxed text-justify">
+                                        <p className="text-xs text-teal-700 dark:text-teal-300 leading-relaxed text-justify">
                                             {t('sl.instructions')}
                                         </p>
                                     </div>
@@ -858,44 +858,54 @@ const DoseFormModal = ({ isOpen, onClose, eventToEdit, onSave, onDelete, templat
                         </>
                     )}
                 </div>
-
-                <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-3 shrink-0 safe-area-pb">
-                    {!eventToEdit && (
-                        <button 
-                            onClick={() => setShowSaveTemplateDialog(true)}
-                            className="h-14 px-4 flex items-center justify-center bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 border border-amber-200 transition-colors"
-                            title={t('template.save_title')}
-                        >
-                            <BookmarkCheck size={20} />
-                        </button>
-                    )}
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center shrink-0 transition-colors duration-300">
+                    <button
+                        onClick={() => setShowSaveTemplateDialog(true)}
+                        className="px-4 py-2.5 text-gray-500 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-full transition-all flex items-center gap-2 text-sm font-semibold"
+                    >
+                        <Bookmark size={16} />
+                        {t('template.save_as')}
+                    </button>
                     {eventToEdit && (
-                        <button 
+                        <button
                             onClick={() => {
-                                onClose();
-                                if (onDelete) onDelete(eventToEdit.id);
-                            }} 
-                            className="w-16 h-14 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 border border-red-100 transition-colors"
+                                showDialog('confirm', t('modal.dose.delete_confirm'), () => {
+                                    onDelete(eventToEdit.id);
+                                    onClose();
+                                });
+                            }}
+                            className="p-2.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                         >
                             <Trash2 size={20} />
                         </button>
                     )}
-                    <button 
-                        onClick={handleSave} 
-                        disabled={isSaving}
-                        className={`flex-1 h-14 bg-[#f6c4d7] text-white text-lg font-bold rounded-xl hover:bg-[#f3b4cb] active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    >
-                        {isSaving ? (
-                            <>
-                                <span className="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
-                                <span>{t('btn.save')}</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save size={20} /> {t('btn.save')}
-                            </>
-                        )}
-                    </button>
+                </div>
+
+                <div className="p-4 md:p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0 transition-colors duration-300">
+                    <div className="flex gap-4 pt-2">
+                        <button
+                            onClick={onClose}
+                            className={`flex-1 px-4 py-3.5 bg-gray-100/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-[15px] transition-all active:scale-[0.98] ${eventToEdit ? '' : 'hidden md:block'}`}
+                        >
+                            {t('btn.cancel')}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex-[2] px-4 py-3.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-white font-bold text-[15px] shadow-xl shadow-gray-900/10 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    <span>{t('btn.save')}</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

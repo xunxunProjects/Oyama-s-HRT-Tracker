@@ -44,23 +44,23 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                         @keyframes dialogSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
                     `}</style>
                     <div className="w-full max-w-lg">
-                        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 transform transition-all" style={{ animation: 'dialogSlideUp 0.22s ease-out forwards' }}>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-6 transform transition-all" style={{ animation: 'dialogSlideUp 0.22s ease-out forwards' }}>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                                 {type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title')}
                             </h3>
-                            <p className="text-gray-600 mb-6 leading-relaxed text-sm">{message}</p>
+                            <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed text-sm">{message}</p>
                             <div className="flex gap-3">
                                 {type === 'confirm' && (
-                                    <button 
-                                        onClick={() => setIsOpen(false)} 
-                                        className="flex-1 py-3 text-gray-700 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        className="flex-1 py-3 text-gray-700 dark:text-gray-200 font-bold bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                                     >
                                         {t('btn.cancel')}
                                     </button>
                                 )}
-                                <button 
-                                    onClick={handleConfirm} 
-                                    className="flex-1 py-3 bg-[#f6c4d7] text-white font-bold rounded-xl hover:bg-[#f3b4cb] transition"
+                                <button
+                                    onClick={handleConfirm}
+                                    className="flex-1 py-3 bg-[#f6c4d7] dark:bg-pink-500 text-white font-bold rounded-xl hover:bg-[#f3b4cb] dark:hover:bg-pink-600 transition shadow-lg shadow-pink-100 dark:shadow-none"
                                 >
                                     {t('btn.ok')}
                                 </button>

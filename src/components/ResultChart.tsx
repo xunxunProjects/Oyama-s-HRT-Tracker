@@ -13,19 +13,19 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
         if (payload[0].payload.isLabResult) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-teal-100/50 shadow-sm">
-                    <p className="text-[10px] font-medium text-gray-400 mb-0.5 flex items-center gap-1">
+                <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-teal-100/50 dark:border-teal-900/30 shadow-sm">
+                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1">
                         <FlaskConical size={10} />
                         {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                     </p>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-base font-black text-teal-600 tracking-tight">
+                        <span className="text-base font-black text-teal-600 dark:text-teal-400 tracking-tight">
                             {data.originalValue}
                         </span>
-                        <span className="text-[10px] font-bold text-teal-400">{data.originalUnit}</span>
+                        <span className="text-[10px] font-bold text-teal-400 dark:text-teal-600">{data.originalUnit}</span>
                     </div>
                     {data.originalUnit === 'pmol/l' && (
-                        <div className="text-[9px] text-gray-400 mt-0.5">
+                        <div className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
                             ≈ {data.conc.toFixed(1)} pg/mL
                         </div>
                     )}
@@ -38,26 +38,26 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
         const concCPA = dataPoint.concCPA || 0; // Already in ng/mL
 
         return (
-            <div className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-pink-100/50 shadow-sm">
-                <p className="text-[10px] font-medium text-gray-400 mb-0.5">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-pink-100/50 dark:border-pink-900/30 shadow-sm">
+                <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-0.5">
                     {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                 </p>
                 {concE2 > 0 && (
                     <div className="flex items-baseline gap-1">
                         <span className="text-[9px] font-bold text-pink-400">{t('label.e2')}:</span>
-                        <span className="text-sm font-black text-pink-500 tracking-tight">
+                        <span className="text-sm font-black text-pink-500 dark:text-pink-400 tracking-tight">
                             {concE2.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-bold text-pink-300">pg/mL</span>
+                        <span className="text-[10px] font-bold text-pink-300 dark:text-pink-600">pg/mL</span>
                     </div>
                 )}
                 {concCPA > 0 && (
                     <div className="flex items-baseline gap-1 mt-0.5">
                         <span className="text-[9px] font-bold text-purple-400">{t('label.cpa_chart')}:</span>
-                        <span className="text-sm font-black text-purple-600 tracking-tight">
+                        <span className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-tight">
                             {concCPA.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-bold text-purple-300">ng/mL</span>
+                        <span className="text-[10px] font-bold text-purple-300 dark:text-purple-600">ng/mL</span>
                     </div>
                 )}
             </div>
@@ -66,7 +66,7 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
     return null;
 };
 
-const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void }) => {
+const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick, isDarkMode = false }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void, isDarkMode?: boolean }) => {
     const { t, lang } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
     const [xDomain, setXDomain] = useState<[number, number] | null>(null);
@@ -194,10 +194,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             const initialWindow = 7 * 24 * 3600 * 1000; // 1 week
             const start = Math.max(minTime, now - initialWindow / 2);
             const end = Math.min(maxTime, start + initialWindow);
-            
+
             // Adjust if end is clamped
             const finalStart = Math.max(minTime, end - initialWindow);
-            
+
             setXDomain([finalStart, end]);
             initializedRef.current = true;
         }
@@ -222,7 +222,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             newEnd = maxTime;
             newStart = newEnd - newWidth;
         }
-        
+
         return [newStart, newEnd];
     };
 
@@ -230,7 +230,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         const duration = days * 24 * 3600 * 1000;
         const currentCenter = xDomain ? (xDomain[0] + xDomain[1]) / 2 : now;
         const targetCenter = (now >= minTime && now <= maxTime) ? now : currentCenter;
-        
+
         const start = targetCenter - duration / 2;
         const end = targetCenter + duration / 2;
         setXDomain(clampDomain([start, end]));
@@ -268,29 +268,29 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     };
 
     if (!sim || sim.timeH.length === 0) return (
-        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-            <Activity className="w-12 h-12 mb-4 text-gray-200" strokeWidth={1.5} />
+        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 transition-colors duration-300">
+            <Activity className="w-12 h-12 mb-4 text-gray-200 dark:text-gray-700" strokeWidth={1.5} />
             <p className="text-sm font-medium">{t('timeline.empty')}</p>
         </div>
     );
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-gray-100">
-                <h2 className="text-sm md:text-base font-semibold text-gray-800 tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
-                    <span className="inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl bg-pink-50 border border-pink-100">
-                        <Activity size={16} className="text-[#f6c4d7] md:w-5 md:h-5" />
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none relative overflow-hidden flex flex-col transition-colors duration-300">
+            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 dark:border-gray-800">
+                <h2 className="text-sm md:text-base font-semibold text-gray-800 dark:text-white tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
+                    <span className="inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30">
+                        <Activity size={16} className="text-[#f6c4d7] dark:text-pink-400 md:w-5 md:h-5" />
                     </span>
                     {t('chart.title')}
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-50 rounded-xl p-1 gap-1 border border-gray-100">
+                    <div className="flex bg-gray-50 dark:bg-gray-800 rounded-xl p-1 gap-1 border border-gray-100 dark:border-gray-700">
                         <button
                             onClick={() => {
                                 zoomToDuration(7);
                             }}
-                            className="p-1.5 text-gray-600 rounded-lg hover:bg-white transition-all"
+                            className="p-1.5 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all"
                         >
                             <RotateCcw size={14} className="md:w-4 md:h-4" />
                         </button>
@@ -304,34 +304,34 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                 {(() => {
                     const factorNow = calibrationFn(now / 3600000);
                     return Math.abs(factorNow - 1) > 0.001 ? (
-                    <div className="absolute top-3 left-4 z-10 px-2.5 py-1 rounded-lg border bg-teal-50 border-teal-200 shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90">
-                        <FlaskConical size={12} className="text-teal-600" />
-                        <span className="text-[10px] md:text-xs font-bold text-teal-700">
-                            ×{(factorNow ?? 1).toFixed(2)}
-                        </span>
-                    </div>
+                        <div className="absolute top-3 left-4 z-10 px-2.5 py-1 rounded-lg border bg-teal-50 dark:bg-teal-900/40 border-teal-200 dark:border-teal-800 shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90">
+                            <FlaskConical size={12} className="text-teal-600 dark:text-teal-400" />
+                            <span className="text-[10px] md:text-xs font-bold text-teal-700 dark:text-teal-300">
+                                ×{(factorNow ?? 1).toFixed(2)}
+                            </span>
+                        </div>
                     ) : null;
                 })()}
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
                         <defs>
                             <linearGradient id="colorConc" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f6c4d7" stopOpacity={0.18}/>
-                                <stop offset="95%" stopColor="#f6c4d7" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="#f6c4d7" stopOpacity={0.18} />
+                                <stop offset="95%" stopColor="#f6c4d7" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="colorCPA" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.18}/>
-                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.18} />
+                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f2f4f7" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#374151' : '#f2f4f7'} />
                         <XAxis
                             dataKey="time"
                             type="number"
                             domain={xDomain || ['auto', 'auto']}
                             allowDataOverflow={true}
                             tickFormatter={(ms) => formatDate(new Date(ms), lang)}
-                            tick={{fontSize: 10, fill: '#9aa3b1', fontWeight: 600}}
+                            tick={{ fontSize: 10, fill: isDarkMode ? '#9ca3af' : '#9aa3b1', fontWeight: 600 }}
                             minTickGap={48}
                             axisLine={false}
                             tickLine={false}
@@ -341,7 +341,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             <YAxis
                                 yAxisId="left"
                                 dataKey="concE2"
-                                tick={{fontSize: 10, fill: '#ec4899', fontWeight: 600}}
+                                tick={{ fontSize: 10, fill: '#ec4899', fontWeight: 600 }}
                                 axisLine={false}
                                 tickLine={false}
                                 width={50}
@@ -353,24 +353,24 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 yAxisId="right"
                                 orientation="right"
                                 dataKey="concCPA"
-                                tick={{fontSize: 10, fill: '#8b5cf6', fontWeight: 600}}
+                                tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 600 }}
                                 axisLine={false}
                                 tickLine={false}
                                 width={50}
                                 label={{ value: t('label.cpa_unit'), angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
                             />
                         )}
-                        <Tooltip 
-                            content={<CustomTooltip t={t} lang={lang} />} 
-                            cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }} 
+                        <Tooltip
+                            content={<CustomTooltip t={t} lang={lang} />}
+                            cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }}
                             trigger="hover"
                         />
                         {hasE2Data && (
-                            <ReferenceLine 
-                                x={now} 
-                                stroke="#f6c4d7" 
-                                strokeDasharray="3 3" 
-                                strokeWidth={1.2} 
+                            <ReferenceLine
+                                x={now}
+                                stroke="#f6c4d7"
+                                strokeDasharray="3 3"
+                                strokeWidth={1.2}
                                 yAxisId="left"
                                 ifOverflow="extendDomain"
                             />
@@ -508,13 +508,13 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             {/* Overview mini-map with draggable handles */}
             {data.length > 1 && (
                 <div className="px-3 pb-4 mt-1">
-                    <div className="w-full h-16 bg-gray-50/80 border border-gray-100 rounded-none shadow-inner overflow-hidden">
+                    <div className="w-full h-16 bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-none shadow-inner overflow-hidden transition-colors duration-300">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data} margin={{ top: 6, right: 8, left: -6, bottom: 6 }}>
                                 <defs>
                                     <linearGradient id="overviewConc" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#bfdbfe" stopOpacity={0.28}/>
-                                        <stop offset="95%" stopColor="#bfdbfe" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#bfdbfe" stopOpacity={0.28} />
+                                        <stop offset="95%" stopColor="#bfdbfe" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis
@@ -535,7 +535,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 <Brush
                                     dataKey="time"
                                     height={22}
-                                    stroke="#bfdbfe"
+                                    stroke={isDarkMode ? "#4b5563" : "#bfdbfe"}
+                                    fill={isDarkMode ? "#1f2937" : "#fff"}
                                     startIndex={brushRange.startIndex}
                                     endIndex={brushRange.endIndex}
                                     travellerWidth={10}

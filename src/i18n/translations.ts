@@ -103,6 +103,7 @@ export const TRANSLATIONS_BASE = {
         "btn.ok": "确定",
         "btn.copy": "复制",
 
+        "template.save_as": "存为模板",
         "template.save_title": "保存为模板",
         "template.load_title": "加载模板",
         "template.name_placeholder": "输入模板名称",
@@ -118,6 +119,7 @@ export const TRANSLATIONS_BASE = {
         "modal.weight.desc": "用于估算峰值浓度。",
         "modal.dose.add_title": "新增用药记录",
         "modal.dose.edit_title": "编辑用药记录",
+        "modal.dose.delete_confirm": "确定删除这条记录吗？",
 
         "field.time": "给药时间",
         "field.route": "给药途径",
@@ -181,13 +183,17 @@ export const TRANSLATIONS_BASE = {
         "drawer.lang_hint": "切换界面显示语言。",
         "drawer.model_title": "模型说明",
         "drawer.model_desc": "了解估算背后的药代动力学模型。",
-        "drawer.model_confirm": "即将访问第三方网站 (misaka23323.com)，是否继续？",
+        "drawer.model_confirm": "即将访问第三方网站 (mahiro.uk)，是否继续？",
         "drawer.github_confirm": "即将访问第三方网站 (github.com)，是否继续？",
 
         "settings.group.general": "常规设置",
         "settings.group.data": "数据管理",
         "settings.group.about": "关于",
         "settings.version": "版本号",
+        "settings.theme": "外观设置",
+        "theme.light": "浅色模式",
+        "theme.dark": "深色模式",
+        "theme.system": "跟随系统",
 
         "disclaimer.title": "免责声明",
         "disclaimer.text.intro": "Oyama's HRT Tracker 不提供医学建议。尽管 Oyama's HRT Tracker 包含一些医学相关的内容，但不保证其准确性或时效性。可能无法完全适用于您的具体情况。请注意以下事项：",
@@ -315,6 +321,7 @@ export const TRANSLATIONS_BASE = {
         "btn.ok": "OK",
         "btn.copy": "Copy",
 
+        "template.save_as": "Save as Template",
         "template.save_title": "Save as Template",
         "template.load_title": "Load Template",
         "template.name_placeholder": "Enter template name",
@@ -330,6 +337,7 @@ export const TRANSLATIONS_BASE = {
         "modal.weight.desc": "Used in peak concentration estimates.",
         "modal.dose.add_title": "Add Dose",
         "modal.dose.edit_title": "Edit Dose",
+        "modal.dose.delete_confirm": "Are you sure you want to delete this record?",
 
         "field.time": "Time",
         "field.route": "Route",
@@ -393,13 +401,17 @@ export const TRANSLATIONS_BASE = {
         "drawer.lang_hint": "Switch interface language.",
         "drawer.model_title": "Model Explanation",
         "drawer.model_desc": "Learn about the underlying pharmacokinetic (PK) model.",
-        "drawer.model_confirm": "You are about to visit a third-party website (misaka23323.com). Continue?",
+        "drawer.model_confirm": "You are about to visit a third-party website (mahiro.uk). Continue?",
         "drawer.github_confirm": "You are about to visit a third-party website (github.com). Continue?",
 
         "settings.group.general": "General",
         "settings.group.data": "Data Management",
         "settings.group.about": "About",
         "settings.version": "Version",
+        "settings.theme": "Appearance",
+        "theme.light": "Light",
+        "theme.dark": "Dark",
+        "theme.system": "System",
 
         "disclaimer.title": "Disclaimer",
         "disclaimer.text.intro": "Oyama's HRT Tracker does not provide medical advice. Although Oyama's HRT Tracker includes some medical-related content, it does not guarantee its accuracy or timeliness. It may not be fully applicable to your specific situation. Please note:",
@@ -478,6 +490,10 @@ export const TRANSLATIONS_BASE = {
         "settings.group.data": "Управление данными",
         "settings.group.about": "О приложении",
         "settings.version": "Версия",
+        "settings.theme": "Оформление",
+        "theme.light": "Светлая",
+        "theme.dark": "Тёмная",
+        "theme.system": "Системная",
 
         "disclaimer.title": "Отказ от ответственности",
         "disclaimer.text.intro": "Oyama's HRT Tracker не предоставляет медицинских консультаций. Хотя Oyama's HRT Tracker содержит контент медицинской тематики, мы не гарантируем его точность или актуальность. Он может не полностью подходить для вашей конкретной ситуации. Пожалуйста, обратите внимание:",
@@ -511,7 +527,7 @@ export const TRANSLATIONS_BASE = {
         "drawer.lang_hint": "Переключить язык интерфейса.",
         "drawer.model_title": "Описание модели",
         "drawer.model_desc": "Сведения о фармакокинетической модели.",
-        "drawer.model_confirm": "Открыть сторонний сайт (misaka23323.com)?",
+        "drawer.model_confirm": "Открыть сторонний сайт (mahiro.uk)?",
         "drawer.github_confirm": "Открыть сторонний сайт (github.com)?",
 
         "import.title": "Импорт данных",
@@ -562,6 +578,7 @@ export const TRANSLATIONS_BASE = {
         "btn.ok": "ОК",
         "btn.copy": "Копировать",
 
+        "template.save_as": "Сохранить как шаблон",
         "template.save_title": "Сохранить как шаблон",
         "template.load_title": "Загрузить шаблон",
         "template.name_placeholder": "Введите название шаблона",
@@ -577,6 +594,7 @@ export const TRANSLATIONS_BASE = {
         "modal.weight.desc": "Влияет на оценку пиковой концентрации.",
         "modal.dose.add_title": "Добавить дозу",
         "modal.dose.edit_title": "Редактировать дозу",
+        "modal.dose.delete_confirm": "Удалить эту запись?",
 
         "field.time": "Время",
         "field.route": "Путь введения",
@@ -747,6 +765,7 @@ export const TRANSLATIONS = {
         "btn.ok": "確定",
         "btn.copy": "複製",
 
+        "template.save_as": "儲存為範本",
         "template.save_title": "儲存為範本",
         "template.load_title": "載入範本",
         "template.name_placeholder": "輸入範本名稱",
@@ -763,6 +782,7 @@ export const TRANSLATIONS = {
 
         "modal.dose.add_title": "新增用藥",
         "modal.dose.edit_title": "編輯用藥",
+        "modal.dose.delete_confirm": "確定要刪除這筆紀錄嗎？",
 
         "field.time": "用藥時間",
         "field.route": "給藥方式",
@@ -835,7 +855,7 @@ export const TRANSLATIONS = {
 
         "drawer.model_title": "模型說明",
         "drawer.model_desc": "了解估算背後的藥物動力學模型。",
-        "drawer.model_confirm": "即將前往外部網站（misaka23323.com），是否繼續？",
+        "drawer.model_confirm": "即將前往外部網站（mahiro.uk），是否繼續？",
         "drawer.github_confirm": "即將前往外部網站（github.com），是否繼續？",
 
         "disclaimer.title": "免責聲明",
@@ -981,6 +1001,7 @@ export const TRANSLATIONS = {
         "modal.weight.desc": "用嚟估算峰值濃度。",
         "modal.dose.add_title": "新增用藥",
         "modal.dose.edit_title": "編輯用藥",
+        "modal.dose.delete_confirm": "確認刪除呢條記錄？",
 
         "field.time": "給藥時間",
         "field.route": "給藥途徑",
@@ -1049,7 +1070,7 @@ export const TRANSLATIONS = {
         "drawer.lang_hint": "切換介面顯示語言。",
         "drawer.model_title": "底層模型詳解",
         "drawer.model_desc": "了解估算背後嘅藥代動力學模型。",
-        "drawer.model_confirm": "要打開第三方網站 (misaka23323.com) 嗎？",
+        "drawer.model_confirm": "要打開第三方網站 (mahiro.uk) 嗎？",
         "drawer.github_confirm": "要打開第三方網站 (github.com) 嗎？",
 
         "disclaimer.title": "免責聲明",
@@ -1204,6 +1225,7 @@ export const TRANSLATIONS = {
         "modal.weight.desc": "Впливає на оцінку пікової концентрації.",
         "modal.dose.add_title": "Нова доза",
         "modal.dose.edit_title": "Редагувати дозу",
+        "modal.dose.delete_confirm": "Видалити цей запис?",
 
         "field.time": "Час",
         "field.route": "Шлях введення",
@@ -1267,6 +1289,10 @@ export const TRANSLATIONS = {
         "settings.group.data": "Дані",
         "settings.group.about": "Про застосунок",
         "settings.version": "Версія",
+        "settings.theme": "Оформлення",
+        "theme.light": "Світла",
+        "theme.dark": "Темна",
+        "theme.system": "Системна",
 
         "disclaimer.title": "Відмова від відповідальності",
         "disclaimer.text.intro": "Oyama's HRT Tracker не надає медичних консультацій. Хоча Oyama's HRT Tracker містить контент медичної тематики, ми не гарантуємо його точність або актуальність. Він може не повністю відповідати вашій конкретній ситуації. Будь ласка, зверніть увагу:",
@@ -1293,13 +1319,13 @@ export const TRANSLATIONS = {
 
         "drawer.model_title": "Модель розрахунку",
         "drawer.model_desc": "Деталі фармакокінетичної моделі.",
-        "drawer.model_confirm": "Відкрити сторонній сайт (misaka23323.com)?",
+        "drawer.model_confirm": "Відкрити сторонній сайт (mahiro.uk)?",
         "drawer.github_confirm": "Відкрити GitHub (github.com)?",
     },
 
     ja: {
         "nav.home": "概要",
-         "app.title": "HRT Tracker",
+        "app.title": "HRT Tracker",
         "nav.history": "記録",
         "nav.lab": "校正",
         "nav.settings": "設定",
@@ -1414,6 +1440,7 @@ export const TRANSLATIONS = {
         "modal.weight.desc": "濃度ピーク値の推定に使用されます。",
         "modal.dose.add_title": "新規投薬の追加",
         "modal.dose.edit_title": "投薬の編集",
+        "modal.dose.delete_confirm": "この記録を削除してもよろしいですか？",
 
         "field.time": "投与時刻",
         "field.route": "投与経路",
@@ -1477,13 +1504,17 @@ export const TRANSLATIONS = {
         "drawer.lang_hint": "表示言語を切り替えます。",
         "drawer.model_title": "基礎モデルの解説",
         "drawer.model_desc": "推定の背後にある薬物動態学モデルについて解説します。",
-        "drawer.model_confirm": "サードパーティサイト (misaka23323.com) へ移動します。続行しますか？",
+        "drawer.model_confirm": "サードパーティサイト (mahiro.uk) へ移動します。続行しますか？",
         "drawer.github_confirm": "サードパーティサイト (github.com) へ移動します。続行しますか？",
 
         "settings.group.general": "一般設定",
         "settings.group.data": "データ管理",
         "settings.group.about": "このアプリについて",
         "settings.version": "バージョン番号",
+        "settings.theme": "外観設定",
+        "theme.light": "ライト",
+        "theme.dark": "ダーク",
+        "theme.system": "システム",
 
         "disclaimer.title": "免責事項",
         "disclaimer.text.intro": "Oyama's HRT Tracker は医学的助言を提供するものではありません。Oyama's HRT Tracker には医学関連のコンテンツが含まれていますが、その正確性や適時性を保証するものではありません。お客様の特定の状況に完全に適用されない場合があります。以下の点にご注意ください：",
