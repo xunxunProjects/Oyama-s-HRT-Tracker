@@ -909,10 +909,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 {eventToEdit && (
                     <button
                         onClick={() => {
-                            showDialog('confirm', t('modal.dose.delete_confirm'), () => {
-                                onDelete(eventToEdit.id);
-                                onCancel();
-                            });
+                            onDelete(eventToEdit.id);
+                            onCancel();
                         }}
                         className="p-2.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                     >
