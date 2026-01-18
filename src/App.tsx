@@ -69,16 +69,28 @@ const AppContent = () => {
         return (saved as 'light' | 'dark' | 'system') || 'system';
     });
 
+    // Apply theme classes
     useEffect(() => {
         localStorage.setItem('app-theme', theme);
         const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
+
+        const applyTheme = (isDark: boolean) => {
+            root.classList.remove('light', 'dark');
+            root.classList.add(isDark ? 'dark' : 'light');
+        };
 
         if (theme === 'system') {
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            root.classList.add(systemTheme);
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            applyTheme(mediaQuery.matches);
+
+            // Listen for system theme changes
+            const handleChange = (e: MediaQueryListEvent) => {
+                applyTheme(e.matches);
+            };
+            mediaQuery.addEventListener('change', handleChange);
+            return () => mediaQuery.removeEventListener('change', handleChange);
         } else {
-            root.classList.add(theme);
+            applyTheme(theme === 'dark');
         }
     }, [theme]);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
@@ -932,8 +944,8 @@ const AppContent = () => {
                 </div>
 
                 {/* Bottom Navigation - mobile only */}
-                <nav className="px-6 pb-6 pt-2 bg-transparent z-20 safe-area-pb shrink-0 md:hidden pointer-events-none">
-                    <div className="w-full pointer-events-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/50 dark:border-gray-800/50 shadow-2xl shadow-gray-200/50 dark:shadow-none rounded-[2rem] px-2 py-2 flex items-center justify-between gap-1 transition-colors duration-300">
+                <nav className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-2 bg-transparent z-40 safe-area-pb md:hidden pointer-events-none">
+                    <div className="w-full pointer-events-auto bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl backdrop-saturate-150 border border-white/40 dark:border-gray-700/40 shadow-2xl shadow-gray-900/10 dark:shadow-black/20 rounded-[2rem] px-2 py-2 flex items-center justify-between gap-1 transition-colors duration-300">
                         <button
                             onClick={() => handleViewChange('home')}
                             className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-2.5 transition-all duration-300 ${currentView === 'home'
