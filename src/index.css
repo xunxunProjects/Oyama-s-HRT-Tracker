@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+    --color-gray-900: #111827;
+    --color-gray-950: #030712;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInBottom {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes pageForward {
+    from {
+        opacity: 0;
+        transform: translateX(16px) translateY(4px) scale(0.995);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1);
+    }
+}
+
+@keyframes pageBackward {
+    from {
+        opacity: 0;
+        transform: translateX(-16px) translateY(4px) scale(0.995);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1);
+    }
+}
+
+.animate-in.fade-in {
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-in.slide-in-from-bottom {
+    animation: slideInBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.page-transition {
+    animation-duration: 0.32s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+}
+
+.page-transition.page-forward {
+    animation-name: pageForward;
+}
+
+.page-transition.page-backward {
+    animation-name: pageBackward;
+}
