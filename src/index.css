@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Configure Tailwind v4 to use class-based dark mode */
-@custom-variant dark (&:where(.dark, .dark *));
+@variant dark (&:is(.dark *));
 
 @theme {
     --color-gray-900: #111827;
