@@ -1,12 +1,36 @@
 @import "tailwindcss";
 
+/* Configure Tailwind v4 to use class-based dark mode */
+@variant dark (&:is(.dark *));
+
 @theme {
     --color-gray-900: #111827;
     --color-gray-950: #030712;
 }
 
+/* Prevent elastic overscroll on mobile */
+html {
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    touch-action: pan-x pan-y;
+}
+
+#root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
 .safe-area-pb {

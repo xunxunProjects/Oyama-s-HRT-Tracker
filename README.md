@@ -44,46 +44,28 @@ This project is built with **React** and **TypeScript**. You can run it easily u
 
 本项目基于 **React** 与 **TypeScript** 构建，你可以使用诸如 [Vite](https://vitejs.dev/) 这样的现代前端工具链轻松运行它。
 
-1. **Clone or Download** the files.<br>
-   **Clone 或下载**项目文件到本地。
-
-2. **Initialize a Vite project** (if starting from scratch):<br>
-   **初始化一个 Vite 项目**（如果你是从零开始）：
+1. **Clone the repository 克隆仓库**
 
    ```bash
-   npm create vite@latest hrt-recorder -- --template react-ts
-   cd hrt-recorder
+   git clone https://github.com/SmirnovaOyama/Oyama-s-HRT-Tracker.git
+   cd Oyama-s-HRT-Tracker
+   ```
+
+2. **Install dependencies 安装依赖**
+
+   ```bash
    npm install
    ```
 
-3. **Install Dependencies**:<br>
-   **安装依赖**：
-
-   ```bash
-   npm install recharts lucide-react uuid @types/uuid clsx tailwind-merge
-   ```
-
-4. **Setup Tailwind CSS**:<br>
-   **配置 Tailwind CSS**：
-
-   Follow the [Tailwind CSS Vite Guide](https://tailwindcss.com/docs/guides/vite) to generate your `tailwind.config.js`.
-   请按照 [Tailwind CSS 的 Vite 指南](https://tailwindcss.com/docs/guides/vite) 配置并生成你的 `tailwind.config.js` 文件。
-
-5. **Add Code**:<br>
-   **添加代码**：
-
-   * Place `logic.ts` and `index.tsx` into your `src/` folder.<br>
-     将 `logic.ts` 与 `index.tsx` 放入你的 `src/` 文件夹中。
-
-   * Update `index.html` entry point if necessary.<br>
-     如有需要，更新 `index.html` 中的入口配置。
-
-6. **Run**:<br>
-   **运行项目**：
+3. **Run 运行项目**
 
    ```bash
    npm run dev
    ```
+
+   Open http://localhost:3000 in your browser.<br>
+   在浏览器中打开 http://localhost:3000
+
 
 ## Deployment & Hosting 部署与托管
 
