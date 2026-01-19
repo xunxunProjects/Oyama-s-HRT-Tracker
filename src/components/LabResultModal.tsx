@@ -14,12 +14,30 @@ interface LabResultModalProps {
 
 const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: LabResultModalProps) => {
     const { t } = useTranslation();
+    const [isVisible, setIsVisible] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+            setIsClosing(false);
+        }
+    }, [isOpen]);
+
+    const handleClose = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsVisible(false);
+            setIsClosing(false);
+            onClose();
+        }, 250);
+    };
+
+    if (!isVisible && !isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300 transition-colors duration-300">
+        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 ${isClosing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-200'}`}>
+            <div className={`bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] transition-colors duration-300 ${isClosing ? 'animate-out slide-out-to-bottom duration-250' : 'animate-in slide-in-from-bottom duration-300'}`}>
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 shrink-0 transition-colors duration-300">
@@ -27,7 +45,7 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                         <FlaskConical className="text-teal-500" size={20} />
                         {resultToEdit ? t('lab.edit_title') : t('lab.add_title')}
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                    <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                         <X size={20} className="text-gray-500 dark:text-gray-400" />
                     </button>
                 </div>
@@ -37,13 +55,13 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                         resultToEdit={resultToEdit}
                         onSave={(res) => {
                             onSave(res);
-                            onClose();
+                            handleClose();
                         }}
-                        onCancel={onClose}
+                        onCancel={handleClose}
                         onDelete={(id) => {
                             if (onDelete) {
                                 onDelete(id);
-                                onClose();
+                                handleClose();
                             }
                         }}
                     />

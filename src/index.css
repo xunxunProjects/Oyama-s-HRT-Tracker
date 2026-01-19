@@ -91,6 +91,34 @@ body {
     animation: slideInBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slideOutBottom {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
+}
+
+.animate-out.fade-out {
+    animation: fadeOut 0.2s ease-out forwards;
+}
+
+.animate-out.slide-out-to-bottom {
+    animation: slideOutBottom 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .page-transition {
     animation-duration: 0.32s;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
