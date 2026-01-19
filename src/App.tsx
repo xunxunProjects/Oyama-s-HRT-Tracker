@@ -600,7 +600,7 @@ const AppContent = () => {
                         </header>
                     )}
 
-                    <main className="w-full px-4 py-6 md:px-8 md:py-8">
+                    <main className="w-full px-4 py-6 md:px-8 md:py-8 pb-32 md:pb-8">
                         {/* Chart */}
                         {currentView === 'home' && (
                             <ResultChart
