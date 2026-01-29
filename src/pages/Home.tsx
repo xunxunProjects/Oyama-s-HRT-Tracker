@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Settings, Plus } from 'lucide-react';
+import { Droplet, Pill } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult } from '../../logic';
 import ResultChart from '../components/ResultChart';
 
@@ -9,8 +9,6 @@ interface HomeProps {
     currentCPA: number;
     currentStatus: { label: string, color: string, bg: string, border: string } | null;
     events: DoseEvent[];
-    weight: number;
-    setIsWeightModalOpen: (isOpen: boolean) => void;
     simulation: SimulationResult | null;
     labResults: LabResult[];
     onEditEvent: (e: DoseEvent) => void;
@@ -24,8 +22,6 @@ const Home: React.FC<HomeProps> = ({
     currentCPA,
     currentStatus,
     events,
-    weight,
-    setIsWeightModalOpen,
     simulation,
     labResults,
     onEditEvent,
@@ -36,88 +32,74 @@ const Home: React.FC<HomeProps> = ({
 
     return (
         <>
-            <header className="relative px-6 md:px-10 pt-8 pb-6">
-                <div className="flex flex-col gap-6">
+            <header className="relative px-4 md:px-10 pt-4 md:pt-6 pb-2">
+                <div className="flex flex-col gap-4">
 
+                    {/* Main Estimate Card */}
+                    <div className="bg-white dark:bg-zinc-900 rounded-[24px] md:rounded-[32px] border border-zinc-100 dark:border-zinc-800 p-5 md:p-6 flex flex-col justify-between h-full hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors duration-500 overflow-hidden">
 
-                    <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-                        {/* Main Estimate Card */}
-                        <div className="md:col-span-2 bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 p-6 relative overflow-hidden flex flex-col justify-center h-full">
-                            <div className="mb-8">
-                                <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                                    {t('status.estimate')}
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-10">
-                                {/* E2 Display */}
-                                <div className="space-y-1">
-                                    <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2">
-                                        {t('label.e2')}
-                                    </div>
-                                    <div className="flex items-baseline gap-2">
-                                        {currentLevel > 0 ? (
-                                            <>
-                                                <span className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                                                    {currentLevel.toFixed(0)}
-                                                </span>
-                                                <span className="text-sm font-bold text-zinc-400 mb-1">pg/mL</span>
-                                            </>
-                                        ) : (
-                                            <span className="text-4xl md:text-5xl font-bold text-zinc-200 dark:text-zinc-800 tracking-tight">0</span>
-                                        )}
-                                    </div>
-                                    {currentStatus && (
-                                        <div className="flex items-center gap-2 mt-3">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${currentStatus.color.replace('text-', 'bg-')}`}></div>
-                                            <span className={`text-xs font-semibold ${currentStatus.color}`}>
-                                                {t(currentStatus.label)}
-                                            </span>
-                                        </div>
-                                    )}
+                        {/* Status Header */}
+                        <div className="mb-4 flex items-center justify-between">
+                            <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">
+                                {t('status.estimate')}
+                            </span>
+                            {currentStatus && (
+                                <div className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1.5 ${currentStatus.bg} ${currentStatus.color}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${currentStatus.color.replace('text-', 'bg-')}`} />
+                                    {t(currentStatus.label)}
                                 </div>
-
-                                {/* CPA Display */}
-                                <div className="space-y-1">
-                                    <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2">
-                                        {t('label.cpa')}
-                                    </div>
-                                    <div className="flex items-baseline gap-2">
-                                        {currentCPA > 0 ? (
-                                            <>
-                                                <span className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                                                    {currentCPA.toFixed(0)}
-                                                </span>
-                                                <span className="text-sm font-bold text-zinc-400 mb-1">ng/mL</span>
-                                            </>
-                                        ) : (
-                                            <span className="text-4xl md:text-5xl font-bold text-zinc-200 dark:text-zinc-800 tracking-tight">--</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
-                        {/* Side Stats */}
-                        <div className="grid grid-cols-2 md:grid-cols-1 gap-4 md:gap-6">
-                            <div className="flex flex-col justify-center p-6 rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors h-full">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Activity size={14} className="text-zinc-400" />
-                                    <p className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{t('timeline.title')}</p>
+                        {/* Top Row: Blood Levels */}
+                        <div className="grid grid-cols-2 gap-6 md:gap-8 relative">
+                            {/* Vertical Divider */}
+                            <div className="absolute top-1 bottom-1 left-1/2 w-px bg-zinc-100 dark:bg-zinc-800 -translate-x-1/2 hidden md:block" />
+
+                            {/* E2 Display */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                    <div className="p-1 bg-pink-50 dark:bg-pink-900/20 rounded-md text-pink-500 dark:text-pink-400">
+                                        <Droplet size={14} fill="currentColor" className="opacity-20 translate-y-[1px]" />
+                                        <Droplet size={14} className="absolute top-1 left-1" />
+                                    </div>
+                                    <span className="font-bold text-xs md:text-sm tracking-tight">{t('label.e2')}</span>
                                 </div>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{events.length || 0}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentLevel > 0 ? (
+                                        <>
+                                            <span className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white tracking-tighter">
+                                                {currentLevel.toFixed(0)}
+                                            </span>
+                                            <span className="text-xs md:text-sm font-medium text-zinc-400 mb-0.5">pg/mL</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-3xl md:text-5xl font-bold text-zinc-200 dark:text-zinc-800 tracking-tighter">0</span>
+                                    )}
+                                </div>
                             </div>
 
-                            <button
-                                onClick={() => setIsWeightModalOpen(true)}
-                                className="flex flex-col justify-center p-6 rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors text-left group h-full"
-                            >
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Settings size={14} className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
-                                    <p className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{t('status.weight')}</p>
+                            {/* CPA Display */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                    <div className="p-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-md text-indigo-500 dark:text-indigo-400">
+                                        <Pill size={14} />
+                                    </div>
+                                    <span className="font-bold text-xs md:text-sm tracking-tight">{t('label.cpa')}</span>
                                 </div>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{weight} <span className="text-sm font-bold text-zinc-400">kg</span></p>
-                            </button>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentCPA > 0 ? (
+                                        <>
+                                            <span className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white tracking-tighter">
+                                                {currentCPA.toFixed(0)}
+                                            </span>
+                                            <span className="text-xs md:text-sm font-medium text-zinc-400 mb-0.5">ng/mL</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-3xl md:text-5xl font-bold text-zinc-200 dark:text-zinc-800 tracking-tighter">--</span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

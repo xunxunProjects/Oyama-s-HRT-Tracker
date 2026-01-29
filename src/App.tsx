@@ -577,6 +577,8 @@ const AppContent = () => {
                             showDialog={showDialog}
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
                             appVersion={APP_VERSION}
+                            weight={weight}
+                            setIsWeightModalOpen={setIsWeightModalOpen}
                         />
                     )}
                 </div>

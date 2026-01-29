@@ -34,9 +34,19 @@ const History: React.FC<HistoryProps> = ({
         <div className="relative space-y-6 pt-6 pb-24">
             <div className="px-6 md:px-10">
                 <div className="w-full p-5 rounded-[24px] bg-white dark:bg-zinc-900 flex items-center justify-between shadow-sm shadow-zinc-200/50 dark:shadow-none border border-zinc-100 dark:border-zinc-800 transition-colors duration-300">
-                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-                        <Activity size={24} className="text-[#f6c4d7]" /> {t('timeline.title')}
-                    </h2>
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-pink-50 dark:bg-pink-900/20 rounded-2xl text-[#f6c4d7]">
+                            <Activity size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight leading-tight">
+                                {t('timeline.title')}
+                            </h2>
+                            <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                {(Object.values(groupedEvents) as DoseEvent[][]).reduce((acc, curr) => acc + curr.length, 0)} {t('timeline.records')}
+                            </p>
+                        </div>
+                    </div>
                     <button
                         onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
                         className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-white dark:text-zinc-900 shadow-md transition-all ${isQuickAddOpen ? 'bg-zinc-500 dark:bg-zinc-400 rotate-45' : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-black dark:hover:bg-white'}`}

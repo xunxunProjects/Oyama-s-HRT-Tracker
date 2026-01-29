@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
@@ -19,6 +19,8 @@ interface SettingsProps {
     showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void;
     setIsDisclaimerOpen: (isOpen: boolean) => void;
     appVersion: string;
+    weight: number;
+    setIsWeightModalOpen: (isOpen: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -35,7 +37,9 @@ const Settings: React.FC<SettingsProps> = ({
     events,
     showDialog,
     setIsDisclaimerOpen,
-    appVersion
+    appVersion,
+    weight,
+    setIsWeightModalOpen
 }) => {
     return (
         <div className="relative space-y-5 pt-6 pb-24">
@@ -72,6 +76,23 @@ const Settings: React.FC<SettingsProps> = ({
                             ]}
                         />
                     </div>
+
+                    <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                        <button
+                            onClick={() => setIsWeightModalOpen(true)}
+                            className="w-full flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-500">
+                                    <Scale size={20} />
+                                </div>
+                                <span className="font-medium text-zinc-700 dark:text-zinc-200 text-sm">{t('status.weight')}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white">{weight} kg</span>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -80,22 +101,22 @@ const Settings: React.FC<SettingsProps> = ({
                 <h3 className="px-10 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t('settings.group.data')}</h3>
                 <div className="mx-6 md:mx-10 bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden transition-colors duration-300">
                     <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition text-left"
+                        onClick={onSaveDosages}
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-pink-50 dark:hover:bg-pink-900/10 transition text-left"
                     >
-                        <Upload className="text-teal-500" size={20} />
+                        <Upload className="text-pink-400" size={20} />
                         <div className="text-left">
-                            <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('import.title')}</p>
+                            <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('export.title')}</p>
                         </div>
                     </button>
 
                     <button
-                        onClick={onSaveDosages}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-pink-50 dark:hover:bg-pink-900/10 transition text-left"
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition text-left"
                     >
-                        <Download className="text-pink-400" size={20} />
+                        <Download className="text-teal-500" size={20} />
                         <div className="text-left">
-                            <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('export.title')}</p>
+                            <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('import.title')}</p>
                         </div>
                     </button>
 

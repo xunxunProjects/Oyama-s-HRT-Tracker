@@ -36,6 +36,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.delete_confirm": "确定删除这条记录吗？",
         "timeline.dose_label": "剂量",
         "timeline.bio_label": "生物效应 (β)",
+        "timeline.records": "条记录",
 
         "drawer.title": "实用工具",
         "drawer.clear": "清空所有记录",
@@ -261,6 +262,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.empty": "No records yet.",
         "timeline.delete_confirm": "Are you sure you want to delete this record?",
         "timeline.dose_label": "Dose",
+        "timeline.records": "Records",
         "timeline.bio_label": "Dose",
 
         "drawer.title": "Utilities",
@@ -487,6 +489,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.empty": "Записей пока нет.",
         "timeline.delete_confirm": "Удалить эту запись?",
         "timeline.dose_label": "Доза",
+        "timeline.records": "записей",
         "timeline.bio_label": "Доза",
 
         "drawer.title": "Инструменты",
@@ -710,6 +713,7 @@ export const TRANSLATIONS = {
         "timeline.empty": "目前沒有紀錄",
         "timeline.delete_confirm": "確定要刪除這筆紀錄嗎？",
         "timeline.dose_label": "劑量",
+        "timeline.records": "條記錄",
         "timeline.bio_label": "生物效應（β）",
 
         "drawer.title": "工具選單",
@@ -935,6 +939,7 @@ export const TRANSLATIONS = {
         "timeline.empty": "暫時未有記錄",
         "timeline.delete_confirm": "確認刪除呢條記錄？",
         "timeline.dose_label": "劑量",
+        "timeline.records": "條記錄",
         "timeline.bio_label": "劑量",
 
         "drawer.title": "實用工具",
@@ -1159,6 +1164,7 @@ export const TRANSLATIONS = {
         "timeline.empty": "Записів поки немає.",
         "timeline.delete_confirm": "Видалити цей запис?",
         "timeline.dose_label": "Доза",
+        "timeline.records": "записів",
         "timeline.bio_label": "Доза",
 
         "drawer.title": "Інструменти",
@@ -1377,6 +1383,7 @@ export const TRANSLATIONS = {
         "timeline.empty": "まだ記録がありません。",
         "timeline.delete_confirm": "この記録を削除してもよろしいですか？",
         "timeline.dose_label": "用量",
+        "timeline.records": "件の記録",
         "timeline.bio_label": "用量",
 
         "drawer.title": "便利ツール",
