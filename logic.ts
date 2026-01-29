@@ -102,8 +102,11 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
             if (pred === null || Number.isNaN(pred)) {
                 pred = getNearestConc_E2(r.timeH);
             }
-            if (pred === null || pred <= 0.01 || obs <= 0) return null;
-            const ratio = Math.max(0.1, Math.min(10, obs / pred));
+            if (pred === null || obs <= 0) return null;
+            // Allow calibration even for very small predicted values, but cap the ratio
+            const sanitizedPred = Math.max(pred, 0.01);
+            // Cap at 2000x to allow fixing "near zero" baselines to "high" levels (e.g. 0.3 -> 600)
+            const ratio = Math.max(0.01, Math.min(2000, obs / sanitizedPred));
             return { timeH: r.timeH, ratio };
         })
         .filter((p): p is { timeH: number; ratio: number } => !!p)
@@ -131,11 +134,36 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
         const p2 = points[high];
         const t = (timeH - p1.timeH) / (p2.timeH - p1.timeH);
         const r = p1.ratio + (p2.ratio - p1.ratio) * t;
-        return Math.max(0.1, Math.min(10, r));
+        return Math.max(0.01, Math.min(2000, r));
     };
 }
 
-// --- Constants & Parameters (PKparameter.swift & PKcore.swift) ---
+// --- Compression Utilities ---
+
+export async function compressData(data: string): Promise<string> {
+    const stream = new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'));
+    const response = new Response(stream);
+    const blob = await response.blob();
+    const buffer = await blob.arrayBuffer();
+    // Convert to base64
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+export async function decompressData(base64: string): Promise<string> {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const response = new Response(stream);
+    return await response.text();
+}
 
 const CorePK = {
     vdPerKG: 2.0, // L/kg for E2
@@ -220,8 +248,7 @@ export function getBioavailabilityMultiplier(
         }
         case Route.gel: {
             const siteIdx = Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.gelSite] ?? 0)));
-            // @ts-ignore
-            const siteKey = GEL_SITE_ORDER[siteIdx] || GelSite.arm;
+            const siteKey = GEL_SITE_ORDER[siteIdx] as GelSite;
             const bio = GelSiteParams[siteKey] ?? 0.05;
             return bio * mwFactor;
         }
@@ -628,8 +655,8 @@ function base64ToBuff(b64: string): Uint8Array {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
 
-export async function encryptData(text: string): Promise<{ data: string, password: string }> {
-    const password = buffToBase64(window.crypto.getRandomValues(new Uint8Array(12)));
+export async function encryptData(text: string, customPassword?: string): Promise<{ data: string, password: string }> {
+    const password = customPassword || buffToBase64(window.crypto.getRandomValues(new Uint8Array(12)));
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const key = await generateKey(password, salt);

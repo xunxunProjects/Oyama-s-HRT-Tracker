@@ -31,6 +31,7 @@ export const TRANSLATIONS_BASE = {
         "label.cpa_unit": "醋酸环丙孕酮 (ng/mL)",
 
         "timeline.title": "用药记录",
+        "timeline.add_title": "新增用药记录",
         "timeline.empty": "暂无记录",
         "timeline.delete_confirm": "确定删除这条记录吗？",
         "timeline.dose_label": "剂量",
@@ -95,6 +96,14 @@ export const TRANSLATIONS_BASE = {
         "import.password_desc": "检测到加密数据，请输入密码进行解密。",
         "import.decrypt_error": "解密失败，密码错误或数据损坏。",
         "qr.encrypt_label": "加密",
+        "export.encrypt_label": "加密",
+        "export.summary": "准备导出 {doses} 条剂量记录和 {labs} 条检查记录。",
+        "export.format_label": "导出格式",
+        "export.password_label": "加密密码（选填）",
+        "export.password_placeholder": "留空自动生成",
+        "export.password_hint_random": "若留空，应用将为您生成一个随机强密码。",
+        "export.btn_json": "导出 JSON 文件",
+        "export.btn_encrypted": "导出加密文件",
 
         "btn.add": "新增用药",
         "btn.save": "保存",
@@ -313,6 +322,14 @@ export const TRANSLATIONS_BASE = {
         "import.password_desc": "Encrypted data detected. Enter the password to decrypt.",
         "import.decrypt_error": "Decryption failed. Wrong password or corrupted data.",
         "qr.encrypt_label": "Encrypt",
+        "export.encrypt_label": "Encrypted",
+        "export.summary": "Ready to export {doses} doses and {labs} lab results.",
+        "export.format_label": "Format",
+        "export.password_label": "Password (Optional)",
+        "export.password_placeholder": "Auto-generate if empty",
+        "export.password_hint_random": "Leave blank to have the app generate a strong random password for you.",
+        "export.btn_json": "Export JSON File",
+        "export.btn_encrypted": "Export Encrypted File",
 
         "btn.add": "Add Dose",
         "btn.save": "Save",
@@ -570,6 +587,7 @@ export const TRANSLATIONS_BASE = {
         "import.password_desc": "Обнаружены зашифрованные данные. Введите пароль.",
         "import.decrypt_error": "Ошибка расшифровки. Неверный пароль или повреждённые данные.",
         "qr.encrypt_label": "Зашифровать",
+        "export.encrypt_label": "Зашифрованный",
 
         "btn.add": "Добавить дозу",
         "btn.save": "Сохранить",
@@ -757,6 +775,7 @@ export const TRANSLATIONS = {
         "import.decrypt_error": "解密失敗，密碼錯誤或資料已損毀。",
 
         "qr.encrypt_label": "加密",
+        "export.encrypt_label": "加密",
 
         "btn.add": "新增用藥",
         "btn.save": "儲存",
@@ -978,6 +997,7 @@ export const TRANSLATIONS = {
         "import.password_desc": "偵測到加密數據，請輸入密碼。",
         "import.decrypt_error": "解密失敗，密碼錯誤或者係數據壞咗。",
         "qr.encrypt_label": "加密",
+        "export.encrypt_label": "加密",
 
         "btn.add": "新增記錄",
         "btn.save": "儲存",
@@ -1202,6 +1222,7 @@ export const TRANSLATIONS = {
         "import.password_desc": "Дані зашифровані. Введіть пароль для розшифрування.",
         "import.decrypt_error": "Помилка розшифрування. Перевірте пароль або файл.",
         "qr.encrypt_label": "Шифрувати",
+        "export.encrypt_label": "Зашифрований",
 
         "btn.add": "Додати дозу",
         "btn.save": "Зберегти",
@@ -1417,6 +1438,7 @@ export const TRANSLATIONS = {
         "import.password_desc": "暗号化されたデータが検出されました。復号のためパスワードを入力してください。",
         "import.decrypt_error": "復号に失敗しました。パスワードが間違っているか、データが破損しています。",
         "qr.encrypt_label": "暗号化",
+        "export.encrypt_label": "暗号化",
 
         "btn.add": "投薬を追加",
         "btn.save": "保存",

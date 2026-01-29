@@ -1,5 +1,5 @@
 import React from 'react';
-import { Syringe, Pill, Droplet, Sticker, X } from 'lucide-react';
+import { Syringe, Pill, Droplet, Sticker, X, FlaskConical, Atom, Shield, Hexagon, Orbit, Dna, Shell, Triangle, Pentagon, Gem, Activity } from 'lucide-react';
 import { Route, DoseEvent, Ester, getBioavailabilityMultiplier, getToE2Factor, ExtraKey } from '../../logic';
 import { Lang } from '../i18n/translations';
 
@@ -28,6 +28,18 @@ export const getRouteIcon = (route: Route) => {
         case Route.gel: return <Droplet className="w-5 h-5 text-cyan-500" />;
         case Route.patchApply: return <Sticker className="w-5 h-5 text-orange-500" />;
         case Route.patchRemove: return <X className="w-5 h-5 text-gray-400" />;
+    }
+};
+
+export const getEsterIcon = (ester: Ester) => {
+    switch (ester) {
+        case Ester.E2: return <Atom className="w-5 h-5 text-zinc-400" />;
+        case Ester.CPA: return <Shield className="w-5 h-5 text-zinc-400" />;
+        case Ester.EV: return <Shell className="w-5 h-5 text-zinc-400" />;
+        case Ester.EB: return <Hexagon className="w-5 h-5 text-zinc-400" />;
+        case Ester.EC: return <Orbit className="w-5 h-5 text-zinc-400" />;
+        case Ester.EN: return <Dna className="w-5 h-5 text-zinc-400" />;
+        default: return <FlaskConical className="w-5 h-5 text-zinc-400" />;
     }
 };
 

@@ -4,7 +4,7 @@ import { formatDate, formatTime } from '../utils/helpers';
 import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, LabResult, convertToPgMl } from '../../logic';
 import { Activity, RotateCcw, Info, FlaskConical } from 'lucide-react';
 import {
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush, Line
 } from 'recharts';
 
 const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
@@ -87,7 +87,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             return {
                 time: timeMs,
                 concE2: calibratedE2, // pg/mL for left Y-axis
-                concCPA: rawCPA_ngmL // ng/mL for right Y-axis
+                concCPA: rawCPA_ngmL, // ng/mL for right Y-axis
+                conc: calibratedE2 // For overview chart
             };
         });
     }, [sim, calibrationFn]);
@@ -96,7 +97,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         if (!labResults || labResults.length === 0) return [];
         return labResults.map(l => ({
             time: l.timeH * 3600000,
-            conc: convertToPgMl(l.concValue, l.unit),
+            concE2: convertToPgMl(l.concValue, l.unit),
             originalValue: l.concValue,
             originalUnit: l.unit,
             isLabResult: true,
@@ -268,29 +269,27 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     };
 
     if (!sim || sim.timeH.length === 0) return (
-        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 transition-colors duration-300">
-            <Activity className="w-12 h-12 mb-4 text-gray-200 dark:text-gray-700" strokeWidth={1.5} />
+        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-zinc-400 bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-sm p-8 transition-colors duration-300">
+            <Activity className="w-12 h-12 mb-4 text-zinc-200 dark:text-zinc-700" strokeWidth={1.5} />
             <p className="text-sm font-medium">{t('timeline.empty')}</p>
         </div>
     );
 
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none relative overflow-hidden flex flex-col transition-colors duration-300">
-            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 dark:border-gray-800">
-                <h2 className="text-sm md:text-base font-semibold text-gray-800 dark:text-white tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
-                    <span className="inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30">
-                        <Activity size={16} className="text-[#f6c4d7] dark:text-pink-400 md:w-5 md:h-5" />
-                    </span>
+        <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 relative overflow-hidden flex flex-col transition-colors duration-300">
+            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-zinc-100 dark:border-zinc-800">
+                <h2 className="text-sm md:text-base font-semibold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
+                    <Activity size={20} className="text-pink-400 md:w-5 md:h-5" />
                     {t('chart.title')}
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-50 dark:bg-gray-800 rounded-xl p-1 gap-1 border border-gray-100 dark:border-gray-700">
+                    <div className="flex bg-zinc-50 dark:bg-zinc-800 rounded-xl p-1 gap-1 border border-zinc-100 dark:border-zinc-700">
                         <button
                             onClick={() => {
                                 zoomToDuration(7);
                             }}
-                            className="p-1.5 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all"
+                            className="p-1.5 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition-all"
                         >
                             <RotateCcw size={14} className="md:w-4 md:h-4" />
                         </button>
@@ -313,17 +312,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                     ) : null;
                 })()}
                 <ResponsiveContainer width="100%" height="100%">
+
                     <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
-                        <defs>
-                            <linearGradient id="colorConc" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f6c4d7" stopOpacity={0.18} />
-                                <stop offset="95%" stopColor="#f6c4d7" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorCPA" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.18} />
-                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#374151' : '#f2f4f7'} />
                         <XAxis
                             dataKey="time"
@@ -362,13 +352,13 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                         )}
                         <Tooltip
                             content={<CustomTooltip t={t} lang={lang} />}
-                            cursor={{ stroke: '#f6c4d7', strokeWidth: 1, strokeDasharray: '4 4' }}
+                            cursor={{ stroke: '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
                             trigger="hover"
                         />
                         {hasE2Data && (
                             <ReferenceLine
                                 x={now}
-                                stroke="#f6c4d7"
+                                stroke="#f472b6"
                                 strokeDasharray="3 3"
                                 strokeWidth={1.2}
                                 yAxisId="left"
@@ -376,29 +366,27 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             />
                         )}
                         {hasE2Data && (
-                            <Area
+                            <Line
                                 data={data}
-                                type="monotone"
+                                type="linear"
                                 dataKey="concE2"
                                 yAxisId="left"
-                                stroke="#f6c4d7"
-                                strokeWidth={2.2}
-                                fillOpacity={0.95}
-                                fill="url(#colorConc)"
+                                stroke="#f472b6"
+                                strokeWidth={2}
+                                dot={false}
                                 isAnimationActive={false}
                                 activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
                             />
                         )}
                         {hasCPAData && (
-                            <Area
+                            <Line
                                 data={data}
                                 type="monotone"
                                 dataKey="concCPA"
                                 yAxisId="right"
                                 stroke="#8b5cf6"
-                                strokeWidth={2.2}
-                                fillOpacity={0.95}
-                                fill="url(#colorCPA)"
+                                strokeWidth={2}
+                                dot={false}
                                 isAnimationActive={false}
                                 activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
                             />
@@ -408,6 +396,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             <Scatter
                                 data={eventPoints.e2Points}
                                 yAxisId="left"
+                                dataKey="concE2"
                                 isAnimationActive={false}
                                 onClick={(entry) => {
                                     if (entry && entry.payload && entry.payload.event) {
@@ -427,6 +416,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             <Scatter
                                 data={cpaEventPoints}
                                 yAxisId="right"
+                                dataKey="concCPA"
                                 isAnimationActive={false}
                                 onClick={(entry) => {
                                     if (entry && entry.payload && entry.payload.event) {
@@ -491,6 +481,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             <Scatter
                                 data={labPoints}
                                 yAxisId="left"
+                                dataKey="concE2"
                                 isAnimationActive={false}
                                 shape={({ cx, cy }: any) => (
                                     <g>

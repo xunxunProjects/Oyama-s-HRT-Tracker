@@ -34,48 +34,60 @@ const Sidebar: React.FC<SidebarProps> = ({
     t
 }) => {
     return (
-        <div className="hidden md:flex flex-col w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shrink-0 transition-colors duration-300">
+        <nav className="hidden md:flex flex-col w-[280px] h-full bg-white dark:bg-zinc-950 border-r border-zinc-100 dark:border-zinc-900 shrink-0 transition-colors duration-300">
             {/* Logo Area */}
-            <div className="px-6 py-8 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0 bg-white dark:bg-gray-800">
-                    <img src="/favicon.ico" alt="HRT Tracker logo" className="w-full h-full object-cover" />
+            <div className="px-8 py-10 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                    <img src="/favicon.ico" alt="HRT Tracker" className="w-full h-full object-cover" />
                 </div>
-                <div className="leading-tight">
-                    <p className="text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">HRT Tracker</p>
+                <div className="flex flex-col justify-center">
+                    <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 leading-none">
+                        HRT Tracker
+                    </h1>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-semibold mt-1">
+                        Dashboard
+                    </span>
                 </div>
             </div>
 
             {/* Navigation Items */}
-            <div className="flex-1 px-4 space-y-1 overflow-y-auto mt-2">
-                {navItems.map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => onViewChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 group ${currentView === item.id
-                            ? 'bg-gray-100/80 dark:bg-gray-800/80 text-gray-900 dark:text-white'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50/80 dark:hover:bg-gray-800/40'
-                            }`}
-                    >
-                        <span className={`transition-colors duration-200 ${currentView === item.id ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
-                            {item.icon}
-                        </span>
-                        <span>{item.label}</span>
-                    </button>
-                ))}
+            <div className="flex-1 px-6 space-y-1.5 overflow-y-auto">
+                {navItems.map(item => {
+                    const isActive = currentView === item.id;
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => onViewChange(item.id)}
+                            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative
+                                ${isActive
+                                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900'
+                                }`}
+                        >
+                            <span className={`transition-colors duration-200 ${isActive ? 'text-white dark:text-zinc-900' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>
+                                {React.cloneElement(item.icon, { size: 18, strokeWidth: isActive ? 2.5 : 2 })}
+                            </span>
+                            <span>{item.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Bottom Actions */}
-            <div className="p-6">
-                <div className="flex flex-col">
-                    <span className="text-3xl font-black text-gray-200 dark:text-gray-800 tracking-tighter leading-none select-none transition-colors duration-300">
-                        {formatTime(currentTime)}
-                    </span>
-                    <span className="text-xs font-bold text-gray-300 dark:text-gray-700 uppercase tracking-widest mt-1 ml-0.5 select-none transition-colors duration-300">
-                        {formatDate(currentTime, lang)}
-                    </span>
+            {/* Bottom Actions / Time Widget */}
+            <div className="p-6 mt-auto">
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800/50">
+                    <div className="flex flex-col">
+                        <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tighter leading-none select-none tabular-nums">
+                            {formatTime(currentTime)}
+                        </span>
+                        <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-3"></div>
+                        <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest select-none">
+                            {formatDate(currentTime, lang)}
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
+        </nav>
     );
 };
 

@@ -2,11 +2,11 @@
   "$schema": "https://schema.tauri.app/config/1",
   "package": {
     "productName": "Oyama's HRT Tracker",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "build": {
     "beforeDevCommand": "npm run dev -- --host",
-    "devPath": "http://localhost:5173",
+    "devPath": "http://localhost:3000",
     "beforeBuildCommand": "npm run build",
     "distDir": "../dist"
   },

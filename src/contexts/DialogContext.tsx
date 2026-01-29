@@ -44,23 +44,23 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                         @keyframes dialogSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
                     `}</style>
                     <div className="w-full max-w-lg">
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-6 transform transition-all" style={{ animation: 'dialogSlideUp 0.22s ease-out forwards' }}>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                        <div className="bg-white dark:bg-zinc-900 rounded-[24px] shadow-xl border border-zinc-200 dark:border-zinc-800 p-6 transform transition-all" style={{ animation: 'dialogSlideUp 0.22s ease-out forwards' }}>
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2 tracking-tight">
                                 {type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title')}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed text-sm">{message}</p>
+                            <p className="text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed text-sm">{message}</p>
                             <div className="flex gap-3">
                                 {type === 'confirm' && (
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="flex-1 py-3 text-gray-700 dark:text-gray-200 font-bold bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                                        className="flex-1 py-3.5 text-zinc-600 dark:text-zinc-400 font-bold bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
                                     >
                                         {t('btn.cancel')}
                                     </button>
                                 )}
                                 <button
                                     onClick={handleConfirm}
-                                    className="flex-1 py-3 bg-[#f6c4d7] dark:bg-pink-500 text-white font-bold rounded-xl hover:bg-[#f3b4cb] dark:hover:bg-pink-600 transition shadow-lg shadow-pink-100 dark:shadow-none"
+                                    className="flex-1 py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 dark:shadow-zinc-100/10"
                                 >
                                     {t('btn.ok')}
                                 </button>
