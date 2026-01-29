@@ -146,7 +146,6 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 <>
                     <div
                         className="fixed inset-0 z-[60] bg-black/20 dark:bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
-                        onClick={onClose}
                     />
                     <div
                         ref={containerRef}
@@ -278,10 +277,17 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             )}
                         </div>
 
-                        <div className="px-5 pb-5 pt-2 bg-white dark:bg-zinc-900 flex gap-2 safe-area-pb">
+                        <div className="px-5 pb-5 pt-2 bg-white dark:bg-zinc-900 flex gap-3 safe-area-pb">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 py-3.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200 font-bold rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition text-sm flex items-center justify-center gap-2"
+                            >
+                                <X size={18} />
+                                {t('btn.cancel')}
+                            </button>
                             <button
                                 onClick={() => onConfirm(selectedDate)}
-                                className="w-full py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 text-sm"
+                                className="flex-1 py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 text-sm"
                             >
                                 {t('btn.ok') || 'Confirm'}
                             </button>
