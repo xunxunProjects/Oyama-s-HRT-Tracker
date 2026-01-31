@@ -3,6 +3,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { LabResult } from '../../logic';
 import { X, FlaskConical } from 'lucide-react';
 import LabResultForm from './LabResultForm';
+import { useEscape } from '../hooks/useEscape';
 
 interface LabResultModalProps {
     isOpen: boolean;
@@ -32,6 +33,12 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
             onClose();
         }, 250);
     };
+
+    useEscape(() => {
+        if (!document.querySelector('.z-\\[70\\]')) {
+            handleClose();
+        }
+    }, isOpen);
 
     if (!isVisible && !isOpen) return null;
 

@@ -3,11 +3,14 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
 import { X, Download, ShieldCheck, FileJson, Lock } from 'lucide-react';
 import CustomSelect from './CustomSelect';
+import { useEscape } from '../hooks/useEscape';
 
 const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: { isOpen: boolean, onClose: () => void, onExport: (encrypt: boolean, password?: string) => void, events: DoseEvent[], labResults: LabResult[], weight: number }) => {
     const { t } = useTranslation();
     const [exportMode, setExportMode] = useState<'json' | 'encrypted'>('json');
     const [password, setPassword] = useState('');
+
+    useEscape(onClose, isOpen);
 
     if (!isOpen) return null;
 

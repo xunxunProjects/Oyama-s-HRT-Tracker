@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DoseForm, { DoseTemplate } from './DoseForm';
+import { useEscape } from '../hooks/useEscape';
 
 export type { DoseTemplate };
 
@@ -42,6 +43,13 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
             onClose();
         }, 250); // Match the animation duration
     };
+
+    useEscape(() => {
+        // Prevent closing if DatePicker (z-[70]) is open
+        if (!document.querySelector('.z-\\[70\\]')) {
+            handleClose();
+        }
+    }, isOpen);
 
     const handleSave = (event: any) => {
         if (onSave) {

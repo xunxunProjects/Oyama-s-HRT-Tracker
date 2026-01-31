@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { Info } from 'lucide-react';
+import { useEscape } from '../hooks/useEscape';
 
 const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
     const [weightStr, setWeightStr] = useState(currentWeight.toString());
+
+    useEscape(onClose, isOpen);
+
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => setWeightStr(currentWeight.toString()), [currentWeight, isOpen]);

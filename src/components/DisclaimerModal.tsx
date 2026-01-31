@@ -1,9 +1,12 @@
 import React from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { AlertTriangle } from 'lucide-react';
+import { useEscape } from '../hooks/useEscape';
 
 const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
     const { t } = useTranslation();
+
+    useEscape(onClose, isOpen);
 
     if (!isOpen) return null;
 

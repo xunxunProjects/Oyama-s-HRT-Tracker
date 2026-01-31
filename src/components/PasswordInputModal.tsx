@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useEscape } from '../hooks/useEscape';
 
 const PasswordInputModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: (pw: string) => void }) => {
     const { t } = useTranslation();
     const [password, setPassword] = useState("");
+
+    useEscape(onClose, isOpen);
 
     useEffect(() => {
         if (isOpen) setPassword("");

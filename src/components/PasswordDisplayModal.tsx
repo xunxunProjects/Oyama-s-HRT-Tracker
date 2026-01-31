@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Copy } from 'lucide-react';
+import { useEscape } from '../hooks/useEscape';
 
 const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, onClose: () => void, password: string }) => {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
+
+    useEscape(onClose, isOpen);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(password);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, ChevronDown, Check, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useEscape } from '../hooks/useEscape';
 
 interface DateTimePickerProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     title
 }) => {
     const { t } = useTranslation();
+    useEscape(onClose, isOpen);
     const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
     const [view, setView] = useState<'date' | 'time'>(mode === 'time' ? 'time' : 'date');
     const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());

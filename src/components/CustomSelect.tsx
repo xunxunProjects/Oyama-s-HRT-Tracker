@@ -36,11 +36,37 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
             const updatePosition = () => {
                 const rect = containerRef.current?.getBoundingClientRect();
                 if (rect) {
-                    setPositionStyle({
-                        top: rect.bottom + 8,
-                        left: rect.left,
-                        width: rect.width,
-                    });
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const spaceAbove = rect.top;
+                    const minSpaceBelow = 200; // Minimum space required to show useful amount of options
+
+                    let shouldFlip = false;
+                    let maxHeight = 300; // Default max height
+
+                    // If not enough space below AND more space above, flip it
+                    if (spaceBelow < minSpaceBelow && spaceAbove > spaceBelow) {
+                        shouldFlip = true;
+                        maxHeight = Math.min(300, spaceAbove - 16); // Leave 16px padding
+                    } else {
+                        shouldFlip = false;
+                        maxHeight = Math.min(300, spaceBelow - 16); // Leave 16px padding
+                    }
+
+                    if (shouldFlip) {
+                        setPositionStyle({
+                            bottom: window.innerHeight - rect.top + 8,
+                            left: rect.left,
+                            width: rect.width,
+                            maxHeight: maxHeight
+                        });
+                    } else {
+                        setPositionStyle({
+                            top: rect.bottom + 8,
+                            left: rect.left,
+                            width: rect.width,
+                            maxHeight: maxHeight
+                        });
+                    }
                 }
             };
             updatePosition();
@@ -90,7 +116,7 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="fixed z-[999] bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl shadow-xl max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 p-1.5"
+                        className="fixed z-[999] bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl shadow-xl overflow-y-auto animate-in fade-in zoom-in-95 duration-100 p-1.5"
                     >
                         {options.map(opt => (
                             <button

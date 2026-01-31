@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { X, Upload } from 'lucide-react';
+import { useEscape } from '../hooks/useEscape';
 
 const ImportModal = ({ isOpen, onClose, onImportJson }: { isOpen: boolean; onClose: () => void; onImportJson: (text: string) => boolean | Promise<boolean> }) => {
     const { t } = useTranslation();
     const [text, setText] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEscape(onClose, isOpen);
 
     useEffect(() => {
         if (isOpen) {
