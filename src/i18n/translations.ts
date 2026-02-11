@@ -232,6 +232,20 @@ export const TRANSLATIONS_BASE = {
         "lab.clear_all": "清空校准",
         "lab.clear_confirm": "清空所有校准记录？此操作不可撤销。",
         "lab.tip_scale": "当前校准倍率",
+
+        "admin.dashboard": "仪表板",
+        "admin.sign_out": "退出登录",
+        "admin.users": "用户",
+        "admin.system": "系统",
+        "admin.manage_users": "用户管理",
+        "admin.items": "项",
+        "admin.refresh": "刷新",
+        "admin.delete_confirm": "确定要删除用户 \"{username}\" 嗎？此操作不可撤销。",
+        "admin.delete_success": "用户删除成功。",
+        "admin.delete_failed": "用户删除失败。",
+        "admin.system_status": "系统状态",
+        "admin.operational": "运行正常",
+        "admin.status_desc": "所有系统运行正常。后端已连接到 {env} 环境。",
     },
 
     en: {
@@ -464,6 +478,20 @@ export const TRANSLATIONS_BASE = {
         "lab.clear_all": "Clear Calibrations",
         "lab.clear_confirm": "Clear all calibration records? This cannot be undone.",
         "lab.tip_scale": "Current calibration factor",
+
+        "admin.dashboard": "Dashboard",
+        "admin.sign_out": "Sign Out",
+        "admin.users": "Users",
+        "admin.system": "System",
+        "admin.manage_users": "Manage Users",
+        "admin.items": "items",
+        "admin.refresh": "Refresh",
+        "admin.delete_confirm": "Are you sure you want to delete user \"{username}\"? This action cannot be undone.",
+        "admin.delete_success": "User deleted successfully.",
+        "admin.delete_failed": "Failed to delete user.",
+        "admin.system_status": "System Status",
+        "admin.operational": "Operational",
+        "admin.status_desc": "All systems are running smoothly. The backend is connected to the {env} environment.",
     },
 
     ru: {

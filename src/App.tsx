@@ -27,6 +27,8 @@ import History from './pages/History';
 import Lab from './pages/Lab';
 import Settings from './pages/Settings';
 import Account from './pages/Account';
+import Admin from './pages/Admin';
+import { ShieldCheck } from 'lucide-react';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -98,8 +100,8 @@ const AppContent = () => {
     const [isLabModalOpen, setIsLabModalOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
 
-    type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account';
-    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account'];
+    type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin';
+    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'admin'];
 
     const [currentView, setCurrentView] = useState<ViewKey>('home');
     const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
@@ -204,13 +206,21 @@ const AppContent = () => {
 
     type NavItem = { id: ViewKey; label: string; icon: React.ReactElement; };
 
-    const navItems = useMemo<NavItem[]>(() => ([
-        { id: 'home', label: t('nav.home'), icon: <Activity size={16} /> },
-        { id: 'history', label: t('nav.history'), icon: <Calendar size={16} /> },
-        { id: 'lab', label: t('nav.lab'), icon: <FlaskConical size={16} /> },
-        { id: 'settings', label: t('nav.settings'), icon: <SettingsIcon size={16} /> },
-        { id: 'account', label: 'Account', icon: <UserCircle size={16} /> },
-    ]), [t]);
+    const navItems = useMemo<NavItem[]>(() => {
+        const items = [
+            { id: 'home', label: t('nav.home'), icon: <Activity size={16} /> },
+            { id: 'history', label: t('nav.history'), icon: <Calendar size={16} /> },
+            { id: 'lab', label: t('nav.lab'), icon: <FlaskConical size={16} /> },
+            { id: 'settings', label: t('nav.settings'), icon: <SettingsIcon size={16} /> },
+            { id: 'account', label: 'Account', icon: <UserCircle size={16} /> },
+        ];
+
+        if (user?.isAdmin) {
+            items.push({ id: 'admin', label: 'Admin', icon: <ShieldCheck size={16} /> });
+        }
+
+        return items as NavItem[];
+    }, [t, user]);
 
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
@@ -646,6 +656,10 @@ const AppContent = () => {
                             onCloudSave={handleCloudSave}
                             onCloudLoad={handleCloudLoad}
                         />
+                    )}
+
+                    {currentView === 'admin' && user?.isAdmin && (
+                        <Admin t={t} />
                     )}
                 </div>
 

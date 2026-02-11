@@ -49,10 +49,10 @@ var require_crypto = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-qetSnV/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-4QlzyG/middleware-loader.entry.ts
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-qetSnV/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-4QlzyG/middleware-insertion-facade.js
 init_modules_watch_stub();
 
 // worker.ts
@@ -3292,13 +3292,24 @@ var worker_default = {
           const body = await request.json();
           const { username, password } = body;
           if (!username || !password) return new Response("Missing credentials", { status: 400, headers: corsHeaders });
+          if (env.ADMIN_USERNAME && env.ADMIN_PASSWORD && username === env.ADMIN_USERNAME && password === env.ADMIN_PASSWORD) {
+            const secret2 = new TextEncoder().encode(env.JWT_SECRET || "fallback-secret");
+            const token2 = await new SignJWT({ sub: "admin", username: "Admin", role: "admin" }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("1d").sign(secret2);
+            return new Response(JSON.stringify({
+              token: token2,
+              user: { id: "admin", username: "Admin", isAdmin: true }
+            }), { status: 200, headers: corsHeaders });
+          }
           const user = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
           if (!user) return new Response("Invalid credentials", { status: 401, headers: corsHeaders });
           const match = await bcryptjs_default.compare(password, user.password_hash);
           if (!match) return new Response("Invalid credentials", { status: 401, headers: corsHeaders });
           const secret = new TextEncoder().encode(env.JWT_SECRET || "fallback-secret");
-          const token = await new SignJWT({ sub: user.id, username: user.username }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(secret);
-          return new Response(JSON.stringify({ token, user: { id: user.id, username: user.username } }), { status: 200, headers: corsHeaders });
+          const token = await new SignJWT({ sub: user.id, username: user.username, role: "user" }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(secret);
+          return new Response(JSON.stringify({
+            token,
+            user: { id: user.id, username: user.username, isAdmin: false }
+          }), { status: 200, headers: corsHeaders });
         }
         if (url.pathname.startsWith("/api/content")) {
           const authHeader = request.headers.get("Authorization");
@@ -3318,6 +3329,31 @@ var worker_default = {
               const id = crypto.randomUUID();
               await env.DB.prepare("INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)").bind(id, userId, JSON.stringify(data)).run();
               return new Response(JSON.stringify({ message: "Content saved", id }), { status: 201, headers: corsHeaders });
+            }
+          } catch (e) {
+            return new Response("Invalid token", { status: 401, headers: corsHeaders });
+          }
+        }
+        if (url.pathname.startsWith("/api/admin/")) {
+          const authHeader = request.headers.get("Authorization");
+          if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          const token = authHeader.split(" ")[1];
+          const secret = new TextEncoder().encode(env.JWT_SECRET || "fallback-secret");
+          try {
+            const { payload } = await jwtVerify(token, secret);
+            if (payload.role !== "admin") {
+              return new Response("Forbidden", { status: 403, headers: corsHeaders });
+            }
+            if (url.pathname === "/api/admin/users" && request.method === "GET") {
+              const users = await env.DB.prepare("SELECT id, username FROM users ORDER BY username ASC").all();
+              return new Response(JSON.stringify(users.results), { status: 200, headers: corsHeaders });
+            }
+            if (url.pathname.match(/\/api\/admin\/users\/.+/) && request.method === "DELETE") {
+              const userId = url.pathname.split("/").pop();
+              if (!userId) return new Response("Missing user ID", { status: 400, headers: corsHeaders });
+              await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+              await env.DB.prepare("DELETE FROM content WHERE user_id = ?").bind(userId).run();
+              return new Response(JSON.stringify({ message: "User deleted" }), { status: 200, headers: corsHeaders });
             }
           } catch (e) {
             return new Response("Invalid token", { status: 401, headers: corsHeaders });
@@ -3375,7 +3411,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-qetSnV/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-4QlzyG/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -3408,7 +3444,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-qetSnV/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-4QlzyG/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

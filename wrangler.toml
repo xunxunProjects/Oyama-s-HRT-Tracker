@@ -16,3 +16,5 @@ database_id = "916011c6-3b95-4116-a10e-76af94496170"
 
 [vars]
 JWT_SECRET = "dev-secret-key-change-in-prod"
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin"
