@@ -44,20 +44,24 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
 // Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
 function timingSafeEqual(a: string, b: string): boolean {
   // Always use fixed length regardless of input to ensure truly constant time
-  // 512 chars handles passwords (max 128), usernames (max 30), with security margin
-  const maxLen = 512;
-  const aPadded = a.padEnd(maxLen, '\0');
-  const bPadded = b.padEnd(maxLen, '\0');
+  const aPadded = a.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+  const bPadded = b.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
   
   let result = 0;
-  for (let i = 0; i < maxLen; i++) {
+  for (let i = 0; i < TIMING_SAFE_COMPARE_LENGTH; i++) {
     result |= aPadded.charCodeAt(i) ^ bPadded.charCodeAt(i);
   }
   return result === 0;
 }
 
-// Common weak secrets to reject
-const WEAK_SECRETS = [
+// Constants for validation
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
+const TIMING_SAFE_COMPARE_LENGTH = 512;
+
+// Common weak secrets to reject (using Set for O(1) lookup)
+const WEAK_SECRETS = new Set([
   'secret',
   'fallback-secret', 
   'fallback_secret',
@@ -67,7 +71,7 @@ const WEAK_SECRETS = [
   'password',
   '123456',
   'changeme',
-];
+]);
 
 // Validate JWT secret
 function validateJWTSecret(secret: string | undefined): string {
@@ -92,18 +96,16 @@ function validateJWTSecret(secret: string | undefined): string {
 
 // Validate username for security
 function validateUsername(username: string): boolean {
-  // Username must be 3-30 characters, alphanumeric plus underscore and hyphen
-  const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/;
-  return usernameRegex.test(username);
+  return USERNAME_REGEX.test(username);
 }
 
 // Validate password strength
 function validatePassword(password: string): { valid: boolean; error?: string } {
-  if (password.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long' };
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long` };
   }
-  if (password.length > 128) {
-    return { valid: false, error: 'Password must be at most 128 characters long' };
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return { valid: false, error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters long` };
   }
   return { valid: true };
 }
