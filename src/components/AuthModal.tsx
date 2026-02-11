@@ -29,7 +29,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 await login(username, password);
             } else {
                 await register(username, password);
+                // After successful registration and auto-login, refresh the page
+                // Note: This will reload the page with the user already logged in (token in localStorage)
+                window.location.reload();
+                return; // Prevent further execution after reload
             }
+            // Only executed for login
             onClose();
             setUsername('');
             setPassword('');
