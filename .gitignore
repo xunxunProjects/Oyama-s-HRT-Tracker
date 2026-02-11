@@ -28,7 +28,3 @@ src-tauri/target/release
 # Wrangler
 .wrangler
 .dev.vars
-
-.dev.vars
-.dev.vars
-*.vars
