@@ -514,7 +514,7 @@ const AppContent = () => {
         }
     };
 
-    const handleCloudSave = async () => {
+    const handleCloudSave = async (encryptionPassword?: string) => {
         if (!token) {
             setIsAuthModalOpen(true);
             return;
@@ -529,21 +529,23 @@ const AppContent = () => {
         };
 
         try {
-            await cloudService.save(token, exportData);
-            showDialog('alert', 'Data saved to cloud successfully!');
+            await cloudService.save(token, exportData, encryptionPassword);
+            showDialog('alert', encryptionPassword
+                ? 'Data encrypted and saved to cloud successfully!'
+                : 'Data saved to cloud successfully!');
         } catch (e) {
             showDialog('alert', 'Failed to save to cloud.');
         }
     };
 
-    const handleCloudLoad = async () => {
+    const handleCloudLoad = async (encryptionPassword?: string) => {
         if (!token) {
             setIsAuthModalOpen(true);
             return;
         }
 
         try {
-            const list = await cloudService.load(token);
+            const list = await cloudService.load(token, encryptionPassword);
             if (!list || list.length === 0) {
                 showDialog('alert', 'No cloud backups found.');
                 return;
@@ -557,7 +559,36 @@ const AppContent = () => {
             });
 
         } catch (e) {
-            showDialog('alert', 'Failed to load from cloud.');
+            showDialog('alert', 'Failed to load from cloud. If E2EE is enabled, check your encryption password.');
+        }
+    };
+
+    const handleCloudMerge = async (encryptionPassword?: string) => {
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+
+        const exportData = {
+            meta: { version: 1, exportedAt: new Date().toISOString() },
+            weight: weight,
+            events: events,
+            labResults: labResults,
+            doseTemplates: doseTemplates
+        };
+
+        try {
+            const result = await cloudService.merge(token, exportData, encryptionPassword);
+
+            if (result.merged && result.data) {
+                showDialog('confirm', 'Data merged successfully. Apply merged data?', () => {
+                    processImportedData(result.data);
+                });
+            } else if (!result.merged) {
+                showDialog('alert', result.message || 'Data saved to cloud (no prior backup to merge).');
+            }
+        } catch (e) {
+            showDialog('alert', 'Failed to merge with cloud.');
         }
     };
 
@@ -651,10 +682,12 @@ const AppContent = () => {
                         <Account
                             t={t}
                             user={user}
+                            token={token}
                             onOpenAuth={() => setIsAuthModalOpen(true)}
                             onLogout={logout}
                             onCloudSave={handleCloudSave}
                             onCloudLoad={handleCloudLoad}
+                            onCloudMerge={handleCloudMerge}
                         />
                     )}
 

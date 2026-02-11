@@ -2,19 +2,21 @@ export interface User {
     id: string;
     username: string;
     isAdmin?: boolean;
+    totpEnabled?: boolean;
 }
 
 export interface AuthResponse {
     token: string;
     user: User;
+    requires2FA?: boolean;
 }
 
 export const authService = {
-    async login(username: string, password: string): Promise<AuthResponse> {
+    async login(username: string, password: string, totpCode?: string): Promise<AuthResponse> {
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, totpCode })
         });
         if (!res.ok) throw new Error(await res.text());
         return await res.json() as AuthResponse;

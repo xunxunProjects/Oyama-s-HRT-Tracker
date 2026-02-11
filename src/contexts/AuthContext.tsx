@@ -4,7 +4,7 @@ import { authService, User } from '../services/auth';
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, password: string, totpCode?: string) => Promise<{ requires2FA?: boolean }>;
     register: (username: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
@@ -36,12 +36,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
     }, [token]);
 
-    const login = async (username: string, password: string) => {
-        const data = await authService.login(username, password);
+    const login = async (username: string, password: string, totpCode?: string): Promise<{ requires2FA?: boolean }> => {
+        const data = await authService.login(username, password, totpCode);
+
+        // Server signals that 2FA is required
+        if (data.requires2FA) {
+            return { requires2FA: true };
+        }
+
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        return {};
     };
 
     const register = async (username: string, password: string) => {
