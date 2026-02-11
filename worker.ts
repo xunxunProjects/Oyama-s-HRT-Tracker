@@ -34,7 +34,8 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
 // Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
 function timingSafeEqual(a: string, b: string): boolean {
   // Pad to a fixed length to avoid length-based timing attacks
-  const maxLen = Math.max(a.length, b.length, 256);
+  // Use 512 as minimum to handle passwords up to 128 chars and admin credentials
+  const maxLen = Math.max(a.length, b.length, 512);
   const aPadded = a.padEnd(maxLen, '\0');
   const bPadded = b.padEnd(maxLen, '\0');
   
