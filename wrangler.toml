@@ -15,4 +15,4 @@ database_name = "hrt-tracker-prod"
 database_id = "916011c6-3b95-4116-a10e-76af94496170"
 
 [vars]
-JWT_SECRET = "dev-secret-key-change-in-prod-secure-32chars"
+JWT_SECRET = "a3f9c8d2e5b1a477363910284756291038475629103847562910384756291038"
