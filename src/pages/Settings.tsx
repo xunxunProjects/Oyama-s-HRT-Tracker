@@ -39,7 +39,7 @@ const Settings: React.FC<SettingsProps> = ({
     setIsDisclaimerOpen,
     appVersion,
     weight,
-    setIsWeightModalOpen
+    setIsWeightModalOpen,
 }) => {
     return (
         <div className="relative space-y-5 pt-6 pb-24">
@@ -50,6 +50,8 @@ const Settings: React.FC<SettingsProps> = ({
                     </h2>
                 </div>
             </div>
+
+
 
             {/* General Settings */}
             <div className="space-y-2">

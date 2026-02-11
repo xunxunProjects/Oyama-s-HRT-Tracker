@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Activity, Calendar, FlaskConical, Settings as SettingsIcon } from 'lucide-react';
+import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -17,16 +17,21 @@ import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import LabResultModal from './components/LabResultModal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AuthModal from './components/AuthModal';
+import { cloudService } from './services/cloud';
 
 // Pages
 import Home from './pages/Home';
 import History from './pages/History';
 import Lab from './pages/Lab';
 import Settings from './pages/Settings';
+import Account from './pages/Account';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
+    const { user, token, logout } = useAuth();
 
     const [events, setEvents] = useState<DoseEvent[]>(() => {
         const saved = localStorage.getItem('hrt-events');
@@ -58,6 +63,7 @@ const AppContent = () => {
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
         const saved = localStorage.getItem('app-theme');
@@ -92,8 +98,8 @@ const AppContent = () => {
     const [isLabModalOpen, setIsLabModalOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
 
-    type ViewKey = 'home' | 'history' | 'lab' | 'settings';
-    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings'];
+    type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account';
+    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account'];
 
     const [currentView, setCurrentView] = useState<ViewKey>('home');
     const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
@@ -203,6 +209,7 @@ const AppContent = () => {
         { id: 'history', label: t('nav.history'), icon: <Calendar size={16} /> },
         { id: 'lab', label: t('nav.lab'), icon: <FlaskConical size={16} /> },
         { id: 'settings', label: t('nav.settings'), icon: <SettingsIcon size={16} /> },
+        { id: 'account', label: 'Account', icon: <UserCircle size={16} /> },
     ]), [t]);
 
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
@@ -497,6 +504,53 @@ const AppContent = () => {
         }
     };
 
+    const handleCloudSave = async () => {
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+
+        const exportData = {
+            meta: { version: 1, exportedAt: new Date().toISOString() },
+            weight: weight,
+            events: events,
+            labResults: labResults,
+            doseTemplates: doseTemplates
+        };
+
+        try {
+            await cloudService.save(token, exportData);
+            showDialog('alert', 'Data saved to cloud successfully!');
+        } catch (e) {
+            showDialog('alert', 'Failed to save to cloud.');
+        }
+    };
+
+    const handleCloudLoad = async () => {
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+
+        try {
+            const list = await cloudService.load(token);
+            if (!list || list.length === 0) {
+                showDialog('alert', 'No cloud backups found.');
+                return;
+            }
+
+            const latest = list[0];
+            const parsed = JSON.parse(latest.data);
+
+            showDialog('confirm', `Load backup from ${new Date(latest.created_at * 1000).toLocaleString()}? This will overwrite local data.`, () => {
+                processImportedData(parsed);
+            });
+
+        } catch (e) {
+            showDialog('alert', 'Failed to load from cloud.');
+        }
+    };
+
     return (
         <div className="h-screen w-full bg-white dark:bg-black flex flex-col md:flex-row font-sans text-zinc-900 dark:text-white select-none overflow-hidden transition-colors duration-300">
             <Sidebar
@@ -582,6 +636,17 @@ const AppContent = () => {
                             setIsWeightModalOpen={setIsWeightModalOpen}
                         />
                     )}
+
+                    {currentView === 'account' && (
+                        <Account
+                            t={t}
+                            user={user}
+                            onOpenAuth={() => setIsAuthModalOpen(true)}
+                            onLogout={logout}
+                            onCloudSave={handleCloudSave}
+                            onCloudLoad={handleCloudLoad}
+                        />
+                    )}
                 </div>
 
                 {/* Bottom Navigation - mobile only */}
@@ -604,6 +669,15 @@ const AppContent = () => {
                                 }`}
                         >
                             <Calendar size={20} strokeWidth={currentView === 'history' ? 2.5 : 2} />
+                        </button>
+                        <button
+                            onClick={() => handleViewChange('account')}
+                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'account'
+                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
+                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                }`}
+                        >
+                            <UserCircle size={20} strokeWidth={currentView === 'account' ? 2.5 : 2} />
                         </button>
                         <button
                             onClick={() => handleViewChange('lab')}
@@ -684,6 +758,11 @@ const AppContent = () => {
                 onDelete={handleDeleteLabResult}
                 resultToEdit={editingLab}
             />
+
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+            />
         </div >
     );
 };
@@ -691,9 +770,11 @@ const AppContent = () => {
 const App = () => (
     <LanguageProvider>
         <DialogProvider>
-            <ErrorBoundary>
-                <AppContent />
-            </ErrorBoundary>
+            <AuthProvider>
+                <ErrorBoundary>
+                    <AppContent />
+                </ErrorBoundary>
+            </AuthProvider>
         </DialogProvider>
     </LanguageProvider>
 );
