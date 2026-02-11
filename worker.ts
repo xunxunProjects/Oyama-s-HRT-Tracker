@@ -13,7 +13,7 @@ export interface Env {
 // Rate limiting map (in-memory, simple implementation)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-function checkRateLimit(ip: string, maxRequests = 10, windowMs = 60000): boolean {
+function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean {
   const now = Date.now();
   const record = rateLimitMap.get(ip);
   
@@ -31,23 +31,51 @@ function checkRateLimit(ip: string, maxRequests = 10, windowMs = 60000): boolean
 }
 
 // Timing-safe string comparison
+// Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
+  // Pad to a fixed length to avoid length-based timing attacks
+  const maxLen = Math.max(a.length, b.length, 256);
+  const aPadded = a.padEnd(maxLen, '\0');
+  const bPadded = b.padEnd(maxLen, '\0');
   
   let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < maxLen; i++) {
+    result |= aPadded.charCodeAt(i) ^ bPadded.charCodeAt(i);
   }
   return result === 0;
 }
 
+// Common weak secrets to reject
+const WEAK_SECRETS = [
+  'secret',
+  'fallback-secret', 
+  'fallback_secret',
+  'test-secret',
+  'dev-secret',
+  'default',
+  'password',
+  '123456',
+  'changeme',
+];
+
 // Validate JWT secret
 function validateJWTSecret(secret: string | undefined): string {
-  if (!secret || secret === 'fallback-secret' || secret.length < 32) {
-    throw new Error('JWT_SECRET must be set and be at least 32 characters long. Never use default/fallback secrets in production.');
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable must be set. Never deploy without a secure JWT secret.');
   }
+  
+  if (secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters long for adequate security.');
+  }
+  
+  // Check against common weak secrets (case-insensitive)
+  const lowerSecret = secret.toLowerCase();
+  for (const weak of WEAK_SECRETS) {
+    if (lowerSecret.includes(weak)) {
+      throw new Error(`JWT_SECRET contains weak/common pattern "${weak}". Use a cryptographically random secret.`);
+    }
+  }
+  
   return secret;
 }
 
@@ -69,6 +97,16 @@ function validatePassword(password: string): { valid: boolean; error?: string } 
   return { valid: true };
 }
 
+// Cache validated JWT secret to avoid re-validation on every request
+let cachedJWTSecret: string | null = null;
+
+function getValidatedJWTSecret(env: Env): string {
+  if (cachedJWTSecret === null) {
+    cachedJWTSecret = validateJWTSecret(env.JWT_SECRET);
+  }
+  return cachedJWTSecret;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -87,8 +125,8 @@ export default {
       }
 
       try {
-        // Validate JWT secret at startup
-        const jwtSecret = validateJWTSecret(env.JWT_SECRET);
+        // Get validated JWT secret (cached after first validation)
+        const jwtSecret = getValidatedJWTSecret(env);
         
         // Rate limiting for authentication endpoints
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
