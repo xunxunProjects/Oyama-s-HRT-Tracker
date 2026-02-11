@@ -43,11 +43,9 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
 // Timing-safe string comparison
 // Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
 function timingSafeEqual(a: string, b: string): boolean {
-  // Pad to a fixed length to avoid length-based timing attacks
-  // Use 512 as minimum to handle passwords (max 128), usernames (max 30), and provide 
-  // security margin. The fixed size is intentional - any variable length would leak information.
-  // Performance impact is negligible compared to security benefit.
-  const maxLen = Math.max(a.length, b.length, 512);
+  // Always use fixed length regardless of input to ensure truly constant time
+  // 512 chars handles passwords (max 128), usernames (max 30), with security margin
+  const maxLen = 512;
   const aPadded = a.padEnd(maxLen, '\0');
   const bPadded = b.padEnd(maxLen, '\0');
   
@@ -142,18 +140,32 @@ export default {
         const jwtSecret = getValidatedJWTSecret(env);
         
         // Rate limiting for authentication endpoints
-        const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || request.headers.get('X-Real-IP');
-        if (!clientIP) {
+        if (url.pathname === '/api/login' || url.pathname === '/api/register') {
+          // Get client IP - prefer CF-Connecting-IP as it cannot be spoofed
+          let clientIP = request.headers.get('CF-Connecting-IP');
+          
+          // Fallback to X-Forwarded-For (parse first IP only, as it can be comma-separated)
+          if (!clientIP) {
+            const forwardedFor = request.headers.get('X-Forwarded-For');
+            if (forwardedFor) {
+              clientIP = forwardedFor.split(',')[0].trim();
+            }
+          }
+          
+          // Fallback to X-Real-IP
+          if (!clientIP) {
+            clientIP = request.headers.get('X-Real-IP');
+          }
+          
           // Reject requests without identifiable IP to prevent rate limit bypass
-          if (url.pathname === '/api/login' || url.pathname === '/api/register') {
+          if (!clientIP) {
             return new Response('Unable to identify client IP', { 
               status: 400, 
               headers: corsHeaders 
             });
           }
-        }
-        
-        if ((url.pathname === '/api/login' || url.pathname === '/api/register') && clientIP) {
+          
+          // Check rate limit
           if (!checkRateLimit(clientIP, 5, 60000)) {
             return new Response('Too many requests. Please try again later.', { 
               status: 429, 
