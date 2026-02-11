@@ -12,12 +12,22 @@ export interface Env {
 
 // Rate limiting map (in-memory, simple implementation)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const MAX_RATE_LIMIT_ENTRIES = 10000; // Prevent unbounded memory growth
 
 function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean {
   const now = Date.now();
   const record = rateLimitMap.get(ip);
   
   if (!record || now > record.resetTime) {
+    // Clean up expired entries periodically to prevent memory leak
+    if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
+      for (const [key, value] of rateLimitMap.entries()) {
+        if (now > value.resetTime) {
+          rateLimitMap.delete(key);
+        }
+      }
+    }
+    
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
     return true;
   }
@@ -34,7 +44,9 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
 // Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
 function timingSafeEqual(a: string, b: string): boolean {
   // Pad to a fixed length to avoid length-based timing attacks
-  // Use 512 as minimum to handle passwords up to 128 chars and admin credentials
+  // Use 512 as minimum to handle passwords (max 128), usernames (max 30), and provide 
+  // security margin. The fixed size is intentional - any variable length would leak information.
+  // Performance impact is negligible compared to security benefit.
   const maxLen = Math.max(a.length, b.length, 512);
   const aPadded = a.padEnd(maxLen, '\0');
   const bPadded = b.padEnd(maxLen, '\0');
@@ -130,8 +142,18 @@ export default {
         const jwtSecret = getValidatedJWTSecret(env);
         
         // Rate limiting for authentication endpoints
-        const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (url.pathname === '/api/login' || url.pathname === '/api/register') {
+        const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || request.headers.get('X-Real-IP');
+        if (!clientIP) {
+          // Reject requests without identifiable IP to prevent rate limit bypass
+          if (url.pathname === '/api/login' || url.pathname === '/api/register') {
+            return new Response('Unable to identify client IP', { 
+              status: 400, 
+              headers: corsHeaders 
+            });
+          }
+        }
+        
+        if ((url.pathname === '/api/login' || url.pathname === '/api/register') && clientIP) {
           if (!checkRateLimit(clientIP, 5, 60000)) {
             return new Response('Too many requests. Please try again later.', { 
               status: 429, 

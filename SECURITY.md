@@ -24,6 +24,8 @@ This document outlines the security measures implemented in this application and
   - 5 requests per minute per IP for `/api/login` and `/api/register`
   - Returns HTTP 429 (Too Many Requests) when limit exceeded
   - Includes `Retry-After` header
+  - Automatic cleanup of expired entries to prevent memory leaks (max 10,000 entries)
+  - Rejects requests without identifiable IP to prevent rate limit bypass
 - **Impact**: Significantly reduces brute-force attack effectiveness
 - **Note**: This is an in-memory implementation suitable for single-instance deployments
 
