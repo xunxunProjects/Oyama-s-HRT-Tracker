@@ -429,242 +429,245 @@ export default {
           const token = authHeader.split(' ')[1];
           const secret = new TextEncoder().encode(jwtSecret);
 
+          // Verify JWT — only auth errors should return 401
+          let payload: any;
           try {
-            const { payload } = await jwtVerify(token, secret);
-            const userId = payload.sub as string;
+            const result = await jwtVerify(token, secret);
+            payload = result.payload;
+          } catch (e) {
+            return new Response('Invalid or expired token', { status: 401, headers: corsHeaders });
+          }
 
-            // --- TOTP Management Endpoints ---
+          const userId = payload.sub as string;
 
-            if (url.pathname === '/api/totp/setup' && request.method === 'POST') {
-              const totpSecret = generateTOTPSecret();
-              const otpauthUrl = `otpauth://totp/${TOTP_ISSUER}:${encodeURIComponent(payload.username as string)}?secret=${totpSecret}&issuer=${TOTP_ISSUER}&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`;
+          // --- TOTP Management Endpoints ---
 
-              // Store the secret but don't enable yet (user must verify first)
-              await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
+          if (url.pathname === '/api/totp/setup' && request.method === 'POST') {
+            const totpSecret = generateTOTPSecret();
+            const otpauthUrl = `otpauth://totp/${TOTP_ISSUER}:${encodeURIComponent(payload.username as string)}?secret=${totpSecret}&issuer=${TOTP_ISSUER}&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`;
 
-              return new Response(JSON.stringify({ secret: totpSecret, otpauthUrl }), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
+            // Store the secret but don't enable yet (user must verify first)
+            await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
+
+            return new Response(JSON.stringify({ secret: totpSecret, otpauthUrl }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          if (url.pathname === '/api/totp/verify' && request.method === 'POST') {
+            const contentType = request.headers.get('Content-Type');
+            if (!contentType || !contentType.includes('application/json')) {
+              return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
             }
 
-            if (url.pathname === '/api/totp/verify' && request.method === 'POST') {
-              const contentType = request.headers.get('Content-Type');
-              if (!contentType || !contentType.includes('application/json')) {
-                return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
-              }
+            const body = await request.json() as any;
+            const { code } = body;
 
-              const body = await request.json() as any;
-              const { code } = body;
-
-              if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
-                return new Response('Invalid code format', { status: 400, headers: corsHeaders });
-              }
-
-              const user = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-              if (!user?.totp_secret) {
-                return new Response('TOTP not set up', { status: 400, headers: corsHeaders });
-              }
-
-              const valid = await verifyTOTP(user.totp_secret, code);
-              if (!valid) {
-                return new Response('Invalid code', { status: 401, headers: corsHeaders });
-              }
-
-              // Enable TOTP
-              await env.DB.prepare('UPDATE users SET totp_enabled = 1 WHERE id = ?').bind(userId).run();
-
-              return new Response(JSON.stringify({ message: '2FA enabled successfully' }), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
+            if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+              return new Response('Invalid code format', { status: 400, headers: corsHeaders });
             }
 
-            if (url.pathname === '/api/totp/disable' && request.method === 'POST') {
-              const contentType = request.headers.get('Content-Type');
-              if (!contentType || !contentType.includes('application/json')) {
-                return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
-              }
-
-              const body = await request.json() as any;
-              const { code } = body;
-
-              if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
-                return new Response('Invalid code format', { status: 400, headers: corsHeaders });
-              }
-
-              const user = await env.DB.prepare('SELECT totp_secret, totp_enabled FROM users WHERE id = ?').bind(userId).first() as any;
-              if (!user?.totp_enabled || !user?.totp_secret) {
-                return new Response('2FA is not enabled', { status: 400, headers: corsHeaders });
-              }
-
-              const valid = await verifyTOTP(user.totp_secret, code);
-              if (!valid) {
-                return new Response('Invalid code', { status: 401, headers: corsHeaders });
-              }
-
-              await env.DB.prepare('UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?').bind(userId).run();
-
-              return new Response(JSON.stringify({ message: '2FA disabled successfully' }), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
+            const user = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
+            if (!user?.totp_secret) {
+              return new Response('TOTP not set up', { status: 400, headers: corsHeaders });
             }
 
-            // --- Content Endpoints ---
-
-            if (url.pathname === '/api/content' && request.method === 'GET') {
-              const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
-              return new Response(JSON.stringify(content.results), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
+            const valid = await verifyTOTP(user.totp_secret, code);
+            if (!valid) {
+              return new Response('Invalid code', { status: 401, headers: corsHeaders });
             }
 
-            if (url.pathname === '/api/content' && request.method === 'POST') {
-              // Validate Content-Type
-              const contentType = request.headers.get('Content-Type');
-              if (!contentType || !contentType.includes('application/json')) {
-                return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
-              }
+            // Enable TOTP
+            await env.DB.prepare('UPDATE users SET totp_enabled = 1 WHERE id = ?').bind(userId).run();
 
-              const body = await request.json() as any;
-              const { data, encrypted } = body;
-              const id = crypto.randomUUID();
-              await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, ?)').bind(id, userId, JSON.stringify(data), encrypted ? 1 : 0).run();
-              return new Response(JSON.stringify({ message: 'Content saved', id }), {
-                status: 201,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
+            return new Response(JSON.stringify({ message: '2FA enabled successfully' }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          if (url.pathname === '/api/totp/disable' && request.method === 'POST') {
+            const contentType = request.headers.get('Content-Type');
+            if (!contentType || !contentType.includes('application/json')) {
+              return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
             }
 
-            // --- Data Merge Endpoint ---
-            // Merges local data with cloud data using union-by-ID strategy:
-            // - Events and lab results are merged by ID (union)
-            // - For duplicate IDs, the record with the newer timestamp is kept
-            // - Weight uses the latest value
-            // The client sends E2EE-encrypted data; the server stores it opaquely.
-            if (url.pathname === '/api/content/merge' && request.method === 'POST') {
-              const contentType = request.headers.get('Content-Type');
-              if (!contentType || !contentType.includes('application/json')) {
-                return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
-              }
+            const body = await request.json() as any;
+            const { code } = body;
 
-              const body = await request.json() as any;
-              const { data, encrypted } = body;
+            if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+              return new Response('Invalid code format', { status: 400, headers: corsHeaders });
+            }
 
-              // Fetch the latest cloud backup for this user
-              const existing = await env.DB.prepare(
-                'SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
-              ).bind(userId).first() as any;
+            const user = await env.DB.prepare('SELECT totp_secret, totp_enabled FROM users WHERE id = ?').bind(userId).first() as any;
+            if (!user?.totp_enabled || !user?.totp_secret) {
+              return new Response('2FA is not enabled', { status: 400, headers: corsHeaders });
+            }
 
-              const id = crypto.randomUUID();
+            const valid = await verifyTOTP(user.totp_secret, code);
+            if (!valid) {
+              return new Response('Invalid code', { status: 401, headers: corsHeaders });
+            }
 
-              if (!existing) {
-                // No existing cloud data — just save directly
-                await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, ?)')
-                  .bind(id, userId, JSON.stringify(data), encrypted ? 1 : 0).run();
+            await env.DB.prepare('UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?').bind(userId).run();
 
-                return new Response(JSON.stringify({
-                  message: 'Data saved (no prior backup to merge)',
-                  id,
-                  merged: false
-                }), {
-                  status: 201,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
-              }
+            return new Response(JSON.stringify({ message: '2FA disabled successfully' }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
 
-              // If data is E2EE, server cannot merge — return both payloads for client-side merge
-              if (encrypted || existing.encrypted) {
-                return new Response(JSON.stringify({
-                  message: 'E2EE data requires client-side merge',
-                  cloudData: JSON.parse(existing.data),
-                  cloudCreatedAt: existing.created_at,
-                  requiresClientMerge: true
-                }), {
-                  status: 200,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
-              }
+          // --- Content Endpoints ---
 
-              // Server-side merge for plaintext data
-              let cloudData: any;
-              try {
-                cloudData = JSON.parse(existing.data);
-              } catch {
-                // Corrupted cloud data — overwrite with local
-                await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, 0)')
-                  .bind(id, userId, JSON.stringify(data)).run();
+          if (url.pathname === '/api/content' && request.method === 'GET') {
+            const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
+            return new Response(JSON.stringify(content.results), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
 
-                return new Response(JSON.stringify({
-                  message: 'Cloud data was corrupted; saved local data',
-                  id,
-                  merged: false
-                }), {
-                  status: 201,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
-              }
+          if (url.pathname === '/api/content' && request.method === 'POST') {
+            // Validate Content-Type
+            const contentType = request.headers.get('Content-Type');
+            if (!contentType || !contentType.includes('application/json')) {
+              return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
+            }
 
-              const localData = data;
+            const body = await request.json() as any;
+            const { data, encrypted } = body;
+            const id = crypto.randomUUID();
+            await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, ?)').bind(id, userId, JSON.stringify(data), encrypted ? 1 : 0).run();
+            return new Response(JSON.stringify({ message: 'Content saved', id }), {
+              status: 201,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
 
-              // Merge events by ID (union, keep newer by timestamp)
-              const mergedEvents = mergeById(
-                cloudData.events || [],
-                localData.events || [],
-                'id',
-                'timestamp'
-              );
+          // --- Data Merge Endpoint ---
+          // Merges local data with cloud data using union-by-ID strategy:
+          // - Events and lab results are merged by ID (union)
+          // - For duplicate IDs, the record with the newer timestamp is kept
+          // - Weight uses the latest value
+          // The client sends E2EE-encrypted data; the server stores it opaquely.
+          if (url.pathname === '/api/content/merge' && request.method === 'POST') {
+            const contentType = request.headers.get('Content-Type');
+            if (!contentType || !contentType.includes('application/json')) {
+              return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
+            }
 
-              // Merge lab results by ID
-              const mergedLabResults = mergeById(
-                cloudData.labResults || [],
-                localData.labResults || [],
-                'id',
-                'timestamp'
-              );
+            const body = await request.json() as any;
+            const { data, encrypted } = body;
 
-              // Merge dose templates by ID
-              const mergedTemplates = mergeById(
-                cloudData.doseTemplates || [],
-                localData.doseTemplates || [],
-                'id',
-                'createdAt'
-              );
+            // Fetch the latest cloud backup for this user
+            const existing = await env.DB.prepare(
+              'SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+            ).bind(userId).first() as any;
 
-              // Weight: use the latest export timestamp
-              const localExportTime = localData.meta?.exportedAt ? new Date(localData.meta.exportedAt).getTime() : 0;
-              const cloudExportTime = cloudData.meta?.exportedAt ? new Date(cloudData.meta.exportedAt).getTime() : 0;
-              const mergedWeight = localExportTime >= cloudExportTime
-                ? (localData.weight ?? cloudData.weight ?? 70)
-                : (cloudData.weight ?? localData.weight ?? 70);
+            const id = crypto.randomUUID();
 
-              const mergedData = {
-                meta: { version: 1, exportedAt: new Date().toISOString(), merged: true },
-                weight: mergedWeight,
-                events: mergedEvents,
-                labResults: mergedLabResults,
-                doseTemplates: mergedTemplates
-              };
-
-              // Save merged result as new content entry
-              await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, 0)')
-                .bind(id, userId, JSON.stringify(mergedData)).run();
+            if (!existing) {
+              // No existing cloud data — just save directly
+              await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, ?)')
+                .bind(id, userId, JSON.stringify(data), encrypted ? 1 : 0).run();
 
               return new Response(JSON.stringify({
-                message: 'Data merged successfully',
+                message: 'Data saved (no prior backup to merge)',
                 id,
-                merged: true,
-                data: mergedData
+                merged: false
               }), {
                 status: 201,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
 
-          } catch (e) {
-            return new Response('Invalid token', { status: 401, headers: corsHeaders });
+            // If data is E2EE, server cannot merge — return both payloads for client-side merge
+            if (encrypted || existing.encrypted) {
+              return new Response(JSON.stringify({
+                message: 'E2EE data requires client-side merge',
+                cloudData: JSON.parse(existing.data),
+                cloudCreatedAt: existing.created_at,
+                requiresClientMerge: true
+              }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+
+            // Server-side merge for plaintext data
+            let cloudData: any;
+            try {
+              cloudData = JSON.parse(existing.data);
+            } catch {
+              // Corrupted cloud data — overwrite with local
+              await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, 0)')
+                .bind(id, userId, JSON.stringify(data)).run();
+
+              return new Response(JSON.stringify({
+                message: 'Cloud data was corrupted; saved local data',
+                id,
+                merged: false
+              }), {
+                status: 201,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+
+            const localData = data;
+
+            // Merge events by ID (union, keep newer by timestamp)
+            const mergedEvents = mergeById(
+              cloudData.events || [],
+              localData.events || [],
+              'id',
+              'timestamp'
+            );
+
+            // Merge lab results by ID
+            const mergedLabResults = mergeById(
+              cloudData.labResults || [],
+              localData.labResults || [],
+              'id',
+              'timestamp'
+            );
+
+            // Merge dose templates by ID
+            const mergedTemplates = mergeById(
+              cloudData.doseTemplates || [],
+              localData.doseTemplates || [],
+              'id',
+              'createdAt'
+            );
+
+            // Weight: use the latest export timestamp
+            const localExportTime = localData.meta?.exportedAt ? new Date(localData.meta.exportedAt).getTime() : 0;
+            const cloudExportTime = cloudData.meta?.exportedAt ? new Date(cloudData.meta.exportedAt).getTime() : 0;
+            const mergedWeight = localExportTime >= cloudExportTime
+              ? (localData.weight ?? cloudData.weight ?? 70)
+              : (cloudData.weight ?? localData.weight ?? 70);
+
+            const mergedData = {
+              meta: { version: 1, exportedAt: new Date().toISOString(), merged: true },
+              weight: mergedWeight,
+              events: mergedEvents,
+              labResults: mergedLabResults,
+              doseTemplates: mergedTemplates
+            };
+
+            // Save merged result as new content entry
+            await env.DB.prepare('INSERT INTO content (id, user_id, data, encrypted) VALUES (?, ?, ?, 0)')
+              .bind(id, userId, JSON.stringify(mergedData)).run();
+
+            return new Response(JSON.stringify({
+              message: 'Data merged successfully',
+              id,
+              merged: true,
+              data: mergedData
+            }), {
+              status: 201,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
           }
         }
 
@@ -678,38 +681,41 @@ export default {
           const token = authHeader.split(' ')[1];
           const secret = new TextEncoder().encode(jwtSecret);
 
+          // Verify JWT — only auth errors should return 401
+          let payload: any;
           try {
-            const { payload } = await jwtVerify(token, secret);
-            if (payload.role !== 'admin') {
-              return new Response('Forbidden', { status: 403, headers: corsHeaders });
-            }
-
-            if (url.pathname === '/api/admin/users' && request.method === 'GET') {
-              const users = await env.DB.prepare('SELECT id, username FROM users ORDER BY username ASC').all();
-              return new Response(JSON.stringify(users.results), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
-            }
-
-            if (url.pathname.match(/\/api\/admin\/users\/.+/) && request.method === 'DELETE') {
-              const userId = url.pathname.split('/').pop();
-              if (!userId) {
-                return new Response('Missing user ID', { status: 400, headers: corsHeaders });
-              }
-
-              await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
-              // Also delete related content to keep DB clean
-              await env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId).run();
-
-              return new Response(JSON.stringify({ message: 'User deleted' }), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
-            }
-
+            const result = await jwtVerify(token, secret);
+            payload = result.payload;
           } catch (e) {
-            return new Response('Invalid token', { status: 401, headers: corsHeaders });
+            return new Response('Invalid or expired token', { status: 401, headers: corsHeaders });
+          }
+
+          if (payload.role !== 'admin') {
+            return new Response('Forbidden', { status: 403, headers: corsHeaders });
+          }
+
+          if (url.pathname === '/api/admin/users' && request.method === 'GET') {
+            const users = await env.DB.prepare('SELECT id, username FROM users ORDER BY username ASC').all();
+            return new Response(JSON.stringify(users.results), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          if (url.pathname.match(/\/api\/admin\/users\/.+/) && request.method === 'DELETE') {
+            const userId = url.pathname.split('/').pop();
+            if (!userId) {
+              return new Response('Missing user ID', { status: 400, headers: corsHeaders });
+            }
+
+            await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+            // Also delete related content to keep DB clean
+            await env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId).run();
+
+            return new Response(JSON.stringify({ message: 'User deleted' }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
           }
         }
 

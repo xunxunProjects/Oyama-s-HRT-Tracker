@@ -41,6 +41,7 @@ export const cloudService = {
             },
             body: JSON.stringify({ data: payload, encrypted })
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error('Failed to save');
     },
 
@@ -51,6 +52,7 @@ export const cloudService = {
         const res = await fetch('/api/content', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error('Failed to load');
         const backups = await res.json() as CloudBackup[];
 
@@ -99,6 +101,7 @@ export const cloudService = {
             },
             body: JSON.stringify({ data: payload, encrypted })
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error('Failed to merge');
         const result = await res.json() as MergeResponse;
 

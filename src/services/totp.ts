@@ -20,6 +20,7 @@ export const totpService = {
                 'Authorization': `Bearer ${token}`,
             },
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error(await res.text());
         return (await res.json()) as TOTPSetupResponse;
     },
@@ -36,6 +37,7 @@ export const totpService = {
             },
             body: JSON.stringify({ code }),
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error(await res.text());
     },
 
@@ -51,6 +53,7 @@ export const totpService = {
             },
             body: JSON.stringify({ code }),
         });
+        if (res.status === 401) throw new Error('SESSION_EXPIRED');
         if (!res.ok) throw new Error(await res.text());
     },
 };

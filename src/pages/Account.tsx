@@ -45,6 +45,7 @@ const Account: React.FC<AccountProps> = ({
             const setup = await totpService.setup(token);
             setTotpSetup(setup);
         } catch (err: any) {
+            if (err?.message === 'SESSION_EXPIRED') { onLogout(); return; }
             setTotpError(err.message || 'Failed to set up 2FA');
         } finally {
             setTotpLoading(false);
@@ -62,6 +63,7 @@ const Account: React.FC<AccountProps> = ({
             setTotpSuccess('2FA enabled successfully!');
             updateUser({ totpEnabled: true });
         } catch (err: any) {
+            if (err?.message === 'SESSION_EXPIRED') { onLogout(); return; }
             setTotpError(err.message || 'Invalid code');
         } finally {
             setTotpLoading(false);
@@ -79,6 +81,7 @@ const Account: React.FC<AccountProps> = ({
             setTotpSuccess('2FA disabled successfully.');
             updateUser({ totpEnabled: false });
         } catch (err: any) {
+            if (err?.message === 'SESSION_EXPIRED') { onLogout(); return; }
             setTotpError(err.message || 'Invalid code');
         } finally {
             setTotpLoading(false);

@@ -514,6 +514,11 @@ const AppContent = () => {
         }
     };
 
+    const handleSessionExpired = () => {
+        logout();
+        showDialog('alert', 'Your session has expired. Please sign in again.');
+    };
+
     const handleCloudSave = async (encryptionPassword?: string) => {
         if (!token) {
             setIsAuthModalOpen(true);
@@ -533,7 +538,8 @@ const AppContent = () => {
             showDialog('alert', encryptionPassword
                 ? 'Data encrypted and saved to cloud successfully!'
                 : 'Data saved to cloud successfully!');
-        } catch (e) {
+        } catch (e: any) {
+            if (e?.message === 'SESSION_EXPIRED') return handleSessionExpired();
             showDialog('alert', 'Failed to save to cloud.');
         }
     };
@@ -558,7 +564,8 @@ const AppContent = () => {
                 processImportedData(parsed);
             });
 
-        } catch (e) {
+        } catch (e: any) {
+            if (e?.message === 'SESSION_EXPIRED') return handleSessionExpired();
             showDialog('alert', 'Failed to load from cloud. If E2EE is enabled, check your encryption password.');
         }
     };
@@ -587,7 +594,8 @@ const AppContent = () => {
             } else if (!result.merged) {
                 showDialog('alert', result.message || 'Data saved to cloud (no prior backup to merge).');
             }
-        } catch (e) {
+        } catch (e: any) {
+            if (e?.message === 'SESSION_EXPIRED') return handleSessionExpired();
             showDialog('alert', 'Failed to merge with cloud.');
         }
     };
