@@ -136,8 +136,9 @@ export const cloudService = {
 };
 
 /**
- * Client-side merge for E2EE data (identical logic to server-side merge).
- * Merges events, lab results, and templates by ID, keeping newer records.
+ * Client-side merge for E2EE data.
+ * Uses the same tie-breaking rule as the server-side merge in worker.ts:
+ * when timestamps are equal, local (second array) records take precedence.
  */
 function clientSideMerge(cloudData: any, localData: any): any {
     const mergedEvents = mergeArrayById(

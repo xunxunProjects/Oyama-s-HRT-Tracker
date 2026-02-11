@@ -14,6 +14,7 @@ export interface Env {
 
 const TOTP_DIGITS = 6;
 const TOTP_PERIOD = 30;
+const TOTP_ISSUER = 'HRT-Tracker';
 const TOTP_WINDOW = 1; // Allow ±1 step for clock skew
 
 function base32Decode(input: string): Uint8Array {
@@ -197,7 +198,9 @@ function getValidatedJWTSecret(env: Env): string {
   return cachedJWTSecret;
 }
 
-// Merge two arrays by a unique ID field, keeping newer records by timestamp field
+// Merge two arrays by a unique ID field, keeping newer records by timestamp field.
+// Tie-breaking: when timestamps are equal, local (second array) records take precedence.
+// This same rule is applied in the client-side merge in src/services/cloud.ts.
 function mergeById(cloudArr: any[], localArr: any[], idField: string, timestampField: string): any[] {
   const map = new Map<string, any>();
 
@@ -344,6 +347,8 @@ export default {
           username = username.trim();
 
           // 1. Check Admin Credentials (Environment Variables) with timing-safe comparison
+          // Note: Admin accounts use env-var credentials and don't support TOTP 2FA.
+          // To protect admin access, use strong env-var passwords and restrict access at the infrastructure level.
           if (env.ADMIN_USERNAME && env.ADMIN_PASSWORD &&
             timingSafeEqual(username, env.ADMIN_USERNAME) &&
             timingSafeEqual(password, env.ADMIN_PASSWORD)) {
@@ -432,7 +437,7 @@ export default {
 
             if (url.pathname === '/api/totp/setup' && request.method === 'POST') {
               const totpSecret = generateTOTPSecret();
-              const otpauthUrl = `otpauth://totp/HRT-Tracker:${encodeURIComponent(payload.username as string)}?secret=${totpSecret}&issuer=HRT-Tracker&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`;
+              const otpauthUrl = `otpauth://totp/${TOTP_ISSUER}:${encodeURIComponent(payload.username as string)}?secret=${totpSecret}&issuer=${TOTP_ISSUER}&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`;
 
               // Store the secret but don't enable yet (user must verify first)
               await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();

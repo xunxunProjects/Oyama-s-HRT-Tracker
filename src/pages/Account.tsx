@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UserCircle, UploadCloud, DownloadCloud, LogOut, User, BadgeCheck, ShieldCheck, ShieldOff, Merge, Lock, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { totpService, TOTPSetupResponse } from '../services/totp';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AccountProps {
     t: (key: string) => string;
@@ -24,6 +25,7 @@ const Account: React.FC<AccountProps> = ({
     onCloudLoad,
     onCloudMerge
 }) => {
+    const { updateUser } = useAuth();
     const [totpSetup, setTotpSetup] = useState<TOTPSetupResponse | null>(null);
     const [totpCode, setTotpCode] = useState('');
     const [totpLoading, setTotpLoading] = useState(false);
@@ -58,8 +60,7 @@ const Account: React.FC<AccountProps> = ({
             setTotpSetup(null);
             setTotpCode('');
             setTotpSuccess('2FA enabled successfully!');
-            // Update user state
-            if (user) user.totpEnabled = true;
+            updateUser({ totpEnabled: true });
         } catch (err: any) {
             setTotpError(err.message || 'Invalid code');
         } finally {
@@ -76,7 +77,7 @@ const Account: React.FC<AccountProps> = ({
             setShowDisable2FA(false);
             setDisableCode('');
             setTotpSuccess('2FA disabled successfully.');
-            if (user) user.totpEnabled = false;
+            updateUser({ totpEnabled: false });
         } catch (err: any) {
             setTotpError(err.message || 'Invalid code');
         } finally {
@@ -189,7 +190,7 @@ const Account: React.FC<AccountProps> = ({
                                 onClick={() => setE2eeEnabled(!e2eeEnabled)}
                                 className={`relative w-11 h-6 rounded-full transition-colors ${e2eeEnabled ? 'bg-pink-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}
                             >
-                                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${e2eeEnabled ? 'translate-x-5.5 left-[1px]' : 'left-0.5'}`} style={{ transform: e2eeEnabled ? 'translateX(22px)' : 'translateX(0)' }} />
+                                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${e2eeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
                         </div>
                         {e2eeEnabled && (

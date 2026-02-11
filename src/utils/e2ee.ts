@@ -15,6 +15,10 @@ function base64ToBuff(b64: string): Uint8Array {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
 
+// PBKDF2 iteration count: 600,000 per OWASP 2023 recommendations for SHA-256.
+// This should be periodically reviewed and increased as hardware improves.
+const E2EE_PBKDF2_ITERATIONS = 600000;
+
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
@@ -28,7 +32,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
         {
             name: 'PBKDF2',
             salt,
-            iterations: 600000,
+            iterations: E2EE_PBKDF2_ITERATIONS,
             hash: 'SHA-256',
         },
         keyMaterial,
