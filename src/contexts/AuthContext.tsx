@@ -45,18 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (username: string, password: string) => {
+        // Step 1: Register the user
         await authService.register(username, password);
-        // Login is already handled inside authService.register in my implementation above?
-        // Wait, I implemented authService.register to call this.login.
-        // So it returns AuthResponse.
-        // But here we need to update state.
-        // Let's actually adjust. In the Context, we called `await login(username, password)` at the end of register.
-        // If authService.register returns AuthResponse (from chaining login), we can just use that.
-
-        // Actually, let's keep it simple.
-        // My authService.register calling this.login returns a promise.
-        // It returns AuthResponse.
-        const data = await authService.register(username, password);
+        
+        // Step 2: Automatically login the user after successful registration
+        const data = await authService.login(username, password);
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
