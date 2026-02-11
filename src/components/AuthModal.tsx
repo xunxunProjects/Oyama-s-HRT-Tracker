@@ -27,12 +27,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         try {
             if (isLogin) {
                 await login(username, password);
+                onClose();
+                setUsername('');
+                setPassword('');
             } else {
                 await register(username, password);
+                // After successful registration, refresh the page to ensure clean state
+                window.location.reload();
             }
-            onClose();
-            setUsername('');
-            setPassword('');
         } catch (err: any) {
             setError(err.message || 'An error occurred');
         } finally {
