@@ -9,6 +9,8 @@ interface HomeProps {
     currentCPA: number;
     currentStatus: { label: string, color: string, bg: string, border: string } | null;
     events: DoseEvent[];
+    weight: number;
+    setIsWeightModalOpen: (isOpen: boolean) => void;
     simulation: SimulationResult | null;
     labResults: LabResult[];
     onEditEvent: (e: DoseEvent) => void;
@@ -22,6 +24,8 @@ const Home: React.FC<HomeProps> = ({
     currentCPA,
     currentStatus,
     events,
+    weight,
+    setIsWeightModalOpen,
     simulation,
     labResults,
     onEditEvent,

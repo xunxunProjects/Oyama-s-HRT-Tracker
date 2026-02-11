@@ -622,7 +622,7 @@ export function interpolateConcentration_CPA(sim: SimulationResult, hour: number
 
 // --- Encryption Utils ---
 
-async function generateKey(password: string, salt: Uint8Array) {
+async function generateKey(password: string, salt: Uint8Array, iterations: number = 600000) {
     const enc = new TextEncoder();
     const keyMaterial = await window.crypto.subtle.importKey(
         "raw",
@@ -635,7 +635,7 @@ async function generateKey(password: string, salt: Uint8Array) {
         {
             name: "PBKDF2",
             salt: salt as any,
-            iterations: 100000,
+            iterations: iterations,
             hash: "SHA-256"
         },
         keyMaterial,
@@ -659,7 +659,8 @@ export async function encryptData(text: string, customPassword?: string): Promis
     const password = customPassword || buffToBase64(window.crypto.getRandomValues(new Uint8Array(12)));
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const key = await generateKey(password, salt);
+    const iterations = 600000;
+    const key = await generateKey(password, salt, iterations);
     const enc = new TextEncoder();
     const encrypted = await window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv as any },
@@ -671,6 +672,7 @@ export async function encryptData(text: string, customPassword?: string): Promis
         encrypted: true,
         iv: buffToBase64(iv),
         salt: buffToBase64(salt),
+        iter: iterations,
         data: buffToBase64(new Uint8Array(encrypted))
     };
     return {
@@ -687,8 +689,9 @@ export async function decryptData(jsonString: string, password: string): Promise
         const salt = base64ToBuff(bundle.salt);
         const iv = base64ToBuff(bundle.iv);
         const data = base64ToBuff(bundle.data);
+        const iterations = (typeof bundle.iter === 'number' && bundle.iter > 0) ? bundle.iter : 100000;
 
-        const key = await generateKey(password, salt);
+        const key = await generateKey(password, salt, iterations);
         const decrypted = await window.crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv as any },
             key,

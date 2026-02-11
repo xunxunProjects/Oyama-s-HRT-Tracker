@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Activity, Calendar, FlaskConical, Settings as SettingsIcon } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
 import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, encryptData, decryptData, LabResult, createCalibrationInterpolator, decompressData } from '../logic';
 import { formatDate } from './utils/helpers';
@@ -690,7 +691,9 @@ const AppContent = () => {
 const App = () => (
     <LanguageProvider>
         <DialogProvider>
-            <AppContent />
+            <ErrorBoundary>
+                <AppContent />
+            </ErrorBoundary>
         </DialogProvider>
     </LanguageProvider>
 );

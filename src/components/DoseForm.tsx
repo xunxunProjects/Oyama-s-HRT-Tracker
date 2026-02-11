@@ -8,6 +8,11 @@ import DateTimePicker from './DateTimePicker';
 import { getRouteIcon, formatDate, formatTime, getEsterIcon } from '../utils/helpers';
 import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
 import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, X, ChevronDown, Check } from 'lucide-react';
+import InjectionFields from './dose_form/InjectionFields';
+import OralFields from './dose_form/OralFields';
+import SublingualFields from './dose_form/SublingualFields';
+import GelFields from './dose_form/GelFields';
+import PatchFields from './dose_form/PatchFields';
 
 export interface DoseTemplate {
     id: string;
@@ -712,101 +717,80 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             />
                         )}
 
-                        {/* Gel Site Selector */}
-                        {route === Route.gel && (
-                            <div className="mb-4 space-y-2">
-                                <label className="block text-sm font-bold text-zinc-700">{t('field.gel_site')}</label>
-                                <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-xl text-zinc-400 text-sm font-medium select-none">
-                                    {t('gel.site_disabled')}
-                                </div>
-                                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 p-3 rounded-xl">
-                                    {t('beta.gel')}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Patch Mode */}
-                        {route === Route.patchApply && (
-                            <div className="space-y-2">
-                                <div className="p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex">
-                                    <button
-                                        onClick={() => setPatchMode("dose")}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "dose" ? "bg-white dark:bg-zinc-700 shadow text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-400"}`}
-                                    >
-                                        {t('field.patch_total')}
-                                    </button>
-                                    <button
-                                        onClick={() => setPatchMode("rate")}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "rate" ? "bg-white dark:bg-zinc-700 shadow text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-400"}`}
-                                    >
-                                        {t('field.patch_rate')}
-                                    </button>
-                                </div>
-                                <div className="text-xs text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-xl">
-                                    {t('beta.patch')}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Dose Inputs */}
-                        {(route !== Route.patchApply || patchMode === "dose") && (
-                            <>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {(ester !== Ester.E2) && (
-                                        <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) || ester === Ester.CPA ? 'col-span-2' : ''}`}>
-                                            <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t('field.dose_raw')}</label>
-                                            <input
-                                                type="number" inputMode="decimal"
-                                                min="0"
-                                                step="0.001"
-                                                value={rawDose} onChange={e => handleRawChange(e.target.value)}
-                                                className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-mono text-zinc-900 dark:text-white font-bold"
-                                                placeholder="0.0"
-                                            />
-                                        </div>
-                                    )}
-                                    {!(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) && ester !== Ester.CPA && (
-                                        <div className={`space-y-2 ${(ester === Ester.E2 && route !== Route.gel && route !== Route.oral && route !== Route.sublingual) ? "col-span-2" : ""}`}>
-                                            <label className="block text-xs font-bold text-pink-400 uppercase tracking-wider">
-                                                {route === Route.patchApply ? t('field.dose_raw') : t('field.dose_e2')}
-                                            </label>
-                                            <input
-                                                type="number" inputMode="decimal"
-                                                min="0"
-                                                step="0.001"
-                                                value={e2Dose} onChange={e => handleE2Change(e.target.value)}
-                                                className="w-full p-4 bg-pink-50/50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-pink-500 dark:text-pink-400 font-mono"
-                                                placeholder="0.0"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                {(ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) && (
-                                    <p className="text-xs text-zinc-500 mt-1">
-                                        {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
-                                    </p>
-                                )}
-                            </>
-                        )}
-
-                        {route === Route.patchApply && patchMode === "rate" && (
-                            <div className="space-y-2">
-                                <label className="block text-sm font-bold text-zinc-700">{t('field.patch_rate')}</label>
-                                <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    min="0"
-                                    step="1"
-                                    value={patchRate}
-                                    onChange={e => setPatchRate(e.target.value)}
-                                    className="w-full p-4 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none"
-                                    placeholder="e.g. 50"
+                        <div className="mt-4">
+                            {route === Route.injection && (
+                                <InjectionFields
+                                    ester={ester}
+                                    rawDose={rawDose}
+                                    e2Dose={e2Dose}
+                                    onRawChange={handleRawChange}
+                                    onE2Change={handleE2Change}
+                                    isInitializing={isInitializingRef.current}
+                                    route={route}
+                                    lastEditedField={lastEditedField}
                                 />
-                            </div>
-                        )}
+                            )}
+
+                            {route === Route.oral && (
+                                <OralFields
+                                    ester={ester}
+                                    rawDose={rawDose}
+                                    e2Dose={e2Dose}
+                                    onRawChange={handleRawChange}
+                                    onE2Change={handleE2Change}
+                                    isInitializing={isInitializingRef.current}
+                                    route={route}
+                                    lastEditedField={lastEditedField}
+                                />
+                            )}
+
+                            {route === Route.sublingual && (
+                                <SublingualFields
+                                    ester={ester}
+                                    rawDose={rawDose}
+                                    e2Dose={e2Dose}
+                                    onRawChange={handleRawChange}
+                                    onE2Change={handleE2Change}
+                                    slTier={slTier}
+                                    setSlTier={setSlTier}
+                                    useCustomTheta={useCustomTheta}
+                                    setUseCustomTheta={setUseCustomTheta}
+                                    customHoldInput={customHoldInput}
+                                    setCustomHoldInput={setCustomHoldInput}
+                                    customHoldValue={customHoldValue}
+                                    setCustomHoldValue={setCustomHoldValue}
+                                    holdFromTheta={holdFromTheta}
+                                    thetaFromHold={thetaFromHold}
+                                    isInitializing={isInitializingRef.current}
+                                    route={route}
+                                    lastEditedField={lastEditedField}
+                                />
+                            )}
+
+                            {route === Route.gel && (
+                                <GelFields
+                                    gelSite={gelSite}
+                                    setGelSite={setGelSite}
+                                    e2Dose={e2Dose}
+                                    onE2Change={handleE2Change}
+                                />
+                            )}
+
+                            {route === Route.patchApply && (
+                                <PatchFields
+                                    patchMode={patchMode}
+                                    setPatchMode={setPatchMode}
+                                    patchRate={patchRate}
+                                    setPatchRate={setPatchRate}
+                                    rawDose={rawDose}
+                                    onRawChange={handleRawChange}
+                                    route={route}
+                                />
+                            )}
+                        </div>
 
                         {doseGuide && (
-                            <div className={`p-4 rounded-2xl border ${guideContainerClass} flex gap-3 transition-colors duration-300`}>
+                            <div className={`mt-6 p-4 rounded-2xl border ${guideContainerClass} flex gap-3 transition-colors duration-300`}>
                                 <Info className="w-5 h-5 text-zinc-600 dark:text-zinc-400 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
@@ -830,76 +814,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                             {t('dose.guide.patch_rate_hint')}
                                         </p>
                                     )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Sublingual Specifics - Uses CustomSelect Dropdown implemented recently */}
-                        {route === Route.sublingual && (
-                            <div className="space-y-4">
-                                <CustomSelect
-                                    label={t('field.sl_duration')}
-                                    value={useCustomTheta ? "-1" : slTier.toString()}
-                                    onChange={(val) => {
-                                        if (val === "-1") {
-                                            setUseCustomTheta(true);
-                                        } else {
-                                            setUseCustomTheta(false);
-                                            setSlTier(parseInt(val));
-                                        }
-                                    }}
-                                    options={[
-                                        { value: "0", label: t('sl.mode.quick') },
-                                        { value: "1", label: t('sl.mode.casual') },
-                                        { value: "2", label: t('sl.mode.standard') },
-                                        { value: "3", label: t('sl.mode.strict') },
-                                        { value: "-1", label: `${t('sl.custom_mode')}...` },
-                                    ]}
-                                />
-
-                                {useCustomTheta && (
-                                    <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="number"
-                                                inputMode="decimal"
-                                                min="1"
-                                                max="60"
-                                                step="0.5"
-                                                value={customHoldInput}
-                                                onChange={e => {
-                                                    const raw = e.target.value;
-                                                    setCustomHoldInput(raw);
-                                                    if (raw.trim() === '') {
-                                                        setCustomHoldValue(0);
-                                                    } else {
-                                                        const val = parseFloat(raw);
-                                                        if (Number.isFinite(val)) {
-                                                            setCustomHoldValue(val);
-                                                        }
-                                                    }
-                                                }}
-                                                className="flex-1 p-4 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-center text-lg placeholder-zinc-300 dark:placeholder-zinc-600 transition-shadow"
-                                                placeholder="e.g. 7.5"
-                                            />
-                                            <span className="text-base font-bold text-zinc-500 dark:text-zinc-400 shrink-0">min</span>
-                                        </div>
-                                        <div className="text-center text-xs font-medium text-zinc-400 dark:text-zinc-500">
-                                            {t('sl.custom_range')}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex gap-3 items-start p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                                    <Info className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                                    <div className="flex-1 space-y-1">
-                                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                                            {t('sl.instructions')}
-                                        </p>
-                                        <p className="text-[10px] font-mono font-medium text-zinc-400 dark:text-zinc-500">
-                                            θ ≈ {useCustomTheta ? customTheta.toFixed(3) : currentTheta.toFixed(2)}
-                                        </p>
-                                    </div>
                                 </div>
                             </div>
                         )}
