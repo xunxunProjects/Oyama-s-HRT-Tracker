@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCircle, UploadCloud, DownloadCloud, LogOut, User } from 'lucide-react';
+import { UserCircle, UploadCloud, DownloadCloud, LogOut, User, BadgeCheck } from 'lucide-react';
 
 interface AccountProps {
     t: (key: string) => string;
@@ -34,10 +34,19 @@ const Account: React.FC<AccountProps> = ({
                         <>
                             <div className="px-6 py-4 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
-                                        {user.username.charAt(0).toUpperCase()}
+                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold overflow-hidden">
+                                        {user.isAdmin ? (
+                                            <img src="/favicon.ico" alt="Admin Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            user.username.charAt(0).toUpperCase()
+                                        )}
                                     </div>
-                                    <span className="font-bold text-zinc-900 dark:text-white text-sm">{user.username}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-zinc-900 dark:text-white text-sm">{user.username}</span>
+                                        {user.isAdmin && (
+                                            <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10" strokeWidth={2.5} />
+                                        )}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={onLogout}

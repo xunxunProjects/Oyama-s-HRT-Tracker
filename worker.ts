@@ -17,7 +17,7 @@ const MAX_RATE_LIMIT_ENTRIES = 10000; // Prevent unbounded memory growth
 function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean {
   const now = Date.now();
   const record = rateLimitMap.get(ip);
-  
+
   if (!record || now > record.resetTime) {
     // Clean up expired entries periodically to prevent memory leak
     if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
@@ -27,15 +27,15 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
         }
       }
     }
-    
+
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
     return true;
   }
-  
+
   if (record.count >= maxRequests) {
     return false;
   }
-  
+
   record.count++;
   return true;
 }
@@ -46,7 +46,7 @@ function timingSafeEqual(a: string, b: string): boolean {
   // Always use fixed length regardless of input to ensure truly constant time
   const aPadded = a.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
   const bPadded = b.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
-  
+
   let result = 0;
   for (let i = 0; i < TIMING_SAFE_COMPARE_LENGTH; i++) {
     result |= aPadded.charCodeAt(i) ^ bPadded.charCodeAt(i);
@@ -63,7 +63,7 @@ const TIMING_SAFE_COMPARE_LENGTH = 512;
 // Common weak secrets to reject (using Set for O(1) lookup)
 const WEAK_SECRETS = new Set([
   'secret',
-  'fallback-secret', 
+  'fallback-secret',
   'fallback_secret',
   'test-secret',
   'dev-secret',
@@ -78,11 +78,11 @@ function validateJWTSecret(secret: string | undefined): string {
   if (!secret) {
     throw new Error('JWT_SECRET environment variable must be set. Never deploy without a secure JWT secret.');
   }
-  
+
   if (secret.length < 32) {
     throw new Error('JWT_SECRET must be at least 32 characters long for adequate security.');
   }
-  
+
   // Check against common weak secrets (case-insensitive)
   const lowerSecret = secret.toLowerCase();
   for (const weak of WEAK_SECRETS) {
@@ -90,7 +90,7 @@ function validateJWTSecret(secret: string | undefined): string {
       throw new Error(`JWT_SECRET contains weak/common pattern "${weak}". Use a cryptographically random secret.`);
     }
   }
-  
+
   return secret;
 }
 
@@ -140,12 +140,12 @@ export default {
       try {
         // Get validated JWT secret (cached after first validation)
         const jwtSecret = getValidatedJWTSecret(env);
-        
+
         // Rate limiting for authentication endpoints
         if (url.pathname === '/api/login' || url.pathname === '/api/register') {
           // Get client IP - prefer CF-Connecting-IP as it cannot be spoofed
           let clientIP = request.headers.get('CF-Connecting-IP');
-          
+
           // Fallback to X-Forwarded-For (parse first IP only, as it can be comma-separated)
           if (!clientIP) {
             const forwardedFor = request.headers.get('X-Forwarded-For');
@@ -153,24 +153,24 @@ export default {
               clientIP = forwardedFor.split(',')[0].trim();
             }
           }
-          
+
           // Fallback to X-Real-IP
           if (!clientIP) {
             clientIP = request.headers.get('X-Real-IP');
           }
-          
+
           // Reject requests without identifiable IP to prevent rate limit bypass
           if (!clientIP) {
-            return new Response('Unable to identify client IP', { 
-              status: 400, 
-              headers: corsHeaders 
+            return new Response('Unable to identify client IP', {
+              status: 400,
+              headers: corsHeaders
             });
           }
-          
+
           // Check rate limit
           if (!checkRateLimit(clientIP, 5, 60000)) {
-            return new Response('Too many requests. Please try again later.', { 
-              status: 429, 
+            return new Response('Too many requests. Please try again later.', {
+              status: 429,
               headers: { ...corsHeaders, 'Retry-After': '60' }
             });
           }
@@ -183,17 +183,19 @@ export default {
           }
 
           const body = await request.json() as any;
-          const { username, password } = body;
-          
+          let { username, password } = body;
+
           if (!username || !password) {
             return new Response('Missing username or password', { status: 400, headers: corsHeaders });
           }
 
+          username = username.trim();
+
           // Validate username format
           if (!validateUsername(username)) {
-            return new Response('Username must be 3-30 characters long and contain only letters, numbers, underscore, or hyphen', { 
-              status: 400, 
-              headers: corsHeaders 
+            return new Response('Username must be 3-30 characters long and contain only letters, numbers, underscore, or hyphen', {
+              status: 400,
+              headers: corsHeaders
             });
           }
 
@@ -214,8 +216,8 @@ export default {
 
           await env.DB.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').bind(id, username, hashedPassword).run();
 
-          return new Response(JSON.stringify({ message: 'User registered successfully' }), { 
-            status: 201, 
+          return new Response(JSON.stringify({ message: 'User registered successfully' }), {
+            status: 201,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
@@ -228,15 +230,17 @@ export default {
           }
 
           const body = await request.json() as any;
-          const { username, password } = body;
-          
+          let { username, password } = body;
+
           if (!username || !password) {
             return new Response('Missing credentials', { status: 400, headers: corsHeaders });
           }
 
+          username = username.trim();
+
           // 1. Check Admin Credentials (Environment Variables) with timing-safe comparison
           if (env.ADMIN_USERNAME && env.ADMIN_PASSWORD &&
-            timingSafeEqual(username, env.ADMIN_USERNAME) && 
+            timingSafeEqual(username, env.ADMIN_USERNAME) &&
             timingSafeEqual(password, env.ADMIN_PASSWORD)) {
 
             const secret = new TextEncoder().encode(jwtSecret);
@@ -249,8 +253,8 @@ export default {
             return new Response(JSON.stringify({
               token,
               user: { id: 'admin', username: 'Admin', isAdmin: true }
-            }), { 
-              status: 200, 
+            }), {
+              status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           }
@@ -278,8 +282,8 @@ export default {
           return new Response(JSON.stringify({
             token,
             user: { id: user.id, username: user.username, isAdmin: false }
-          }), { 
-            status: 200, 
+          }), {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
@@ -300,8 +304,8 @@ export default {
 
             if (request.method === 'GET') {
               const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
-              return new Response(JSON.stringify(content.results), { 
-                status: 200, 
+              return new Response(JSON.stringify(content.results), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
@@ -317,8 +321,8 @@ export default {
               const { data } = body;
               const id = crypto.randomUUID();
               await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
-              return new Response(JSON.stringify({ message: 'Content saved', id }), { 
-                status: 201, 
+              return new Response(JSON.stringify({ message: 'Content saved', id }), {
+                status: 201,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
@@ -346,8 +350,8 @@ export default {
 
             if (url.pathname === '/api/admin/users' && request.method === 'GET') {
               const users = await env.DB.prepare('SELECT id, username FROM users ORDER BY username ASC').all();
-              return new Response(JSON.stringify(users.results), { 
-                status: 200, 
+              return new Response(JSON.stringify(users.results), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
@@ -362,8 +366,8 @@ export default {
               // Also delete related content to keep DB clean
               await env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId).run();
 
-              return new Response(JSON.stringify({ message: 'User deleted' }), { 
-                status: 200, 
+              return new Response(JSON.stringify({ message: 'User deleted' }), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
