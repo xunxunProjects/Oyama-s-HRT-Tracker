@@ -24,3 +24,8 @@ src-tauri/target/release
 *.njsproj
 *.sln
 *.sw?
+
+# Wrangler
+.wrangler
+.dev.vars
+
