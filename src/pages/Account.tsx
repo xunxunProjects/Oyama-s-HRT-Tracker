@@ -23,7 +23,7 @@ const Account: React.FC<AccountProps> = ({
             <div className="px-6 md:px-10">
                 <div className="w-full p-5 rounded-[24px] bg-white dark:bg-zinc-900 flex items-center justify-between border border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
                     <h2 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-                        <User size={22} className="text-indigo-400" /> Account
+                        <User size={22} className="text-indigo-400" /> {t('account.title')}
                     </h2>
                 </div>
             </div>
@@ -36,7 +36,7 @@ const Account: React.FC<AccountProps> = ({
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold overflow-hidden">
                                         {user.isAdmin ? (
-                                            <img src="/favicon.ico" alt="Admin Avatar" className="w-full h-full object-cover" />
+                                            <img src="/favicon.ico" alt={t('account.admin_avatar')} className="w-full h-full object-cover" />
                                         ) : (
                                             user.username.charAt(0).toUpperCase()
                                         )}
@@ -53,7 +53,7 @@ const Account: React.FC<AccountProps> = ({
                                     className="flex items-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium"
                                 >
                                     <LogOut size={14} />
-                                    Sign Out
+                                    {t('account.sign_out')}
                                 </button>
                             </div>
                             <button
@@ -62,8 +62,8 @@ const Account: React.FC<AccountProps> = ({
                             >
                                 <UploadCloud className="text-indigo-500" size={20} />
                                 <div className="text-left">
-                                    <p className="font-bold text-zinc-900 dark:text-white text-sm">Backup to Cloud</p>
-                                    <p className="text-xs text-zinc-500">Save current data to your account</p>
+                                    <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('account.backup_cloud')}</p>
+                                    <p className="text-xs text-zinc-500">{t('account.backup_cloud_desc')}</p>
                                 </div>
                             </button>
                             <button
@@ -72,8 +72,8 @@ const Account: React.FC<AccountProps> = ({
                             >
                                 <DownloadCloud className="text-indigo-500" size={20} />
                                 <div className="text-left">
-                                    <p className="font-bold text-zinc-900 dark:text-white text-sm">Restore from Cloud</p>
-                                    <p className="text-xs text-zinc-500">Overwrite local data with cloud backup</p>
+                                    <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('account.restore_cloud')}</p>
+                                    <p className="text-xs text-zinc-500">{t('account.restore_cloud_desc')}</p>
                                 </div>
                             </button>
                         </>
@@ -84,8 +84,8 @@ const Account: React.FC<AccountProps> = ({
                         >
                             <UserCircle className="text-indigo-500" size={20} />
                             <div className="text-left">
-                                <p className="font-bold text-zinc-900 dark:text-white text-sm">Sign In / Register</p>
-                                <p className="text-xs text-zinc-500">Sync your data across devices</p>
+                                <p className="font-bold text-zinc-900 dark:text-white text-sm">{t('account.sign_in_register')}</p>
+                                <p className="text-xs text-zinc-500">{t('account.sign_in_register_desc')}</p>
                             </div>
                         </button>
                     )}
