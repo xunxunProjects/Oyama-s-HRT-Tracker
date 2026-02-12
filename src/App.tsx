@@ -212,7 +212,7 @@ const AppContent = () => {
             { id: 'history', label: t('nav.history'), icon: <Calendar size={16} /> },
             { id: 'lab', label: t('nav.lab'), icon: <FlaskConical size={16} /> },
             { id: 'settings', label: t('nav.settings'), icon: <SettingsIcon size={16} /> },
-            { id: 'account', label: 'Account', icon: <UserCircle size={16} /> },
+            { id: 'account', label: t('nav.account'), icon: <UserCircle size={16} /> },
         ];
 
         if (user?.isAdmin) {
