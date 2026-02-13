@@ -251,6 +251,16 @@ export default {
               .setExpirationTime('1d')
               .sign(secret);
 
+            // Ensure admin user exists in DB to satisfy Foreign Key constraints for content
+            try {
+              await env.DB.prepare(`
+                INSERT OR IGNORE INTO users (id, username, password_hash) 
+                VALUES ('admin', 'Admin', 'placeholder_hash_managed_by_env')
+              `).run();
+            } catch (e) {
+              console.error('Failed to ensure admin user exists:', e);
+            }
+
             return new Response(JSON.stringify({
               token,
               user: { id: 'admin', username: 'Admin', isAdmin: true }

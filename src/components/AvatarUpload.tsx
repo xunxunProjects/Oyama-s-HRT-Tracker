@@ -10,7 +10,6 @@ interface AvatarUploadProps {
 }
 
 export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onUploadSuccess }) => {
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,19 +21,14 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchAvatar = async () => {
-            try {
-                const res = await fetch(`/api/user/avatar/${username}`);
-                if (res.ok) {
-                    setAvatarUrl(`/api/user/avatar/${username}?t=${Date.now()}`);
-                }
-            } catch (err) {
-                // Ignore errors
-            }
-        };
-        fetchAvatar();
-    }, [username]);
+    const [cacheBuster, setCacheBuster] = useState('');
+    const [imageError, setImageError] = useState(false);
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+    // Construct URL directly - no async fetch delay
+    const avatarUrl = `/api/user/avatar/${username}${cacheBuster ? `?t=${cacheBuster}` : ''}`;
+
+    // Removed useEffect for initial avatar fetch as it's now handled by img onError/onLoad
 
     const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -82,8 +76,11 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
 
             if (!res.ok) throw new Error(await res.text());
 
-            // Refresh avatar
-            setAvatarUrl(URL.createObjectURL(croppedImageBlob));
+            // Force refresh using timestamp
+            setCacheBuster(Date.now().toString());
+            setImageError(false);
+            setIsImageLoaded(false); // Reset to show loading state if needed
+
             setIsCropModalOpen(false);
             setImageSrc(null);
             if (onUploadSuccess) onUploadSuccess();
@@ -102,19 +99,21 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
                 className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer bg-gray-200 dark:border-zinc-700"
                 onClick={() => fileInputRef.current?.click()}
             >
-                {avatarUrl ? (
-                    <img
-                        src={avatarUrl}
-                        alt={`${username}'s avatar`}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400 dark:text-gray-500 font-bold bg-gray-100 dark:bg-zinc-800">
-                        {username.charAt(0).toUpperCase()}
-                    </div>
-                )}
+                {/* Always try to render image, hide if error */}
+                <img
+                    src={avatarUrl}
+                    alt={`${username}'s avatar`}
+                    className={`w-full h-full object-cover absolute inset-0 z-10 ${imageError ? 'hidden' : 'block'}`}
+                    onLoad={() => setImageError(false)}
+                    onError={() => setImageError(true)}
+                />
 
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+                {/* Fallback visible underneath or when image is transparent/hidden */}
+                <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400 dark:text-gray-500 font-bold bg-gray-100 dark:bg-zinc-800 absolute inset-0">
+                    {username.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center z-20">
                     <span className="text-white opacity-0 group-hover:opacity-100 font-medium text-sm bg-black/50 px-2 py-1 rounded">
                         Change
                     </span>

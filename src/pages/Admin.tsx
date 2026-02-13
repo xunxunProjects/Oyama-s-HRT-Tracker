@@ -121,9 +121,20 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     className="group bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-sm transition-all flex items-center justify-between"
                                 >
                                     <div className="flex items-center gap-4">
-                                        {/* Avatar Placeholder */}
-                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 font-semibold text-sm">
-                                            {u.username.substring(0, 2).toUpperCase()}
+                                        {/* Avatar */}
+                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-700">
+                                            <img
+                                                src={`/api/user/avatar/${u.username}`}
+                                                alt={u.username}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                }}
+                                            />
+                                            <div className="hidden w-full h-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 font-semibold text-sm bg-zinc-100 dark:bg-zinc-800">
+                                                {u.username.substring(0, 2).toUpperCase()}
+                                            </div>
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{u.username}</h3>
