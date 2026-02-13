@@ -1,7 +1,8 @@
 import React from 'react';
-import { Droplet, Pill } from 'lucide-react';
+import { Droplet, Pill, Info } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult } from '../../logic';
 import ResultChart from '../components/ResultChart';
+import EstimateInfoModal from '../components/EstimateInfoModal';
 
 interface HomeProps {
     t: (key: string) => string;
@@ -33,9 +34,11 @@ const Home: React.FC<HomeProps> = ({
     theme
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
 
     return (
         <>
+            <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
             <header className="relative px-4 md:px-10 pt-4 md:pt-6 pb-2">
                 <div className="flex flex-col gap-4">
 
@@ -44,9 +47,18 @@ const Home: React.FC<HomeProps> = ({
 
                         {/* Status Header */}
                         <div className="mb-4 flex items-center justify-between">
-                            <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">
-                                {t('status.estimate')}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">
+                                    {t('status.estimate')}
+                                </span>
+                                <button
+                                    onClick={() => setIsEstimateInfoOpen(true)}
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                                >
+                                    <Info size={12} strokeWidth={2.5} />
+                                    {t('status.read_me')}
+                                </button>
+                            </div>
                             {currentStatus && (
                                 <div className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1.5 ${currentStatus.bg} ${currentStatus.color}`}>
                                     <div className={`w-1.5 h-1.5 rounded-full ${currentStatus.color.replace('text-', 'bg-')}`} />

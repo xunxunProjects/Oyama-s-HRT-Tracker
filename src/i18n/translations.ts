@@ -9,6 +9,7 @@ export const TRANSLATIONS_BASE = {
         "nav.settings": "设置",
 
         "status.estimate": "当前估算血药浓度",
+        "status.read_me": "重要提示",
         "status.weight": "体重",
 
         "status.level.male": "男性参考范围",
@@ -257,6 +258,10 @@ export const TRANSLATIONS_BASE = {
         "admin.system_status": "系统状态",
         "admin.operational": "运行正常",
         "admin.status_desc": "所有系统运行正常。后端已连接到 {env} 环境。",
+        "modal.estimate.title": "重要提示",
+        "modal.estimate.p1": "近期有用户反馈，参考血检结果进行校准后，估算数据出现异常偏差。",
+        "modal.estimate.p2": "请务必理解：本软件仅依据药代动力学模型提供理论估算值，无法替代真实的血液检测。同一个体在不同时期的吸收代谢情况也可能发生变化。",
+        "modal.estimate.p3": "要准确了解您的血药浓度，唯一的途径是前往医院进行血检。请始终以医院检查报告作为调整用药的依据，切勿仅依赖本软件的估算值。",
     },
 
     en: {
@@ -267,6 +272,7 @@ export const TRANSLATIONS_BASE = {
         "nav.settings": "Settings",
 
         "status.estimate": "Current Estimated Level",
+        "status.read_me": "Read Me",
         "status.weight": "Weight",
 
         "status.level.male": "Male Reference Range",
@@ -514,6 +520,10 @@ export const TRANSLATIONS_BASE = {
         "admin.system_status": "System Status",
         "admin.operational": "Operational",
         "admin.status_desc": "All systems are running smoothly. The backend is connected to the {env} environment.",
+        "modal.estimate.title": "Important Notice",
+        "modal.estimate.p1": "Recently, some users have reported unexpected deviations in estimated values after calibrating with lab results.",
+        "modal.estimate.p2": "Please understand: This software provides theoretical estimates based on pharmacokinetic models and cannot replace actual blood tests.",
+        "modal.estimate.p3": "The only way to accurately know your blood drug concentration is to visit a hospital for a blood test. Always rely on hospital lab reports for adjusting your medication.",
     },
 
     ru: {
@@ -524,6 +534,7 @@ export const TRANSLATIONS_BASE = {
         "nav.settings": "Настройки",
 
         "status.estimate": "Текущая расчётная концентрация",
+        "status.read_me": "Прочти меня",
         "status.weight": "Вес",
 
         "status.level.male": "Мужской диапазон",
@@ -764,6 +775,7 @@ export const TRANSLATIONS = {
         "nav.settings": "設定",
 
         "status.estimate": "目前估算濃度",
+        "status.read_me": "重要提示",
         "status.weight": "體重",
 
         "status.level.male": "男性參考範圍",
