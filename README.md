@@ -77,6 +77,55 @@ We want this tool to be accessible to everyone who needs it. You do not need exp
 
 我们希望所有需要这款工具的人都能方便地使用它。你无需额外获得授权即可自行托管与部署。
 
+### Cloudflare Workers Deployment (Recommended) 
+
+This project is configured to deploy to Cloudflare Workers. Follow these steps:
+
+1. **Install Wrangler CLI**
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **Login to Cloudflare**
+   ```bash
+   wrangler login
+   ```
+
+3. **Set Required Secrets** ⚠️ **CRITICAL**
+   ```bash
+   # Generate a strong JWT secret
+   SECRET=$(openssl rand -base64 48)
+   
+   # Set the secret in Cloudflare Workers
+   echo $SECRET | wrangler secret put JWT_SECRET
+   ```
+
+4. **Build and Deploy**
+   ```bash
+   npm run build
+   wrangler deploy
+   ```
+
+**Important**: Never commit JWT_SECRET to version control. See [SECURITY.md](SECURITY.md) for detailed security requirements.
+
+### Local Development
+
+1. Copy `.dev.vars.example` to `.dev.vars`:
+   ```bash
+   cp .dev.vars.example .dev.vars
+   ```
+
+2. Generate and set your JWT_SECRET in `.dev.vars`:
+   ```bash
+   openssl rand -base64 48
+   # Copy the output and paste it into .dev.vars
+   ```
+
+3. Start the local development server:
+   ```bash
+   wrangler dev
+   ```
+
 **Attribution Requirement:**
 
 If you deploy this app publicly, please:<br>
