@@ -564,7 +564,7 @@ const AppContent = () => {
     };
 
     return (
-        <div className="h-screen w-full bg-white dark:bg-black flex flex-col md:flex-row font-sans text-zinc-900 dark:text-white select-none overflow-hidden transition-colors duration-300">
+        <div className="h-screen w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden transition-colors duration-300">
             <Sidebar
                 navItems={navItems}
                 currentView={currentView}
@@ -573,7 +573,7 @@ const AppContent = () => {
                 lang={lang}
                 t={t}
             />
-            <div className="flex-1 flex flex-col overflow-hidden w-full bg-zinc-50/50 dark:bg-black relative transition-colors duration-300">
+            <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative transition-colors duration-300">
 
                 <div
                     ref={mainScrollRef}
@@ -666,54 +666,45 @@ const AppContent = () => {
                     )}
                 </div>
 
-                {/* Bottom Navigation - mobile only */}
-                <nav className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-2 bg-transparent z-40 safe-area-pb md:hidden pointer-events-none">
-                    <div className="w-full pointer-events-auto bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl backdrop-saturate-150 border border-white/40 dark:border-zinc-700/40 shadow-2xl shadow-zinc-900/10 dark:shadow-black/40 rounded-[2rem] px-2 py-2 flex items-center justify-between gap-1 transition-colors duration-300">
-                        <button
-                            onClick={() => handleViewChange('home')}
-                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'home'
-                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
-                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                }`}
-                        >
-                            <Activity size={20} strokeWidth={currentView === 'home' ? 2.5 : 2} />
-                        </button>
-                        <button
-                            onClick={() => handleViewChange('history')}
-                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'history'
-                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
-                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                }`}
-                        >
-                            <Calendar size={20} strokeWidth={currentView === 'history' ? 2.5 : 2} />
-                        </button>
-                        <button
-                            onClick={() => handleViewChange('account')}
-                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'account'
-                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
-                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                }`}
-                        >
-                            <UserCircle size={20} strokeWidth={currentView === 'account' ? 2.5 : 2} />
-                        </button>
-                        <button
-                            onClick={() => handleViewChange('lab')}
-                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'lab'
-                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
-                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                }`}
-                        >
-                            <FlaskConical size={20} strokeWidth={currentView === 'lab' ? 2.5 : 2} />
-                        </button>
-                        <button
-                            onClick={() => handleViewChange('settings')}
-                            className={`flex-1 flex flex-col items-center gap-1 rounded-[1.5rem] py-3 transition-all duration-300 ${currentView === 'settings'
-                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 scale-100'
-                                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                }`}
-                        >
-                            <SettingsIcon size={20} strokeWidth={currentView === 'settings' ? 2.5 : 2} />
-                        </button>
+                {/* Bottom Navigation - M3 Navigation Bar */}
+                <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-transparent z-40 safe-area-pb md:hidden pointer-events-none">
+                    <div className="w-full pointer-events-auto bg-[var(--color-m3-surface-container-lowest)]/85 dark:bg-[var(--color-m3-dark-surface-container)]/85 backdrop-blur-2xl backdrop-saturate-150 border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-3)] rounded-[var(--radius-xl)] px-1 py-1.5 flex items-center justify-around gap-0.5 transition-all duration-300">
+                        {[
+                            { id: 'home', icon: Activity, label: t('nav.home') },
+                            { id: 'history', icon: Calendar, label: t('nav.history') },
+                            { id: 'account', icon: UserCircle, label: t('nav.account') },
+                            { id: 'lab', icon: FlaskConical, label: t('nav.lab') },
+                            { id: 'settings', icon: SettingsIcon, label: t('nav.settings') },
+                        ].map(({ id, icon: Icon, label }) => {
+                            const isActive = currentView === id;
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => handleViewChange(id as any)}
+                                    className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-all duration-500 rounded-[var(--radius-xl)] relative`}
+                                >
+                                    <div className={`px-5 py-1.5 rounded-[var(--radius-full)] transition-all duration-500 ${isActive
+                                        ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40'
+                                        : 'bg-transparent'
+                                        }`}>
+                                        <Icon
+                                            size={20}
+                                            strokeWidth={isActive ? 2.5 : 1.8}
+                                            className={`transition-all duration-300 ${isActive
+                                                ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
+                                                : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
+                                                }`}
+                                        />
+                                    </div>
+                                    <span className={`text-[10px] font-semibold tracking-tight transition-all duration-300 ${isActive
+                                        ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
+                                        : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
+                                        }`}>
+                                        {label}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </nav>
             </div>

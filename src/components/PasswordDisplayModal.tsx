@@ -18,19 +18,19 @@ const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-[60] animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-zinc-900 rounded-[24px] shadow-xl border border-zinc-200 dark:border-zinc-800 w-full max-w-lg md:max-w-xl p-6 md:p-8 animate-in slide-in-from-bottom duration-300 safe-area-pb transition-colors duration-300">
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2 text-center tracking-tight transition-colors">{t('export.password_title')}</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8 text-center transition-colors leading-relaxed">{t('export.password_desc')}</p>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] animate-in fade-in duration-200 p-6">
+            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm p-6 animate-m3-decelerate safe-area-pb transition-colors duration-300">
+                <h3 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-2 text-center tracking-tight transition-colors">{t('export.password_title')}</h3>
+                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-5 text-center transition-colors leading-relaxed">{t('export.password_desc')}</p>
 
-                <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-5 rounded-2xl mb-8 flex items-center justify-between transition-colors">
-                    <span className="font-mono text-xl font-bold text-zinc-900 dark:text-white tracking-widest transition-colors select-all">{password}</span>
-                    <button onClick={handleCopy} className="p-2.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                <div className="bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] p-3.5 rounded-[var(--radius-md)] mb-5 flex items-center justify-between transition-colors">
+                    <span className="font-mono text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-widest transition-colors select-all">{password}</span>
+                    <button onClick={handleCopy} className="p-2.5 hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] transition text-[var(--color-m3-on-surface-variant)] hover:text-[var(--color-m3-on-surface)]">
                         {copied ? <span className="text-xs font-bold text-emerald-500">{t('qr.copied')}</span> : <Copy size={20} />}
                     </button>
                 </div>
 
-                <button onClick={onClose} className="w-full py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 dark:shadow-zinc-100/10">
+                <button onClick={onClose} className="w-full py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)]">
                     {t('btn.ok')}
                 </button>
             </div>

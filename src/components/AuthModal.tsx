@@ -16,7 +16,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const [loading, setLoading] = useState(false);
 
     const { login, register } = useAuth();
-    // const { t } = useTranslation(); // Assuming translation exists, simplified for now
 
     if (!isOpen) return null;
 
@@ -29,12 +28,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 await login(username, password);
             } else {
                 await register(username, password);
-                // After successful registration and auto-login, refresh the page
-                // Note: This will reload the page with the user already logged in (token in localStorage)
                 window.location.reload();
-                return; // Prevent further execution after reload
+                return;
             }
-            // Only executed for login
             onClose();
             setUsername('');
             setPassword('');
@@ -47,42 +43,42 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800">
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm overflow-hidden animate-m3-decelerate">
+                <div className="flex items-center justify-between px-6 pt-6 pb-3">
+                    <h2 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                         {isLogin ? 'Sign In' : 'Create Account'}
                     </h2>
-                    <button onClick={onClose} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                        <X size={20} />
+                    <button onClick={onClose} className="p-1.5 -mr-1 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition-colors">
+                        <X size={18} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="px-6 pb-6 pt-2 space-y-3">
                     {error && (
-                        <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
+                        <div className="p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-[var(--radius-sm)] border border-red-200 dark:border-red-900/30">
                             {error}
                         </div>
                     )}
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Username</label>
+                        <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">Username</label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 transition-all text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]"
                             placeholder="Enter username"
                             required
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Password</label>
+                        <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 transition-all text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]"
                             placeholder="Enter password"
                             required
                         />
@@ -91,18 +87,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-2.5 mt-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full py-2.5 mt-1 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] font-bold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[var(--shadow-m3-1)]"
                     >
                         {loading && <Loader2 size={16} className="animate-spin" />}
                         {isLogin ? 'Sign In' : 'Sign Up'}
                     </button>
 
-                    <div className="pt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    <div className="pt-2 text-center text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                         {isLogin ? "Don't have an account? " : "Already have an account? "}
                         <button
                             type="button"
                             onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                            className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                            className="text-[var(--color-m3-primary)] dark:text-teal-400 font-bold hover:underline"
                         >
                             {isLogin ? 'Sign up' : 'Sign in'}
                         </button>

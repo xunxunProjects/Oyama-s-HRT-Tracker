@@ -65,32 +65,32 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
     };
 
     return (
-        <div className={`flex flex-col h-full bg-white dark:bg-zinc-900 transition-colors duration-300 ${isInline ? 'rounded-[2rem] shadow-sm border border-zinc-100 dark:border-zinc-800' : ''}`}>
+        <div className={`flex flex-col h-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] transition-colors duration-300 ${isInline ? 'rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-1)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]' : ''}`}>
             {/* Header */}
             {isInline && (
-                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50 rounded-t-[2rem]">
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white px-2">
+                <div className="p-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-t-[var(--radius-xl)]">
+                    <h3 className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] px-2">
                         {t('lab.add_title')}
                     </h3>
 
                 </div>
             )}
 
-            <div className={`overflow-y-auto space-y-6 ${isInline ? 'p-4' : 'p-6'}`}>
+            <div className={`overflow-y-auto space-y-4 ${isInline ? 'p-4' : 'p-5'}`}>
                 {/* Date & Time */}
                 <div className="space-y-3 relative">
-                    <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                        <Calendar size={16} className="text-zinc-400 dark:text-zinc-500" />
+                    <label className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] flex items-center gap-2">
+                        <Calendar size={16} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
                         {t('lab.date')}
                     </label>
                     <div
                         onClick={() => setIsDatePickerOpen(true)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-500 transition-all font-mono"
+                        className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-md)] p-3 flex items-center justify-between cursor-pointer hover:border-[var(--color-m3-primary)] dark:hover:border-teal-400 transition-all font-mono"
                     >
-                        <span className="text-zinc-900 dark:text-white font-bold text-sm">
-                            {date} <span className="text-zinc-400 dark:text-zinc-500 ml-2">{time}</span>
+                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold text-sm">
+                            {date} <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-2">{time}</span>
                         </span>
-                        <Calendar size={16} className="text-zinc-400" />
+                        <Calendar size={16} className="text-[var(--color-m3-on-surface-variant)]" />
                     </div>
                     <DateTimePicker
                         isOpen={isDatePickerOpen}
@@ -111,8 +111,8 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
                 {/* Value & Unit */}
                 <div className="space-y-3">
-                    <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                        <Activity size={16} className="text-zinc-400 dark:text-zinc-500" />
+                    <label className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] flex items-center gap-2">
+                        <Activity size={16} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
                         {t('lab.value')}
                     </label>
                     <div className="flex gap-3">
@@ -123,19 +123,19 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 placeholder="0.0"
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
-                                className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-lg rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent block w-full p-3 font-bold placeholder-zinc-300 dark:placeholder-zinc-600 transition-colors"
+                                className="bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-lg rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] block w-full p-3 font-bold placeholder-[var(--color-m3-outline)] outline-none transition-colors"
                             />
                         </div>
-                        <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] p-1 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                             <button
                                 onClick={() => setUnit('pmol/l')}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pmol/l' ? 'bg-white dark:bg-zinc-700 text-teal-600 dark:text-teal-400' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                                className={`px-4 py-3.5 rounded-[var(--radius-sm)] text-sm font-bold transition-all ${unit === 'pmol/l' ? 'bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-primary)] dark:text-teal-400 shadow-sm' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)]'}`}
                             >
                                 pmol/L
                             </button>
                             <button
                                 onClick={() => setUnit('pg/ml')}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${unit === 'pg/ml' ? 'bg-white dark:bg-zinc-700 text-teal-600 dark:text-teal-400' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                                className={`px-4 py-3.5 rounded-[var(--radius-sm)] text-sm font-bold transition-all ${unit === 'pg/ml' ? 'bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-primary)] dark:text-teal-400 shadow-sm' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)]'}`}
                             >
                                 pg/mL
                             </button>
@@ -145,30 +145,21 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
             </div>
 
             {/* Footer */}
-            {/* Footer */}
-            <div className={`p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50 flex justify-between items-center shrink-0 safe-area-pb transition-colors duration-300 ${isInline ? 'rounded-b-[2rem]' : ''}`}>
+            <div className={`px-3 py-2.5 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] flex justify-between items-center shrink-0 safe-area-pb transition-colors duration-300 ${isInline ? 'rounded-b-[var(--radius-xl)]' : ''}`}>
                 {resultToEdit && onDelete && (
                     <button
                         onClick={handleDelete}
-                        className="p-2.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                        className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[var(--radius-full)] transition-all"
                     >
-                        <Trash2 size={20} />
+                        <Trash2 size={18} />
                     </button>
                 )}
 
-                <div className="flex gap-3 ml-auto">
-                    <button
-                        onClick={onCancel}
-                        className={`px-6 py-3.5 bg-zinc-100/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isInline ? 'hidden md:flex' : 'flex'}`}
-                    >
-                        <X size={18} />
-                        <span>{t('btn.cancel')}</span>
-                    </button>
-
+                <div className="flex gap-2 ml-auto">
                     <button
                         onClick={handleSave}
                         disabled={!value || !date || !time}
-                        className="px-6 py-3.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full hover:bg-zinc-800 dark:hover:bg-white font-bold text-[15px] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                        className="px-6 py-3.5 bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] font-bold text-base transition-all disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-[var(--shadow-m3-1)]"
                     >
                         <Check size={18} />
                         <span>{t('btn.save')}</span>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 
 const CustomSelect = ({ value, onChange, options, label, icon }: { value: string, onChange: (val: string) => void, options: { value: string, label: string, icon?: React.ReactNode }[], label?: string, icon?: React.ReactNode }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -38,18 +38,17 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
                 if (rect) {
                     const spaceBelow = window.innerHeight - rect.bottom;
                     const spaceAbove = rect.top;
-                    const minSpaceBelow = 200; // Minimum space required to show useful amount of options
+                    const minSpaceBelow = 200;
 
                     let shouldFlip = false;
-                    let maxHeight = 300; // Default max height
+                    let maxHeight = 300;
 
-                    // If not enough space below AND more space above, flip it
                     if (spaceBelow < minSpaceBelow && spaceAbove > spaceBelow) {
                         shouldFlip = true;
-                        maxHeight = Math.min(300, spaceAbove - 16); // Leave 16px padding
+                        maxHeight = Math.min(300, spaceAbove - 16);
                     } else {
                         shouldFlip = false;
-                        maxHeight = Math.min(300, spaceBelow - 16); // Leave 16px padding
+                        maxHeight = Math.min(300, spaceBelow - 16);
                     }
 
                     if (shouldFlip) {
@@ -83,31 +82,31 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
 
     return (
         <div className="space-y-2" ref={containerRef}>
-            {label && !icon && <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider pl-1">{label}</label>}
+            {label && !icon && <label className="block text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider pl-1">{label}</label>}
             <div className="relative">
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full p-4 bg-white dark:bg-zinc-900 border ${isOpen ? 'border-zinc-400 dark:border-zinc-500 ring-2 ring-zinc-100 dark:ring-zinc-800' : 'border-zinc-200 dark:border-zinc-700'} rounded-xl outline-none flex items-center justify-between transition-all hover:border-zinc-300 dark:hover:border-zinc-500`}
+                    className={`w-full p-4 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border ${isOpen ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-2 ring-[var(--color-m3-primary-container)] dark:ring-teal-900/30' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]'} rounded-[var(--radius-lg)] outline-none flex items-center justify-between transition-all duration-300 hover:border-[var(--color-m3-outline)] dark:hover:border-[var(--color-m3-dark-outline)]`}
                 >
                     {icon ? (
                         <>
                             <div className="flex items-center gap-3">
                                 {icon}
-                                <span className="font-bold text-zinc-900 dark:text-white text-sm">{label}</span>
+                                <span className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{label}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">{selectedOption?.label}</span>
-                                <ChevronDown size={20} className={`text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                <span className="text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{selectedOption?.label}</span>
+                                <ChevronDown size={20} className={`text-[var(--color-m3-on-surface-variant)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     ) : (
                         <>
                             <div className="flex items-center gap-2">
                                 {selectedOption?.icon}
-                                <span className="font-bold text-zinc-900 dark:text-white">{selectedOption?.label || value}</span>
+                                <span className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{selectedOption?.label || value}</span>
                             </div>
-                            <ChevronDown size={20} className={`text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={20} className={`text-[var(--color-m3-on-surface-variant)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                         </>
                     )}
                 </button>
@@ -116,7 +115,7 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="fixed z-[999] bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl shadow-xl overflow-y-auto animate-in fade-in zoom-in-95 duration-100 p-1.5"
+                        className="fixed z-[999] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-lg)] shadow-[var(--shadow-m3-3)] overflow-y-auto animate-m3-container p-1.5"
                     >
                         {options.map(opt => (
                             <button
@@ -125,14 +124,16 @@ const CustomSelect = ({ value, onChange, options, label, icon }: { value: string
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full p-3 text-left flex items-center gap-3 rounded-xl transition-all mb-0.5
+                                className={`w-full p-3 text-left flex items-center gap-3 rounded-[var(--radius-md)] transition-all mb-0.5
                                     ${opt.value === value
-                                        ? 'bg-zinc-100 dark:bg-zinc-700/50 text-zinc-900 dark:text-white font-bold'
-                                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 hover:text-zinc-900 dark:hover:text-zinc-200'}`}
+                                        ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/30 text-[var(--color-m3-on-primary-container)] dark:text-teal-300 font-bold'
+                                        : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'}`}
                             >
                                 {opt.icon}
                                 <span>{opt.label}</span>
-                                {opt.value === value && <div className="ml-auto w-2 h-2 rounded-full bg-zinc-900 dark:bg-white" />}
+                                {opt.value === value && (
+                                    <Check size={16} className="ml-auto text-[var(--color-m3-primary)] dark:text-teal-400" strokeWidth={2.5} />
+                                )}
                             </button>
                         ))}
                     </div>,

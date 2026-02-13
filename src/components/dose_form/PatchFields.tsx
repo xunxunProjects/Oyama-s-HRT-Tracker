@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route } from '../../../logic'; // Ester not used for patch (always E2)
+import { Route } from '../../../logic';
 
 interface PatchFieldsProps {
     patchMode: "dose" | "rate";
@@ -26,28 +26,28 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
     return (
         <div className="space-y-4">
             <div className="space-y-2">
-                <div className="p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex">
+                <div className="p-1 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] flex">
                     <button
                         onClick={() => setPatchMode("dose")}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "dose" ? "bg-white dark:bg-zinc-700 shadow text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-400"}`}
+                        className={`flex-1 py-2 text-sm font-bold rounded-[var(--radius-sm)] transition-all ${patchMode === "dose" ? "bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] shadow text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" : "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]"}`}
                     >
                         {t('field.patch_total')}
                     </button>
                     <button
                         onClick={() => setPatchMode("rate")}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${patchMode === "rate" ? "bg-white dark:bg-zinc-700 shadow text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-400"}`}
+                        className={`flex-1 py-2 text-sm font-bold rounded-[var(--radius-sm)] transition-all ${patchMode === "rate" ? "bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] shadow text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" : "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]"}`}
                     >
                         {t('field.patch_rate')}
                     </button>
                 </div>
-                <div className="text-xs text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-xl">
+                <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-[var(--radius-md)]">
                     {t('beta.patch')}
                 </div>
             </div>
 
             {patchMode === "rate" ? (
                 <div className="space-y-2">
-                    <label className="block text-sm font-bold text-zinc-700">{t('field.patch_rate')}</label>
+                    <label className="block text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('field.patch_rate')}</label>
                     <input
                         type="number"
                         inputMode="decimal"
@@ -55,17 +55,17 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         step="1"
                         value={patchRate}
                         onChange={e => setPatchRate(e.target.value)}
-                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-mono text-zinc-900 dark:text-white font-bold"
+                        className="w-full p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold"
                         placeholder="e.g. 50, 100"
                     />
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                         {t('field.patch_rate_hint')}
                     </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2 col-span-2">
-                        <label className="block text-xs font-bold text-pink-400 uppercase tracking-wider">
+                        <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
                             {t('field.dose_raw')}
                         </label>
                         <input
@@ -73,7 +73,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={rawDose} onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-4 bg-pink-50/50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-pink-500 dark:text-pink-400 font-mono"
+                            className="w-full p-4 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-accent)]/30 outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono"
                             placeholder="0.0"
                         />
                     </div>

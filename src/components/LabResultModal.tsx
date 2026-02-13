@@ -43,17 +43,17 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
     if (!isVisible && !isOpen) return null;
 
     return (
-        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 ${isClosing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-200'}`}>
-            <div className={`bg-white dark:bg-zinc-900 rounded-t-[32px] md:rounded-[24px] shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] transition-colors duration-300 ${isClosing ? 'animate-out slide-out-to-bottom duration-250' : 'animate-in slide-in-from-bottom duration-300'}`}>
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 ${isClosing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-200'}`}>
+            <div className={`bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh] transition-colors duration-300 ${isClosing ? 'animate-out slide-out-to-bottom duration-250' : 'animate-in slide-in-from-bottom duration-300'}`}>
 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900 shrink-0 transition-colors duration-300">
-                    <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
-                        <FlaskConical className="text-teal-500" size={20} />
+                <div className="px-6 py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center justify-between shrink-0 transition-colors duration-300">
+                    <h2 className="font-display text-lg font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] flex items-center gap-2 tracking-tight">
+                        <FlaskConical className="text-[var(--color-m3-primary)] dark:text-teal-400" size={20} />
                         {resultToEdit ? t('lab.edit_title') : t('lab.add_title')}
                     </h2>
-                    <button onClick={handleClose} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
-                        <X size={20} className="text-zinc-500 dark:text-zinc-400" />
+                    <button onClick={handleClose} className="p-2 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-full)] transition-colors">
+                        <X size={20} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
                     </button>
                 </div>
 

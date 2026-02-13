@@ -32,39 +32,39 @@ const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-zinc-900 rounded-t-[32px] md:rounded-[24px] shadow-xl border border-zinc-200 dark:border-zinc-800 w-full max-w-lg md:max-w-xl p-6 md:p-8 animate-in slide-in-from-bottom duration-300 safe-area-pb transition-colors duration-300">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white transition-colors tracking-tight">{t('modal.weight.title')}</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 p-6">
+            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm p-6 animate-m3-decelerate safe-area-pb transition-colors duration-300">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight">{t('modal.weight.title')}</h3>
                 </div>
 
-                <div className="flex justify-center mb-10">
+                <div className="flex justify-center mb-6">
                     <div className="relative flex flex-col items-center">
                         <input
                             type="number"
                             inputMode="decimal"
                             value={weightStr}
                             onChange={(e) => setWeightStr(e.target.value)}
-                            className="text-6xl font-black text-pink-400 tabular-nums w-48 text-center bg-transparent border-b-2 border-pink-100 dark:border-pink-900/50 focus:border-pink-400 outline-none transition-colors pb-2"
+                            className="font-display text-4xl font-black text-[var(--color-m3-primary)] dark:text-teal-400 tabular-nums w-36 text-center bg-transparent border-b-2 border-[var(--color-m3-primary-container)] dark:border-teal-900/50 focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none transition-colors pb-1"
                             placeholder="0.0"
                             autoFocus
                         />
-                        <div className="text-base font-bold text-zinc-400 mt-3">kg</div>
+                        <div className="text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-2">kg</div>
                     </div>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl mb-8 flex gap-3 items-start transition-colors border border-blue-100 dark:border-blue-900/30">
-                    <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed transition-colors font-medium">
+                <div className="bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 p-3 rounded-[var(--radius-md)] mb-5 flex gap-2.5 items-start transition-colors border border-[var(--color-m3-outline-variant)] dark:border-teal-900/30">
+                    <Info className="w-4 h-4 text-[var(--color-m3-primary)] dark:text-teal-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-[var(--color-m3-on-primary-container)] dark:text-teal-300 leading-relaxed transition-colors font-medium">
                         {t('modal.weight.desc')}
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3.5 text-zinc-600 dark:text-zinc-400 font-bold bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">{t('btn.cancel')}</button>
+                <div className="flex justify-end gap-2">
+                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-teal-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-teal-900/20 transition-all">{t('btn.cancel')}</button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className={`flex-1 py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 dark:shadow-zinc-100/10 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {isSaving ? (
                             <span className="flex items-center justify-center gap-2">

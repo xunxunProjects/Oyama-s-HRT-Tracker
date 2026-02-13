@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester } from '../../../logic'; // Ester isn't really needed for Gel check but good for props consistency if extended
+import { Route, Ester } from '../../../logic';
 
 interface GelFieldsProps {
     gelSite: number;
@@ -20,17 +20,17 @@ const GelFields: React.FC<GelFieldsProps> = ({
     return (
         <div className="space-y-4">
             <div className="space-y-2">
-                <label className="block text-sm font-bold text-zinc-700">{t('field.gel_site')}</label>
-                <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-xl text-zinc-400 text-sm font-medium select-none">
+                <label className="block text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('field.gel_site')}</label>
+                <div className="p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-dashed border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-md)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-sm font-medium select-none">
                     {t('gel.site_disabled')}
                 </div>
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-[var(--radius-md)]">
                     {t('beta.gel')}
                 </div>
             </div>
 
             <div className="space-y-2 col-span-2">
-                <label className="block text-xs font-bold text-pink-400 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
                     {t('field.dose_e2')}
                 </label>
                 <input
@@ -38,7 +38,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
                     min="0"
                     step="0.001"
                     value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                    className="w-full p-4 bg-pink-50/50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-pink-500 dark:text-pink-400 font-mono"
+                    className="w-full p-4 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-accent)]/30 outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono"
                     placeholder="0.0"
                 />
             </div>

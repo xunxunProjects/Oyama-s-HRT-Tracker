@@ -13,16 +13,16 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
         if (payload[0].payload.isLabResult) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-teal-100/50 dark:border-teal-900/30 shadow-sm">
-                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1">
+                <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] backdrop-blur-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-1)]">
+                    <p className="text-[10px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 flex items-center gap-1">
                         <FlaskConical size={10} />
                         {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                     </p>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-base font-black text-teal-600 dark:text-teal-400 tracking-tight">
+                        <span className="text-base font-black text-[var(--color-m3-primary)] dark:text-pink-400 tracking-tight">
                             {data.originalValue}
                         </span>
-                        <span className="text-[10px] font-bold text-teal-400 dark:text-teal-600">{data.originalUnit}</span>
+                        <span className="text-[10px] font-bold text-pink-400 dark:text-pink-600">{data.originalUnit}</span>
                     </div>
                     {data.originalUnit === 'pmol/l' && (
                         <div className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
@@ -38,8 +38,8 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
         const concCPA = dataPoint.concCPA || 0; // Already in ng/mL
 
         return (
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-xl border border-pink-100/50 dark:border-pink-900/30 shadow-sm">
-                <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-0.5">
+            <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] backdrop-blur-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-1)]">
+                <p className="text-[10px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5">
                     {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                 </p>
                 {concE2 > 0 && (
@@ -269,27 +269,27 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     };
 
     if (!sim || sim.timeH.length === 0) return (
-        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-zinc-400 bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-sm p-8 transition-colors duration-300">
-            <Activity className="w-12 h-12 mb-4 text-zinc-200 dark:text-zinc-700" strokeWidth={1.5} />
+        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-1)] p-8 transition-colors duration-300">
+            <Activity className="w-12 h-12 mb-4 text-[var(--color-m3-outline-variant)] dark:text-[var(--color-m3-dark-outline-variant)]" strokeWidth={1.5} />
             <p className="text-sm font-medium">{t('timeline.empty')}</p>
         </div>
     );
 
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 relative overflow-hidden flex flex-col transition-colors duration-300">
-            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-zinc-100 dark:border-zinc-800">
-                <h2 className="text-sm md:text-base font-semibold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
+        <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] relative overflow-hidden flex flex-col transition-colors duration-300 shadow-[var(--shadow-m3-1)]">
+            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-[var(--color-m3-outline-variant)]/50 dark:border-[var(--color-m3-dark-outline-variant)]/50">
+                <h2 className="text-sm md:text-base font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
                     <Activity size={20} className="text-pink-400 md:w-5 md:h-5" />
                     {t('chart.title')}
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-zinc-50 dark:bg-zinc-800 rounded-xl p-1 gap-1 border border-zinc-100 dark:border-zinc-700">
+                    <div className="flex bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] p-1 gap-1 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                         <button
                             onClick={() => {
                                 zoomToDuration(7);
                             }}
-                            className="p-1.5 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition-all"
+                            className="p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] rounded-[var(--radius-sm)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition-all"
                         >
                             <RotateCcw size={14} className="md:w-4 md:h-4" />
                         </button>
@@ -303,9 +303,9 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                 {(() => {
                     const factorNow = calibrationFn(now / 3600000);
                     return Math.abs(factorNow - 1) > 0.001 ? (
-                        <div className="absolute top-3 left-4 z-10 px-2.5 py-1 rounded-lg border bg-teal-50 dark:bg-teal-900/40 border-teal-200 dark:border-teal-800 shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90">
-                            <FlaskConical size={12} className="text-teal-600 dark:text-teal-400" />
-                            <span className="text-[10px] md:text-xs font-bold text-teal-700 dark:text-teal-300">
+                        <div className="absolute top-3 left-4 z-10 px-2.5 py-1 rounded-lg border bg-pink-50 dark:bg-pink-900/40 border-pink-200 dark:border-pink-800 shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90">
+                            <FlaskConical size={12} className="text-pink-600 dark:text-pink-400" />
+                            <span className="text-[10px] md:text-xs font-bold text-pink-700 dark:text-pink-300">
                                 ×{(factorNow ?? 1).toFixed(2)}
                             </span>
                         </div>
@@ -499,7 +499,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             {/* Overview mini-map with draggable handles */}
             {data.length > 1 && (
                 <div className="px-3 pb-4 mt-1">
-                    <div className="w-full h-16 bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-none shadow-inner overflow-hidden transition-colors duration-300">
+                    <div className="w-full h-16 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-sm)] shadow-inner overflow-hidden transition-colors duration-300">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data} margin={{ top: 6, right: 8, left: -6, bottom: 6 }}>
                                 <defs>

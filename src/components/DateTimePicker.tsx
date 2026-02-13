@@ -119,12 +119,12 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             setView('time');
                         }
                     }}
-                    className={`h-9 w-9 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-200
+                    className={`h-9 w-9 flex items-center justify-center rounded-[var(--radius-full)] text-xs font-bold transition-all duration-200
                         ${isSelected
-                            ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold shadow-md'
+                            ? 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold shadow-md'
                             : isToday
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-pink-500 font-bold'
-                                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/30 text-[var(--color-m3-primary)] dark:text-teal-400 font-bold'
+                                : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'
                         }
                     `}
                 >
@@ -152,20 +152,20 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     <div
                         ref={containerRef}
                         style={positionStyle}
-                        className={`fixed z-[70] bg-white dark:bg-zinc-900 overflow-hidden shadow-2xl shadow-zinc-200/50 dark:shadow-zinc-950/50 border border-zinc-100 dark:border-zinc-800
+                        className={`fixed z-[70] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] overflow-hidden shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
                             ${Object.keys(positionStyle).length > 0
-                                ? 'rounded-[24px] animate-in fade-in slide-in-from-top-2 duration-200' // Desktop
-                                : 'bottom-0 left-0 right-0 w-full rounded-t-[24px] border-t border-b-0 animate-in slide-in-from-bottom duration-300' // Mobile
+                                ? 'rounded-[var(--radius-xl)] animate-in fade-in slide-in-from-top-2 duration-200' // Desktop
+                                : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-t border-b-0 animate-in slide-in-from-bottom duration-300' // Mobile
                             }
                         `}
                     >
-                        <div className="pt-5 px-5 pb-2 bg-white dark:bg-zinc-900 flex justify-between items-start">
+                        <div className="pt-5 px-5 pb-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] flex justify-between items-start">
                             <div>
                                 <div className="flex items-baseline gap-2">
                                     {mode !== 'time' && (
                                         <button
                                             onClick={() => setView('date')}
-                                            className={`text-xl font-bold tracking-tight transition-colors ${view === 'date' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-600'}`}
+                                            className={`text-xl font-bold font-display tracking-tight transition-colors ${view === 'date' ? 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]' : 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]'}`}
                                         >
                                             {selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' })}
                                         </button>
@@ -173,7 +173,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                     {mode !== 'date' && (
                                         <button
                                             onClick={() => setView('time')}
-                                            className={`text-xl font-bold font-mono tracking-tight transition-colors ${view === 'time' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-600'}`}
+                                            className={`text-xl font-bold font-mono tracking-tight transition-colors ${view === 'time' ? 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]' : 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]'}`}
                                         >
                                             {selectedDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}
                                         </button>
@@ -186,20 +186,20 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             {view === 'date' && (
                                 <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center justify-between mb-4">
-                                        <button onClick={prevMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition text-zinc-600 dark:text-zinc-400">
+                                        <button onClick={prevMonth} className="p-2 hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] transition text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                                             <ChevronLeft size={18} />
                                         </button>
-                                        <span className="font-bold text-zinc-900 dark:text-white text-base">
+                                        <span className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-base">
                                             {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                         </span>
-                                        <button onClick={nextMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition text-zinc-600 dark:text-zinc-400">
+                                        <button onClick={nextMonth} className="p-2 hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] transition text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                                             <ChevronRight size={18} />
                                         </button>
                                     </div>
 
                                     <div className="grid grid-cols-7 mb-2 text-center">
                                         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                                            <span key={d} className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 w-10 block mx-auto">{d}</span>
+                                            <span key={d} className="text-[10px] font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] w-10 block mx-auto">{d}</span>
                                         ))}
                                     </div>
 
@@ -216,40 +216,40 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                         {/* Hour Button */}
                                         <button
                                             onClick={() => setOpenTimeSelect(openTimeSelect === 'hour' ? null : 'hour')}
-                                            className={`flex items-center justify-between w-24 px-3 py-2 bg-white dark:bg-zinc-800 border rounded-lg transition-all
-                                            ${openTimeSelect === 'hour' ? 'border-zinc-900 dark:border-white ring-1 ring-zinc-900 dark:ring-white' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}
+                                            className={`flex items-center justify-between w-24 px-3 py-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)] border rounded-[var(--radius-md)] transition-all
+                                            ${openTimeSelect === 'hour' ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-teal-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
                                         `}
                                         >
-                                            <span className="text-2xl font-mono font-bold text-zinc-900 dark:text-white">
+                                            <span className="text-2xl font-mono font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                                 {selectedDate.getHours().toString().padStart(2, '0')}
                                             </span>
-                                            <ChevronDown size={16} className={`text-zinc-400 transition-transform ${openTimeSelect === 'hour' ? 'rotate-180' : ''}`} />
+                                            <ChevronDown size={16} className={`text-[var(--color-m3-on-surface-variant)] transition-transform ${openTimeSelect === 'hour' ? 'rotate-180' : ''}`} />
                                         </button>
 
-                                        <span className="text-2xl font-bold text-zinc-300 dark:text-zinc-600">:</span>
+                                        <span className="text-2xl font-bold text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]">:</span>
 
                                         {/* Minute Button */}
                                         <button
                                             onClick={() => setOpenTimeSelect(openTimeSelect === 'minute' ? null : 'minute')}
-                                            className={`flex items-center justify-between w-24 px-3 py-2 bg-white dark:bg-zinc-800 border rounded-lg transition-all
-                                            ${openTimeSelect === 'minute' ? 'border-zinc-900 dark:border-white ring-1 ring-zinc-900 dark:ring-white' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}
+                                            className={`flex items-center justify-between w-24 px-3 py-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)] border rounded-[var(--radius-md)] transition-all
+                                            ${openTimeSelect === 'minute' ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-teal-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
                                         `}
                                         >
-                                            <span className="text-2xl font-mono font-bold text-zinc-900 dark:text-white">
+                                            <span className="text-2xl font-mono font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                                 {selectedDate.getMinutes().toString().padStart(2, '0')}
                                             </span>
-                                            <ChevronDown size={16} className={`text-zinc-400 transition-transform ${openTimeSelect === 'minute' ? 'rotate-180' : ''}`} />
+                                            <ChevronDown size={16} className={`text-[var(--color-m3-on-surface-variant)] transition-transform ${openTimeSelect === 'minute' ? 'rotate-180' : ''}`} />
                                         </button>
                                     </div>
 
                                     {/* Overlays for Dropdown Options */}
                                     {openTimeSelect && (
-                                        <div className="absolute inset-x-0 bottom-0 top-0 bg-white dark:bg-zinc-900 z-10 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 border rounded-xl border-zinc-100 dark:border-zinc-800 shadow-sm">
-                                            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-                                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                                        <div className="absolute inset-x-0 bottom-0 top-0 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] z-10 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 border rounded-[var(--radius-md)] border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-1)]">
+                                            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]">
+                                                <span className="text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">
                                                     {openTimeSelect === 'hour' ? 'Select Hour' : 'Select Minute'}
                                                 </span>
-                                                <button onClick={() => setOpenTimeSelect(null)} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition"><X size={14} className="text-zinc-500" /></button>
+                                                <button onClick={() => setOpenTimeSelect(null)} className="p-1 hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] transition"><X size={14} className="text-[var(--color-m3-on-surface-variant)]" /></button>
                                             </div>
                                             <div className="flex-1 overflow-y-auto p-2 scrollbar-hide grid grid-cols-4 gap-2 content-start">
                                                 {(openTimeSelect === 'hour' ? hours : minutes).map(val => (
@@ -262,10 +262,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                                             setSelectedDate(d);
                                                             setOpenTimeSelect(null);
                                                         }}
-                                                        className={`h-10 rounded-lg font-mono font-bold text-sm flex items-center justify-center transition-colors
+                                                        className={`h-10 rounded-[var(--radius-sm)] font-mono font-bold text-sm flex items-center justify-center transition-colors
                                                      ${(openTimeSelect === 'hour' ? selectedDate.getHours() : selectedDate.getMinutes()) === val
-                                                                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                                                                : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                                                                ? 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] shadow-sm'
+                                                                : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'
                                                             }
                                                  `}
                                                     >
@@ -279,17 +279,17 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             )}
                         </div>
 
-                        <div className="px-5 pb-5 pt-2 bg-white dark:bg-zinc-900 flex gap-3 safe-area-pb">
+                        <div className="px-5 pb-5 pt-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] flex gap-3 safe-area-pb">
                             <button
                                 onClick={onClose}
-                                className="flex-1 py-3.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200 font-bold rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition text-sm flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-highest)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-bold rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-highest)] transition text-sm flex items-center justify-center gap-2"
                             >
                                 <X size={18} />
                                 {t('btn.cancel')}
                             </button>
                             <button
                                 onClick={() => onConfirm(selectedDate)}
-                                className="flex-1 py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-200 transition shadow-lg shadow-zinc-900/10 text-sm"
+                                className="flex-1 py-3.5 bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] text-sm"
                             >
                                 {t('btn.ok') || 'Confirm'}
                             </button>

@@ -25,7 +25,6 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    // Effect to sync E2 dose when raw dose changes (if raw was last edited)
     useEffect(() => {
         if (isInitializing || lastEditedField !== 'raw' || !rawDose) return;
 
@@ -33,13 +32,6 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
         if (!isNaN(v)) {
             const factor = getToE2Factor(ester) || 1;
             const e2Equivalent = v * factor;
-            // We don't call onE2Change here to avoid loop, but the parent handleRawChange does it
-            // Actually, in the original code, the parent updates state. 
-            // The original useEffect was:
-            // useEffect(() => { if (...) handleRawChange(rawDose) }, [bioMultiplier, ester, route])
-            // This was to re-calculate when ESTER changes.
-            // Since we pass props down, the calculation logic should explicitly stay in parent or be duplicated.
-            // Plan: Keep the state and calculation in Parent. This component just renders inputs.
         }
     }, [ester, route]);
 
@@ -48,23 +40,20 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
         <div className="grid grid-cols-2 gap-4">
             {(ester !== Ester.E2) && (
                 <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) ? 'col-span-2' : ''}`}>
-                    <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t('field.dose_raw')}</label>
+                    <label className="block text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('field.dose_raw')}</label>
                     <input
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-mono text-zinc-900 dark:text-white font-bold"
+                        className="w-full p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold"
                         placeholder="0.0"
                     />
                 </div>
             )}
-            {/* Logic for showing E2 Equivalent. 
-                Original: if NOT (EV and Injection/Oral/SL) AND NOT CPA
-            */}
             {!(ester === Ester.EV && route === Route.injection) && ester !== Ester.CPA && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-bold text-pink-400 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
                         {t('field.dose_e2')}
                     </label>
                     <input
@@ -72,7 +61,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-4 bg-pink-50/50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-900/30 rounded-2xl focus:ring-2 focus:ring-pink-300/50 outline-none font-bold text-pink-500 dark:text-pink-400 font-mono"
+                        className="w-full p-4 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-accent)]/30 outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono"
                         placeholder="0.0"
                     />
                 </div>
@@ -80,7 +69,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
 
             {(ester === Ester.EV && route === Route.injection) && (
                 <div className="col-span-2">
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1">
                         {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
                     </p>
                 </div>

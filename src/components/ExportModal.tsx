@@ -15,7 +15,6 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
     if (!isOpen) return null;
 
     const hasData = events.length > 0 || labResults.length > 0;
-    const totalRecords = events.length + labResults.length;
 
     const handleExport = () => {
         if (exportMode === 'encrypted') {
@@ -34,36 +33,35 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
         {
             value: 'encrypted',
             label: `JSON (${t('export.encrypt_label')})`,
-            icon: <ShieldCheck size={18} className="text-pink-500" />
+            icon: <ShieldCheck size={18} className="text-[var(--color-m3-accent)]" />
         }
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-zinc-900 rounded-t-[32px] md:rounded-[24px] shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-lg md:max-w-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 safe-area-pb transition-colors duration-300 overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 animate-in fade-in duration-200">
+            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm flex flex-col max-h-[85vh] animate-m3-decelerate safe-area-pb transition-colors duration-300 overflow-hidden">
 
                 {/* Header */}
-                <div className="p-6 md:p-8 pb-4 shrink-0 flex justify-between items-start">
+                <div className="px-6 pt-6 pb-2 shrink-0 flex justify-between items-start">
                     <div>
-                        <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{t('export.title')}</h3>
+                        <h3 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight">{t('export.title')}</h3>
                         {hasData && (
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1">
                                 {t('export.summary').replace('{doses}', events.length.toString()).replace('{labs}', labResults.length.toString())}
                             </p>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
-                        <X size={20} className="text-zinc-500 dark:text-zinc-400" />
+                    <button onClick={onClose} className="p-1.5 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition">
+                        <X size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
                     </button>
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto min-h-0 px-6 md:px-8 space-y-6 [&::-webkit-scrollbar]:hidden scrollbar-none">
+                <div className="flex-1 overflow-y-auto min-h-0 px-6 space-y-4 [&::-webkit-scrollbar]:hidden scrollbar-none">
                     {hasData ? (
                         <>
-                            {/* Dropdown for Export Type */}
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-zinc-500 dark:text-zinc-400 ml-1">
+                                <label className="text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-1">
                                     {t('export.format_label')}
                                 </label>
                                 <CustomSelect
@@ -71,15 +69,14 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
                                     onChange={(val) => setExportMode(val as 'json' | 'encrypted')}
                                     options={exportOptions}
                                 />
-                                <p className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-1">
                                     {exportMode === 'json' ? t('drawer.save_hint') : t('export.encrypt_ask_desc')}
                                 </p>
                             </div>
 
-                            {/* Password Input (Only if Encrypted) */}
                             {exportMode === 'encrypted' && (
-                                <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300 pb-2">
-                                    <label className="text-sm font-bold text-zinc-500 dark:text-zinc-400 ml-1">
+                                <div className="space-y-2 animate-m3-container pb-2">
+                                    <label className="text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-1">
                                         {t('export.password_label')}
                                     </label>
                                     <div className="relative">
@@ -88,19 +85,19 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder={t('export.password_placeholder')}
-                                            className="w-full p-4 pl-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                                            className="w-full p-3 pl-10 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 transition-all text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-outline)]"
                                         />
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-m3-on-surface-variant)]" size={16} />
                                     </div>
-                                    <p className="text-xs text-zinc-400 dark:text-zinc-500 ml-1 leading-relaxed">
+                                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-1 leading-relaxed">
                                         {t('export.password_hint_random')}
                                     </p>
                                 </div>
                             )}
                         </>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500 gap-4">
-                            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-full">
+                        <div className="flex flex-col items-center justify-center py-12 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] gap-4">
+                            <div className="p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-full)]">
                                 <FileJson size={32} strokeWidth={1.5} />
                             </div>
                             <p className="font-medium">{t('drawer.empty_export')}</p>
@@ -108,18 +105,18 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
                     )}
                 </div>
 
-                {/* Footer with Button */}
+                {/* Footer */}
                 {hasData && (
-                    <div className="p-6 md:p-8 pt-4 shrink-0 bg-white dark:bg-zinc-900 border-t border-zinc-50 dark:border-zinc-800/50">
+                    <div className="px-6 pb-6 pt-3 shrink-0">
                         <button
                             onClick={handleExport}
-                            className={`w-full py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                            className={`w-full py-2.5 px-5 rounded-[var(--radius-full)] font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-[var(--shadow-m3-1)]
                                 ${exportMode === 'encrypted'
-                                    ? 'bg-pink-600 hover:bg-pink-500 text-white shadow-pink-600/20'
-                                    : 'bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 shadow-zinc-900/20 dark:shadow-white/10'
+                                    ? 'bg-[var(--color-m3-accent)] hover:bg-[var(--color-m3-accent-light)] text-[var(--color-m3-on-accent)]'
+                                    : 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)]'
                                 }`}
                         >
-                            <Download size={22} className={exportMode === 'encrypted' ? 'text-pink-100' : 'text-zinc-400 dark:text-zinc-600'} />
+                            <Download size={16} />
                             <span>
                                 {exportMode === 'encrypted' ? t('export.btn_encrypted') : t('export.btn_json')}
                             </span>

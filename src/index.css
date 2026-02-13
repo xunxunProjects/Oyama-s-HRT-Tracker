@@ -1,12 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @variant dark (&:is(.dark *));
 
 @theme {
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    
-    /* Extend colors if needed, but Tailwind 4 has zinc/slate built-in */
+    --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* M3 Teal Primary */
+    --color-m3-primary: #0D9488;
+    --color-m3-primary-light: #14B8A6;
+    --color-m3-primary-container: #CCFBF1;
+    --color-m3-on-primary: #FFFFFF;
+    --color-m3-on-primary-container: #0F766E;
+
+    /* M3 Coral/Rose Accent */
+    --color-m3-accent: #F43F5E;
+    --color-m3-accent-light: #FB7185;
+    --color-m3-accent-container: #FFF1F2;
+    --color-m3-on-accent: #FFFFFF;
+    --color-m3-on-accent-container: #BE123C;
+
+    /* M3 Surfaces — warm neutrals */
+    --color-m3-surface: #FAFAF9;
+    --color-m3-surface-dim: #F5F5F4;
+    --color-m3-surface-bright: #FFFFFF;
+    --color-m3-surface-container-lowest: #FFFFFF;
+    --color-m3-surface-container-low: #F5F5F4;
+    --color-m3-surface-container: #EFEDEB;
+    --color-m3-surface-container-high: #E7E5E4;
+    --color-m3-surface-container-highest: #D6D3D1;
+    --color-m3-on-surface: #1C1917;
+    --color-m3-on-surface-variant: #78716C;
+    --color-m3-outline: #A8A29E;
+    --color-m3-outline-variant: #D6D3D1;
+
+    /* M3 Dark Surfaces */
+    --color-m3-dark-surface: #1C1917;
+    --color-m3-dark-surface-dim: #171412;
+    --color-m3-dark-surface-bright: #292524;
+    --color-m3-dark-surface-container-lowest: #0C0A09;
+    --color-m3-dark-surface-container-low: #1C1917;
+    --color-m3-dark-surface-container: #292524;
+    --color-m3-dark-surface-container-high: #44403C;
+    --color-m3-dark-surface-container-highest: #57534E;
+    --color-m3-dark-on-surface: #E7E5E4;
+    --color-m3-dark-on-surface-variant: #A8A29E;
+    --color-m3-dark-outline: #78716C;
+    --color-m3-dark-outline-variant: #44403C;
+
+    /* M3 Shape Scale */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 28px;
+    --radius-full: 9999px;
+
+    /* M3 Elevation */
+    --shadow-m3-1: 0 1px 3px 1px rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-m3-2: 0 2px 6px 2px rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-m3-3: 0 4px 8px 3px rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.10);
 }
 
 /* Base Styles */
@@ -39,15 +93,98 @@ body {
     scrollbar-width: none;
 }
 
-/* Animations */
+.font-display {
+    font-family: var(--font-display);
+}
+
+/* M3 Expressive Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes m3-emphasized-decelerate {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes m3-emphasized-accelerate {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+}
+
+@keyframes m3-spring {
+    0% {
+        transform: scale(0.92);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    75% {
+        transform: scale(0.99);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes m3-pill-expand {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+
+    to {
+        width: 100%;
+        opacity: 1;
+    }
+}
+
+@keyframes m3-container-open {
+    from {
+        opacity: 0;
+        transform: scaleY(0.92);
+        transform-origin: top;
+    }
+
+    to {
+        opacity: 1;
+        transform: scaleY(1);
+    }
 }
 
 .animate-fade-in {
@@ -55,26 +192,125 @@ body {
 }
 
 .animate-slide-up {
-    animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideInUp 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.animate-m3-decelerate {
+    animation: m3-emphasized-decelerate 0.5s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+}
+
+.animate-m3-spring {
+    animation: m3-spring 0.6s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.animate-m3-container {
+    animation: m3-container-open 0.35s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+}
+
+/* M3 Transition Curves */
+.transition-m3 {
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.transition-m3-standard {
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    transition-duration: 300ms;
+}
+
+.transition-m3-emphasized {
+    transition-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1);
+    transition-duration: 500ms;
 }
 
 /* Page Transitions */
 .page-transition {
-    animation-duration: 0.35s;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-duration: 0.4s;
+    animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1);
     animation-fill-mode: both;
     will-change: transform, opacity;
 }
 
 @keyframes pageForward {
-    from { opacity: 0; transform: scale(0.98) translateX(10px); }
-    to { opacity: 1; transform: scale(1) translateX(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateX(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+    }
 }
 
 @keyframes pageBackward {
-    from { opacity: 0; transform: scale(0.98) translateX(-10px); }
-    to { opacity: 1; transform: scale(1) translateX(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateX(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+    }
 }
 
-.page-transition.page-forward { animation-name: pageForward; }
-.page-transition.page-backward { animation-name: pageBackward; }
+.page-transition.page-forward {
+    animation-name: pageForward;
+}
+
+.page-transition.page-backward {
+    animation-name: pageBackward;
+}
+
+/* M3 Active indicator for nav */
+.m3-active-indicator {
+    background-color: var(--color-m3-primary-container);
+    border-radius: var(--radius-full);
+    transition: all 0.5s cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* M3 Surface tint overlay */
+.m3-surface-tint {
+    position: relative;
+}
+
+.m3-surface-tint::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--color-m3-primary);
+    opacity: 0.05;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.m3-surface-tint:hover::after {
+    opacity: 0.08;
+}
+
+/* M3 State layer */
+.m3-state-layer {
+    position: relative;
+    overflow: hidden;
+}
+
+.m3-state-layer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    pointer-events: none;
+}
+
+.m3-state-layer:hover::before {
+    opacity: 0.08;
+    background-color: currentColor;
+}
+
+.m3-state-layer:active::before {
+    opacity: 0.12;
+    background-color: currentColor;
+}
