@@ -1,0 +1,11 @@
+# Local Development Environment Variables
+# Copy this file to .dev.vars and fill in your values
+# NEVER commit .dev.vars to version control!
+
+# Required: JWT Secret for authentication (minimum 32 characters)
+# Generate with: openssl rand -base64 48
+JWT_SECRET=your-generated-secret-here-minimum-32-characters
+
+# Optional: Admin credentials for local development
+# ADMIN_USERNAME=admin
+# ADMIN_PASSWORD=your-secure-password

@@ -18,5 +18,9 @@ database_id = "916011c6-3b95-4116-a10e-76af94496170"
 binding = "AVATAR_BUCKET"
 bucket_name = "mahiro-contents"
 
-[vars]
-JWT_SECRET = "a3f9c8d2e5b1a477363910284756291038475629103847562910384756291038"
+# Environment Variables
+# Note: JWT_SECRET must be set as a Cloudflare Workers secret, NOT in this file
+# Use: wrangler secret put JWT_SECRET
+# Or configure via Cloudflare Dashboard: Workers & Pages > Your Worker > Settings > Variables and Secrets
+# Generate a strong secret: openssl rand -base64 48
+# See SECURITY.md for more details

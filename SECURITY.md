@@ -60,6 +60,7 @@ This document outlines the security measures implemented in this application and
    - Should be cryptographically random
    - Example generation: `openssl rand -base64 48`
    - **NEVER** commit this to version control
+   - **MUST** be set as a Cloudflare Workers secret (see instructions below)
 
 2. **ADMIN_USERNAME** (Optional)
    - If set, enables admin access via environment variables
@@ -69,6 +70,33 @@ This document outlines the security measures implemented in this application and
    - If set alongside ADMIN_USERNAME, enables admin login
    - Should be strong and unique
    - Store securely (e.g., in Cloudflare Workers secrets)
+
+### Setting Cloudflare Workers Secrets
+
+**CRITICAL**: Do NOT add JWT_SECRET to `wrangler.toml` under `[vars]` section. This would commit the secret to version control, which is a serious security vulnerability.
+
+**Option 1: Using Wrangler CLI**
+```bash
+# Generate a strong secret
+SECRET=$(openssl rand -base64 48)
+
+# Set the secret using wrangler
+echo $SECRET | wrangler secret put JWT_SECRET
+
+# Optional: Set admin credentials
+echo "your-admin-username" | wrangler secret put ADMIN_USERNAME
+echo "your-admin-password" | wrangler secret put ADMIN_PASSWORD
+```
+
+**Option 2: Using Cloudflare Dashboard**
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Navigate to Workers & Pages
+3. Select your worker (e.g., "hrt-tracker")
+4. Go to Settings → Variables and Secrets
+5. Add a new secret:
+   - Variable name: `JWT_SECRET`
+   - Value: A strong random string (at least 32 characters)
+6. Save changes
 
 ### Deployment Checklist
 
