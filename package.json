@@ -26,6 +26,7 @@
     "qrcode.react": "^4.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-easy-crop": "^5.5.6",
     "recharts": "^2.12.7",
     "tailwind-merge": "^3.4.0",
     "uuid": "^9.0.1"

@@ -8,6 +8,7 @@ export interface Env {
   JWT_SECRET: string;
   ADMIN_USERNAME?: string;
   ADMIN_PASSWORD?: string;
+  AVATAR_BUCKET: R2Bucket;
 }
 
 // Rate limiting map (in-memory, simple implementation)
@@ -329,6 +330,108 @@ export default {
 
           } catch (e) {
             return new Response('Invalid token', { status: 401, headers: corsHeaders });
+          }
+        }
+
+        // User Avatar Routes
+        if (url.pathname === '/api/user/avatar' && request.method === 'PUT') {
+          const authHeader = request.headers.get('Authorization');
+          if (!authHeader?.startsWith('Bearer ')) {
+            return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+          }
+
+          const token = authHeader.split(' ')[1];
+          const secret = new TextEncoder().encode(jwtSecret);
+
+          try {
+            const { payload } = await jwtVerify(token, secret);
+            const userId = payload.sub as string;
+
+            // 5MB limit
+            const contentLength = request.headers.get('Content-Length');
+            if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) {
+              return new Response('File too large (max 5MB)', { status: 413, headers: corsHeaders });
+            }
+
+            // Read body
+            const body = await request.arrayBuffer();
+            if (body.byteLength > 5 * 1024 * 1024) {
+              return new Response('File too large (max 5MB)', { status: 413, headers: corsHeaders });
+            }
+
+            // Simple magic number check
+            const view = new Uint8Array(body);
+            let contentType = 'application/octet-stream';
+            if (view[0] === 0xFF && view[1] === 0xD8 && view[2] === 0xFF) {
+              contentType = 'image/jpeg';
+            } else if (view[0] === 0x89 && view[1] === 0x50 && view[2] === 0x4E && view[3] === 0x47) {
+              contentType = 'image/png';
+            } else {
+              return new Response('Invalid file type. Only JPEG and PNG are allowed.', { status: 415, headers: corsHeaders });
+            }
+
+            console.log(`[Avatar PUT] Uploading for user ${userId}, size: ${body.byteLength}, type: ${contentType}`);
+            await env.AVATAR_BUCKET.put(`hrt-tracker-user-avatar/${userId}`, body, {
+              httpMetadata: { contentType }
+            });
+            console.log(`[Avatar PUT] Upload successful`);
+
+            return new Response(JSON.stringify({ message: 'Avatar uploaded successfully' }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+
+          } catch (e) {
+            return new Response('Invalid token or upload failed', { status: 401, headers: corsHeaders });
+          }
+        }
+
+        if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET') {
+          const username = url.pathname.split('/').pop();
+          if (!username) {
+            return new Response('Missing username', { status: 400, headers: corsHeaders });
+          }
+
+          try {
+            let userId: string | null = null;
+
+            // Look up user ID from username
+            const user = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first() as any;
+
+            if (user) {
+              userId = user.id;
+              console.log(`[Avatar GET] Found DB user: ${username} -> ${userId}`);
+            } else if (username === 'Admin' || (env.ADMIN_USERNAME && username === env.ADMIN_USERNAME)) {
+              // Handle hardcoded admin
+              userId = 'admin';
+              console.log(`[Avatar GET] Using hardcoded admin: ${username} -> ${userId}`);
+            }
+
+            if (!userId) {
+              console.log(`[Avatar GET] User not found: ${username}`);
+              return new Response('User not found', { status: 404, headers: corsHeaders });
+            }
+
+            console.log(`[Avatar GET] Fetching from R2: hrt-tracker-user-avatar/${userId}`);
+            const object = await env.AVATAR_BUCKET.get(`hrt-tracker-user-avatar/${userId}`);
+
+            if (!object) {
+              console.log(`[Avatar GET] Object not found in R2`);
+              return new Response('Avatar not found', { status: 404, headers: corsHeaders });
+            }
+
+            const headers = new Headers();
+            object.writeHttpMetadata(headers);
+            headers.set('etag', object.httpEtag);
+            // Cache for 1 hour
+            headers.set('Cache-Control', 'public, max-age=3600');
+            headers.set('Access-Control-Allow-Origin', '*');
+
+            return new Response(object.body, {
+              headers
+            });
+          } catch (e) {
+            return new Response('Error fetching avatar', { status: 500, headers: corsHeaders });
           }
         }
 

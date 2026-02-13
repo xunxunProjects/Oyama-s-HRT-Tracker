@@ -653,6 +653,7 @@ const AppContent = () => {
                         <Account
                             t={t}
                             user={user}
+                            token={token}
                             onOpenAuth={() => setIsAuthModalOpen(true)}
                             onLogout={logout}
                             onCloudSave={handleCloudSave}

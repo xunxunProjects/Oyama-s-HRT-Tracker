@@ -1,9 +1,11 @@
 import React from 'react';
 import { UserCircle, UploadCloud, DownloadCloud, LogOut, User, BadgeCheck } from 'lucide-react';
+import { AvatarUpload } from '../components/AvatarUpload';
 
 interface AccountProps {
     t: (key: string) => string;
     user: any;
+    token: string | null;
     onOpenAuth: () => void;
     onLogout: () => void;
     onCloudSave: () => void;
@@ -13,6 +15,7 @@ interface AccountProps {
 const Account: React.FC<AccountProps> = ({
     t,
     user,
+    token,
     onOpenAuth,
     onLogout,
     onCloudSave,
@@ -32,27 +35,26 @@ const Account: React.FC<AccountProps> = ({
                 <div className="mx-6 md:mx-10 bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden transition-colors duration-300">
                     {user ? (
                         <>
-                            <div className="px-6 py-4 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold overflow-hidden">
-                                        {user.isAdmin ? (
-                                            <img src="/favicon.ico" alt={t('account.admin_avatar')} className="w-full h-full object-cover" />
-                                        ) : (
-                                            user.username.charAt(0).toUpperCase()
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-bold text-zinc-900 dark:text-white text-sm">{user.username}</span>
-                                        {user.isAdmin && (
-                                            <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10" strokeWidth={2.5} />
-                                        )}
-                                    </div>
+                            <div className="px-6 py-6 flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-800/30 gap-4">
+                                {token && (
+                                    <AvatarUpload
+                                        username={user.username}
+                                        token={token}
+                                    />
+                                )}
+
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-zinc-900 dark:text-white text-xl">{user.username}</span>
+                                    {user.isAdmin && (
+                                        <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-500/10" strokeWidth={2.5} />
+                                    )}
                                 </div>
+
                                 <button
                                     onClick={onLogout}
-                                    className="flex items-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium"
+                                    className="flex items-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2 rounded-full transition-colors text-sm font-medium border border-transparent hover:border-red-200 dark:hover:border-red-900/50"
                                 >
-                                    <LogOut size={14} />
+                                    <LogOut size={16} />
                                     {t('account.sign_out')}
                                 </button>
                             </div>
