@@ -4,7 +4,8 @@
 
 # Required: JWT Secret for authentication (minimum 32 characters)
 # Generate with: openssl rand -base64 48
-JWT_SECRET=your-generated-secret-here-minimum-32-characters
+# DO NOT use this example value - generate your own!
+JWT_SECRET=REPLACE_WITH_OUTPUT_FROM_openssl_rand_base64_48
 
 # Optional: Admin credentials for local development
 # ADMIN_USERNAME=admin
