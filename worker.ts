@@ -432,7 +432,15 @@ export default {
                    DO UPDATE SET data = excluded.data, created_at = excluded.created_at`
                 ).bind(id, userId, JSON.stringify(data), slot).run();
 
-                return new Response(JSON.stringify({ message: 'Content saved', id }), {
+                // Query the actual id from the database
+                const result = await env.DB.prepare(
+                  'SELECT id FROM content WHERE user_id = ? AND slot = ?'
+                ).bind(userId, slot).first();
+
+                return new Response(JSON.stringify({ 
+                  message: 'Content saved', 
+                  id: result?.id || id 
+                }), {
                   status: 201,
                   headers: { ...corsHeaders, 'Content-Type': 'application/json' }
                 });
