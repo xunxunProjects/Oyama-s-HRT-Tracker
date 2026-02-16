@@ -13,5 +13,6 @@ CREATE TABLE content (
     slot TEXT DEFAULT 'default',
     data TEXT,
     created_at INTEGER DEFAULT (unixepoch()),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(user_id, slot)
 );

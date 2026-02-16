@@ -423,7 +423,13 @@ export default {
                 return new Response('Invalid slot name', { status: 400, headers: corsHeaders });
               }
 
-              await env.DB.prepare('INSERT INTO content (id, user_id, data, slot) VALUES (?, ?, ?, ?)').bind(id, userId, JSON.stringify(data), slot).run();
+              try {
+                await env.DB.prepare('INSERT OR REPLACE INTO content (id, user_id, data, slot, created_at) VALUES (?, ?, ?, ?, unixepoch())').bind(id, userId, JSON.stringify(data), slot).run();
+              } catch (dbErr: any) {
+                console.error('[DB Insert Error]', dbErr);
+                return new Response(`Database Error: ${dbErr.message}`, { status: 500, headers: corsHeaders });
+              }
+
               return new Response(JSON.stringify({ message: 'Content saved', id }), {
                 status: 201,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
