@@ -419,25 +419,23 @@ class PrecomputedEventModel {
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
-                    if (params.k2 > 0) {
-                        // EV Sublingual
-                        const doseF = dose * params.Frac_fast;
-                        const doseS = dose * (1.0 - params.Frac_fast);
-                        return _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3) +
-                            _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2, params.k3);
-                    } else {
-                        // E2 Sublingual
-                        const doseF = dose * params.Frac_fast;
-                        const doseS = dose * (1.0 - params.Frac_fast);
+                    const doseF = dose * params.Frac_fast;
+                    const doseS = dose * (1.0 - params.Frac_fast);
 
-                        // Helper for dual branch 1st order
-                        const branch = (d: number, F: number, ka: number, ke: number, t: number) => {
-                            if (Math.abs(ka - ke) < 1e-9) return d * F * ka * t * Math.exp(-ke * t);
-                            return d * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
-                        };
-                        return branch(doseF, params.F_fast, params.k1_fast, params.k3, tau) +
-                            branch(doseS, params.F_slow, params.k1_slow, params.k3, tau);
-                    }
+                    // Dual-branch first-order helper (same closed form as oneCompAmount).
+                    const branch = (d: number, F: number, ka: number, ke: number, t: number) => {
+                        if (Math.abs(ka - ke) < 1e-9) return d * F * ka * t * Math.exp(-ke * t);
+                        return d * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
+                    };
+
+                    const fastAmount = params.k2 > 0
+                        ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
+                        : branch(doseF, params.F_fast, params.k1_fast, params.k3, tau);
+
+                    // Swallowed (gut) fraction follows oral simplified path, so no extra k2 hydrolysis here.
+                    const slowAmount = branch(doseS, params.F_slow, params.k1_slow, params.k3, tau);
+
+                    return fastAmount + slowAmount;
                 };
                 break;
             case Route.patchApply:
