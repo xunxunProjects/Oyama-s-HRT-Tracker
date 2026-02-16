@@ -425,14 +425,14 @@ export default {
               try {
                 // Use INSERT ... ON CONFLICT to properly handle upsert
                 // RETURNING clause gets the actual id (new or existing) in a single query
-                const candidateId = crypto.randomUUID();
+                const insertId = crypto.randomUUID();
                 const result = await env.DB.prepare(
                   `INSERT INTO content (id, user_id, data, slot, created_at) 
                    VALUES (?, ?, ?, ?, unixepoch())
                    ON CONFLICT(user_id, slot) 
-                   DO UPDATE SET data = excluded.data, created_at = excluded.created_at
+                   DO UPDATE SET data = excluded.data
                    RETURNING id`
-                ).bind(candidateId, userId, JSON.stringify(data), slot).first();
+                ).bind(insertId, userId, JSON.stringify(data), slot).first();
 
                 if (!result || !result.id) {
                   throw new Error('Failed to save content');
