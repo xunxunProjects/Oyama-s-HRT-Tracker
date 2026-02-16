@@ -5,7 +5,7 @@ import { Lang } from '../i18n/translations';
 interface NavItem {
     id: string;
     label: string;
-    icon: React.ReactElement;
+    icon: React.ElementType; // Changed from ReactElement to ElementType
 }
 
 interface SidebarProps {
@@ -38,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex-1 px-4 space-y-1 overflow-y-auto">
                 {navItems.map(item => {
                     const isActive = currentView === item.id;
+                    const Icon = item.icon;
                     return (
                         <button
                             key={item.id}
@@ -49,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 }`}
                         >
                             <span className={`transition-all duration-300 ${isActive ? 'text-[var(--color-m3-primary)] dark:text-teal-400 scale-110' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] group-hover:text-[var(--color-m3-on-surface)] dark:group-hover:text-[var(--color-m3-dark-on-surface)]'}`}>
-                                {React.cloneElement(item.icon, { size: 20, strokeWidth: isActive ? 2.5 : 2 })}
+                                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                             </span>
                             <span className="tracking-tight">{item.label}</span>
                             {isActive && (

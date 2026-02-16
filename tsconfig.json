@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "types": [
       "node",
-      "@cloudflare/workers-types"
+      "@cloudflare/workers-types",
+      "vite-plugin-pwa/client"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,

@@ -29,5 +29,42 @@ export const authService = {
         if (!res.ok) throw new Error(await res.text());
         // Registration successful, return void
         // Auto-login will be handled separately by the caller
+    },
+
+    async updateProfile(token: string, username: string): Promise<{ username: string }> {
+        const res = await fetch('/api/user/profile', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ username })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return await res.json();
+    },
+
+    async changePassword(token: string, current: string, newPass: string): Promise<void> {
+        const res = await fetch('/api/user/password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+        });
+        if (!res.ok) throw new Error(await res.text());
+    },
+
+    async deleteAccount(token: string, password: string): Promise<void> {
+        const res = await fetch('/api/user/me', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password })
+        });
+        if (!res.ok) throw new Error(await res.text());
     }
 };

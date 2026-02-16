@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
-import { X, Download, ShieldCheck, FileJson, Lock } from 'lucide-react';
+import { X, Download, ShieldCheck, FileJson, Lock, FileText } from 'lucide-react';
+import { exportToCSV, exportToPDF } from '../services/export';
 import CustomSelect from './CustomSelect';
 import { useEscape } from '../hooks/useEscape';
 
 const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: { isOpen: boolean, onClose: () => void, onExport: (encrypt: boolean, password?: string) => void, events: DoseEvent[], labResults: LabResult[], weight: number }) => {
-    const { t } = useTranslation();
+    const { t, lang } = useTranslation();
     const [exportMode, setExportMode] = useState<'json' | 'encrypted'>('json');
     const [password, setPassword] = useState('');
 
@@ -108,10 +109,36 @@ const ExportModal = ({ isOpen, onClose, onExport, events, labResults, weight }: 
                 {/* Footer */}
                 {hasData && (
                     <div className="px-6 pb-6 pt-3 shrink-0">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <button
+                                onClick={() => {
+                                    const csv = exportToCSV({ events, labResults, weight, lang, t });
+                                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                    const url = URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `hrt-data-${new Date().toISOString().split('T')[0]}.csv`;
+                                    link.click();
+                                    URL.revokeObjectURL(url);
+                                }}
+                                className="flex flex-col items-center justify-center p-3 rounded-[var(--radius-lg)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] transition-colors gap-2"
+                            >
+                                <FileText size={24} className="text-green-600" />
+                                <span className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">CSV</span>
+                            </button>
+                            <button
+                                onClick={() => exportToPDF({ events, labResults, weight, lang, t })}
+                                className="flex flex-col items-center justify-center p-3 rounded-[var(--radius-lg)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] transition-colors gap-2"
+                            >
+                                <FileText size={24} className="text-red-500" />
+                                <span className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">PDF</span>
+                            </button>
+                        </div>
+
                         <button
                             onClick={handleExport}
                             className={`w-full py-2.5 px-5 rounded-[var(--radius-full)] font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-[var(--shadow-m3-1)]
-                                ${exportMode === 'encrypted'
+                                    ${exportMode === 'encrypted'
                                     ? 'bg-[var(--color-m3-accent)] hover:bg-[var(--color-m3-accent-light)] text-[var(--color-m3-on-accent)]'
                                     : 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)]'
                                 }`}

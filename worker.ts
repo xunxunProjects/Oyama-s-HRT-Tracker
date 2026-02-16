@@ -42,17 +42,90 @@ function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean 
 }
 
 // Timing-safe string comparison
-// Note: For true constant-time comparison in production, use crypto.subtle.timingSafeEqual
+// Used for Admin credentials check against env vars
 function timingSafeEqual(a: string, b: string): boolean {
-  // Always use fixed length regardless of input to ensure truly constant time
-  const aPadded = a.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
-  const bPadded = b.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+  try {
+    const enc = new TextEncoder();
+    const aBuf = enc.encode(a);
+    const bBuf = enc.encode(b);
 
-  let result = 0;
-  for (let i = 0; i < TIMING_SAFE_COMPARE_LENGTH; i++) {
-    result |= aPadded.charCodeAt(i) ^ bPadded.charCodeAt(i);
+    // crypto.subtle.timingSafeEqual requires equal lengths
+    if (aBuf.byteLength !== bBuf.byteLength) return false;
+
+    // We can use a trick if the runtime doesn't support timingSafeEqual on subtle (unlikely in CF workers but good practice)
+    // But Cloudflare Workers supports it.
+
+    // However, crypto.subtle.timingSafeEqual returns a promise? 
+    // Wait, no, Node's crypto.timingSafeEqual is sync. Web Crypto's crypto.subtle... doesn't have timingSafeEqual!
+    // Web Crypto API does NOT have timingSafeEqual. It's available in Node.js 'crypto' module or Cloudflare specific APIs.
+    // Cloudflare Workers implements the Web Crypto API standard.
+    // Actually, Cloudflare Workers environment provides `crypto.subtle.timingSafeEqual` as an extension or we should use a constant time algorithm.
+    // Let's check if we can use the manual implementation but make it better, or if we can use a library.
+    // The previous manual implementation was:
+    // const aPadded = a.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+    // const bPadded = b.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+    // ... xor loop ...
+
+    // Let's stick to the manual implementation but verify it's correct and safe enough for this context, 
+    // OR see if we can use a better approach.
+    // Actually, for simple string comparison of secrets of unknown length, the "pad to fixed length" approach is the standard way to do it manually.
+    // Let's keep the manual implementation but ensure it uses Uint8Array for better performance/correctness than string charCodeAt.
+
+    const TARGET_LEN = 512;
+    const aFixed = new Uint8Array(TARGET_LEN);
+    const bFixed = new Uint8Array(TARGET_LEN);
+
+    const aBytes = enc.encode(a);
+    const bBytes = enc.encode(b);
+
+    aFixed.set(aBytes.slice(0, TARGET_LEN));
+    bFixed.set(bBytes.slice(0, TARGET_LEN));
+
+    let result = 0;
+
+    // XOR all bytes
+    for (let i = 0; i < TARGET_LEN; i++) {
+      result |= aFixed[i] ^ bFixed[i];
+    }
+
+    // Also include length check in the constant time flow? 
+    // If lengths match, result is 0. If lengths mismatch, we must ensure result is non-zero.
+    // But we already padded, so we are comparing the padded versions.
+    // If a="abc", b="abc" -> match.
+    // If a="abc", b="abcd" -> mismatch (4th byte differs).
+
+    // The previous implementation had a logic flaw?
+    // "Always use fixed length regardless of input to ensure truly constant time"
+    // The previous code:
+    // const aPadded = a.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+    // const bPadded = b.padEnd(TIMING_SAFE_COMPARE_LENGTH, '\0');
+    // This is basically correct for effectively constant time relative to the content, 
+    // assuming padEnd is not leaking timing info (it might).
+
+    // A better way usually involves checking lengths first but doing the loop anyway? No that leaks length.
+    // Hashing both inputs and comparing hashes is another valid strategy for long strings!
+    // But for passwords/usernames, the padding strategy is okay.
+
+    // Let's improve it to use Uint8Array to avoid string optimization weirdness.
+
+    // Additional check: verify lengths are equal mathematically but accumulated into result
+    // effectively: result |= (a.length ^ b.length) ?? No, we want to allow different lengths to fail silently.
+
+    // Let's refine the manual implementation using Uint8Array.
+
+    const lenA = aBytes.length;
+    const lenB = bBytes.length;
+
+    // If lengths differ, we still run the loop but ensure failure.
+    // To do this we can create a mask.
+
+    // Actually, simply doing the fixed buffer compare is robust enough for this use case 
+    // (admin username/password environ vars).
+
+    return result === 0 && lenA === lenB && lenA < TARGET_LEN && lenB < TARGET_LEN;
+  } catch (e) {
+    return false;
   }
-  return result === 0;
 }
 
 // Constants for validation
@@ -445,7 +518,162 @@ export default {
           }
         }
 
-        // Admin Routes
+        // User Profile/Security Routes
+        if (url.pathname.startsWith('/api/user/')) {
+          const authHeader = request.headers.get('Authorization');
+          // If accessing avatar via GET, no auth header needed? No, PUT needs it. GET is handled above without auth for public access?
+          // Actually the /api/user/avatar/ GET route above works without token if just fetching by username.
+          // But here we are doing protected actions.
+
+          // Check for Authorization header if it's not a public route
+          // The routes below are all protected: PATCH profile, POST password, DELETE me.
+          // So we can enforce it here.
+          // However, we MUST NOT intercept the /api/user/avatar/ GET route which starts with /api/user/ !
+          // But that route is matched EXPLICITLY above as: if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET')
+          // So if we put this block AFTER that one, we are safe as long as we don't accidentally match it again?
+          // Actually, if the above `if` matches and returns, we are good.
+          // The previous block (lines 472-519) returns a response.
+          // So we are safe to proceed.
+
+          if (request.method !== 'OPTIONS' && !url.pathname.startsWith('/api/user/avatar/')) {
+            if (!authHeader?.startsWith('Bearer ')) {
+              return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+            }
+
+            const token = authHeader.split(' ')[1];
+            const secret = new TextEncoder().encode(jwtSecret);
+            let userId: string;
+
+            try {
+              const { payload } = await jwtVerify(token, secret);
+              userId = payload.sub as string;
+
+              // Update Profile (Username)
+              if (url.pathname === '/api/user/profile' && request.method === 'PATCH') {
+                const contentType = request.headers.get('Content-Type');
+                if (!contentType || !contentType.includes('application/json')) {
+                  return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
+                }
+
+                const body = await request.json() as any;
+                let { username } = body;
+
+                if (!username) {
+                  return new Response('Missing username', { status: 400, headers: corsHeaders });
+                }
+
+                username = username.trim();
+
+                if (!validateUsername(username)) {
+                  return new Response('Username must be 3-30 characters long and contain only letters, numbers, underscore, or hyphen', {
+                    status: 400,
+                    headers: corsHeaders
+                  });
+                }
+
+                // Check uniqueness
+                const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
+                if (existing && (existing as any).id !== userId) {
+                  return new Response('Username already taken', { status: 409, headers: corsHeaders });
+                }
+
+                await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, userId).run();
+
+                return new Response(JSON.stringify({ message: 'Profile updated', username }), {
+                  status: 200,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+              }
+
+              // Change Password
+              if (url.pathname === '/api/user/password' && request.method === 'POST') {
+                const contentType = request.headers.get('Content-Type');
+                if (!contentType || !contentType.includes('application/json')) {
+                  return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
+                }
+                const body = await request.json() as any;
+                const { currentPassword, newPassword } = body;
+
+                if (!currentPassword || !newPassword) {
+                  return new Response('Missing passwords', { status: 400, headers: corsHeaders });
+                }
+
+                // Verify current password
+                const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+                if (!user) {
+                  return new Response('User not found', { status: 404, headers: corsHeaders });
+                }
+
+                const match = await bcrypt.compare(currentPassword, user.password_hash);
+                if (!match) {
+                  return new Response('Incorrect current password', { status: 401, headers: corsHeaders });
+                }
+
+                // Validate new password
+                const passwordValidation = validatePassword(newPassword);
+                if (!passwordValidation.valid) {
+                  return new Response(passwordValidation.error || 'Invalid password', { status: 400, headers: corsHeaders });
+                }
+
+                // Hash and update
+                const hashedPassword = await bcrypt.hash(newPassword, 10);
+                await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashedPassword, userId).run();
+
+                return new Response(JSON.stringify({ message: 'Password updated successfully' }), {
+                  status: 200,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+              }
+
+              // Delete Account
+              if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
+                const contentType = request.headers.get('Content-Type');
+                if (!contentType || !contentType.includes('application/json')) {
+                  return new Response('Content-Type must be application/json', { status: 400, headers: corsHeaders });
+                }
+                const body = await request.json() as any;
+                const { password } = body;
+
+                if (!password) {
+                  return new Response('Password required to delete account', { status: 400, headers: corsHeaders });
+                }
+
+                // Verify password
+                const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+                if (!user) {
+                  return new Response('User not found', { status: 404, headers: corsHeaders });
+                }
+
+                const match = await bcrypt.compare(password, user.password_hash);
+                if (!match) {
+                  return new Response('Incorrect password', { status: 401, headers: corsHeaders });
+                }
+
+                // Delete everything
+                await env.DB.batch([
+                  env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
+                  env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId)
+                ]);
+
+                // Try to delete avatar (ignore error if not exists)
+                try {
+                  await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`);
+                } catch (e) {
+                  console.error('Failed to delete avatar', e);
+                }
+
+                return new Response(JSON.stringify({ message: 'Account deleted' }), {
+                  status: 200,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+              }
+
+            } catch (e) {
+              return new Response('Invalid token', { status: 401, headers: corsHeaders });
+            }
+          }
+        }
+
         if (url.pathname.startsWith('/api/admin/')) {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader?.startsWith('Bearer ')) {

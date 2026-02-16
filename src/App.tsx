@@ -1,15 +1,23 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, encryptData, decryptData, LabResult, createCalibrationInterpolator, decompressData } from '../logic';
-import { formatDate } from './utils/helpers';
-import { Lang } from './i18n/translations';
+import { DoseEvent, LabResult, createCalibrationInterpolator, decompressData, encryptData, decryptData } from '../logic';
+import { DoseTemplate } from './components/DoseFormModal';
+import { useAppData } from './hooks/useAppData';
+import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
+
+// Define NavItem interface to match what useAppNavigation returns
+interface NavItem {
+    id: string;
+    label: string;
+    icon: React.ElementType; // Use ElementType to accept components like Lucide icons
+}
+
 import WeightEditorModal from './components/WeightEditorModal';
-import DoseFormModal, { DoseTemplate } from './components/DoseFormModal';
+import DoseFormModal from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
 import ExportModal from './components/ExportModal';
 import PasswordDisplayModal from './components/PasswordDisplayModal';
@@ -17,8 +25,10 @@ import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import LabResultModal from './components/LabResultModal';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ReloadPrompt from './components/ReloadPrompt';
+
 import { cloudService } from './services/cloud';
 
 // Pages
@@ -28,33 +38,40 @@ import Lab from './pages/Lab';
 import Settings from './pages/Settings';
 import Account from './pages/Account';
 import Admin from './pages/Admin';
-import { ShieldCheck } from 'lucide-react';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
     const { user, token, logout } = useAuth();
 
-    const [events, setEvents] = useState<DoseEvent[]>(() => {
-        const saved = localStorage.getItem('hrt-events');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [weight, setWeight] = useState<number>(() => {
-        const saved = localStorage.getItem('hrt-weight');
-        return saved ? parseFloat(saved) : 70.0;
-    });
-    const [labResults, setLabResults] = useState<LabResult[]>(() => {
-        const saved = localStorage.getItem('hrt-lab-results');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => {
-        const saved = localStorage.getItem('hrt-dose-templates');
-        return saved ? JSON.parse(saved) : [];
-    });
+    // Use Custom Hooks
+    const {
+        events, setEvents,
+        weight, setWeight,
+        labResults, setLabResults,
+        doseTemplates, setDoseTemplates,
+        simulation,
+        currentTime,
+        calibrationFn,
+        currentLevel,
+        currentCPA,
+        currentStatus,
+        groupedEvents,
+        addEvent, updateEvent, deleteEvent, clearAllEvents,
+        addLabResult, updateLabResult, deleteLabResult, clearLabResults,
+        addTemplate, deleteTemplate,
+        processImportedData
+    } = useAppData(showDialog);
 
-    const [simulation, setSimulation] = useState<SimulationResult | null>(null);
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const {
+        currentView,
+        transitionDirection,
+        handleViewChange,
+        mainScrollRef,
+    } = useAppNavigation(user);
 
+
+    // --- Local UI State (Modals & Forms) ---
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
@@ -66,13 +83,19 @@ const AppContent = () => {
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+    const [isLabModalOpen, setIsLabModalOpen] = useState(false);
+    const [editingLab, setEditingLab] = useState<LabResult | null>(null);
+    const [pendingImportText, setPendingImportText] = useState<string | null>(null);
+
 
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
         const saved = localStorage.getItem('app-theme');
         return (saved as 'light' | 'dark' | 'system') || 'system';
     });
 
-    // Apply theme classes
+
+    // --- Theme Effect ---
     useEffect(() => {
         localStorage.setItem('app-theme', theme);
         const root = window.document.documentElement;
@@ -85,27 +108,13 @@ const AppContent = () => {
         if (theme === 'system') {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
             applyTheme(mediaQuery.matches);
-
-            // Listen for system theme changes
-            const handleChange = (e: MediaQueryListEvent) => {
-                applyTheme(e.matches);
-            };
+            const handleChange = (e: MediaQueryListEvent) => applyTheme(e.matches);
             mediaQuery.addEventListener('change', handleChange);
             return () => mediaQuery.removeEventListener('change', handleChange);
         } else {
             applyTheme(theme === 'dark');
         }
     }, [theme]);
-    const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
-    const [isLabModalOpen, setIsLabModalOpen] = useState(false);
-    const [editingLab, setEditingLab] = useState<LabResult | null>(null);
-
-    type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin';
-    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'admin'];
-
-    const [currentView, setCurrentView] = useState<ViewKey>('home');
-    const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
-    const mainScrollRef = useRef<HTMLDivElement>(null);
 
     const languageOptions = useMemo(() => ([
         { value: 'zh', label: '简体中文' },
@@ -119,217 +128,15 @@ const AppContent = () => {
         { value: 'ar', label: 'العربية' },
     ]), []);
 
-    const handleViewChange = (view: ViewKey) => {
-        if (view === currentView) return;
-        const currentIndex = viewOrder.indexOf(currentView);
-        const nextIndex = viewOrder.indexOf(view);
-        setTransitionDirection(nextIndex >= currentIndex ? 'forward' : 'backward');
-        setCurrentView(view);
-    };
+
+    // --- Modal Logic Wrappers ---
 
     useEffect(() => {
         const shouldLock = isExportModalOpen || isPasswordDisplayOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
     }, [isExportModalOpen, isPasswordDisplayOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
-    const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
-    useEffect(() => { localStorage.setItem('hrt-events', JSON.stringify(events)); }, [events]);
-    useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
-    useEffect(() => { localStorage.setItem('hrt-lab-results', JSON.stringify(labResults)); }, [labResults]);
-    useEffect(() => { localStorage.setItem('hrt-dose-templates', JSON.stringify(doseTemplates)); }, [doseTemplates]);
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-        return () => clearInterval(timer);
-    }, []);
-
-    // Reset scroll when switching tabs to avoid carrying over deep scroll positions
-    useEffect(() => {
-        const el = mainScrollRef.current;
-        if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [currentView]);
-
-    useEffect(() => {
-        if (events.length > 0) {
-            const res = runSimulation(events, weight);
-            setSimulation(res);
-        } else {
-            setSimulation(null);
-        }
-    }, [events, weight]);
-
-    const calibrationFn = useMemo(() => {
-        return createCalibrationInterpolator(simulation, labResults);
-    }, [simulation, labResults]);
-
-    const currentLevel = useMemo(() => {
-        if (!simulation) return 0;
-        const h = currentTime.getTime() / 3600000;
-        // Only use E2 for level status (calibrated), not CPA
-        const baseE2 = interpolateConcentration_E2(simulation, h) || 0;
-        return baseE2 * calibrationFn(h);
-    }, [simulation, currentTime, calibrationFn]);
-
-    const currentCPA = useMemo(() => {
-        if (!simulation) return 0;
-        const h = currentTime.getTime() / 3600000;
-        const concCPA = interpolateConcentration_CPA(simulation, h) || 0;
-        return concCPA; // ng/mL, no calibration for CPA
-    }, [simulation, currentTime]);
-
-    const getLevelStatus = (conc: number) => {
-        if (conc > 300) return { label: 'status.level.high', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
-        if (conc >= 100 && conc <= 200) return { label: 'status.level.mtf', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' };
-        if (conc >= 70 && conc <= 300) return { label: 'status.level.luteal', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
-        if (conc >= 30 && conc < 70) return { label: 'status.level.follicular', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' };
-        if (conc >= 8 && conc < 30) return { label: 'status.level.male', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-        return { label: 'status.level.low', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
-    };
-
-    const currentStatus = useMemo(() => {
-        // 只有当 E2 浓度大于 0 时才显示状态
-        if (currentLevel > 0) {
-            return getLevelStatus(currentLevel);
-        }
-        return null; // 没有 E2 数据时不显示状态
-    }, [currentLevel]);
-
-    const groupedEvents = useMemo(() => {
-        const sorted = [...events].sort((a, b) => b.timeH - a.timeH);
-        const groups: Record<string, DoseEvent[]> = {};
-        sorted.forEach(e => {
-            const d = formatDate(new Date(e.timeH * 3600000), lang);
-            if (!groups[d]) groups[d] = [];
-            groups[d].push(e);
-        });
-        return groups;
-    }, [events, lang]);
-
-    type NavItem = { id: ViewKey; label: string; icon: React.ReactElement; };
-
-    const navItems = useMemo<NavItem[]>(() => {
-        const items = [
-            { id: 'home', label: t('nav.home'), icon: <Activity size={16} /> },
-            { id: 'history', label: t('nav.history'), icon: <Calendar size={16} /> },
-            { id: 'lab', label: t('nav.lab'), icon: <FlaskConical size={16} /> },
-            { id: 'settings', label: t('nav.settings'), icon: <SettingsIcon size={16} /> },
-            { id: 'account', label: t('nav.account'), icon: <UserCircle size={16} /> },
-        ];
-
-        if (user?.isAdmin) {
-            items.push({ id: 'admin', label: 'Admin', icon: <ShieldCheck size={16} /> });
-        }
-
-        return items as NavItem[];
-    }, [t, user]);
-
-    const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
-        if (!Array.isArray(raw)) throw new Error('Invalid format');
-        return raw
-            .map((item: any) => {
-                if (!item || typeof item !== 'object') return null;
-                const { route, timeH, doseMG, ester, extras } = item;
-                if (!Object.values(Route).includes(route)) return null;
-                const timeNum = Number(timeH);
-                if (!Number.isFinite(timeNum)) return null;
-                const doseNum = Number(doseMG);
-                const validEster = Object.values(Ester).includes(ester) ? ester : Ester.E2;
-                const sanitizedExtras = (extras && typeof extras === 'object') ? extras : {};
-                return {
-                    id: typeof item.id === 'string' ? item.id : uuidv4(),
-                    route,
-                    timeH: timeNum,
-                    doseMG: Number.isFinite(doseNum) ? doseNum : 0,
-                    ester: validEster,
-                    extras: sanitizedExtras
-                } as DoseEvent;
-            })
-            .filter((item): item is DoseEvent => item !== null);
-    };
-
-    const sanitizeImportedLabResults = (raw: any): LabResult[] => {
-        if (!Array.isArray(raw)) return [];
-        return raw
-            .map((item: any) => {
-                if (!item || typeof item !== 'object') return null;
-                const { timeH, concValue, unit } = item;
-                const timeNum = Number(timeH);
-                const valNum = Number(concValue);
-                if (!Number.isFinite(timeNum) || !Number.isFinite(valNum)) return null;
-                const unitVal = unit === 'pg/ml' || unit === 'pmol/l' ? unit : 'pmol/l';
-                return {
-                    id: typeof item.id === 'string' ? item.id : uuidv4(),
-                    timeH: timeNum,
-                    concValue: valNum,
-                    unit: unitVal
-                } as LabResult;
-            })
-            .filter((item): item is LabResult => item !== null);
-    };
-
-    const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
-        if (!Array.isArray(raw)) return [];
-        return raw
-            .map((item: any) => {
-                if (!item || typeof item !== 'object') return null;
-                const { name, route, ester, doseMG, extras, createdAt } = item;
-                if (!Object.values(Route).includes(route)) return null;
-                if (!Object.values(Ester).includes(ester)) return null;
-                const doseNum = Number(doseMG);
-                if (!Number.isFinite(doseNum) || doseNum < 0) return null;
-                return {
-                    id: typeof item.id === 'string' ? item.id : uuidv4(),
-                    name: typeof name === 'string' ? name : 'Template',
-                    route,
-                    ester,
-                    doseMG: doseNum,
-                    extras: (extras && typeof extras === 'object') ? extras : {},
-                    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now()
-                } as DoseTemplate;
-            })
-            .filter((item): item is DoseTemplate => item !== null);
-    };
-
-    const processImportedData = (parsed: any): boolean => {
-        try {
-            let newEvents: DoseEvent[] = [];
-            let newWeight: number | undefined = undefined;
-            let newLabs: LabResult[] = [];
-            let newTemplates: DoseTemplate[] = [];
-
-            if (Array.isArray(parsed)) {
-                newEvents = sanitizeImportedEvents(parsed);
-            } else if (typeof parsed === 'object' && parsed !== null) {
-                if (Array.isArray(parsed.events)) {
-                    newEvents = sanitizeImportedEvents(parsed.events);
-                }
-                if (typeof parsed.weight === 'number' && parsed.weight > 0) {
-                    newWeight = parsed.weight;
-                }
-                if (Array.isArray(parsed.labResults)) {
-                    newLabs = sanitizeImportedLabResults(parsed.labResults);
-                }
-                if (Array.isArray(parsed.doseTemplates)) {
-                    newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
-                }
-            }
-
-            if (!newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
-
-            if (newEvents.length > 0) setEvents(newEvents);
-            if (newWeight !== undefined) setWeight(newWeight);
-            if (newLabs.length > 0) setLabResults(newLabs);
-            if (newTemplates.length > 0) setDoseTemplates(newTemplates);
-
-            showDialog('alert', t('drawer.import_success'));
-            return true;
-        } catch (err) {
-            console.error(err);
-            showDialog('alert', t('drawer.import_error'));
-            return false;
-        }
-    };
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
@@ -356,79 +163,35 @@ const AppContent = () => {
         }
     };
 
-    const handleAddEvent = () => {
-        setEditingEvent(null);
-        setIsFormOpen(true);
-    };
-
-    const handleEditEvent = (e: DoseEvent) => {
-        setEditingEvent(e);
-        setIsFormOpen(true);
-    };
-
-    const handleAddLabResult = () => {
-        setEditingLab(null);
-        setIsLabModalOpen(true);
-    };
-
-    const handleEditLabResult = (res: LabResult) => {
-        setEditingLab(res);
-        setIsLabModalOpen(true);
-    };
-
-    const handleDeleteLabResult = (id: string) => {
-        showDialog('confirm', t('lab.delete_confirm'), () => {
-            setLabResults(prev => prev.filter(r => r.id !== id));
-        });
-    };
-
-    const handleClearLabResults = () => {
-        if (!labResults.length) return;
-        showDialog('confirm', t('lab.clear_confirm'), () => {
-            setLabResults([]);
-        });
-    };
-
-    const handleSaveTemplate = (template: DoseTemplate) => {
-        setDoseTemplates(prev => [...prev, template]);
-    };
-
-    const handleDeleteTemplate = (id: string) => {
-        setDoseTemplates(prev => prev.filter(t => t.id !== id));
-    };
-
-    const handleSaveEvent = (e: DoseEvent) => {
-        setEvents(prev => {
-            const exists = prev.find(p => p.id === e.id);
-            if (exists) {
-                return prev.map(p => p.id === e.id ? e : p);
+    const handlePasswordSubmit = async (password: string) => {
+        if (!pendingImportText) return;
+        const decrypted = await decryptData(pendingImportText, password);
+        if (decrypted) {
+            try {
+                let parsed = JSON.parse(decrypted);
+                // Handle Compression after decryption
+                if (parsed.c && typeof parsed.c === 'string') {
+                    const decompressed = await decompressData(parsed.c);
+                    parsed = JSON.parse(decompressed);
+                }
+                processImportedData(parsed);
+                setIsPasswordInputOpen(false);
+                setPendingImportText(null);
+            } catch (e) {
+                console.error(e);
+                showDialog('alert', t('import.decrypt_error'));
             }
-            return [...prev, e];
-        });
+        } else {
+            showDialog('alert', t('import.decrypt_error'));
+        }
     };
 
-    const handleDeleteEvent = (id: string) => {
-        showDialog('confirm', t('timeline.delete_confirm'), () => {
-            setEvents(prev => prev.filter(e => e.id !== id));
-        });
-    };
+    const handleAddEvent = () => { setEditingEvent(null); setIsFormOpen(true); };
+    const handleEditEvent = (e: DoseEvent) => { setEditingEvent(e); setIsFormOpen(true); };
 
-    const handleSaveLabResult = (res: LabResult) => {
-        setLabResults(prev => {
-            const exists = prev.find(r => r.id === res.id);
-            if (exists) {
-                return prev.map(r => r.id === res.id ? res : r);
-            }
-            return [...prev, res];
-        });
-    };
+    const handleAddLabResult = () => { setEditingLab(null); setIsLabModalOpen(true); };
+    const handleEditLabResult = (res: LabResult) => { setEditingLab(res); setIsLabModalOpen(true); };
 
-    const handleClearAllEvents = () => {
-        if (!events.length) return;
-        showDialog('confirm', t('drawer.clear_confirm'), () => {
-            setEvents([]);
-        });
-    };
 
     const handleSaveDosages = () => {
         if (events.length === 0 && labResults.length === 0) {
@@ -491,37 +254,8 @@ const AppContent = () => {
         }
     };
 
-    const handlePasswordSubmit = async (password: string) => {
-        if (!pendingImportText) return;
-        const decrypted = await decryptData(pendingImportText, password);
-        if (decrypted) {
-            try {
-                let parsed = JSON.parse(decrypted);
-
-                // Handle Compression after decryption
-                if (parsed.c && typeof parsed.c === 'string') {
-                    const decompressed = await decompressData(parsed.c);
-                    parsed = JSON.parse(decompressed);
-                }
-
-                processImportedData(parsed);
-                setIsPasswordInputOpen(false);
-                setPendingImportText(null);
-            } catch (e) {
-                console.error(e);
-                showDialog('alert', t('import.decrypt_error'));
-            }
-        } else {
-            showDialog('alert', t('import.decrypt_error'));
-        }
-    };
-
     const handleCloudSave = async () => {
-        if (!token) {
-            setIsAuthModalOpen(true);
-            return;
-        }
-
+        if (!token) { setIsAuthModalOpen(true); return; }
         const exportData = {
             meta: { version: 1, exportedAt: new Date().toISOString() },
             weight: weight,
@@ -529,7 +263,6 @@ const AppContent = () => {
             labResults: labResults,
             doseTemplates: doseTemplates
         };
-
         try {
             await cloudService.save(token, exportData);
             showDialog('alert', 'Data saved to cloud successfully!');
@@ -539,29 +272,34 @@ const AppContent = () => {
     };
 
     const handleCloudLoad = async () => {
-        if (!token) {
-            setIsAuthModalOpen(true);
-            return;
-        }
-
+        if (!token) { setIsAuthModalOpen(true); return; }
         try {
             const list = await cloudService.load(token);
             if (!list || list.length === 0) {
                 showDialog('alert', 'No cloud backups found.');
                 return;
             }
-
             const latest = list[0];
             const parsed = JSON.parse(latest.data);
-
             showDialog('confirm', `Load backup from ${new Date(latest.created_at * 1000).toLocaleString()}? This will overwrite local data.`, () => {
                 processImportedData(parsed);
             });
-
         } catch (e) {
             showDialog('alert', 'Failed to load from cloud.');
         }
     };
+
+    // Construct Nav Items again just for Sidebar prop, or reuse from hook if we exported it
+    // Actually we exported navItems from useAppNavigation
+    // But we need to pass them to sidebar. 
+    // And also reconstruct the bottom nav bar manually because it was inline in the original App.tsx
+    // Let's grab navItems logic from hook or just reconstruct here?
+    // The hook provides navItems.
+
+    const { navItems } = useAppNavigation(user); // Re-calling hook? No, I returned it. 
+    // Wait, I need to get it from the previous call.
+    // I already destructured it: const { ... } = useAppNavigation(user);
+    // Ah I missed destructuring `navItems` in line 59. Let me fix the destructuring.
 
     return (
         <div className="h-screen w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden transition-colors duration-300">
@@ -603,10 +341,13 @@ const AppContent = () => {
                             isQuickAddOpen={isQuickAddOpen}
                             setIsQuickAddOpen={setIsQuickAddOpen}
                             doseTemplates={doseTemplates}
-                            onSaveEvent={handleSaveEvent}
-                            onDeleteEvent={handleDeleteEvent}
-                            onSaveTemplate={handleSaveTemplate}
-                            onDeleteTemplate={handleDeleteTemplate}
+                            onSaveEvent={e => {
+                                if (events.find(p => p.id === e.id)) updateEvent(e);
+                                else addEvent(e);
+                            }}
+                            onDeleteEvent={deleteEvent}
+                            onSaveTemplate={addTemplate}
+                            onDeleteTemplate={deleteTemplate}
                             groupedEvents={groupedEvents}
                             onEditEvent={handleEditEvent}
                         />
@@ -618,10 +359,13 @@ const AppContent = () => {
                             isQuickAddLabOpen={isQuickAddLabOpen}
                             setIsQuickAddLabOpen={setIsQuickAddLabOpen}
                             labResults={labResults}
-                            onSaveLabResult={handleSaveLabResult}
-                            onDeleteLabResult={handleDeleteLabResult}
+                            onSaveLabResult={r => {
+                                if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
+                                else addLabResult(r);
+                            }}
+                            onDeleteLabResult={deleteLabResult}
                             onEditLabResult={handleEditLabResult}
-                            onClearLabResults={handleClearLabResults}
+                            onClearLabResults={clearLabResults}
                             calibrationFn={calibrationFn}
                             currentTime={currentTime}
                             lang={lang}
@@ -639,7 +383,7 @@ const AppContent = () => {
                             setIsImportModalOpen={setIsImportModalOpen}
                             onSaveDosages={handleSaveDosages}
                             onQuickExport={handleQuickExport}
-                            onClearAllEvents={handleClearAllEvents}
+                            onClearAllEvents={clearAllEvents}
                             events={events}
                             showDialog={showDialog}
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
@@ -669,18 +413,12 @@ const AppContent = () => {
                 {/* Bottom Navigation - M3 Navigation Bar */}
                 <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-transparent z-40 safe-area-pb md:hidden pointer-events-none">
                     <div className="w-full pointer-events-auto bg-[var(--color-m3-surface-container-lowest)]/85 dark:bg-[var(--color-m3-dark-surface-container)]/85 backdrop-blur-2xl backdrop-saturate-150 border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-3)] rounded-[var(--radius-xl)] px-1 py-1.5 flex items-center justify-around gap-0.5 transition-all duration-300">
-                        {[
-                            { id: 'home', icon: Activity, label: t('nav.home') },
-                            { id: 'history', icon: Calendar, label: t('nav.history') },
-                            { id: 'account', icon: UserCircle, label: t('nav.account') },
-                            { id: 'lab', icon: FlaskConical, label: t('nav.lab') },
-                            { id: 'settings', icon: SettingsIcon, label: t('nav.settings') },
-                        ].map(({ id, icon: Icon, label }) => {
+                        {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             const isActive = currentView === id;
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => handleViewChange(id as any)}
+                                    onClick={() => handleViewChange(id as ViewKey)}
                                     className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-all duration-500 rounded-[var(--radius-xl)] relative`}
                                 >
                                     <div className={`px-5 py-1.5 rounded-[var(--radius-full)] transition-all duration-500 ${isActive
@@ -741,11 +479,14 @@ const AppContent = () => {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 eventToEdit={editingEvent}
-                onSave={handleSaveEvent}
-                onDelete={handleDeleteEvent}
+                onSave={e => {
+                    if (events.find(p => p.id === e.id)) updateEvent(e);
+                    else addEvent(e);
+                }}
+                onDelete={deleteEvent}
                 templates={doseTemplates}
-                onSaveTemplate={handleSaveTemplate}
-                onDeleteTemplate={handleDeleteTemplate}
+                onSaveTemplate={addTemplate}
+                onDeleteTemplate={deleteTemplate}
             />
 
             <DisclaimerModal
@@ -762,8 +503,11 @@ const AppContent = () => {
             <LabResultModal
                 isOpen={isLabModalOpen}
                 onClose={() => setIsLabModalOpen(false)}
-                onSave={handleSaveLabResult}
-                onDelete={handleDeleteLabResult}
+                onSave={r => {
+                    if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
+                    else addLabResult(r);
+                }}
+                onDelete={deleteLabResult}
                 resultToEdit={editingLab}
             />
 

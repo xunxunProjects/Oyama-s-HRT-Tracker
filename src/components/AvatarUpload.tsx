@@ -95,9 +95,11 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <div
-                className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer bg-gray-200 dark:border-zinc-700"
+            <button
+                type="button"
+                className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer bg-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Change avatar"
             >
                 {/* Always try to render image, hide if error */}
                 <img
@@ -118,7 +120,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
                         Change
                     </span>
                 </div>
-            </div>
+            </button>
 
             <input
                 type="file"
