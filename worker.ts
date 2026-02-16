@@ -416,7 +416,6 @@ export default {
 
               const body = await request.json() as any;
               const { data, slot = 'default' } = body;
-              const id = crypto.randomUUID();
 
               // Verify slot format (optional, but good practice)
               if (typeof slot !== 'string' || slot.length > 50) {
@@ -424,16 +423,23 @@ export default {
               }
 
               try {
-                await env.DB.prepare('INSERT OR REPLACE INTO content (id, user_id, data, slot, created_at) VALUES (?, ?, ?, ?, unixepoch())').bind(id, userId, JSON.stringify(data), slot).run();
+                // Use INSERT ... ON CONFLICT to properly handle upsert
+                const id = crypto.randomUUID();
+                await env.DB.prepare(
+                  `INSERT INTO content (id, user_id, data, slot, created_at) 
+                   VALUES (?, ?, ?, ?, unixepoch())
+                   ON CONFLICT(user_id, slot) 
+                   DO UPDATE SET data = excluded.data, created_at = excluded.created_at`
+                ).bind(id, userId, JSON.stringify(data), slot).run();
+
+                return new Response(JSON.stringify({ message: 'Content saved', id }), {
+                  status: 201,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
               } catch (dbErr: any) {
                 console.error('[DB Insert Error]', dbErr);
                 return new Response(`Database Error: ${dbErr.message}`, { status: 500, headers: corsHeaders });
               }
-
-              return new Response(JSON.stringify({ message: 'Content saved', id }), {
-                status: 201,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
             }
 
           } catch (e: any) {
