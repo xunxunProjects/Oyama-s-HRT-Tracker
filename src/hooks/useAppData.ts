@@ -199,7 +199,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         }).filter((item): item is DoseTemplate => item !== null);
     };
 
-    const processImportedData = (parsed: any): boolean => {
+    const processImportedData = (parsed: any, options: { merge?: boolean } = {}): boolean => {
         try {
             let newEvents: DoseEvent[] = [];
             let newWeight: number | undefined = undefined;
@@ -225,12 +225,35 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
             if (!newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
 
-            if (newEvents.length > 0) setEvents(newEvents);
-            if (newWeight !== undefined) setWeight(newWeight);
-            if (newLabs.length > 0) setLabResults(newLabs);
-            if (newTemplates.length > 0) setDoseTemplates(newTemplates);
+            if (options.merge) {
+                // Merge Logic: Append new items unique by ID. Keep local singletons (weight) unless local is empty/default? 
+                // Creating a map of existing IDs for fast lookup
+                const existingEventIds = new Set(events.map(e => e.id));
+                const uniqueNewEvents = newEvents.filter(e => !existingEventIds.has(e.id));
 
-            showDialog('alert', t('drawer.import_success'));
+                const existingLabIds = new Set(labResults.map(r => r.id));
+                const uniqueNewLabs = newLabs.filter(r => !existingLabIds.has(r.id));
+
+                const existingTemplateIds = new Set(doseTemplates.map(t => t.id));
+                const uniqueNewTemplates = newTemplates.filter(t => !existingTemplateIds.has(t.id));
+
+                if (uniqueNewEvents.length > 0) setEvents(prev => [...prev, ...uniqueNewEvents]);
+                if (uniqueNewLabs.length > 0) setLabResults(prev => [...prev, ...uniqueNewLabs]);
+                if (uniqueNewTemplates.length > 0) setDoseTemplates(prev => [...prev, ...uniqueNewTemplates]);
+
+                // For weight, we generally preserve local during merge unless explicitly handled otherwise. 
+                // We'll skip updating weight in merge mode.
+
+                showDialog('alert', t('drawer.import_success') + ` (Merged: ${uniqueNewEvents.length} events, ${uniqueNewLabs.length} labs)`);
+            } else {
+                // Overwrite Logic
+                if (newEvents.length > 0) setEvents(newEvents);
+                if (newWeight !== undefined) setWeight(newWeight);
+                if (newLabs.length > 0) setLabResults(newLabs);
+                if (newTemplates.length > 0) setDoseTemplates(newTemplates);
+                showDialog('alert', t('drawer.import_success'));
+            }
+
             return true;
         } catch (err) {
             console.error(err);

@@ -28,8 +28,9 @@ import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReloadPrompt from './components/ReloadPrompt';
+import CloudSlotModal from './components/CloudSlotModal';
 
-import { cloudService } from './services/cloud';
+import { cloudService, CloudBackup } from './services/cloud';
 
 // Pages
 import Home from './pages/Home';
@@ -87,6 +88,8 @@ const AppContent = () => {
     const [isLabModalOpen, setIsLabModalOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
+    const [isCloudSlotModalOpen, setIsCloudSlotModalOpen] = useState(false);
+    const [cloudSlotMode, setCloudSlotMode] = useState<'save' | 'load'>('save');
 
 
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
@@ -254,8 +257,20 @@ const AppContent = () => {
         }
     };
 
-    const handleCloudSave = async () => {
+    const handleCloudSave = () => {
         if (!token) { setIsAuthModalOpen(true); return; }
+        setCloudSlotMode('save');
+        setIsCloudSlotModalOpen(true);
+    };
+
+    const handleCloudLoad = () => {
+        if (!token) { setIsAuthModalOpen(true); return; }
+        setCloudSlotMode('load');
+        setIsCloudSlotModalOpen(true);
+    };
+
+    const onCloudSaveSlot = async (slot: string) => {
+        if (!token) return;
         const exportData = {
             meta: { version: 1, exportedAt: new Date().toISOString() },
             weight: weight,
@@ -264,26 +279,22 @@ const AppContent = () => {
             doseTemplates: doseTemplates
         };
         try {
-            await cloudService.save(token, exportData);
+            await cloudService.save(token, exportData, slot);
+            showDialog('alert', t('drawer.save_hint')); // Reusing hint or add success msg? hint says "Download a JSON backup."... using generic alert for now.
+            // Actually let's use a nice message or key.
+            // t('drawer.save_success') doesn't exist.
+            // I'll stick to a hardcoded success message for now or add a key later if needed, 
+            // but 'Data saved to cloud successfully!' was used before.
             showDialog('alert', 'Data saved to cloud successfully!');
         } catch (e) {
             showDialog('alert', 'Failed to save to cloud.');
         }
     };
 
-    const handleCloudLoad = async () => {
-        if (!token) { setIsAuthModalOpen(true); return; }
+    const onCloudLoadSlot = async (backup: CloudBackup, merge: boolean) => {
         try {
-            const list = await cloudService.load(token);
-            if (!list || list.length === 0) {
-                showDialog('alert', 'No cloud backups found.');
-                return;
-            }
-            const latest = list[0];
-            const parsed = JSON.parse(latest.data);
-            showDialog('confirm', `Load backup from ${new Date(latest.created_at * 1000).toLocaleString()}? This will overwrite local data.`, () => {
-                processImportedData(parsed);
-            });
+            const parsed = JSON.parse(backup.data);
+            processImportedData(parsed, { merge });
         } catch (e) {
             showDialog('alert', 'Failed to load from cloud.');
         }
@@ -514,6 +525,14 @@ const AppContent = () => {
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
+            />
+
+            <CloudSlotModal
+                isOpen={isCloudSlotModalOpen}
+                onClose={() => setIsCloudSlotModalOpen(false)}
+                mode={cloudSlotMode}
+                onSave={onCloudSaveSlot}
+                onLoad={onCloudLoadSlot}
             />
         </div >
     );

@@ -387,7 +387,20 @@ export default {
             const userId = payload.sub as string;
 
             if (request.method === 'GET') {
-              const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
+              const url = new URL(request.url);
+              const slot = url.searchParams.get('slot');
+
+              let query = 'SELECT * FROM content WHERE user_id = ?';
+              const params: any[] = [userId];
+
+              if (slot) {
+                query += ' AND slot = ?';
+                params.push(slot);
+              }
+
+              query += ' ORDER BY created_at DESC';
+
+              const content = await env.DB.prepare(query).bind(...params).all();
               return new Response(JSON.stringify(content.results), {
                 status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -402,17 +415,29 @@ export default {
               }
 
               const body = await request.json() as any;
-              const { data } = body;
+              const { data, slot = 'default' } = body;
               const id = crypto.randomUUID();
-              await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
+
+              // Verify slot format (optional, but good practice)
+              if (typeof slot !== 'string' || slot.length > 50) {
+                return new Response('Invalid slot name', { status: 400, headers: corsHeaders });
+              }
+
+              await env.DB.prepare('INSERT INTO content (id, user_id, data, slot) VALUES (?, ?, ?, ?)').bind(id, userId, JSON.stringify(data), slot).run();
               return new Response(JSON.stringify({ message: 'Content saved', id }), {
                 status: 201,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               });
             }
 
-          } catch (e) {
-            return new Response('Invalid token', { status: 401, headers: corsHeaders });
+          } catch (e: any) {
+            console.error('[API Error]', e);
+            if (e.code === 'ERR_JWT_EXPIRED' || e.code === 'ERR_JWS_INVALID') {
+              return new Response('Invalid token', { status: 401, headers: corsHeaders });
+            }
+            // For other errors (like DB issues), return 500 but still mask details in production if needed.
+            // For now, let's return the error message for debugging.
+            return new Response(`Server Error: ${e.message}`, { status: 500, headers: corsHeaders });
           }
         }
 
