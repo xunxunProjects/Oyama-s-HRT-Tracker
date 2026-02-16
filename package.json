@@ -19,6 +19,8 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "jose": "^6.1.3",
+    "jspdf": "^4.1.0",
+    "jspdf-autotable": "^5.0.7",
     "jsqr": "1.4.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.344.0",

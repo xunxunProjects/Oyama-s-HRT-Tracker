@@ -8,6 +8,9 @@ interface AuthContextType {
     register: (username: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
+    updateProfile: (username: string) => Promise<void>;
+    changePassword: (current: string, newPass: string) => Promise<void>;
+    deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -47,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const register = async (username: string, password: string) => {
         // Step 1: Register the user
         await authService.register(username, password);
-        
+
         // Step 2: Automatically login the user after successful registration
         const data = await authService.login(username, password);
         setToken(data.token);
@@ -63,8 +66,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_user');
     };
 
+    const updateProfile = async (username: string) => {
+        if (!token) return;
+        const data = await authService.updateProfile(token, username);
+        const updatedUser = { ...user!, username: data.username };
+        setUser(updatedUser);
+        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    };
+
+    const changePassword = async (current: string, newPass: string) => {
+        if (!token) return;
+        await authService.changePassword(token, current, newPass);
+    };
+
+    const deleteAccount = async (password: string) => {
+        if (!token) return;
+        await authService.deleteAccount(token, password);
+        logout();
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, updateProfile, changePassword, deleteAccount }}>
             {children}
         </AuthContext.Provider>
     );
