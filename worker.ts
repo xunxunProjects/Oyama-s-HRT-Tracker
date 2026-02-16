@@ -424,23 +424,18 @@ export default {
 
               try {
                 // Use INSERT ... ON CONFLICT to properly handle upsert
-                const newId = crypto.randomUUID();
-                await env.DB.prepare(
+                // RETURNING clause gets the actual id (new or existing) in a single query
+                const candidateId = crypto.randomUUID();
+                const result = await env.DB.prepare(
                   `INSERT INTO content (id, user_id, data, slot, created_at) 
                    VALUES (?, ?, ?, ?, unixepoch())
                    ON CONFLICT(user_id, slot) 
-                   DO UPDATE SET data = excluded.data, created_at = excluded.created_at`
-                ).bind(newId, userId, JSON.stringify(data), slot).run();
+                   DO UPDATE SET data = excluded.data, created_at = excluded.created_at
+                   RETURNING id`
+                ).bind(candidateId, userId, JSON.stringify(data), slot).first();
 
-                // Query the actual id from the database to return the correct value
-                // This will be the newId for new inserts, or the existing id for updates
-                const result = await env.DB.prepare(
-                  'SELECT id FROM content WHERE user_id = ? AND slot = ?'
-                ).bind(userId, slot).first();
-
-                if (!result) {
-                  // This should never happen if the UPSERT succeeded
-                  throw new Error('Failed to retrieve saved content');
+                if (!result || !result.id) {
+                  throw new Error('Failed to save content');
                 }
 
                 return new Response(JSON.stringify({ 
