@@ -28,3 +28,6 @@ src-tauri/target/release
 # Wrangler
 .wrangler
 .dev.vars
+
+# Test Data
+test_data_*.json
