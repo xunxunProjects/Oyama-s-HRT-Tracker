@@ -28,6 +28,7 @@ import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReloadPrompt from './components/ReloadPrompt';
+import Ripple from './components/Ripple';
 
 import { cloudService } from './services/cloud';
 
@@ -419,9 +420,10 @@ const AppContent = () => {
                                 <button
                                     key={id}
                                     onClick={() => handleViewChange(id as ViewKey)}
-                                    className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-all duration-500 rounded-[var(--radius-xl)] relative`}
+                                    className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all duration-500 rounded-[var(--radius-xl)] relative m3-state-layer overflow-hidden"
                                 >
-                                    <div className={`px-5 py-1.5 rounded-[var(--radius-full)] transition-all duration-500 ${isActive
+                                    <Ripple />
+                                    <div className={`px-5 py-1.5 rounded-[var(--radius-full)] transition-all duration-500 z-10 ${isActive
                                         ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40'
                                         : 'bg-transparent'
                                         }`}>
@@ -434,7 +436,7 @@ const AppContent = () => {
                                                 }`}
                                         />
                                     </div>
-                                    <span className={`text-[10px] font-semibold tracking-tight transition-all duration-300 ${isActive
+                                    <span className={`text-[10px] font-semibold tracking-tight transition-all duration-300 z-10 ${isActive
                                         ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
                                         : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
                                         }`}>

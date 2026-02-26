@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlaskConical, Plus } from 'lucide-react';
 import { LabResult } from '../../logic';
+import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
 
@@ -15,7 +16,7 @@ interface LabProps {
     onClearLabResults: () => void;
     calibrationFn: (timeH: number) => number;
     currentTime: Date;
-    lang: string;
+    lang: Lang;
 }
 
 const Lab: React.FC<LabProps> = ({

@@ -17,6 +17,8 @@ interface SidebarProps {
     t: (key: string) => string;
 }
 
+import Ripple from './Ripple';
+
 const Sidebar: React.FC<SidebarProps> = ({
     navItems,
     currentView,
@@ -35,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Navigation Items */}
-            <div className="flex-1 px-4 space-y-1 overflow-y-auto">
+            <div className="flex-1 px-4 space-y-1 overflow-y-auto overflow-x-hidden">
                 {navItems.map(item => {
                     const isActive = currentView === item.id;
                     const Icon = item.icon;
@@ -43,23 +45,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             key={item.id}
                             onClick={() => onViewChange(item.id)}
-                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[var(--radius-full)] text-sm font-semibold transition-all duration-300 group relative
+                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[var(--radius-full)] text-sm font-semibold transition-all duration-300 group relative m3-state-layer
                                 ${isActive
                                     ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40 text-[var(--color-m3-on-primary-container)] dark:text-teal-300'
-                                    : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'
+                                    : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                 }`}
                         >
-                            <span className={`transition-all duration-300 ${isActive ? 'text-[var(--color-m3-primary)] dark:text-teal-400 scale-110' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] group-hover:text-[var(--color-m3-on-surface)] dark:group-hover:text-[var(--color-m3-dark-on-surface)]'}`}>
+                            <Ripple />
+                            <span className={`transition-all duration-300 z-10 ${isActive ? 'text-[var(--color-m3-primary)] dark:text-teal-400 scale-110' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] group-hover:text-[var(--color-m3-on-surface)] dark:group-hover:text-[var(--color-m3-dark-on-surface)]'}`}>
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                             </span>
-                            <span className="tracking-tight">{item.label}</span>
+                            <span className="tracking-tight z-10">{item.label}</span>
                             {isActive && (
-                                <div className="ml-auto w-2 h-2 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400 animate-m3-spring" />
+                                <div className="ml-auto w-2 h-2 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400 animate-m3-spring z-10" />
                             )}
                         </button>
                     );
                 })}
             </div>
+
 
             {/* Time Widget */}
             <div className="p-5 mt-auto">
