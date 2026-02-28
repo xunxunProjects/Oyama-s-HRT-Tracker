@@ -7,7 +7,7 @@ import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
 import { getRouteIcon, formatDate, formatTime, getEsterIcon } from '../utils/helpers';
 import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
-import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, X, ChevronDown, Check } from 'lucide-react';
+import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import InjectionFields from './dose_form/InjectionFields';
 import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
@@ -37,7 +37,6 @@ const DOSE_GUIDE_CONFIG: Partial<Record<Route, DoseGuideConfig>> = {
     [Route.sublingual]: { unitKey: 'mg_day', thresholds: [1, 2, 4, 6] },
     [Route.patchApply]: { unitKey: 'ug_day', thresholds: [100, 200, 400, 600], requiresRate: true },
     [Route.gel]: { unitKey: 'mg_day', thresholds: [1.5, 3, 6, 9] },
-    [Route.injection]: { unitKey: 'mg_week', thresholds: [1, 2, 4, 6] },
 };
 
 const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
@@ -789,6 +788,72 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             )}
                         </div>
 
+                        {/* Injection-specific guide from mtf.wiki */}
+                        {route === Route.injection && (
+                            <div className="mt-3 space-y-3">
+                                {/* Safety Warning */}
+                                <div className="p-3 rounded-[var(--radius-lg)] border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/15 flex gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                    <div>
+                                        <span className="text-sm font-bold text-amber-800 dark:text-amber-300">{t('inj.guide.title')}</span>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-semibold">{t('inj.guide.safety')}</p>
+                                    </div>
+                                </div>
+
+                                {/* Usage & Dosage */}
+                                <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] space-y-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.route_methods')}</span>
+                                        <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-[var(--radius-full)]">{t('inj.guide.route_warn')}</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.dosage_title')}</p>
+                                        <ul className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1 space-y-0.5 list-disc list-inside">
+                                            <li>{t('inj.guide.dosage_ev')}</li>
+                                            <li>{t('inj.guide.dosage_ec')}</li>
+                                        </ul>
+                                        <a
+                                            href="https://transfemscience.org/misc/injectable-e2-simulator/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-xs text-[var(--color-m3-primary)] dark:text-teal-400 hover:underline mt-1"
+                                        >
+                                            {t('inj.guide.sim_link')}
+                                            <ExternalLink size={12} />
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {/* Precautions */}
+                                <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] space-y-2">
+                                    <p className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.notes_title')}</p>
+                                    <ul className="text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] space-y-1 list-disc list-inside leading-relaxed">
+                                        <li>{t('inj.guide.note_1')}</li>
+                                        <li>{t('inj.guide.note_2')}</li>
+                                        <li className="font-semibold text-red-600 dark:text-red-400">{t('inj.guide.note_3')}</li>
+                                        <li><span className="font-semibold text-amber-700 dark:text-amber-400">{t('inj.guide.note_4')}</span></li>
+                                        <li>{t('inj.guide.note_5')}</li>
+                                        <li>{t('inj.guide.note_6')}</li>
+                                        <li>{t('inj.guide.note_7')}</li>
+                                        <li>{t('inj.guide.note_8')}</li>
+                                        <li>{t('inj.guide.note_9')}</li>
+                                    </ul>
+                                </div>
+
+                                {/* Source */}
+                                <a
+                                    href="https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-primary)] dark:hover:text-teal-400 transition-colors"
+                                >
+                                    {t('inj.guide.source')}
+                                    <ExternalLink size={11} />
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Dose guide for non-injection routes */}
                         {doseGuide && (
                             <div className={`mt-3 p-3 rounded-[var(--radius-lg)] border ${guideContainerClass} flex gap-3 transition-colors duration-300`}>
                                 <Info className="w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0 mt-0.5" />
