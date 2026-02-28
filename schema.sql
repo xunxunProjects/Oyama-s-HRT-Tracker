@@ -14,3 +14,4 @@ CREATE TABLE content (
     created_at INTEGER DEFAULT (unixepoch()),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+CREATE INDEX idx_content_user_id ON content(user_id);

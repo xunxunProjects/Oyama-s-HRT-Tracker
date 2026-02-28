@@ -477,7 +477,7 @@ class PrecomputedEventModel {
 // --- Simulation Engine ---
 
 export function runSimulation(events: DoseEvent[], bodyWeightKG: number): SimulationResult | null {
-    if (events.length === 0) return null;
+    if (events.length === 0 || bodyWeightKG <= 0) return null;
 
     const sortedEvents = [...events].sort((a, b) => a.timeH - b.timeH);
     const precomputed = sortedEvents

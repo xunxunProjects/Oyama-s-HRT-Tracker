@@ -7,7 +7,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush, Line
 } from 'recharts';
 
-const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
+const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => {
     if (active && payload && payload.length) {
         // If it's a lab result point
         if (payload[0].payload.isLabResult) {
@@ -34,15 +34,15 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
         }
 
         const dataPoint = payload[0].payload;
-        const concE2 = dataPoint.concE2 || 0;
-        const concCPA = dataPoint.concCPA || 0; // Already in ng/mL
+        const concE2 = dataPoint.concE2;
+        const concCPA = dataPoint.concCPA; // Already in ng/mL
 
         return (
             <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] backdrop-blur-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-1)]">
                 <p className="text-[10px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5">
                     {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                 </p>
-                {concE2 > 0 && (
+                {concE2 !== undefined && concE2 !== null && (
                     <div className="flex items-baseline gap-1">
                         <span className="text-[9px] font-bold text-pink-400">{t('label.e2')}:</span>
                         <span className="text-sm font-black text-pink-500 dark:text-pink-400 tracking-tight">
@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload, label, t, lang }: any) => {
                         <span className="text-[10px] font-bold text-pink-300 dark:text-pink-600">pg/mL</span>
                     </div>
                 )}
-                {concCPA > 0 && (
+                {concCPA !== undefined && concCPA !== null && (
                     <div className="flex items-baseline gap-1 mt-0.5">
                         <span className="text-[9px] font-bold text-purple-400">{t('label.cpa_chart')}:</span>
                         <span className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-tight">
@@ -106,7 +106,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     }, [labResults]);
 
     const eventPoints = useMemo(() => {
-        if (!sim || events.length === 0) return [];
+        if (!sim || events.length === 0) return { e2Points: [], cpaEvents: [] };
 
         // Split events by ester type
         const e2Events = events.filter(e => e.ester !== 'CPA');
@@ -134,7 +134,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     }, [sim, events, calibrationFn]);
 
     const cpaEventPoints = useMemo(() => {
-        if (!sim || eventPoints.cpaEvents.length === 0) return [];
+        if (!sim || !eventPoints?.cpaEvents || eventPoints.cpaEvents.length === 0) return [];
 
         // Map CPA events to data points
         // Use interpolation to get the exact concentration at the event time
@@ -152,7 +152,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                 isCPAEvent: true
             };
         });
-    }, [sim, eventPoints.cpaEvents]);
+    }, [sim, eventPoints?.cpaEvents]);
 
     const { minTime, maxTime, now } = useMemo(() => {
         const n = new Date().getTime();
@@ -247,7 +247,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             if (data[mid].time < time) low = mid;
             else high = mid;
         }
-        return Math.abs(data[high].time - time) < Math.abs(data[low].time - time) ? high : low;
+
+        const lowDiff = Math.abs(data[low].time - time);
+        const highDiff = Math.abs(data[high].time - time);
+        return highDiff < lowDiff ? high : low;
     };
 
     const brushRange = useMemo(() => {
@@ -351,8 +354,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             />
                         )}
                         <Tooltip
-                            content={<CustomTooltip t={t} lang={lang} />}
-                            cursor={{ stroke: '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                            content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} />}
+                            cursor={{ stroke: isDarkMode ? '#f9a8d4' : '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
                             trigger="hover"
                         />
                         {hasE2Data && (
@@ -392,7 +395,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                             />
                         )}
                         {/* E2 Event Points */}
-                        {eventPoints.e2Points.length > 0 && (
+                        {eventPoints?.e2Points && eventPoints.e2Points.length > 0 && (
                             <Scatter
                                 data={eventPoints.e2Points}
                                 yAxisId="left"
