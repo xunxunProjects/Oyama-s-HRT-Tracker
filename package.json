@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:watch": "vite build --watch",
     "preview": "vite preview",
+    "wrangler:dev": "npm run build && wrangler dev",
+    "wrangler:migrate:local": "wrangler d1 execute hrt-tracker-prod --local --file=schema.sql",
+    "wrangler:migrate:remote": "wrangler d1 execute hrt-tracker-prod --remote --file=schema.sql",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri": "tauri"
@@ -33,6 +37,9 @@
     "tailwind-merge": "^3.4.0",
     "uuid": "^9.0.1"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251205.0",
     "@tailwindcss/postcss": "^4.1.18",
@@ -46,6 +53,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "wrangler": "^4.69.0"
   }
 }
