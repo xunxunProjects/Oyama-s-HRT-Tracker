@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     t
 }) => {
     return (
-        <nav className="hidden md:flex flex-col w-[280px] h-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-dim)] border-r border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shrink-0 transition-colors duration-300">
+        <nav className="hidden md:flex flex-col w-[280px] h-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-dim)] border-e border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shrink-0 transition-colors duration-300">
             {/* Logo Area */}
             <div className="px-7 py-8">
                 <h1 className="font-display text-3xl font-bold tracking-tight text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] leading-none">
@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </span>
                             <span className="tracking-tight z-10">{item.label}</span>
                             {isActive && (
-                                <div className="ml-auto w-2 h-2 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400 animate-m3-spring z-10" />
+                                <div className="ms-auto w-2 h-2 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400 animate-m3-spring z-10" />
                             )}
                         </button>
                     );

@@ -150,7 +150,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             <button
                                 key={opt.value}
                                 onClick={() => handleSelect(opt.value)}
-                                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors relative m3-state-layer overflow-hidden
+                                className={`w-full px-4 py-3 text-start flex items-center gap-3 transition-colors relative m3-state-layer overflow-hidden
                                     ${opt.value === value
                                         ? 'bg-[var(--color-m3-secondary-container)] dark:bg-teal-900/40 text-[var(--color-m3-on-secondary-container)] dark:text-teal-200 font-bold'
                                         : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'}`}

@@ -568,7 +568,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                                 <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)]">
                                                     <button
                                                         onClick={() => handleLoadTemplate(template)}
-                                                        className="flex-1 text-left"
+                                                        className="flex-1 text-start"
                                                     >
                                                         <div className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{template.name}</div>
                                                         <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1">
@@ -621,7 +621,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                             <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] transition-colors">
                                                 <button
                                                     onClick={() => handleLoadTemplate(template)}
-                                                    className="flex-1 text-left"
+                                                    className="flex-1 text-start"
                                                 >
                                                     <div className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{template.name}</div>
                                                     <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5 font-medium">

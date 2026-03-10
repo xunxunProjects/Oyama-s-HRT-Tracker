@@ -77,12 +77,12 @@ const Account: React.FC<AccountProps> = ({
                             <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-outline-variant)] overflow-hidden">
                                 <button
                                     onClick={() => setIsChangePasswordOpen(true)}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                                 >
                                     <div className="p-1.5 bg-[var(--color-m3-secondary-container)] dark:bg-slate-700/50 rounded-[var(--radius-sm)]">
                                         <Key className="text-[var(--color-m3-secondary)] dark:text-slate-300" size={18} />
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-start">
                                         <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.change_password')}</p>
                                         <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.change_password_desc')}</p>
                                     </div>
@@ -96,24 +96,24 @@ const Account: React.FC<AccountProps> = ({
                             <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-outline-variant)] overflow-hidden">
                                 <button
                                     onClick={onCloudSave}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                                 >
                                     <div className="p-1.5 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 rounded-[var(--radius-sm)]">
                                         <UploadCloud className="text-[var(--color-m3-primary)] dark:text-teal-400" size={18} />
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-start">
                                         <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.backup_cloud')}</p>
                                         <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.backup_cloud_desc')}</p>
                                     </div>
                                 </button>
                                 <button
                                     onClick={onCloudLoad}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                                 >
                                     <div className="p-1.5 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 rounded-[var(--radius-sm)]">
                                         <DownloadCloud className="text-[var(--color-m3-primary)] dark:text-teal-400" size={18} />
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-start">
                                         <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.restore_cloud')}</p>
                                         <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.restore_cloud_desc')}</p>
                                     </div>
@@ -127,12 +127,12 @@ const Account: React.FC<AccountProps> = ({
                             <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-red-200 dark:border-red-900/50 overflow-hidden">
                                 <button
                                     onClick={() => setIsDeleteAccountOpen(true)}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-red-50 dark:hover:bg-red-900/10 transition text-left m3-state-layer"
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-red-50 dark:hover:bg-red-900/10 transition text-start m3-state-layer"
                                 >
                                     <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-[var(--radius-sm)]">
                                         <Trash2 className="text-red-600 dark:text-red-400" size={18} />
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-start">
                                         <p className="font-bold text-red-600 dark:text-red-400 text-sm">{t('account.delete_account')}</p>
                                         <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.delete_account_desc')}</p>
                                     </div>
@@ -168,12 +168,12 @@ const Account: React.FC<AccountProps> = ({
                     <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] overflow-hidden transition-colors duration-300">
                         <button
                             onClick={onOpenAuth}
-                            className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                            className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                         >
                             <div className="p-1.5 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 rounded-[var(--radius-sm)]">
                                 <UserCircle className="text-[var(--color-m3-primary)] dark:text-teal-400" size={18} />
                             </div>
-                            <div className="text-left">
+                            <div className="text-start">
                                 <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.sign_in_register')}</p>
                                 <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.sign_in_register_desc')}</p>
                             </div>
