@@ -136,7 +136,14 @@ export default {
     }
 
     try {
-      const jwtSecret = getValidatedJWTSecret(env);
+      // Validate JWT secret first — if misconfigured return 503 not 500
+      let jwtSecret: string;
+      try {
+        jwtSecret = getValidatedJWTSecret(env);
+      } catch (configErr: any) {
+        console.error('Worker misconfiguration:', configErr);
+        return withSecurityHeaders(new Response('Service unavailable: server configuration error', { status: 503, headers: corsHeaders }));
+      }
 
       // Rate limiting for auth/sensitive endpoints
       const sensitivePaths = ['/api/login', '/api/register', '/api/user/password', '/api/user/me'];

@@ -11,7 +11,10 @@ export const formatDate = (date: Date, lang: Lang) => {
         'en': 'en-US',
         'ru': 'ru-RU',
         'uk': 'uk-UA',
-        'ja': 'ja-JP'
+        'ja': 'ja-JP',
+        'ko': 'ko-KR',
+        'ar': 'ar',
+        'he': 'he',
     };
     return date.toLocaleDateString(localeMap[lang] || 'en-US', { month: 'short', day: 'numeric' });
 };

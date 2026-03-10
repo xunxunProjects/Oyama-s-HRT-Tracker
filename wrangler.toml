@@ -1,6 +1,7 @@
 name = "hrt-tracker"
 main = "worker.ts"
 compatibility_date = "2025-12-04"
+compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
@@ -8,6 +9,11 @@ directory = "./dist"
 [observability]
 enabled = true
 head_sampling_rate = 1
+
+# Required secrets (set via `wrangler secret put <NAME>`):
+#   JWT_SECRET      — random string ≥ 32 chars, used to sign auth tokens
+#   ADMIN_USERNAME  — (optional) username for the built-in admin account
+#   ADMIN_PASSWORD  — (optional) password for the built-in admin account
 
 [[d1_databases]]
 binding = "DB"
