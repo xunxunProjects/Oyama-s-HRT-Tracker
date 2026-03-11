@@ -103,36 +103,36 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-outline-variant)] overflow-hidden transition-colors duration-300">
                     <button
                         onClick={onSaveDosages}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <Upload className="text-[var(--color-m3-accent)] dark:text-rose-400" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('export.title')}</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setIsImportModalOpen(true)}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <Download className="text-[var(--color-m3-primary)] dark:text-teal-400" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('import.title')}</p>
                         </div>
                     </button>
 
                     <button
                         onClick={onQuickExport}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <Copy className="text-blue-500 dark:text-blue-400" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.export_quick')}</p>
                         </div>
                     </button>
@@ -140,12 +140,12 @@ const Settings: React.FC<SettingsProps> = ({
                     <button
                         onClick={onClearAllEvents}
                         disabled={!events.length}
-                        className={`w-full flex items-center gap-3 px-6 py-4 text-left transition m3-state-layer ${events.length ? 'hover:bg-red-50/50 dark:hover:bg-red-900/10' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]/50 cursor-not-allowed opacity-60'}`}
+                        className={`w-full flex items-center gap-3 px-6 py-4 text-start transition m3-state-layer ${events.length ? 'hover:bg-red-50/50 dark:hover:bg-red-900/10' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]/50 cursor-not-allowed opacity-60'}`}
                     >
                         <div className="p-1.5">
                             <Trash2 className="text-red-400" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.clear')}</p>
                         </div>
                     </button>
@@ -162,12 +162,12 @@ const Settings: React.FC<SettingsProps> = ({
                                 window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank');
                             });
                         }}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <Info className="text-violet-500 dark:text-violet-400" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.model_title')}</p>
                         </div>
                     </button>
@@ -178,24 +178,24 @@ const Settings: React.FC<SettingsProps> = ({
                                 window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank');
                             });
                         }}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <Github className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.github')}</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setIsDisclaimerOpen(true)}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-left m3-state-layer"
+                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
                     >
                         <div className="p-1.5">
                             <AlertTriangle className="text-amber-500" size={18} />
                         </div>
-                        <div className="text-left">
+                        <div className="text-start">
                             <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.disclaimer')}</p>
                         </div>
                     </button>

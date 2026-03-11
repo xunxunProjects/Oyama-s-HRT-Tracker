@@ -81,7 +81,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 <button
                                     key={tierKey}
                                     onClick={() => setSlTier(index)}
-                                    className={`relative p-3 rounded-[var(--radius-md)] border-2 text-left transition-all ${active
+                                    className={`relative p-3 rounded-[var(--radius-md)] border-2 text-start transition-all ${active
                                         ? 'border-[var(--color-m3-primary)] bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 ring-2 ring-[var(--color-m3-primary-container)] dark:ring-teal-900/30'
                                         : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)] dark:hover:border-teal-400 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)]'
                                         }`}

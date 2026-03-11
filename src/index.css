@@ -4,8 +4,8 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
 
     /* M3 Teal Primary */
     --color-m3-primary: #0D9488;
