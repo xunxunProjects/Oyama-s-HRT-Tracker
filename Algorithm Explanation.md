@@ -32,7 +32,7 @@ This README explains the algorithms used for each drug/route, key parameters and
 | --- | --- | --- | --- |
 | `vdPerKG` | 表观分布容积（每 kg） | 2.0 L·kg⁻¹ | 移动端可配置；用于 mg → pg/mL 换算 |
 | `kClear` | 游离 E2 清除速率常数 k₃ | 0.41 h⁻¹ | 对应 t½ ≈ 1.69 h；为经验标定值，用于与项目中目标曲线贴合 |
-| `kClearInjection` | 注射专用游离 E2 清除速率常数 k₃（仅 injection 路由使用） | 0.05 h⁻¹ | 保持 flip‑flop 形状以匹配 EEN/EV/EC 的 Tmax/Cmax，不等同于生理清除 |
+| `kClearInjection` | 注射专用游离 E2 清除速率常数 k₃（仅 injection 路由使用） | 0.041 h⁻¹ | 保持 flip‑flop 形状以匹配 EEN/EV/EC 的 Tmax/Cmax，不等同于生理清除；取值 = kClear/10 |
 | `depotK1Corr` | 注射两库 k₁ 的全局校正系数 | 1.0 | 改峰/拖尾时可整体缩放注射的 k₁ |
 
 > 注：`kClear` 是游离 E2 中心室的表观清除常数，其锚点来自贴片移除后的终末半衰期（≈ 1–2 h），在此基础上取中间值 **0.41 h⁻¹** 以兼顾舌下与贴片的日内回落。它服务于本项目的简化模型与多路叠加稳定性，并不等价于群体生理清除率，不应外推到人群参数。
@@ -43,7 +43,7 @@ This README explains the algorithms used for each drug/route, key parameters and
 - **为什么不用口服去估**：口服 Bateman 场景下常见 flip‑flop 现象，当吸收速率 `ka` 与或小于清除速率 `ke` 时，终末相斜率反而更像 `ka` 而非 `ke`，因此不适合作为清除常数的锚点。相对地，贴片在移除后 `ka = 0`，终末相更干净。
 
 **注射专用 `kClearInjection`（有效参数说明）**  
-注射油剂的末端斜率主要受“从油性贮库进入血液”的缓慢输入所支配（flip‑flop）。为在简化一室清除的前提下复现文献级别的 EEN/EV/EC 峰时与长尾，注射路径使用了 **`kClearInjection = 0.05 h⁻¹`**。它是为**形状校准**而设的有效参数，并不等同于生理清除。  
+注射油剂的末端斜率主要受“从油性贮库进入血液”的缓慢输入所支配（flip‑flop）。为在简化一室清除的前提下复现文献级别的 EEN/EV/EC 峰时与长尾，注射路径使用了 **`kClearInjection = 0.041 h⁻¹`**（= `kClear / 10 = 0.41 / 10`，对应 t½ ≈ 16.9 h）。它是为**形状校准**而设的有效参数，并不等同于生理清除。  
 - 仅在 `event.route == .injection` 时使用；其他路由继续使用 `kClear = 0.41 h⁻¹`。  
 - 这样可在不增加额外分布/代谢池的情况下，保持注射曲线的吸收限速形状（天级 Tmax、较平稳的稳态）。  
 - 若需生理可解释性更强的估计，应考虑在模型中显式加入贮库/结合/可逆代谢池而非调整清除常数。
@@ -68,7 +68,7 @@ This README explains the algorithms used for each drug/route, key parameters and
 | EC | 0.229164549 | 0.005035046 | 137.66 | 0.004510574 | 153.67 | 0.045 | 15.40 |
 | EN | 0.05 | 0.0010 | 693.15 | 0.0050 | 138.63 | 0.015 | 46.21 |
 
-*注：注射路径的清除常数采用 `k3 = kClearInjection = 0.05 h⁻¹`。*
+*注：注射路径的清除常数采用 `k3 = kClearInjection = 0.041 h⁻¹`（对应 t½ ≈ 16.9 h）。*
 
 ### 2.3 生物利用度（形成分数 F）
 - 形成游离 E2 的经验分数 `InjectionPK.formationFraction[ester]`。本项目剂量已按 E2‑eq 输入，**因此 `F = formationFraction`**。
@@ -143,7 +143,7 @@ This README explains the algorithms used for each drug/route, key parameters and
 ### 5.1 模型与参数
 - **模型**：单室 Bateman 吸收–清除。**EV 的水解效应已折叠进更小的 `kAbsEV`，不单独建 `k₂`。**
 - **默认参数**：  
-  `kAbsE2 = 0.08 h⁻¹`（E2 片，`Tmax ≈ 2–3 h`）。  
+  `kAbsE2 = 0.32 h⁻¹`（E2 片，`Tmax ≈ 2–3 h`；由 t_max = ln(ka/ke)/(ka-ke) 代入 ke = 0.41 h⁻¹ 验算得 t_max ≈ 2.75 h）。  
   `kAbsEV = 0.05 h⁻¹`（EV 片，`Tmax ≈ 6–7 h`）。  
   `bioavailability = 0.03`（口服首过后系统暴露，E2 与 EV 近似相同量级）。  
 
@@ -211,6 +211,14 @@ $$
 
 - UI 选择的档位直接映射为 \(\theta\) 并写入 `DoseEvent.extras[.sublingualTheta]`；**不再读取/依赖 `theta_default`**。
 
+**关于舌下峰值的量级说明**  
+舌下 E2 因快通路吸收速率 $k_{\text{SL}} = 1.8\ \mathrm{h}^{-1}$ 远大于清除速率 $k_3 = 0.41\ \mathrm{h}^{-1}$，会在约 1 小时处形成明显的高浓度"峰刺"。以标准档（θ = 0.11）、2 mg E2、体重 55 kg 为例，模型预测 $C_{\max} \approx 1400\ \mathrm{pg/mL}$，这与文献观测范围相符：
+- Price et al. (1997) 报告 0.25 mg 舌下 E2（70 kg 绝经后女性）$C_{\max} \approx 94\ \mathrm{pg/mL}$，按剂量线性外推至 2 mg 并折算为 55 kg 体重（分布容积 ∝ 体重），预期约 950–1 400 pg/mL；
+- Burnier et al. (1981) 对 1 mg 舌下 E2 观测到约 1 000 pg/mL 的均值峰浓度，2 mg 线性外推值更高；
+- 该峰值持续时间较短（约 2–3 h 即回落至 100–300 pg/mL 区间），与临床经验中舌下给药"峰高谷低"的特点一致。  
+
+因此，模型输出的 1 400 pg/mL 并非计算错误，而是反映了舌下黏膜吸收绕过首过、短时高浓度的药代动力学特征。若希望降低峰值，可选择含服时间更短的档位（如 Casual 或 Quick），或改为每日多次小剂量给药。
+
 **一致性校验（慢支=口服）**  
 当 $\theta=0$ 时，舌下模型**严格退化为口服**：慢支的 $k_{1,\text{slow}}$、$F_{\text{slow}}$、$k_2$、$k_3$ 与对应口服路由完全一致。在回归测试中对比了 “SL，$\theta=0$” 与 “Oral” 的整轨迹，差异 0。
 
@@ -249,7 +257,7 @@ $$
   - 凝胶在进行“剂量/面积”非线性修正时出现系统性偏差（低剂量低估、高剂量高估），临时回退为 `(k₁ = 0.045, F = 0.05)` 常量实现，并在代码旁保留 `sigmaSat` 等参数以待重启。
 - **2025‑08‑中**：统一由 `ParameterResolver` 把各路由映射到 `PKParams`，`SimulationEngine` 以事件窗口裁剪贴片贡献（`patchApply → patchRemove`），AUC 梯形法稳定。
 - **2025‑09‑03**：  
-  - 为注射路径加入 `CorePK.kClearInjection = 0.05 h⁻¹`，并在 `ParameterResolver` 中按路由切换 `k3`。  
+  - 为注射路径加入 `CorePK.kClearInjection = 0.041 h⁻¹`，并在 `ParameterResolver` 中按路由切换 `k3`。  
   - 重新标定注射两库参数：`Frac_fast`、`k1_fast`、`k1_slow`（详见 2.2 表），以复现 EV ≈ 2.1 d、EC ≈ 4 d、EN ≈ 6.5 d 的单剂达峰与稳态形状。  
   - 更新 `InjectionPK.formationFraction` 为分酯别经验值（见 2.3），并在 README 中明确其“有效参数”属性与适用范围。
 - **2025‑09‑22**：
@@ -309,7 +317,7 @@ $$
 | 贴片（零阶） | 解析 | µg/day → mg/h | 零阶恒速输入 + k₃ 清除；移除后指数衰减 | `rateMGh, k3` | 固定 1.0 |
 | 贴片（一阶遗留） | 解析 | mg | 一阶“假库” + k₃ 清除；移除时截断 | `k1, k3` | 固定 1.0 |
 | 凝胶 | 解析 | mg（+面积 cm²） | 单室 Bateman（临时常量版） | `k1 = 0.022, F = 0.05, k3` | 常量 0.05 |
-| 口服 E2 | 解析 | mg | 单室 Bateman | `kAbsE2 = 0.08, F = 0.03, k3` | 常量 0.03 |
+| 口服 E2 | 解析 | mg | 单室 Bateman | `kAbsE2 = 0.32, F = 0.03, k3` | 常量 0.03 |
 | 口服 EV | 解析 | mg | 单室 Bateman | `kAbsEV = 0.05, F = 0.03, k3` | 常量 0.03 |
 | 舌下 E2/EV | 解析 | mg（等效 E2） | 双通路：快 = 黏膜、慢 = 吞咽→口服；**E2 用一室（dualAbsAmount），EV 用三室（dualAbs3CAmount）** | `θ` 来自 UI 档位（Quick/5/10/15 分钟映射）；`kAbsSL=1.8`，`kAbsE2/EV`，`k2(EV)`，`k3` | 快 1.0；慢 `F_oral=0.03` |
 
