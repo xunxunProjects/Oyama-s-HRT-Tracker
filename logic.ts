@@ -103,10 +103,20 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
                 pred = getNearestConc_E2(r.timeH);
             }
             if (pred === null || obs <= 0) return null;
-            // Allow calibration even for very small predicted values, but cap the ratio
-            const sanitizedPred = Math.max(pred, 0.01);
-            // Cap at 2000x to allow fixing "near zero" baselines to "high" levels (e.g. 0.3 -> 600)
-            const ratio = Math.max(0.01, Math.min(2000, obs / sanitizedPred));
+            // Skip calibration points where the predicted E2 is too low (< 1 pg/mL).
+            // A prediction this close to zero indicates the lab result falls outside
+            // the meaningful simulation range (e.g. a baseline measurement taken
+            // before any HRT dose events were entered). Using such points would
+            // produce an absurdly large multiplier and lock the displayed scale at
+            // the cap value. 1 pg/mL is well below any clinically relevant E2 level
+            // on HRT and serves as a reliable signal that the simulation and lab
+            // result do not correspond to the same pharmacokinetic state.
+            if (pred < 1) return null;
+            // Clamp the ratio between 0.01x (100-fold below model, i.e. the user's
+            // measured level is far lower than predicted — unusual but bounded) and
+            // 100x (allows for significant real-world PK variability while preventing
+            // extreme outliers from dominating the calibration).
+            const ratio = Math.max(0.01, Math.min(100, obs / pred));
             return { timeH: r.timeH, ratio };
         })
         .filter((p): p is { timeH: number; ratio: number } => !!p)
@@ -134,7 +144,7 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
         const p2 = points[high];
         const t = (timeH - p1.timeH) / (p2.timeH - p1.timeH);
         const r = p1.ratio + (p2.ratio - p1.ratio) * t;
-        return Math.max(0.01, Math.min(2000, r));
+        return Math.max(0.01, Math.min(100, r));
     };
 }
 

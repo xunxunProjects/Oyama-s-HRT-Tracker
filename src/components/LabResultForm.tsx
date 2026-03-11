@@ -22,17 +22,30 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
     const [note, setNote] = useState("");
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
+    const toLocalDateString = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const toLocalTimeString = (d: Date) => {
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${mins}`;
+    };
+
     useEffect(() => {
         if (resultToEdit) {
             const d = new Date(resultToEdit.timeH * 3600000);
-            setDate(d.toISOString().split('T')[0]);
-            setTime(d.toTimeString().slice(0, 5));
+            setDate(toLocalDateString(d));
+            setTime(toLocalTimeString(d));
             setValue(resultToEdit.concValue.toString());
             setUnit(resultToEdit.unit);
         } else {
             const now = new Date();
-            setDate(now.toISOString().split('T')[0]);
-            setTime(now.toTimeString().slice(0, 5));
+            setDate(toLocalDateString(now));
+            setTime(toLocalTimeString(now));
             setValue("");
             setUnit('pmol/l');
             setNote("");
