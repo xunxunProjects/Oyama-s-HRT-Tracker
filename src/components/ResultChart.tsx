@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
                     </div>
                     {data.originalUnit === 'pmol/l' && (
                         <div className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            ≈ {data.conc.toFixed(1)} pg/mL
+                            ≈ {data.concE2.toFixed(1)} pg/mL
                         </div>
                     )}
                 </div>
