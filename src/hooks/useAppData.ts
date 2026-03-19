@@ -14,6 +14,14 @@ export interface DoseTemplate {
     createdAt: number;
 }
 
+export interface QuickDose {
+    id: string;
+    route: Route;
+    ester: Ester;
+    value: number;
+    createdAt: number;
+}
+
 export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void) => {
     const { t, lang } = useTranslation();
 
@@ -34,6 +42,10 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         const saved = localStorage.getItem('hrt-dose-templates');
         return saved ? JSON.parse(saved) : [];
     });
+    const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => {
+        const saved = localStorage.getItem('hrt-quick-doses');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     const [simulation, setSimulation] = useState<SimulationResult | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -43,6 +55,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
     useEffect(() => { localStorage.setItem('hrt-lab-results', JSON.stringify(labResults)); }, [labResults]);
     useEffect(() => { localStorage.setItem('hrt-dose-templates', JSON.stringify(doseTemplates)); }, [doseTemplates]);
+    useEffect(() => { localStorage.setItem('hrt-quick-doses', JSON.stringify(quickDoses)); }, [quickDoses]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -137,6 +150,9 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
     const addTemplate = (template: DoseTemplate) => setDoseTemplates(prev => [...prev, template]);
     const deleteTemplate = (id: string) => setDoseTemplates(prev => prev.filter(t => t.id !== id));
+
+    const addQuickDose = (dose: QuickDose) => setQuickDoses(prev => [...prev, dose]);
+    const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
@@ -244,6 +260,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         weight, setWeight,
         labResults, setLabResults,
         doseTemplates, setDoseTemplates,
+        quickDoses, setQuickDoses,
         simulation,
         currentTime,
         calibrationFn,
@@ -254,6 +271,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         addEvent, updateEvent, deleteEvent, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
+        addQuickDose, deleteQuickDose,
         processImportedData
     };
 };

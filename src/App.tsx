@@ -61,6 +61,8 @@ const AppContent = () => {
         addEvent, updateEvent, deleteEvent, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
+        addQuickDose, deleteQuickDose,
+        quickDoses,
         processImportedData
     } = useAppData(showDialog);
 
@@ -350,6 +352,9 @@ const AppContent = () => {
                             onDeleteEvent={deleteEvent}
                             onSaveTemplate={addTemplate}
                             onDeleteTemplate={deleteTemplate}
+                            quickDoses={quickDoses}
+                            onAddQuickDose={addQuickDose}
+                            onDeleteQuickDose={deleteQuickDose}
                             groupedEvents={groupedEvents}
                             onEditEvent={handleEditEvent}
                         />
@@ -490,6 +495,9 @@ const AppContent = () => {
                 templates={doseTemplates}
                 onSaveTemplate={addTemplate}
                 onDeleteTemplate={deleteTemplate}
+                quickDoses={quickDoses}
+                onAddQuickDose={addQuickDose}
+                onDeleteQuickDose={deleteQuickDose}
             />
 
             <DisclaimerModal
