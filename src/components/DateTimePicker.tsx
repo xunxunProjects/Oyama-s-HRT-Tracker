@@ -48,11 +48,11 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 }
                 const trigger = anchorRef.current?.previousElementSibling;
                 if (trigger) {
-                    const rect = trigger.getBoundingClientRect();
                     setPositionStyle({
-                        top: rect.bottom + 8,
-                        left: rect.left,
-                        width: 320,
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 360,
                     });
                 }
             };

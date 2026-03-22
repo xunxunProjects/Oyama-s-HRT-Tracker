@@ -495,7 +495,11 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         .map(e => ({ model: new PrecomputedEventModel(e, sortedEvents), ester: e.ester }));
 
     const startTime = sortedEvents[0].timeH - 24;
-    const endTime = sortedEvents[sortedEvents.length - 1].timeH + (24 * 14);
+    const nowH = Date.now() / 3600000; // Current time in hours since epoch
+    const endTime = Math.max(
+        sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
+        nowH + 24
+    );
     const steps = 1000;
 
     // Different Vd for E2 and CPA
