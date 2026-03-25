@@ -495,7 +495,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         .map(e => ({ model: new PrecomputedEventModel(e, sortedEvents), ester: e.ester }));
 
     const startTime = sortedEvents[0].timeH - 24;
-    const nowH = Date.now() / 3600000; // Current time in hours since epoch
+    const nowH = Date.now() / (1000 * 60 * 60);
     const endTime = Math.max(
         sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
         nowH + 24
