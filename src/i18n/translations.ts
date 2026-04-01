@@ -123,6 +123,11 @@ export const TRANSLATIONS_BASE = {
         "template.loaded": "模板已加载",
         "template.delete_confirm": "确定删除此模板吗？",
 
+        "quickdose.add": "保存当前剂量为快捷选项",
+        "quickdose.added": "快捷剂量已保存",
+        "quickdose.delete_confirm": "确定删除此快捷剂量吗？",
+        "quickdose.empty_input": "请先输入有效的剂量值",
+
         "dialog.confirm_title": "确认",
         "dialog.alert_title": "提示",
 
@@ -436,6 +441,11 @@ export const TRANSLATIONS_BASE = {
         "template.saved": "Template saved",
         "template.loaded": "Template loaded",
         "template.delete_confirm": "Delete this template?",
+
+        "quickdose.add": "Save current dose as quick option",
+        "quickdose.added": "Quick dose saved",
+        "quickdose.delete_confirm": "Delete this quick dose?",
+        "quickdose.empty_input": "Please enter a valid dose first",
 
         "dialog.confirm_title": "Confirm",
         "dialog.alert_title": "Alert",
@@ -815,6 +825,11 @@ export const TRANSLATIONS_BASE = {
         "template.loaded": "Шаблон загружен",
         "template.delete_confirm": "Удалить этот шаблон?",
 
+        "quickdose.add": "Сохранить текущую дозу как быструю",
+        "quickdose.added": "Быстрая доза сохранена",
+        "quickdose.delete_confirm": "Удалить эту быструю дозу?",
+        "quickdose.empty_input": "Сначала введите допустимую дозу",
+
         "dialog.confirm_title": "Подтверждение",
         "dialog.alert_title": "Внимание",
 
@@ -1073,6 +1088,11 @@ export const TRANSLATIONS = {
         "template.saved": "範本已儲存",
         "template.loaded": "範本已載入",
         "template.delete_confirm": "確定刪除此範本嗎？",
+
+        "quickdose.add": "儲存目前劑量為快捷選項",
+        "quickdose.added": "快捷劑量已儲存",
+        "quickdose.delete_confirm": "確定刪除此快捷劑量嗎？",
+        "quickdose.empty_input": "請先輸入有效的劑量值",
 
         "sl.instructions": "盡量避免吞嚥，在舌下含服直至達到目標時間。",
         "sl.tier.quick": "快速",
@@ -1386,6 +1406,11 @@ export const TRANSLATIONS = {
         "template.loaded": "範本已載入",
         "template.delete_confirm": "確定刪除呢個範本？",
 
+        "quickdose.add": "儲存依家劑量做快捷選項",
+        "quickdose.added": "快捷劑量已儲存",
+        "quickdose.delete_confirm": "確定刪除呢個快捷劑量？",
+        "quickdose.empty_input": "請先輸入有效嘅劑量值",
+
         "dialog.confirm_title": "確認",
         "dialog.alert_title": "提示",
 
@@ -1660,6 +1685,11 @@ export const TRANSLATIONS = {
         "template.saved": "Шаблон збережено",
         "template.loaded": "Шаблон завантажено",
         "template.delete_confirm": "Видалити цей шаблон?",
+
+        "quickdose.add": "Зберегти поточну дозу як швидку",
+        "quickdose.added": "Швидку дозу збережено",
+        "quickdose.delete_confirm": "Видалити цю швидку дозу?",
+        "quickdose.empty_input": "Спочатку введіть допустиму дозу",
 
         "dialog.confirm_title": "Підтвердження",
         "dialog.alert_title": "Увага",
@@ -1973,6 +2003,11 @@ export const TRANSLATIONS = {
         "template.saved": "テンプレートが保存されました",
         "template.loaded": "テンプレートが読み込まれました",
         "template.delete_confirm": "このテンプレートを削除しますか？",
+
+        "quickdose.add": "現在の用量をクイック選択肢として保存",
+        "quickdose.added": "クイック用量を保存しました",
+        "quickdose.delete_confirm": "このクイック用量を削除しますか？",
+        "quickdose.empty_input": "有効な用量を先に入力してください",
 
         "dialog.confirm_title": "確認",
         "dialog.alert_title": "お知らせ",
@@ -2298,6 +2333,11 @@ export const TRANSLATIONS = {
         "template.loaded": "템플릿을 불러왔습니다",
         "template.delete_confirm": "이 템플릿을 삭제하시겠습니까?",
 
+        "quickdose.add": "현재 용량을 빠른 선택으로 저장",
+        "quickdose.added": "빠른 용량이 저장되었습니다",
+        "quickdose.delete_confirm": "이 빠른 용량을 삭제하시겠습니까?",
+        "quickdose.empty_input": "먼저 유효한 용량을 입력하세요",
+
         "dialog.confirm_title": "확인",
         "dialog.alert_title": "알림",
 
@@ -2612,6 +2652,11 @@ export const TRANSLATIONS = {
         "template.loaded": "تم تحميل القالب",
         "template.delete_confirm": "حذف هذا القالب؟",
 
+        "quickdose.add": "حفظ الجرعة الحالية كخيار سريع",
+        "quickdose.added": "تم حفظ الجرعة السريعة",
+        "quickdose.delete_confirm": "حذف هذه الجرعة السريعة؟",
+        "quickdose.empty_input": "يرجى إدخال جرعة صالحة أولاً",
+
         "dialog.confirm_title": "تأكيد",
         "dialog.alert_title": "تنبيه",
 
@@ -2925,6 +2970,11 @@ export const TRANSLATIONS = {
         "template.saved": "תבנית נשמרה",
         "template.loaded": "תבנית נטענה",
         "template.delete_confirm": "למחוק תבנית זו?",
+
+        "quickdose.add": "שמור מנה נוכחית כאפשרות מהירה",
+        "quickdose.added": "מנה מהירה נשמרה",
+        "quickdose.delete_confirm": "למחוק מנה מהירה זו?",
+        "quickdose.empty_input": "אנא הזן מנה תקינה תחילה",
 
         "dialog.confirm_title": "אישור",
         "dialog.alert_title": "התראה",

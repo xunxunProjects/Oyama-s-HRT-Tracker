@@ -4,6 +4,7 @@ import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor } from '../../logic';
 import { formatTime, getRouteIcon } from '../utils/helpers';
 import DoseForm from '../components/DoseForm';
 import { DoseTemplate } from '../components/DoseFormModal';
+import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 
 interface HistoryProps {
     t: (key: string) => string;
@@ -14,6 +15,9 @@ interface HistoryProps {
     onDeleteEvent: (id: string) => void;
     onSaveTemplate: (t: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
+    quickDoses?: QuickDose[];
+    onAddQuickDose?: (dose: QuickDose) => void;
+    onDeleteQuickDose?: (id: string) => void;
     groupedEvents: Record<string, DoseEvent[]>;
     onEditEvent: (e: DoseEvent) => void;
 }
@@ -27,6 +31,9 @@ const History: React.FC<HistoryProps> = ({
     onDeleteEvent,
     onSaveTemplate,
     onDeleteTemplate,
+    quickDoses = [],
+    onAddQuickDose,
+    onDeleteQuickDose,
     groupedEvents,
     onEditEvent
 }) => {
@@ -73,6 +80,9 @@ const History: React.FC<HistoryProps> = ({
                         templates={doseTemplates}
                         onSaveTemplate={onSaveTemplate}
                         onDeleteTemplate={onDeleteTemplate}
+                        quickDoses={quickDoses}
+                        onAddQuickDose={onAddQuickDose}
+                        onDeleteQuickDose={onDeleteQuickDose}
                         isInline={true}
                     />
                 </div>

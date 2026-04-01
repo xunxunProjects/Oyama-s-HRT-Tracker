@@ -13,6 +13,7 @@ import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
 import GelFields from './dose_form/GelFields';
 import PatchFields from './dose_form/PatchFields';
+import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 
 export interface DoseTemplate {
     id: string;
@@ -126,10 +127,13 @@ interface DoseFormProps {
     templates: DoseTemplate[];
     onSaveTemplate: (template: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
+    quickDoses?: QuickDose[];
+    onAddQuickDose?: (dose: QuickDose) => void;
+    onDeleteQuickDose?: (id: string) => void;
     isInline?: boolean;
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, quickDoses = [], onAddQuickDose, onDeleteQuickDose, isInline = false }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const dateInputRef = useRef<HTMLInputElement>(null);
@@ -729,6 +733,17 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     lastEditedField={lastEditedField}
                                 />
                             )}
+                            {route === Route.injection && onAddQuickDose && onDeleteQuickDose && (
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={rawDose}
+                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
+                                />
+                            )}
 
                             {route === Route.oral && (
                                 <OralFields
@@ -740,6 +755,17 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     isInitializing={isInitializingRef.current}
                                     route={route}
                                     lastEditedField={lastEditedField}
+                                />
+                            )}
+                            {route === Route.oral && onAddQuickDose && onDeleteQuickDose && (
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={rawDose}
+                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
                                 />
                             )}
 
@@ -765,6 +791,17 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     lastEditedField={lastEditedField}
                                 />
                             )}
+                            {route === Route.sublingual && onAddQuickDose && onDeleteQuickDose && (
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={rawDose}
+                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
+                                />
+                            )}
 
                             {route === Route.gel && (
                                 <GelFields
@@ -772,6 +809,17 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setGelSite={setGelSite}
                                     e2Dose={e2Dose}
                                     onE2Change={handleE2Change}
+                                />
+                            )}
+                            {route === Route.gel && onAddQuickDose && onDeleteQuickDose && (
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={e2Dose}
+                                    onSelectDose={(val) => handleE2Change(val.toFixed(3))}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
                                 />
                             )}
 
@@ -784,6 +832,24 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     rawDose={rawDose}
                                     onRawChange={handleRawChange}
                                     route={route}
+                                />
+                            )}
+                            {route === Route.patchApply && onAddQuickDose && onDeleteQuickDose && (
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={patchMode === 'rate' ? patchRate : rawDose}
+                                    onSelectDose={(val) => {
+                                        if (patchMode === 'rate') {
+                                            setPatchRate(val.toString());
+                                        } else {
+                                            handleRawChange(val.toFixed(3));
+                                        }
+                                    }}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
+                                    unit={patchMode === 'rate' ? 'µg/d' : 'mg'}
                                 />
                             )}
                         </div>
