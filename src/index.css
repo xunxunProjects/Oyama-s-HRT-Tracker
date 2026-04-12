@@ -63,6 +63,15 @@
     --shadow-m3-3: 0 4px 8px 3px rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.10);
 }
 
+/* Prevent auto-zoom on iOS/Android when focusing small inputs */
+@media screen and (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
 /* Base Styles */
 html {
     height: 100%;
