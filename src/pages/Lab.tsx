@@ -34,28 +34,28 @@ const Lab: React.FC<LabProps> = ({
 }) => {
     return (
         <div className="relative space-y-6 pt-6 pb-24">
-            <div className="px-6 md:px-10">
-                <div className="w-full p-3.5 rounded-[var(--radius-xl)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-between border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-1)] transition-all duration-300 m3-surface-tint">
-                    <h2 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight flex items-center gap-2.5">
-                        <div className="p-1.5 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 rounded-[var(--radius-md)]">
-                            <FlaskConical size={18} className="text-[var(--color-m3-primary)] dark:text-teal-400" />
+            <div className="px-6 md:px-8">
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
+                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                            <FlaskConical size={20} />
                         </div>
                         {t('lab.title')}
                     </h2>
                     <button
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                        className={`inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-lg)] shadow-[var(--shadow-m3-1)] transition-all duration-500 m3-state-layer ${isQuickAddLabOpen
-                            ? 'bg-[var(--color-m3-surface-container-highest)] dark:bg-[var(--color-m3-dark-surface-container-highest)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] rotate-45'
-                            : 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40 text-[var(--color-m3-primary)] dark:text-teal-400 hover:shadow-[var(--shadow-m3-2)]'
+                        className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddLabOpen
+                            ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
+                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
                             }`}
                     >
-                        <Plus size={18} strokeWidth={2.5} />
+                        <Plus size={18} />
                     </button>
                 </div>
             </div>
 
             {isQuickAddLabOpen && (
-                <div className="mx-6 md:mx-10 mb-6 animate-m3-container">
+                <div className="mx-6 md:mx-8 mb-6">
                     <LabResultForm
                         resultToEdit={null}
                         onSave={(res) => {
@@ -70,11 +70,11 @@ const Lab: React.FC<LabProps> = ({
             )}
 
             {labResults.length === 0 ? (
-                <div className="mx-6 md:mx-10 text-center py-20 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-dashed border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] transition-colors">
-                    <p className="font-semibold">{t('lab.empty')}</p>
+                <div className="mx-6 md:mx-8 text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
+                    <p className="text-sm font-medium">{t('lab.empty')}</p>
                 </div>
             ) : (
-                <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-surface-container-high)]/50 overflow-hidden transition-colors duration-300">
+                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
                     {labResults
                         .slice()
                         .sort((a, b) => b.timeH - a.timeH)
@@ -83,22 +83,22 @@ const Lab: React.FC<LabProps> = ({
                             return (
                                 <div
                                     key={res.id}
-                                    className="p-5 flex items-center gap-5 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/40 transition-all cursor-pointer group relative"
+                                    className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
                                     onClick={() => onEditLabResult(res)}
                                 >
-                                    <div className="w-12 h-12 rounded-[var(--radius-lg)] flex items-center justify-center shrink-0 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/10 border border-[var(--color-m3-outline-variant)] dark:border-teal-900/20 group-hover:scale-105 transition-transform duration-300">
-                                        <FlaskConical className="text-[var(--color-m3-primary)] dark:text-teal-400" size={20} />
+                                    <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400">
+                                        <FlaskConical size={18} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm truncate">
+                                            <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                                                 {res.concValue} {res.unit}
                                             </span>
-                                            <span className="font-mono text-[10px] font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]/50 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
                                                 {formatTime(d)}
                                             </span>
                                         </div>
-                                        <div className="text-[10px] font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                             {formatDate(d, lang)}
                                         </div>
                                     </div>
@@ -108,16 +108,16 @@ const Lab: React.FC<LabProps> = ({
                 </div>
             )}
 
-            <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center justify-between px-6 py-4 transition-colors duration-300">
-                <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">
-                    {t('lab.tip_scale')} <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold">×{calibrationFn(currentTime.getTime() / 3600000).toFixed(2)}</span>
+            <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 flex items-center justify-between px-5 py-4">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('lab.tip_scale')} <span className="text-gray-900 dark:text-gray-100 font-semibold">×{calibrationFn(currentTime.getTime() / 3600000).toFixed(2)}</span>
                 </div>
                 <button
                     onClick={onClearLabResults}
                     disabled={!labResults.length}
-                    className={`px-4 py-2 rounded-[var(--radius-full)] text-xs font-bold transition-all ${labResults.length
-                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
-                        : 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] cursor-not-allowed'
+                    className={`px-3 py-1.5 rounded text-xs transition-colors ${labResults.length
+                        ? 'text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
+                        : 'text-gray-400 bg-gray-100 dark:bg-neutral-800 cursor-not-allowed'
                         }`}
                 >
                     {t('lab.clear_all')}

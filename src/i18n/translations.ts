@@ -113,6 +113,8 @@ export const TRANSLATIONS_BASE = {
         "btn.edit": "编辑",
         "btn.ok": "确定",
         "btn.copy": "复制",
+        "btn.confirm": "确认",
+        "btn.delete": "删除",
 
         "template.save_as": "存为模板",
         "template.save_title": "保存为模板",

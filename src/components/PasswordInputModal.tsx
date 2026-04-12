@@ -24,7 +24,7 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, o
                     type="text"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none font-mono text-center mb-5 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] transition-all placeholder:text-[var(--color-m3-outline)] dark:placeholder:text-[var(--color-m3-dark-outline)]"
+                    className="w-full p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-emerald-500 outline-none font-mono text-center mb-5 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="Password"
                     autoFocus
                 />

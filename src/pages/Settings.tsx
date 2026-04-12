@@ -1,6 +1,8 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
+import ExportSection from '../components/ExportSection';
+import ImportSection from '../components/ImportSection';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
 
@@ -11,8 +13,9 @@ interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
     languageOptions: { value: string; label: string }[];
-    setIsImportModalOpen: (isOpen: boolean) => void;
-    onSaveDosages: () => void;
+    onImportJson: (text: string) => boolean | Promise<boolean>;
+    labResults: any[];
+    onExport: (encrypt: boolean, password?: string) => void;
     onQuickExport: () => void;
     onClearAllEvents: () => void;
     events: DoseEvent[];
@@ -30,8 +33,9 @@ const Settings: React.FC<SettingsProps> = ({
     theme,
     setTheme,
     languageOptions,
-    setIsImportModalOpen,
-    onSaveDosages,
+    onImportJson,
+    labResults,
+    onExport,
     onQuickExport,
     onClearAllEvents,
     events,
@@ -41,13 +45,16 @@ const Settings: React.FC<SettingsProps> = ({
     weight,
     setIsWeightModalOpen,
 }) => {
+    const [openDataMenu, setOpenDataMenu] = React.useState<'export' | 'import' | null>(null);
+    const hasExportData = events.length > 0 || labResults.length > 0;
+
     return (
-        <div className="relative space-y-5 pt-6 pb-24">
-            <div className="px-6 md:px-10">
-                <div className="w-full p-5 rounded-[var(--radius-xl)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-between border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-1)] transition-all duration-300 m3-surface-tint">
-                    <h2 className="font-display text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight flex items-center gap-3">
-                        <div className="p-2 bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 rounded-[var(--radius-md)]">
-                            <SettingsIcon size={20} className="text-[var(--color-m3-primary)] dark:text-teal-400" />
+        <div className="relative space-y-6 pt-6 pb-24">
+            <div className="px-6 md:px-8">
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
+                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                            <SettingsIcon size={20} />
                         </div>
                         {t('nav.settings')}
                     </h2>
@@ -56,120 +63,125 @@ const Settings: React.FC<SettingsProps> = ({
 
             {/* General Settings */}
             <div className="space-y-2">
-                <h3 className="px-10 text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('settings.group.general')}</h3>
-                <div className="mx-6 md:mx-10 w-auto p-4 rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] space-y-3 transition-colors duration-300">
-                    <CustomSelect
-                        icon={<Languages className="text-[var(--color-m3-primary)] dark:text-teal-400" size={20} />}
-                        label={t('drawer.lang')}
-                        value={lang}
-                        onChange={(val) => setLang(val as Lang)}
-                        options={languageOptions}
-                    />
-
-                    <div className="pt-3 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.general')}</h3>
+                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
+                    <div className="p-4">
                         <CustomSelect
-                            icon={<Palette className="text-[var(--color-m3-primary)] dark:text-teal-400" size={20} />}
+                            icon={<Languages className="text-emerald-500 dark:text-emerald-400" size={18} />}
+                            label={t('drawer.lang')}
+                            value={lang}
+                            onChange={(val) => setLang(val as Lang)}
+                            options={languageOptions}
+                        />
+                    </div>
+
+                    <div className="p-4">
+                        <CustomSelect
+                            icon={<Palette className="text-emerald-500 dark:text-emerald-400" size={18} />}
                             label={t('settings.theme')}
                             value={theme}
                             onChange={(val) => setTheme(val as 'light' | 'dark' | 'system')}
                             options={[
-                                { value: 'light', label: t('theme.light'), icon: <Sun size={20} className="text-amber-500" /> },
-                                { value: 'dark', label: t('theme.dark'), icon: <Moon size={20} className="text-indigo-400" /> },
-                                { value: 'system', label: t('theme.system'), icon: <Monitor size={20} className="text-[var(--color-m3-on-surface-variant)]" /> },
+                                { value: 'light', label: t('theme.light'), icon: <Sun size={18} className="text-amber-500" /> },
+                                { value: 'dark', label: t('theme.dark'), icon: <Moon size={18} className="text-indigo-400" /> },
+                                { value: 'system', label: t('theme.system'), icon: <Monitor size={18} className="text-gray-500" /> },
                             ]}
                         />
                     </div>
 
-                    <div className="pt-3 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                        <button
-                            onClick={() => setIsWeightModalOpen(true)}
-                            className="w-full flex items-center justify-between group"
-                        >
-                            <div className="flex items-center gap-3">
-
-                                <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('status.weight')}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{weight} kg</span>
-                            </div>
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setIsWeightModalOpen(true)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Scale className="text-emerald-500 dark:text-emerald-400" size={18} />
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('status.weight')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">{weight} kg</span>
+                        </div>
+                    </button>
                 </div>
             </div>
 
             {/* Data Management */}
             <div className="space-y-2">
-                <h3 className="px-10 text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('settings.group.data')}</h3>
-                <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-outline-variant)] overflow-hidden transition-colors duration-300">
-                    <button
-                        onClick={onSaveDosages}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
-                    >
-                        <div className="p-1.5">
-                            <Upload className="text-[var(--color-m3-accent)] dark:text-rose-400" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('export.title')}</p>
-                        </div>
-                    </button>
+                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.data')}</h3>
+                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
+                    <div>
+                        <button
+                            onClick={() => setOpenDataMenu(openDataMenu === 'export' ? null : 'export')}
+                            className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Upload className="text-emerald-500 dark:text-emerald-400" size={18} />
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{t('export.title')}</span>
+                            </div>
+                            <ChevronDown
+                                size={16}
+                                className={`text-gray-400 transition-transform ${openDataMenu === 'export' ? 'rotate-180' : ''}`}
+                            />
+                        </button>
 
-                    <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
-                    >
-                        <div className="p-1.5">
-                            <Download className="text-[var(--color-m3-primary)] dark:text-teal-400" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('import.title')}</p>
-                        </div>
-                    </button>
+                        {openDataMenu === 'export' && (
+                            <div className="px-4 pb-3">
+                                <ExportSection 
+                                    events={events}
+                                    labResults={labResults}
+                                    weight={weight}
+                                    onExport={onExport}
+                                />
+                            </div>
+                        )}
+                    </div>
 
-                    <button
-                        onClick={onQuickExport}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
-                    >
-                        <div className="p-1.5">
-                            <Copy className="text-blue-500 dark:text-blue-400" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.export_quick')}</p>
-                        </div>
-                    </button>
+                    <div>
+                        <button
+                            onClick={() => setOpenDataMenu(openDataMenu === 'import' ? null : 'import')}
+                            className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Download className="text-violet-500 dark:text-violet-400" size={18} />
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{t('import.title')}</span>
+                            </div>
+                            <ChevronDown
+                                size={16}
+                                className={`text-gray-400 transition-transform ${openDataMenu === 'import' ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+
+                        {openDataMenu === 'import' && (
+                            <div className="px-4 pb-3">
+                                <ImportSection onImportJson={onImportJson} />
+                            </div>
+                        )}
+                    </div>
 
                     <button
                         onClick={onClearAllEvents}
                         disabled={!events.length}
-                        className={`w-full flex items-center gap-3 px-6 py-4 text-start transition m3-state-layer ${events.length ? 'hover:bg-red-50/50 dark:hover:bg-red-900/10' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]/50 cursor-not-allowed opacity-60'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-4 text-start transition-colors ${events.length ? 'hover:bg-red-50 dark:hover:bg-red-900/10 text-gray-900 dark:text-gray-100' : 'bg-gray-50 dark:bg-neutral-800/50 cursor-not-allowed opacity-60 text-gray-500'}`}
                     >
-                        <div className="p-1.5">
-                            <Trash2 className="text-red-400" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.clear')}</p>
-                        </div>
+                        <Trash2 className="text-red-500" size={18} />
+                        <span className="font-semibold">{t('drawer.clear')}</span>
                     </button>
                 </div>
             </div>
 
             {/* About */}
             <div className="space-y-2">
-                <h3 className="px-10 text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('settings.group.about')}</h3>
-                <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-outline-variant)] overflow-hidden transition-colors duration-300">
+                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.about')}</h3>
+                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
                     <button
                         onClick={() => {
                             showDialog('confirm', t('drawer.model_confirm'), () => {
                                 window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank');
                             });
                         }}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
+                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                     >
-                        <div className="p-1.5">
-                            <Info className="text-violet-500 dark:text-violet-400" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.model_title')}</p>
-                        </div>
+                        <Info className="text-violet-500 dark:text-violet-400" size={18} />
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.model_title')}</span>
                     </button>
 
                     <button
@@ -178,33 +190,25 @@ const Settings: React.FC<SettingsProps> = ({
                                 window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank');
                             });
                         }}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
+                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                     >
-                        <div className="p-1.5">
-                            <Github className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.github')}</p>
-                        </div>
+                        <Github className="text-gray-600 dark:text-gray-400" size={18} />
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.github')}</span>
                     </button>
 
                     <button
                         onClick={() => setIsDisclaimerOpen(true)}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition text-start m3-state-layer"
+                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                     >
-                        <div className="p-1.5">
-                            <AlertTriangle className="text-amber-500" size={18} />
-                        </div>
-                        <div className="text-start">
-                            <p className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('drawer.disclaimer')}</p>
-                        </div>
+                        <AlertTriangle className="text-amber-500" size={18} />
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.disclaimer')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Version Footer */}
             <div className="pt-4 pb-6 flex justify-center">
-                <p className="text-xs font-bold text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]">
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">
                     {appVersion}
                 </p>
             </div>

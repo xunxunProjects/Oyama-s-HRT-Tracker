@@ -45,7 +45,7 @@ const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
                             inputMode="decimal"
                             value={weightStr}
                             onChange={(e) => setWeightStr(e.target.value)}
-                            className="font-display text-4xl font-black text-[var(--color-m3-primary)] dark:text-teal-400 tabular-nums w-36 text-center bg-transparent border-b-2 border-[var(--color-m3-primary-container)] dark:border-teal-900/50 focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none transition-colors pb-1"
+                            className="font-display text-4xl font-black text-[var(--color-m3-primary)] dark:text-teal-400 tabular-nums w-36 text-center bg-transparent border-b-2 border-[var(--color-m3-primary-container)] dark:border-teal-900/50 focus:border-[var(--color-m3-primary)] dark:focus:border-emerald-500 outline-none transition-colors pb-1"
                             placeholder="0.0"
                             autoFocus
                         />

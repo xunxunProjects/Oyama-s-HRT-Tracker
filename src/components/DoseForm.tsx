@@ -7,13 +7,12 @@ import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
 import { getRouteIcon, formatDate, formatTime, getEsterIcon } from '../utils/helpers';
 import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
-import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import InjectionFields from './dose_form/InjectionFields';
 import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
 import GelFields from './dose_form/GelFields';
 import PatchFields from './dose_form/PatchFields';
-import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 
 export interface DoseTemplate {
     id: string;
@@ -127,20 +126,20 @@ interface DoseFormProps {
     templates: DoseTemplate[];
     onSaveTemplate: (template: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
-    quickDoses?: QuickDose[];
-    onAddQuickDose?: (dose: QuickDose) => void;
-    onDeleteQuickDose?: (id: string) => void;
     isInline?: boolean;
+    hideHeader?: boolean;
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, quickDoses = [], onAddQuickDose, onDeleteQuickDose, isInline = false }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const dateInputRef = useRef<HTMLInputElement>(null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
-    const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+    const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
     const [templateName, setTemplateName] = useState('');
 
     // Form State
@@ -333,7 +332,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }
 
         onSaveTemplate(template);
-        setShowSaveTemplateDialog(false);
+        setShowSaveTemplateInput(false);
         setTemplateName('');
         showDialog('alert', t('template.saved'));
     };
@@ -514,175 +513,43 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : "";
 
     return (
-        <div className={`flex flex-col h-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] transition-colors duration-300 ${isInline ? 'rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-1)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]' : ''}`}>
+        <div className={`flex flex-col h-full bg-white dark:bg-neutral-900 transition-colors duration-300 ${isInline && !hideHeader ? 'border flex-1 border-gray-200 dark:border-neutral-800' : ''}`}>
 
             {/* Save Template Dialog Overlay */}
-            {showSaveTemplateDialog && createPortal(
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] transition-all duration-300">
-                    <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] p-6 w-full max-w-sm mx-4 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] animate-m3-decelerate">
-                        <h4 className="font-display text-lg font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-4">{t('template.save_title')}</h4>
-                        <input
-                            type="text"
-                            value={templateName}
-                            onChange={(e) => setTemplateName(e.target.value)}
-                            placeholder={t('template.name_placeholder')}
-                            className="w-full p-3 border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] outline-none mb-4 placeholder-[var(--color-m3-outline)]"
-                            autoFocus
-                        />
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => { setShowSaveTemplateDialog(false); setTemplateName(''); }}
-                                className="flex-1 px-4 py-2 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] font-bold transition-colors"
-                            >
-                                {t('btn.cancel')}
-                            </button>
-                            <button
-                                onClick={handleSaveAsTemplate}
-                                className="flex-1 px-4 py-2 bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] font-bold shadow-[var(--shadow-m3-1)] transition-colors"
-                            >
-                                {t('btn.save')}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            {/* Save Template Dialog Overlay (Removed) */}
 
             {/* Header */}
-            {!isInline && (
-                <div className="p-6 md:p-8 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] shrink-0 transition-colors duration-300">
-                    <h3 className="font-display text-xl font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+            {!isInline && !hideHeader && (
+                <div className="p-5 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center shrink-0 transition-colors duration-300 bg-white dark:bg-neutral-900">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2">
-                        {/* Templates Button */}
-                        {!eventToEdit && templates.length > 0 && (
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                                    className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-[var(--radius-full)] hover:bg-amber-100 dark:hover:bg-amber-900/40 transition border border-amber-100 dark:border-amber-900/30"
-                                    title={t('template.load_title')}
-                                >
-                                    <Bookmark size={20} className="text-amber-600 dark:text-amber-500" />
-                                </button>
-                                {showTemplateMenu && (
-                                    <div className="absolute right-0 top-12 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-lg)] shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] w-64 max-h-80 overflow-y-auto z-20">
-                                        <div className="p-2">
-                                            {templates.map((template: DoseTemplate) => (
-                                                <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)]">
-                                                    <button
-                                                        onClick={() => handleLoadTemplate(template)}
-                                                        className="flex-1 text-start"
-                                                    >
-                                                        <div className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{template.name}</div>
-                                                        <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1">
-                                                            {t(`route.${template.route}`)} · {t(`ester.${template.ester}`)} · {template.doseMG.toFixed(2)} mg
-                                                        </div>
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            showDialog('confirm', t('template.delete_confirm'), () => {
-                                                                onDeleteTemplate(template.id);
-                                                            });
-                                                        }}
-                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[var(--radius-sm)] transition"
-                                                    >
-                                                        <Trash2 size={14} className="text-red-500" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <button onClick={onCancel} className="p-2 bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-highest)] transition">
-                            <X size={20} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
+                        <button onClick={onCancel} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded transition">
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
             )}
 
             {/* Inline Header (Simpler) */}
-            {isInline && (
-                <div className="p-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-t-[var(--radius-xl)]">
-                    <h3 className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] px-2">
+            {isInline && !hideHeader && (
+                <div className="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center bg-gray-50/50 dark:bg-neutral-900">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 px-2">
                         {t('timeline.add_title')}
                     </h3>
-                    <div className="flex gap-2">
-                        {!eventToEdit && templates.length > 0 && (
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                                    className="p-2.5 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface-variant)] hover:text-amber-500"
-                                >
-                                    <Bookmark size={20} />
-                                </button>
-                                {showTemplateMenu && (
-                                    <div className="absolute right-0 top-12 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-lg)] shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] w-72 max-h-80 overflow-y-auto z-20 p-2">
-                                        {templates.map((template: DoseTemplate) => (
-                                            <div key={template.id} className="group flex items-center justify-between p-3 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] transition-colors">
-                                                <button
-                                                    onClick={() => handleLoadTemplate(template)}
-                                                    className="flex-1 text-start"
-                                                >
-                                                    <div className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{template.name}</div>
-                                                    <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5 font-medium">
-                                                        {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        showDialog('confirm', t('template.delete_confirm'), () => {
-                                                            onDeleteTemplate(template.id);
-                                                        });
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 p-2 text-[var(--color-m3-on-surface-variant)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[var(--radius-full)] transition-all"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                    </div>
                 </div>
             )}
 
-            <div className={`space-y-4 flex-1 overflow-y-auto ${isInline ? 'p-4' : 'p-5'}`}>
+            <div className={`space-y-4 flex-1 overflow-y-auto ${isInline ? 'p-4' : 'p-5'} ${hideHeader ? '!p-2' : ''}`}>
                 {/* Time */}
-                <div className="space-y-3 relative">
-                    <label className="block text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider pl-1">{t('field.time')}</label>
-                    <div
-                        className="relative bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] rounded-[var(--radius-md)] p-3 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)] dark:hover:border-teal-400 transition-all cursor-pointer group"
-                        onClick={() => setIsDatePickerOpen(true)}
-                    >
-                        <div className="flex items-center justify-between pointer-events-none">
-                            <span className="text-lg font-bold font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] group-hover:text-[var(--color-m3-primary)] dark:group-hover:text-teal-400 transition-colors">
-                                {formatDate(new Date(dateStr), lang)} <span className="text-base text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ml-2">{formatTime(new Date(dateStr))}</span>
-                            </span>
-                            <Calendar size={18} className="text-[var(--color-m3-on-surface-variant)] group-hover:text-[var(--color-m3-primary)] dark:group-hover:text-teal-400 transition-colors" />
-                        </div>
-                    </div>
-
-                    <DateTimePicker
-                        isOpen={isDatePickerOpen}
-                        onClose={() => setIsDatePickerOpen(false)}
-                        initialDate={new Date(dateStr)}
-                        onConfirm={(d) => {
-                            const year = d.getFullYear();
-                            const month = String(d.getMonth() + 1).padStart(2, '0');
-                            const day = String(d.getDate()).padStart(2, '0');
-                            const hours = String(d.getHours()).padStart(2, '0');
-                            const mins = String(d.getMinutes()).padStart(2, '0');
-                            setDateStr(`${year}-${month}-${day}T${hours}:${mins}`);
-                            setIsDatePickerOpen(false);
-                        }}
+                <div className="space-y-1.5 relative">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.time')}</label>
+                    <input
+                        type="datetime-local"
+                        value={dateStr}
+                        onChange={(e) => setDateStr(e.target.value)}
+                        className="w-full bg-white dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:focus:border-teal-500 outline-none transition-colors text-sm font-medium text-gray-900 dark:text-gray-100"
                     />
                 </div>
 
@@ -733,17 +600,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     lastEditedField={lastEditedField}
                                 />
                             )}
-                            {route === Route.injection && onAddQuickDose && onDeleteQuickDose && (
-                                <QuickDoseButtons
-                                    route={route}
-                                    ester={ester}
-                                    quickDoses={quickDoses}
-                                    currentDose={rawDose}
-                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
-                                    onAddQuickDose={onAddQuickDose}
-                                    onDeleteQuickDose={onDeleteQuickDose}
-                                />
-                            )}
 
                             {route === Route.oral && (
                                 <OralFields
@@ -755,17 +611,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     isInitializing={isInitializingRef.current}
                                     route={route}
                                     lastEditedField={lastEditedField}
-                                />
-                            )}
-                            {route === Route.oral && onAddQuickDose && onDeleteQuickDose && (
-                                <QuickDoseButtons
-                                    route={route}
-                                    ester={ester}
-                                    quickDoses={quickDoses}
-                                    currentDose={rawDose}
-                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
-                                    onAddQuickDose={onAddQuickDose}
-                                    onDeleteQuickDose={onDeleteQuickDose}
                                 />
                             )}
 
@@ -791,17 +636,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     lastEditedField={lastEditedField}
                                 />
                             )}
-                            {route === Route.sublingual && onAddQuickDose && onDeleteQuickDose && (
-                                <QuickDoseButtons
-                                    route={route}
-                                    ester={ester}
-                                    quickDoses={quickDoses}
-                                    currentDose={rawDose}
-                                    onSelectDose={(val) => handleRawChange(val.toFixed(3))}
-                                    onAddQuickDose={onAddQuickDose}
-                                    onDeleteQuickDose={onDeleteQuickDose}
-                                />
-                            )}
 
                             {route === Route.gel && (
                                 <GelFields
@@ -809,17 +643,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setGelSite={setGelSite}
                                     e2Dose={e2Dose}
                                     onE2Change={handleE2Change}
-                                />
-                            )}
-                            {route === Route.gel && onAddQuickDose && onDeleteQuickDose && (
-                                <QuickDoseButtons
-                                    route={route}
-                                    ester={ester}
-                                    quickDoses={quickDoses}
-                                    currentDose={e2Dose}
-                                    onSelectDose={(val) => handleE2Change(val.toFixed(3))}
-                                    onAddQuickDose={onAddQuickDose}
-                                    onDeleteQuickDose={onDeleteQuickDose}
                                 />
                             )}
 
@@ -832,24 +655,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     rawDose={rawDose}
                                     onRawChange={handleRawChange}
                                     route={route}
-                                />
-                            )}
-                            {route === Route.patchApply && onAddQuickDose && onDeleteQuickDose && (
-                                <QuickDoseButtons
-                                    route={route}
-                                    ester={ester}
-                                    quickDoses={quickDoses}
-                                    currentDose={patchMode === 'rate' ? patchRate : rawDose}
-                                    onSelectDose={(val) => {
-                                        if (patchMode === 'rate') {
-                                            setPatchRate(val.toString());
-                                        } else {
-                                            handleRawChange(val.toFixed(3));
-                                        }
-                                    }}
-                                    onAddQuickDose={onAddQuickDose}
-                                    onDeleteQuickDose={onDeleteQuickDose}
-                                    unit={patchMode === 'rate' ? 'µg/d' : 'mg'}
                                 />
                             )}
                         </div>
@@ -971,30 +776,164 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             </div>
 
             {/* Footer Buttons */}
-            <div className={`px-3 py-2.5 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] flex justify-between items-center shrink-0 transition-colors duration-300 ${isInline ? 'rounded-b-[var(--radius-xl)]' : ''}`}>
-                <button
-                    onClick={() => setShowSaveTemplateDialog(true)}
-                    className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-primary)] dark:hover:text-teal-400 hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-teal-900/20 rounded-[var(--radius-full)] transition-all flex items-center gap-1.5 text-xs font-bold"
-                >
-                    <Bookmark size={16} />
-                </button>
-                {eventToEdit && (
-                    <button
-                        onClick={() => {
-                            onDelete(eventToEdit.id);
-                            onCancel();
-                        }}
-                        className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[var(--radius-full)] transition-all"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                )}
+            <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex justify-between items-center shrink-0 transition-colors duration-300 ${hideHeader ? '!p-2 !border-t-0 !bg-transparent' : ''}`}>
+                <div className="flex gap-2 items-center flex-wrap h-10">
+                    
+                    {/* Load Template Section */}
+                    {templates.length > 0 && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                                className="p-2 text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-transparent rounded transition-colors flex items-center justify-center"
+                                title={t('template.load_title')}
+                            >
+                                <Bookmark size={18} />
+                            </button>
+                            {showTemplateMenu && (
+                                <div className="absolute left-0 bottom-full mb-2 bg-white dark:bg-neutral-900 rounded shadow-lg border border-gray-200 dark:border-neutral-800 w-64 max-h-64 overflow-y-auto z-50">
+                                    <div className="p-2">
+                                        {templates.map((template: DoseTemplate) => (
+                                            <div key={template.id} className="group flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-md transition-colors">
+                                                <button
+                                                    onClick={() => { handleLoadTemplate(template); setShowTemplateMenu(false); }}
+                                                    className="flex-1 text-left"
+                                                >
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{template.name}</div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                        {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
+                                                    </div>
+                                                </button>
+                                                {templateToDelete === template.id ? (
+                                                    <div className="flex items-center space-x-1 pl-2" onClick={(e) => e.stopPropagation()}>
+                                                        <button onClick={() => { setTemplateToDelete(null); setShowTemplateMenu(false); onDeleteTemplate(template.id); }} className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title={t('btn.confirm')}>
+                                                            <Check size={14} />
+                                                        </button>
+                                                        <button onClick={() => setTemplateToDelete(null)} className="p-1 text-gray-500 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded" title={t('btn.cancel')}>
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setTemplateToDelete(template.id);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 rounded transition"
+                                                        title={t('btn.delete')}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                <div className="flex gap-2 ml-auto">
+                    {/* Template Save Section */}
+                    <div className="flex items-center">
+                        <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
+                            showSaveTemplateInput ? 'w-48 sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
+                        }`}>
+                            <input
+                                type="text"
+                                value={templateName}
+                                onChange={(e) => setTemplateName(e.target.value)}
+                                placeholder={t('template.name_placeholder')}
+                                className="w-32 sm:w-36 px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100"
+                            />
+                            <button
+                                onClick={handleSaveAsTemplate}
+                                className="p-1.5 ml-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded shrink-0 transition-colors"
+                            >
+                                <Check size={18} />
+                            </button>
+                            <button
+                                onClick={() => { setShowSaveTemplateInput(false); setTemplateName(''); }}
+                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded shrink-0 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        
+                        <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                            showSaveTemplateInput ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
+                        }`}>
+                            <button
+                                onClick={() => {
+                                    setShowSaveTemplateInput(true);
+                                    setShowDeleteConfirm(false);
+                                    setShowTemplateMenu(false);
+                                }}
+                                className="p-2 text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 border border-transparent rounded transition-colors flex items-center justify-center"
+                                title={t('template.save_title')}
+                            >
+                                <BookmarkPlus size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Delete Event Section (Only when editing) */}
+                    {eventToEdit && (
+                        <div className="flex items-center">
+                            <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
+                                showDeleteConfirm ? 'w-36 sm:w-40 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded opacity-100 pl-3 pr-1 py-1' : 'w-0 opacity-0 border border-transparent'
+                            }`}>
+                                <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap grow">{t('dialog.confirm_title')}?</span>
+                                <div className="flex items-center shrink-0 ml-2">
+                                    <button
+                                        onClick={() => {
+                                            onDelete(eventToEdit.id);
+                                            onCancel();
+                                        }}
+                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
+                                        title={t('btn.ok')}
+                                    >
+                                        <Check size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        className="p-1 text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                        title={t('btn.cancel')}
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                                showDeleteConfirm ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
+                            }`}>
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteConfirm(true);
+                                        setShowSaveTemplateInput(false);
+                                        setShowTemplateMenu(false);
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-red-500 border border-transparent rounded transition-colors flex items-center justify-center"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex gap-2 ml-auto shrink-0">
+                    {hideHeader && (
+                        <button
+                            onClick={onCancel}
+                            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded text-sm transition-colors"
+                        >
+                            {t('btn.cancel')}
+                        </button>
+                    )}
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="px-5 py-2.5 bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] font-bold text-sm transition-all disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-[var(--shadow-m3-1)]"
+                        className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
                     >
                         {isSaving ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

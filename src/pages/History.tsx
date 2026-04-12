@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Activity, Plus } from 'lucide-react';
 import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor } from '../../logic';
 import { formatTime, getRouteIcon } from '../utils/helpers';
@@ -37,38 +37,39 @@ const History: React.FC<HistoryProps> = ({
     groupedEvents,
     onEditEvent
 }) => {
+    const [editingId, setEditingId] = useState<string | null>(null);
+
     return (
         <div className="relative space-y-6 pt-6 pb-24">
-            <div className="px-6 md:px-10">
-                <div className="w-full p-5 rounded-[var(--radius-xl)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-between shadow-[var(--shadow-m3-1)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] transition-all duration-300 m3-surface-tint">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 rounded-[var(--radius-lg)] text-[var(--color-m3-accent-light)]">
-                            <Activity size={24} />
+            <div className="px-6 md:px-8">
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-500 dark:text-pink-400 rounded-lg">
+                            <Activity size={20} />
                         </div>
                         <div>
-                            <h2 className="font-display text-lg font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight leading-tight">
+                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                                 {t('timeline.title')}
                             </h2>
-                            <p className="text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 {(Object.values(groupedEvents) as DoseEvent[][]).reduce((acc, curr) => acc + curr.length, 0)} {t('timeline.records')}
                             </p>
                         </div>
                     </div>
-                    {/* M3 FAB Small */}
                     <button
                         onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                        className={`inline-flex items-center justify-center w-11 h-11 rounded-[var(--radius-lg)] shadow-[var(--shadow-m3-2)] transition-all duration-500 m3-state-layer ${isQuickAddOpen
-                            ? 'bg-[var(--color-m3-surface-container-highest)] dark:bg-[var(--color-m3-dark-surface-container-highest)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] rotate-45'
-                            : 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40 text-[var(--color-m3-primary)] dark:text-teal-400 hover:shadow-[var(--shadow-m3-3)]'
+                        className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddOpen
+                            ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
+                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
                             }`}
                     >
-                        <Plus size={20} strokeWidth={2.5} />
+                        <Plus size={18} />
                     </button>
                 </div>
             </div>
 
             {isQuickAddOpen && (
-                <div className="mx-6 md:mx-10 mb-6 animate-m3-container">
+                <div className="mx-4 md:mx-8 mb-6">
                     <DoseForm
                         eventToEdit={null}
                         onSave={(e) => {
@@ -80,7 +81,6 @@ const History: React.FC<HistoryProps> = ({
                         templates={doseTemplates}
                         onSaveTemplate={onSaveTemplate}
                         onDeleteTemplate={onDeleteTemplate}
-                        quickDoses={quickDoses}
                         onAddQuickDose={onAddQuickDose}
                         onDeleteQuickDose={onDeleteQuickDose}
                         isInline={true}
@@ -89,62 +89,86 @@ const History: React.FC<HistoryProps> = ({
             )}
 
             {Object.keys(groupedEvents).length === 0 && (
-                <div className="mx-6 md:mx-10 text-center py-20 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-dashed border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] transition-colors">
-                    <p className="font-semibold">{t('timeline.empty')}</p>
+                <div className="mx-6 md:mx-8 text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
+                    <p className="text-sm font-medium">{t('timeline.empty')}</p>
                 </div>
             )}
 
-            <div className="mx-6 md:mx-10 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] overflow-hidden transition-colors duration-300">
+            <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden text-sm">
                 {Object.entries(groupedEvents).map(([date, items], index) => (
-                    <div key={date} className={`${index !== 0 ? 'border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]' : ''}`}>
-                        <div className="sticky top-0 bg-[var(--color-m3-surface-container-low)]/95 dark:bg-[var(--color-m3-dark-surface-container)]/95 backdrop-blur-sm py-3 px-6 z-10 flex items-center gap-2 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] transition-colors">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400" />
-                            <span className="text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{date}</span>
+                    <div key={date} className={`${index !== 0 ? 'border-t border-gray-200 dark:border-neutral-800' : ''}`}>
+                        <div className="sticky top-0 bg-gray-50/95 dark:bg-neutral-900/95 backdrop-blur-sm py-2 px-5 z-10 flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800">
+                            <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{date}</span>
                         </div>
-                        <div className="divide-y divide-[var(--color-m3-surface-container)] dark:divide-[var(--color-m3-dark-surface-container-high)]/50">
+                        <div className="divide-y divide-gray-100 dark:divide-neutral-800">
                             {(items as DoseEvent[]).map(ev => (
-                                <div
-                                    key={ev.id}
-                                    onClick={() => onEditEvent(ev)}
-                                    className="p-4 md:p-5 flex items-center gap-4 md:gap-5 hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]/50 transition-all cursor-pointer group"
-                                >
-                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-[var(--radius-full)] flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105 ${ev.route === Route.injection
-                                        ? 'bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 text-[var(--color-m3-accent)] dark:text-rose-400'
-                                        : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
-                                        }`}>
-                                        {getRouteIcon(ev.route)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm truncate">
-                                                {ev.route === Route.patchRemove ? t('route.patchRemove') : t(`ester.${ev.ester}`)}
-                                            </span>
-                                            <span className="font-mono text-[10px] font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                                {formatTime(new Date(ev.timeH * 3600000))}
-                                            </span>
+                                <div key={ev.id} className={`flex flex-col ${editingId === ev.id ? 'bg-gray-50/30 dark:bg-neutral-800/30 border-y border-teal-100 dark:border-teal-900/30 first:border-t-0' : ''}`}>
+                                    <div
+                                        onClick={() => setEditingId(editingId === ev.id ? null : ev.id)}
+                                        className={`p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group ${editingId === ev.id ? 'pb-2' : ''}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${ev.route === Route.injection
+                                            ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400'
+                                            : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400'
+                                            }`}>
+                                            {getRouteIcon(ev.route)}
                                         </div>
-                                        <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="truncate">{t(`route.${ev.route}`)}</span>
-                                                {ev.extras[ExtraKey.releaseRateUGPerDay] && (
-                                                    <>
-                                                        <span className="text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]">•</span>
-                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{`${ev.extras[ExtraKey.releaseRateUGPerDay]} µg/d`}</span>
-                                                    </>
-                                                )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <span className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm">
+                                                    {ev.route === Route.patchRemove ? t('route.patchRemove') : t(`ester.${ev.ester}`)}
+                                                </span>
+                                                <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                                                    {formatTime(new Date(ev.timeH * 3600000))}
+                                                </span>
                                             </div>
-                                            {ev.route !== Route.patchRemove && !ev.extras[ExtraKey.releaseRateUGPerDay] && (
-                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                                                    <span>{`${ev.doseMG.toFixed(2)} mg`}</span>
-                                                    {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && (
-                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-[10px]">
-                                                            {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
-                                                        </span>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="truncate">{t(`route.${ev.route}`)}</span>
+                                                    {ev.extras[ExtraKey.releaseRateUGPerDay] && (
+                                                        <>
+                                                            <span className="text-gray-300 dark:text-neutral-600">•</span>
+                                                            <span className="text-gray-700 dark:text-gray-300">{`${ev.extras[ExtraKey.releaseRateUGPerDay]} µg/d`}</span>
+                                                        </>
                                                     )}
                                                 </div>
-                                            )}
+                                                {ev.route !== Route.patchRemove && !ev.extras[ExtraKey.releaseRateUGPerDay] && (
+                                                    <div className="flex flex-wrap items-baseline gap-x-2 text-gray-700 dark:text-gray-300">
+                                                        <span className="font-semibold">{`${ev.doseMG.toFixed(2)} mg`}</span>
+                                                        {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && (
+                                                            <span className="text-gray-400 dark:text-gray-500 text-[10px] lowercase font-normal">
+                                                                {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {editingId === ev.id && (
+                                        <div className="px-4 pb-4">
+                                            <DoseForm
+                                                eventToEdit={ev}
+                                                onSave={(e) => {
+                                                    onSaveEvent(e);
+                                                    setEditingId(null);
+                                                }}
+                                                onCancel={() => setEditingId(null)}
+                                                onDelete={(id) => {
+                                                    onDeleteEvent(id);
+                                                    setEditingId(null);
+                                                }}
+                                                templates={doseTemplates}
+                                                onSaveTemplate={onSaveTemplate}
+                                                onDeleteTemplate={onDeleteTemplate}
+                                                onAddQuickDose={onAddQuickDose}
+                                                onDeleteQuickDose={onDeleteQuickDose}
+                                                isInline={true}
+                                                hideHeader={true}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
