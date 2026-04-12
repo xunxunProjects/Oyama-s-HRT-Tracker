@@ -777,7 +777,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
             {/* Footer Buttons */}
             <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex justify-between items-center shrink-0 transition-colors duration-300 ${hideHeader ? '!p-2 !border-t-0 !bg-transparent' : ''}`}>
-                <div className="flex gap-2 items-center flex-wrap h-10">
+                <div className="flex gap-2 items-center flex-wrap min-h-10">
                     
                     {/* Load Template Section */}
                     {templates.length > 0 && (
