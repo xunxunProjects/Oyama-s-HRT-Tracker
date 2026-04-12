@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
-import Ripple from './Ripple';
 
 interface Option {
     value: string;
@@ -117,7 +116,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-teal-400 rounded-t-[var(--radius-md)]'
                             : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-on-surface)] dark:hover:border-[var(--color-m3-dark-on-surface)] rounded-[var(--radius-md)]'}`}
                 >
-                    <Ripple />
                     {icon ? (
                         <>
                             <div className="flex items-center gap-3">
@@ -155,7 +153,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                         ? 'bg-[var(--color-m3-secondary-container)] dark:bg-teal-900/40 text-[var(--color-m3-on-secondary-container)] dark:text-teal-200 font-bold'
                                         : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'}`}
                             >
-                                <Ripple />
                                 {opt.icon && <div className={`${opt.value === value ? 'text-inherit' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'}`}>{opt.icon}</div>}
                                 <span className="flex-1 text-sm">{opt.label}</span>
                                 {opt.value === value && (

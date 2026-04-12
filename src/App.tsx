@@ -28,7 +28,6 @@ import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReloadPrompt from './components/ReloadPrompt';
-import Ripple from './components/Ripple';
 
 import { cloudService } from './services/cloud';
 
@@ -311,9 +310,6 @@ const AppContent = () => {
                 navItems={navItems}
                 currentView={currentView}
                 onViewChange={handleViewChange}
-                currentTime={currentTime}
-                lang={lang}
-                t={t}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative transition-colors duration-300">
 
@@ -418,34 +414,36 @@ const AppContent = () => {
                 </div>
 
                 {/* Bottom Navigation - M3 Navigation Bar */}
-                <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-transparent z-40 safe-area-pb md:hidden pointer-events-none">
-                    <div className="w-full pointer-events-auto bg-[var(--color-m3-surface-container-lowest)]/85 dark:bg-[var(--color-m3-dark-surface-container)]/85 backdrop-blur-2xl backdrop-saturate-150 border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-3)] rounded-[var(--radius-xl)] px-1 py-1.5 flex items-center justify-around gap-0.5 transition-all duration-300">
+                <nav className="fixed bottom-0 left-0 right-0 z-40 safe-area-pb md:hidden">
+                    <div className="w-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center transition-all duration-300">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             const isActive = currentView === id;
                             return (
                                 <button
                                     key={id}
                                     onClick={() => handleViewChange(id as ViewKey)}
-                                    className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all duration-500 rounded-[var(--radius-xl)] relative m3-state-layer overflow-hidden"
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1.5 pt-3 pb-2 transition-colors duration-300 relative group
+                                        ${isActive
+                                            ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
+                                        }`}
                                 >
-                                    <Ripple />
-                                    <div className={`px-5 py-1.5 rounded-[var(--radius-full)] transition-all duration-500 z-10 ${isActive
-                                        ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40'
-                                        : 'bg-transparent'
-                                        }`}>
+                                    {/* Active indicator underline */}
+                                    <span 
+                                        className={`absolute bottom-0 left-0 w-full h-[2px] bg-current transition-opacity duration-300 ease-out
+                                            ${isActive 
+                                                ? 'opacity-100' 
+                                                : 'opacity-0'
+                                            }`}
+                                    />
+                                    
+                                    <span className="z-10">
                                         <Icon
-                                            size={20}
-                                            strokeWidth={isActive ? 2.5 : 1.8}
-                                            className={`transition-all duration-300 ${isActive
-                                                ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
-                                                : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
-                                                }`}
+                                            size={22}
+                                            strokeWidth={isActive ? 2.5 : 2}
                                         />
-                                    </div>
-                                    <span className={`text-[10px] font-semibold tracking-tight transition-all duration-300 z-10 ${isActive
-                                        ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
-                                        : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
-                                        }`}>
+                                    </span>
+                                    <span className="text-[10px] font-medium tracking-tight z-10">
                                         {label}
                                     </span>
                                 </button>

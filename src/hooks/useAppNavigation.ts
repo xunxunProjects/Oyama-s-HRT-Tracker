@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
+import { Activity, ListTodo, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 
 export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin';
@@ -33,7 +33,7 @@ export const useAppNavigation = (user: any) => {
     // --- Derived Data ---
     const navItems = [
         { id: 'home', label: t('nav.home'), icon: Activity },
-        { id: 'history', label: t('nav.history'), icon: Calendar },
+        { id: 'history', label: t('nav.history'), icon: ListTodo },
         { id: 'lab', label: t('nav.lab'), icon: FlaskConical },
         { id: 'settings', label: t('nav.settings'), icon: SettingsIcon },
         { id: 'account', label: t('nav.account'), icon: UserCircle },

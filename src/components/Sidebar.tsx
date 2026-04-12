@@ -1,6 +1,4 @@
 import React from 'react';
-import { formatDate, formatTime } from '../utils/helpers';
-import { Lang } from '../i18n/translations';
 
 interface NavItem {
     id: string;
@@ -12,20 +10,12 @@ interface SidebarProps {
     navItems: NavItem[];
     currentView: string;
     onViewChange: (view: any) => void;
-    currentTime: Date;
-    lang: Lang;
-    t: (key: string) => string;
 }
-
-import Ripple from './Ripple';
 
 const Sidebar: React.FC<SidebarProps> = ({
     navItems,
     currentView,
-    onViewChange,
-    currentTime,
-    lang,
-    t
+    onViewChange
 }) => {
     return (
         <nav className="hidden md:flex flex-col w-[280px] h-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-dim)] border-e border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shrink-0 transition-colors duration-300">
@@ -45,39 +35,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             key={item.id}
                             onClick={() => onViewChange(item.id)}
-                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[var(--radius-full)] text-sm font-semibold transition-all duration-300 group relative m3-state-layer
+                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-sm font-semibold group relative
                                 ${isActive
-                                    ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/40 text-[var(--color-m3-on-primary-container)] dark:text-teal-300'
+                                    ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
                                     : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                 }`}
                         >
-                            <Ripple />
-                            <span className={`transition-all duration-300 z-10 ${isActive ? 'text-[var(--color-m3-primary)] dark:text-teal-400 scale-110' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] group-hover:text-[var(--color-m3-on-surface)] dark:group-hover:text-[var(--color-m3-dark-on-surface)]'}`}>
+                            {/* Active indicator underline */}
+                            <span 
+                                className={`absolute bottom-0 left-4 h-[2px] bg-current transition-all duration-300 ease-out
+                                    ${isActive 
+                                        ? 'w-[calc(100%_-_32px)] opacity-100' 
+                                        : 'w-0 opacity-0'
+                                    }`}
+                            />
+                            
+                            <span className="z-10">
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                             </span>
                             <span className="tracking-tight z-10">{item.label}</span>
-                            {isActive && (
-                                <div className="ms-auto w-2 h-2 rounded-full bg-[var(--color-m3-primary)] dark:bg-teal-400 animate-m3-spring z-10" />
-                            )}
                         </button>
                     );
                 })}
-            </div>
-
-
-            {/* Time Widget */}
-            <div className="p-5 mt-auto">
-                <div className="bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <div className="flex flex-col">
-                        <span className="font-display text-3xl font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tighter leading-none select-none tabular-nums">
-                            {formatTime(currentTime)}
-                        </span>
-                        <div className="h-px w-full bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)] my-3" />
-                        <span className="text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-[0.1em] select-none">
-                            {formatDate(currentTime, lang)}
-                        </span>
-                    </div>
-                </div>
             </div>
         </nav>
     );
