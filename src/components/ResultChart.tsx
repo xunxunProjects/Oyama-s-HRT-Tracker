@@ -13,20 +13,20 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
         if (payload[0].payload.isLabResult) {
             const data = payload[0].payload;
             return (
-                <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] backdrop-blur-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-1)]">
-                    <p className="text-[10px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 flex items-center gap-1">
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
                         <FlaskConical size={10} />
                         {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                     </p>
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-base font-black text-[var(--color-m3-primary)] dark:text-pink-400 tracking-tight">
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-sm text-gray-800 dark:text-gray-200">
                             {data.originalValue}
                         </span>
-                        <span className="text-[10px] font-bold text-pink-400 dark:text-pink-600">{data.originalUnit}</span>
+                        <span className="text-[10px] text-gray-400">{data.originalUnit}</span>
                     </div>
                     {data.originalUnit === 'pmol/l' && (
-                        <div className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            ≈ {data.concE2.toFixed(1)} pg/mL
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                            ≈ {data.concE2.toFixed(1)} pg/ml
                         </div>
                     )}
                 </div>
@@ -38,26 +38,26 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
         const concCPA = dataPoint.concCPA; // Already in ng/mL
 
         return (
-            <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] backdrop-blur-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-m3-outline-variant)]/30 dark:border-[var(--color-m3-dark-outline-variant)]/30 shadow-[var(--shadow-m3-1)]">
-                <p className="text-[10px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5">
+            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
                     {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
                 </p>
                 {concE2 !== undefined && concE2 !== null && (
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-[9px] font-bold text-pink-400">{t('label.e2')}:</span>
-                        <span className="text-sm font-black text-pink-500 dark:text-pink-400 tracking-tight">
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-xs text-gray-500">{t('label.e2')}:</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-200">
                             {concE2.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-bold text-pink-300 dark:text-pink-600">pg/mL</span>
+                        <span className="text-[10px] text-gray-400">pg/ml</span>
                     </div>
                 )}
                 {concCPA !== undefined && concCPA !== null && (
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-[9px] font-bold text-purple-400">{t('label.cpa_chart')}:</span>
-                        <span className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-tight">
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                        <span className="text-xs text-gray-500">{t('label.cpa_chart')}:</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-200">
                             {concCPA.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-bold text-purple-300 dark:text-purple-600">ng/mL</span>
+                        <span className="text-[10px] text-gray-400">ng/ml</span>
                     </div>
                 )}
             </div>
@@ -272,43 +272,39 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     };
 
     if (!sim || sim.timeH.length === 0) return (
-        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-1)] p-8 transition-colors duration-300">
-            <Activity className="w-12 h-12 mb-4 text-[var(--color-m3-outline-variant)] dark:text-[var(--color-m3-dark-outline-variant)]" strokeWidth={1.5} />
-            <p className="text-sm font-medium">{t('timeline.empty')}</p>
+        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-8">
+            <Activity className="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" strokeWidth={1} />
+            <p className="text-sm">{t('timeline.empty')}</p>
         </div>
     );
 
     return (
-        <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-[var(--radius-xl)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] relative overflow-hidden flex flex-col transition-colors duration-300 shadow-[var(--shadow-m3-1)]">
-            <div className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-[var(--color-m3-outline-variant)]/50 dark:border-[var(--color-m3-dark-outline-variant)]/50">
-                <h2 className="text-sm md:text-base font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-tight flex items-center gap-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif' }}>
-                    <Activity size={20} className="text-pink-400 md:w-5 md:h-5" />
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg relative flex flex-col h-full uppercase tracking-wide">
+            <div className="flex justify-between items-center px-4 md:px-6 py-4 border-b border-gray-100 dark:border-neutral-800">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     {t('chart.title')}
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] p-1 gap-1 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                        <button
-                            onClick={() => {
-                                zoomToDuration(7);
-                            }}
-                            className="p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] rounded-[var(--radius-sm)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition-all"
-                        >
-                            <RotateCcw size={14} className="md:w-4 md:h-4" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => zoomToDuration(7)}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        title="Reset Zoom"
+                    >
+                        <RotateCcw size={14} />
+                    </button>
                 </div>
             </div>
 
             <div
                 ref={containerRef}
-                className="h-64 md:h-80 lg:h-96 w-full touch-none relative select-none px-2 pb-2">
+                className="h-64 md:h-80 lg:h-96 w-full touch-none relative select-none px-2 pb-2 mt-4">
                 {(() => {
                     const factorNow = calibrationFn(now / 3600000);
                     return Math.abs(factorNow - 1) > 0.001 ? (
-                        <div className="absolute top-3 left-4 z-10 px-2.5 py-1 rounded-lg border bg-pink-50 dark:bg-pink-900/40 border-pink-200 dark:border-pink-800 shadow-sm backdrop-blur-sm flex items-center gap-1.5 pointer-events-none opacity-90">
-                            <FlaskConical size={12} className="text-pink-600 dark:text-pink-400" />
-                            <span className="text-[10px] md:text-xs font-bold text-pink-700 dark:text-pink-300">
+                        <div className="absolute top-0 right-4 z-10 px-2 py-0.5 rounded border bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 flex items-center gap-1 opacity-80 pointer-events-none">
+                            <FlaskConical size={10} className="text-gray-400 dark:text-gray-500" />
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
                                 ×{(factorNow ?? 1).toFixed(2)}
                             </span>
                         </div>
@@ -501,14 +497,14 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             </div>
             {/* Overview mini-map with draggable handles */}
             {data.length > 1 && (
-                <div className="px-3 pb-4 mt-1">
-                    <div className="w-full h-16 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-sm)] shadow-inner overflow-hidden transition-colors duration-300">
+                <div className="px-5 pb-5 mt-2">
+                    <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data} margin={{ top: 6, right: 8, left: -6, bottom: 6 }}>
+                            <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 4 }}>
                                 <defs>
                                     <linearGradient id="overviewConc" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#bfdbfe" stopOpacity={0.28} />
-                                        <stop offset="95%" stopColor="#bfdbfe" stopOpacity={0} />
+                                        <stop offset="5%" stopColor={isDarkMode ? "#525252" : "#e5e7eb"} stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor={isDarkMode ? "#525252" : "#e5e7eb"} stopOpacity={0.1} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis
@@ -521,28 +517,28 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 <Area
                                     type="monotone"
                                     dataKey="conc"
-                                    stroke="#bfdbfe"
-                                    strokeWidth={1.2}
+                                    stroke={isDarkMode ? "#525252" : "#d1d5db"}
+                                    strokeWidth={1}
                                     fill="url(#overviewConc)"
                                     isAnimationActive={false}
                                 />
                                 <Brush
                                     dataKey="time"
-                                    height={22}
-                                    stroke={isDarkMode ? "#4b5563" : "#bfdbfe"}
-                                    fill={isDarkMode ? "#1f2937" : "#fff"}
+                                    height={20}
+                                    stroke={isDarkMode ? "#737373" : "#9ca3af"}
+                                    fill={isDarkMode ? "#171717" : "#ffffff"}
                                     startIndex={brushRange.startIndex}
                                     endIndex={brushRange.endIndex}
-                                    travellerWidth={10}
+                                    travellerWidth={8}
                                     tickFormatter={(ms) => formatDate(new Date(ms), lang)}
                                     onChange={handleBrushChange}
                                 >
                                     <Area
                                         type="monotone"
                                         dataKey="conc"
-                                        stroke="#93c5fd"
-                                        fill="#bfdbfe"
-                                        fillOpacity={0.15}
+                                        stroke="none"
+                                        fill={isDarkMode ? "#404040" : "#d1d5db"}
+                                        fillOpacity={0.4}
                                         isAnimationActive={false}
                                     />
                                 </Brush>

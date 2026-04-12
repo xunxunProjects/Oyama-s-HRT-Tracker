@@ -97,7 +97,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
         <div className="flex flex-col items-center gap-4">
             <button
                 type="button"
-                className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer bg-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
+                className="relative group w-32 h-32 rounded-full overflow-hidden cursor-pointer bg-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Change avatar"
             >
@@ -136,7 +136,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ username, token, onU
             {/* Crop Modal */}
             {isCropModalOpen && imageSrc && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-neutral-800 animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
                             <h3 className="font-bold text-lg">Crop Avatar</h3>
                             <button onClick={() => setIsCropModalOpen(false)} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">

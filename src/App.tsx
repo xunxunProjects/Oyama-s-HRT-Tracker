@@ -383,8 +383,9 @@ const AppContent = () => {
                             theme={theme}
                             setTheme={setTheme}
                             languageOptions={languageOptions}
-                            setIsImportModalOpen={setIsImportModalOpen}
-                            onSaveDosages={handleSaveDosages}
+                            onImportJson={importEventsFromJson}
+                            labResults={labResults}
+                            onExport={handleExportConfirm}
                             onQuickExport={handleQuickExport}
                             onClearAllEvents={clearAllEvents}
                             events={events}
