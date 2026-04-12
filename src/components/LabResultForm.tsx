@@ -116,7 +116,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
             {/* Footer */}
             <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex justify-between items-center shrink-0 transition-colors duration-300 ${isInline ? 'rounded-b-lg' : ''}`}>
-                <div className="flex gap-2 items-center flex-wrap h-10">
+                <div className="flex gap-2 items-center flex-wrap min-h-10">
                     {resultToEdit && onDelete && (
                         <div className="flex items-center">
                             <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
