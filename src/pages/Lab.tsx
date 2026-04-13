@@ -33,7 +33,7 @@ const Lab: React.FC<LabProps> = ({
     lang
 }) => {
     return (
-        <div className="relative space-y-6 pt-6 pb-24">
+        <div className="relative space-y-6 pt-6 pb-32">
             <div className="px-6 md:px-8">
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">

@@ -38,32 +38,27 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         <DialogContext.Provider value={{ showDialog }}>
             {children}
             {isOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-6" style={{ animation: 'dialogFadeIn 0.18s ease-out forwards' }}>
-                    <style>{`
-                        @keyframes dialogFadeIn { from { opacity: 0; } to { opacity: 1; } }
-                        @keyframes dialogScaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
-                    `}</style>
-                    <div className="w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-[100] p-0 md:p-4">
+                    <div className="w-full max-w-sm safe-area-pb">
                         <div
-                            className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] p-6 transform transition-all"
-                            style={{ animation: 'dialogScaleIn 0.2s ease-out forwards' }}
+                            className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg p-5 max-h-[88vh] overflow-y-auto"
                         >
-                            <h3 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-3 tracking-tight">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                                 {type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title')}
                             </h3>
-                            <p className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-6 leading-relaxed">{message}</p>
-                            <div className="flex justify-end gap-2">
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">{message}</p>
+                            <div className="flex justify-end gap-2 pt-1">
                                 {type === 'confirm' && (
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-teal-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-teal-900/20 transition-all"
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-neutral-600 rounded-md"
                                     >
                                         {t('btn.cancel')}
                                     </button>
                                 )}
                                 <button
                                     onClick={handleConfirm}
-                                    className="px-5 py-2.5 text-sm font-bold bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] hover:shadow-[var(--shadow-m3-1)] transition-all"
+                                    className="px-4 py-2 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-md"
                                 >
                                     {type === 'confirm' ? t('btn.ok') : t('btn.ok')}
                                 </button>

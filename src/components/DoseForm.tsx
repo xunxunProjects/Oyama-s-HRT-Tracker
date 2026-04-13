@@ -40,11 +40,11 @@ const DOSE_GUIDE_CONFIG: Partial<Record<Route, DoseGuideConfig>> = {
 };
 
 const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
-    low: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200',
-    medium: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200',
-    high: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200',
-    very_high: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200',
-    above: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+    low: 'text-emerald-700 dark:text-emerald-300',
+    medium: 'text-sky-700 dark:text-sky-300',
+    high: 'text-amber-700 dark:text-amber-300',
+    very_high: 'text-rose-700 dark:text-rose-300',
+    above: 'text-red-700 dark:text-red-300'
 };
 
 const LEVEL_CONTAINER_STYLES: Record<DoseLevelKey | 'neutral', string> = {
@@ -496,21 +496,86 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const customTheta = thetaFromHold(customHoldValue);
     const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : "";
     const guideRangeText = doseGuide?.config
-        ? [
-            `${t('dose.guide.level.low')} ≤ ${formatGuideNumber(doseGuide.config.thresholds[0])} ${guideUnitLabel}`,
-            `${t('dose.guide.level.medium')} ≤ ${formatGuideNumber(doseGuide.config.thresholds[1])} ${guideUnitLabel}`,
-            `${t('dose.guide.level.high')} ≤ ${formatGuideNumber(doseGuide.config.thresholds[2])} ${guideUnitLabel}`,
-            `${t('dose.guide.level.very_high')} ≤ ${formatGuideNumber(doseGuide.config.thresholds[3])} ${guideUnitLabel}`,
-        ].join(' · ')
+        ? `${doseGuide.config.thresholds.map((threshold) => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
         : "";
-    const guideContainerClass = doseGuide
-        ? (
-            doseGuide.level
-                ? LEVEL_CONTAINER_STYLES[doseGuide.level]
-                : (doseGuide.showRateHint ? LEVEL_CONTAINER_STYLES.high : LEVEL_CONTAINER_STYLES.neutral)
-        )
-        : LEVEL_CONTAINER_STYLES.neutral;
     const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : "";
+    const confirmAndOpenExternal = (url: string) => {
+        const host = (() => {
+            try {
+                return new URL(url).hostname.replace(/^www\./, '');
+            } catch {
+                return url;
+            }
+        })();
+        const confirmText = t('drawer.model_confirm').replace('mahiro.uk', host);
+        showDialog('confirm', confirmText, () => {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        });
+    };
+    const renderLoadTemplateControl = () => {
+        if (eventToEdit) return null;
+
+        return (
+            <div className="relative">
+                <button
+                    onClick={() => {
+                        if (templates.length === 0) return;
+                        setShowTemplateMenu(!showTemplateMenu);
+                    }}
+                    disabled={templates.length === 0}
+                    className={`px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-neutral-900 border rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+                        templates.length === 0
+                            ? 'text-gray-400 dark:text-gray-500 border-gray-200 dark:border-neutral-700 cursor-not-allowed opacity-70'
+                            : 'text-gray-700 dark:text-gray-200 border-gray-200 dark:border-neutral-700 hover:border-teal-400'
+                    }`}
+                    title={t('template.load_title')}
+                >
+                    <Bookmark size={14} className={templates.length === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-teal-600 dark:text-teal-400'} />
+                    <span>{t('template.load_title')}</span>
+                </button>
+                {showTemplateMenu && templates.length > 0 && (
+                    <div className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-900 rounded shadow-lg border border-gray-200 dark:border-neutral-800 w-64 max-h-64 overflow-y-auto z-50">
+                        <div className="p-2">
+                            {templates.map((template: DoseTemplate) => (
+                                <div key={template.id} className="group flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-md transition-colors">
+                                    <button
+                                        onClick={() => { handleLoadTemplate(template); setShowTemplateMenu(false); }}
+                                        className="flex-1 text-left"
+                                    >
+                                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{template.name}</div>
+                                        <div className="text-xs text-gray-500 mt-0.5">
+                                            {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
+                                        </div>
+                                    </button>
+                                    {templateToDelete === template.id ? (
+                                        <div className="flex items-center space-x-1 pl-2" onClick={(e) => e.stopPropagation()}>
+                                            <button onClick={() => { setTemplateToDelete(null); setShowTemplateMenu(false); onDeleteTemplate(template.id); }} className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title={t('btn.confirm')}>
+                                                <Check size={14} />
+                                            </button>
+                                            <button onClick={() => setTemplateToDelete(null)} className="p-1 text-gray-500 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded" title={t('btn.cancel')}>
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setTemplateToDelete(template.id);
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 rounded transition"
+                                            title={t('btn.delete')}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className={`flex flex-col h-full bg-white dark:bg-neutral-900 transition-colors duration-300 ${isInline && !hideHeader ? 'border flex-1 border-gray-200 dark:border-neutral-800' : ''}`}>
@@ -525,6 +590,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2">
+                        {renderLoadTemplateControl()}
                         <button onClick={onCancel} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded transition">
                             <X size={20} />
                         </button>
@@ -538,6 +604,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 px-2">
                         {t('timeline.add_title')}
                     </h3>
+                    {renderLoadTemplateControl()}
                 </div>
             )}
 
@@ -663,23 +730,23 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {route === Route.injection && (
                             <div className="mt-3 space-y-3">
                                 {/* Safety Warning */}
-                                <div className="p-3 rounded-[var(--radius-lg)] border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/15 flex gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div className="p-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800/60 flex gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                                     <div>
-                                        <span className="text-sm font-bold text-amber-800 dark:text-amber-300">{t('inj.guide.title')}</span>
-                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-semibold">{t('inj.guide.safety')}</p>
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('inj.guide.title')}</span>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{t('inj.guide.safety')}</p>
                                     </div>
                                 </div>
 
                                 {/* Usage & Dosage */}
-                                <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] space-y-2">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="text-xs text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.route_methods')}</span>
-                                        <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-[var(--radius-full)]">{t('inj.guide.route_warn')}</span>
+                                <div className="p-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 space-y-2">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs text-gray-800 dark:text-gray-200">{t('inj.guide.route_methods')}</p>
+                                        <p className="text-[11px] font-medium text-red-600 dark:text-red-400">{t('inj.guide.route_warn')}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.dosage_title')}</p>
-                                        <ul className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1 space-y-0.5 list-disc list-inside">
+                                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{t('inj.guide.dosage_title')}</p>
+                                        <ul className="text-xs text-gray-600 dark:text-gray-300 mt-1 space-y-0.5 list-disc list-inside">
                                             <li>{t('inj.guide.dosage_ev')}</li>
                                             <li>{t('inj.guide.dosage_ec')}</li>
                                         </ul>
@@ -687,7 +754,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                             href="https://transfemscience.org/misc/injectable-e2-simulator/"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-xs text-[var(--color-m3-primary)] dark:text-teal-400 hover:underline mt-1"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                confirmAndOpenExternal('https://transfemscience.org/misc/injectable-e2-simulator/');
+                                            }}
+                                            className="inline-flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline mt-1"
                                         >
                                             {t('inj.guide.sim_link')}
                                             <ExternalLink size={12} />
@@ -696,9 +767,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 </div>
 
                                 {/* Precautions */}
-                                <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] space-y-2">
-                                    <p className="text-xs font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.notes_title')}</p>
-                                    <ul className="text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] space-y-1 list-disc list-inside leading-relaxed">
+                                <div className="p-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 space-y-2">
+                                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{t('inj.guide.notes_title')}</p>
+                                    <ul className="text-[11px] text-gray-600 dark:text-gray-300 space-y-1 list-disc list-inside leading-relaxed">
                                         <li>{t('inj.guide.note_1')}</li>
                                         <li>{t('inj.guide.note_2')}</li>
                                         <li className="font-semibold text-red-600 dark:text-red-400">{t('inj.guide.note_3')}</li>
@@ -716,7 +787,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     href="https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-primary)] dark:hover:text-teal-400 transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        confirmAndOpenExternal('https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection');
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                                 >
                                     {t('inj.guide.source')}
                                     <ExternalLink size={11} />
@@ -744,27 +819,27 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
                         {/* Dose guide for non-injection routes */}
                         {doseGuide && (
-                            <div className={`mt-3 p-3 rounded-[var(--radius-lg)] border ${guideContainerClass} flex gap-3 transition-colors duration-300`}>
-                                <Info className="w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0 mt-0.5" />
-                                <div className="space-y-1">
+                            <div className="mt-3 p-2.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 flex gap-2 transition-colors duration-300">
+                                <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('dose.guide.title')}</span>
+                                        <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{t('dose.guide.title')}</span>
                                         {doseGuide.level && (
-                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-full)] ${guideBadgeClass}`}>
+                                            <span className={`text-xs font-medium ${guideBadgeClass}`}>
                                                 {t(`dose.guide.level.${doseGuide.level}`)}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300">
                                         {t('dose.guide.current')}: {doseGuide.value !== null ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}` : t('dose.guide.current_blank')}
                                     </p>
                                     {guideRangeText && (
-                                        <p className="text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] leading-relaxed">
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
                                             {t('dose.guide.reference')}: {guideRangeText}
                                         </p>
                                     )}
                                     {doseGuide.showRateHint && (
-                                        <p className="text-xs text-amber-700 dark:text-amber-500 leading-relaxed">
+                                        <p className="text-[11px] text-amber-700 dark:text-amber-500 leading-snug">
                                             {t('dose.guide.patch_rate_hint')}
                                         </p>
                                     )}
@@ -776,73 +851,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             </div>
 
             {/* Footer Buttons */}
-            <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex justify-between items-center shrink-0 transition-colors duration-300 ${hideHeader ? '!p-2 !border-t-0 !bg-transparent' : ''}`}>
-                <div className="flex gap-2 items-center flex-wrap min-h-10">
-                    
-                    {/* Load Template Section */}
-                    {templates.length > 0 && (
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                                className="p-2 text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-transparent rounded transition-colors flex items-center justify-center"
-                                title={t('template.load_title')}
-                            >
-                                <Bookmark size={18} />
-                            </button>
-                            {showTemplateMenu && (
-                                <div className="absolute left-0 bottom-full mb-2 bg-white dark:bg-neutral-900 rounded shadow-lg border border-gray-200 dark:border-neutral-800 w-64 max-h-64 overflow-y-auto z-50">
-                                    <div className="p-2">
-                                        {templates.map((template: DoseTemplate) => (
-                                            <div key={template.id} className="group flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-md transition-colors">
-                                                <button
-                                                    onClick={() => { handleLoadTemplate(template); setShowTemplateMenu(false); }}
-                                                    className="flex-1 text-left"
-                                                >
-                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{template.name}</div>
-                                                    <div className="text-xs text-gray-500 mt-0.5">
-                                                        {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
-                                                    </div>
-                                                </button>
-                                                {templateToDelete === template.id ? (
-                                                    <div className="flex items-center space-x-1 pl-2" onClick={(e) => e.stopPropagation()}>
-                                                        <button onClick={() => { setTemplateToDelete(null); setShowTemplateMenu(false); onDeleteTemplate(template.id); }} className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title={t('btn.confirm')}>
-                                                            <Check size={14} />
-                                                        </button>
-                                                        <button onClick={() => setTemplateToDelete(null)} className="p-1 text-gray-500 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded" title={t('btn.cancel')}>
-                                                            <X size={14} />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setTemplateToDelete(template.id);
-                                                        }}
-                                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 rounded transition"
-                                                        title={t('btn.delete')}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+            <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-wrap gap-y-2 justify-between items-center shrink-0 transition-colors duration-300 ${hideHeader ? '!p-2 !border-t-0 !bg-transparent' : ''}`}>
+                <div className="flex gap-2 items-center flex-wrap min-h-10 w-full sm:w-auto">
 
                     {/* Template Save Section */}
                     <div className="flex items-center">
                         <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
-                            showSaveTemplateInput ? 'w-48 sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
+                            showSaveTemplateInput ? 'w-40 sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
                         }`}>
                             <input
                                 type="text"
                                 value={templateName}
                                 onChange={(e) => setTemplateName(e.target.value)}
                                 placeholder={t('template.name_placeholder')}
-                                className="w-32 sm:w-36 px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100"
+                                className="w-24 sm:w-36 px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100"
                             />
                             <button
                                 onClick={handleSaveAsTemplate}
@@ -879,7 +901,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     {eventToEdit && (
                         <div className="flex items-center">
                             <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
-                                showDeleteConfirm ? 'w-36 sm:w-40 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded opacity-100 pl-3 pr-1 py-1' : 'w-0 opacity-0 border border-transparent'
+                                showDeleteConfirm ? 'w-[8.75rem] sm:w-40 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded opacity-100 pl-3 pr-1 py-1' : 'w-0 opacity-0 border border-transparent'
                             }`}>
                                 <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap grow">{t('dialog.confirm_title')}?</span>
                                 <div className="flex items-center shrink-0 ml-2">
@@ -921,7 +943,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     )}
                 </div>
 
-                <div className="flex gap-2 ml-auto shrink-0">
+                <div className="flex gap-2 ml-auto shrink-0 w-full sm:w-auto justify-end">
                     {hideHeader && (
                         <button
                             onClick={onCancel}

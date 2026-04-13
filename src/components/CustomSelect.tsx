@@ -6,6 +6,7 @@ interface Option {
     value: string;
     label: string;
     icon?: React.ReactNode;
+    description?: string;
 }
 
 interface CustomSelectProps {
@@ -129,11 +130,16 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </>
                     ) : (
                         <>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                                 {selectedOption?.icon && <div className="text-gray-500 dark:text-gray-400">{selectedOption.icon}</div>}
-                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{selectedOption?.label || value}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{selectedOption?.label || value}</span>
                             </div>
-                            <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {selectedOption?.description && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedOption.description}</span>
+                                )}
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                            </div>
                         </>
                     )}
                 </button>
@@ -142,7 +148,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="fixed z-[999] bg-white dark:bg-neutral-900 border x border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto animate-in fade-in duration-100 py-1"
+                        className="fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto animate-in fade-in duration-100 py-1"
                     >
                         {options.map(opt => (
                             <button
@@ -155,6 +161,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             >
                                 {opt.icon && <div className={`${opt.value === value ? 'text-inherit' : 'text-gray-400 dark:text-gray-500'}`}>{opt.icon}</div>}
                                 <span className="flex-1 text-sm">{opt.label}</span>
+                                {opt.description && (
+                                    <span className={`text-xs ${opt.value === value ? 'text-teal-600 dark:text-teal-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                                        {opt.description}
+                                    </span>
+                                )}
                                 {opt.value === value && (
                                     <Check size={16} className="text-teal-600 dark:text-teal-400" strokeWidth={2.5} />
                                 )}
