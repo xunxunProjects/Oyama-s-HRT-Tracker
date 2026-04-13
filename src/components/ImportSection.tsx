@@ -40,6 +40,10 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                         placeholder={t('import.paste_hint')}
                         value={text}
                         onChange={e => setText(e.target.value)}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                     />
                     <button
                         onClick={handleTextImport}

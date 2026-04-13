@@ -29,7 +29,7 @@ const Account: React.FC<AccountProps> = ({
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
 
     return (
-        <div className="relative space-y-5 pt-6 pb-24">
+        <div className="relative space-y-5 pt-6 pb-32">
             <div className="px-6 md:px-10">
                 <div className="w-full p-5 rounded-lg bg-white dark:bg-neutral-900 flex items-center justify-between border border-gray-200 dark:border-neutral-800 transition-all duration-300">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-3">

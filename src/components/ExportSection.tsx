@@ -67,10 +67,15 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                 <div className="relative">
                                     <input
                                         type="password"
+                                        name="export-encryption-password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder={t('export.password_placeholder')}
                                         className="w-full py-2.5 px-3 pl-10 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        autoCapitalize="off"
+                                        spellCheck={false}
                                     />
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                 </div>

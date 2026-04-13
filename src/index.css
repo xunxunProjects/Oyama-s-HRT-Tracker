@@ -70,7 +70,7 @@
     input:not([type="datetime-local"]):not([type="date"]):not([type="time"]):not([type="month"]):not([type="week"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
     select,
     textarea {
-        font-size: 16px;
+        font-size: 16px !important;
     }
 }
 

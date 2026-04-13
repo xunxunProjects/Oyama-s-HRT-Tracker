@@ -26,7 +26,7 @@ export const TRANSLATIONS_BASE = {
         "chart.reset": "重置缩放",
 
         "label.e2": "雌二醇",
-        "label.cpa": "醋酸环丙孕酮",
+        "label.cpa": "CPA",
         "label.cpa_chart": "醋酸环丙孕酮",
         "label.e2_unit": "雌二醇 (pg/mL)",
         "label.cpa_unit": "醋酸环丙孕酮 (ng/mL)",
@@ -347,7 +347,7 @@ export const TRANSLATIONS_BASE = {
         "chart.reset": "Reset Zoom",
 
         "label.e2": "Estradiol",
-        "label.cpa": "Cyproterone Acetate",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "Estradiol (pg/mL)",
         "label.cpa_unit": "Cyproterone Acetate (ng/mL)",
@@ -666,7 +666,7 @@ export const TRANSLATIONS_BASE = {
         "chart.reset": "Сбросить масштаб",
 
         "label.e2": "Эстрадиол",
-        "label.cpa": "Ципротерон ацетат",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "Эстрадиол (pg/mL)",
         "label.cpa_unit": "Ципротерон ацетат (ng/mL)",
@@ -990,7 +990,7 @@ export const TRANSLATIONS = {
         "chart.reset": "重設縮放",
 
         "label.e2": "雌二醇",
-        "label.cpa": "醋酸環丙孕酮",
+        "label.cpa": "CPA",
         "label.cpa_chart": "醋酸環丙孕酮",
         "label.e2_unit": "雌二醇 (pg/mL)",
         "label.cpa_unit": "醋酸環丙孕酮 (ng/mL)",
@@ -1319,7 +1319,7 @@ export const TRANSLATIONS = {
         "chart.reset": "重置縮放",
 
         "label.e2": "雌二醇",
-        "label.cpa": "醋酸環丙孕酮",
+        "label.cpa": "CPA",
         "label.cpa_chart": "醋酸環丙孕酮",
         "label.e2_unit": "雌二醇 (pg/mL)",
         "label.cpa_unit": "醋酸環丙孕酮 (ng/mL)",
@@ -1589,7 +1589,7 @@ export const TRANSLATIONS = {
         "chart.reset": "Скинути масштаб",
 
         "label.e2": "Естрадіол",
-        "label.cpa": "Ципротерон ацетат",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "Естрадіол (pg/mL)",
         "label.cpa_unit": "Ципротерон ацетат (ng/mL)",
@@ -1909,7 +1909,7 @@ export const TRANSLATIONS = {
         "chart.reset": "ズームをリセット",
 
         "label.e2": "エストラジオール",
-        "label.cpa": "酢酸シプロテロン",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "エストラジオール (pg/mL)",
         "label.cpa_unit": "酢酸シプロテロン (ng/mL)",
@@ -2230,7 +2230,7 @@ export const TRANSLATIONS = {
         "chart.reset": "확대/축소 초기화",
 
         "label.e2": "에스트라디올",
-        "label.cpa": "사이프로테론 아세테이트",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "에스트라디올 (pg/mL)",
         "label.cpa_unit": "사이프로테론 아세테이트 (ng/mL)",
@@ -2549,7 +2549,7 @@ export const TRANSLATIONS = {
         "chart.reset": "إعادة تعيين التكبير",
 
         "label.e2": "الإستراديول",
-        "label.cpa": "سيبروتيرون أسيتات",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "الإستراديول (pg/mL)",
         "label.cpa_unit": "سيبروتيرون أسيتات (ng/mL)",
@@ -2868,7 +2868,7 @@ export const TRANSLATIONS = {
         "chart.reset": "איפוס זום",
 
         "label.e2": "אסטרדיול",
-        "label.cpa": "ציפרוטרון אצטט",
+        "label.cpa": "CPA",
         "label.cpa_chart": "CPA",
         "label.e2_unit": "אסטרדיול (pg/mL)",
         "label.cpa_unit": "ציפרוטרון אצטט (ng/mL)",

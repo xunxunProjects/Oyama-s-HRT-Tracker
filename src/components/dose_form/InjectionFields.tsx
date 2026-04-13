@@ -37,23 +37,23 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
 
 
     return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(ester !== Ester.E2) && (
                 <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) ? 'col-span-2' : ''}`}>
-                    <label className="block text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('field.dose_raw')}</label>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.dose_raw')}</label>
                     <input
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                     />
                 </div>
             )}
             {!(ester === Ester.EV && route === Route.injection) && ester !== Ester.CPA && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-rose-500 dark:text-rose-400 pl-1">
                         {t('field.dose_e2')}
                     </label>
                     <input
@@ -61,7 +61,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-4 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-accent)]/30 outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-rose-200 dark:border-rose-900/50 rounded-xl focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none text-rose-600 dark:text-rose-400 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                     />
                 </div>
@@ -69,7 +69,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
 
             {(ester === Ester.EV && route === Route.injection) && (
                 <div className="col-span-2">
-                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-1">
                         {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
                     </p>
                 </div>

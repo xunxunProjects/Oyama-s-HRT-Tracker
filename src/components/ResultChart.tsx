@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, LabResult, convertToPgMl } from '../../logic';
-import { Activity, RotateCcw, Info, FlaskConical } from 'lucide-react';
+import { Activity, RotateCcw, Info, FlaskConical, Maximize2, Minimize2 } from 'lucide-react';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush, Line
 } from 'recharts';
@@ -68,9 +69,14 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
 
 const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick, isDarkMode = false }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void, isDarkMode?: boolean }) => {
     const { t, lang } = useTranslation();
-    const containerRef = useRef<HTMLDivElement>(null);
     const [xDomain, setXDomain] = useState<[number, number] | null>(null);
     const initializedRef = useRef(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const getViewport = () => ({
+        width: typeof window !== 'undefined' ? window.innerWidth : 0,
+        height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    });
+    const [viewport, setViewport] = useState(getViewport);
 
     // Auto-detect if we have E2 or CPA data
     const hasE2Data = useMemo(() => events.some(e => e.ester !== 'CPA'), [events]);
@@ -271,6 +277,344 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         setXDomain(clampDomain([start, end]));
     };
 
+    const lockLandscape = async () => {
+        try {
+            await (screen as any)?.orientation?.lock?.('landscape');
+        } catch {
+            // Ignore unsupported orientation lock on some browsers.
+        }
+    };
+
+    const unlockOrientation = () => {
+        try {
+            (screen as any)?.orientation?.unlock?.();
+        } catch {
+            // Ignore unsupported orientation unlock on some browsers.
+        }
+    };
+
+    const openFullscreenChart = async () => {
+        setIsFullscreen(true);
+        await lockLandscape();
+    };
+
+    const closeFullscreenChart = () => {
+        setIsFullscreen(false);
+        unlockOrientation();
+    };
+
+    useEffect(() => {
+        const handleResize = () => setViewport(getViewport());
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isFullscreen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        if (!isFullscreen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') closeFullscreenChart();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        return () => {
+            unlockOrientation();
+        };
+    }, []);
+
+    const isPortraitMobileFullscreen = isFullscreen && viewport.width < 768 && viewport.height > viewport.width;
+
+    const renderChartPanel = (fullscreen: boolean) => {
+        const chartHeightClass = fullscreen ? 'h-[58vh] md:h-[70vh] lg:h-[76vh]' : 'h-64 md:h-80 lg:h-96';
+        const miniMapGradientId = fullscreen ? 'overviewConcFullscreen' : 'overviewConc';
+
+        return (
+            <div className={`bg-white dark:bg-neutral-900 relative flex flex-col h-full uppercase tracking-wide ${fullscreen ? '' : 'border border-gray-200 dark:border-neutral-800 rounded-lg'}`}>
+                <div className={`flex justify-between items-center ${fullscreen ? 'px-4 md:px-6 py-3' : 'px-4 md:px-6 py-4'} border-b border-gray-100 dark:border-neutral-800`}>
+                    <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        {t('chart.title')}
+                    </h2>
+
+                    <div className="flex items-center gap-2.5">
+                        <button
+                            onClick={fullscreen ? closeFullscreenChart : openFullscreenChart}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                            title={fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                        >
+                            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                        </button>
+                        <button
+                            onClick={() => zoomToDuration(7)}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                            title={t('chart.reset')}
+                        >
+                            <RotateCcw size={14} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className={`${chartHeightClass} w-full touch-none relative select-none px-2 pb-2 mt-4`}>
+                    {(() => {
+                        const factorNow = calibrationFn(now / 3600000);
+                        return Math.abs(factorNow - 1) > 0.001 ? (
+                            <div className="absolute top-0 right-4 z-10 px-2 py-0.5 rounded border bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 flex items-center gap-1 opacity-80 pointer-events-none">
+                                <FlaskConical size={10} className="text-gray-400 dark:text-gray-500" />
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    ×{(factorNow ?? 1).toFixed(2)}
+                                </span>
+                            </div>
+                        ) : null;
+                    })()}
+                    <ResponsiveContainer width="100%" height="100%">
+
+                        <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#374151' : '#f2f4f7'} />
+                            <XAxis
+                                dataKey="time"
+                                type="number"
+                                domain={xDomain || ['auto', 'auto']}
+                                allowDataOverflow={true}
+                                tickFormatter={(ms) => formatDate(new Date(ms), lang)}
+                                tick={{ fontSize: 10, fill: isDarkMode ? '#9ca3af' : '#9aa3b1', fontWeight: 600 }}
+                                minTickGap={48}
+                                axisLine={false}
+                                tickLine={false}
+                                dy={10}
+                            />
+                            {hasE2Data && (
+                                <YAxis
+                                    yAxisId="left"
+                                    dataKey="concE2"
+                                    tick={{ fontSize: 10, fill: '#ec4899', fontWeight: 600 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={50}
+                                    label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
+                                />
+                            )}
+                            {hasCPAData && (
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    dataKey="concCPA"
+                                    tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 600 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={50}
+                                    label={{ value: t('label.cpa_unit'), angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
+                                />
+                            )}
+                            <Tooltip
+                                content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} />}
+                                cursor={{ stroke: isDarkMode ? '#f9a8d4' : '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                trigger="hover"
+                            />
+                            {hasE2Data && (
+                                <ReferenceLine
+                                    x={now}
+                                    stroke="#f472b6"
+                                    strokeDasharray="3 3"
+                                    strokeWidth={1.2}
+                                    yAxisId="left"
+                                    ifOverflow="extendDomain"
+                                />
+                            )}
+                            {hasE2Data && (
+                                <Line
+                                    data={data}
+                                    type="linear"
+                                    dataKey="concE2"
+                                    yAxisId="left"
+                                    stroke="#f472b6"
+                                    strokeWidth={2}
+                                    dot={false}
+                                    isAnimationActive={false}
+                                    activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
+                                />
+                            )}
+                            {hasCPAData && (
+                                <Line
+                                    data={data}
+                                    type="monotone"
+                                    dataKey="concCPA"
+                                    yAxisId="right"
+                                    stroke="#8b5cf6"
+                                    strokeWidth={2}
+                                    dot={false}
+                                    isAnimationActive={false}
+                                    activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
+                                />
+                            )}
+                            {eventPoints?.e2Points && eventPoints.e2Points.length > 0 && (
+                                <Scatter
+                                    data={eventPoints.e2Points}
+                                    yAxisId="left"
+                                    dataKey="concE2"
+                                    isAnimationActive={false}
+                                    onClick={(entry) => {
+                                        if (entry && entry.payload && entry.payload.event) {
+                                            onPointClick(entry.payload.event);
+                                        }
+                                    }}
+                                    shape={({ cx, cy }: any) => (
+                                        <g className="cursor-pointer">
+                                            <circle cx={cx} cy={cy} r={6} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.6} />
+                                            <circle cx={cx} cy={cy} r={3} fill="#f97316" />
+                                        </g>
+                                    )}
+                                />
+                            )}
+                            {hasCPAData && cpaEventPoints.length > 0 && (
+                                <Scatter
+                                    data={cpaEventPoints}
+                                    yAxisId="right"
+                                    dataKey="concCPA"
+                                    isAnimationActive={false}
+                                    onClick={(entry) => {
+                                        if (entry && entry.payload && entry.payload.event) {
+                                            onPointClick(entry.payload.event);
+                                        }
+                                    }}
+                                    shape={({ cx, cy }: any) => (
+                                        <g className="cursor-pointer">
+                                            <circle cx={cx} cy={cy} r={6} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.6} />
+                                            <circle cx={cx} cy={cy} r={3} fill="#8b5cf6" />
+                                        </g>
+                                    )}
+                                />
+                            )}
+                            {hasE2Data && (
+                                <Scatter
+                                    data={nowPoint ? [nowPoint] : []}
+                                    yAxisId="left"
+                                    isAnimationActive={false}
+                                    shape={({ cx, cy, payload }: any) => {
+                                        const conc = payload?.concE2 ?? 0;
+                                        const radius = Math.max(4, Math.min(7, 4 + conc / 80));
+                                        return (
+                                            <g className="group">
+                                                <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                                <circle
+                                                    cx={cx} cy={cy}
+                                                    r={radius}
+                                                    fill="#bfdbfe"
+                                                    stroke="white"
+                                                    strokeWidth={1.5}
+                                                />
+                                            </g>
+                                        );
+                                    }}
+                                />
+                            )}
+                            {hasCPAData && (
+                                <Scatter
+                                    data={nowPoint ? [nowPoint] : []}
+                                    yAxisId="right"
+                                    isAnimationActive={false}
+                                    shape={({ cx, cy, payload }: any) => {
+                                        const conc = payload?.concCPA ?? 0;
+                                        const radius = Math.max(4, Math.min(9, 4 + conc / 8));
+                                        return (
+                                            <g className="group">
+                                                <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                                <circle
+                                                    cx={cx} cy={cy}
+                                                    r={radius}
+                                                    fill="#c4b5fd"
+                                                    stroke="white"
+                                                    strokeWidth={1.5}
+                                                />
+                                            </g>
+                                        );
+                                    }}
+                                />
+                            )}
+                            {labPoints.length > 0 && (
+                                <Scatter
+                                    data={labPoints}
+                                    yAxisId="left"
+                                    dataKey="concE2"
+                                    isAnimationActive={false}
+                                    shape={({ cx, cy }: any) => (
+                                        <g>
+                                            <circle cx={cx} cy={cy} r={6} fill="#14b8a6" stroke="white" strokeWidth={2} />
+                                            <g transform={`translate(${(cx ?? 0) - 6}, ${(cy ?? 0) - 6})`}>
+                                                <FlaskConical size={12} color="white" />
+                                            </g>
+                                        </g>
+                                    )}
+                                />
+                            )}
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {data.length > 1 && (
+                    <div className={`${fullscreen ? 'px-4 md:px-6 pb-4 mt-1' : 'px-5 pb-5 mt-2'}`}>
+                        <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 4 }}>
+                                    <defs>
+                                        <linearGradient id={miniMapGradientId} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={isDarkMode ? '#525252' : '#e5e7eb'} stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor={isDarkMode ? '#525252' : '#e5e7eb'} stopOpacity={0.1} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis
+                                        dataKey="time"
+                                        type="number"
+                                        hide
+                                        domain={[minTime, maxTime]}
+                                    />
+                                    <YAxis dataKey="conc" hide />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="conc"
+                                        stroke={isDarkMode ? '#525252' : '#d1d5db'}
+                                        strokeWidth={1}
+                                        fill={`url(#${miniMapGradientId})`}
+                                        isAnimationActive={false}
+                                    />
+                                    <Brush
+                                        dataKey="time"
+                                        height={20}
+                                        stroke={isDarkMode ? '#737373' : '#9ca3af'}
+                                        fill={isDarkMode ? '#171717' : '#ffffff'}
+                                        startIndex={brushRange.startIndex}
+                                        endIndex={brushRange.endIndex}
+                                        travellerWidth={8}
+                                        tickFormatter={(ms) => formatDate(new Date(ms), lang)}
+                                        onChange={handleBrushChange}
+                                    >
+                                        <Area
+                                            type="monotone"
+                                            dataKey="conc"
+                                            stroke="none"
+                                            fill={isDarkMode ? '#404040' : '#d1d5db'}
+                                            fillOpacity={0.4}
+                                            isAnimationActive={false}
+                                        />
+                                    </Brush>
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     if (!sim || sim.timeH.length === 0) return (
         <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-8">
             <Activity className="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" strokeWidth={1} />
@@ -279,275 +623,25 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     );
 
     return (
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg relative flex flex-col h-full uppercase tracking-wide">
-            <div className="flex justify-between items-center px-4 md:px-6 py-4 border-b border-gray-100 dark:border-neutral-800">
-                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    {t('chart.title')}
-                </h2>
-
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => zoomToDuration(7)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                        title="Reset Zoom"
-                    >
-                        <RotateCcw size={14} />
-                    </button>
-                </div>
-            </div>
-
-            <div
-                ref={containerRef}
-                className="h-64 md:h-80 lg:h-96 w-full touch-none relative select-none px-2 pb-2 mt-4">
-                {(() => {
-                    const factorNow = calibrationFn(now / 3600000);
-                    return Math.abs(factorNow - 1) > 0.001 ? (
-                        <div className="absolute top-0 right-4 z-10 px-2 py-0.5 rounded border bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 flex items-center gap-1 opacity-80 pointer-events-none">
-                            <FlaskConical size={10} className="text-gray-400 dark:text-gray-500" />
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                                ×{(factorNow ?? 1).toFixed(2)}
-                            </span>
+        <>
+            {renderChartPanel(false)}
+            {isFullscreen && createPortal(
+                <div className="fixed inset-0 z-[120] bg-white dark:bg-neutral-900">
+                    {isPortraitMobileFullscreen ? (
+                        <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                            <div className="origin-center rotate-90" style={{ width: viewport.height, height: viewport.width }}>
+                                {renderChartPanel(true)}
+                            </div>
                         </div>
-                    ) : null;
-                })()}
-                <ResponsiveContainer width="100%" height="100%">
-
-                    <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#374151' : '#f2f4f7'} />
-                        <XAxis
-                            dataKey="time"
-                            type="number"
-                            domain={xDomain || ['auto', 'auto']}
-                            allowDataOverflow={true}
-                            tickFormatter={(ms) => formatDate(new Date(ms), lang)}
-                            tick={{ fontSize: 10, fill: isDarkMode ? '#9ca3af' : '#9aa3b1', fontWeight: 600 }}
-                            minTickGap={48}
-                            axisLine={false}
-                            tickLine={false}
-                            dy={10}
-                        />
-                        {hasE2Data && (
-                            <YAxis
-                                yAxisId="left"
-                                dataKey="concE2"
-                                tick={{ fontSize: 10, fill: '#ec4899', fontWeight: 600 }}
-                                axisLine={false}
-                                tickLine={false}
-                                width={50}
-                                label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
-                            />
-                        )}
-                        {hasCPAData && (
-                            <YAxis
-                                yAxisId="right"
-                                orientation="right"
-                                dataKey="concCPA"
-                                tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 600 }}
-                                axisLine={false}
-                                tickLine={false}
-                                width={50}
-                                label={{ value: t('label.cpa_unit'), angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
-                            />
-                        )}
-                        <Tooltip
-                            content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} />}
-                            cursor={{ stroke: isDarkMode ? '#f9a8d4' : '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
-                            trigger="hover"
-                        />
-                        {hasE2Data && (
-                            <ReferenceLine
-                                x={now}
-                                stroke="#f472b6"
-                                strokeDasharray="3 3"
-                                strokeWidth={1.2}
-                                yAxisId="left"
-                                ifOverflow="extendDomain"
-                            />
-                        )}
-                        {hasE2Data && (
-                            <Line
-                                data={data}
-                                type="linear"
-                                dataKey="concE2"
-                                yAxisId="left"
-                                stroke="#f472b6"
-                                strokeWidth={2}
-                                dot={false}
-                                isAnimationActive={false}
-                                activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
-                            />
-                        )}
-                        {hasCPAData && (
-                            <Line
-                                data={data}
-                                type="monotone"
-                                dataKey="concCPA"
-                                yAxisId="right"
-                                stroke="#8b5cf6"
-                                strokeWidth={2}
-                                dot={false}
-                                isAnimationActive={false}
-                                activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
-                            />
-                        )}
-                        {/* E2 Event Points */}
-                        {eventPoints?.e2Points && eventPoints.e2Points.length > 0 && (
-                            <Scatter
-                                data={eventPoints.e2Points}
-                                yAxisId="left"
-                                dataKey="concE2"
-                                isAnimationActive={false}
-                                onClick={(entry) => {
-                                    if (entry && entry.payload && entry.payload.event) {
-                                        onPointClick(entry.payload.event);
-                                    }
-                                }}
-                                shape={({ cx, cy }: any) => (
-                                    <g className="cursor-pointer">
-                                        <circle cx={cx} cy={cy} r={6} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.6} />
-                                        <circle cx={cx} cy={cy} r={3} fill="#f97316" />
-                                    </g>
-                                )}
-                            />
-                        )}
-                        {/* CPA Event Points */}
-                        {hasCPAData && cpaEventPoints.length > 0 && (
-                            <Scatter
-                                data={cpaEventPoints}
-                                yAxisId="right"
-                                dataKey="concCPA"
-                                isAnimationActive={false}
-                                onClick={(entry) => {
-                                    if (entry && entry.payload && entry.payload.event) {
-                                        onPointClick(entry.payload.event);
-                                    }
-                                }}
-                                shape={({ cx, cy }: any) => (
-                                    <g className="cursor-pointer">
-                                        <circle cx={cx} cy={cy} r={6} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.6} />
-                                        <circle cx={cx} cy={cy} r={3} fill="#8b5cf6" />
-                                    </g>
-                                )}
-                            />
-                        )}
-                        {hasE2Data && (
-                            <Scatter
-                                data={nowPoint ? [nowPoint] : []}
-                                yAxisId="left"
-                                isAnimationActive={false}
-                                shape={({ cx, cy, payload }: any) => {
-                                    const conc = payload?.concE2 ?? 0;
-                                    const radius = Math.max(4, Math.min(7, 4 + conc / 80)); // Scale dot size with live E2 but cap size
-                                    return (
-                                        <g className="group">
-                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                            <circle
-                                                cx={cx} cy={cy}
-                                                r={radius}
-                                                fill="#bfdbfe"
-                                                stroke="white"
-                                                strokeWidth={1.5}
-                                            />
-                                        </g>
-                                    );
-                                }}
-                            />
-                        )}
-                        {hasCPAData && (
-                            <Scatter
-                                data={nowPoint ? [nowPoint] : []}
-                                yAxisId="right"
-                                isAnimationActive={false}
-                                shape={({ cx, cy, payload }: any) => {
-                                    const conc = payload?.concCPA ?? 0;
-                                    const radius = Math.max(4, Math.min(9, 4 + conc / 8)); // Scale dot size with live CPA but cap size
-                                    return (
-                                        <g className="group">
-                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                            <circle
-                                                cx={cx} cy={cy}
-                                                r={radius}
-                                                fill="#c4b5fd"
-                                                stroke="white"
-                                                strokeWidth={1.5}
-                                            />
-                                        </g>
-                                    );
-                                }}
-                            />
-                        )}
-                        {labPoints.length > 0 && (
-                            <Scatter
-                                data={labPoints}
-                                yAxisId="left"
-                                dataKey="concE2"
-                                isAnimationActive={false}
-                                shape={({ cx, cy }: any) => (
-                                    <g>
-                                        <circle cx={cx} cy={cy} r={6} fill="#14b8a6" stroke="white" strokeWidth={2} />
-                                        <g transform={`translate(${(cx ?? 0) - 6}, ${(cy ?? 0) - 6})`}>
-                                            <FlaskConical size={12} color="white" />
-                                        </g>
-                                    </g>
-                                )}
-                            />
-                        )}
-                    </ComposedChart>
-                </ResponsiveContainer>
-            </div>
-            {/* Overview mini-map with draggable handles */}
-            {data.length > 1 && (
-                <div className="px-5 pb-5 mt-2">
-                    <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 4 }}>
-                                <defs>
-                                    <linearGradient id="overviewConc" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={isDarkMode ? "#525252" : "#e5e7eb"} stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor={isDarkMode ? "#525252" : "#e5e7eb"} stopOpacity={0.1} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis
-                                    dataKey="time"
-                                    type="number"
-                                    hide
-                                    domain={[minTime, maxTime]}
-                                />
-                                <YAxis dataKey="conc" hide />
-                                <Area
-                                    type="monotone"
-                                    dataKey="conc"
-                                    stroke={isDarkMode ? "#525252" : "#d1d5db"}
-                                    strokeWidth={1}
-                                    fill="url(#overviewConc)"
-                                    isAnimationActive={false}
-                                />
-                                <Brush
-                                    dataKey="time"
-                                    height={20}
-                                    stroke={isDarkMode ? "#737373" : "#9ca3af"}
-                                    fill={isDarkMode ? "#171717" : "#ffffff"}
-                                    startIndex={brushRange.startIndex}
-                                    endIndex={brushRange.endIndex}
-                                    travellerWidth={8}
-                                    tickFormatter={(ms) => formatDate(new Date(ms), lang)}
-                                    onChange={handleBrushChange}
-                                >
-                                    <Area
-                                        type="monotone"
-                                        dataKey="conc"
-                                        stroke="none"
-                                        fill={isDarkMode ? "#404040" : "#d1d5db"}
-                                        fillOpacity={0.4}
-                                        isAnimationActive={false}
-                                    />
-                                </Brush>
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                    ) : (
+                        <div className="h-full w-full">
+                            {renderChartPanel(true)}
+                        </div>
+                    )}
+                </div>,
+                document.body
             )}
-        </div>
+        </>
     );
 };
 
