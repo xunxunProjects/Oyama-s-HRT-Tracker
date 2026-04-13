@@ -60,7 +60,7 @@ const History: React.FC<HistoryProps> = ({
                         onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
                         className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddOpen
                             ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
-                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                            : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'
                             }`}
                     >
                         <Plus size={18} />
@@ -102,7 +102,7 @@ const History: React.FC<HistoryProps> = ({
                         </div>
                         <div className="divide-y divide-gray-100 dark:divide-neutral-800">
                             {(items as DoseEvent[]).map(ev => (
-                                <div key={ev.id} className={`flex flex-col ${editingId === ev.id ? 'bg-gray-50/30 dark:bg-neutral-800/30 border-y border-teal-100 dark:border-teal-900/30 first:border-t-0' : ''}`}>
+                                <div key={ev.id} className={`flex flex-col ${editingId === ev.id ? 'bg-gray-50/30 dark:bg-neutral-800/30 border-y border-pink-100 dark:border-pink-900/30 first:border-t-0' : ''}`}>
                                     <div
                                         onClick={() => setEditingId(editingId === ev.id ? null : ev.id)}
                                         className={`p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group ${editingId === ev.id ? 'pb-2' : ''}`}

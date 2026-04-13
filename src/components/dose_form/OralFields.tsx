@@ -44,7 +44,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors"
                         placeholder="0.0"
                     />
                 </div>

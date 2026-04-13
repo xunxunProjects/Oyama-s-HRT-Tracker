@@ -71,7 +71,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.sl_absorption')}</label>
                     <button
                         onClick={() => setUseCustomTheta(!useCustomTheta)}
-                        className="text-xs font-semibold text-teal-600 dark:text-teal-400"
+                        className="text-xs font-semibold text-pink-600 dark:text-pink-400"
                     >
                         {useCustomTheta ? t('sl.use_presets') : t('sl.use_custom')}
                     </button>
@@ -92,7 +92,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 min="1" max="60"
                                 value={customHoldInput}
                                 onChange={e => handleCustomHoldChange(e.target.value)}
-                                className="w-16 h-9 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-16 h-9 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <span className="text-xs text-gray-500 dark:text-gray-400">min</span>
                             <input
@@ -104,7 +104,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                     setCustomHoldValue(v);
                                     setCustomHoldInput(v.toString());
                                 }}
-                                className="flex-1 h-1 accent-teal-600"
+                                className="flex-1 h-1 accent-pink-600"
                             />
                         </div>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-0.5">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)} (Keep E2)</p>
@@ -121,7 +121,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={rawDose} onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                         />
                     </div>

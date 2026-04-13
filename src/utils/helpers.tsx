@@ -27,7 +27,7 @@ export const getRouteIcon = (route: Route) => {
     switch (route) {
         case Route.injection: return <Syringe className="w-5 h-5 text-pink-400" />;
         case Route.oral: return <Pill className="w-5 h-5 text-blue-500" />;
-        case Route.sublingual: return <Pill className="w-5 h-5 text-teal-500" />;
+        case Route.sublingual: return <Pill className="w-5 h-5 text-pink-500" />;
         case Route.gel: return <Droplet className="w-5 h-5 text-cyan-500" />;
         case Route.patchApply: return <Sticker className="w-5 h-5 text-orange-500" />;
         case Route.patchRemove: return <X className="w-5 h-5 text-gray-400" />;

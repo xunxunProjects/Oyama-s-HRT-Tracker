@@ -37,7 +37,7 @@ const Lab: React.FC<LabProps> = ({
             <div className="px-6 md:px-8">
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg">
                             <FlaskConical size={20} />
                         </div>
                         {t('lab.title')}
@@ -46,7 +46,7 @@ const Lab: React.FC<LabProps> = ({
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
                         className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddLabOpen
                             ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
-                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                            : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'
                             }`}
                     >
                         <Plus size={18} />
@@ -86,7 +86,7 @@ const Lab: React.FC<LabProps> = ({
                                     className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
                                     onClick={() => onEditLabResult(res)}
                                 >
-                                    <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400">
+                                    <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400">
                                         <FlaskConical size={18} />
                                     </div>
                                     <div className="flex-1 min-w-0">

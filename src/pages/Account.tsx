@@ -33,8 +33,8 @@ const Account: React.FC<AccountProps> = ({
             <div className="px-6 md:px-10">
                 <div className="w-full p-5 rounded-lg bg-white dark:bg-neutral-900 flex items-center justify-between border border-gray-200 dark:border-neutral-800 transition-all duration-300">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-3">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-md">
-                            <User size={20} className="text-emerald-600 dark:text-emerald-400" />
+                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 rounded-md">
+                            <User size={20} className="text-pink-600 dark:text-pink-400" />
                         </div>
                         {t('account.title')}
                     </h2>
@@ -57,12 +57,12 @@ const Account: React.FC<AccountProps> = ({
                                     <div className="flex items-center gap-1.5">
                                         <span className="font-bold text-gray-900 dark:text-gray-100 text-xl">{user.username}</span>
                                         {user.isAdmin && (
-                                            <BadgeCheck className="w-5 h-5 text-emerald-600 fill-emerald-100 dark:fill-emerald-900/30" strokeWidth={2.5} />
+                                            <BadgeCheck className="w-5 h-5 text-pink-600 fill-pink-100 dark:fill-pink-900/30" strokeWidth={2.5} />
                                         )}
                                     </div>
                                     <button
                                         onClick={() => setIsEditProfileOpen(true)}
-                                        className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                        className="text-xs font-medium text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
                                     >
                                         <Edit2 size={12} />
                                         {t('account.edit_profile')}
@@ -98,8 +98,8 @@ const Account: React.FC<AccountProps> = ({
                                     onClick={onCloudSave}
                                     className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
                                 >
-                                    <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-md">
-                                        <UploadCloud className="text-emerald-600 dark:text-emerald-400" size={18} />
+                                    <div className="p-1.5 bg-pink-50 dark:bg-pink-900/20 rounded-md">
+                                        <UploadCloud className="text-pink-600 dark:text-pink-400" size={18} />
                                     </div>
                                     <div className="text-start">
                                         <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.backup_cloud')}</p>
@@ -110,8 +110,8 @@ const Account: React.FC<AccountProps> = ({
                                     onClick={onCloudLoad}
                                     className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
                                 >
-                                    <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-md">
-                                        <DownloadCloud className="text-emerald-600 dark:text-emerald-400" size={18} />
+                                    <div className="p-1.5 bg-pink-50 dark:bg-pink-900/20 rounded-md">
+                                        <DownloadCloud className="text-pink-600 dark:text-pink-400" size={18} />
                                     </div>
                                     <div className="text-start">
                                         <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.restore_cloud')}</p>
@@ -170,8 +170,8 @@ const Account: React.FC<AccountProps> = ({
                             onClick={onOpenAuth}
                             className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
                         >
-                            <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-md">
-                                <UserCircle className="text-emerald-600 dark:text-emerald-400" size={18} />
+                            <div className="p-1.5 bg-pink-50 dark:bg-pink-900/20 rounded-md">
+                                <UserCircle className="text-pink-600 dark:text-pink-400" size={18} />
                             </div>
                             <div className="text-start">
                                 <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.sign_in_register')}</p>

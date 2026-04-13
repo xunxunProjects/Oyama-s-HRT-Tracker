@@ -65,7 +65,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                         type="password"
                         value={current}
                         onChange={e => setCurrent(e.target.value)}
-                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
+                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                         placeholder={t('account.current_password')}
                         autoFocus
                     />
@@ -73,14 +73,14 @@ const ChangePasswordModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                         type="password"
                         value={newPass}
                         onChange={e => setNewPass(e.target.value)}
-                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
+                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                         placeholder={t('account.new_password')}
                     />
                     <input
                         type="password"
                         value={confirm}
                         onChange={e => setConfirm(e.target.value)}
-                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
+                        className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none font-mono text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                         placeholder={t('account.confirm_password')}
                     />
                 </div>
@@ -90,7 +90,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                     <button
                         onClick={handleSubmit}
                         disabled={!current || !newPass || !confirm || isLoading}
-                        className="px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md transition-colors disabled:opacity-70"
+                        className="px-5 py-2.5 text-sm bg-pink-600 hover:bg-pink-700 text-white font-medium rounded-md transition-colors disabled:opacity-70"
                     >
                         {isLoading ? '...' : t('btn.save')}
                     </button>

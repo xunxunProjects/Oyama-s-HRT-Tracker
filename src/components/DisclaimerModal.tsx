@@ -29,7 +29,7 @@ const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
                 <button
                     onClick={onClose}
-                    className="w-full py-2.5 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-md"
+                    className="w-full py-2.5 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-md"
                 >
                     {t('btn.ok')}
                 </button>

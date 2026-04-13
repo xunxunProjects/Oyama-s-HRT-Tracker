@@ -49,7 +49,7 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center justify-between shrink-0 transition-colors duration-300">
                     <h2 className="font-display text-lg font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] flex items-center gap-2 tracking-tight">
-                        <FlaskConical className="text-[var(--color-m3-primary)] dark:text-teal-400" size={20} />
+                        <FlaskConical className="text-[var(--color-m3-primary)] dark:text-pink-400" size={20} />
                         {resultToEdit ? t('lab.edit_title') : t('lab.add_title')}
                     </h2>
                     <button onClick={handleClose} className="p-2 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-full)] transition-colors">
