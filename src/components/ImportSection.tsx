@@ -36,7 +36,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                         {t('import.text')}
                     </label>
                     <textarea
-                        className="w-full h-24 p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono text-gray-900 dark:text-gray-100 placeholder:text-gray-400 resize-none transition-all"
+                        className="w-full h-24 p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none font-mono text-gray-900 dark:text-gray-100 placeholder:text-gray-400 resize-none transition-all"
                         placeholder={t('import.paste_hint')}
                         value={text}
                         onChange={e => setText(e.target.value)}
@@ -48,7 +48,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                     <button
                         onClick={handleTextImport}
                         disabled={!text.trim()}
-                        className="mt-3 w-full py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                        className="mt-3 w-full py-2.5 text-sm bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
                     >
                         {t('drawer.import')}
                     </button>
@@ -63,7 +63,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                 <div className="pb-1">
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-3.5 text-sm border-2 border-dashed border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 font-semibold rounded-lg hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center justify-center gap-2 group"
+                        className="w-full py-3.5 text-sm border-2 border-dashed border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 font-semibold rounded-lg hover:border-pink-500 dark:hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/10 hover:text-pink-600 dark:hover:text-pink-400 transition flex items-center justify-center gap-2 group"
                     >
                         <Upload size={18} className="transition-transform group-hover:-translate-y-0.5" />
                         {t('import.file_btn')}

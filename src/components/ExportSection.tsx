@@ -31,7 +31,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
         {
             value: 'json',
             label: 'JSON',
-            icon: <FileJson size={18} className="text-emerald-500" />
+            icon: <FileJson size={18} className="text-pink-500" />
         },
         {
             value: 'encrypted',
@@ -71,7 +71,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder={t('export.password_placeholder')}
-                                        className="w-full py-2.5 px-3 pl-10 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                                        className="w-full py-2.5 px-3 pl-10 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
                                         autoComplete="new-password"
                                         autoCorrect="off"
                                         autoCapitalize="off"
@@ -90,7 +90,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                             className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm
                                     ${exportMode === 'encrypted'
                                     ? 'bg-violet-500 hover:bg-violet-600 text-white'
-                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                    : 'bg-pink-500 hover:bg-pink-600 text-white'
                                 }`}
                         >
                             <Download size={16} />

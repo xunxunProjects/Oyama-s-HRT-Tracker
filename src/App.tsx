@@ -425,7 +425,7 @@ const AppContent = () => {
                                     onClick={() => handleViewChange(id as ViewKey)}
                                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 pt-3 pb-2 transition-colors duration-300 relative group
                                         ${isActive
-                                            ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
+                                            ? 'text-[var(--color-m3-primary)] dark:text-pink-400'
                                             : 'text-gray-600 dark:text-gray-400 hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                         }`}
                                 >

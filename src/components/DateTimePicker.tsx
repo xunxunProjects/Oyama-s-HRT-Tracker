@@ -118,9 +118,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     }}
                     className={`h-9 w-9 flex items-center justify-center rounded-[var(--radius-full)] text-xs font-bold transition-all duration-200
                         ${isSelected
-                            ? 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold shadow-md'
+                            ? 'bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold shadow-md'
                             : isToday
-                                ? 'bg-[var(--color-m3-primary-container)] dark:bg-teal-900/30 text-[var(--color-m3-primary)] dark:text-teal-400 font-bold'
+                                ? 'bg-[var(--color-m3-primary-container)] dark:bg-pink-900/30 text-[var(--color-m3-primary)] dark:text-pink-400 font-bold'
                                 : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'
                         }
                     `}
@@ -214,7 +214,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                         <button
                                             onClick={() => setOpenTimeSelect(openTimeSelect === 'hour' ? null : 'hour')}
                                             className={`flex items-center justify-between w-24 px-3 py-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)] border rounded-[var(--radius-md)] transition-all
-                                            ${openTimeSelect === 'hour' ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-teal-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
+                                            ${openTimeSelect === 'hour' ? 'border-[var(--color-m3-primary)] dark:border-pink-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-pink-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
                                         `}
                                         >
                                             <span className="text-2xl font-mono font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
@@ -229,7 +229,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                         <button
                                             onClick={() => setOpenTimeSelect(openTimeSelect === 'minute' ? null : 'minute')}
                                             className={`flex items-center justify-between w-24 px-3 py-2 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-high)] border rounded-[var(--radius-md)] transition-all
-                                            ${openTimeSelect === 'minute' ? 'border-[var(--color-m3-primary)] dark:border-teal-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-teal-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
+                                            ${openTimeSelect === 'minute' ? 'border-[var(--color-m3-primary)] dark:border-pink-400 ring-1 ring-[var(--color-m3-primary)] dark:ring-pink-400' : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-primary)]'}
                                         `}
                                         >
                                             <span className="text-2xl font-mono font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
@@ -261,7 +261,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                                         }}
                                                         className={`h-10 rounded-[var(--radius-sm)] font-mono font-bold text-sm flex items-center justify-center transition-colors
                                                      ${(openTimeSelect === 'hour' ? selectedDate.getHours() : selectedDate.getMinutes()) === val
-                                                                ? 'bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] shadow-sm'
+                                                                ? 'bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] shadow-sm'
                                                                 : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]'
                                                             }
                                                  `}
@@ -286,7 +286,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             </button>
                             <button
                                 onClick={() => onConfirm(selectedDate)}
-                                className="flex-1 py-3.5 bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] text-sm"
+                                className="flex-1 py-3.5 bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] text-sm"
                             >
                                 {t('btn.ok') || 'Confirm'}
                             </button>

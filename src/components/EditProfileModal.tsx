@@ -51,7 +51,7 @@ const EditProfileModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                     type="text"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-medium mb-5 text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500 text-center"
+                    className="w-full p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none font-medium mb-5 text-gray-900 dark:text-gray-100 transition-colors placeholder-gray-400 dark:placeholder-gray-500 text-center"
                     placeholder={t('account.new_username')}
                     autoFocus
                 />
@@ -61,7 +61,7 @@ const EditProfileModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                     <button
                         onClick={handleSubmit}
                         disabled={!username.trim() || isLoading || username === user?.username}
-                        className="px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md transition-colors disabled:opacity-70"
+                        className="px-5 py-2.5 text-sm bg-pink-600 hover:bg-pink-700 text-white font-medium rounded-md transition-colors disabled:opacity-70"
                     >
                         {isLoading ? '...' : t('btn.save')}
                     </button>

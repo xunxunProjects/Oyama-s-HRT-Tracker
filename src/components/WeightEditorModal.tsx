@@ -45,7 +45,7 @@ const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
                             inputMode="decimal"
                             value={weightStr}
                             onChange={(e) => setWeightStr(e.target.value)}
-                            className="font-display text-4xl font-black text-[var(--color-m3-primary)] dark:text-teal-400 tabular-nums w-36 text-center bg-transparent border-b-2 border-[var(--color-m3-primary-container)] dark:border-teal-900/50 focus:border-[var(--color-m3-primary)] dark:focus:border-emerald-500 outline-none transition-colors pb-1"
+                            className="font-display text-4xl font-black text-[var(--color-m3-primary)] dark:text-pink-400 tabular-nums w-36 text-center bg-transparent border-b-2 border-[var(--color-m3-primary-container)] dark:border-pink-900/50 focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 outline-none transition-colors pb-1"
                             placeholder="0.0"
                             autoFocus
                         />
@@ -53,18 +53,18 @@ const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
                     </div>
                 </div>
 
-                <div className="bg-[var(--color-m3-primary-container)] dark:bg-teal-900/20 p-3 rounded-[var(--radius-md)] mb-5 flex gap-2.5 items-start transition-colors border border-[var(--color-m3-outline-variant)] dark:border-teal-900/30">
-                    <Info className="w-4 h-4 text-[var(--color-m3-primary)] dark:text-teal-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-[var(--color-m3-on-primary-container)] dark:text-teal-300 leading-relaxed transition-colors font-medium">
+                <div className="bg-[var(--color-m3-primary-container)] dark:bg-pink-900/20 p-3 rounded-[var(--radius-md)] mb-5 flex gap-2.5 items-start transition-colors border border-[var(--color-m3-outline-variant)] dark:border-pink-900/30">
+                    <Info className="w-4 h-4 text-[var(--color-m3-primary)] dark:text-pink-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-[var(--color-m3-on-primary-container)] dark:text-pink-300 leading-relaxed transition-colors font-medium">
                         {t('modal.weight.desc')}
                     </p>
                 </div>
                 <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-teal-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-teal-900/20 transition-all">{t('btn.cancel')}</button>
+                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-pink-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-pink-900/20 transition-all">{t('btn.cancel')}</button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className={`px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)] ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {isSaving ? (
                             <span className="flex items-center justify-center gap-2">

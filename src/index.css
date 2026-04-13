@@ -7,33 +7,33 @@
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
     --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
 
-    /* M3 Teal Primary */
-    --color-m3-primary: #0D9488;
-    --color-m3-primary-light: #14B8A6;
-    --color-m3-primary-container: #CCFBF1;
+    /* M3 Rose/Pink Primary */
+    --color-m3-primary: #ec4899;
+    --color-m3-primary-light: #f472b6;
+    --color-m3-primary-container: #fce7f3;
     --color-m3-on-primary: #FFFFFF;
-    --color-m3-on-primary-container: #0F766E;
+    --color-m3-on-primary-container: #9d174d;
 
-    /* M3 Coral/Rose Accent */
-    --color-m3-accent: #F43F5E;
-    --color-m3-accent-light: #FB7185;
-    --color-m3-accent-container: #FFF1F2;
+    /* M3 Teal Accent */
+    --color-m3-accent: #0D9488;
+    --color-m3-accent-light: #14B8A6;
+    --color-m3-accent-container: #CCFBF1;
     --color-m3-on-accent: #FFFFFF;
-    --color-m3-on-accent-container: #BE123C;
+    --color-m3-on-accent-container: #0F766E;
 
-    /* M3 Surfaces — warm neutrals */
-    --color-m3-surface: #FAFAF9;
-    --color-m3-surface-dim: #F5F5F4;
+    /* M3 Surfaces — soft pink-tinted */
+    --color-m3-surface: #FEF8FC;
+    --color-m3-surface-dim: #F5ECF4;
     --color-m3-surface-bright: #FFFFFF;
     --color-m3-surface-container-lowest: #FFFFFF;
-    --color-m3-surface-container-low: #F5F5F4;
-    --color-m3-surface-container: #EFEDEB;
-    --color-m3-surface-container-high: #E7E5E4;
-    --color-m3-surface-container-highest: #D6D3D1;
+    --color-m3-surface-container-low: #F9EEF6;
+    --color-m3-surface-container: #F2E3EF;
+    --color-m3-surface-container-high: #EAD5E8;
+    --color-m3-surface-container-highest: #D9C2D6;
     --color-m3-on-surface: #1C1917;
     --color-m3-on-surface-variant: #78716C;
     --color-m3-outline: #A8A29E;
-    --color-m3-outline-variant: #D6D3D1;
+    --color-m3-outline-variant: #D9C2D6;
 
     /* M3 Dark Surfaces */
     --color-m3-dark-surface: #1C1917;

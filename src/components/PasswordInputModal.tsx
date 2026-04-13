@@ -24,17 +24,17 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, o
                     type="text"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-emerald-500 outline-none font-mono text-center mb-5 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] transition-colors placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 outline-none font-mono text-center mb-5 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="Password"
                     autoFocus
                 />
 
                 <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-teal-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-teal-900/20 transition-all">{t('btn.cancel')}</button>
+                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-pink-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-pink-900/20 transition-all">{t('btn.cancel')}</button>
                     <button
                         onClick={() => onConfirm(password)}
                         disabled={!password}
-                        className="px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-m3-1)]"
+                        className="px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-m3-1)]"
                     >
                         {t('btn.ok')}
                     </button>

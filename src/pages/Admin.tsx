@@ -166,7 +166,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
 
                     <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-start gap-4">
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+                            <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400">
                                 <Server size={24} />
                             </div>
                             <div>

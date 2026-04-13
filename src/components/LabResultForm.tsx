@@ -75,7 +75,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                         type="datetime-local"
                         value={dateStr}
                         onChange={(e) => setDateStr(e.target.value)}
-                        className="w-full bg-white dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:focus:border-emerald-500 outline-none transition-colors text-sm font-medium text-gray-900 dark:text-gray-100"
+                        className="w-full bg-white dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 dark:focus:border-pink-400 outline-none transition-colors text-sm font-medium text-gray-900 dark:text-gray-100"
                     />
                 </div>
 
@@ -93,19 +93,19 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 placeholder="0.0"
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
-                                className="w-full bg-gray-50 dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:focus:border-emerald-500 outline-none transition-colors font-medium text-gray-900 dark:text-gray-100 text-sm"
+                                className="w-full bg-gray-50 dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 dark:focus:border-pink-400 outline-none transition-colors font-medium text-gray-900 dark:text-gray-100 text-sm"
                             />
                         </div>
                         <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-md border border-gray-200 dark:border-neutral-700 shrink-0">
                             <button
                                 onClick={() => setUnit('pmol/l')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-pink-600 dark:text-pink-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                             >
                                 pmol/L
                             </button>
                             <button
                                 onClick={() => setUnit('pg/ml')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-pink-600 dark:text-pink-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                             >
                                 pg/mL
                             </button>
@@ -162,7 +162,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     <button
                         onClick={handleSave}
                         disabled={!value || !dateStr}
-                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
+                        className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
                     >
                         <Check size={16} />
                         <span>{t('btn.save')}</span>

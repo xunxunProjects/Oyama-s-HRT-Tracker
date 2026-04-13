@@ -53,7 +53,7 @@ const ImportModal = ({ isOpen, onClose, onImportJson }: { isOpen: boolean; onClo
                         <div>
                             <label className="block text-xs font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider mb-2 pl-1">{t('import.text')}</label>
                             <textarea
-                                className="w-full h-28 p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-teal-400 outline-none font-mono text-xs text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] resize-none transition-all placeholder:text-[var(--color-m3-outline)]"
+                                className="w-full h-28 p-3 text-sm bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-md)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 outline-none font-mono text-xs text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] resize-none transition-all placeholder:text-[var(--color-m3-outline)]"
                                 placeholder={t('import.paste_hint')}
                                 value={text}
                                 onChange={e => setText(e.target.value)}
@@ -61,7 +61,7 @@ const ImportModal = ({ isOpen, onClose, onImportJson }: { isOpen: boolean; onClo
                             <button
                                 onClick={handleTextImport}
                                 disabled={!text.trim()}
-                                className="mt-3 w-full py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-[var(--shadow-m3-1)]"
+                                className="mt-3 w-full py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-[var(--shadow-m3-1)]"
                             >
                                 {t('drawer.import')}
                             </button>
@@ -75,9 +75,9 @@ const ImportModal = ({ isOpen, onClose, onImportJson }: { isOpen: boolean; onClo
 
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-full py-3 text-sm border-2 border-dashed border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-bold rounded-[var(--radius-md)] hover:border-[var(--color-m3-primary)] dark:hover:border-teal-400 hover:bg-[var(--color-m3-primary-container)]/30 dark:hover:bg-teal-900/20 hover:text-[var(--color-m3-primary)] dark:hover:text-teal-400 transition flex items-center justify-center gap-2 group"
+                            className="w-full py-3 text-sm border-2 border-dashed border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-bold rounded-[var(--radius-md)] hover:border-[var(--color-m3-primary)] dark:hover:border-pink-400 hover:bg-[var(--color-m3-primary-container)]/30 dark:hover:bg-pink-900/20 hover:text-[var(--color-m3-primary)] dark:hover:text-pink-400 transition flex items-center justify-center gap-2 group"
                         >
-                            <div className="p-1.5 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-sm)] group-hover:bg-[var(--color-m3-primary-container)] dark:group-hover:bg-teal-900/30 transition-colors">
+                            <div className="p-1.5 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-sm)] group-hover:bg-[var(--color-m3-primary-container)] dark:group-hover:bg-pink-900/30 transition-colors">
                                 <Upload size={18} />
                             </div>
                             {t('import.file_btn')}

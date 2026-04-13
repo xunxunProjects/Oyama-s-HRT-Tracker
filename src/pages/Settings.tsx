@@ -53,7 +53,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="px-6 md:px-8">
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg">
                             <SettingsIcon size={20} />
                         </div>
                         {t('nav.settings')}
@@ -67,7 +67,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
                     <div className="p-4">
                         <CustomSelect
-                            icon={<Languages className="text-emerald-500 dark:text-emerald-400" size={18} />}
+                            icon={<Languages className="text-pink-500 dark:text-pink-400" size={18} />}
                             label={t('drawer.lang')}
                             value={lang}
                             onChange={(val) => setLang(val as Lang)}
@@ -77,7 +77,7 @@ const Settings: React.FC<SettingsProps> = ({
 
                     <div className="p-4">
                         <CustomSelect
-                            icon={<Palette className="text-emerald-500 dark:text-emerald-400" size={18} />}
+                            icon={<Palette className="text-pink-500 dark:text-pink-400" size={18} />}
                             label={t('settings.theme')}
                             value={theme}
                             onChange={(val) => setTheme(val as 'light' | 'dark' | 'system')}
@@ -94,7 +94,7 @@ const Settings: React.FC<SettingsProps> = ({
                         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                     >
                         <div className="flex items-center gap-3">
-                            <Scale className="text-emerald-500 dark:text-emerald-400" size={18} />
+                            <Scale className="text-pink-500 dark:text-pink-400" size={18} />
                             <span className="font-semibold text-gray-900 dark:text-gray-100">{t('status.weight')}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ const Settings: React.FC<SettingsProps> = ({
                             className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                         >
                             <div className="flex items-center gap-3">
-                                <Upload className="text-emerald-500 dark:text-emerald-400" size={18} />
+                                <Upload className="text-pink-500 dark:text-pink-400" size={18} />
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">{t('export.title')}</span>
                             </div>
                             <ChevronDown

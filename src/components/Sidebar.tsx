@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             onClick={() => onViewChange(item.id)}
                             className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-sm font-semibold group relative
                                 ${isActive
-                                    ? 'text-[var(--color-m3-primary)] dark:text-teal-400'
+                                    ? 'text-[var(--color-m3-primary)] dark:text-pink-400'
                                     : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                 }`}
                         >

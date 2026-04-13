@@ -30,7 +30,7 @@ const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, 
                     </button>
                 </div>
 
-                <button onClick={onClose} className="w-full py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-teal-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)]">
+                <button onClick={onClose} className="w-full py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition shadow-[var(--shadow-m3-1)]">
                     {t('btn.ok')}
                 </button>
             </div>

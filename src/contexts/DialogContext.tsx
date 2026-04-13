@@ -58,7 +58,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                                 )}
                                 <button
                                     onClick={handleConfirm}
-                                    className="px-4 py-2 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-md"
+                                    className="px-4 py-2 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-md"
                                 >
                                     {type === 'confirm' ? t('btn.ok') : t('btn.ok')}
                                 </button>

@@ -470,8 +470,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     }}
                                     shape={({ cx, cy }: any) => (
                                         <g className="cursor-pointer">
-                                            <circle cx={cx} cy={cy} r={6} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.6} />
-                                            <circle cx={cx} cy={cy} r={3} fill="#f97316" />
+                                            <circle cx={cx} cy={cy} r={4} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.4} />
+                                            <circle cx={cx} cy={cy} r={2} fill="#f97316" />
                                         </g>
                                     )}
                                 />
@@ -489,8 +489,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     }}
                                     shape={({ cx, cy }: any) => (
                                         <g className="cursor-pointer">
-                                            <circle cx={cx} cy={cy} r={6} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.6} />
-                                            <circle cx={cx} cy={cy} r={3} fill="#8b5cf6" />
+                                            <circle cx={cx} cy={cy} r={4} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.4} />
+                                            <circle cx={cx} cy={cy} r={2} fill="#8b5cf6" />
                                         </g>
                                     )}
                                 />
@@ -500,22 +500,18 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     data={nowPoint ? [nowPoint] : []}
                                     yAxisId="left"
                                     isAnimationActive={false}
-                                    shape={({ cx, cy, payload }: any) => {
-                                        const conc = payload?.concE2 ?? 0;
-                                        const radius = Math.max(4, Math.min(7, 4 + conc / 80));
-                                        return (
-                                            <g className="group">
-                                                <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                                <circle
-                                                    cx={cx} cy={cy}
-                                                    r={radius}
-                                                    fill="#bfdbfe"
-                                                    stroke="white"
-                                                    strokeWidth={1.5}
-                                                />
-                                            </g>
-                                        );
-                                    }}
+                                    shape={({ cx, cy }: any) => (
+                                        <g>
+                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                            <circle
+                                                cx={cx} cy={cy}
+                                                r={5}
+                                                fill="#fbcfe8"
+                                                stroke="white"
+                                                strokeWidth={1.5}
+                                            />
+                                        </g>
+                                    )}
                                 />
                             )}
                             {hasCPAData && (
@@ -523,22 +519,18 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     data={nowPoint ? [nowPoint] : []}
                                     yAxisId="right"
                                     isAnimationActive={false}
-                                    shape={({ cx, cy, payload }: any) => {
-                                        const conc = payload?.concCPA ?? 0;
-                                        const radius = Math.max(4, Math.min(9, 4 + conc / 8));
-                                        return (
-                                            <g className="group">
-                                                <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                                <circle
-                                                    cx={cx} cy={cy}
-                                                    r={radius}
-                                                    fill="#c4b5fd"
-                                                    stroke="white"
-                                                    strokeWidth={1.5}
-                                                />
-                                            </g>
-                                        );
-                                    }}
+                                    shape={({ cx, cy }: any) => (
+                                        <g>
+                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
+                                            <circle
+                                                cx={cx} cy={cy}
+                                                r={5}
+                                                fill="#c4b5fd"
+                                                stroke="white"
+                                                strokeWidth={1.5}
+                                            />
+                                        </g>
+                                    )}
                                 />
                             )}
                             {labPoints.length > 0 && (
