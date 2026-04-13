@@ -271,7 +271,8 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     const handleBrushChange = (range: { startIndex?: number; endIndex?: number }) => {
         if (!range || range.startIndex === undefined || range.endIndex === undefined || data.length === 0) return;
         const startIndex = Math.max(0, Math.min(range.startIndex, data.length - 1));
-        const endIndex = Math.max(startIndex + 1, Math.min(range.endIndex, data.length - 1));
+        const endIndex = Math.min(data.length - 1, Math.max(startIndex + 1, Math.min(range.endIndex, data.length - 1)));
+        if (startIndex >= endIndex) return;
         const start = data[startIndex].time;
         const end = data[endIndex].time;
         setXDomain(clampDomain([start, end]));
