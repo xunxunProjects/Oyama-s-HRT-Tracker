@@ -171,7 +171,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     }, [route, useCustomTheta, customHoldValue, slTier]);
 
     const bioMultiplier = useMemo(() => {
-        const extrasForCalc = slExtras ?? {};
+        const extrasForCalc: Record<string, unknown> = slExtras ?? {};
         if (route === Route.gel) {
             extrasForCalc[ExtraKey.gelSite] = gelSite;
         }
@@ -526,11 +526,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     className={`px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-neutral-900 border rounded-md transition-colors flex items-center justify-center gap-1.5 ${
                         templates.length === 0
                             ? 'text-gray-400 dark:text-gray-500 border-gray-200 dark:border-neutral-700 cursor-not-allowed opacity-70'
-                            : 'text-gray-700 dark:text-gray-200 border-gray-200 dark:border-neutral-700 hover:border-pink-400'
+                            : 'text-gray-700 dark:text-gray-200 border-gray-200 dark:border-neutral-700 hover:border-teal-400'
                     }`}
                     title={t('template.load_title')}
                 >
-                    <Bookmark size={14} className={templates.length === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-pink-600 dark:text-pink-400'} />
+                    <Bookmark size={14} className={templates.length === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-teal-600 dark:text-teal-400'} />
                     <span>{t('template.load_title')}</span>
                 </button>
                 {showTemplateMenu && templates.length > 0 && (
@@ -578,7 +578,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     };
 
     return (
-        <div className={`flex flex-col h-full bg-white dark:bg-neutral-900 transition-colors duration-300 ${isInline && !hideHeader ? 'border flex-1 border-gray-200 dark:border-neutral-800' : ''}`}>
+        <div className={`flex flex-col h-full bg-white dark:bg-neutral-900 transition-colors duration-300 ${isInline && !hideHeader ? 'border flex-1 border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden' : ''}`}>
 
             {/* Save Template Dialog Overlay */}
             {/* Save Template Dialog Overlay (Removed) */}
@@ -610,13 +610,32 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
             <div className={`space-y-4 flex-1 overflow-y-auto ${isInline ? 'p-4' : 'p-5'} ${hideHeader ? '!p-2' : ''}`}>
                 {/* Time */}
-                <div className="space-y-1.5 relative">
+                <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.time')}</label>
-                    <input
-                        type="datetime-local"
-                        value={dateStr}
-                        onChange={(e) => setDateStr(e.target.value)}
-                        className="w-full bg-white dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 dark:focus:border-pink-500 outline-none transition-colors text-sm font-medium text-gray-900 dark:text-gray-100"
+                    <button
+                        type="button"
+                        onClick={() => setIsDatePickerOpen(true)}
+                        className="group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 rounded-md transition-colors outline-none flex items-center justify-between overflow-hidden"
+                    >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Calendar size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
+                            <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                                {dateStr ? new Date(dateStr).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </span>
+                        </div>
+                        <ChevronDown size={16} className="text-gray-400 shrink-0" />
+                    </button>
+                    <DateTimePicker
+                        isOpen={isDatePickerOpen}
+                        onClose={() => setIsDatePickerOpen(false)}
+                        onConfirm={(date) => {
+                            const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            setDateStr(iso);
+                            setIsDatePickerOpen(false);
+                        }}
+                        initialDate={dateStr ? new Date(dateStr) : new Date()}
+                        mode="datetime"
+                        title={t('field.time')}
                     />
                 </div>
 
@@ -758,7 +777,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                                 e.preventDefault();
                                                 confirmAndOpenExternal('https://transfemscience.org/misc/injectable-e2-simulator/');
                                             }}
-                                            className="inline-flex items-center gap-1 text-xs text-pink-600 dark:text-pink-400 hover:underline mt-1"
+                                            className="inline-flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline mt-1"
                                         >
                                             {t('inj.guide.sim_link')}
                                             <ExternalLink size={12} />
@@ -791,7 +810,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         e.preventDefault();
                                         confirmAndOpenExternal('https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection');
                                     }}
-                                    className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                                    className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                                 >
                                     {t('inj.guide.source')}
                                     <ExternalLink size={11} />
@@ -857,18 +876,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     {/* Template Save Section */}
                     <div className="flex items-center">
                         <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
-                            showSaveTemplateInput ? 'w-40 sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
+                            showSaveTemplateInput ? 'w-[14rem] sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
                         }`}>
                             <input
                                 type="text"
                                 value={templateName}
                                 onChange={(e) => setTemplateName(e.target.value)}
                                 placeholder={t('template.name_placeholder')}
-                                className="w-24 sm:w-36 px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100"
+                                className="flex-1 min-w-0 px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 dark:text-gray-100"
                             />
                             <button
                                 onClick={handleSaveAsTemplate}
-                                className="p-1.5 ml-1 text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded shrink-0 transition-colors"
+                                className="p-1.5 ml-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded shrink-0 transition-colors"
                             >
                                 <Check size={18} />
                             </button>
@@ -889,7 +908,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setShowDeleteConfirm(false);
                                     setShowTemplateMenu(false);
                                 }}
-                                className="p-2 text-gray-500 hover:text-pink-600 dark:hover:text-pink-400 border border-transparent rounded transition-colors flex items-center justify-center"
+                                className="p-2 text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 border border-transparent rounded transition-colors flex items-center justify-center"
                                 title={t('template.save_title')}
                             >
                                 <BookmarkPlus size={18} />
@@ -955,7 +974,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
+                        className="px-5 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
                     >
                         {isSaving ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

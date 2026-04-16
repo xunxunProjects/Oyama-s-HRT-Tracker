@@ -87,7 +87,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-2.5 mt-1 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] rounded-[var(--radius-full)] font-bold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[var(--shadow-m3-1)]"
+                        className="w-full py-3 md:py-2 mt-1 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {loading && <Loader2 size={16} className="animate-spin" />}
                         {isLogin ? 'Sign In' : 'Sign Up'}

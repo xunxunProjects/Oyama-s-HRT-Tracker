@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { LabResult } from '../../logic';
-import { Calendar, Activity, Check, Trash2, X } from 'lucide-react';
+import { Calendar, Activity, Check, Trash2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import DateTimePicker from './DateTimePicker';
 
 interface LabResultFormProps {
     resultToEdit?: LabResult | null;
@@ -18,6 +19,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
     const [value, setValue] = useState("");
     const [unit, setUnit] = useState<'pg/ml' | 'pmol/l'>('pmol/l');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     useEffect(() => {
         if (resultToEdit) {
@@ -66,16 +68,34 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
             <div className={`overflow-y-auto ${isInline ? 'p-4' : 'p-5'} space-y-4`}>
                 {/* Date & Time */}
-                <div className="space-y-1.5 relative">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1 flex items-center gap-1.5">
-                        <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
+                <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
                         {t('lab.date')}
                     </label>
-                    <input
-                        type="datetime-local"
-                        value={dateStr}
-                        onChange={(e) => setDateStr(e.target.value)}
-                        className="w-full bg-white dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 dark:focus:border-pink-400 outline-none transition-colors text-sm font-medium text-gray-900 dark:text-gray-100"
+                    <button
+                        type="button"
+                        onClick={() => setIsDatePickerOpen(true)}
+                        className="group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 rounded-md transition-colors outline-none flex items-center justify-between overflow-hidden"
+                    >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Calendar size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
+                            <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                                {dateStr ? new Date(dateStr).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </span>
+                        </div>
+                        <ChevronDown size={16} className="text-gray-400 shrink-0" />
+                    </button>
+                    <DateTimePicker
+                        isOpen={isDatePickerOpen}
+                        onClose={() => setIsDatePickerOpen(false)}
+                        onConfirm={(date) => {
+                            const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            setDateStr(iso);
+                            setIsDatePickerOpen(false);
+                        }}
+                        initialDate={dateStr ? new Date(dateStr) : new Date()}
+                        mode="datetime"
+                        title={t('lab.date')}
                     />
                 </div>
 
@@ -93,19 +113,19 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 placeholder="0.0"
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
-                                className="w-full bg-gray-50 dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 dark:focus:border-pink-400 outline-none transition-colors font-medium text-gray-900 dark:text-gray-100 text-sm"
+                                className="w-full bg-gray-50 dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-[var(--color-m3-primary)] focus:ring-1 focus:ring-[var(--color-m3-primary)] dark:focus:border-[var(--color-m3-primary)] outline-none transition-colors font-medium text-gray-900 dark:text-gray-100 text-sm"
                             />
                         </div>
                         <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-md border border-gray-200 dark:border-neutral-700 shrink-0">
                             <button
                                 onClick={() => setUnit('pmol/l')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-pink-600 dark:text-pink-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                             >
                                 pmol/L
                             </button>
                             <button
                                 onClick={() => setUnit('pg/ml')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-pink-600 dark:text-pink-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                             >
                                 pg/mL
                             </button>
@@ -162,7 +182,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     <button
                         onClick={handleSave}
                         disabled={!value || !dateStr}
-                        className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
+                        className="px-5 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
                     >
                         <Check size={16} />
                         <span>{t('btn.save')}</span>

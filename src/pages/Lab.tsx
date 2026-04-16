@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FlaskConical, Plus } from 'lucide-react';
 import { LabResult } from '../../logic';
 import { Lang } from '../i18n/translations';
@@ -32,6 +32,8 @@ const Lab: React.FC<LabProps> = ({
     currentTime,
     lang
 }) => {
+    const [editingLabId, setEditingLabId] = useState<string | null>(null);
+
     return (
         <div className="relative space-y-6 pt-6 pb-32">
             <div className="px-6 md:px-8">
@@ -44,30 +46,29 @@ const Lab: React.FC<LabProps> = ({
                     </h2>
                     <button
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                        className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddLabOpen
-                            ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
-                            : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'
-                            }`}
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 dark:text-gray-500 hover:text-[var(--color-m3-primary)] dark:hover:text-[var(--color-m3-primary-light)] hover:bg-gray-100 dark:hover:bg-neutral-800 transition-all duration-200"
                     >
-                        <Plus size={18} />
+                        <Plus size={18} className={`transition-transform duration-300 ${isQuickAddLabOpen ? 'rotate-45' : 'rotate-0'}`} />
                     </button>
                 </div>
             </div>
 
-            {isQuickAddLabOpen && (
-                <div className="mx-6 md:mx-8 mb-6">
-                    <LabResultForm
-                        resultToEdit={null}
-                        onSave={(res) => {
-                            onSaveLabResult(res);
-                            setIsQuickAddLabOpen(false);
-                        }}
-                        onCancel={() => setIsQuickAddLabOpen(false)}
-                        onDelete={() => { }}
-                        isInline={true}
-                    />
+            <div className={`grid transition-all duration-300 ease-in-out ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="overflow-hidden">
+                    <div className="mx-6 md:mx-8 mb-6">
+                        <LabResultForm
+                            resultToEdit={null}
+                            onSave={(res) => {
+                                onSaveLabResult(res);
+                                setIsQuickAddLabOpen(false);
+                            }}
+                            onCancel={() => setIsQuickAddLabOpen(false)}
+                            onDelete={() => { }}
+                            isInline={true}
+                        />
+                    </div>
                 </div>
-            )}
+            </div>
 
             {labResults.length === 0 ? (
                 <div className="mx-6 md:mx-8 text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
@@ -80,26 +81,47 @@ const Lab: React.FC<LabProps> = ({
                         .sort((a, b) => b.timeH - a.timeH)
                         .map(res => {
                             const d = new Date(res.timeH * 3600000);
+                            const isEditing = editingLabId === res.id;
                             return (
-                                <div
-                                    key={res.id}
-                                    className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
-                                    onClick={() => onEditLabResult(res)}
-                                >
-                                    <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400">
-                                        <FlaskConical size={18} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                                {res.concValue} {res.unit}
-                                            </span>
-                                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                                                {formatTime(d)}
-                                            </span>
+                                <div key={res.id} className="flex flex-col">
+                                    <div
+                                        className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
+                                        onClick={() => setEditingLabId(isEditing ? null : res.id)}
+                                    >
+                                        <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400">
+                                            <FlaskConical size={18} />
                                         </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                            {formatDate(d, lang)}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                                    {res.concValue} {res.unit}
+                                                </span>
+                                                <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                                                    {formatTime(d)}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                                {formatDate(d, lang)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={`grid transition-all duration-300 ease-in-out ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="px-4 pb-4 pt-1">
+                                                <LabResultForm
+                                                    resultToEdit={res}
+                                                    onSave={(updated) => {
+                                                        onSaveLabResult(updated);
+                                                        setEditingLabId(null);
+                                                    }}
+                                                    onCancel={() => setEditingLabId(null)}
+                                                    onDelete={(id) => {
+                                                        onDeleteLabResult(id);
+                                                        setEditingLabId(null);
+                                                    }}
+                                                    isInline={true}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

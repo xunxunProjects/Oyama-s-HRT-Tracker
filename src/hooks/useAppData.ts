@@ -123,9 +123,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         setEvents(prev => prev.map(p => p.id === e.id ? e : p));
     };
     const deleteEvent = (id: string) => {
-        showDialog('confirm', t('timeline.delete_confirm'), () => {
-            setEvents(prev => prev.filter(e => e.id !== id));
-        });
+        setEvents(prev => prev.filter(e => e.id !== id));
     };
     const clearAllEvents = () => {
         if (!events.length) return;
@@ -137,9 +135,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const addLabResult = (res: LabResult) => setLabResults(prev => [...prev, res]);
     const updateLabResult = (res: LabResult) => setLabResults(prev => prev.map(r => r.id === res.id ? res : r));
     const deleteLabResult = (id: string) => {
-        showDialog('confirm', t('lab.delete_confirm'), () => {
-            setLabResults(prev => prev.filter(r => r.id !== id));
-        });
+        setLabResults(prev => prev.filter(r => r.id !== id));
     };
     const clearLabResults = () => {
         if (!labResults.length) return;

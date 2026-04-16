@@ -70,6 +70,7 @@ const AppContent = () => {
         transitionDirection,
         handleViewChange,
         mainScrollRef,
+        navItems,
     } = useAppNavigation(user);
 
 
@@ -299,11 +300,6 @@ const AppContent = () => {
     // Let's grab navItems logic from hook or just reconstruct here?
     // The hook provides navItems.
 
-    const { navItems } = useAppNavigation(user); // Re-calling hook? No, I returned it. 
-    // Wait, I need to get it from the previous call.
-    // I already destructured it: const { ... } = useAppNavigation(user);
-    // Ah I missed destructuring `navItems` in line 59. Let me fix the destructuring.
-
     return (
         <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden transition-colors duration-300">
             <Sidebar
@@ -425,7 +421,7 @@ const AppContent = () => {
                                     onClick={() => handleViewChange(id as ViewKey)}
                                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 pt-3 pb-2 transition-colors duration-300 relative group
                                         ${isActive
-                                            ? 'text-[var(--color-m3-primary)] dark:text-pink-400'
+                                            ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
                                             : 'text-gray-600 dark:text-gray-400 hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                         }`}
                                 >
@@ -486,7 +482,7 @@ const AppContent = () => {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 eventToEdit={editingEvent}
-                onSave={e => {
+                onSave={(e: DoseEvent) => {
                     if (events.find(p => p.id === e.id)) updateEvent(e);
                     else addEvent(e);
                 }}

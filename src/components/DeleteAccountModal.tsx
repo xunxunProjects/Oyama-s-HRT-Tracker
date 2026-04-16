@@ -65,12 +65,12 @@ const DeleteAccountModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () 
                     autoFocus
                 />
 
-                <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">{t('btn.cancel')}</button>
+                <div className="flex gap-3 pt-1">
+                    <button onClick={onClose} className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-neutral-600 rounded-xl md:rounded-md transition-colors">{t('btn.cancel')}</button>
                     <button
                         onClick={handleSubmit}
                         disabled={!password || isLoading}
-                        className="px-5 py-2.5 text-sm bg-red-600 text-white font-medium rounded-md transition-colors disabled:opacity-70 hover:bg-red-700"
+                        className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-md transition disabled:opacity-70"
                     >
                         {isLoading ? '...' : t('btn.ok')}
                     </button>

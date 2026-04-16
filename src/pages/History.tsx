@@ -58,26 +58,24 @@ const History: React.FC<HistoryProps> = ({
                     </div>
                     <button
                         onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                        className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${isQuickAddOpen
-                            ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rotate-45'
-                            : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'
-                            }`}
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 dark:text-gray-500 hover:text-[var(--color-m3-primary)] dark:hover:text-[var(--color-m3-primary-light)] hover:bg-gray-100 dark:hover:bg-neutral-800 transition-all duration-200"
                     >
-                        <Plus size={18} />
+                        <Plus size={18} className={`transition-transform duration-300 ${isQuickAddOpen ? 'rotate-45' : 'rotate-0'}`} />
                     </button>
                 </div>
             </div>
 
-            {isQuickAddOpen && (
-                <div className="mx-4 md:mx-8 mb-6">
-                    <DoseForm
-                        eventToEdit={null}
-                        onSave={(e) => {
-                            onSaveEvent(e);
-                            setIsQuickAddOpen(false);
-                        }}
-                        onCancel={() => setIsQuickAddOpen(false)}
-                        onDelete={() => { }}
+            <div className={`grid transition-all duration-300 ease-in-out ${isQuickAddOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="overflow-hidden">
+                    <div className="mx-4 md:mx-8 mb-6">
+                        <DoseForm
+                            eventToEdit={null}
+                            onSave={(e) => {
+                                onSaveEvent(e);
+                                setIsQuickAddOpen(false);
+                            }}
+                            onCancel={() => setIsQuickAddOpen(false)}
+                            onDelete={() => { }}
                         templates={doseTemplates}
                         onSaveTemplate={onSaveTemplate}
                         onDeleteTemplate={onDeleteTemplate}
@@ -85,8 +83,9 @@ const History: React.FC<HistoryProps> = ({
                         onDeleteQuickDose={onDeleteQuickDose}
                         isInline={true}
                     />
+                    </div>
                 </div>
-            )}
+            </div>
 
             {Object.keys(groupedEvents).length === 0 && (
                 <div className="mx-6 md:mx-8 text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
@@ -97,15 +96,15 @@ const History: React.FC<HistoryProps> = ({
             <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden text-sm">
                 {Object.entries(groupedEvents).map(([date, items], index) => (
                     <div key={date} className={`${index !== 0 ? 'border-t border-gray-200 dark:border-neutral-800' : ''}`}>
-                        <div className="sticky top-0 bg-gray-50/95 dark:bg-neutral-900/95 backdrop-blur-sm py-2 px-5 z-10 flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800">
+                        <div className="sticky top-0 bg-gray-50/95 dark:bg-neutral-900/95 backdrop-blur-sm py-2.5 px-4 z-10 flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800">
                             <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{date}</span>
                         </div>
                         <div className="divide-y divide-gray-100 dark:divide-neutral-800">
                             {(items as DoseEvent[]).map(ev => (
-                                <div key={ev.id} className={`flex flex-col ${editingId === ev.id ? 'bg-gray-50/30 dark:bg-neutral-800/30 border-y border-pink-100 dark:border-pink-900/30 first:border-t-0' : ''}`}>
+                                <div key={ev.id} className="flex flex-col">
                                     <div
                                         onClick={() => setEditingId(editingId === ev.id ? null : ev.id)}
-                                        className={`p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group ${editingId === ev.id ? 'pb-2' : ''}`}
+                                        className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
                                     >
                                         <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${ev.route === Route.injection
                                             ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400'
@@ -146,29 +145,31 @@ const History: React.FC<HistoryProps> = ({
                                         </div>
                                     </div>
 
-                                    {editingId === ev.id && (
-                                        <div className="px-4 pb-4">
-                                            <DoseForm
-                                                eventToEdit={ev}
-                                                onSave={(e) => {
-                                                    onSaveEvent(e);
-                                                    setEditingId(null);
-                                                }}
-                                                onCancel={() => setEditingId(null)}
-                                                onDelete={(id) => {
-                                                    onDeleteEvent(id);
-                                                    setEditingId(null);
-                                                }}
-                                                templates={doseTemplates}
-                                                onSaveTemplate={onSaveTemplate}
-                                                onDeleteTemplate={onDeleteTemplate}
-                                                onAddQuickDose={onAddQuickDose}
-                                                onDeleteQuickDose={onDeleteQuickDose}
-                                                isInline={true}
-                                                hideHeader={true}
-                                            />
+                                    <div className={`grid transition-all duration-300 ease-in-out ${editingId === ev.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="px-4 pb-4 pt-1">
+                                                <DoseForm
+                                                    eventToEdit={ev}
+                                                    onSave={(e) => {
+                                                        onSaveEvent(e);
+                                                        setEditingId(null);
+                                                    }}
+                                                    onCancel={() => setEditingId(null)}
+                                                    onDelete={(id) => {
+                                                        onDeleteEvent(id);
+                                                        setEditingId(null);
+                                                    }}
+                                                    templates={doseTemplates}
+                                                    onSaveTemplate={onSaveTemplate}
+                                                    onDeleteTemplate={onDeleteTemplate}
+                                                    onAddQuickDose={onAddQuickDose}
+                                                    onDeleteQuickDose={onDeleteQuickDose}
+                                                    isInline={true}
+                                                    hideHeader={true}
+                                                />
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

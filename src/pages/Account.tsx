@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { UserCircle, UploadCloud, DownloadCloud, LogOut, User, BadgeCheck, Edit2, Lock, Trash2, Shield, Key } from 'lucide-react';
+import { UserCircle, UploadCloud, DownloadCloud, LogOut, User, BadgeCheck, Edit2, Lock, Trash2, Shield, Key, Loader2 } from 'lucide-react';
 import { AvatarUpload } from '../components/AvatarUpload';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AccountProps {
     t: (key: string) => string;
@@ -27,6 +28,35 @@ const Account: React.FC<AccountProps> = ({
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+
+    // Inline auth form state
+    const [isLogin, setIsLogin] = useState(true);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [authError, setAuthError] = useState<string | null>(null);
+    const [authLoading, setAuthLoading] = useState(false);
+    const { login, register } = useAuth();
+
+    const handleAuthSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAuthError(null);
+        setAuthLoading(true);
+        try {
+            if (isLogin) {
+                await login(username, password);
+            } else {
+                await register(username, password);
+                window.location.reload();
+                return;
+            }
+            setUsername('');
+            setPassword('');
+        } catch (err: any) {
+            setAuthError(err.message || 'An error occurred');
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     return (
         <div className="relative space-y-5 pt-6 pb-32">
@@ -165,19 +195,56 @@ const Account: React.FC<AccountProps> = ({
                         />
                     </>
                 ) : (
-                    <div className="mx-6 md:mx-10 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors duration-300">
-                        <button
-                            onClick={onOpenAuth}
-                            className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
-                        >
-                            <div className="p-1.5 bg-pink-50 dark:bg-pink-900/20 rounded-md">
-                                <UserCircle className="text-pink-600 dark:text-pink-400" size={18} />
+                    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors duration-300">
+                        <form onSubmit={handleAuthSubmit} className="px-6 py-5 space-y-4">
+                            {authError && (
+                                <div className="p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md border border-red-200 dark:border-red-900/30">
+                                    {authError}
+                                </div>
+                            )}
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.username')}</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100"
+                                    placeholder={t('auth.username_placeholder')}
+                                    autoComplete="username"
+                                    required
+                                />
                             </div>
-                            <div className="text-start">
-                                <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.sign_in_register')}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.sign_in_register_desc')}</p>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.password')}</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100"
+                                    placeholder={t('auth.password_placeholder')}
+                                    autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                    required
+                                />
                             </div>
-                        </button>
+                            <button
+                                type="submit"
+                                disabled={authLoading}
+                                className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {authLoading && <Loader2 size={16} className="animate-spin" />}
+                                {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+                            </button>
+                            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                                {isLogin ? t('auth.no_account') : t('auth.has_account')}
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsLogin(!isLogin); setAuthError(null); }}
+                                    className="text-[var(--color-m3-primary)] font-medium hover:underline ml-1"
+                                >
+                                    {isLogin ? t('auth.go_register') : t('auth.go_login')}
+                                </button>
+                            </p>
+                        </form>
                     </div>
                 )}
             </div>

@@ -12,7 +12,8 @@ const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
     return (
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-[60] p-0 md:p-4">
-            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg w-full max-w-sm p-5 max-h-[88vh] overflow-y-auto safe-area-pb">
+            <div className="w-full md:max-w-sm safe-area-pb">
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg p-6 md:p-5 max-h-[88vh] overflow-y-auto">
                 <div className="flex flex-col items-center mb-4">
                     <AlertTriangle className="text-amber-500 mb-2" size={20} />
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center">{t('disclaimer.title')}</h3>
@@ -29,10 +30,11 @@ const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
                 <button
                     onClick={onClose}
-                    className="w-full py-2.5 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-md"
+                    className="w-full py-3 md:py-2 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md"
                 >
                     {t('btn.ok')}
                 </button>
+                </div>
             </div>
         </div>
     );

@@ -29,12 +29,12 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, o
                     autoFocus
                 />
 
-                <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-[var(--color-m3-primary)] dark:text-pink-400 rounded-[var(--radius-full)] hover:bg-[var(--color-m3-primary-container)]/40 dark:hover:bg-pink-900/20 transition-all">{t('btn.cancel')}</button>
+                <div className="flex gap-3 pt-1">
+                    <button onClick={onClose} className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-neutral-600 rounded-xl md:rounded-md transition-colors">{t('btn.cancel')}</button>
                     <button
                         onClick={() => onConfirm(password)}
                         disabled={!password}
-                        className="px-5 py-2.5 text-sm bg-[var(--color-m3-primary)] dark:bg-pink-600 text-[var(--color-m3-on-primary)] font-bold rounded-[var(--radius-full)] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-m3-1)]"
+                        className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {t('btn.ok')}
                     </button>

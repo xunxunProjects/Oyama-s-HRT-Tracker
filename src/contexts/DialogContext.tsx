@@ -39,28 +39,28 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
             {children}
             {isOpen && (
                 <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-[100] p-0 md:p-4">
-                    <div className="w-full max-w-sm safe-area-pb">
+                    <div className="w-full md:max-w-sm safe-area-pb">
                         <div
-                            className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg p-5 max-h-[88vh] overflow-y-auto"
+                            className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg p-6 md:p-5 max-h-[88vh] overflow-y-auto"
                         >
                             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                                 {type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title')}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">{message}</p>
-                            <div className="flex justify-end gap-2 pt-1">
+                            <div className="flex gap-3 pt-1">
                                 {type === 'confirm' && (
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-neutral-600 rounded-md"
+                                        className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-neutral-600 rounded-xl md:rounded-md"
                                     >
                                         {t('btn.cancel')}
                                     </button>
                                 )}
                                 <button
                                     onClick={handleConfirm}
-                                    className="px-4 py-2 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-md"
+                                    className="flex-1 py-3 md:py-2 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md"
                                 >
-                                    {type === 'confirm' ? t('btn.ok') : t('btn.ok')}
+                                    {t('btn.ok')}
                                 </button>
                             </div>
                         </div>
