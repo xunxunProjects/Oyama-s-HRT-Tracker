@@ -335,22 +335,14 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     }, []);
 
     const isPortraitMobileFullscreen = isFullscreen && viewport.width < 768 && viewport.height > viewport.width;
-    const isLandscapeMobileFullscreen = isFullscreen && viewport.height < 500 && viewport.width > viewport.height;
 
     const renderChartPanel = (fullscreen: boolean) => {
-        const chartHeightClass = fullscreen
-            ? isLandscapeMobileFullscreen
-                ? ''
-                : 'h-[58vh] md:h-[70vh] lg:h-[76vh]'
-            : 'h-64 md:h-80 lg:h-96';
-        const chartHeightStyle = fullscreen && isLandscapeMobileFullscreen
-            ? { height: 'calc(100dvh - 115px)' }
-            : {};
+        const chartHeightClass = fullscreen ? 'h-[58vh] md:h-[70vh] lg:h-[76vh]' : 'h-64 md:h-80 lg:h-96';
         const miniMapGradientId = fullscreen ? 'overviewConcFullscreen' : 'overviewConc';
 
         return (
             <div className={`bg-white dark:bg-neutral-900 relative flex flex-col h-full uppercase tracking-wide ${fullscreen ? '' : 'border border-gray-200 dark:border-neutral-800 rounded-lg'}`}>
-                <div className={`flex justify-between items-center ${fullscreen ? isLandscapeMobileFullscreen ? 'px-4 py-1.5' : 'px-4 md:px-6 py-3' : 'px-4 md:px-6 py-4'} border-b border-gray-100 dark:border-neutral-800`}>
+                <div className={`flex justify-between items-center ${fullscreen ? 'px-4 md:px-6 py-3' : 'px-4 md:px-6 py-4'} border-b border-gray-100 dark:border-neutral-800`}>
                     <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                         {t('chart.title')}
                     </h2>
@@ -373,7 +365,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                     </div>
                 </div>
 
-                <div className={`${chartHeightClass} w-full touch-none relative select-none px-2 pb-2 mt-4`} style={chartHeightStyle}>
+                <div className={`${chartHeightClass} w-full touch-none relative select-none px-2 pb-2 mt-4`}>
                     {(() => {
                         const factorNow = calibrationFn(now / 3600000);
                         return Math.abs(factorNow - 1) > 0.001 ? (
@@ -563,7 +555,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
 
                 {data.length > 1 && (
                     <div className={`${fullscreen ? 'px-4 md:px-6 pb-4 mt-1' : 'px-5 pb-5 mt-2'}`}>
-                        <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden touch-none">
+                        <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 4 }}>
                                     <defs>
@@ -594,7 +586,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                         fill={isDarkMode ? '#171717' : '#ffffff'}
                                         startIndex={brushRange.startIndex}
                                         endIndex={brushRange.endIndex}
-                                        travellerWidth={16}
+                                        travellerWidth={8}
                                         tickFormatter={(ms) => formatDate(new Date(ms), lang)}
                                         onChange={handleBrushChange}
                                     >
