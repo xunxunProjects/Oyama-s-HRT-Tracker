@@ -15,7 +15,7 @@ interface SettingsProps {
     languageOptions: { value: string; label: string }[];
     onImportJson: (text: string) => boolean | Promise<boolean>;
     labResults: any[];
-    onExport: (encrypt: boolean, password?: string) => void;
+    onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
     onQuickExport: () => void;
     onClearAllEvents: () => void;
     events: DoseEvent[];

@@ -251,6 +251,66 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         }
     };
 
+    const mergeImportedData = (parsed: any): boolean => {
+        try {
+            let incomingEvents: DoseEvent[] = [];
+            let incomingWeight: number | undefined = undefined;
+            let incomingLabs: LabResult[] = [];
+            let incomingTemplates: DoseTemplate[] = [];
+
+            if (Array.isArray(parsed)) {
+                incomingEvents = sanitizeImportedEvents(parsed);
+            } else if (typeof parsed === 'object' && parsed !== null) {
+                if (Array.isArray(parsed.events)) incomingEvents = sanitizeImportedEvents(parsed.events);
+                if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+                if (Array.isArray(parsed.labResults)) incomingLabs = sanitizeImportedLabResults(parsed.labResults);
+                if (Array.isArray(parsed.doseTemplates)) incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
+            }
+
+            if (!incomingEvents.length && !incomingWeight && !incomingLabs.length && !incomingTemplates.length) throw new Error('No valid entries');
+
+            let merged = 0;
+
+            if (incomingEvents.length > 0) {
+                setEvents(prev => {
+                    const existingIds = new Set(prev.map(e => e.id));
+                    const newOnes = incomingEvents.filter(e => !existingIds.has(e.id));
+                    merged += newOnes.length;
+                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+                });
+            }
+
+            if (incomingWeight !== undefined && incomingWeight > weight) {
+                setWeight(incomingWeight);
+            }
+
+            if (incomingLabs.length > 0) {
+                setLabResults(prev => {
+                    const existingIds = new Set(prev.map(r => r.id));
+                    const newOnes = incomingLabs.filter(r => !existingIds.has(r.id));
+                    merged += newOnes.length;
+                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+                });
+            }
+
+            if (incomingTemplates.length > 0) {
+                setDoseTemplates(prev => {
+                    const existingIds = new Set(prev.map(t => t.id));
+                    const newOnes = incomingTemplates.filter(t => !existingIds.has(t.id));
+                    merged += newOnes.length;
+                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+                });
+            }
+
+            showDialog('alert', (t('account.merge_success') as string).replace('{n}', String(merged)));
+            return true;
+        } catch (err) {
+            console.error(err);
+            showDialog('alert', t('account.merge_failed'));
+            return false;
+        }
+    };
+
     return {
         events, setEvents,
         weight, setWeight,
@@ -268,6 +328,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
-        processImportedData
+        processImportedData,
+        mergeImportedData
     };
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
-import { Download, ShieldCheck, FileJson, Lock, FileText, Table } from 'lucide-react';
+import { Download, ShieldCheck, FileJson, Lock, FileText, Table, Copy, Check } from 'lucide-react';
 import { exportToCSV, exportToPDF } from '../services/export';
 import CustomSelect from './CustomSelect';
 
@@ -9,22 +9,32 @@ interface ExportSectionProps {
     events: DoseEvent[];
     labResults: LabResult[];
     weight: number;
-    onExport: (encrypt: boolean, password?: string) => void;
+    onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
 }
 
 const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weight, onExport }) => {
     const { t, lang } = useTranslation();
     const [exportMode, setExportMode] = useState<'json' | 'encrypted'>('json');
     const [password, setPassword] = useState('');
+    const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const hasData = events.length > 0 || labResults.length > 0;
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (exportMode === 'encrypted') {
-            onExport(true, password || undefined);
+            const pw = await onExport(true, password || undefined);
+            if (pw) setGeneratedPassword(pw);
         } else {
-            onExport(false);
+            await onExport(false);
         }
+    };
+
+    const handleCopyPassword = () => {
+        if (!generatedPassword) return;
+        navigator.clipboard.writeText(generatedPassword);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const exportOptions = [
@@ -98,6 +108,36 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                 {exportMode === 'encrypted' ? t('export.btn_encrypted') : t('export.btn_json')}
                             </span>
                         </button>
+                    </div>
+
+                    {/* Inline generated password display */}
+                    <div className={`grid transition-all duration-300 ease-in-out ${generatedPassword ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                        <div className="overflow-hidden">
+                            <div className="pt-2 space-y-2">
+                                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg p-3 space-y-2">
+                                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400">{t('export.password_title')}</p>
+                                    <p className="text-[10px] text-amber-600/80 dark:text-amber-400/70 leading-relaxed">{t('export.password_desc')}</p>
+                                    <div className="flex items-center gap-2 bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded-md p-2.5">
+                                        <span className="font-mono text-sm font-bold text-gray-900 dark:text-gray-100 tracking-widest flex-1 select-all break-all">{generatedPassword}</span>
+                                        <button
+                                            onClick={handleCopyPassword}
+                                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors shrink-0"
+                                        >
+                                            {copied
+                                                ? <Check size={14} className="text-emerald-500" />
+                                                : <Copy size={14} className="text-gray-400" />
+                                            }
+                                        </button>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setGeneratedPassword(null)}
+                                    className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                >
+                                    {t('btn.ok')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="relative flex items-center py-1">

@@ -20,7 +20,6 @@ import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
 import ExportModal from './components/ExportModal';
-import PasswordDisplayModal from './components/PasswordDisplayModal';
 import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
@@ -62,7 +61,8 @@ const AppContent = () => {
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
         quickDoses,
-        processImportedData
+        processImportedData,
+        mergeImportedData
     } = useAppData(showDialog);
 
     const {
@@ -80,8 +80,6 @@ const AppContent = () => {
     const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-    const [generatedPassword, setGeneratedPassword] = useState("");
-    const [isPasswordDisplayOpen, setIsPasswordDisplayOpen] = useState(false);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
@@ -136,10 +134,10 @@ const AppContent = () => {
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
-        const shouldLock = isExportModalOpen || isPasswordDisplayOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
+        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-    }, [isExportModalOpen, isPasswordDisplayOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
+    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
 
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
@@ -235,7 +233,7 @@ const AppContent = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleExportConfirm = async (encrypt: boolean, customPassword?: string) => {
+    const handleExportConfirm = async (encrypt: boolean, customPassword?: string): Promise<string | null> => {
         setIsExportModalOpen(false);
         const exportData = {
             meta: { version: 1, exportedAt: new Date().toISOString() },
@@ -248,14 +246,14 @@ const AppContent = () => {
 
         if (encrypt) {
             const { data, password } = await encryptData(json, customPassword);
-            if (!customPassword) {
-                setGeneratedPassword(password);
-                setIsPasswordDisplayOpen(true);
-            }
             downloadFile(data, `hrt-dosages-encrypted-${new Date().toISOString().split('T')[0]}.json`);
+            if (!customPassword) {
+                return password;
+            }
         } else {
             downloadFile(json, `hrt-dosages-${new Date().toISOString().split('T')[0]}.json`);
         }
+        return null;
     };
 
     const handleCloudSave = async () => {
@@ -269,27 +267,47 @@ const AppContent = () => {
         };
         try {
             await cloudService.save(token, exportData);
-            showDialog('alert', 'Data saved to cloud successfully!');
+            showDialog('alert', t('account.cloud_save_success'));
         } catch (e) {
-            showDialog('alert', 'Failed to save to cloud.');
+            showDialog('alert', t('account.cloud_save_failed'));
         }
     };
 
-    const handleCloudLoad = async () => {
+    const handleCloudLoad = async (backupId?: string) => {
         if (!token) { setIsAuthModalOpen(true); return; }
         try {
-            const list = await cloudService.load(token);
-            if (!list || list.length === 0) {
-                showDialog('alert', 'No cloud backups found.');
-                return;
+            let parsed: any;
+            let timestamp: number;
+            if (backupId) {
+                const backup = await cloudService.loadOne(token, backupId);
+                parsed = JSON.parse(backup.data);
+                timestamp = backup.created_at;
+            } else {
+                const list = await cloudService.load(token);
+                if (!list || list.length === 0) {
+                    showDialog('alert', t('account.no_cloud_backups'));
+                    return;
+                }
+                const latest = list[0];
+                parsed = JSON.parse(latest.data);
+                timestamp = latest.created_at;
             }
-            const latest = list[0];
-            const parsed = JSON.parse(latest.data);
-            showDialog('confirm', `Load backup from ${new Date(latest.created_at * 1000).toLocaleString()}? This will overwrite local data.`, () => {
+            showDialog('confirm', (t('account.load_confirm') as string).replace('{time}', new Date(timestamp * 1000).toLocaleString()), () => {
                 processImportedData(parsed);
             });
         } catch (e) {
-            showDialog('alert', 'Failed to load from cloud.');
+            showDialog('alert', t('account.cloud_load_failed'));
+        }
+    };
+
+    const handleCloudMerge = async (backupId: string) => {
+        if (!token) { setIsAuthModalOpen(true); return; }
+        try {
+            const backup = await cloudService.loadOne(token, backupId);
+            const parsed = JSON.parse(backup.data);
+            mergeImportedData(parsed);
+        } catch (e) {
+            showDialog('alert', t('account.merge_cloud_failed'));
         }
     };
 
@@ -402,6 +420,8 @@ const AppContent = () => {
                             onLogout={logout}
                             onCloudSave={handleCloudSave}
                             onCloudLoad={handleCloudLoad}
+                            onCloudMerge={handleCloudMerge}
+                            localData={{ events, labResults, doseTemplates, weight }}
                         />
                     )}
 
@@ -457,12 +477,6 @@ const AppContent = () => {
                 events={events}
                 labResults={labResults}
                 weight={weight}
-            />
-
-            <PasswordDisplayModal
-                isOpen={isPasswordDisplayOpen}
-                onClose={() => setIsPasswordDisplayOpen(false)}
-                password={generatedPassword}
             />
 
             <PasswordInputModal

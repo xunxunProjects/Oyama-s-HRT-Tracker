@@ -253,15 +253,44 @@ export default {
 
         // Content
         if (url.pathname.startsWith('/api/content')) {
-          if (request.method === 'GET') {
+          if (url.pathname === '/api/content' && request.method === 'GET') {
+            const metaOnly = url.searchParams.get('meta') === '1';
+            if (metaOnly) {
+              const content = await env.DB.prepare('SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
+              return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            }
             const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
             return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
-          if (request.method === 'POST') {
+          if (url.pathname === '/api/content' && request.method === 'POST') {
             const { data } = await request.json() as any;
             const id = crypto.randomUUID();
             await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
+            // Auto-prune: keep only the latest 10 backups per user
+            const MAX_BACKUPS = 10;
+            const old = await env.DB.prepare(
+              'SELECT id FROM content WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET ?'
+            ).bind(userId, MAX_BACKUPS).all();
+            if (old.results.length > 0) {
+              const ids = old.results.map((r: any) => r.id);
+              await env.DB.prepare(
+                `DELETE FROM content WHERE id IN (${ids.map(() => '?').join(',')})`
+              ).bind(...ids).run();
+            }
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Content saved', id }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+          // Delete a specific backup (user can only delete their own)
+          if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'DELETE') {
+            const backupId = url.pathname.split('/').pop();
+            await env.DB.prepare('DELETE FROM content WHERE id = ? AND user_id = ?').bind(backupId, userId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Backup deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+          // Load a specific backup by ID
+          if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
+            const backupId = url.pathname.split('/').pop();
+            const row = await env.DB.prepare('SELECT * FROM content WHERE id = ? AND user_id = ?').bind(backupId, userId).first();
+            if (!row) return withSecurityHeaders(new Response('Not found', { status: 404, headers: corsHeaders }));
+            return withSecurityHeaders(new Response(JSON.stringify(row), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
 
@@ -327,11 +356,82 @@ export default {
         // Admin
         if (url.pathname.startsWith('/api/admin/')) {
           if (payload.role !== 'admin') return withSecurityHeaders(new Response('Forbidden', { status: 403, headers: corsHeaders }));
+
+          // Search users (with backup stats)
           if (url.pathname === '/api/admin/users' && request.method === 'GET') {
-            const users = await env.DB.prepare('SELECT id, username FROM users ORDER BY username ASC').all();
+            const query = url.searchParams.get('q')?.trim();
+            const sql = `SELECT u.id, u.username, u.created_at,
+              COUNT(c.id) AS backup_count,
+              MAX(c.created_at) AS last_backup_at,
+              COALESCE(SUM(LENGTH(c.data)), 0) AS total_backup_size
+              FROM users u LEFT JOIN content c ON u.id = c.user_id
+              ${query ? 'WHERE u.username LIKE ?' : ''}
+              GROUP BY u.id ORDER BY u.username ASC`;
+            const users = query
+              ? await env.DB.prepare(sql).bind(`%${query}%`).all()
+              : await env.DB.prepare(sql).all();
             return withSecurityHeaders(new Response(JSON.stringify(users.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
-          if (url.pathname.match(/\/api\/admin\/users\/.+/) && request.method === 'DELETE') {
+
+          // List user backups (metadata only)
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/backups$/) && request.method === 'GET') {
+            const targetId = url.pathname.split('/')[4];
+            const backups = await env.DB.prepare('SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(targetId).all();
+            return withSecurityHeaders(new Response(JSON.stringify(backups.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Delete a specific backup
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/backups\/[^/]+$/) && request.method === 'DELETE') {
+            const parts = url.pathname.split('/');
+            const targetId = parts[4];
+            const backupId = parts[6];
+            await env.DB.prepare('DELETE FROM content WHERE id = ? AND user_id = ?').bind(backupId, targetId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Backup deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Purge all backups for a user
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/backups$/) && request.method === 'DELETE') {
+            const targetId = url.pathname.split('/')[4];
+            await env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'All backups purged' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Admin change user password
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/password$/) && request.method === 'POST') {
+            const targetId = url.pathname.split('/')[4];
+            const body = await request.json() as any;
+            const { newPassword } = body;
+            if (!newPassword) return withSecurityHeaders(new Response('Missing new password', { status: 400, headers: corsHeaders }));
+            const passVal = validatePassword(newPassword);
+            if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error!, { status: 400, headers: corsHeaders }));
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashedPassword, targetId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Password updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Admin reset username
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/username$/) && request.method === 'PATCH') {
+            const targetId = url.pathname.split('/')[4];
+            const body = await request.json() as any;
+            const { username } = body;
+            if (!username) return withSecurityHeaders(new Response('Missing username', { status: 400, headers: corsHeaders }));
+            const trimmed = username.trim();
+            if (!validateUsername(trimmed)) return withSecurityHeaders(new Response('Invalid username format', { status: 400, headers: corsHeaders }));
+            const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ? AND id != ?').bind(trimmed, targetId).first();
+            if (existing) return withSecurityHeaders(new Response('Username already taken', { status: 409, headers: corsHeaders }));
+            await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(trimmed, targetId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Username updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Admin reset avatar
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/avatar$/) && request.method === 'DELETE') {
+            const targetId = url.pathname.split('/')[4];
+            try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${targetId}`); } catch (e) { }
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Avatar reset' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Delete user
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+$/) && request.method === 'DELETE') {
             const targetId = url.pathname.split('/').pop();
             await env.DB.batch([
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),
