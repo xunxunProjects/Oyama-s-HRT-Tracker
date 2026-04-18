@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Trash2, Loader2, AlertCircle, RefreshCw, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, Cloud, Trash } from 'lucide-react';
+import { Trash2, Loader2, AlertCircle, RefreshCw, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { adminService, AdminUser, BackupMeta } from '../services/admin';
+import { adminService, AdminUser, BackupMeta, PaginatedUsers } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
 
 interface AdminProps {
@@ -37,6 +37,11 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
     const [searchDebounce, setSearchDebounce] = useState('');
     const [panel, setPanel] = useState<UserPanel>(null);
 
+    const [page, setPage] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const PAGE_SIZE = 20;
+    const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
+
     const [newPassword, setNewPassword] = useState('');
     const [newUsername, setNewUsername] = useState('');
     const [backups, setBackups] = useState<BackupMeta[]>([]);
@@ -53,16 +58,20 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
         setLoading(true);
         setError(null);
         try {
-            const data = await adminService.getUsers(token, searchDebounce || undefined);
-            setUsers(data);
+            const data = await adminService.getUsers(token, searchDebounce || undefined, page, PAGE_SIZE);
+            setUsers(data.users);
+            setTotalUsers(data.total);
         } catch {
             setError('Failed to load users');
         } finally {
             setLoading(false);
         }
-    }, [token, searchDebounce]);
+    }, [token, searchDebounce, page]);
 
     useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+    // Reset to page 1 when search changes
+    useEffect(() => { setPage(1); }, [searchDebounce]);
 
     const handleDeleteUser = (user: AdminUser) => {
         if (!token) return;
@@ -299,7 +308,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                         <div className="flex items-center gap-3">
                             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Manage Users</h2>
                             <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                {users.length}
+                                {totalUsers}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -385,6 +394,50 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 pt-4">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                                .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                                    if (i > 0 && p - (arr[i - 1]) > 1) acc.push('...');
+                                    acc.push(p);
+                                    return acc;
+                                }, [])
+                                .map((item, i) =>
+                                    item === '...' ? (
+                                        <span key={`dot-${i}`} className="px-1 text-zinc-400 text-sm">...</span>
+                                    ) : (
+                                        <button
+                                            key={item}
+                                            onClick={() => setPage(item as number)}
+                                            className={`min-w-[36px] h-9 rounded-lg text-sm font-semibold transition-all ${
+                                                page === item
+                                                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                                                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                            }`}
+                                        >
+                                            {item}
+                                        </button>
+                                    )
+                                )}
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages}
+                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
                     )}
                 </div>

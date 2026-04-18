@@ -357,20 +357,29 @@ export default {
         if (url.pathname.startsWith('/api/admin/')) {
           if (payload.role !== 'admin') return withSecurityHeaders(new Response('Forbidden', { status: 403, headers: corsHeaders }));
 
-          // Search users (with backup stats)
+          // Search users (with backup stats, paginated)
           if (url.pathname === '/api/admin/users' && request.method === 'GET') {
             const query = url.searchParams.get('q')?.trim();
+            const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+            const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
+            const offset = (page - 1) * limit;
+            const whereClause = query ? 'WHERE u.username LIKE ?' : '';
+            const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u ${query ? 'WHERE u.username LIKE ?' : ''}`;
+            const countResult = query
+              ? await env.DB.prepare(countSql).bind(`%${query}%`).first<{ total: number }>()
+              : await env.DB.prepare(countSql).first<{ total: number }>();
+            const total = countResult?.total ?? 0;
             const sql = `SELECT u.id, u.username, u.created_at,
               COUNT(c.id) AS backup_count,
               MAX(c.created_at) AS last_backup_at,
               COALESCE(SUM(LENGTH(c.data)), 0) AS total_backup_size
               FROM users u LEFT JOIN content c ON u.id = c.user_id
-              ${query ? 'WHERE u.username LIKE ?' : ''}
-              GROUP BY u.id ORDER BY u.username ASC`;
+              ${whereClause}
+              GROUP BY u.id ORDER BY u.username ASC LIMIT ? OFFSET ?`;
             const users = query
-              ? await env.DB.prepare(sql).bind(`%${query}%`).all()
-              : await env.DB.prepare(sql).all();
-            return withSecurityHeaders(new Response(JSON.stringify(users.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+              ? await env.DB.prepare(sql).bind(`%${query}%`, limit, offset).all()
+              : await env.DB.prepare(sql).bind(limit, offset).all();
+            return withSecurityHeaders(new Response(JSON.stringify({ users: users.results, total, page, limit }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // List user backups (metadata only)

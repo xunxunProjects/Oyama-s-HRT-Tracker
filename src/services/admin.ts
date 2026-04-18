@@ -13,14 +13,25 @@ export interface BackupMeta {
     data_size: number;
 }
 
+export interface PaginatedUsers {
+    users: AdminUser[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
 export const adminService = {
-    async getUsers(token: string, query?: string): Promise<AdminUser[]> {
-        const url = query ? `/api/admin/users?q=${encodeURIComponent(query)}` : '/api/admin/users';
+    async getUsers(token: string, query?: string, page: number = 1, limit: number = 20): Promise<PaginatedUsers> {
+        const params = new URLSearchParams();
+        if (query) params.set('q', query);
+        params.set('page', String(page));
+        params.set('limit', String(limit));
+        const url = `/api/admin/users?${params.toString()}`;
         const res = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch users');
-        return await res.json() as AdminUser[];
+        return await res.json() as PaginatedUsers;
     },
 
     async deleteUser(token: string, userId: string): Promise<void> {
