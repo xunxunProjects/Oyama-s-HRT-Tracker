@@ -486,13 +486,50 @@ class PrecomputedEventModel {
 
 // --- Simulation Engine ---
 
+/**
+ * Compute the maximum time (hours after dose) for which an event's PK model
+ * contribution is non-negligible.  Once tau > maxLifetimeH the exponential
+ * decay has reduced the amount to < 1e-6 of its peak, so we can safely skip
+ * the evaluation — critical when there are hundreds of events (e.g. daily
+ * oral recording for a year).
+ */
+function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEvent[], eventTimeH: number): number {
+    // For patches: account for wear duration + post-removal decay
+    if (route === Route.patchApply) {
+        const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > eventTimeH);
+        if (!remove) return Infinity; // Patch never removed, always contributes
+        const wearH = remove.timeH - eventTimeH;
+        const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
+        return wearH + decayH;
+    }
+
+    // Collect all non-zero rate constants that govern exponential decay
+    const rates: number[] = [];
+    if (params.k1_fast > 0) rates.push(params.k1_fast);
+    if (params.k1_slow > 0) rates.push(params.k1_slow);
+    if (params.k2 > 0) rates.push(params.k2);
+    if (params.k3 > 0) rates.push(params.k3);
+
+    if (rates.length === 0) return Infinity;
+
+    // The slowest exponential dominates at large tau.
+    // exp(-kMin * tau) < 1e-6  =>  tau > ln(1e6) / kMin ≈ 13.816 / kMin
+    const kMin = Math.min(...rates);
+    return Math.ceil(13.816 / kMin);
+}
+
 export function runSimulation(events: DoseEvent[], bodyWeightKG: number): SimulationResult | null {
     if (events.length === 0 || bodyWeightKG <= 0) return null;
 
     const sortedEvents = [...events].sort((a, b) => a.timeH - b.timeH);
     const precomputed = sortedEvents
         .filter(e => e.route !== Route.patchRemove)
-        .map(e => ({ model: new PrecomputedEventModel(e, sortedEvents), ester: e.ester }));
+        .map(e => {
+            const model = new PrecomputedEventModel(e, sortedEvents);
+            const params = resolveParams(e);
+            const maxLifetimeH = computeMaxLifetimeH(params, e.route, sortedEvents, e.timeH);
+            return { model, ester: e.ester, startTimeH: e.timeH, maxLifetimeH };
+        });
 
     const startTime = sortedEvents[0].timeH - 24;
     const nowH = Date.now() / (1000 * 60 * 60);
@@ -500,7 +537,9 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
         nowH + 24
     );
-    const steps = 1000;
+    // Adaptive step count: at least 1 point per hour, minimum 2000, capped at 5000
+    const totalHours = endTime - startTime;
+    const steps = Math.min(5000, Math.max(2000, Math.ceil(totalHours)));
 
     // Different Vd for E2 and CPA
     const plasmaVolumeML_E2 = CorePK.vdPerKG * bodyWeightKG * 1000; // E2: ~2.0 L/kg
@@ -514,15 +553,37 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
 
     const stepSize = (endTime - startTime) / (steps - 1);
     const gridTimes = Array.from({ length: steps }, (_, i) => startTime + i * stepSize);
+
+    // Add dense peri-event sampling points around each dose event for better peak/trough capture.
+    // Only add for events whose contribution is still active at endTime to avoid O(n) blowup
+    // with hundreds of events (e.g. daily recording for a year).
+    const periEventOffsets = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
+    const periEventTimes: number[] = [];
+    for (const pc of precomputed) {
+        // Skip peri-event sampling for events whose contribution has fully decayed;
+        // their curves are smooth/zero and don't need dense peak capture.
+        if (pc.maxLifetimeH !== Infinity && endTime - pc.startTimeH > 2 * pc.maxLifetimeH) continue;
+        for (const offset of periEventOffsets) {
+            const t = pc.startTimeH + offset;
+            if (t >= startTime && t <= endTime) {
+                periEventTimes.push(t);
+            }
+        }
+    }
+
     const eventTimes = sortedEvents.map(e => e.timeH);
-    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes])).sort((a, b) => a - b);
+    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes])).sort((a, b) => a - b);
 
     for (let i = 0; i < allTimes.length; i++) {
         const t = allTimes[i];
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
 
-        for (const { model, ester } of precomputed) {
+        for (const { model, ester, startTimeH, maxLifetimeH } of precomputed) {
+            // Skip events that haven't started yet or whose contribution has decayed to negligible
+            const tau = t - startTimeH;
+            if (tau < 0 || tau > maxLifetimeH) continue;
+
             const amount = model.amount(t);
             if (ester === Ester.CPA) {
                 totalAmountMG_CPA += amount;
