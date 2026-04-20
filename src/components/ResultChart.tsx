@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
                     </div>
                     {data.originalUnit === 'pmol/l' && (
                         <div className="text-[10px] text-gray-400 mt-0.5">
-                            ≈ {data.concE2.toFixed(1)} pg/ml
+                            ≈ {data.concE2.toFixed(2)} pg/ml
                         </div>
                     )}
                 </div>
@@ -47,7 +47,7 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
                     <div className="flex items-baseline gap-1.5">
                         <span className="text-xs text-gray-500">{t('label.e2')}:</span>
                         <span className="text-sm text-gray-800 dark:text-gray-200">
-                            {concE2.toFixed(1)}
+                            {concE2.toFixed(2)}
                         </span>
                         <span className="text-[10px] text-gray-400">pg/ml</span>
                     </div>
@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
                     <div className="flex items-baseline gap-1.5 mt-0.5">
                         <span className="text-xs text-gray-500">{t('label.cpa_chart')}:</span>
                         <span className="text-sm text-gray-800 dark:text-gray-200">
-                            {concCPA.toFixed(1)}
+                            {concCPA.toFixed(2)}
                         </span>
                         <span className="text-[10px] text-gray-400">ng/ml</span>
                     </div>

@@ -78,7 +78,7 @@ const Home: React.FC<HomeProps> = ({
                                     {currentLevel > 0 ? (
                                         <>
                                             <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                {currentLevel.toFixed(0)}
+                                                {currentLevel.toFixed(1)}
                                             </span>
                                             <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">pg/ml</span>
                                         </>
@@ -97,7 +97,7 @@ const Home: React.FC<HomeProps> = ({
                                     {currentCPA > 0 ? (
                                         <>
                                             <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                {currentCPA.toFixed(0)}
+                                                {currentCPA.toFixed(1)}
                                             </span>
                                             <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/ml</span>
                                         </>

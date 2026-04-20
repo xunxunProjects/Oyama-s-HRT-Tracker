@@ -500,7 +500,9 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
         nowH + 24
     );
-    const steps = 1000;
+    // Adaptive step count: at least 1 point per hour, minimum 2000, capped at 5000
+    const totalHours = endTime - startTime;
+    const steps = Math.min(5000, Math.max(2000, Math.ceil(totalHours)));
 
     // Different Vd for E2 and CPA
     const plasmaVolumeML_E2 = CorePK.vdPerKG * bodyWeightKG * 1000; // E2: ~2.0 L/kg
@@ -514,8 +516,22 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
 
     const stepSize = (endTime - startTime) / (steps - 1);
     const gridTimes = Array.from({ length: steps }, (_, i) => startTime + i * stepSize);
+
+    // Add dense peri-event sampling points around each dose event for better peak/trough capture
+    const periEventOffsets = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
+    const periEventTimes: number[] = [];
+    for (const ev of sortedEvents) {
+        if (ev.route === Route.patchRemove) continue;
+        for (const offset of periEventOffsets) {
+            const t = ev.timeH + offset;
+            if (t >= startTime && t <= endTime) {
+                periEventTimes.push(t);
+            }
+        }
+    }
+
     const eventTimes = sortedEvents.map(e => e.timeH);
-    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes])).sort((a, b) => a - b);
+    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes])).sort((a, b) => a - b);
 
     for (let i = 0; i < allTimes.length; i++) {
         const t = allTimes[i];
