@@ -15,3 +15,16 @@ CREATE TABLE content (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_content_user_id ON content(user_id);
+
+-- Anonymous deletion log for the public Transparency page.
+-- We intentionally DO NOT store user_id, username, or any other PII —
+-- only the reason and timestamps, for aggregate statistics.
+DROP TABLE IF EXISTS deletion_log;
+CREATE TABLE deletion_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reason TEXT NOT NULL, -- 'self' | 'admin'
+    user_created_at INTEGER,
+    deleted_at INTEGER DEFAULT (unixepoch())
+);
+CREATE INDEX idx_deletion_log_deleted_at ON deletion_log(deleted_at);
+CREATE INDEX idx_deletion_log_reason ON deletion_log(reason);

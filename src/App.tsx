@@ -23,6 +23,7 @@ import ExportModal from './components/ExportModal';
 import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
+import TransparencyModal from './components/TransparencyModal';
 import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -85,6 +86,7 @@ const AppContent = () => {
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+    const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
     const [isLabModalOpen, setIsLabModalOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
@@ -134,10 +136,10 @@ const AppContent = () => {
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
-        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
+        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen || isTransparencyOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
+    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen, isTransparencyOpen]);
 
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
@@ -405,6 +407,7 @@ const AppContent = () => {
                             events={events}
                             showDialog={showDialog}
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
+                            setIsTransparencyOpen={setIsTransparencyOpen}
                             appVersion={APP_VERSION}
                             weight={weight}
                             setIsWeightModalOpen={setIsWeightModalOpen}
@@ -512,6 +515,11 @@ const AppContent = () => {
             <DisclaimerModal
                 isOpen={isDisclaimerOpen}
                 onClose={() => setIsDisclaimerOpen(false)}
+            />
+
+            <TransparencyModal
+                isOpen={isTransparencyOpen}
+                onClose={() => setIsTransparencyOpen(false)}
             />
 
             <ImportModal

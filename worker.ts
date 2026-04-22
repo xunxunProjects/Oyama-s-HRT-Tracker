@@ -115,6 +115,40 @@ function getValidatedJWTSecret(env: Env): string {
   return cachedJWTSecret;
 }
 
+// Lazily ensure the transparency deletion_log table exists.
+// This lets the feature deploy without requiring a manual migration on
+// existing databases. Cached per worker instance.
+let deletionLogEnsured = false;
+async function ensureDeletionLog(env: Env): Promise<void> {
+  if (deletionLogEnsured) return;
+  try {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS deletion_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reason TEXT NOT NULL,
+        user_created_at INTEGER,
+        deleted_at INTEGER DEFAULT (unixepoch())
+      )`
+    ).run();
+    // Best-effort indexes
+    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_deletion_log_deleted_at ON deletion_log(deleted_at)').run();
+    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_deletion_log_reason ON deletion_log(reason)').run();
+    deletionLogEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure deletion_log table:', e);
+  }
+}
+
+async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: number | null): Promise<void> {
+  try {
+    await ensureDeletionLog(env);
+    await env.DB.prepare('INSERT INTO deletion_log (reason, user_created_at) VALUES (?, ?)')
+      .bind(reason, userCreatedAt).run();
+  } catch (e) {
+    console.error('Failed to log deletion:', e);
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -159,6 +193,73 @@ export default {
       }
 
       // -- Public API Routes --
+
+      // Transparency: public aggregate stats. No PII exposed.
+      if (url.pathname === '/api/transparency' && request.method === 'GET') {
+        // Only trust CF-Connecting-IP on a public, unauthenticated endpoint.
+        // X-Forwarded-For / X-Real-IP can be spoofed by clients and would
+        // allow trivial rate-limit evasion.
+        const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!checkRateLimit(`transparency:${clientIP}`, 30, 60000)) {
+          return withSecurityHeaders(new Response('Too many requests. Please try again later.', {
+            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' }
+          }));
+        }
+
+        await ensureDeletionLog(env);
+        const now = Math.floor(Date.now() / 1000);
+        const day = 86400;
+        const HOUR = 3600;
+
+        const [totalUsersRow, totalBackupsRow, newUsers7dRow, newUsers24hRow,
+          adminDelRow, selfDelRow, adminDel7dRow, selfDel7dRow, recentRows] = await Promise.all([
+            env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin'").first<{ n: number }>(),
+            env.DB.prepare('SELECT COUNT(*) AS n FROM content').first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin' AND created_at >= ?").bind(now - 7 * day).first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin' AND created_at >= ?").bind(now - day).first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'admin'").first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'self'").first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'admin' AND deleted_at >= ?").bind(now - 7 * day).first<{ n: number }>(),
+            env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'self' AND deleted_at >= ?").bind(now - 7 * day).first<{ n: number }>(),
+            // Recent registrations — anonymized. We expose only a short
+            // non-reversible prefix of the hex-only portion of the UUID plus
+            // the creation timestamp. No username is ever returned.
+            env.DB.prepare("SELECT id, created_at FROM users WHERE id != 'admin' ORDER BY created_at DESC LIMIT 10").all<{ id: string; created_at: number }>(),
+          ]);
+
+        const recent = (recentRows.results || []).map(r => ({
+          // Only hex chars, first 4 — enough to visually distinguish entries
+          // but too short to enable enumeration.
+          anon_id: String(r.id).replace(/[^a-f0-9]/gi, '').slice(0, 4).toLowerCase().padEnd(4, '0'),
+          // Round timestamp to the nearest hour. The UI only displays
+          // coarse relative times ("X hours ago"), and rounding prevents
+          // an attacker from correlating an exact registration moment
+          // with an external signal to re-identify an anonymized entry.
+          created_at: Math.floor((r.created_at ?? 0) / HOUR) * HOUR,
+        }));
+
+        const body = {
+          total_users: totalUsersRow?.n ?? 0,
+          total_backups: totalBackupsRow?.n ?? 0,
+          new_users_24h: newUsers24hRow?.n ?? 0,
+          new_users_7d: newUsers7dRow?.n ?? 0,
+          admin_deleted_count: adminDelRow?.n ?? 0,
+          self_deleted_count: selfDelRow?.n ?? 0,
+          admin_deleted_7d: adminDel7dRow?.n ?? 0,
+          self_deleted_7d: selfDel7dRow?.n ?? 0,
+          recent_registrations: recent,
+          server_time: now,
+        };
+
+        return withSecurityHeaders(new Response(JSON.stringify(body), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=15',
+          },
+        }));
+      }
 
       // Register
       if (url.pathname === '/api/register' && request.method === 'POST') {
@@ -325,7 +426,7 @@ export default {
 
           if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
             const { password } = await request.json() as any;
-            const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+            const user = await env.DB.prepare('SELECT password_hash, created_at FROM users WHERE id = ?').bind(userId).first() as any;
 
             const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             const passwordHash = user ? user.password_hash : dummyHash;
@@ -338,6 +439,7 @@ export default {
               env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId)
             ]);
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`); } catch (e) { }
+            await logDeletion(env, 'self', user?.created_at ?? null);
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Account deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
@@ -442,11 +544,16 @@ export default {
           // Delete user
           if (url.pathname.match(/^\/api\/admin\/users\/[^/]+$/) && request.method === 'DELETE') {
             const targetId = url.pathname.split('/').pop();
+            if (targetId === 'admin') {
+              return withSecurityHeaders(new Response('Cannot delete admin account', { status: 400, headers: corsHeaders }));
+            }
+            const target = await env.DB.prepare('SELECT created_at FROM users WHERE id = ?').bind(targetId).first() as any;
             await env.DB.batch([
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),
               env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId)
             ]);
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${targetId}`); } catch (e) { }
+            if (target) await logDeletion(env, 'admin', target?.created_at ?? null);
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'User deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
