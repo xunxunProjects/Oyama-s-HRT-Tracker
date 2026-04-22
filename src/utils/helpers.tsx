@@ -42,6 +42,7 @@ export const getEsterIcon = (ester: Ester) => {
         case Ester.EB: return <Hexagon className="w-5 h-5 text-zinc-400" />;
         case Ester.EC: return <Orbit className="w-5 h-5 text-zinc-400" />;
         case Ester.EN: return <Dna className="w-5 h-5 text-zinc-400" />;
+        case Ester.EU: return <FlaskConical className="w-5 h-5 text-zinc-400" />;
         default: return <FlaskConical className="w-5 h-5 text-zinc-400" />;
     }
 };

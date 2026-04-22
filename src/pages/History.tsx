@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, Plus } from 'lucide-react';
-import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor } from '../../logic';
+import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster } from '../../logic';
 import { formatTime, getRouteIcon } from '../utils/helpers';
 import DoseForm from '../components/DoseForm';
 import { DoseTemplate } from '../components/DoseFormModal';
@@ -76,13 +76,11 @@ const History: React.FC<HistoryProps> = ({
                             }}
                             onCancel={() => setIsQuickAddOpen(false)}
                             onDelete={() => { }}
-                        templates={doseTemplates}
-                        onSaveTemplate={onSaveTemplate}
-                        onDeleteTemplate={onDeleteTemplate}
-                        onAddQuickDose={onAddQuickDose}
-                        onDeleteQuickDose={onDeleteQuickDose}
-                        isInline={true}
-                    />
+                            templates={doseTemplates}
+                            onSaveTemplate={onSaveTemplate}
+                            onDeleteTemplate={onDeleteTemplate}
+                            isInline={true}
+                        />
                     </div>
                 </div>
             </div>
@@ -93,6 +91,7 @@ const History: React.FC<HistoryProps> = ({
                 </div>
             )}
 
+            {Object.keys(groupedEvents).length > 0 && (
             <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden text-sm">
                 {Object.entries(groupedEvents).map(([date, items], index) => (
                     <div key={date} className={`${index !== 0 ? 'border-t border-gray-200 dark:border-neutral-800' : ''}`}>
@@ -134,9 +133,14 @@ const History: React.FC<HistoryProps> = ({
                                                 {ev.route !== Route.patchRemove && !ev.extras[ExtraKey.releaseRateUGPerDay] && (
                                                     <div className="flex flex-wrap items-baseline gap-x-2 text-gray-700 dark:text-gray-300">
                                                         <span className="font-semibold">{`${ev.doseMG.toFixed(2)} mg`}</span>
-                                                        {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && (
+                                                        {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && !isTestosteroneEster(ev.ester) && (
                                                             <span className="text-gray-400 dark:text-gray-500 text-[10px] lowercase font-normal">
                                                                 {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
+                                                            </span>
+                                                        )}
+                                                        {isTestosteroneEster(ev.ester) && ev.ester !== Ester.T && (
+                                                            <span className="text-gray-400 dark:text-gray-500 text-[10px] lowercase font-normal">
+                                                                {`(${t('label.t')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
                                                             </span>
                                                         )}
                                                     </div>
@@ -162,8 +166,6 @@ const History: React.FC<HistoryProps> = ({
                                                     templates={doseTemplates}
                                                     onSaveTemplate={onSaveTemplate}
                                                     onDeleteTemplate={onDeleteTemplate}
-                                                    onAddQuickDose={onAddQuickDose}
-                                                    onDeleteQuickDose={onDeleteQuickDose}
                                                     isInline={true}
                                                     hideHeader={true}
                                                 />
@@ -176,6 +178,7 @@ const History: React.FC<HistoryProps> = ({
                     </div>
                 ))}
             </div>
+            )}
 
         </div>
     );

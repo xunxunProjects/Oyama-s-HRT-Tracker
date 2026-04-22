@@ -1,10 +1,11 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye, User } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 import ExportSection from '../components/ExportSection';
 import ImportSection from '../components/ImportSection';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -49,6 +50,7 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     const [openDataMenu, setOpenDataMenu] = React.useState<'export' | 'import' | null>(null);
     const hasExportData = events.length > 0 || labResults.length > 0;
+    const { mode, setMode } = useHRTMode();
 
     return (
         <div className="relative space-y-6 pt-6 pb-32">
@@ -67,7 +69,18 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="space-y-2">
                 <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.general')}</h3>
                 <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    <div className="p-4">
+                    <div className="p-4 space-y-4">
+                        <CustomSelect
+                            icon={<User className="text-pink-500 dark:text-pink-400" size={18} />}
+                            label={t('settings.hrt_mode')}
+                            value={mode}
+                            onChange={(val) => setMode(val as any)}
+                            options={[
+                                { value: 'transfem', label: t('mode.transfem') },
+                                { value: 'transmasc', label: t('mode.transmasc') }
+                            ]}
+                        />
+
                         <CustomSelect
                             icon={<Languages className="text-pink-500 dark:text-pink-400" size={18} />}
                             label={t('drawer.lang')}

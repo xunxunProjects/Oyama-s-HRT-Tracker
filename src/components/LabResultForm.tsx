@@ -4,6 +4,7 @@ import { LabResult } from '../../logic';
 import { Calendar, Activity, Check, Trash2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface LabResultFormProps {
     resultToEdit?: LabResult | null;
@@ -13,11 +14,14 @@ interface LabResultFormProps {
     isInline?: boolean;
 }
 
+type LabUnit = 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
+
 const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, isInline = false }) => {
     const { t } = useTranslation();
+    const { isTransmasc } = useHRTMode();
     const [dateStr, setDateStr] = useState("");
     const [value, setValue] = useState("");
-    const [unit, setUnit] = useState<'pg/ml' | 'pmol/l'>('pmol/l');
+    const [unit, setUnit] = useState<LabUnit>(isTransmasc ? 'ng/dl' : 'pmol/l');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -33,9 +37,9 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
             const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
             setDateStr(iso);
             setValue("");
-            setUnit('pmol/l');
+            setUnit(isTransmasc ? 'ng/dl' : 'pmol/l');
         }
-    }, [resultToEdit]);
+    }, [resultToEdit, isTransmasc]);
 
     const handleSave = () => {
         if (!dateStr || !value) return;
@@ -103,7 +107,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                 <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1 flex items-center gap-1.5">
                         <Activity size={14} className="text-gray-400 dark:text-gray-500" />
-                        {t('lab.value')}
+                        {isTransmasc ? t('lab.value_t') : t('lab.value')}
                     </label>
                     <div className="flex gap-2 items-center">
                         <div className="relative flex-1">
@@ -117,18 +121,37 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                             />
                         </div>
                         <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-md border border-gray-200 dark:border-neutral-700 shrink-0">
-                            <button
-                                onClick={() => setUnit('pmol/l')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                            >
-                                pmol/L
-                            </button>
-                            <button
-                                onClick={() => setUnit('pg/ml')}
-                                className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                            >
-                                pg/mL
-                            </button>
+                            {isTransmasc ? (
+                                <>
+                                    <button
+                                        onClick={() => setUnit('ng/dl')}
+                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'ng/dl' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                    >
+                                        ng/dL
+                                    </button>
+                                    <button
+                                        onClick={() => setUnit('nmol/l')}
+                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'nmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                    >
+                                        nmol/L
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setUnit('pmol/l')}
+                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                    >
+                                        pmol/L
+                                    </button>
+                                    <button
+                                        onClick={() => setUnit('pg/ml')}
+                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                                    >
+                                        pg/mL
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

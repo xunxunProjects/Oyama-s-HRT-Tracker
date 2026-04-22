@@ -15,8 +15,24 @@ export enum Ester {
     EV = "EV",
     EC = "EC",
     EN = "EN",
-    CPA = "CPA"
+    EU = "EU",
+    CPA = "CPA",
+    // Transmasculine HRT (testosterone) esters
+    T = "T",    // Unesterified testosterone (gel / patch base)
+    TC = "TC",  // Testosterone Cypionate
+    TE = "TE",  // Testosterone Enanthate
+    TU = "TU"   // Testosterone Undecanoate
 }
+
+// Set of testosterone-based esters (used to route simulation into the T curve).
+export const T_ESTERS: ReadonlySet<Ester> = new Set<Ester>([Ester.T, Ester.TC, Ester.TE, Ester.TU]);
+
+export function isTestosteroneEster(e: Ester): boolean {
+    return T_ESTERS.has(e);
+}
+
+// HRT mode used by the UI/storage layer. Not persisted inside DoseEvent.
+export type HRTMode = 'transfem' | 'transmasc';
 
 export enum ExtraKey {
     concentrationMGmL = "concentrationMGmL",
@@ -55,6 +71,8 @@ export interface SimulationResult {
     concPGmL: number[];
     concPGmL_E2: number[];
     concPGmL_CPA: number[];
+    // Transmasculine: total testosterone concentration in ng/dL
+    concNGdL_T: number[];
     auc: number;
 }
 
@@ -64,12 +82,25 @@ export interface LabResult {
     id: string;
     timeH: number;
     concValue: number; // Value in the user's unit
-    unit: 'pg/ml' | 'pmol/l';
+    // E2 units (transfem) or T units (transmasc). Kept in one field for storage simplicity.
+    unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
 }
 
-export function convertToPgMl(val: number, unit: 'pg/ml' | 'pmol/l'): number {
+export function convertToPgMl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l'): number {
     if (unit === 'pg/ml') return val;
-    return val / 3.671; // pmol/L to pg/mL conversion
+    if (unit === 'pmol/l') return val / 3.671;
+    return val; // ng/dl / nmol/l are T units, not meaningful as pg/mL — caller should filter
+}
+
+// Convert a testosterone lab value to ng/dL (transmasc native unit).
+export function convertToNgDl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l'): number {
+    if (unit === 'ng/dl') return val;
+    if (unit === 'nmol/l') return val * 28.842; // 1 nmol/L T ≈ 28.842 ng/dL
+    return val; // pg/ml / pmol/l are E2 units — not meaningful as ng/dL
+}
+
+export function isT_LabUnit(unit: LabResult['unit']): boolean {
+    return unit === 'ng/dl' || unit === 'nmol/l';
 }
 
 /**
@@ -96,6 +127,11 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
     };
 
     const points = results
+        // Exclude testosterone-unit lab results — they are not E2 measurements and
+        // would corrupt the E2 calibration ratio (convertToPgMl returns the raw
+        // value unchanged for T units). In normal operation labs are mode-scoped,
+        // but v1 imports or stale state may still contain T-unit rows here.
+        .filter(r => !isT_LabUnit(r.unit))
         .map(r => {
             const obs = convertToPgMl(r.concValue, r.unit);
             let pred = interpolateConcentration_E2(sim, r.timeH);
@@ -189,26 +225,88 @@ const EsterInfo = {
     [Ester.EV]: { name: "Estradiol Valerate", mw: 356.50 },
     [Ester.EC]: { name: "Estradiol Cypionate", mw: 396.58 },
     [Ester.EN]: { name: "Estradiol Enanthate", mw: 384.56 },
-    [Ester.CPA]: { name: "Cyproterone Acetate", mw: 416.94 }
+    [Ester.EU]: { name: "Estradiol Undecylate", mw: 440.66 },
+    [Ester.CPA]: { name: "Cyproterone Acetate", mw: 416.94 },
+    // Testosterone esters (MW = parent + ester group)
+    [Ester.T]:  { name: "Testosterone",           mw: 288.42 },
+    [Ester.TC]: { name: "Testosterone Cypionate", mw: 412.60 },
+    [Ester.TE]: { name: "Testosterone Enanthate", mw: 400.59 },
+    [Ester.TU]: { name: "Testosterone Undecanoate", mw: 456.70 }
 };
 
 export function getToE2Factor(ester: Ester): number {
     if (ester === Ester.E2) return 1.0;
+    if (isTestosteroneEster(ester)) {
+        // "to‑T" factor: mg of ester → mg of free testosterone
+        return EsterInfo[Ester.T].mw / EsterInfo[ester].mw;
+    }
     return EsterInfo[Ester.E2].mw / EsterInfo[ester].mw;
 }
 
+// -----------------------------------------------------------------------------
+// Transmasculine (testosterone) PK parameters
+// -----------------------------------------------------------------------------
+//
+// These parameters follow the structure described in `transmasc_hrt_modeling_document.md`.
+// They are empirically tuned so the simplified 3-compartment analytical solver reproduces
+// broadly realistic steady-state total‑T concentrations:
+//   - TC 100 mg/week IM  → C_avg ≈ 600 ng/dL
+//   - TE 100 mg/week IM  → C_avg ≈ 600 ng/dL
+//   - TU 1000 mg / 12 wk → C_avg ≈ 500 ng/dL
+//   - Androgel 50 mg/day → C_avg ≈ 500–700 ng/dL
+//   - Androderm 5 mg/day patch → C_avg ≈ 500–700 ng/dL
+// These are research/teaching estimates; they are NOT for individual dosing decisions.
+//
+const T_CorePK = {
+    vdPerKG: 1.0,          // L/kg for total testosterone (apparent)
+    kClear: 0.5,           // h⁻¹ — fast native T clearance (gel / patch / oral)
+    kClearInjection: 0.035 // h⁻¹ — effective clearance used with the flip‑flop depot model
+};
+
+// Two-part depot absorption (fast + slow library), analogous to the E2 injection model.
+const T_DepotPK = {
+    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0.10 },
+    // Fast library k1 (h⁻¹) — controls Tmax/Cmax
+    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: 0.008 },
+    // Slow library k1 (h⁻¹) — controls terminal tail (flip‑flop)
+    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: 0.0009 }
+};
+
+const T_InjectionPK = {
+    // Empirical formation fraction (net "T made available" per mg ester),
+    // calibrated so weekly‑dose steady state lands in the male reference range.
+    formationFraction: { [Ester.TC]: 0.025, [Ester.TE]: 0.025, [Ester.TU]: 0.025 }
+};
+
+// Hydrolysis rate (k2) for T esters in the 3-compartment analytical path.
+// Kept much larger than the slow‑library k1 so terminal kinetics are flip‑flop.
+const T_EsterPK = {
+    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.20 }
+};
+
+const T_GelPK = {
+    k1: 0.05,   // h⁻¹ (Tmax ≈ a few hours after application)
+    F:  0.10    // ~10 % systemic bioavailability (Androgel‑like)
+};
+
+const T_PatchPK = {
+    k1: 0.03,   // h⁻¹ — used only if no nominal µg/day release is provided
+    F:  1.0     // zero‑order input uses the nominal release rate directly
+};
+
+
 const TwoPartDepotPK = {
-    Frac_fast: { [Ester.EB]: 0.90, [Ester.EV]: 0.40, [Ester.EC]: 0.229164549, [Ester.EN]: 0.05, [Ester.E2]: 1.0 },
-    k1_fast: { [Ester.EB]: 0.144, [Ester.EV]: 0.0216, [Ester.EC]: 0.005035046, [Ester.EN]: 0.0010, [Ester.E2]: 0.5 }, // Added non-zero k1 for E2
-    k1_slow: { [Ester.EB]: 0.114, [Ester.EV]: 0.0138, [Ester.EC]: 0.004510574, [Ester.EN]: 0.0050, [Ester.E2]: 0 }
+    Frac_fast: { [Ester.EB]: 0.90, [Ester.EV]: 0.40, [Ester.EC]: 0.229164549, [Ester.EN]: 0.05, [Ester.EU]: 0.08, [Ester.E2]: 1.0 },
+    k1_fast: { [Ester.EB]: 0.144, [Ester.EV]: 0.0216, [Ester.EC]: 0.005035046, [Ester.EN]: 0.0010, [Ester.EU]: 0.0060, [Ester.E2]: 0.5 }, // Added non-zero k1 for E2
+    k1_slow: { [Ester.EB]: 0.114, [Ester.EV]: 0.0138, [Ester.EC]: 0.004510574, [Ester.EN]: 0.0050, [Ester.EU]: 0.0022, [Ester.E2]: 0 }
 };
 
 const InjectionPK = {
-    formationFraction: { [Ester.EB]: 0.1092, [Ester.EV]: 0.0623, [Ester.EC]: 0.1173, [Ester.EN]: 0.12, [Ester.E2]: 1.0 }
+    formationFraction: { [Ester.EB]: 0.1092, [Ester.EV]: 0.0623, [Ester.EC]: 0.1173, [Ester.EN]: 0.12, [Ester.EU]: 0.040, [Ester.E2]: 1.0 }
 };
 
 const EsterPK = {
-    k2: { [Ester.EB]: 0.090, [Ester.EV]: 0.070, [Ester.EC]: 0.045, [Ester.EN]: 0.015, [Ester.E2]: 0 }
+    k2: { [Ester.EB]: 0.090, [Ester.EV]: 0.070, [Ester.EC]: 0.045, [Ester.EN]: 0.015, [Ester.EU]: 0.012, [Ester.E2]: 0 }
 };
 
 const OralPK = {
@@ -234,6 +332,24 @@ export function getBioavailabilityMultiplier(
     extras: Partial<Record<ExtraKey, number>> = {}
 ): number {
     const mwFactor = getToE2Factor(ester);
+
+    // Transmasculine (testosterone) path
+    if (isTestosteroneEster(ester)) {
+        switch (route) {
+            case Route.injection: {
+                if (ester === Ester.T) return 0;
+                const formation = (T_InjectionPK.formationFraction as any)[ester] ?? 0.025;
+                return formation * mwFactor;
+            }
+            case Route.gel:
+                return T_GelPK.F * mwFactor;
+            case Route.patchApply:
+                return T_PatchPK.F * mwFactor;
+            case Route.patchRemove:
+            default:
+                return 0;
+        }
+    }
 
     switch (route) {
         case Route.injection: {
@@ -288,6 +404,45 @@ function resolveParams(event: DoseEvent): PKParams {
     const defaultK3 = event.route === Route.injection ? CorePK.kClearInjection : CorePK.kClear;
     const toE2 = getToE2Factor(event.ester);
     const extras = event.extras ?? {};
+
+    // Transmasculine (testosterone) path — use the dedicated T PK parameters.
+    if (isTestosteroneEster(event.ester)) {
+        const tK3 = event.route === Route.injection ? T_CorePK.kClearInjection : T_CorePK.kClear;
+        switch (event.route) {
+            case Route.injection: {
+                if (event.ester === Ester.T) {
+                    // Shouldn't happen (bare T is not injected in practice), return zeroed params.
+                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                }
+                const Frac_fast = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;
+                const k1_fast = (T_DepotPK.k1_fast as any)[event.ester] ?? 0.025;
+                const k1_slow = (T_DepotPK.k1_slow as any)[event.ester] ?? 0.005;
+                const k2 = (T_EsterPK.k2 as any)[event.ester] ?? 0.20;
+                const F = getBioavailabilityMultiplier(Route.injection, event.ester, extras);
+                return { Frac_fast, k1_fast, k1_slow, k2, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            }
+            case Route.gel: {
+                const F = getBioavailabilityMultiplier(Route.gel, event.ester, extras);
+                return { Frac_fast: 1.0, k1_fast: T_GelPK.k1, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            }
+            case Route.patchApply: {
+                const F = getBioavailabilityMultiplier(Route.patchApply, event.ester, extras);
+                const releaseRateUGPerDay = extras[ExtraKey.releaseRateUGPerDay];
+                const rateMGh = (typeof releaseRateUGPerDay === 'number' && Number.isFinite(releaseRateUGPerDay) && releaseRateUGPerDay > 0)
+                    ? (releaseRateUGPerDay / 24 / 1000) * F
+                    : 0;
+                if (rateMGh > 0) {
+                    return { Frac_fast: 1.0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh, F_fast: F, F_slow: F };
+                }
+                return { Frac_fast: 1.0, k1_fast: T_PatchPK.k1, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            }
+            case Route.patchRemove:
+                return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+            default:
+                // Oral / sublingual T not supported in this MVP — fall through to zeroed params.
+                return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+        }
+    }
 
     switch (event.route) {
         case Route.injection: {
@@ -541,14 +696,16 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     const totalHours = endTime - startTime;
     const steps = Math.min(5000, Math.max(2000, Math.ceil(totalHours)));
 
-    // Different Vd for E2 and CPA
+    // Different Vd for E2, CPA and T
     const plasmaVolumeML_E2 = CorePK.vdPerKG * bodyWeightKG * 1000; // E2: ~2.0 L/kg
     const plasmaVolumeML_CPA = CorePK.vdPerKG_CPA * bodyWeightKG * 1000; // CPA: ~14.0 L/kg
+    const plasmaVolumeML_T = T_CorePK.vdPerKG * bodyWeightKG * 1000; // T: ~1.0 L/kg
 
     const timeH: number[] = [];
     const concPGmL: number[] = [];
     const concPGmL_E2: number[] = [];
     const concPGmL_CPA: number[] = []; // Will store in ng/mL (not pg/mL)
+    const concNGdL_T: number[] = []; // Total testosterone in ng/dL
     let auc = 0;
 
     const stepSize = (endTime - startTime) / (steps - 1);
@@ -578,6 +735,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         const t = allTimes[i];
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
+        let totalAmountMG_T = 0;
 
         for (const { model, ester, startTimeH, maxLifetimeH } of precomputed) {
             // Skip events that haven't started yet or whose contribution has decayed to negligible
@@ -587,6 +745,8 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
             const amount = model.amount(t);
             if (ester === Ester.CPA) {
                 totalAmountMG_CPA += amount;
+            } else if (T_ESTERS.has(ester)) {
+                totalAmountMG_T += amount;
             } else {
                 totalAmountMG_E2 += amount;
             }
@@ -598,6 +758,9 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         // CPA: ng/mL (using CPA Vd, convert from mg to ng: 1e6 instead of 1e9)
         const currentConc_CPA = (totalAmountMG_CPA * 1e6) / plasmaVolumeML_CPA;
 
+        // T: ng/dL (mg → ng: *1e6; mL → dL: /100 → factor 1e8/V_mL)
+        const currentConc_T = (totalAmountMG_T * 1e8) / plasmaVolumeML_T;
+
         // Total in pg/mL (convert CPA from ng/mL to pg/mL for compatibility)
         const currentConc = currentConc_E2 + (currentConc_CPA * 1000);
 
@@ -605,6 +768,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         concPGmL.push(currentConc);
         concPGmL_E2.push(currentConc_E2); // pg/mL
         concPGmL_CPA.push(currentConc_CPA); // ng/mL
+        concNGdL_T.push(currentConc_T); // ng/dL
 
         if (i > 0) {
             const dt = t - allTimes[i - 1];
@@ -612,7 +776,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         }
     }
 
-    return { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, auc };
+    return { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concNGdL_T, auc };
 }
 
 export function interpolateConcentration(sim: SimulationResult, hour: number): number | null {
@@ -688,6 +852,30 @@ export function interpolateConcentration_CPA(sim: SimulationResult, hour: number
     const c0 = sim.concPGmL_CPA[low];
     const c1 = sim.concPGmL_CPA[high];
 
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+// Testosterone (ng/dL) interpolation
+export function interpolateConcentration_T(sim: SimulationResult, hour: number): number | null {
+    if (!sim.concNGdL_T || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return sim.concNGdL_T[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concNGdL_T[sim.concNGdL_T.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return sim.concNGdL_T[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = sim.concNGdL_T[low];
+    const c1 = sim.concNGdL_T[high];
     if (t1 === t0) return c0;
     const ratio = (hour - t0) / (t1 - t0);
     return c0 + (c1 - c0) * ratio;

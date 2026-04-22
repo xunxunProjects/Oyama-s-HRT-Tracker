@@ -1,8 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, LabResult, createCalibrationInterpolator, decompressData, decryptData, encryptData } from '../../logic';
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, createCalibrationInterpolator, decompressData, decryptData, encryptData, isTestosteroneEster, isT_LabUnit } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useHRTMode } from '../contexts/HRTModeContext';
+
+// Storage key prefix per HRT mode — keeps transfem and transmasc data independent.
+const keyFor = (mode: 'transfem' | 'transmasc', suffix: string) =>
+    mode === 'transmasc' ? `hrt-masc-${suffix}` : `hrt-${suffix}`;
 
 export interface DoseTemplate {
     id: string;
@@ -24,38 +29,89 @@ export interface QuickDose {
 
 export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void) => {
     const { t, lang } = useTranslation();
+    const { mode, isTransmasc } = useHRTMode();
+
+    const loadJSON = <T,>(key: string, fallback: T): T => {
+        try {
+            const s = localStorage.getItem(key);
+            return s ? (JSON.parse(s) as T) : fallback;
+        } catch { return fallback; }
+    };
 
     // --- State ---
-    const [events, setEvents] = useState<DoseEvent[]>(() => {
-        const saved = localStorage.getItem('hrt-events');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [events, setEvents] = useState<DoseEvent[]>(() => loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
     const [weight, setWeight] = useState<number>(() => {
+        // Weight is shared across modes (a physical attribute of the person).
         const saved = localStorage.getItem('hrt-weight');
         return saved ? parseFloat(saved) : 70.0;
     });
-    const [labResults, setLabResults] = useState<LabResult[]>(() => {
-        const saved = localStorage.getItem('hrt-lab-results');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => {
-        const saved = localStorage.getItem('hrt-dose-templates');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => {
-        const saved = localStorage.getItem('hrt-quick-doses');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
+    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
+    const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
 
     const [simulation, setSimulation] = useState<SimulationResult | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // --- Effects ---
-    useEffect(() => { localStorage.setItem('hrt-events', JSON.stringify(events)); }, [events]);
+    // Tracks the mode whose data is currently held in state. Persist effects must
+    // wait until the reload-on-mode-change effect has swapped state to the new
+    // mode's data, otherwise stale (previous-mode) state would overwrite the
+    // newly-selected mode's localStorage entries.
+    //
+    // IMPORTANT: setState calls inside the reload effect do NOT apply to the
+    // current commit — they schedule a re-render. Any persist effect that also
+    // runs in the *same* commit (because `mode` is in its dep array) would
+    // therefore observe stale, previous-mode state. We mark the ref as `null`
+    // during reload so persist effects skip, and re-establish it only after
+    // the new data has actually flushed into state (detected in a follow-up
+    // effect that also watches the data itself).
+    const loadedModeRef = useRef<'transfem' | 'transmasc' | null>(mode);
+
+    // Reload all mode-scoped state whenever the HRT mode changes.
+    useEffect(() => {
+        loadedModeRef.current = null;
+        setEvents(loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
+        setLabResults(loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
+        setDoseTemplates(loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
+        setQuickDoses(loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
+    }, [mode]);
+
+    // Mark the ref as "loaded for this mode" only after state updates have
+    // flushed. Runs on every data mutation for the current mode, which is
+    // harmless (idempotent assignment).
+    //
+    // `mode` is intentionally NOT in the dep array: including it would cause
+    // this effect to fire in the same commit as the reload effect (which also
+    // depends on `mode`), re-setting the ref to the new mode *before* the
+    // reload's setState calls have flushed. The persist effects — which also
+    // depend on `mode` and run in that same commit — would then observe
+    // ref === mode and overwrite the new mode's localStorage with stale
+    // previous-mode state. Watching only the data ensures we re-arm the ref
+    // exactly when the reload's setState calls have actually committed
+    // (because loadJSON always returns fresh array references).
+    useEffect(() => {
+        loadedModeRef.current = mode;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [events, labResults, doseTemplates, quickDoses]);
+
+
+    useEffect(() => {
+        if (loadedModeRef.current !== mode) return;
+        localStorage.setItem(keyFor(mode, 'events'), JSON.stringify(events));
+    }, [events, mode]);
     useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
-    useEffect(() => { localStorage.setItem('hrt-lab-results', JSON.stringify(labResults)); }, [labResults]);
-    useEffect(() => { localStorage.setItem('hrt-dose-templates', JSON.stringify(doseTemplates)); }, [doseTemplates]);
-    useEffect(() => { localStorage.setItem('hrt-quick-doses', JSON.stringify(quickDoses)); }, [quickDoses]);
+    useEffect(() => {
+        if (loadedModeRef.current !== mode) return;
+        localStorage.setItem(keyFor(mode, 'lab-results'), JSON.stringify(labResults));
+    }, [labResults, mode]);
+    useEffect(() => {
+        if (loadedModeRef.current !== mode) return;
+        localStorage.setItem(keyFor(mode, 'dose-templates'), JSON.stringify(doseTemplates));
+    }, [doseTemplates, mode]);
+    useEffect(() => {
+        if (loadedModeRef.current !== mode) return;
+        localStorage.setItem(keyFor(mode, 'quick-doses'), JSON.stringify(quickDoses));
+    }, [quickDoses, mode]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -90,6 +146,13 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         return concCPA;
     }, [simulation, currentTime]);
 
+    // Total testosterone (ng/dL) at the current time — only meaningful in transmasc mode.
+    const currentT = useMemo(() => {
+        if (!simulation) return 0;
+        const h = currentTime.getTime() / 3600000;
+        return interpolateConcentration_T(simulation, h) || 0;
+    }, [simulation, currentTime]);
+
     const groupedEvents = useMemo(() => {
         const sorted = [...events].sort((a, b) => b.timeH - a.timeH);
         const groups: Record<string, DoseEvent[]> = {};
@@ -102,6 +165,18 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     }, [events, lang]);
 
     const currentStatus = useMemo(() => {
+        if (isTransmasc) {
+            // Transmasc: total T status bands (ng/dL). Reference: male range 300–1000 ng/dL.
+            if (currentT > 0) {
+                const c = currentT;
+                if (c > 1000) return { label: 'status.level.t_high',    color: 'text-amber-600', bg: 'bg-amber-50',  border: 'border-amber-200' };
+                if (c >= 600) return { label: 'status.level.t_upper',   color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' };
+                if (c >= 300) return { label: 'status.level.t_male',    color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' };
+                if (c >= 100) return { label: 'status.level.t_subtarget', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' };
+                return { label: 'status.level.t_low', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+            }
+            return null;
+        }
         if (currentLevel > 0) {
             const conc = currentLevel;
             if (conc > 300) return { label: 'status.level.high', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
@@ -112,7 +187,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             return { label: 'status.level.low', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' };
         }
         return null;
-    }, [currentLevel]);
+    }, [currentLevel, currentT, isTransmasc]);
 
 
     // --- Actions ---
@@ -180,7 +255,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             const timeNum = Number(timeH);
             const valNum = Number(concValue);
             if (!Number.isFinite(timeNum) || !Number.isFinite(valNum)) return null;
-            const unitVal = unit === 'pg/ml' || unit === 'pmol/l' ? unit : 'pmol/l';
+            const unitVal = (unit === 'pg/ml' || unit === 'pmol/l' || unit === 'ng/dl' || unit === 'nmol/l') ? unit : 'pmol/l';
             return {
                 id: typeof item.id === 'string' ? item.id : uuidv4(),
                 timeH: timeNum,
@@ -217,30 +292,104 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             let newWeight: number | undefined = undefined;
             let newLabs: LabResult[] = [];
             let newTemplates: DoseTemplate[] = [];
+            let importedOtherMode = false;
+            // Did the payload explicitly carry a block for the *current* mode?
+            // Only then should we overwrite active-mode state (otherwise a v2
+            // payload that only contains the other mode's data would wipe the
+            // user's current-mode records on replace-import).
+            let replacedCurrentMode = false;
 
-            if (Array.isArray(parsed)) {
+            // New multi-mode payload: { modes: { transfem: {...}, transmasc: {...} } }
+            if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
+                const modesBlock = parsed.modes as Record<string, any>;
+                for (const m of ['transfem', 'transmasc'] as const) {
+                    const block = modesBlock[m];
+                    if (!block || typeof block !== 'object') continue;
+                    const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
+                    const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
+                    const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+                    if (m === mode) {
+                        newEvents = evs;
+                        newLabs = ls;
+                        newTemplates = tmps;
+                        replacedCurrentMode = true;
+                    } else {
+                        // Write other mode's data straight to localStorage.
+                        localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
+                        localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
+                        localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
+                        importedOtherMode = true;
+                    }
+                }
+                if (typeof parsed.weight === 'number' && parsed.weight > 0) {
+                    newWeight = parsed.weight;
+                }
+            } else if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
+                replacedCurrentMode = true;
             } else if (typeof parsed === 'object' && parsed !== null) {
                 if (Array.isArray(parsed.events)) {
                     newEvents = sanitizeImportedEvents(parsed.events);
+                    replacedCurrentMode = true;
                 }
                 if (typeof parsed.weight === 'number' && parsed.weight > 0) {
                     newWeight = parsed.weight;
                 }
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
+                    replacedCurrentMode = true;
                 }
                 if (Array.isArray(parsed.doseTemplates)) {
                     newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
+                    replacedCurrentMode = true;
                 }
             }
 
-            if (!newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
+            // v1 flat-format safety: if the payload contains items that belong to
+            // the *other* HRT mode (T esters / T-unit labs), siphon them into that
+            // mode's storage so they don't silently corrupt the active record.
+            if (!('modes' in (parsed || {}))) {
+                const otherMode: 'transfem' | 'transmasc' = mode === 'transmasc' ? 'transfem' : 'transmasc';
+                const eventBelongs = (e: DoseEvent) =>
+                    mode === 'transmasc' ? isTestosteroneEster(e.ester) : !isTestosteroneEster(e.ester);
+                const keepEvs: DoseEvent[] = [];
+                const otherEvs: DoseEvent[] = [];
+                for (const e of newEvents) (eventBelongs(e) ? keepEvs : otherEvs).push(e);
+                if (otherEvs.length) {
+                    const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
+                    const existingIds = new Set(existing.map(x => x.id));
+                    localStorage.setItem(
+                        keyFor(otherMode, 'events'),
+                        JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))])
+                    );
+                    importedOtherMode = true;
+                    newEvents = keepEvs;
+                }
+                const labBelongs = (l: LabResult) =>
+                    mode === 'transmasc' ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit);
+                const keepLs: LabResult[] = [];
+                const otherLs: LabResult[] = [];
+                for (const l of newLabs) (labBelongs(l) ? keepLs : otherLs).push(l);
+                if (otherLs.length) {
+                    const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
+                    const existingIds = new Set(existing.map(x => x.id));
+                    localStorage.setItem(
+                        keyFor(otherMode, 'lab-results'),
+                        JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))])
+                    );
+                    importedOtherMode = true;
+                    newLabs = keepLs;
+                }
+            }
 
-            if (newEvents.length > 0) setEvents(newEvents);
+            if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
+
+            if (replacedCurrentMode) {
+                setEvents(newEvents);
+                setLabResults(newLabs);
+                setDoseTemplates(newTemplates);
+            }
             if (newWeight !== undefined) setWeight(newWeight);
-            if (newLabs.length > 0) setLabResults(newLabs);
-            if (newTemplates.length > 0) setDoseTemplates(newTemplates);
 
             showDialog('alert', t('drawer.import_success'));
             return true;
@@ -257,8 +406,39 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             let incomingWeight: number | undefined = undefined;
             let incomingLabs: LabResult[] = [];
             let incomingTemplates: DoseTemplate[] = [];
+            let mergedOther = 0;
 
-            if (Array.isArray(parsed)) {
+            if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
+                const modesBlock = parsed.modes as Record<string, any>;
+                for (const m of ['transfem', 'transmasc'] as const) {
+                    const block = modesBlock[m];
+                    if (!block || typeof block !== 'object') continue;
+                    const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
+                    const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
+                    const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+                    if (m === mode) {
+                        incomingEvents = evs;
+                        incomingLabs = ls;
+                        incomingTemplates = tmps;
+                    } else {
+                        // Merge into the other mode's localStorage directly.
+                        const existingEvs = loadJSON<DoseEvent[]>(keyFor(m, 'events'), []);
+                        const existingLs = loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []);
+                        const existingTmps = loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []);
+                        const evIds = new Set(existingEvs.map(e => e.id));
+                        const lsIds = new Set(existingLs.map(l => l.id));
+                        const tmpIds = new Set(existingTmps.map(tm => tm.id));
+                        const newEvs = evs.filter(e => !evIds.has(e.id));
+                        const newLs = ls.filter(l => !lsIds.has(l.id));
+                        const newTmps = tmps.filter(tm => !tmpIds.has(tm.id));
+                        if (newEvs.length) localStorage.setItem(keyFor(m, 'events'), JSON.stringify([...existingEvs, ...newEvs]));
+                        if (newLs.length) localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify([...existingLs, ...newLs]));
+                        if (newTmps.length) localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify([...existingTmps, ...newTmps]));
+                        mergedOther += newEvs.length + newLs.length;
+                    }
+                }
+                if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+            } else if (Array.isArray(parsed)) {
                 incomingEvents = sanitizeImportedEvents(parsed);
             } else if (typeof parsed === 'object' && parsed !== null) {
                 if (Array.isArray(parsed.events)) incomingEvents = sanitizeImportedEvents(parsed.events);
@@ -267,9 +447,46 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 if (Array.isArray(parsed.doseTemplates)) incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
             }
 
-            if (!incomingEvents.length && !incomingWeight && !incomingLabs.length && !incomingTemplates.length) throw new Error('No valid entries');
+            // v1 flat-format safety (merge): siphon wrong-mode events *and labs*
+            // into the other mode's store so a transfem backup merged from
+            // transmasc mode doesn't contaminate the transmasc record.
+            if (!('modes' in (parsed || {}))) {
+                const otherMode: 'transfem' | 'transmasc' = mode === 'transmasc' ? 'transfem' : 'transmasc';
+                const eventBelongs = (e: DoseEvent) =>
+                    mode === 'transmasc' ? isTestosteroneEster(e.ester) : !isTestosteroneEster(e.ester);
+                const keepEvs: DoseEvent[] = [];
+                const otherEvs: DoseEvent[] = [];
+                for (const e of incomingEvents) (eventBelongs(e) ? keepEvs : otherEvs).push(e);
+                if (otherEvs.length) {
+                    const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
+                    const existingIds = new Set(existing.map(x => x.id));
+                    const newOnes = otherEvs.filter(e => !existingIds.has(e.id));
+                    if (newOnes.length) {
+                        localStorage.setItem(keyFor(otherMode, 'events'), JSON.stringify([...existing, ...newOnes]));
+                        mergedOther += newOnes.length;
+                    }
+                    incomingEvents = keepEvs;
+                }
+                const labBelongs = (l: LabResult) =>
+                    mode === 'transmasc' ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit);
+                const keepLs: LabResult[] = [];
+                const otherLs: LabResult[] = [];
+                for (const l of incomingLabs) (labBelongs(l) ? keepLs : otherLs).push(l);
+                if (otherLs.length) {
+                    const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
+                    const existingIds = new Set(existing.map(x => x.id));
+                    const newOnes = otherLs.filter(l => !existingIds.has(l.id));
+                    if (newOnes.length) {
+                        localStorage.setItem(keyFor(otherMode, 'lab-results'), JSON.stringify([...existing, ...newOnes]));
+                        mergedOther += newOnes.length;
+                    }
+                    incomingLabs = keepLs;
+                }
+            }
 
-            let merged = 0;
+            if (!mergedOther && !incomingEvents.length && !incomingWeight && !incomingLabs.length && !incomingTemplates.length) throw new Error('No valid entries');
+
+            let merged = mergedOther;
 
             if (incomingEvents.length > 0) {
                 setEvents(prev => {
@@ -311,6 +528,31 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         }
     };
 
+    const buildExportPayload = () => {
+        const readMode = (m: 'transfem' | 'transmasc') => ({
+            events: loadJSON<DoseEvent[]>(keyFor(m, 'events'), []),
+            labResults: loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []),
+            doseTemplates: loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []),
+        });
+        const modes = {
+            transfem: readMode('transfem'),
+            transmasc: readMode('transmasc'),
+        };
+        // Overlay current in-memory state for the active mode.
+        modes[mode] = { events, labResults, doseTemplates };
+
+        return {
+            meta: { version: 2, exportedAt: new Date().toISOString() },
+            mode,
+            weight,
+            modes,
+            // Flat v1-compatible fields mirror the currently active mode.
+            events,
+            labResults,
+            doseTemplates,
+        };
+    };
+
     return {
         events, setEvents,
         weight, setWeight,
@@ -322,6 +564,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         calibrationFn,
         currentLevel,
         currentCPA,
+        currentT,
         currentStatus,
         groupedEvents,
         addEvent, updateEvent, deleteEvent, clearAllEvents,
@@ -329,6 +572,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
         processImportedData,
-        mergeImportedData
+        mergeImportedData,
+        buildExportPayload
     };
 };

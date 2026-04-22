@@ -2,17 +2,20 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
-import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, LabResult, convertToPgMl } from '../../logic';
+import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS } from '../../logic';
 import { Activity, RotateCcw, Info, FlaskConical, Maximize2, Minimize2 } from 'lucide-react';
+import { useHRTMode } from '../contexts/HRTModeContext';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush, Line
 } from 'recharts';
 
-const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => {
+const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode, isTransmasc }: any) => {
     if (active && payload && payload.length) {
         // If it's a lab result point
         if (payload[0].payload.isLabResult) {
             const data = payload[0].payload;
+            const primaryUnit = isTransmasc ? 'ng/dl' : 'pg/ml';
+            const altUnit = isTransmasc ? 'nmol/l' : 'pmol/l';
             return (
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
                     <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
@@ -25,9 +28,9 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
                         </span>
                         <span className="text-[10px] text-gray-400">{data.originalUnit}</span>
                     </div>
-                    {data.originalUnit === 'pmol/l' && (
+                    {data.originalUnit === altUnit && (
                         <div className="text-[10px] text-gray-400 mt-0.5">
-                            ≈ {data.concE2.toFixed(2)} pg/ml
+                            ≈ {data.concE2.toFixed(isTransmasc ? 0 : 2)} {primaryUnit}
                         </div>
                     )}
                 </div>
@@ -37,6 +40,25 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
         const dataPoint = payload[0].payload;
         const concE2 = dataPoint.concE2;
         const concCPA = dataPoint.concCPA; // Already in ng/mL
+
+        if (isTransmasc) {
+            return (
+                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
+                        {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
+                    </p>
+                    {concE2 !== undefined && concE2 !== null && (
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-xs text-gray-500">{t('label.total_t')}:</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-200">
+                                {concE2.toFixed(0)}
+                            </span>
+                            <span className="text-[10px] text-gray-400">ng/dl</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
 
         return (
             <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
@@ -69,6 +91,7 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode }: any) => 
 
 const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick, isDarkMode = false }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void, isDarkMode?: boolean }) => {
     const { t, lang } = useTranslation();
+    const { isTransmasc } = useHRTMode();
     const [xDomain, setXDomain] = useState<[number, number] | null>(null);
     const initializedRef = useRef(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -78,30 +101,56 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
     });
     const [viewport, setViewport] = useState(getViewport);
 
-    // Auto-detect if we have E2 or CPA data
-    const hasE2Data = useMemo(() => events.some(e => e.ester !== 'CPA'), [events]);
-    const hasCPAData = useMemo(() => events.some(e => e.ester === 'CPA'), [events]);
+    // In transmasc mode, the primary series is total T (ng/dL) instead of E2 (pg/mL).
+    // We repurpose the `concE2` field in chart data to hold the primary series value.
+    // CPA is never relevant in transmasc mode.
+    const hasE2Data = useMemo(
+        () => isTransmasc
+            ? events.some(e => T_ESTERS.has(e.ester))
+            : events.some(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester)),
+        [events, isTransmasc]
+    );
+    const hasCPAData = useMemo(() => !isTransmasc && events.some(e => e.ester === 'CPA'), [events, isTransmasc]);
 
     const data = useMemo(() => {
         if (!sim || sim.timeH.length === 0) return [];
         return sim.timeH.map((t, i) => {
             const timeMs = t * 3600000;
+            if (isTransmasc) {
+                const concT = sim.concNGdL_T ? sim.concNGdL_T[i] : 0;
+                return {
+                    time: timeMs,
+                    concE2: concT, // repurposed as primary T series (ng/dL)
+                    concCPA: 0,
+                    conc: concT
+                };
+            }
             const scale = calibrationFn(t);
-            // Only apply calibration to E2, not CPA (lab results only measure E2)
-            const calibratedE2 = sim.concPGmL_E2[i] * scale; // pg/mL
-            const rawCPA_ngmL = sim.concPGmL_CPA[i]; // ng/mL
+            const calibratedE2 = sim.concPGmL_E2[i] * scale;
+            const rawCPA_ngmL = sim.concPGmL_CPA[i];
             return {
                 time: timeMs,
-                concE2: calibratedE2, // pg/mL for left Y-axis
-                concCPA: rawCPA_ngmL, // ng/mL for right Y-axis
-                conc: calibratedE2 // For overview chart
+                concE2: calibratedE2,
+                concCPA: rawCPA_ngmL,
+                conc: calibratedE2
             };
         });
-    }, [sim, calibrationFn]);
+    }, [sim, calibrationFn, isTransmasc]);
 
     const labPoints = useMemo(() => {
         if (!labResults || labResults.length === 0) return [];
-        return labResults.map(l => ({
+        if (isTransmasc) {
+            // Only T-unit labs are relevant here.
+            return labResults.filter(l => isT_LabUnit(l.unit)).map(l => ({
+                time: l.timeH * 3600000,
+                concE2: convertToNgDl(l.concValue, l.unit), // primary series is ng/dL
+                originalValue: l.concValue,
+                originalUnit: l.unit,
+                isLabResult: true,
+                id: l.id
+            }));
+        }
+        return labResults.filter(l => !isT_LabUnit(l.unit)).map(l => ({
             time: l.timeH * 3600000,
             concE2: convertToPgMl(l.concValue, l.unit),
             originalValue: l.concValue,
@@ -109,22 +158,32 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             isLabResult: true,
             id: l.id
         }));
-    }, [labResults]);
+    }, [labResults, isTransmasc]);
 
     const eventPoints = useMemo(() => {
         if (!sim || events.length === 0) return { e2Points: [], cpaEvents: [] };
 
-        // Split events by ester type
-        const e2Events = events.filter(e => e.ester !== 'CPA');
+        if (isTransmasc) {
+            const tEvents = events.filter(e => T_ESTERS.has(e.ester));
+            const e2Points = tEvents.map(e => {
+                const timeMs = e.timeH * 3600000;
+                const concT = interpolateConcentration_T(sim, e.timeH);
+                const val = concT !== null && !Number.isNaN(concT) ? concT : 0;
+                return { time: timeMs, concE2: val, concCPA: 0, event: e, isEvent: true, isCPAEvent: false };
+            });
+            return { e2Points, cpaEvents: [] };
+        }
+
+        // Split events by ester type (transfem)
+        const e2Events = events.filter(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester));
         const cpaEvents = events.filter(e => e.ester === 'CPA');
 
-        // Map E2 events to data points
         const e2Points = e2Events.map(e => {
             const timeMs = e.timeH * 3600000;
             const concE2 = interpolateConcentration_E2(sim, e.timeH);
             const calibratedE2 = concE2 !== null && !Number.isNaN(concE2)
                 ? concE2 * calibrationFn(e.timeH)
-                : 0; // pg/mL
+                : 0;
 
             return {
                 time: timeMs,
@@ -137,7 +196,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         });
 
         return { e2Points, cpaEvents };
-    }, [sim, events, calibrationFn]);
+    }, [sim, events, calibrationFn, isTransmasc]);
 
     const cpaEventPoints = useMemo(() => {
         if (!sim || !eventPoints?.cpaEvents || eventPoints.cpaEvents.length === 0) return [];
@@ -174,25 +233,30 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
         if (!sim || data.length === 0) return null;
         const h = now / 3600000;
 
+        if (isTransmasc) {
+            const concT = interpolateConcentration_T(sim, h);
+            const hasT = concT !== null && !Number.isNaN(concT);
+            if (!hasT) return null;
+            return { time: now, concE2: concT as number, concCPA: 0 };
+        }
+
         const concE2 = interpolateConcentration_E2(sim, h);
         const concCPA = interpolateConcentration_CPA(sim, h);
 
-        // If both are null/NaN, return null
         const hasE2 = concE2 !== null && !Number.isNaN(concE2);
         const hasCPA = concCPA !== null && !Number.isNaN(concCPA);
 
         if (!hasE2 && !hasCPA) return null;
 
-        // Only calibrate E2, not CPA
         const calibratedE2 = hasE2 ? concE2 * calibrationFn(h) : 0;
         const finalCPA = hasCPA ? concCPA : 0;
 
         return {
             time: now,
-            concE2: calibratedE2, // pg/mL
-            concCPA: finalCPA // ng/mL
+            concE2: calibratedE2,
+            concCPA: finalCPA
         };
-    }, [sim, data, now, calibrationFn]);
+    }, [sim, data, now, calibrationFn, isTransmasc]);
 
     // Slider helpers for quick panning (helps mobile users)
     // Initialize view: center on "now" with a reasonable window (e.g. 14 days)
@@ -397,11 +461,11 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 <YAxis
                                     yAxisId="left"
                                     dataKey="concE2"
-                                    tick={{ fontSize: 10, fill: '#ec4899', fontWeight: 600 }}
+                                    tick={{ fontSize: 10, fill: isTransmasc ? '#0ea5e9' : '#ec4899', fontWeight: 600 }}
                                     axisLine={false}
                                     tickLine={false}
                                     width={50}
-                                    label={{ value: t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
+                                    label={{ value: isTransmasc ? t('label.t_unit') : t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: isTransmasc ? '#0ea5e9' : '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
                                 />
                             )}
                             {hasCPAData && (
@@ -417,7 +481,7 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 />
                             )}
                             <Tooltip
-                                content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} />}
+                                content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} isTransmasc={isTransmasc} />}
                                 cursor={{ stroke: isDarkMode ? '#f9a8d4' : '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
                                 trigger="hover"
                             />

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester, getToE2Factor } from '../../../logic';
+import { Route, Ester, getToE2Factor, isTestosteroneEster } from '../../../logic';
 
 interface InjectionFieldsProps {
     ester: Ester;
@@ -24,6 +24,8 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
     lastEditedField
 }) => {
     const { t } = useTranslation();
+    const isT = isTestosteroneEster(ester);
+    const equivLabelKey = isT ? 'field.dose_t' : 'field.dose_e2';
 
     useEffect(() => {
         if (isInitializing || lastEditedField !== 'raw' || !rawDose) return;
@@ -54,7 +56,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
             {!(ester === Ester.EV && route === Route.injection) && ester !== Ester.CPA && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
                     <label className="block text-xs font-semibold text-rose-500 dark:text-rose-400 pl-1">
-                        {t('field.dose_e2')}
+                        {t(equivLabelKey)}
                     </label>
                     <input
                         type="number" inputMode="decimal"
@@ -70,7 +72,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
             {(ester === Ester.EV && route === Route.injection) && (
                 <div className="col-span-2">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-1">
-                        {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
+                        {t(equivLabelKey)}: {e2Dose ? `${e2Dose} mg` : '--'}
                     </p>
                 </div>
             )}

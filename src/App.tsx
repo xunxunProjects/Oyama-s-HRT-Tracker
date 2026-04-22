@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
+import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
 import { DoseEvent, LabResult, createCalibrationInterpolator, decompressData, encryptData, decryptData } from '../logic';
@@ -55,6 +56,7 @@ const AppContent = () => {
         calibrationFn,
         currentLevel,
         currentCPA,
+        currentT,
         currentStatus,
         groupedEvents,
         addEvent, updateEvent, deleteEvent, clearAllEvents,
@@ -63,7 +65,8 @@ const AppContent = () => {
         addQuickDose, deleteQuickDose,
         quickDoses,
         processImportedData,
-        mergeImportedData
+        mergeImportedData,
+        buildExportPayload
     } = useAppData(showDialog);
 
     const {
@@ -210,13 +213,7 @@ const AppContent = () => {
             showDialog('alert', t('drawer.empty_export'));
             return;
         }
-        const exportData = {
-            meta: { version: 1, exportedAt: new Date().toISOString() },
-            weight: weight,
-            events: events,
-            labResults: labResults,
-            doseTemplates: doseTemplates
-        };
+        const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
         navigator.clipboard.writeText(json).then(() => {
             showDialog('alert', t('drawer.export_copied'));
@@ -237,13 +234,7 @@ const AppContent = () => {
 
     const handleExportConfirm = async (encrypt: boolean, customPassword?: string): Promise<string | null> => {
         setIsExportModalOpen(false);
-        const exportData = {
-            meta: { version: 1, exportedAt: new Date().toISOString() },
-            weight: weight,
-            events: events,
-            labResults: labResults,
-            doseTemplates: doseTemplates
-        };
+        const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
 
         if (encrypt) {
@@ -260,13 +251,7 @@ const AppContent = () => {
 
     const handleCloudSave = async () => {
         if (!token) { setIsAuthModalOpen(true); return; }
-        const exportData = {
-            meta: { version: 1, exportedAt: new Date().toISOString() },
-            weight: weight,
-            events: events,
-            labResults: labResults,
-            doseTemplates: doseTemplates
-        };
+        const exportData = buildExportPayload();
         try {
             await cloudService.save(token, exportData);
             showDialog('alert', t('account.cloud_save_success'));
@@ -339,6 +324,7 @@ const AppContent = () => {
                             t={t}
                             currentLevel={currentLevel}
                             currentCPA={currentCPA}
+                            currentT={currentT}
                             currentStatus={currentStatus}
                             events={events}
                             weight={weight}
@@ -549,13 +535,15 @@ const AppContent = () => {
 
 const App = () => (
     <LanguageProvider>
-        <DialogProvider>
-            <AuthProvider>
-                <ErrorBoundary>
-                    <AppContent />
-                </ErrorBoundary>
-            </AuthProvider>
-        </DialogProvider>
+        <HRTModeProvider>
+            <DialogProvider>
+                <AuthProvider>
+                    <ErrorBoundary>
+                        <AppContent />
+                    </ErrorBoundary>
+                </AuthProvider>
+            </DialogProvider>
+        </HRTModeProvider>
     </LanguageProvider>
 );
 

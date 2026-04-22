@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route, Ester } from '../../../logic';
+import { useHRTMode } from '../../contexts/HRTModeContext';
 
 interface GelFieldsProps {
     gelSite: number;
@@ -16,6 +17,8 @@ const GelFields: React.FC<GelFieldsProps> = ({
     onE2Change
 }) => {
     const { t } = useTranslation();
+    const { isTransmasc } = useHRTMode();
+    const equivLabelKey = isTransmasc ? 'field.dose_t' : 'field.dose_e2';
 
     return (
         <div className="space-y-4">
@@ -31,7 +34,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
 
             <div className="space-y-2 col-span-2">
                 <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
-                    {t('field.dose_e2')}
+                    {t(equivLabelKey)}
                 </label>
                 <input
                     type="number" inputMode="decimal"

@@ -5,7 +5,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
-import { getRouteIcon, formatDate, formatTime, getEsterIcon } from '../utils/helpers';
+import { getRouteIcon, formatDate, formatTime } from '../utils/helpers';
 import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
 import { Plus, Minus, Calendar, Clock, Hash, Percent, Save, Trash2, Info, ChevronRight, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import InjectionFields from './dose_form/InjectionFields';
@@ -13,6 +13,7 @@ import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
 import GelFields from './dose_form/GelFields';
 import PatchFields from './dose_form/PatchFields';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
 export interface DoseTemplate {
     id: string;
@@ -144,8 +145,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
     // Form State
     const [dateStr, setDateStr] = useState("");
+    const { isTransmasc } = useHRTMode();
     const [route, setRoute] = useState<Route>(Route.injection);
-    const [ester, setEster] = useState<Ester>(Ester.EV);
+    const [ester, setEster] = useState<Ester>(isTransmasc ? Ester.TC : Ester.EV);
 
     const [rawDose, setRawDose] = useState("");
     const [e2Dose, setE2Dose] = useState("");
@@ -244,7 +246,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
             setDateStr(iso);
             setRoute(Route.injection);
-            setEster(Ester.EV);
+            setEster(isTransmasc ? Ester.TC : Ester.EV);
             setRawDose("");
             setE2Dose("");
             setPatchMode("dose");
@@ -441,7 +443,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         const newEvent: DoseEvent = {
             id: eventToEdit?.id || uuidv4(),
             route,
-            ester: (route === Route.patchRemove || route === Route.patchApply || route === Route.gel) ? Ester.E2 : ester,
+            ester: (route === Route.patchRemove || route === Route.patchApply || route === Route.gel)
+                ? (isTransmasc ? Ester.T : Ester.E2)
+                : ester,
             timeH,
             doseMG: finalDose,
             extras
@@ -452,9 +456,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     };
 
     const availableEsters = useMemo(() => {
+        if (isTransmasc) {
+            switch (route) {
+                case Route.injection:
+                    return [Ester.TC, Ester.TE, Ester.TU];
+                case Route.gel:
+                    return [Ester.T];
+                default:
+                    return [Ester.T];
+            }
+        }
         switch (route) {
             case Route.injection:
-                return [Ester.EB, Ester.EV, Ester.EC, Ester.EN];
+                return [Ester.EB, Ester.EV, Ester.EC, Ester.EN, Ester.EU];
             case Route.oral:
                 return [Ester.E2, Ester.EV, Ester.CPA];
             case Route.sublingual:
@@ -462,7 +476,25 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             default:
                 return [Ester.E2];
         }
-    }, [route]);
+    }, [route, isTransmasc]);
+
+    const availableRoutes = useMemo(() => {
+        if (isTransmasc) {
+            // Transmasc: no oral/sublingual; no patches (T patches are uncommon and
+            // not realistically modeled with the current µg/day scheme).
+            return Object.values(Route).filter(r =>
+                r !== Route.oral && r !== Route.sublingual &&
+                r !== Route.patchApply && r !== Route.patchRemove
+            );
+        }
+        return Object.values(Route);
+    }, [isTransmasc]);
+
+    useEffect(() => {
+        if (!availableRoutes.includes(route)) {
+            setRoute(availableRoutes[0]);
+        }
+    }, [availableRoutes, route]);
 
     useEffect(() => {
         if (!availableEsters.includes(ester)) {
@@ -472,6 +504,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
     const doseGuide = useMemo(() => {
         if (ester === Ester.CPA) return null;
+        // The built-in dose thresholds (DOSE_GUIDE_CONFIG) are calibrated for
+        // feminizing HRT (E2). They would be misleading for testosterone dosing,
+        // so skip the guide entirely in transmasc mode.
+        if (isTransmasc) return null;
         const cfg = DOSE_GUIDE_CONFIG[route];
         if (!cfg) return null;
         if (route === Route.patchApply && patchMode === "dose" && cfg.requiresRate) {
@@ -489,7 +525,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             else level = 'above';
         }
         return { config: cfg, level, value, showRateHint: false as const };
-    }, [route, patchMode, patchRate, e2Dose, ester]);
+    }, [route, patchMode, patchRate, e2Dose, ester, isTransmasc]);
 
     const tierKey = SL_TIER_ORDER[slTier] || "standard";
     const currentTheta = SublingualTierParams[tierKey]?.theta || 0.11;
@@ -644,7 +680,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     label={t('field.route')}
                     value={route}
                     onChange={(val) => setRoute(val as Route)}
-                    options={Object.values(Route).map(r => ({
+                    options={availableRoutes.map(r => ({
                         value: r,
                         label: t(`route.${r}`),
                         icon: getRouteIcon(r)
@@ -667,8 +703,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 onChange={(val) => setEster(val as Ester)}
                                 options={availableEsters.map(e => ({
                                     value: e,
-                                    label: t(`ester.${e}`),
-                                    icon: getEsterIcon(e)
+                                    label: t(`ester.${e}`)
                                 }))}
                             />
                         )}
@@ -746,7 +781,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         </div>
 
                         {/* Injection-specific guide from mtf.wiki */}
-                        {route === Route.injection && (
+                        {route === Route.injection && !isTransmasc && (
                             <div className="mt-3 space-y-3">
                                 {/* Safety Warning */}
                                 <div className="p-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800/60 flex gap-3">

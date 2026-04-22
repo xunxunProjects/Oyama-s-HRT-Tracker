@@ -3,11 +3,13 @@ import { Info } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface HomeProps {
     t: (key: string) => string;
     currentLevel: number;
     currentCPA: number;
+    currentT: number;
     currentStatus: { label: string, color: string, bg: string, border: string } | null;
     events: DoseEvent[];
     weight: number;
@@ -23,6 +25,7 @@ const Home: React.FC<HomeProps> = ({
     t,
     currentLevel,
     currentCPA,
+    currentT,
     currentStatus,
     events,
     weight,
@@ -35,6 +38,7 @@ const Home: React.FC<HomeProps> = ({
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
+    const { isTransmasc } = useHRTMode();
 
     return (
         <>
@@ -69,43 +73,86 @@ const Home: React.FC<HomeProps> = ({
 
                         {/* Blood Levels Grid */}
                         <div className="grid grid-cols-2 gap-4 uppercase tracking-wide">
-                            {/* E2 Display */}
-                            <div>
-                                <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                    {t('label.e2')}
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    {currentLevel > 0 ? (
-                                        <>
-                                            <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                {currentLevel.toFixed(1)}
-                                            </span>
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">pg/ml</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
-                                    )}
-                                </div>
-                            </div>
+                            {isTransmasc ? (
+                                <>
+                                    {/* Total T (ng/dL) */}
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
+                                            {t('label.total_t')} <span className="text-gray-400 dark:text-gray-600 normal-case lowercase">(ng/dL)</span>
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            {currentT > 0 ? (
+                                                <>
+                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
+                                                        {currentT.toFixed(0)}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/dl</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Total T (nmol/L) */}
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
+                                            {t('label.total_t')} <span className="text-gray-400 dark:text-gray-600 normal-case lowercase">(nmol/L)</span>
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            {currentT > 0 ? (
+                                                <>
+                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
+                                                        {(currentT / 28.842).toFixed(1)}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">nmol/l</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* E2 Display */}
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
+                                            {t('label.e2')}
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            {currentLevel > 0 ? (
+                                                <>
+                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
+                                                        {currentLevel.toFixed(1)}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">pg/ml</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
+                                            )}
+                                        </div>
+                                    </div>
 
-                            {/* CPA Display */}
-                            <div>
-                                <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                    {t('label.cpa')}
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    {currentCPA > 0 ? (
-                                        <>
-                                            <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                {currentCPA.toFixed(1)}
-                                            </span>
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/ml</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">--</span>
-                                    )}
-                                </div>
-                            </div>
+                                    {/* CPA Display */}
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
+                                            {t('label.cpa')}
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            {currentCPA > 0 ? (
+                                                <>
+                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
+                                                        {currentCPA.toFixed(1)}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/ml</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">--</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
