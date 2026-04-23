@@ -118,6 +118,104 @@ function getValidatedJWTSecret(env: Env): string {
 // Lazily ensure the transparency deletion_log table exists.
 // This lets the feature deploy without requiring a manual migration on
 // existing databases. Cached per worker instance.
+// --- TOTP Helpers (RFC 6238 / RFC 4226) ---
+const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+function base32Decode(input: string): Uint8Array {
+  const clean = input.toUpperCase().replace(/\s/g, '').replace(/=+$/, '');
+  const bytes: number[] = [];
+  let buf = 0, bitsLeft = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const val = BASE32_CHARS.indexOf(clean[i]);
+    if (val < 0) throw new Error(`Invalid base32 char: ${clean[i]}`);
+    buf = (buf << 5) | val;
+    bitsLeft += 5;
+    if (bitsLeft >= 8) {
+      bitsLeft -= 8;
+      bytes.push((buf >> bitsLeft) & 0xff);
+    }
+  }
+  return new Uint8Array(bytes);
+}
+
+function base32Encode(bytes: Uint8Array): string {
+  let result = '';
+  let buf = 0, bitsLeft = 0;
+  for (const byte of bytes) {
+    buf = (buf << 8) | byte;
+    bitsLeft += 8;
+    while (bitsLeft >= 5) {
+      bitsLeft -= 5;
+      result += BASE32_CHARS[(buf >> bitsLeft) & 0x1f];
+    }
+  }
+  if (bitsLeft > 0) result += BASE32_CHARS[(buf << (5 - bitsLeft)) & 0x1f];
+  return result;
+}
+
+function generateTOTPSecret(): string {
+  const bytes = new Uint8Array(20);
+  crypto.getRandomValues(bytes);
+  return base32Encode(bytes);
+}
+
+async function hotp(secret: string, counter: number): Promise<string> {
+  const keyBytes = base32Decode(secret);
+  const counterBuf = new ArrayBuffer(8);
+  const view = new DataView(counterBuf);
+  view.setUint32(0, Math.floor(counter / 0x100000000), false);
+  view.setUint32(4, counter % 0x100000000, false);
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, counterBuf);
+  const hmac = new Uint8Array(sig);
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const code = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16) | (hmac[offset + 2] << 8) | hmac[offset + 3];
+  return (code % 1_000_000).toString().padStart(6, '0');
+}
+
+async function verifyTOTP(secret: string, token: string, windowSize = 1): Promise<boolean> {
+  if (!/^\d{6}$/.test(token)) return false;
+  const T = Math.floor(Date.now() / 1000 / 30);
+  for (let i = -windowSize; i <= windowSize; i++) {
+    if (await hotp(secret, T + i) === token) return true;
+  }
+  return false;
+}
+
+// --- Sessions table lazy creation ---
+let sessionsEnsured = false;
+async function ensureSessions(env: Env): Promise<void> {
+  if (sessionsEnsured) return;
+  try {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        created_at INTEGER DEFAULT (unixepoch()),
+        last_used_at INTEGER DEFAULT (unixepoch()),
+        device_info TEXT,
+        ip TEXT
+      )`
+    ).run();
+    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)').run();
+    sessionsEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure sessions table:', e);
+  }
+}
+
+// --- TOTP secret column lazy creation ---
+let totpColumnEnsured = false;
+async function ensureTotpColumn(env: Env): Promise<void> {
+  if (totpColumnEnsured) return;
+  try {
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN totp_secret TEXT').run();
+  } catch (_) {
+    // Column likely already exists
+  }
+  totpColumnEnsured = true;
+}
+
 let deletionLogEnsured = false;
 async function ensureDeletionLog(env: Env): Promise<void> {
   if (deletionLogEnsured) return;
@@ -285,7 +383,7 @@ export default {
       // Login
       if (url.pathname === '/api/login' && request.method === 'POST') {
         const body = await request.json() as any;
-        let { username, password } = body;
+        let { username, password, totp_code } = body;
         if (!username || !password) return withSecurityHeaders(new Response('Missing credentials', { status: 400, headers: corsHeaders }));
         username = username.trim();
 
@@ -314,8 +412,35 @@ export default {
           return withSecurityHeaders(new Response('Invalid credentials', { status: 401, headers: corsHeaders }));
         }
 
+        // 2FA check
+        await ensureTotpColumn(env);
+        const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
+        if (userWithTotp?.totp_secret) {
+          if (!totp_code) {
+            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true }), {
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }));
+          }
+          const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
+          if (!totpValid) {
+            return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
+          }
+        }
+
+        // Create session
+        await ensureSessions(env);
+        const sessionId = crypto.randomUUID();
+        const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
+        const loginIP = request.headers.get('CF-Connecting-IP') ||
+          request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
+        ctx.waitUntil(
+          env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+            .bind(sessionId, user.id, userAgent, loginIP).run()
+        );
+
         const secret = new TextEncoder().encode(jwtSecret);
-        const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user' }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
+        const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user', sid: sessionId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
         return withSecurityHeaders(new Response(JSON.stringify({ token, user: { id: user.id, username: user.username, isAdmin: false } }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 
@@ -351,6 +476,21 @@ export default {
       try {
         const { payload } = await jwtVerify(token, secret);
         const userId = payload.sub as string;
+        const sessionId = (payload as any).sid as string | undefined;
+
+        // Session validation (only for user JWTs with a session ID)
+        if (sessionId && payload.role !== 'admin') {
+          await ensureSessions(env);
+          const session = await env.DB.prepare('SELECT last_used_at FROM sessions WHERE id = ? AND user_id = ?').bind(sessionId, userId).first() as any;
+          if (!session) {
+            return withSecurityHeaders(new Response('Session expired or revoked', { status: 401, headers: corsHeaders }));
+          }
+          // Lazy last_used_at update (only if >5 min stale)
+          const nowTs = Math.floor(Date.now() / 1000);
+          if (nowTs - (session.last_used_at ?? 0) > 300) {
+            ctx.waitUntil(env.DB.prepare('UPDATE sessions SET last_used_at = ? WHERE id = ?').bind(nowTs, sessionId).run());
+          }
+        }
 
         // Content
         if (url.pathname.startsWith('/api/content')) {
@@ -436,6 +576,7 @@ export default {
 
             await env.DB.batch([
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
+              env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
               env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId)
             ]);
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`); } catch (e) { }
@@ -555,6 +696,94 @@ export default {
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${targetId}`); } catch (e) { }
             if (target) await logDeletion(env, 'admin', target?.created_at ?? null);
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'User deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+        }
+
+        // --- Session Management ---
+        if (url.pathname.startsWith('/api/user/sessions')) {
+          await ensureSessions(env);
+
+          // GET /api/user/sessions — list all sessions for this user
+          if (url.pathname === '/api/user/sessions' && request.method === 'GET') {
+            const rows = await env.DB.prepare(
+              'SELECT id, created_at, last_used_at, device_info, ip FROM sessions WHERE user_id = ? ORDER BY last_used_at DESC'
+            ).bind(userId).all();
+            const currentSid = sessionId ?? null;
+            const sessions = (rows.results || []).map((s: any) => ({
+              id: s.id,
+              created_at: s.created_at,
+              last_used_at: s.last_used_at,
+              device_info: s.device_info,
+              ip: s.ip,
+              is_current: s.id === currentSid,
+            }));
+            return withSecurityHeaders(new Response(JSON.stringify(sessions), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // DELETE /api/user/sessions — terminate all other sessions (keep current)
+          if (url.pathname === '/api/user/sessions' && request.method === 'DELETE') {
+            if (sessionId) {
+              await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?').bind(userId, sessionId).run();
+            } else {
+              await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+            }
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Other sessions terminated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // DELETE /api/user/sessions/:id — terminate a specific session
+          if (url.pathname.match(/^\/api\/user\/sessions\/[^/]+$/) && request.method === 'DELETE') {
+            const targetSid = url.pathname.split('/').pop()!;
+            await env.DB.prepare('DELETE FROM sessions WHERE id = ? AND user_id = ?').bind(targetSid, userId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Session terminated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+        }
+
+        // --- Two-Factor Authentication (TOTP) ---
+        if (url.pathname.startsWith('/api/user/2fa')) {
+          await ensureTotpColumn(env);
+
+          // GET /api/user/2fa/status
+          if (url.pathname === '/api/user/2fa/status' && request.method === 'GET') {
+            const row = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
+            return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // POST /api/user/2fa/setup — generate a new TOTP secret (not saved yet)
+          if (url.pathname === '/api/user/2fa/setup' && request.method === 'POST') {
+            const userRow = await env.DB.prepare('SELECT username FROM users WHERE id = ?').bind(userId).first() as any;
+            const username = userRow?.username ?? userId;
+            const totpSecret = generateTOTPSecret();
+            const issuer = 'HRT Tracker';
+            const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(username)}?secret=${totpSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+            return withSecurityHeaders(new Response(JSON.stringify({ secret: totpSecret, uri }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // POST /api/user/2fa/enable — verify code and save secret to DB
+          if (url.pathname === '/api/user/2fa/enable' && request.method === 'POST') {
+            const { secret: totpSecret, code } = await request.json() as any;
+            if (!totpSecret || !code) return withSecurityHeaders(new Response('Missing secret or code', { status: 400, headers: corsHeaders }));
+            // Validate secret format (base32 chars, 16-32 chars)
+            if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret)) return withSecurityHeaders(new Response('Invalid secret format', { status: 400, headers: corsHeaders }));
+            const valid = await verifyTOTP(totpSecret, String(code));
+            if (!valid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+            await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA enabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // DELETE /api/user/2fa — disable 2FA (requires current password + TOTP code)
+          if (url.pathname === '/api/user/2fa' && request.method === 'DELETE') {
+            const { password, code } = await request.json() as any;
+            if (!password || !code) return withSecurityHeaders(new Response('Missing password or code', { status: 400, headers: corsHeaders }));
+            const userRow = await env.DB.prepare('SELECT password_hash, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
+            if (!userRow) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+            const passValid = await bcrypt.compare(password, userRow.password_hash ?? dummyHash);
+            if (!passValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            if (!userRow.totp_secret) return withSecurityHeaders(new Response('2FA is not enabled', { status: 400, headers: corsHeaders }));
+            const totpValid = await verifyTOTP(userRow.totp_secret, String(code));
+            if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+            await env.DB.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').bind(userId).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA disabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
 

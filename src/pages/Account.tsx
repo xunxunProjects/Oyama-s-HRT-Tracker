@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus } from 'lucide-react';
+import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
 import { AvatarUpload } from '../components/AvatarUpload';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
+import SessionsModal from '../components/SessionsModal';
+import TwoFactorModal from '../components/TwoFactorModal';
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
 import { useDialog } from '../contexts/DialogContext';
+import { authService } from '../services/auth';
 
 interface LocalData {
     events: any[];
@@ -41,6 +44,9 @@ const Account: React.FC<AccountProps> = ({
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+    const [isSessionsOpen, setIsSessionsOpen] = useState(false);
+    const [isTwoFactorOpen, setIsTwoFactorOpen] = useState(false);
+    const [twoFAEnabled, setTwoFAEnabled] = useState(false);
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
     const [savingCloud, setSavingCloud] = useState(false);
@@ -56,6 +62,8 @@ const Account: React.FC<AccountProps> = ({
     const [password, setPassword] = useState('');
     const [authError, setAuthError] = useState<string | null>(null);
     const [authLoading, setAuthLoading] = useState(false);
+    const [needsTOTP, setNeedsTOTP] = useState(false);
+    const [totpCode, setTotpCode] = useState('');
     const { login, register } = useAuth();
 
     const fetchBackups = async () => {
@@ -69,7 +77,11 @@ const Account: React.FC<AccountProps> = ({
     };
 
     useEffect(() => {
-        if (user && token) fetchBackups();
+        if (user && token) {
+            fetchBackups();
+            // Fetch 2FA status
+            authService.get2FAStatus(token).then(s => setTwoFAEnabled(s.enabled)).catch(() => {});
+        }
     }, [user, token]);
 
     const handleSave = async () => {
@@ -143,7 +155,7 @@ const Account: React.FC<AccountProps> = ({
         setAuthLoading(true);
         try {
             if (isLogin) {
-                await login(username, password);
+                await login(username, password, needsTOTP ? totpCode : undefined);
             } else {
                 await register(username, password);
                 window.location.reload();
@@ -151,8 +163,15 @@ const Account: React.FC<AccountProps> = ({
             }
             setUsername('');
             setPassword('');
+            setNeedsTOTP(false);
+            setTotpCode('');
         } catch (err: any) {
-            setAuthError(err.message || 'An error occurred');
+            if (err.needs2FA) {
+                setNeedsTOTP(true);
+                setAuthError(t('auth.needs_2fa'));
+            } else {
+                setAuthError(err.message || 'An error occurred');
+            }
         } finally {
             setAuthLoading(false);
         }
@@ -215,6 +234,36 @@ const Account: React.FC<AccountProps> = ({
                                     <div className="text-start">
                                         <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.change_password')}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.change_password_desc')}</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => setIsTwoFactorOpen(true)}
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
+                                >
+                                    <div className={`p-1.5 rounded-md ${twoFAEnabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-purple-50 dark:bg-purple-900/20'}`}>
+                                        {twoFAEnabled
+                                            ? <ShieldCheck className="text-emerald-600 dark:text-emerald-400" size={18} />
+                                            : <Shield className="text-purple-600 dark:text-purple-400" size={18} />
+                                        }
+                                    </div>
+                                    <div className="text-start flex-1">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.2fa')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.2fa_desc')}</p>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${twoFAEnabled ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400'}`}>
+                                        {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setIsSessionsOpen(true)}
+                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
+                                >
+                                    <div className="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+                                        <ShieldAlert className="text-orange-600 dark:text-orange-400" size={18} />
+                                    </div>
+                                    <div className="text-start">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.sessions')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.sessions_desc')}</p>
                                     </div>
                                 </button>
                             </div>
@@ -505,6 +554,22 @@ const Account: React.FC<AccountProps> = ({
                             isOpen={isDeleteAccountOpen}
                             onClose={() => setIsDeleteAccountOpen(false)}
                         />
+                        {token && (
+                            <SessionsModal
+                                isOpen={isSessionsOpen}
+                                onClose={() => setIsSessionsOpen(false)}
+                                token={token}
+                            />
+                        )}
+                        {token && (
+                            <TwoFactorModal
+                                isOpen={isTwoFactorOpen}
+                                onClose={() => setIsTwoFactorOpen(false)}
+                                token={token}
+                                enabled={twoFAEnabled}
+                                onStatusChange={setTwoFAEnabled}
+                            />
+                        )}
 
 
                     </>
@@ -540,6 +605,24 @@ const Account: React.FC<AccountProps> = ({
                                     required
                                 />
                             </div>
+                            {needsTOTP && isLogin && (
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.totp_code')}</label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]{6}"
+                                        maxLength={6}
+                                        value={totpCode}
+                                        onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.4em] font-mono text-center"
+                                        placeholder={t('auth.totp_placeholder')}
+                                        autoComplete="one-time-code"
+                                        autoFocus
+                                        required={needsTOTP}
+                                    />
+                                </div>
+                            )}
                             <button
                                 type="submit"
                                 disabled={authLoading}

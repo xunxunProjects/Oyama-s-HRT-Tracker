@@ -3,6 +3,7 @@ CREATE TABLE users (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    totp_secret TEXT,
     created_at INTEGER DEFAULT (unixepoch())
 );
 
@@ -15,6 +16,17 @@ CREATE TABLE content (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_content_user_id ON content(user_id);
+
+DROP TABLE IF EXISTS sessions;
+CREATE TABLE sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at INTEGER DEFAULT (unixepoch()),
+    last_used_at INTEGER DEFAULT (unixepoch()),
+    device_info TEXT,
+    ip TEXT
+);
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 
 -- Anonymous deletion log for the public Transparency page.
 -- We intentionally DO NOT store user_id, username, or any other PII —
