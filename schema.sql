@@ -40,3 +40,20 @@ CREATE TABLE deletion_log (
 );
 CREATE INDEX idx_deletion_log_deleted_at ON deletion_log(deleted_at);
 CREATE INDEX idx_deletion_log_reason ON deletion_log(reason);
+
+-- WebAuthn / Passkey credentials for passwordless login.
+-- public_key_x / public_key_y are base64url-encoded EC P-256 coordinates.
+DROP TABLE IF EXISTS passkeys;
+CREATE TABLE passkeys (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    credential_id TEXT NOT NULL UNIQUE,  -- base64url authenticator credential ID
+    public_key_x TEXT NOT NULL,          -- base64url P-256 x coordinate
+    public_key_y TEXT NOT NULL,          -- base64url P-256 y coordinate
+    counter INTEGER DEFAULT 0,           -- sign counter for clone detection
+    device_name TEXT,                    -- user-agent hint stored at registration
+    created_at INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE INDEX idx_passkeys_user_id ON passkeys(user_id);
+CREATE INDEX idx_passkeys_cred_id ON passkeys(credential_id);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
+import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield, Fingerprint } from 'lucide-react';
 import { AvatarUpload } from '../components/AvatarUpload';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
@@ -8,7 +8,7 @@ import DeleteAccountModal from '../components/DeleteAccountModal';
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
 import { useDialog } from '../contexts/DialogContext';
-import { authService } from '../services/auth';
+import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
 
 interface LocalData {
     events: any[];
@@ -66,7 +66,8 @@ const Account: React.FC<AccountProps> = ({
     const [authLoading, setAuthLoading] = useState(false);
     const [needsTOTP, setNeedsTOTP] = useState(false);
     const [totpCode, setTotpCode] = useState('');
-    const { login, register } = useAuth();
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
+    const { login, register, loginWithToken } = useAuth();
 
     const fetchBackups = async () => {
         if (!token) return;
@@ -176,6 +177,39 @@ const Account: React.FC<AccountProps> = ({
             }
         } finally {
             setAuthLoading(false);
+        }
+    };
+
+    const handlePasskeyLogin = async () => {
+        if (!window.PublicKeyCredential) {
+            setAuthError(t('auth.passkey_unsupported'));
+            return;
+        }
+        setPasskeyLoading(true);
+        setAuthError(null);
+        try {
+            const opts = await authService.passkeyAuthOptions(username || undefined);
+            const credential = await navigator.credentials.get({
+                publicKey: {
+                    rpId: window.location.hostname,
+                    challenge: b64url2ab(opts.challenge),
+                    allowCredentials: opts.credentialIds.map(id => ({
+                        type: 'public-key' as const,
+                        id: b64url2ab(id),
+                    })),
+                    timeout: 60000,
+                    userVerification: 'preferred',
+                },
+            }) as PublicKeyCredential | null;
+            if (!credential) return;
+            const result = await authService.passkeyAuthVerify(opts.challengeToken, serializeAssertionCredential(credential));
+            loginWithToken(result);
+        } catch (e: any) {
+            if (e.name !== 'NotAllowedError') {
+                setAuthError(e.message || t('auth.passkey_failed'));
+            }
+        } finally {
+            setPasskeyLoading(false);
         }
     };
 
@@ -618,6 +652,24 @@ const Account: React.FC<AccountProps> = ({
                                 {authLoading && <Loader2 size={16} className="animate-spin" />}
                                 {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
                             </button>
+                            {isLogin && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
+                                        <span className="text-xs text-gray-400 dark:text-neutral-500">or</span>
+                                        <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handlePasskeyLogin}
+                                        disabled={passkeyLoading}
+                                        className="w-full py-2.5 text-sm font-medium border border-gray-200 dark:border-neutral-700 rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition text-gray-700 dark:text-gray-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
+                                        {t('auth.passkey_login')}
+                                    </button>
+                                </>
+                            )}
                             <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                                 {isLogin ? t('auth.no_account') : t('auth.has_account')}
                                 <button

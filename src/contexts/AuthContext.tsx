@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authService, User } from '../services/auth';
+import { authService, User, AuthResponse } from '../services/auth';
 
 interface AuthContextType {
     user: User | null;
     token: string | null;
     login: (username: string, password: string, totpCode?: string) => Promise<void>;
+    loginWithToken: (data: AuthResponse) => void;
     register: (username: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
@@ -41,6 +42,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (username: string, password: string, totpCode?: string) => {
         const data = await authService.login(username, password, totpCode);
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+    };
+
+    const loginWithToken = (data: AuthResponse) => {
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
@@ -86,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, updateProfile, changePassword, deleteAccount }}>
+        <AuthContext.Provider value={{ user, token, login, loginWithToken, register, logout, isLoading, updateProfile, changePassword, deleteAccount }}>
             {children}
         </AuthContext.Provider>
     );
