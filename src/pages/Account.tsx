@@ -4,8 +4,7 @@ import { AvatarUpload } from '../components/AvatarUpload';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
-import SessionsModal from '../components/SessionsModal';
-import TwoFactorModal from '../components/TwoFactorModal';
+
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
 import { useDialog } from '../contexts/DialogContext';
@@ -28,6 +27,9 @@ interface AccountProps {
     onCloudLoad: (backupId?: string) => void;
     onCloudMerge: (backupId: string) => void;
     localData: LocalData;
+    onNavigate: (view: string) => void;
+    twoFAEnabled: boolean;
+    onTwoFAStatusChange: (enabled: boolean) => void;
 }
 
 const Account: React.FC<AccountProps> = ({
@@ -39,14 +41,14 @@ const Account: React.FC<AccountProps> = ({
     onCloudSave,
     onCloudLoad,
     onCloudMerge,
-    localData
+    localData,
+    onNavigate,
+    twoFAEnabled,
+    onTwoFAStatusChange
 }) => {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
-    const [isSessionsOpen, setIsSessionsOpen] = useState(false);
-    const [isTwoFactorOpen, setIsTwoFactorOpen] = useState(false);
-    const [twoFAEnabled, setTwoFAEnabled] = useState(false);
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
     const [savingCloud, setSavingCloud] = useState(false);
@@ -80,7 +82,7 @@ const Account: React.FC<AccountProps> = ({
         if (user && token) {
             fetchBackups();
             // Fetch 2FA status
-            authService.get2FAStatus(token).then(s => setTwoFAEnabled(s.enabled)).catch(() => {});
+            authService.get2FAStatus(token).then(s => onTwoFAStatusChange(s.enabled)).catch(() => {});
         }
     }, [user, token]);
 
@@ -237,7 +239,7 @@ const Account: React.FC<AccountProps> = ({
                                     </div>
                                 </button>
                                 <button
-                                    onClick={() => setIsTwoFactorOpen(true)}
+                                    onClick={() => onNavigate('two-factor')}
                                     className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
                                 >
                                     <div className={`p-1.5 rounded-md ${twoFAEnabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-purple-50 dark:bg-purple-900/20'}`}>
@@ -255,7 +257,7 @@ const Account: React.FC<AccountProps> = ({
                                     </span>
                                 </button>
                                 <button
-                                    onClick={() => setIsSessionsOpen(true)}
+                                    onClick={() => onNavigate('sessions')}
                                     className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
                                 >
                                     <div className="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
@@ -554,22 +556,7 @@ const Account: React.FC<AccountProps> = ({
                             isOpen={isDeleteAccountOpen}
                             onClose={() => setIsDeleteAccountOpen(false)}
                         />
-                        {token && (
-                            <SessionsModal
-                                isOpen={isSessionsOpen}
-                                onClose={() => setIsSessionsOpen(false)}
-                                token={token}
-                            />
-                        )}
-                        {token && (
-                            <TwoFactorModal
-                                isOpen={isTwoFactorOpen}
-                                onClose={() => setIsTwoFactorOpen(false)}
-                                token={token}
-                                enabled={twoFAEnabled}
-                                onStatusChange={setTwoFAEnabled}
-                            />
-                        )}
+
 
 
                     </>

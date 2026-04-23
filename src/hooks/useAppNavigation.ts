@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Activity, ListTodo, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 
-export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin';
+export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor';
 
 export const useAppNavigation = (user: any) => {
     const { t } = useTranslation();
@@ -12,7 +12,7 @@ export const useAppNavigation = (user: any) => {
     const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
     const mainScrollRef = useRef<HTMLDivElement>(null);
 
-    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'admin'];
+    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'sessions', 'two-factor', 'admin'];
 
     // --- Actions ---
     const handleViewChange = (view: ViewKey) => {

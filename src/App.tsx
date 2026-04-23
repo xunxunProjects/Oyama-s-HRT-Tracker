@@ -39,11 +39,14 @@ import Lab from './pages/Lab';
 import Settings from './pages/Settings';
 import Account from './pages/Account';
 import Admin from './pages/Admin';
+import SessionsPage from './pages/Sessions';
+import TwoFactorPage from './pages/TwoFactor';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
     const { user, token, logout } = useAuth();
+    const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
     // Use Custom Hooks
     const {
@@ -411,6 +414,25 @@ const AppContent = () => {
                             onCloudLoad={handleCloudLoad}
                             onCloudMerge={handleCloudMerge}
                             localData={{ events, labResults, doseTemplates, weight }}
+                            onNavigate={handleViewChange}
+                            twoFAEnabled={twoFAEnabled}
+                            onTwoFAStatusChange={setTwoFAEnabled}
+                        />
+                    )}
+
+                    {currentView === 'sessions' && token && (
+                        <SessionsPage
+                            token={token}
+                            onBack={() => handleViewChange('account')}
+                        />
+                    )}
+
+                    {currentView === 'two-factor' && token && (
+                        <TwoFactorPage
+                            token={token}
+                            enabled={twoFAEnabled}
+                            onStatusChange={setTwoFAEnabled}
+                            onBack={() => handleViewChange('account')}
                         />
                     )}
 
