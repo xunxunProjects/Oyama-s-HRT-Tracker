@@ -171,7 +171,7 @@ const Account: React.FC<AccountProps> = ({
         } catch (err: any) {
             if (err.needs2FA) {
                 setNeedsTOTP(true);
-                setAuthError(t('auth.needs_2fa'));
+                setAuthError(null);
             } else {
                 setAuthError(err.message || 'An error occurred');
             }
@@ -627,21 +627,45 @@ const Account: React.FC<AccountProps> = ({
                                 />
                             </div>
                             {needsTOTP && isLogin && (
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.totp_code')}</label>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]{6}"
-                                        maxLength={6}
-                                        value={totpCode}
-                                        onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.15em] font-mono text-center"
-                                        placeholder={t('auth.totp_placeholder')}
-                                        autoComplete="one-time-code"
-                                        autoFocus
-                                        required={needsTOTP}
-                                    />
+                                <div className="space-y-3">
+                                    <div className="p-2.5 text-xs text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800/40 flex items-center gap-2">
+                                        <Shield size={14} className="shrink-0" />
+                                        {t('auth.needs_2fa')}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.totp_code')}</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]{6}"
+                                            maxLength={6}
+                                            value={totpCode}
+                                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.15em] font-mono text-center"
+                                            placeholder={t('auth.totp_placeholder')}
+                                            autoComplete="one-time-code"
+                                            autoFocus
+                                            required={needsTOTP}
+                                        />
+                                    </div>
+                                    {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
+                                                <span className="text-xs text-gray-400 dark:text-neutral-500">or</span>
+                                                <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handlePasskeyLogin}
+                                                disabled={passkeyLoading}
+                                                className="w-full py-2.5 text-sm font-medium border border-gray-200 dark:border-neutral-700 rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition text-gray-700 dark:text-gray-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            >
+                                                {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
+                                                {t('auth.passkey_as_2fa')}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                             <button

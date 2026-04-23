@@ -408,10 +408,11 @@ export const TRANSLATIONS_BASE = {
 
         "auth.totp_code": "验证码",
         "auth.totp_placeholder": "输入 6 位验证码",
-        "auth.needs_2fa": "此账户已启用双重认证，请输入验证器应用中的验证码。",
+        "auth.needs_2fa": "此账户已启用双重认证，请选择以下验证方式。",
         "auth.passkey_login": "使用通行密钥登录",
         "auth.passkey_failed": "通行密钥登录失败",
         "auth.passkey_unsupported": "此设备不支持通行密钥",
+        "auth.passkey_as_2fa": "使用通行密钥验证",
 
         "account.passkey_desc": "使用生物识别或安全密钥免密登录",
         "account.passkey_add": "添加通行密钥",
@@ -862,10 +863,11 @@ export const TRANSLATIONS_BASE = {
 
         "auth.totp_code": "Authenticator Code",
         "auth.totp_placeholder": "Enter 6-digit code",
-        "auth.needs_2fa": "This account has two-factor authentication enabled. Enter the code from your authenticator app.",
+        "auth.needs_2fa": "This account requires two-factor authentication. Choose a verification method below.",
         "auth.passkey_login": "Sign in with Passkey",
         "auth.passkey_failed": "Passkey sign-in failed",
         "auth.passkey_unsupported": "Passkeys not supported on this device",
+        "auth.passkey_as_2fa": "Verify with Passkey",
 
         "account.passkey_desc": "Sign in without a password using biometrics or a security key",
         "account.passkey_add": "Add Passkey",
@@ -1098,10 +1100,11 @@ export const TRANSLATIONS_BASE = {
 
         "auth.totp_code": "Код аутентификатора",
         "auth.totp_placeholder": "Введите 6-значный код",
-        "auth.needs_2fa": "Для этого аккаунта включена двухфакторная аутентификация. Введите код из приложения.",
+        "auth.needs_2fa": "Для этого аккаунта требуется двухфакторная аутентификация. Выберите метод подтверждения.",
         "auth.passkey_login": "Войти с помощью ключа доступа",
         "auth.passkey_failed": "Не удалось войти с помощью ключа доступа",
         "auth.passkey_unsupported": "Ключи доступа не поддерживаются на этом устройстве",
+        "auth.passkey_as_2fa": "Подтвердить с помощью ключа доступа",
 
         "account.passkey_desc": "Входите без пароля с помощью биометрии или ключа безопасности",
         "account.passkey_add": "Добавить ключ доступа",
@@ -1722,7 +1725,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "驗證碼",
         "auth.totp_placeholder": "輸入 6 位驗證碼",
-        "auth.needs_2fa": "此帳戶已啟用雙重驗證，請輸入驗證器應用程式中的驗證碼。",
+        "auth.needs_2fa": "此帳戶已啟用雙重驗證，請選擇以下驗證方式。",
+        "auth.passkey_login": "使用通行密鑰登入",
+        "auth.passkey_failed": "通行密鑰登入失敗",
+        "auth.passkey_unsupported": "此裝置不支援通行密鑰",
+        "auth.passkey_as_2fa": "使用通行密鑰驗證",
 
         "admin.dashboard": "控制台",
         "admin.sign_out": "登出",
@@ -2428,10 +2435,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "Код автентифікатора",
         "auth.totp_placeholder": "Введіть 6-значний код",
-        "auth.needs_2fa": "Для цього акаунту увімкнено двофакторну автентифікацію. Введіть код із застосунку.",
+        "auth.needs_2fa": "Цей акаунт потребує двофакторної автентифікації. Виберіть метод підтвердження.",
         "auth.passkey_login": "Увійти за допомогою ключа доступу",
         "auth.passkey_failed": "Не вдалося увійти за допомогою ключа доступу",
         "auth.passkey_unsupported": "Ключі доступу не підтримуються на цьому пристрої",
+        "auth.passkey_as_2fa": "Підтвердити за допомогою ключа доступу",
 
         "account.passkey_desc": "Входьте без пароля за допомогою біометрії або ключа безпеки",
         "account.passkey_add": "Додати ключ доступу",
@@ -2848,10 +2856,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "認証コード",
         "auth.totp_placeholder": "6桁のコードを入力",
-        "auth.needs_2fa": "このアカウントでは二段階認証が有効です。認証アプリのコードを入力してください。",
+        "auth.needs_2fa": "このアカウントでは二段階認証が必要です。下記から確認方法を選択してください。",
         "auth.passkey_login": "パスキーでサインイン",
         "auth.passkey_failed": "パスキーでのサインインに失敗しました",
         "auth.passkey_unsupported": "このデバイスはパスキーに対応していません",
+        "auth.passkey_as_2fa": "パスキーで確認",
 
         "account.passkey_desc": "生体認証またはセキュリティキーを使ってパスワードなしでサインイン",
         "account.passkey_add": "パスキーを追加",
@@ -3262,7 +3271,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "인증 코드",
         "auth.totp_placeholder": "6자리 코드 입력",
-        "auth.needs_2fa": "이 계정은 이중 인증이 활성화되어 있습니다. 인증 앱의 코드를 입력하세요.",
+        "auth.needs_2fa": "이 계정은 이중 인증이 필요합니다. 아래에서 확인 방법을 선택하세요.",
+        "auth.passkey_login": "패스키로 로그인",
+        "auth.passkey_failed": "패스키 로그인 실패",
+        "auth.passkey_unsupported": "이 기기는 패스키를 지원하지 않습니다",
+        "auth.passkey_as_2fa": "패스키로 인증",
 
         "admin.dashboard": "대시보드",
         "admin.sign_out": "로그아웃",
@@ -3662,10 +3675,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "رمز المصادقة",
         "auth.totp_placeholder": "أدخل الرمز المكوّن من 6 أرقام",
-        "auth.needs_2fa": "هذا الحساب مُفعَّل به المصادقة الثنائية. أدخل الرمز من تطبيق المصادقة.",
+        "auth.needs_2fa": "هذا الحساب يتطلب المصادقة الثنائية. اختر طريقة التحقق أدناه.",
         "auth.passkey_login": "تسجيل الدخول بمفتاح المرور",
         "auth.passkey_failed": "فشل تسجيل الدخول بمفتاح المرور",
         "auth.passkey_unsupported": "مفاتيح المرور غير مدعومة على هذا الجهاز",
+        "auth.passkey_as_2fa": "التحقق باستخدام مفتاح المرور",
 
         "account.passkey_desc": "سجّل دخولك بدون كلمة مرور باستخدام بيانات المقاييس الحيوية أو مفتاح الأمان",
         "account.passkey_add": "إضافة مفتاح مرور",
@@ -4076,10 +4090,11 @@ export const TRANSLATIONS = {
 
         "auth.totp_code": "קוד אימות",
         "auth.totp_placeholder": "הזן קוד בן 6 ספרות",
-        "auth.needs_2fa": "חשבון זה מוגן באימות דו-שלבי. הזן את הקוד מאפליקציית האימות.",
+        "auth.needs_2fa": "חשבון זה דורש אימות דו-שלבי. בחר שיטת אימות למטה.",
         "auth.passkey_login": "כניסה עם מפתח גישה",
         "auth.passkey_failed": "כניסה עם מפתח גישה נכשלה",
         "auth.passkey_unsupported": "מפתחות גישה אינם נתמכים במכשיר זה",
+        "auth.passkey_as_2fa": "אמת עם מפתח גישה",
 
         "account.passkey_desc": "התחבר ללא סיסמה באמצעות ביומטריה או מפתח אבטחה",
         "account.passkey_add": "הוסף מפתח גישה",
