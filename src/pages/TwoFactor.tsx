@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, ShieldCheck, QrCode, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Shield, ShieldCheck, QrCode, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -23,6 +23,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [uri, setUri] = useState('');
     const [code, setCode] = useState('');
     const [secretVisible, setSecretVisible] = useState(false);
+    const [secretCopied, setSecretCopied] = useState(false);
+    const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [loading, setLoading] = useState(false);
     const [setupLoading, setSetupLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,18 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         if (!enabled) {
             initSetup();
         }
+        return () => {
+            if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        };
     }, []);
+
+    const handleCopySecret = () => {
+        navigator.clipboard.writeText(secret).then(() => {
+            if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+            setSecretCopied(true);
+            copyTimerRef.current = setTimeout(() => setSecretCopied(false), 2000);
+        });
+    };
 
     const initSetup = async () => {
         setSetupLoading(true);
@@ -230,8 +243,17 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <code className={`flex-1 text-xs font-mono text-gray-800 dark:text-gray-200 tracking-widest break-all ${!secretVisible ? 'select-none blur-sm' : ''}`}>
                                                     {secret}
                                                 </code>
-                                                <button onClick={() => setSecretVisible(v => !v)} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                                <button
+                                                    onClick={() => setSecretVisible(v => !v)}
+                                                    className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                                >
                                                     {secretVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                </button>
+                                                <button
+                                                    onClick={handleCopySecret}
+                                                    className={`shrink-0 transition-colors ${secretCopied ? 'text-emerald-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                                                >
+                                                    {secretCopied ? <Check size={14} /> : <Copy size={14} />}
                                                 </button>
                                             </div>
                                         </div>

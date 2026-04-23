@@ -602,7 +602,7 @@ const Account: React.FC<AccountProps> = ({
                                         maxLength={6}
                                         value={totpCode}
                                         onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.4em] font-mono text-center"
+                                        className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.15em] font-mono text-center"
                                         placeholder={t('auth.totp_placeholder')}
                                         autoComplete="one-time-code"
                                         autoFocus
