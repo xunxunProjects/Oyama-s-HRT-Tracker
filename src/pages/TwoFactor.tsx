@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, Shield, ShieldCheck, QrCode, Loader2, CheckCircle2,
     AlertCircle, Eye, EyeOff, Copy, Check, Fingerprint, Key, Trash2, Plus,
+    KeyRound, Download, RefreshCw,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -65,11 +66,21 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [passkeySuccess, setPasskeySuccess] = useState(false);
     const webauthnSupported = typeof window !== 'undefined' && !!window.PublicKeyCredential;
 
+    // ---- Backup codes state ----
+    const [backupCodes, setBackupCodes] = useState<string[]>([]);
+    const [backupRemaining, setBackupRemaining] = useState<number | null>(null);
+    const [backupLoading, setBackupLoading] = useState(false);
+    const [backupError, setBackupError] = useState<string | null>(null);
+    const [backupCopied, setBackupCopied] = useState(false);
+    const backupCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
         if (!enabled) initSetup();
         fetchPasskeys();
+        if (enabled) fetchBackupRemaining();
         return () => {
             if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+            if (backupCopyTimerRef.current) clearTimeout(backupCopyTimerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -103,7 +114,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         setLoading(true);
         setError(null);
         try {
-            await authService.enable2FA(token, secret, code);
+            const result = await authService.enable2FA(token, secret, code);
+            setBackupCodes(result.backupCodes ?? []);
+            setBackupRemaining(result.backupCodes?.length ?? 0);
             setSuccess(true);
             onStatusChange(true);
         } catch (e: any) {
@@ -112,6 +125,47 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         } finally {
             setLoading(false);
         }
+    };
+
+    // ---- Backup code helpers ----
+    const fetchBackupRemaining = async () => {
+        try {
+            const data = await authService.getBackupCodesStatus(token);
+            setBackupRemaining(data.remaining);
+        } catch { /* best-effort */ }
+    };
+
+    const handleGenerateBackupCodes = async () => {
+        setBackupLoading(true);
+        setBackupError(null);
+        try {
+            const codes = await authService.generateBackupCodes(token);
+            setBackupCodes(codes);
+            setBackupRemaining(codes.length);
+        } catch (e: any) {
+            setBackupError(e.message || t('account.backup_codes_generate'));
+        } finally {
+            setBackupLoading(false);
+        }
+    };
+
+    const handleCopyBackupCodes = () => {
+        navigator.clipboard.writeText(backupCodes.join('\n')).then(() => {
+            if (backupCopyTimerRef.current) clearTimeout(backupCopyTimerRef.current);
+            setBackupCopied(true);
+            backupCopyTimerRef.current = setTimeout(() => setBackupCopied(false), 2000);
+        });
+    };
+
+    const handleDownloadBackupCodes = () => {
+        const text = `HRT Tracker - Backup Codes\nGenerated: ${new Date().toISOString()}\n\n${backupCodes.join('\n')}\n\nEach code can only be used once. Store these securely.`;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'hrt-tracker-backup-codes.txt';
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const handleDisable = async (e: React.FormEvent) => {
@@ -176,12 +230,16 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 },
             }) as PublicKeyCredential | null;
             if (!credential) throw new Error('Cancelled');
-            await authService.registerPasskey(
+            const result = await authService.registerPasskey(
                 token,
                 opts.challengeToken,
                 serializeAttestationCredential(credential),
                 detectDeviceName(),
             );
+            if (result.backupCodes && result.backupCodes.length > 0) {
+                setBackupCodes(result.backupCodes);
+                setBackupRemaining(result.backupCodes.length);
+            }
             setPasskeySuccess(true);
             await fetchPasskeys();
         } catch (e: any) {
@@ -388,10 +446,31 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     )}
 
                                     {success && (
-                                        <div className="flex flex-col items-center gap-3 py-6">
+                                        <div className="flex flex-col items-center gap-3 py-4">
                                             <CheckCircle2 size={48} className="text-emerald-500" />
                                             <p className="font-semibold text-gray-900 dark:text-gray-100">{t('account.2fa_enabled_success')}</p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">{t('account.2fa_success_hint')}</p>
+                                            {backupCodes.length > 0 && (
+                                                <div className="w-full mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
+                                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
+                                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
+                                                        {backupCodes.map((c, i) => (
+                                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={handleCopyBackupCodes}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
+                                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
+                                                        </button>
+                                                        <button onClick={handleDownloadBackupCodes}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                                            <Download size={12} />{t('account.backup_codes_download')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <button onClick={onBack}
                                                 className="mt-2 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors">
                                                 {t('btn.ok')}
@@ -419,6 +498,28 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             {passkeySuccess && (
                                 <div className="flex items-center gap-2 p-2.5 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
                                     <CheckCircle2 size={14} className="shrink-0" />{t('account.passkey_registered')}
+                                </div>
+                            )}
+
+                            {backupCodes.length > 0 && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
+                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
+                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
+                                        {backupCodes.map((c, i) => (
+                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleCopyBackupCodes}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
+                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
+                                        </button>
+                                        <button onClick={handleDownloadBackupCodes}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                            <Download size={12} />{t('account.backup_codes_download')}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -471,6 +572,66 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     {passkeys.length === 0 ? t('account.passkey_add') : t('account.passkey_add_another')}
                                 </button>
                             )}
+                        </div>
+                    </div>
+                )}
+                {/* ===== BACKUP CODES SECTION (shown when 2FA enabled) ===== */}
+                {enabled && (
+                    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
+                        <div className="px-6 py-5 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                                    <KeyRound size={16} className="text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('account.backup_codes')}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {backupRemaining !== null
+                                            ? t('account.backup_codes_remaining').replace('{n}', String(backupRemaining))
+                                            : t('account.backup_codes_none')}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.backup_codes_generate_hint')}</p>
+
+                            {backupError && (
+                                <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
+                                    <AlertCircle size={14} className="shrink-0" />{backupError}
+                                </div>
+                            )}
+
+                            {backupCodes.length > 0 && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
+                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
+                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
+                                        {backupCodes.map((c, i) => (
+                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleCopyBackupCodes}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
+                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
+                                        </button>
+                                        <button onClick={handleDownloadBackupCodes}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                                            <Download size={12} />{t('account.backup_codes_download')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleGenerateBackupCodes}
+                                disabled={backupLoading}
+                                className="w-full py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {backupLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                {backupRemaining !== null && backupRemaining > 0
+                                    ? t('account.backup_codes_regenerate')
+                                    : t('account.backup_codes_generate')}
+                            </button>
                         </div>
                     </div>
                 )}

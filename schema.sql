@@ -57,3 +57,15 @@ CREATE TABLE passkeys (
 );
 CREATE INDEX idx_passkeys_user_id ON passkeys(user_id);
 CREATE INDEX idx_passkeys_cred_id ON passkeys(credential_id);
+
+-- 2FA backup codes (single-use, HMAC-hashed).
+DROP TABLE IF EXISTS backup_codes;
+CREATE TABLE backup_codes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    code_hash TEXT NOT NULL,  -- HMAC-SHA256 hex of normalized code (lowercased, dashes removed)
+    used_at INTEGER,          -- NULL = unused
+    created_at INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id);

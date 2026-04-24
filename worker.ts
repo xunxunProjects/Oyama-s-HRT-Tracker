@@ -121,7 +121,7 @@ function getValidatedJWTSecret(env: Env): string {
 // --- TOTP Helpers (RFC 6238 / RFC 4226) ---
 const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-function base32Decode(input: string): Uint8Array {
+function base32Decode(input: string): Uint8Array<ArrayBuffer> {
   const clean = input.toUpperCase().replace(/\s/g, '').replace(/=+$/, '');
   const bytes: number[] = [];
   let buf = 0, bitsLeft = 0;
@@ -247,6 +247,76 @@ async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: nu
   }
 }
 
+// --- Backup codes table lazy creation ---
+let backupCodesEnsured = false;
+async function ensureBackupCodes(env: Env): Promise<void> {
+  if (backupCodesEnsured) return;
+  try {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS backup_codes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        code_hash TEXT NOT NULL,
+        used_at INTEGER,
+        created_at INTEGER DEFAULT (unixepoch())
+      )`
+    ).run();
+    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_backup_codes_user_id ON backup_codes(user_id)').run();
+    backupCodesEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure backup_codes table:', e);
+  }
+}
+
+async function hmacSha256Hex(key: string, data: string): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(key),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function generateRawBackupCode(): string {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no ambiguous chars (0/O 1/I/L)
+  const rand = crypto.getRandomValues(new Uint8Array(12));
+  let code = '';
+  for (let i = 0; i < 12; i++) {
+    if (i === 4 || i === 8) code += '-';
+    code += chars[rand[i] % chars.length];
+  }
+  return code; // format: XXXX-XXXX-XXXX
+}
+
+async function generateAndStoreBackupCodes(env: Env, userId: string, jwtSecret: string): Promise<string[]> {
+  await ensureBackupCodes(env);
+  await env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId).run();
+  const codes: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    const code = generateRawBackupCode();
+    const normalized = code.replace(/-/g, '').toLowerCase();
+    const hash = await hmacSha256Hex(jwtSecret, normalized);
+    const id = crypto.randomUUID();
+    await env.DB.prepare('INSERT INTO backup_codes (id, user_id, code_hash) VALUES (?, ?, ?)')
+      .bind(id, userId, hash).run();
+    codes.push(code);
+  }
+  return codes;
+}
+
+async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string, jwtSecret: string): Promise<boolean> {
+  await ensureBackupCodes(env);
+  const normalized = code.trim().replace(/[-\s]/g, '').toLowerCase();
+  const hash = await hmacSha256Hex(jwtSecret, normalized);
+  const row = await env.DB.prepare(
+    'SELECT id FROM backup_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL'
+  ).bind(userId, hash).first() as any;
+  if (!row) return false;
+  await env.DB.prepare('UPDATE backup_codes SET used_at = ? WHERE id = ?')
+    .bind(Math.floor(Date.now() / 1000), row.id).run();
+  return true;
+}
+
 // --- Passkeys (WebAuthn) table lazy creation ---
 let passkeysEnsured = false;
 async function ensurePasskeys(env: Env): Promise<void> {
@@ -274,7 +344,7 @@ async function ensurePasskeys(env: Env): Promise<void> {
 
 // --- WebAuthn / Passkey crypto helpers ---
 
-function b64urlDecode(s: string): Uint8Array {
+function b64urlDecode(s: string): Uint8Array<ArrayBuffer> {
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
   const pad = (4 - b64.length % 4) % 4;
   return Uint8Array.from(atob(b64 + '='.repeat(pad)), c => c.charCodeAt(0));
@@ -336,7 +406,7 @@ function parseAuthData(auth: Uint8Array): ParsedAuthData {
 }
 
 /** Convert DER-encoded ECDSA signature to raw (r‖s) for Web Crypto API. */
-function derSigToRaw(der: Uint8Array): Uint8Array {
+function derSigToRaw(der: Uint8Array): Uint8Array<ArrayBuffer> {
   if (der[0] !== 0x30) throw new Error('Not a DER sequence');
   let pos = 2;
   if (der[pos++] !== 0x02) throw new Error('Expected r INTEGER');
@@ -532,7 +602,7 @@ export default {
       // Login
       if (url.pathname === '/api/login' && request.method === 'POST') {
         const body = await request.json() as any;
-        let { username, password, totp_code } = body;
+        let { username, password, totp_code, backup_code } = body;
         if (!username || !password) return withSecurityHeaders(new Response('Missing credentials', { status: 400, headers: corsHeaders }));
         username = username.trim();
 
@@ -566,24 +636,34 @@ export default {
         await ensurePasskeys(env);
         const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
         if (userWithTotp?.totp_secret) {
-          if (!totp_code) {
+          // TOTP is enabled — accept totp_code or backup_code
+          if (!totp_code && !backup_code) {
             return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'totp' }), {
               status: 401,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }));
           }
-          const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
-          if (!totpValid) {
-            return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
+          if (backup_code) {
+            const backupValid = await verifyAndConsumeBackupCode(env, user.id, String(backup_code), jwtSecret);
+            if (!backupValid) return withSecurityHeaders(new Response('Invalid or already-used backup code', { status: 401, headers: corsHeaders }));
+          } else {
+            const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
+            if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
           }
         } else {
           // No TOTP: check if user has any passkeys registered
           const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(user.id).first() as any;
           if ((pkRow?.cnt ?? 0) > 0) {
-            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'passkey' }), {
-              status: 401,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }));
+            // Passkey-only 2FA — accept backup_code as fallback
+            if (backup_code) {
+              const backupValid = await verifyAndConsumeBackupCode(env, user.id, String(backup_code), jwtSecret);
+              if (!backupValid) return withSecurityHeaders(new Response('Invalid or already-used backup code', { status: 401, headers: corsHeaders }));
+            } else {
+              return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'passkey' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }));
+            }
           }
         }
 
@@ -1021,7 +1101,8 @@ export default {
             const valid = await verifyTOTP(totpSecret, String(code));
             if (!valid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
             await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
-            return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA enabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            const backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
+            return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA enabled', backupCodes }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // DELETE /api/user/2fa — disable 2FA (requires current password + TOTP code)
@@ -1038,6 +1119,21 @@ export default {
             if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
             await env.DB.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').bind(userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA disabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // GET /api/user/2fa/backup-codes — count of remaining unused codes
+          if (url.pathname === '/api/user/2fa/backup-codes' && request.method === 'GET') {
+            await ensureBackupCodes(env);
+            const row = await env.DB.prepare(
+              'SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ? AND used_at IS NULL'
+            ).bind(userId).first() as any;
+            return withSecurityHeaders(new Response(JSON.stringify({ remaining: row?.cnt ?? 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // POST /api/user/2fa/backup-codes/generate — regenerate backup codes
+          if (url.pathname === '/api/user/2fa/backup-codes/generate' && request.method === 'POST') {
+            const codes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
+            return withSecurityHeaders(new Response(JSON.stringify({ codes }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
 
@@ -1119,12 +1215,26 @@ export default {
             const existing = await env.DB.prepare('SELECT id FROM passkeys WHERE credential_id = ?').bind(credentialIdStr).first();
             if (existing) return withSecurityHeaders(new Response('Credential already registered', { status: 409, headers: corsHeaders }));
 
+            // Check if this is the first passkey (to auto-generate backup codes)
+            const pkCountRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(userId).first() as any;
+            const isFirstPasskey = (pkCountRow?.cnt ?? 0) === 0;
+
             const id = crypto.randomUUID();
             await env.DB.prepare(
               'INSERT INTO passkeys (id, user_id, credential_id, public_key_x, public_key_y, counter, device_name) VALUES (?, ?, ?, ?, ?, ?, ?)'
             ).bind(id, userId, credentialIdStr, b64urlEncode(publicKeyX), b64urlEncode(publicKeyY), signCount, deviceName || null).run();
 
-            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Passkey registered', id }), {
+            let backupCodes: string[] | undefined;
+            if (isFirstPasskey) {
+              // Check if user already has backup codes (e.g. from TOTP setup)
+              await ensureBackupCodes(env);
+              const bcRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ?').bind(userId).first() as any;
+              if ((bcRow?.cnt ?? 0) === 0) {
+                backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
+              }
+            }
+
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Passkey registered', id, backupCodes }), {
               status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }));
           }

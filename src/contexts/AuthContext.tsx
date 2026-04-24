@@ -4,7 +4,7 @@ import { authService, User, AuthResponse } from '../services/auth';
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (username: string, password: string, totpCode?: string) => Promise<void>;
+    login: (username: string, password: string, totpCode?: string, backupCode?: string) => Promise<void>;
     loginWithToken: (data: AuthResponse) => void;
     register: (username: string, password: string) => Promise<void>;
     logout: () => void;
@@ -40,8 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
     }, [token]);
 
-    const login = async (username: string, password: string, totpCode?: string) => {
-        const data = await authService.login(username, password, totpCode);
+    const login = async (username: string, password: string, totpCode?: string, backupCode?: string) => {
+        const data = await authService.login(username, password, totpCode, backupCode);
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);

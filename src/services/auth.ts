@@ -82,9 +82,10 @@ export function serializeAssertionCredential(credential: PublicKeyCredential): o
 export { b64url2ab };
 
 export const authService = {
-    async login(username: string, password: string, totpCode?: string): Promise<AuthResponse> {
-        const body: { username: string; password: string; totp_code?: string } = { username, password };
+    async login(username: string, password: string, totpCode?: string, backupCode?: string): Promise<AuthResponse> {
+        const body: { username: string; password: string; totp_code?: string; backup_code?: string } = { username, password };
         if (totpCode) body.totp_code = totpCode;
+        if (backupCode) body.backup_code = backupCode;
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -194,7 +195,7 @@ export const authService = {
         return await res.json() as TwoFASetup;
     },
 
-    async enable2FA(token: string, secret: string, code: string): Promise<void> {
+    async enable2FA(token: string, secret: string, code: string): Promise<{ backupCodes: string[] }> {
         const res = await fetch('/api/user/2fa/enable', {
             method: 'POST',
             headers: {
@@ -204,6 +205,25 @@ export const authService = {
             body: JSON.stringify({ secret, code })
         });
         if (!res.ok) throw new Error(await res.text());
+        return await res.json() as { backupCodes: string[] };
+    },
+
+    async generateBackupCodes(token: string): Promise<string[]> {
+        const res = await fetch('/api/user/2fa/backup-codes/generate', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json() as { codes: string[] };
+        return data.codes;
+    },
+
+    async getBackupCodesStatus(token: string): Promise<{ remaining: number }> {
+        const res = await fetch('/api/user/2fa/backup-codes', {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return await res.json() as { remaining: number };
     },
 
     async disable2FA(token: string, password: string, code: string): Promise<void> {
@@ -235,13 +255,14 @@ export const authService = {
         return await res.json();
     },
 
-    async registerPasskey(token: string, challengeToken: string, credential: object, deviceName?: string): Promise<void> {
+    async registerPasskey(token: string, challengeToken: string, credential: object, deviceName?: string): Promise<{ backupCodes?: string[] }> {
         const res = await fetch('/api/user/passkey/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ challengeToken, credential, deviceName }),
         });
         if (!res.ok) throw new Error(await res.text());
+        return await res.json() as { backupCodes?: string[] };
     },
 
     async deletePasskey(token: string, id: string): Promise<void> {
