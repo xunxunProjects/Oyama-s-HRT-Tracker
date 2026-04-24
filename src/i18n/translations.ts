@@ -417,6 +417,7 @@ export const TRANSLATIONS_BASE = {
         "auth.backup_code_label": "备份码",
         "auth.backup_code_placeholder": "XXXX-XXXX-XXXX",
         "auth.backup_code_invalid": "备份码无效或已使用",
+        "auth.setup_2fa_required": "为保障账户安全，请在继续之前设置双重认证（TOTP 或通行密钥）。",
 
         "account.passkey_desc": "使用生物识别或安全密钥免密登录",
         "account.passkey_add": "添加通行密钥",
@@ -888,6 +889,7 @@ export const TRANSLATIONS_BASE = {
         "auth.backup_code_label": "Backup Code",
         "auth.backup_code_placeholder": "XXXX-XXXX-XXXX",
         "auth.backup_code_invalid": "Invalid or already-used backup code",
+        "auth.setup_2fa_required": "To protect your account, please set up two-factor authentication (TOTP or passkey) before continuing.",
 
         "account.passkey_desc": "Sign in without a password using biometrics or a security key",
         "account.passkey_add": "Add Passkey",

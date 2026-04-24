@@ -45,7 +45,7 @@ import TwoFactorPage from './pages/TwoFactor';
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
-    const { user, token, logout } = useAuth();
+    const { user, token, logout, needsSetup2FA, clearSetup2FA } = useAuth();
     const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
     // Use Custom Hooks
@@ -105,6 +105,12 @@ const AppContent = () => {
 
 
     // --- Theme Effect ---
+    useEffect(() => {
+        if (needsSetup2FA && user && currentView !== 'two-factor') {
+            handleViewChange('two-factor');
+        }
+    }, [needsSetup2FA, user]);
+
     useEffect(() => {
         localStorage.setItem('app-theme', theme);
         const root = window.document.documentElement;
@@ -313,7 +319,7 @@ const AppContent = () => {
             <Sidebar
                 navItems={navItems}
                 currentView={currentView}
-                onViewChange={handleViewChange}
+                onViewChange={(v) => !needsSetup2FA && handleViewChange(v)}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative transition-colors duration-300">
 
@@ -414,7 +420,7 @@ const AppContent = () => {
                             onCloudLoad={handleCloudLoad}
                             onCloudMerge={handleCloudMerge}
                             localData={{ events, labResults, doseTemplates, weight }}
-                            onNavigate={handleViewChange}
+                            onNavigate={(v) => handleViewChange(v as ViewKey)}
                             twoFAEnabled={twoFAEnabled}
                             onTwoFAStatusChange={setTwoFAEnabled}
                         />
@@ -431,8 +437,9 @@ const AppContent = () => {
                         <TwoFactorPage
                             token={token}
                             enabled={twoFAEnabled}
-                            onStatusChange={setTwoFAEnabled}
+                            onStatusChange={(v) => { setTwoFAEnabled(v); if (v) clearSetup2FA(); }}
                             onBack={() => handleViewChange('account')}
+                            setupRequired={needsSetup2FA}
                         />
                     )}
 
@@ -446,12 +453,16 @@ const AppContent = () => {
                     <div className="w-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center transition-all duration-300">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             const isActive = currentView === id;
+                            const isDisabled = needsSetup2FA && id !== 'two-factor';
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => handleViewChange(id as ViewKey)}
+                                    onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
+                                    disabled={isDisabled}
                                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 pt-3 pb-2 transition-colors duration-300 relative group
-                                        ${isActive
+                                        ${isDisabled
+                                            ? 'text-gray-300 dark:text-neutral-600 cursor-not-allowed'
+                                            : isActive
                                             ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
                                             : 'text-gray-600 dark:text-gray-400 hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
                                         }`}

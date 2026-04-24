@@ -168,7 +168,7 @@ const Account: React.FC<AccountProps> = ({
                 );
             } else {
                 await register(username, password);
-                window.location.reload();
+                // needsSetup2FA redirect is handled by App.tsx
                 return;
             }
             setUsername('');

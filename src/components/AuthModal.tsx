@@ -74,7 +74,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 );
             } else {
                 await register(username, password);
-                window.location.reload();
+                onClose();
+                // needsSetup2FA redirect is handled by App.tsx
                 return;
             }
             onClose();

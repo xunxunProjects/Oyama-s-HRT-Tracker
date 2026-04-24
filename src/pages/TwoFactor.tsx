@@ -17,6 +17,7 @@ interface TwoFactorPageProps {
     enabled: boolean;
     onStatusChange: (enabled: boolean) => void;
     onBack: () => void;
+    setupRequired?: boolean;
 }
 
 type SetupStep = 'scan' | 'verify';
@@ -33,7 +34,7 @@ function detectDeviceName(): string {
     return 'Unknown device';
 }
 
-const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack }) => {
+const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack, setupRequired = false }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
 
@@ -241,6 +242,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 setBackupRemaining(result.backupCodes.length);
             }
             setPasskeySuccess(true);
+            onStatusChange(true);
             await fetchPasskeys();
         } catch (e: any) {
             if (e.name !== 'NotAllowedError' && e.message !== 'Cancelled') {
@@ -275,12 +277,22 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
     return (
         <div className="relative pt-6 pb-32">
+            {/* Mandatory setup banner */}
+            {setupRequired && (
+                <div className="px-6 md:px-10 mb-4">
+                    <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <span>{t('auth.setup_2fa_required')}</span>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="px-6 md:px-10 mb-5">
                 <div className="w-full p-4 rounded-lg bg-white dark:bg-neutral-900 flex items-center gap-3 border border-gray-200 dark:border-neutral-800 transition-all duration-300">
                     <button
-                        onClick={onBack}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                        onClick={setupRequired ? undefined : onBack}
+                        disabled={setupRequired}
+                        className={`p-1.5 rounded-lg transition-colors ${setupRequired ? 'text-gray-200 dark:text-neutral-700 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800'}`}
                     >
                         <ArrowLeft size={18} />
                     </button>

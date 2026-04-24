@@ -596,7 +596,24 @@ export default {
         const id = crypto.randomUUID();
         await env.DB.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').bind(id, username, hashedPassword).run();
 
-        return withSecurityHeaders(new Response(JSON.stringify({ message: 'User registered' }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+        // Issue a session immediately so the user can complete mandatory 2FA setup
+        await ensureSessions(env);
+        const sessionId = crypto.randomUUID();
+        const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
+        const regIP = request.headers.get('CF-Connecting-IP') ||
+          request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
+        ctx.waitUntil(
+          env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+            .bind(sessionId, id, userAgent, regIP).run()
+        );
+        const regSecret = new TextEncoder().encode(jwtSecret);
+        const regToken = await new SignJWT({ sub: id, username, role: 'user', sid: sessionId })
+          .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(regSecret);
+        return withSecurityHeaders(new Response(JSON.stringify({
+          token: regToken,
+          user: { id, username, isAdmin: false },
+          needsSetup2FA: true,
+        }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 
       // Login
@@ -635,6 +652,7 @@ export default {
         await ensureTotpColumn(env);
         await ensurePasskeys(env);
         const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
+        let twoFAVerified = false;
         if (userWithTotp?.totp_secret) {
           // TOTP is enabled — accept totp_code or backup_code
           if (!totp_code && !backup_code) {
@@ -650,6 +668,7 @@ export default {
             const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
             if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
           }
+          twoFAVerified = true;
         } else {
           // No TOTP: check if user has any passkeys registered
           const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(user.id).first() as any;
@@ -664,6 +683,7 @@ export default {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               }));
             }
+            twoFAVerified = true;
           }
         }
 
@@ -680,7 +700,9 @@ export default {
 
         const secret = new TextEncoder().encode(jwtSecret);
         const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user', sid: sessionId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
-        return withSecurityHeaders(new Response(JSON.stringify({ token, user: { id: user.id, username: user.username, isAdmin: false } }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+        const loginResp: Record<string, any> = { token, user: { id: user.id, username: user.username, isAdmin: false } };
+        if (!twoFAVerified) loginResp.needsSetup2FA = true;
+        return withSecurityHeaders(new Response(JSON.stringify(loginResp), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 
       // Avatar GET (Public)

@@ -7,6 +7,7 @@ export interface User {
 export interface AuthResponse {
     token: string;
     user: User;
+    needsSetup2FA?: boolean;
 }
 
 export interface Session {
@@ -106,15 +107,14 @@ export const authService = {
         return await res.json() as AuthResponse;
     },
 
-    async register(username: string, password: string): Promise<void> {
+    async register(username: string, password: string): Promise<AuthResponse> {
         const res = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
         if (!res.ok) throw new Error(await res.text());
-        // Registration successful, return void
-        // Auto-login will be handled separately by the caller
+        return await res.json() as AuthResponse;
     },
 
     async updateProfile(token: string, username: string): Promise<{ username: string }> {
