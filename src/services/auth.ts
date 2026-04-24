@@ -97,6 +97,7 @@ export const authService = {
             if (data?.needs2FA) {
                 const err = new Error('2FA_REQUIRED') as any;
                 err.needs2FA = true;
+                err.method = data.method ?? 'totp';
                 throw err;
             }
             throw new Error(text);

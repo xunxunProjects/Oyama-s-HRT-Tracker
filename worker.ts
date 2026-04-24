@@ -563,10 +563,11 @@ export default {
 
         // 2FA check
         await ensureTotpColumn(env);
+        await ensurePasskeys(env);
         const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
         if (userWithTotp?.totp_secret) {
           if (!totp_code) {
-            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true }), {
+            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'totp' }), {
               status: 401,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }));
@@ -574,6 +575,15 @@ export default {
           const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
           if (!totpValid) {
             return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
+          }
+        } else {
+          // No TOTP: check if user has any passkeys registered
+          const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(user.id).first() as any;
+          if ((pkRow?.cnt ?? 0) > 0) {
+            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'passkey' }), {
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }));
           }
         }
 
@@ -986,7 +996,10 @@ export default {
           // GET /api/user/2fa/status
           if (url.pathname === '/api/user/2fa/status' && request.method === 'GET') {
             const row = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-            return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            await ensurePasskeys(env);
+            const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(userId).first() as any;
+            const passkeyCount = pkRow?.cnt ?? 0;
+            return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) || passkeyCount > 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // POST /api/user/2fa/setup — generate a new TOTP secret (not saved yet)
