@@ -1,9 +1,8 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye, User, SlidersHorizontal } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye, User, SlidersHorizontal, ChevronRight } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 import ExportSection from '../components/ExportSection';
 import ImportSection from '../components/ImportSection';
-import EditParametersModal from '../components/EditParametersModal';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
 import { PKCustomParams } from '../../logic';
@@ -29,8 +28,7 @@ interface SettingsProps {
     weight: number;
     setIsWeightModalOpen: (isOpen: boolean) => void;
     pkParams: PKCustomParams | null;
-    setPkParams: (params: PKCustomParams) => void;
-    resetPkParams: () => void;
+    onNavigateToPKParams: () => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -53,11 +51,9 @@ const Settings: React.FC<SettingsProps> = ({
     weight,
     setIsWeightModalOpen,
     pkParams,
-    setPkParams,
-    resetPkParams,
+    onNavigateToPKParams,
 }) => {
     const [openDataMenu, setOpenDataMenu] = React.useState<'export' | 'import' | null>(null);
-    const [isParamsModalOpen, setIsParamsModalOpen] = React.useState(false);
     const hasExportData = events.length > 0 || labResults.length > 0;
     const { mode, setMode } = useHRTMode();
 
@@ -128,7 +124,7 @@ const Settings: React.FC<SettingsProps> = ({
                     </button>
 
                     <button
-                        onClick={() => setIsParamsModalOpen(true)}
+                        onClick={onNavigateToPKParams}
                         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
                     >
                         <div className="flex items-center gap-3">
@@ -140,6 +136,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 )}
                             </div>
                         </div>
+                        <ChevronRight size={16} className="text-gray-400" />
                     </button>
                 </div>
             </div>
@@ -262,15 +259,6 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
         </div>
 
-        <EditParametersModal
-            isOpen={isParamsModalOpen}
-            onClose={() => setIsParamsModalOpen(false)}
-            pkParams={pkParams}
-            onSave={(params) => {
-                setPkParams(params);
-            }}
-            onReset={resetPkParams}
-        />
         </>
     );
 };

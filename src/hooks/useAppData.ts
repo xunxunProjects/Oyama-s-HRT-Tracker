@@ -243,6 +243,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
     const setPkParams = (params: PKCustomParams) => setPkParamsState(params);
+    const clearPkParams = () => setPkParamsState(null);
     const resetPkParams = () => {
         showDialog('confirm', t('pk.reset_confirm'), () => {
             setPkParamsState(null);
@@ -595,6 +596,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         quickDoses, setQuickDoses,
         pkParams,
         setPkParams,
+        clearPkParams,
         resetPkParams,
         simulation,
         currentTime,

@@ -41,6 +41,7 @@ import Account from './pages/Account';
 import Admin from './pages/Admin';
 import SessionsPage from './pages/Sessions';
 import TwoFactorPage from './pages/TwoFactor';
+import PKParamsPage from './pages/PKParams';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -67,7 +68,7 @@ const AppContent = () => {
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
         quickDoses,
-        pkParams, setPkParams, resetPkParams,
+        pkParams, setPkParams, clearPkParams, resetPkParams,
         processImportedData,
         mergeImportedData,
         buildExportPayload
@@ -408,8 +409,7 @@ const AppContent = () => {
                             weight={weight}
                             setIsWeightModalOpen={setIsWeightModalOpen}
                             pkParams={pkParams}
-                            setPkParams={setPkParams}
-                            resetPkParams={resetPkParams}
+                            onNavigateToPKParams={() => handleViewChange('pk-params')}
                         />
                     )}
 
@@ -444,6 +444,15 @@ const AppContent = () => {
                             onStatusChange={(v) => { setTwoFAEnabled(v); if (v) clearSetup2FA(); }}
                             onBack={() => handleViewChange('account')}
                             setupRequired={needsSetup2FA}
+                        />
+                    )}
+
+                    {currentView === 'pk-params' && (
+                        <PKParamsPage
+                            pkParams={pkParams}
+                            onSave={setPkParams}
+                            onReset={clearPkParams}
+                            onBack={() => handleViewChange('settings')}
                         />
                     )}
 
