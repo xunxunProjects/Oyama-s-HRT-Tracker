@@ -1,10 +1,12 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye, User } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Sun, Moon, Monitor, Upload, Download, Copy, Trash2, Info, Github, AlertTriangle, Scale, ChevronDown, Eye, User, SlidersHorizontal } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 import ExportSection from '../components/ExportSection';
 import ImportSection from '../components/ImportSection';
+import EditParametersModal from '../components/EditParametersModal';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
+import { PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface SettingsProps {
@@ -26,6 +28,9 @@ interface SettingsProps {
     appVersion: string;
     weight: number;
     setIsWeightModalOpen: (isOpen: boolean) => void;
+    pkParams: PKCustomParams | null;
+    setPkParams: (params: PKCustomParams) => void;
+    resetPkParams: () => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -47,12 +52,17 @@ const Settings: React.FC<SettingsProps> = ({
     appVersion,
     weight,
     setIsWeightModalOpen,
+    pkParams,
+    setPkParams,
+    resetPkParams,
 }) => {
     const [openDataMenu, setOpenDataMenu] = React.useState<'export' | 'import' | null>(null);
+    const [isParamsModalOpen, setIsParamsModalOpen] = React.useState(false);
     const hasExportData = events.length > 0 || labResults.length > 0;
     const { mode, setMode } = useHRTMode();
 
     return (
+        <>
         <div className="relative space-y-6 pt-6 pb-32">
             <div className="px-6 md:px-8">
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
@@ -114,6 +124,21 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-900 dark:text-gray-100">{weight} kg</span>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => setIsParamsModalOpen(true)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
+                    >
+                        <div className="flex items-center gap-3">
+                            <SlidersHorizontal className="text-pink-500 dark:text-pink-400" size={18} />
+                            <div>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.pk_params')}</span>
+                                {pkParams && (
+                                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">{t('pk.customized')}</span>
+                                )}
+                            </div>
                         </div>
                     </button>
                 </div>
@@ -236,6 +261,17 @@ const Settings: React.FC<SettingsProps> = ({
                 </p>
             </div>
         </div>
+
+        <EditParametersModal
+            isOpen={isParamsModalOpen}
+            onClose={() => setIsParamsModalOpen(false)}
+            pkParams={pkParams}
+            onSave={(params) => {
+                setPkParams(params);
+            }}
+            onReset={resetPkParams}
+        />
+        </>
     );
 };
 

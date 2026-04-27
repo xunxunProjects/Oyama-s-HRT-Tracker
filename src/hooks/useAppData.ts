@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, createCalibrationInterpolator, decompressData, decryptData, encryptData, isTestosteroneEster, isT_LabUnit } from '../../logic';
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, createCalibrationInterpolator, decompressData, decryptData, encryptData, isTestosteroneEster, isT_LabUnit, PKCustomParams, DEFAULT_PK_PARAMS, applyPKOverrides } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -48,6 +48,15 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
     const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
     const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
+    const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
+        const saved = localStorage.getItem('hrt-pk-params');
+        if (!saved) return null;
+        try {
+            const parsed = JSON.parse(saved) as PKCustomParams;
+            applyPKOverrides(parsed); // Apply immediately so first simulation uses custom params
+            return parsed;
+        } catch { return null; }
+    });
 
     const [simulation, setSimulation] = useState<SimulationResult | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -100,6 +109,14 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         localStorage.setItem(keyFor(mode, 'events'), JSON.stringify(events));
     }, [events, mode]);
     useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
+    useEffect(() => {
+        if (pkParams) {
+            localStorage.setItem('hrt-pk-params', JSON.stringify(pkParams));
+        } else {
+            localStorage.removeItem('hrt-pk-params');
+        }
+        applyPKOverrides(pkParams);
+    }, [pkParams]);
     useEffect(() => {
         if (loadedModeRef.current !== mode) return;
         localStorage.setItem(keyFor(mode, 'lab-results'), JSON.stringify(labResults));
@@ -225,6 +242,13 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const addQuickDose = (dose: QuickDose) => setQuickDoses(prev => [...prev, dose]);
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
+    const setPkParams = (params: PKCustomParams) => setPkParamsState(params);
+    const resetPkParams = () => {
+        showDialog('confirm', t('pk.reset_confirm'), () => {
+            setPkParamsState(null);
+        });
+    };
+
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
         return raw.map((item: any) => {
@@ -292,6 +316,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             let newWeight: number | undefined = undefined;
             let newLabs: LabResult[] = [];
             let newTemplates: DoseTemplate[] = [];
+            let newPkParams: PKCustomParams | undefined = undefined;
             let importedOtherMode = false;
             // Did the payload explicitly carry a block for the *current* mode?
             // Only then should we overwrite active-mode state (otherwise a v2
@@ -324,6 +349,9 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 if (typeof parsed.weight === 'number' && parsed.weight > 0) {
                     newWeight = parsed.weight;
                 }
+                if (parsed.pkParams && typeof parsed.pkParams === 'object') {
+                    newPkParams = parsed.pkParams as PKCustomParams;
+                }
             } else if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
                 replacedCurrentMode = true;
@@ -342,6 +370,9 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 if (Array.isArray(parsed.doseTemplates)) {
                     newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
                     replacedCurrentMode = true;
+                }
+                if (parsed.pkParams && typeof parsed.pkParams === 'object') {
+                    newPkParams = parsed.pkParams as PKCustomParams;
                 }
             }
 
@@ -382,7 +413,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 }
             }
 
-            if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length) throw new Error('No valid entries');
+            if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length && !newPkParams) throw new Error('No valid entries');
 
             if (replacedCurrentMode) {
                 setEvents(newEvents);
@@ -390,6 +421,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 setDoseTemplates(newTemplates);
             }
             if (newWeight !== undefined) setWeight(newWeight);
+            if (newPkParams !== undefined) setPkParamsState(newPkParams);
 
             showDialog('alert', t('drawer.import_success'));
             return true;
@@ -550,6 +582,8 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             events,
             labResults,
             doseTemplates,
+            // PK parameter overrides (null means defaults are in use)
+            pkParams: pkParams ?? undefined,
         };
     };
 
@@ -559,6 +593,9 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         labResults, setLabResults,
         doseTemplates, setDoseTemplates,
         quickDoses, setQuickDoses,
+        pkParams,
+        setPkParams,
+        resetPkParams,
         simulation,
         currentTime,
         calibrationFn,

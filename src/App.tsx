@@ -67,6 +67,7 @@ const AppContent = () => {
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
         quickDoses,
+        pkParams, setPkParams, resetPkParams,
         processImportedData,
         mergeImportedData,
         buildExportPayload
@@ -406,6 +407,9 @@ const AppContent = () => {
                             appVersion={APP_VERSION}
                             weight={weight}
                             setIsWeightModalOpen={setIsWeightModalOpen}
+                            pkParams={pkParams}
+                            setPkParams={setPkParams}
+                            resetPkParams={resetPkParams}
                         />
                     )}
 

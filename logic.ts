@@ -326,6 +326,105 @@ export const SublingualTierParams = {
     strict: { theta: 0.18, hold: 15 }
 };
 
+// --- PK Custom Parameters ---
+
+export interface PKCustomParams {
+    // E2 elimination rates
+    e2_kClear: number;       // non-injection h⁻¹ (default: 0.41)
+    e2_kClearInj: number;    // injection h⁻¹ (default: 0.041)
+    // E2 injection formation fractions (active E2 per mg ester)
+    e2_ff_EB: number;        // Estradiol Benzoate (default: 0.1092)
+    e2_ff_EV: number;        // Estradiol Valerate (default: 0.0623)
+    e2_ff_EC: number;        // Estradiol Cypionate (default: 0.1173)
+    e2_ff_EN: number;        // Estradiol Enanthate (default: 0.12)
+    e2_ff_EU: number;        // Estradiol Undecylate (default: 0.040)
+    // E2 oral/sublingual
+    e2_oral_bio: number;     // oral bioavailability fraction (default: 0.03)
+    e2_sl_quick: number;     // SL theta — quick tier (default: 0.01)
+    e2_sl_casual: number;    // SL theta — casual tier (default: 0.04)
+    e2_sl_standard: number;  // SL theta — standard tier (default: 0.11)
+    e2_sl_strict: number;    // SL theta — strict tier (default: 0.18)
+    // E2 gel bioavailability per site
+    e2_gel_arm: number;      // Arm (default: 0.05)
+    e2_gel_thigh: number;    // Thigh (default: 0.05)
+    e2_gel_scrotal: number;  // Scrotal (default: 0.40)
+    // Testosterone elimination rates
+    t_kClear: number;        // non-injection h⁻¹ (default: 0.5)
+    t_kClearInj: number;     // injection h⁻¹ (default: 0.035)
+    // T injection formation fractions
+    t_ff_TC: number;         // Testosterone Cypionate (default: 0.025)
+    t_ff_TE: number;         // Testosterone Enanthate (default: 0.025)
+    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.025)
+    // T gel
+    t_gel_F: number;         // T gel systemic bioavailability (default: 0.10)
+}
+
+export const DEFAULT_PK_PARAMS: PKCustomParams = {
+    e2_kClear: 0.41,
+    e2_kClearInj: 0.041,
+    e2_ff_EB: 0.1092,
+    e2_ff_EV: 0.0623,
+    e2_ff_EC: 0.1173,
+    e2_ff_EN: 0.12,
+    e2_ff_EU: 0.040,
+    e2_oral_bio: 0.03,
+    e2_sl_quick: 0.01,
+    e2_sl_casual: 0.04,
+    e2_sl_standard: 0.11,
+    e2_sl_strict: 0.18,
+    e2_gel_arm: 0.05,
+    e2_gel_thigh: 0.05,
+    e2_gel_scrotal: 0.40,
+    t_kClear: 0.5,
+    t_kClearInj: 0.035,
+    t_ff_TC: 0.025,
+    t_ff_TE: 0.025,
+    t_ff_TU: 0.025,
+    t_gel_F: 0.10,
+};
+
+let _activePKParams: PKCustomParams = { ...DEFAULT_PK_PARAMS };
+
+export function applyPKOverrides(params: PKCustomParams | null): void {
+    _activePKParams = params ? { ...DEFAULT_PK_PARAMS, ...params } : { ...DEFAULT_PK_PARAMS };
+}
+
+// Internal helpers
+function _getSLTheta(tierKey: string): number {
+    const p = _activePKParams;
+    if (tierKey === 'quick') return p.e2_sl_quick;
+    if (tierKey === 'casual') return p.e2_sl_casual;
+    if (tierKey === 'strict') return p.e2_sl_strict;
+    return p.e2_sl_standard;
+}
+
+function _getE2InjFF(ester: Ester): number {
+    const p = _activePKParams;
+    if (ester === Ester.EB) return p.e2_ff_EB;
+    if (ester === Ester.EV) return p.e2_ff_EV;
+    if (ester === Ester.EC) return p.e2_ff_EC;
+    if (ester === Ester.EN) return p.e2_ff_EN;
+    if (ester === Ester.EU) return p.e2_ff_EU;
+    if (ester === Ester.E2) return InjectionPK.formationFraction[Ester.E2];
+    return 0.08;
+}
+
+function _getGelBio(siteKey: string): number {
+    const p = _activePKParams;
+    if (siteKey === 'arm') return p.e2_gel_arm;
+    if (siteKey === 'thigh') return p.e2_gel_thigh;
+    if (siteKey === 'scrotal') return p.e2_gel_scrotal;
+    return p.e2_gel_arm;
+}
+
+function _getTInjFF(ester: Ester): number {
+    const p = _activePKParams;
+    if (ester === Ester.TC) return p.t_ff_TC;
+    if (ester === Ester.TE) return p.t_ff_TE;
+    if (ester === Ester.TU) return p.t_ff_TU;
+    return 0.025;
+}
+
 export function getBioavailabilityMultiplier(
     route: Route,
     ester: Ester,
@@ -338,11 +437,11 @@ export function getBioavailabilityMultiplier(
         switch (route) {
             case Route.injection: {
                 if (ester === Ester.T) return 0;
-                const formation = (T_InjectionPK.formationFraction as any)[ester] ?? 0.025;
+                const formation = _getTInjFF(ester);
                 return formation * mwFactor;
             }
             case Route.gel:
-                return T_GelPK.F * mwFactor;
+                return _activePKParams.t_gel_F * mwFactor;
             case Route.patchApply:
                 return T_PatchPK.F * mwFactor;
             case Route.patchRemove:
@@ -353,13 +452,13 @@ export function getBioavailabilityMultiplier(
 
     switch (route) {
         case Route.injection: {
-            const formation = InjectionPK.formationFraction[ester] ?? 0.08;
+            const formation = _getE2InjFF(ester);
             return formation * mwFactor;
         }
         case Route.oral:
-            return OralPK.bioavailability * mwFactor;
+            return _activePKParams.e2_oral_bio * mwFactor;
         case Route.sublingual: {
-            let theta = 0.11;
+            let theta = _activePKParams.e2_sl_standard;
             if (extras[ExtraKey.sublingualTheta] !== undefined) {
                 const customTheta = extras[ExtraKey.sublingualTheta];
                 if (typeof customTheta === 'number' && Number.isFinite(customTheta)) {
@@ -368,14 +467,14 @@ export function getBioavailabilityMultiplier(
             } else if (extras[ExtraKey.sublingualTier] !== undefined) {
                 const tierIdx = Math.min(SL_TIER_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.sublingualTier]!)));
                 const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
-                theta = SublingualTierParams[tierKey]?.theta ?? 0.11;
+                theta = _getSLTheta(tierKey);
             }
-            return (theta + (1 - theta) * OralPK.bioavailability) * mwFactor;
+            return (theta + (1 - theta) * _activePKParams.e2_oral_bio) * mwFactor;
         }
         case Route.gel: {
             const siteIdx = Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.gelSite] ?? 0)));
             const siteKey = GEL_SITE_ORDER[siteIdx] as GelSite;
-            const bio = GelSiteParams[siteKey] ?? 0.05;
+            const bio = _getGelBio(siteKey);
             return bio * mwFactor;
         }
         case Route.patchApply:
@@ -401,13 +500,13 @@ interface PKParams {
 }
 
 function resolveParams(event: DoseEvent): PKParams {
-    const defaultK3 = event.route === Route.injection ? CorePK.kClearInjection : CorePK.kClear;
+    const defaultK3 = event.route === Route.injection ? _activePKParams.e2_kClearInj : _activePKParams.e2_kClear;
     const toE2 = getToE2Factor(event.ester);
     const extras = event.extras ?? {};
 
     // Transmasculine (testosterone) path — use the dedicated T PK parameters.
     if (isTestosteroneEster(event.ester)) {
-        const tK3 = event.route === Route.injection ? T_CorePK.kClearInjection : T_CorePK.kClear;
+        const tK3 = event.route === Route.injection ? _activePKParams.t_kClearInj : _activePKParams.t_kClear;
         switch (event.route) {
             case Route.injection: {
                 if (event.ester === Ester.T) {
@@ -455,7 +554,7 @@ function resolveParams(event: DoseEvent): PKParams {
         }
 
         case Route.sublingual: {
-            let theta = 0.11;
+            let theta = _activePKParams.e2_sl_standard;
             if (extras[ExtraKey.sublingualTheta] !== undefined) {
                 const customTheta = extras[ExtraKey.sublingualTheta];
                 if (typeof customTheta === 'number' && Number.isFinite(customTheta)) {
@@ -466,14 +565,14 @@ function resolveParams(event: DoseEvent): PKParams {
                 if (typeof tierRaw === 'number' && Number.isFinite(tierRaw)) {
                     const tierIdx = Math.min(SL_TIER_ORDER.length - 1, Math.max(0, Math.round(tierRaw)));
                     const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
-                    theta = SublingualTierParams[tierKey]?.theta ?? theta;
+                    theta = _getSLTheta(tierKey);
                 }
             }
             const k1_fast = OralPK.kAbsSL;
             const k1_slow = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
             const k2 = EsterPK.k2[event.ester] ?? 0;
             const F_fast = toE2;
-            const F_slow = OralPK.bioavailability * toE2;
+            const F_slow = _activePKParams.e2_oral_bio * toE2;
             const F = theta * F_fast + (1 - theta) * F_slow;
             return { Frac_fast: theta, k1_fast, k1_slow, k2, k3: defaultK3, F, rateMGh: 0, F_fast, F_slow };
         }
@@ -519,7 +618,7 @@ function resolveParams(event: DoseEvent): PKParams {
 
             const k1Value = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
             const k2Value = event.ester === Ester.EV ? (EsterPK.k2[Ester.EV] || 0) : 0;
-            const F = OralPK.bioavailability * toE2;
+            const F = _activePKParams.e2_oral_bio * toE2;
             return { Frac_fast: 1.0, k1_fast: k1Value, k1_slow: 0, k2: k2Value, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
         }
     }
