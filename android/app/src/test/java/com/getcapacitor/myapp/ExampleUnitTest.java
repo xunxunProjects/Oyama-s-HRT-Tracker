@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.oyama.hrttracker;
 
 import static org.junit.Assert.*;
 
