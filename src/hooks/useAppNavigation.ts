@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Activity, ListTodo, FlaskConical, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { Activity, ListTodo, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
+import { featureFlags } from '../platform/features';
 import { useTranslation } from '../contexts/LanguageContext';
 
 export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'pk-params';
