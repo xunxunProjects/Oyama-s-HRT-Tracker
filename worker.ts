@@ -602,10 +602,8 @@ export default {
         const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
         const regIP = request.headers.get('CF-Connecting-IP') ||
           request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        ctx.waitUntil(
-          env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
-            .bind(sessionId, id, userAgent, regIP).run()
-        );
+        await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+          .bind(sessionId, id, userAgent, regIP).run();
         const regSecret = new TextEncoder().encode(jwtSecret);
         const regToken = await new SignJWT({ sub: id, username, role: 'user', sid: sessionId })
           .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(regSecret);
@@ -693,10 +691,8 @@ export default {
         const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
         const loginIP = request.headers.get('CF-Connecting-IP') ||
           request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        ctx.waitUntil(
-          env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
-            .bind(sessionId, user.id, userAgent, loginIP).run()
-        );
+        await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+          .bind(sessionId, user.id, userAgent, loginIP).run();
 
         const secret = new TextEncoder().encode(jwtSecret);
         const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user', sid: sessionId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
@@ -927,9 +923,13 @@ export default {
 
             if (!user || !passwordValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
 
+            await ensurePasskeys(env);
+            await ensureBackupCodes(env);
             await env.DB.batch([
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
               env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
+              env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(userId),
+              env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
               env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId)
             ]);
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`); } catch (e) { }
@@ -1042,8 +1042,13 @@ export default {
               return withSecurityHeaders(new Response('Cannot delete admin account', { status: 400, headers: corsHeaders }));
             }
             const target = await env.DB.prepare('SELECT created_at FROM users WHERE id = ?').bind(targetId).first() as any;
+            await ensurePasskeys(env);
+            await ensureBackupCodes(env);
             await env.DB.batch([
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),
+              env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
+              env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId),
+              env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId),
               env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId)
             ]);
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${targetId}`); } catch (e) { }
@@ -1274,7 +1279,7 @@ export default {
         return withSecurityHeaders(new Response('Not Found', { status: 404, headers: corsHeaders }));
 
       } catch (e: any) {
-        if (e.name === 'JWTTokenExpired' || e.name === 'JWSSignatureVerificationFailed' || e.message?.includes('token')) {
+        if (e.name === 'JWTExpired' || e.name === 'JWSSignatureVerificationFailed' || e.name === 'JWTInvalid' || e.name === 'JWSInvalid' || e.message?.includes('token')) {
           return withSecurityHeaders(new Response('Invalid token', { status: 401, headers: corsHeaders }));
         }
         throw e;
