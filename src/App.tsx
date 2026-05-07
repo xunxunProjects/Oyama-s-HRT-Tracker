@@ -144,6 +144,7 @@ const AppContent = () => {
         { value: 'ko', label: '한국어' },
         { value: 'ar', label: 'العربية' },
         { value: 'he', label: 'עברית' },
+        { value: 'tr', label: 'Türkçe' },
     ]), []);
 
 

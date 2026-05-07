@@ -22,6 +22,7 @@ const LANG_LOCALE: Record<Lang, string> = {
     'ko': 'ko',
     'ar': 'ar',
     'he': 'he',
+    'tr': 'tr',
 };
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {

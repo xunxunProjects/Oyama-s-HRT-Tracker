@@ -119,7 +119,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setBackupCodes(result.backupCodes ?? []);
             setBackupRemaining(result.backupCodes?.length ?? 0);
             setSuccess(true);
-            onStatusChange(true);
+            // onStatusChange(true) is called when the user dismisses the success screen,
+            // so the !enabled guard doesn't collapse the backup-codes view prematurely.
         } catch (e: any) {
             const msg = e.message || '';
             setError(msg.includes('Invalid') ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
@@ -483,7 +484,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                     </div>
                                                 </div>
                                             )}
-                                            <button onClick={onBack}
+                                            <button onClick={() => { onStatusChange(true); onBack(); }}
                                                 className="mt-2 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors">
                                                 {t('btn.ok')}
                                             </button>
