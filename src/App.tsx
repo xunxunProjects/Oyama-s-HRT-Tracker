@@ -42,6 +42,12 @@ import Admin from './pages/Admin';
 import SessionsPage from './pages/Sessions';
 import TwoFactorPage from './pages/TwoFactor';
 import PKParamsPage from './pages/PKParams';
+import HRTModeSettings from './pages/HRTModeSettings';
+import LanguageSettings from './pages/LanguageSettings';
+import AppearanceSettings from './pages/AppearanceSettings';
+import WeightSettings from './pages/WeightSettings';
+import ExportSettings from './pages/ExportSettings';
+import ImportSettings from './pages/ImportSettings';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -411,6 +417,60 @@ const AppContent = () => {
                             setIsWeightModalOpen={setIsWeightModalOpen}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
+                            onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
+                            onNavigateToLanguage={() => handleViewChange('settings-language')}
+                            onNavigateToAppearance={() => handleViewChange('settings-appearance')}
+                            onNavigateToWeight={() => handleViewChange('settings-weight')}
+                            onNavigateToExport={() => handleViewChange('settings-export')}
+                            onNavigateToImport={() => handleViewChange('settings-import')}
+                        />
+                    )}
+
+                    {currentView === 'settings-hrt-mode' && (
+                        <HRTModeSettings
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-language' && (
+                        <LanguageSettings
+                            lang={lang}
+                            setLang={setLang}
+                            languageOptions={languageOptions}
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-appearance' && (
+                        <AppearanceSettings
+                            theme={theme}
+                            setTheme={setTheme}
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-weight' && (
+                        <WeightSettings
+                            weight={weight}
+                            onSave={setWeight}
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-export' && (
+                        <ExportSettings
+                            events={events}
+                            labResults={labResults}
+                            weight={weight}
+                            onExport={handleExportConfirm}
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-import' && (
+                        <ImportSettings
+                            onImportJson={importEventsFromJson}
+                            onBack={() => handleViewChange('settings')}
                         />
                     )}
 

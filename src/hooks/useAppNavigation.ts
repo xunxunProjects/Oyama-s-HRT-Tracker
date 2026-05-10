@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Activity, ListTodo, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 
-export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'pk-params';
+export type ViewKey = 'home' | 'history' | 'lab' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'pk-params' | 'settings-hrt-mode' | 'settings-language' | 'settings-appearance' | 'settings-weight' | 'settings-export' | 'settings-import';
 
 export const useAppNavigation = (user: any) => {
     const { t } = useTranslation();
@@ -12,7 +12,7 @@ export const useAppNavigation = (user: any) => {
     const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
     const mainScrollRef = useRef<HTMLDivElement>(null);
 
-    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'sessions', 'two-factor', 'pk-params', 'admin'];
+    const viewOrder: ViewKey[] = ['home', 'history', 'lab', 'settings', 'account', 'sessions', 'two-factor', 'pk-params', 'settings-hrt-mode', 'settings-language', 'settings-appearance', 'settings-weight', 'settings-export', 'settings-import', 'admin'];
 
     // --- Actions ---
     const handleViewChange = (view: ViewKey) => {
