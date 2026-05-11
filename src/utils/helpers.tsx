@@ -15,6 +15,7 @@ export const formatDate = (date: Date, lang: Lang) => {
         'ko': 'ko-KR',
         'ar': 'ar',
         'he': 'he',
+        'tr': 'tr-TR',
     };
     return date.toLocaleDateString(localeMap[lang] || 'en-US', { month: 'short', day: 'numeric' });
 };

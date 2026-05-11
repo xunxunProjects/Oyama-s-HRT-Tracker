@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
@@ -29,6 +29,7 @@ import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReloadPrompt from './components/ReloadPrompt';
+import BackupConflictModal from './components/BackupConflictModal';
 
 import { cloudService } from './services/cloud';
 
@@ -105,12 +106,102 @@ const AppContent = () => {
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
+    // --- Auto-backup state ---
+    const [autoBackup, setAutoBackup] = useState<boolean>(() =>
+        localStorage.getItem('app-auto-backup') !== 'false'
+    );
+    const autoBackupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const initialLoadRef = useRef(true);
+    const tokenRef = useRef(token);
+    useEffect(() => { tokenRef.current = token; }, [token]);
+
+    // --- Startup conflict check state ---
+    const [conflictState, setConflictState] = useState<{
+        cloudNewCount: number;
+        localNewCount: number;
+        cloudParsed: any;
+    } | null>(null);
+    const conflictCheckedRef = useRef(false);
+
 
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
         const saved = localStorage.getItem('app-theme');
         return (saved as 'light' | 'dark' | 'system') || 'system';
     });
 
+
+    useEffect(() => {
+        localStorage.setItem('app-auto-backup', String(autoBackup));
+    }, [autoBackup]);
+
+    // --- Auto-backup: debounced save when data changes ---
+    useEffect(() => {
+        if (initialLoadRef.current) {
+            initialLoadRef.current = false;
+            return;
+        }
+        if (!autoBackup || !user || !token) return;
+        if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
+        autoBackupTimerRef.current = setTimeout(async () => {
+            const currentToken = tokenRef.current;
+            if (!currentToken) return;
+            try {
+                const exportData = buildExportPayload();
+                await cloudService.save(currentToken, exportData);
+                // Silent success — no blocking dialog for background auto-backup
+            } catch {
+                // silent fail for auto-backup
+            }
+        }, 3000);
+        return () => {
+            if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [events, labResults, doseTemplates, autoBackup, user, token]);
+
+    // --- Startup conflict check when user logs in ---
+    useEffect(() => {
+        if (!user || !token) {
+            conflictCheckedRef.current = false;
+            return;
+        }
+        if (conflictCheckedRef.current) return;
+        conflictCheckedRef.current = true;
+
+        cloudService.load(token).then(list => {
+            if (!list || list.length === 0) return;
+            const latest = list[0];
+            let cloudParsed: any;
+            try {
+                cloudParsed = JSON.parse(latest.data);
+            } catch {
+                return; // Corrupt backup data — skip conflict check
+            }
+
+            const localPayload = buildExportPayload();
+            const localIds = new Set<string>([
+                ...localPayload.modes.transfem.events.map((e: any) => e.id),
+                ...localPayload.modes.transmasc.events.map((e: any) => e.id),
+                ...localPayload.modes.transfem.labResults.map((e: any) => e.id),
+                ...localPayload.modes.transmasc.labResults.map((e: any) => e.id),
+            ]);
+
+            const cloudEvents = [
+                ...(cloudParsed?.modes?.transfem?.events ?? cloudParsed?.events ?? []),
+                ...(cloudParsed?.modes?.transmasc?.events ?? []),
+                ...(cloudParsed?.modes?.transfem?.labResults ?? cloudParsed?.labResults ?? []),
+                ...(cloudParsed?.modes?.transmasc?.labResults ?? []),
+            ];
+            const cloudIds = new Set<string>(cloudEvents.map((e: any) => e.id));
+
+            const cloudNewCount = cloudEvents.filter((e: any) => !localIds.has(e.id)).length;
+            const localNewCount = [...localIds].filter(id => !cloudIds.has(id)).length;
+
+            if (cloudNewCount > 0 || localNewCount > 0) {
+                setConflictState({ cloudNewCount, localNewCount, cloudParsed });
+            }
+        }).catch(() => {});
+    }, [user, token]);
 
     // --- Theme Effect ---
     useEffect(() => {
@@ -423,6 +514,9 @@ const AppContent = () => {
                             onNavigateToWeight={() => handleViewChange('settings-weight')}
                             onNavigateToExport={() => handleViewChange('settings-export')}
                             onNavigateToImport={() => handleViewChange('settings-import')}
+                            autoBackup={autoBackup}
+                            setAutoBackup={setAutoBackup}
+                            isLoggedIn={!!user}
                         />
                     )}
 
@@ -635,6 +729,18 @@ const AppContent = () => {
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
+            />
+
+            <BackupConflictModal
+                isOpen={!!conflictState}
+                onClose={() => setConflictState(null)}
+                cloudNewCount={conflictState?.cloudNewCount ?? 0}
+                localNewCount={conflictState?.localNewCount ?? 0}
+                onMerge={() => {
+                    if (conflictState?.cloudParsed) {
+                        mergeImportedData(conflictState.cloudParsed);
+                    }
+                }}
             />
         </div >
     );

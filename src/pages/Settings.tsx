@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Upload, Download, Trash2, Info, Github, AlertTriangle, Scale, Eye, User, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, Palette, Upload, Download, Trash2, Info, Github, AlertTriangle, Scale, Eye, User, SlidersHorizontal, ChevronRight, UploadCloud } from 'lucide-react';
 import { Lang } from '../i18n/translations';
 import { DoseEvent } from '../../logic';
 import { PKCustomParams } from '../../logic';
@@ -32,6 +32,9 @@ interface SettingsProps {
     onNavigateToWeight: () => void;
     onNavigateToExport: () => void;
     onNavigateToImport: () => void;
+    autoBackup: boolean;
+    setAutoBackup: (v: boolean) => void;
+    isLoggedIn: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -61,6 +64,9 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToWeight,
     onNavigateToExport,
     onNavigateToImport,
+    autoBackup,
+    setAutoBackup,
+    isLoggedIn,
 }) => {
     const { mode } = useHRTMode();
 
@@ -139,6 +145,34 @@ const Settings: React.FC<SettingsProps> = ({
                             <ChevronRight size={16} className="text-gray-400" />
                         </div>
                     </button>
+
+                    {isLoggedIn && (
+                    <div className="w-full flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                            <UploadCloud className="text-pink-500 dark:text-pink-400" size={18} />
+                            <div>
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.auto_backup')}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.auto_backup_desc')}</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setAutoBackup(!autoBackup)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                                autoBackup
+                                    ? 'bg-[var(--color-m3-primary)]'
+                                    : 'bg-gray-200 dark:bg-neutral-700'
+                            }`}
+                            role="switch"
+                            aria-checked={autoBackup}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+                                    autoBackup ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                    </div>
+                    )}
 
                     <button
                         onClick={onNavigateToPKParams}

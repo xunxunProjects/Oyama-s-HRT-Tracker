@@ -13,6 +13,7 @@ import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
 import GelFields from './dose_form/GelFields';
 import PatchFields from './dose_form/PatchFields';
+import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 export interface DoseTemplate {
@@ -129,9 +130,12 @@ interface DoseFormProps {
     onDeleteTemplate: (id: string) => void;
     isInline?: boolean;
     hideHeader?: boolean;
+    quickDoses?: QuickDose[];
+    onAddQuickDose?: (dose: QuickDose) => void;
+    onDeleteQuickDose?: (id: string) => void;
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const dateInputRef = useRef<HTMLInputElement>(null);
@@ -706,6 +710,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     label: t(`ester.${e}`)
                                 }))}
                             />
+                        )}
+
+                        {quickDoses && onAddQuickDose && onDeleteQuickDose && (
+                            <div className="mt-2">
+                                <QuickDoseButtons
+                                    route={route}
+                                    ester={ester}
+                                    quickDoses={quickDoses}
+                                    currentDose={rawDose}
+                                    onSelectDose={(val) => handleRawChange(val.toString())}
+                                    onAddQuickDose={onAddQuickDose}
+                                    onDeleteQuickDose={onDeleteQuickDose}
+                                />
+                            </div>
                         )}
 
                         <div className="mt-2">

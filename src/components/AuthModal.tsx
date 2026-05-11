@@ -186,7 +186,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                                 placeholder={t('auth.totp_placeholder')}
                                                 autoComplete="one-time-code"
                                                 autoFocus
-                                                required={needsTOTP && twoFAMethod !== 'passkey' && !useBackupCode}
+                                                required={needsTOTP && !useBackupCode}
                                             />
                                         </div>
                                     )}

@@ -78,6 +78,7 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
                     templates={templates}
                     onSaveTemplate={onSaveTemplate}
                     onDeleteTemplate={onDeleteTemplate}
+                    quickDoses={quickDoses}
                     onAddQuickDose={onAddQuickDose}
                     onDeleteQuickDose={onDeleteQuickDose}
                     isInline={false}

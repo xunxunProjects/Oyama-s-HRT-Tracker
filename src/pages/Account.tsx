@@ -682,7 +682,7 @@ const Account: React.FC<AccountProps> = ({
                                                         placeholder={t('auth.totp_placeholder')}
                                                         autoComplete="one-time-code"
                                                         autoFocus
-                                                        required={needsTOTP && twoFAMethod !== 'passkey' && !useBackupCode}
+                                                        required={needsTOTP && !useBackupCode}
                                                     />
                                                 </div>
                                             )}
