@@ -30,6 +30,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
     const [needsSetup2FA, setNeedsSetup2FA] = useState(() => localStorage.getItem('needs_setup_2fa') === 'true');
 
+    // Clear any stale forced-2FA flag persisted from previous app versions —
+    // 2FA setup is now optional, never forced.
+    useEffect(() => {
+        if (localStorage.getItem('needs_setup_2fa') === 'true') {
+            localStorage.removeItem('needs_setup_2fa');
+            setNeedsSetup2FA(false);
+        }
+    }, []);
+
     useEffect(() => {
         const storedUser = localStorage.getItem('auth_user');
         if (token && storedUser) {
@@ -74,8 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        setNeedsSetup2FA(true);
-        localStorage.setItem('needs_setup_2fa', 'true');
+        // 2FA setup is optional — do not force new users into setup flow.
+        setNeedsSetup2FA(false);
+        localStorage.removeItem('needs_setup_2fa');
     };
 
     const clearSetup2FA = () => {

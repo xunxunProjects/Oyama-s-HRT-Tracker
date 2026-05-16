@@ -610,7 +610,6 @@ export default {
         return withSecurityHeaders(new Response(JSON.stringify({
           token: regToken,
           user: { id, username, isAdmin: false },
-          needsSetup2FA: true,
         }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 
@@ -697,7 +696,8 @@ export default {
         const secret = new TextEncoder().encode(jwtSecret);
         const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user', sid: sessionId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
         const loginResp: Record<string, any> = { token, user: { id: user.id, username: user.username, isAdmin: false } };
-        if (!twoFAVerified) loginResp.needsSetup2FA = true;
+        // 2FA setup is optional — do not force users to configure it on login.
+        void twoFAVerified;
         return withSecurityHeaders(new Response(JSON.stringify(loginResp), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 

@@ -113,7 +113,11 @@ const AppContent = () => {
     const autoBackupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const initialLoadRef = useRef(true);
     const tokenRef = useRef(token);
+    const userRef = useRef(user);
+    const autoBackupRef = useRef(autoBackup);
     useEffect(() => { tokenRef.current = token; }, [token]);
+    useEffect(() => { userRef.current = user; }, [user]);
+    useEffect(() => { autoBackupRef.current = autoBackup; }, [autoBackup]);
 
     // --- Startup conflict check state ---
     const [conflictState, setConflictState] = useState<{
@@ -135,16 +139,21 @@ const AppContent = () => {
     }, [autoBackup]);
 
     // --- Auto-backup: debounced save when data changes ---
+    // Deliberately depends ONLY on data slices, not on user/token/autoBackup.
+    // Including those would trigger an unwanted backup on login (potentially
+    // overwriting cloud data with empty local state) or when toggling the
+    // setting. We read current auth/toggle state via refs at fire time.
     useEffect(() => {
         if (initialLoadRef.current) {
             initialLoadRef.current = false;
             return;
         }
-        if (!autoBackup || !user || !token) return;
         if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
         autoBackupTimerRef.current = setTimeout(async () => {
+            if (!autoBackupRef.current) return;
             const currentToken = tokenRef.current;
-            if (!currentToken) return;
+            const currentUser = userRef.current;
+            if (!currentToken || !currentUser) return;
             try {
                 const exportData = buildExportPayload();
                 await cloudService.save(currentToken, exportData);
@@ -157,12 +166,13 @@ const AppContent = () => {
             if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, autoBackup, user, token]);
+    }, [events, labResults, doseTemplates]);
 
     // --- Startup conflict check when user logs in ---
     useEffect(() => {
         if (!user || !token) {
             conflictCheckedRef.current = false;
+            setConflictState(null); // Clear any lingering modal data from previous session
             return;
         }
         if (conflictCheckedRef.current) return;

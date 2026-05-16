@@ -521,13 +521,15 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
             let merged = mergedOther;
 
+            // Compute diffs synchronously against current state so the count is
+            // available immediately when showDialog is called (setter callbacks
+            // are invoked asynchronously by React and would not update `merged`
+            // in time).
             if (incomingEvents.length > 0) {
-                setEvents(prev => {
-                    const existingIds = new Set(prev.map(e => e.id));
-                    const newOnes = incomingEvents.filter(e => !existingIds.has(e.id));
-                    merged += newOnes.length;
-                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
-                });
+                const existingIds = new Set(events.map(e => e.id));
+                const newOnes = incomingEvents.filter(e => !existingIds.has(e.id));
+                merged += newOnes.length;
+                if (newOnes.length > 0) setEvents(prev => [...prev, ...newOnes]);
             }
 
             if (incomingWeight !== undefined && incomingWeight > weight) {
@@ -535,21 +537,17 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             }
 
             if (incomingLabs.length > 0) {
-                setLabResults(prev => {
-                    const existingIds = new Set(prev.map(r => r.id));
-                    const newOnes = incomingLabs.filter(r => !existingIds.has(r.id));
-                    merged += newOnes.length;
-                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
-                });
+                const existingIds = new Set(labResults.map(r => r.id));
+                const newOnes = incomingLabs.filter(r => !existingIds.has(r.id));
+                merged += newOnes.length;
+                if (newOnes.length > 0) setLabResults(prev => [...prev, ...newOnes]);
             }
 
             if (incomingTemplates.length > 0) {
-                setDoseTemplates(prev => {
-                    const existingIds = new Set(prev.map(t => t.id));
-                    const newOnes = incomingTemplates.filter(t => !existingIds.has(t.id));
-                    merged += newOnes.length;
-                    return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
-                });
+                const existingIds = new Set(doseTemplates.map(t => t.id));
+                const newOnes = incomingTemplates.filter(t => !existingIds.has(t.id));
+                merged += newOnes.length;
+                if (newOnes.length > 0) setDoseTemplates(prev => [...prev, ...newOnes]);
             }
 
             showDialog('alert', (t('account.merge_success') as string).replace('{n}', String(merged)));
