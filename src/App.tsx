@@ -5,7 +5,7 @@ import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
-import { DoseEvent, LabResult, createCalibrationInterpolator, decompressData, encryptData, decryptData } from '../logic';
+import { DoseEvent, LabResult, createCalibrationInterpolator, decompressData, encryptData, decryptData, encryptCloudPayload, decryptCloudPayload, isCloudEncrypted } from '../logic';
 import { DoseTemplate } from './components/DoseFormModal';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
@@ -30,7 +30,6 @@ import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReloadPrompt from './components/ReloadPrompt';
 import BackupConflictModal from './components/BackupConflictModal';
-
 import { cloudService } from './services/cloud';
 
 // Pages
@@ -49,6 +48,27 @@ import AppearanceSettings from './pages/AppearanceSettings';
 import WeightSettings from './pages/WeightSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
+
+// Encrypt the export payload for cloud storage when a device key is present.
+// Without a key (e.g. a session predating E2EE, or a passwordless passkey
+// login on a fresh device) the payload is stored as-is.
+async function prepareCloudPayload(exportData: any): Promise<any> {
+    const key = localStorage.getItem('enc_key');
+    if (!key) return exportData;
+    return await encryptCloudPayload(JSON.stringify(exportData), key);
+}
+
+// Parse a stored backup, transparently decrypting cloud-encrypted ones.
+// Returns null if the backup is encrypted but cannot be decrypted here.
+async function parseCloudBackup(rawData: string): Promise<any | null> {
+    const parsed = JSON.parse(rawData);
+    if (!isCloudEncrypted(parsed)) return parsed;
+    const key = localStorage.getItem('enc_key');
+    if (!key) return null;
+    const plain = await decryptCloudPayload(parsed, key);
+    if (plain === null) return null;
+    return JSON.parse(plain);
+}
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -156,7 +176,8 @@ const AppContent = () => {
             if (!currentToken || !currentUser) return;
             try {
                 const exportData = buildExportPayload();
-                await cloudService.save(currentToken, exportData);
+                const payload = await prepareCloudPayload(exportData);
+                await cloudService.save(currentToken, payload);
                 // Silent success — no blocking dialog for background auto-backup
             } catch {
                 // silent fail for auto-backup
@@ -178,15 +199,16 @@ const AppContent = () => {
         if (conflictCheckedRef.current) return;
         conflictCheckedRef.current = true;
 
-        cloudService.load(token).then(list => {
+        cloudService.load(token).then(async list => {
             if (!list || list.length === 0) return;
             const latest = list[0];
             let cloudParsed: any;
             try {
-                cloudParsed = JSON.parse(latest.data);
+                cloudParsed = await parseCloudBackup(latest.data);
             } catch {
                 return; // Corrupt backup data — skip conflict check
             }
+            if (!cloudParsed) return; // Encrypted but undecryptable on this device — skip
 
             const localPayload = buildExportPayload();
             const localIds = new Set<string>([
@@ -372,7 +394,8 @@ const AppContent = () => {
         if (!token) { setIsAuthModalOpen(true); return; }
         const exportData = buildExportPayload();
         try {
-            await cloudService.save(token, exportData);
+            const payload = await prepareCloudPayload(exportData);
+            await cloudService.save(token, payload);
             showDialog('alert', t('account.cloud_save_success'));
         } catch (e) {
             showDialog('alert', t('account.cloud_save_failed'));
@@ -386,7 +409,7 @@ const AppContent = () => {
             let timestamp: number;
             if (backupId) {
                 const backup = await cloudService.loadOne(token, backupId);
-                parsed = JSON.parse(backup.data);
+                parsed = await parseCloudBackup(backup.data);
                 timestamp = backup.created_at;
             } else {
                 const list = await cloudService.load(token);
@@ -395,8 +418,12 @@ const AppContent = () => {
                     return;
                 }
                 const latest = list[0];
-                parsed = JSON.parse(latest.data);
+                parsed = await parseCloudBackup(latest.data);
                 timestamp = latest.created_at;
+            }
+            if (!parsed) {
+                showDialog('alert', t('account.cloud_load_failed'));
+                return;
             }
             showDialog('confirm', (t('account.load_confirm') as string).replace('{time}', new Date(timestamp * 1000).toLocaleString()), () => {
                 processImportedData(parsed);
@@ -410,7 +437,11 @@ const AppContent = () => {
         if (!token) { setIsAuthModalOpen(true); return; }
         try {
             const backup = await cloudService.loadOne(token, backupId);
-            const parsed = JSON.parse(backup.data);
+            const parsed = await parseCloudBackup(backup.data);
+            if (!parsed) {
+                showDialog('alert', t('account.merge_cloud_failed'));
+                return;
+            }
             mergeImportedData(parsed);
         } catch (e) {
             showDialog('alert', t('account.merge_cloud_failed'));
@@ -436,7 +467,7 @@ const AppContent = () => {
                 <div
                     ref={mainScrollRef}
                     key={currentView}
-                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide page-transition ${transitionDirection === 'forward' ? 'page-forward' : 'page-backward'}`}
+                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav page-transition ${transitionDirection === 'forward' ? 'page-forward' : 'page-backward'}`}
                 >
                     {currentView === 'home' && (
                         <Home
@@ -453,6 +484,7 @@ const AppContent = () => {
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}
                             theme={theme}
+                            onNavigateToHistory={() => handleViewChange('history')}
                         />
                     )}
 
@@ -626,41 +658,44 @@ const AppContent = () => {
                     )}
                 </div>
 
-                {/* Bottom Navigation - M3 Navigation Bar */}
-                <nav className="fixed bottom-0 left-0 right-0 z-40 safe-area-pb md:hidden">
-                    <div className="w-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center transition-all duration-300">
+                {/* Bottom Navigation */}
+                <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden safe-area-pb bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                    <div className="flex items-stretch">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
-                            const isActive = currentView === id;
+                            const activeTab = ({
+                                'home': 'home',
+                                'history': 'history',
+                                'lab': 'lab',
+                                'settings': 'settings',
+                                'settings-hrt-mode': 'settings',
+                                'settings-language': 'settings',
+                                'settings-appearance': 'settings',
+                                'settings-weight': 'settings',
+                                'settings-export': 'settings',
+                                'settings-import': 'settings',
+                                'pk-params': 'settings',
+                                'account': 'account',
+                                'sessions': 'account',
+                                'two-factor': 'account',
+                                'admin': 'account',
+                            } as Record<string, string>)[currentView] ?? currentView;
+                            const isActive = activeTab === id;
                             const isDisabled = needsSetup2FA && id !== 'two-factor';
                             return (
                                 <button
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1.5 pt-3 pb-2 transition-colors duration-300 relative group
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-2 transition-colors duration-200
                                         ${isDisabled
                                             ? 'text-gray-300 dark:text-neutral-600 cursor-not-allowed'
                                             : isActive
                                             ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
-                                            : 'text-gray-600 dark:text-gray-400 hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
+                                            : 'text-gray-500 dark:text-gray-400'
                                         }`}
                                 >
-                                    {/* Active indicator underline */}
-                                    <span 
-                                        className={`absolute bottom-0 left-0 w-full h-[2px] bg-current transition-opacity duration-300 ease-out
-                                            ${isActive 
-                                                ? 'opacity-100' 
-                                                : 'opacity-0'
-                                            }`}
-                                    />
-                                    
-                                    <span className="z-10">
-                                        <Icon
-                                            size={22}
-                                            strokeWidth={isActive ? 2.5 : 2}
-                                        />
-                                    </span>
-                                    <span className="text-[10px] font-medium tracking-tight z-10">
+                                    <Icon size={22} strokeWidth={isActive ? 2.5 : 1.75} />
+                                    <span className="text-[10px] font-medium tracking-tight">
                                         {label}
                                     </span>
                                 </button>
@@ -752,6 +787,7 @@ const AppContent = () => {
                     }
                 }}
             />
+
         </div >
     );
 };

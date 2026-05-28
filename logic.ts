@@ -1,12 +1,12 @@
 // --- Types & Enums ---
 
 export enum Route {
+    sublingual = "sublingual",
     injection = "injection",
     patchApply = "patchApply",
     patchRemove = "patchRemove",
     gel = "gel",
-    oral = "oral",
-    sublingual = "sublingual"
+    oral = "oral"
 }
 
 export enum Ester {
@@ -49,7 +49,7 @@ enum GelSite {
     scrotal = "scrotal"
 }
 
-const GEL_SITE_ORDER = ["arm", "thigh", "scrotal"] as const;
+export const GEL_SITE_ORDER = ["arm", "thigh", "scrotal"] as const;
 
 const GelSiteParams = {
     [GelSite.arm]: 0.05,
@@ -1060,6 +1060,94 @@ export async function decryptData(jsonString: string, password: string): Promise
         return new TextDecoder().decode(decrypted);
     } catch (e) {
         console.error(e);
+        return null;
+    }
+}
+
+// --- Cloud (end-to-end) encryption ---
+// Cloud backups are encrypted client-side with a key derived from the login
+// password so the server/admin can never read the plaintext health data.
+// The salt is the user's stable id, so the key is consistent across devices
+// and survives username changes (a password change re-derives a new key).
+
+export interface CloudBundle {
+    cloud: 1;
+    iv: string;
+    data: string;
+}
+
+async function importRawAesKey(rawKeyB64: string): Promise<CryptoKey> {
+    return window.crypto.subtle.importKey(
+        "raw",
+        base64ToBuff(rawKeyB64) as any,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
+// Derive an extractable AES-GCM key from the password + a stable per-user salt,
+// returning the raw key bytes (base64) for caching on this device. The raw key
+// can decrypt backups but cannot be used to authenticate, so caching it is
+// strictly safer than caching the password itself.
+export async function deriveCloudKey(password: string, userId: string): Promise<string> {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+    const key = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: enc.encode(`hrt-cloud-v1:${userId}`) as any,
+            iterations: 600000,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
+    const raw = await window.crypto.subtle.exportKey("raw", key);
+    return buffToBase64(new Uint8Array(raw));
+}
+
+export function isCloudEncrypted(obj: any): obj is CloudBundle {
+    return !!(obj && obj.cloud === 1 && typeof obj.iv === 'string' && typeof obj.data === 'string');
+}
+
+export async function encryptCloudPayload(plaintext: string, rawKeyB64: string): Promise<CloudBundle> {
+    const key = await importRawAesKey(rawKeyB64);
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const enc = new TextEncoder();
+    const encrypted = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv as any },
+        key,
+        enc.encode(plaintext)
+    );
+    return {
+        cloud: 1,
+        iv: buffToBase64(iv),
+        data: buffToBase64(new Uint8Array(encrypted))
+    };
+}
+
+export async function decryptCloudPayload(bundle: any, rawKeyB64: string): Promise<string | null> {
+    try {
+        if (!isCloudEncrypted(bundle)) return null;
+        const key = await importRawAesKey(rawKeyB64);
+        const iv = base64ToBuff(bundle.iv);
+        const data = base64ToBuff(bundle.data);
+        const decrypted = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv as any },
+            key,
+            data as any
+        );
+        return new TextDecoder().decode(decrypted);
+    } catch (e) {
         return null;
     }
 }

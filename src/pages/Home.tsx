@@ -19,6 +19,7 @@ interface HomeProps {
     onEditEvent: (e: DoseEvent) => void;
     calibrationFn: (timeH: number) => number;
     theme: 'light' | 'dark' | 'system';
+    onNavigateToHistory: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -34,7 +35,8 @@ const Home: React.FC<HomeProps> = ({
     labResults,
     onEditEvent,
     calibrationFn,
-    theme
+    theme,
+    onNavigateToHistory,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
@@ -159,14 +161,31 @@ const Home: React.FC<HomeProps> = ({
             </header>
 
             <main className="w-full px-4 py-6 md:px-8 md:py-8 pb-32 md:pb-8">
-                <ResultChart
-                    sim={simulation}
-                    events={events}
-                    onPointClick={onEditEvent}
-                    labResults={labResults}
-                    calibrationFn={calibrationFn}
-                    isDarkMode={isDarkMode}
-                />
+                {events.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+                        <p className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            {t('home.empty_title')}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
+                            {t('home.empty_subtitle')}
+                        </p>
+                        <button
+                            onClick={onNavigateToHistory}
+                            className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--color-m3-primary)] text-[var(--color-m3-primary)] dark:border-[var(--color-m3-primary-light)] dark:text-[var(--color-m3-primary-light)] transition-colors hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-neutral-800"
+                        >
+                            {t('home.empty_cta')}
+                        </button>
+                    </div>
+                ) : (
+                    <ResultChart
+                        sim={simulation}
+                        events={events}
+                        onPointClick={onEditEvent}
+                        labResults={labResults}
+                        calibrationFn={calibrationFn}
+                        isDarkMode={isDarkMode}
+                    />
+                )}
             </main>
         </>
     );

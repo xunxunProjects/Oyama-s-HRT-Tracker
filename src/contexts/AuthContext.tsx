@@ -1,5 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService, User, AuthResponse } from '../services/auth';
+import { deriveCloudKey } from '../../logic';
+
+// Derive and cache the cloud-backup encryption key for this device. The key
+// is derived from the password (which only the client ever sees) so the
+// server/admin can never decrypt backups. Cached as raw bytes — it can decrypt
+// data but cannot be used to authenticate.
+async function setCloudKey(password: string, userId: string): Promise<void> {
+    try {
+        const raw = await deriveCloudKey(password, userId);
+        localStorage.setItem('enc_key', raw);
+    } catch {
+        // If derivation fails, fall back to no key (saves stay plaintext).
+        localStorage.removeItem('enc_key');
+    }
+}
 
 interface AuthContextType {
     user: User | null;
@@ -58,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        await setCloudKey(password, data.user.id);
         if (data.needsSetup2FA) {
             setNeedsSetup2FA(true);
             localStorage.setItem('needs_setup_2fa', 'true');
@@ -83,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        await setCloudKey(password, data.user.id);
         // 2FA setup is optional — do not force new users into setup flow.
         setNeedsSetup2FA(false);
         localStorage.removeItem('needs_setup_2fa');
@@ -100,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('needs_setup_2fa');
+        localStorage.removeItem('enc_key');
     };
 
     const updateProfile = async (username: string) => {
@@ -113,6 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const changePassword = async (current: string, newPass: string) => {
         if (!token) return;
         await authService.changePassword(token, current, newPass);
+        // Re-derive the cloud key for the new password. Backups made under the
+        // old password become unreadable (this is what also stops an admin who
+        // resets the password from decrypting them).
+        if (user) await setCloudKey(newPass, user.id);
     };
 
     const deleteAccount = async (password: string) => {

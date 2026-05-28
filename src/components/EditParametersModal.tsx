@@ -154,7 +154,7 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                            className="p-2 rounded-full text-gray-400 bg-gray-100 dark:bg-neutral-800 transition-colors"
                         >
                             <X size={18} />
                         </button>

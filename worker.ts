@@ -10,34 +10,51 @@ export interface Env {
   AVATAR_BUCKET: R2Bucket;
 }
 
-// Rate limiting map (in-memory, simple implementation)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const MAX_RATE_LIMIT_ENTRIES = 10000; // Prevent unbounded memory growth
-
-function checkRateLimit(ip: string, maxRequests = 5, windowMs = 60000): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-
-  // Periodic cleanup if the map gets too large (triggered probabilistically to avoid DoS)
-  if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES && Math.random() < 0.1) {
-    let count = 0;
-    for (const [key, value] of rateLimitMap.entries()) {
-      if (now > value.resetTime) {
-        rateLimitMap.delete(key);
-        count++;
-      }
-      if (count > 500) break; // Clean in small batches
-    }
+// Rate limiting backed by D1 so limits are enforced across Cloudflare's
+// distributed, ephemeral Worker isolates (an in-memory Map is per-isolate and
+// effectively unenforceable, leaving login brute-force unthrottled).
+let rateLimitEnsured = false;
+async function ensureRateLimitTable(env: Env): Promise<void> {
+  if (rateLimitEnsured) return;
+  try {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS rate_limits (
+        key TEXT PRIMARY KEY,
+        count INTEGER NOT NULL,
+        reset_time INTEGER NOT NULL
+      )`
+    ).run();
+    rateLimitEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure rate_limits table:', e);
   }
+}
 
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
+async function checkRateLimit(env: Env, key: string, maxRequests = 5, windowMs = 60000): Promise<boolean> {
+  await ensureRateLimitTable(env);
+  const now = Date.now();
+  try {
+    const record = await env.DB.prepare('SELECT count, reset_time FROM rate_limits WHERE key = ?').bind(key).first() as { count: number; reset_time: number } | null;
+
+    if (!record || now > record.reset_time) {
+      await env.DB.prepare(
+        'INSERT INTO rate_limits (key, count, reset_time) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = 1, reset_time = excluded.reset_time'
+      ).bind(key, now + windowMs).run();
+      // Opportunistic cleanup of expired rows to keep the table small.
+      if (Math.random() < 0.05) {
+        await env.DB.prepare('DELETE FROM rate_limits WHERE reset_time < ?').bind(now).run();
+      }
+      return true;
+    }
+
+    if (record.count >= maxRequests) return false;
+    await env.DB.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').bind(key).run();
+    return true;
+  } catch (e) {
+    // Fail open on DB errors — never lock every user out due to an infra hiccup.
+    console.error('Rate limit check failed:', e);
     return true;
   }
-
-  if (record.count >= maxRequests) return false;
-  record.count++;
-  return true;
 }
 
 function withSecurityHeaders(response: Response): Response {
@@ -45,7 +62,7 @@ function withSecurityHeaders(response: Response): Response {
   newResponse.headers.set('X-Content-Type-Options', 'nosniff');
   newResponse.headers.set('X-Frame-Options', 'DENY');
   newResponse.headers.set('X-XSS-Protection', '1; mode=block');
-  newResponse.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;");
+  newResponse.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self';");
   return newResponse;
 }
 
@@ -183,6 +200,10 @@ async function verifyTOTP(secret: string, token: string, windowSize = 1): Promis
 }
 
 // --- Sessions table lazy creation ---
+// Revoke sessions left idle beyond this window (seconds). Shorter than the
+// 7-day JWT lifetime so inactivity caps how long a stolen token survives.
+const SESSION_IDLE_TIMEOUT_SECONDS = 3 * 24 * 60 * 60; // 3 days
+
 let sessionsEnsured = false;
 async function ensureSessions(env: Env): Promise<void> {
   if (sessionsEnsured) return;
@@ -472,7 +493,10 @@ export default {
 
     // 1. Static Assets (Non-API)
     if (!url.pathname.startsWith('/api/')) {
-      return env.ASSETS.fetch(request);
+      // Attach security headers (incl. CSP) to the document/assets too — without
+      // this the CSP only rode on API responses and never reached the HTML page.
+      const assetResponse = await env.ASSETS.fetch(request);
+      return withSecurityHeaders(assetResponse);
     }
 
     // 2. API Routes
@@ -504,7 +528,7 @@ export default {
           request.headers.get('X-Real-IP');
 
         if (!clientIP) return withSecurityHeaders(new Response('Unable to identify client IP', { status: 400, headers: corsHeaders }));
-        if (!checkRateLimit(clientIP, 10, 60000)) { // Slightly relaxed but broader coverage
+        if (!(await checkRateLimit(env, clientIP, 10, 60000))) { // Slightly relaxed but broader coverage
           return withSecurityHeaders(new Response('Too many requests. Please try again later.', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
         }
       }
@@ -517,7 +541,7 @@ export default {
         // X-Forwarded-For / X-Real-IP can be spoofed by clients and would
         // allow trivial rate-limit evasion.
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!checkRateLimit(`transparency:${clientIP}`, 30, 60000)) {
+        if (!(await checkRateLimit(env, `transparency:${clientIP}`, 30, 60000))) {
           return withSecurityHeaders(new Response('Too many requests. Please try again later.', {
             status: 429, headers: { ...corsHeaders, 'Retry-After': '60' }
           }));
@@ -727,7 +751,7 @@ export default {
       // POST /api/auth/passkey-options — generate WebAuthn auth challenge (public, no JWT)
       if (url.pathname === '/api/auth/passkey-options' && request.method === 'POST') {
         const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        if (!checkRateLimit(`passkey-options:${clientIP}`, 10, 60000)) {
+        if (!(await checkRateLimit(env, `passkey-options:${clientIP}`, 10, 60000))) {
           return withSecurityHeaders(new Response('Too many requests', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
         }
         await ensurePasskeys(env);
@@ -755,7 +779,7 @@ export default {
       // POST /api/auth/passkey-verify — verify WebAuthn assertion and issue session JWT (public)
       if (url.pathname === '/api/auth/passkey-verify' && request.method === 'POST') {
         const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        if (!checkRateLimit(`passkey-verify:${clientIP}`, 10, 60000)) {
+        if (!(await checkRateLimit(env, `passkey-verify:${clientIP}`, 10, 60000))) {
           return withSecurityHeaders(new Response('Too many requests', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
         }
         await ensurePasskeys(env);
@@ -834,9 +858,17 @@ export default {
           if (!session) {
             return withSecurityHeaders(new Response('Session expired or revoked', { status: 401, headers: corsHeaders }));
           }
-          // Lazy last_used_at update (only if >5 min stale)
           const nowTs = Math.floor(Date.now() / 1000);
-          if (nowTs - (session.last_used_at ?? 0) > 300) {
+          const lastUsed = session.last_used_at ?? nowTs;
+          // Idle timeout: a session unused beyond the window is revoked, even
+          // though the JWT itself may still be within its 7-day lifetime. This
+          // shrinks the window a stolen token stays usable on a dormant account.
+          if (nowTs - lastUsed > SESSION_IDLE_TIMEOUT_SECONDS) {
+            ctx.waitUntil(env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run());
+            return withSecurityHeaders(new Response('Session expired due to inactivity', { status: 401, headers: corsHeaders }));
+          }
+          // Lazy last_used_at update (only if >5 min stale)
+          if (nowTs - lastUsed > 300) {
             ctx.waitUntil(env.DB.prepare('UPDATE sessions SET last_used_at = ? WHERE id = ?').bind(nowTs, sessionId).run());
           }
         }

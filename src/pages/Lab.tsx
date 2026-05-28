@@ -46,7 +46,7 @@ const Lab: React.FC<LabProps> = ({
                     </h2>
                     <button
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 dark:text-gray-500 hover:text-[var(--color-m3-primary)] dark:hover:text-[var(--color-m3-primary-light)] hover:bg-gray-100 dark:hover:bg-neutral-800 transition-all duration-200"
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] bg-gray-100 dark:bg-neutral-800 transition-all duration-200"
                     >
                         <Plus size={18} className={`transition-transform duration-300 ${isQuickAddLabOpen ? 'rotate-45' : 'rotate-0'}`} />
                     </button>
