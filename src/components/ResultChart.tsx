@@ -89,6 +89,32 @@ const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode, isTransmas
     return null;
 };
 
+// Pick a "nice" rounding step (1/2/5 × 10^n) near the requested magnitude.
+const niceStep = (raw: number): number => {
+    if (!(raw > 0)) return 1;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    const nice = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+    return nice * mag;
+};
+
+// Build a padded, tick-friendly [min, max] Y domain from observed values.
+// Returns undefined when there is nothing to bound (caller falls back to auto).
+const buildYDomain = (min: number, max: number): [number, number] | undefined => {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return undefined;
+    if (max <= 0) return [0, 1];
+    if (max === min) {
+        min = Math.max(0, min - (min * 0.1 || 0.5));
+        max = max + (max * 0.1 || 1);
+    }
+    const pad = (max - min) * 0.08;
+    const step = niceStep((max - min + 2 * pad) / 4);
+    const lo = Math.max(0, Math.floor((min - pad) / step) * step);
+    let hi = Math.ceil((max + pad) / step) * step;
+    if (hi <= lo) hi = lo + step;
+    return [lo, hi];
+};
+
 const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick, isDarkMode = false }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void, isDarkMode?: boolean }) => {
     const { t, lang } = useTranslation();
     const { isTransmasc } = useHRTMode();
@@ -257,6 +283,77 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
             concCPA: finalCPA
         };
     }, [sim, data, now, calibrationFn, isTransmasc]);
+
+    // Scale the Y axes to the data visible in the current X window, so that
+    // zooming/panning past a historical peak no longer squashes the curve.
+    const { yDomainLeft, yDomainRight } = useMemo(() => {
+        const [winStart, winEnd] = xDomain || [minTime, maxTime];
+        let lMin = Infinity, lMax = -Infinity;
+        let rMin = Infinity, rMax = -Infinity;
+        const addLeft = (time: number, v: number | null | undefined) => {
+            if (v == null || !Number.isFinite(v) || time < winStart || time > winEnd) return;
+            if (v < lMin) lMin = v;
+            if (v > lMax) lMax = v;
+        };
+        const addRight = (time: number, v: number | null | undefined) => {
+            if (v == null || !Number.isFinite(v) || time < winStart || time > winEnd) return;
+            if (v < rMin) rMin = v;
+            if (v > rMax) rMax = v;
+        };
+        for (const d of data) { addLeft(d.time, d.concE2); addRight(d.time, d.concCPA); }
+        for (const p of labPoints) addLeft(p.time, p.concE2);
+        if (eventPoints?.e2Points) for (const p of eventPoints.e2Points) addLeft(p.time, p.concE2);
+        for (const p of cpaEventPoints) addRight(p.time, p.concCPA);
+        if (nowPoint) { addLeft(nowPoint.time, nowPoint.concE2); addRight(nowPoint.time, nowPoint.concCPA); }
+        return {
+            yDomainLeft: buildYDomain(lMin, lMax),
+            yDomainRight: buildYDomain(rMin, rMax),
+        };
+    }, [xDomain, data, labPoints, eventPoints, cpaEventPoints, nowPoint, minTime, maxTime]);
+
+    // Animate the Y domains so the axis glides instead of snapping on zoom/pan.
+    const [dispYLeft,  setDispYLeft]  = useState<[number, number] | undefined>(undefined);
+    const [dispYRight, setDispYRight] = useState<[number, number] | undefined>(undefined);
+    const yLeftRafRef   = useRef<number>(0);
+    const yRightRafRef  = useRef<number>(0);
+    const yLeftFromRef  = useRef<[number, number] | null>(null);
+    const yRightFromRef = useRef<[number, number] | null>(null);
+
+    useEffect(() => {
+        if (!yDomainLeft) { cancelAnimationFrame(yLeftRafRef.current); setDispYLeft(undefined); return; }
+        cancelAnimationFrame(yLeftRafRef.current);
+        const from: [number, number] = yLeftFromRef.current ?? yDomainLeft;
+        const [tLo, tHi] = yDomainLeft;
+        const startTime = performance.now();
+        const tick = (now: number) => {
+            const t = Math.min((now - startTime) / 250, 1);
+            const ease = 1 - Math.pow(1 - t, 3);
+            const cur: [number, number] = [from[0] + (tLo - from[0]) * ease, from[1] + (tHi - from[1]) * ease];
+            yLeftFromRef.current = cur;
+            setDispYLeft(cur);
+            if (t < 1) yLeftRafRef.current = requestAnimationFrame(tick);
+        };
+        yLeftRafRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(yLeftRafRef.current);
+    }, [yDomainLeft]);
+
+    useEffect(() => {
+        if (!yDomainRight) { cancelAnimationFrame(yRightRafRef.current); setDispYRight(undefined); return; }
+        cancelAnimationFrame(yRightRafRef.current);
+        const from: [number, number] = yRightFromRef.current ?? yDomainRight;
+        const [tLo, tHi] = yDomainRight;
+        const startTime = performance.now();
+        const tick = (now: number) => {
+            const t = Math.min((now - startTime) / 250, 1);
+            const ease = 1 - Math.pow(1 - t, 3);
+            const cur: [number, number] = [from[0] + (tLo - from[0]) * ease, from[1] + (tHi - from[1]) * ease];
+            yRightFromRef.current = cur;
+            setDispYRight(cur);
+            if (t < 1) yRightRafRef.current = requestAnimationFrame(tick);
+        };
+        yRightRafRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(yRightRafRef.current);
+    }, [yDomainRight]);
 
     // Slider helpers for quick panning (helps mobile users)
     // Initialize view: center on "now" with a reasonable window (e.g. 14 days)
@@ -461,6 +558,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                 <YAxis
                                     yAxisId="left"
                                     dataKey="concE2"
+                                    domain={dispYLeft ?? yDomainLeft ?? [0, 'auto']}
+                                    allowDataOverflow
+                                    tickCount={5}
+                                    tickFormatter={(v: number) => v.toFixed(1)}
                                     tick={{ fontSize: 10, fill: isTransmasc ? '#0ea5e9' : '#ec4899', fontWeight: 600 }}
                                     axisLine={false}
                                     tickLine={false}
@@ -473,6 +574,10 @@ const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number
                                     yAxisId="right"
                                     orientation="right"
                                     dataKey="concCPA"
+                                    domain={dispYRight ?? yDomainRight ?? [0, 'auto']}
+                                    allowDataOverflow
+                                    tickCount={5}
+                                    tickFormatter={(v: number) => v.toFixed(1)}
                                     tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 600 }}
                                     axisLine={false}
                                     tickLine={false}
