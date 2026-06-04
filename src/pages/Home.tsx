@@ -130,7 +130,7 @@ const Home: React.FC<HomeProps> = ({
                                                     <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">pg/ml</span>
                                                 </>
                                             ) : (
-                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
+                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">--</span>
                                             )}
                                         </div>
                                     </div>

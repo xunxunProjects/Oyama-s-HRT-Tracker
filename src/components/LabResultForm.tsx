@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { LabResult } from '../../logic';
-import { Calendar, Activity, Check, Trash2, X, ChevronDown } from 'lucide-react';
+import { Calendar, Check, Trash2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -106,7 +106,6 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                 {/* Value & Unit */}
                 <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1 flex items-center gap-1.5">
-                        <Activity size={14} className="text-gray-400 dark:text-gray-500" />
                         {isTransmasc ? t('lab.value_t') : t('lab.value')}
                     </label>
                     <div className="flex gap-2 items-center">

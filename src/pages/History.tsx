@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Plus } from 'lucide-react';
+import { ListTodo, Plus } from 'lucide-react';
 import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster } from '../../logic';
 import { formatTime, getRouteIcon } from '../utils/helpers';
 import DoseForm from '../components/DoseForm';
@@ -45,7 +45,7 @@ const History: React.FC<HistoryProps> = ({
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-500 dark:text-pink-400 rounded-lg">
-                            <Activity size={20} />
+                            <ListTodo size={20} />
                         </div>
                         <div>
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
