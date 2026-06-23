@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlaskConical, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { LabResult } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
@@ -35,27 +35,25 @@ const Lab: React.FC<LabProps> = ({
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
 
     return (
-        <div className="relative space-y-6 pt-6 pb-32">
-            <div className="px-6 md:px-8">
-                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
-                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg">
-                            <FlaskConical size={20} />
-                        </div>
-                        {t('lab.title')}
-                    </h2>
-                    <button
-                        onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] bg-gray-100 dark:bg-neutral-800 transition-all duration-200"
-                    >
-                        <Plus size={18} className={`transition-transform duration-300 ${isQuickAddLabOpen ? 'rotate-45' : 'rotate-0'}`} />
-                    </button>
-                </div>
+        <div className="relative pb-32">
+            {/* Header */}
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-4 flex items-center justify-between">
+                <h1 className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                    {t('lab.title')}
+                </h1>
+                <button
+                    onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] px-2 py-1 -mr-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                >
+                    <Plus size={15} className={`transition-transform ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
+                    <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
+                </button>
             </div>
 
-            <div className={`grid transition-all duration-300 ease-in-out ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            {/* Expandable add form */}
+            <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="mx-6 md:mx-8 mb-6">
+                    <div className="px-6 md:px-8 mb-6">
                         <LabResultForm
                             resultToEdit={null}
                             onSave={(res) => {
@@ -63,87 +61,89 @@ const Lab: React.FC<LabProps> = ({
                                 setIsQuickAddLabOpen(false);
                             }}
                             onCancel={() => setIsQuickAddLabOpen(false)}
-                            onDelete={() => { }}
+                            onDelete={() => {}}
                             isInline={true}
                         />
                     </div>
                 </div>
             </div>
 
-            {labResults.length === 0 ? (
-                <div className="mx-6 md:mx-8 text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
-                    <p className="text-sm font-medium">{t('lab.empty')}</p>
-                </div>
-            ) : (
-                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    {labResults
-                        .slice()
-                        .sort((a, b) => b.timeH - a.timeH)
-                        .map(res => {
-                            const d = new Date(res.timeH * 3600000);
-                            const isEditing = editingLabId === res.id;
-                            return (
-                                <div key={res.id} className="flex flex-col">
-                                    <div
-                                        className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
-                                        onClick={() => setEditingLabId(isEditing ? null : res.id)}
-                                    >
-                                        <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400">
-                                            <FlaskConical size={18} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                                    {res.concValue} {res.unit}
-                                                </span>
-                                                <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                                                    {formatTime(d)}
-                                                </span>
+            {/* Content */}
+            <div className="px-6 md:px-8">
+                {labResults.length === 0 ? (
+                    <div className="py-20 text-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                        <p className="text-sm">{t('lab.empty')}</p>
+                    </div>
+                ) : (
+                    <div>
+                        {labResults
+                            .slice()
+                            .sort((a, b) => b.timeH - a.timeH)
+                            .map(res => {
+                                const d = new Date(res.timeH * 3600000);
+                                const isEditing = editingLabId === res.id;
+                                return (
+                                    <div key={res.id} className="border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0">
+                                        <div
+                                            className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isEditing ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}`}
+                                            onClick={() => setEditingLabId(isEditing ? null : res.id)}
+                                        >
+                                            <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-primary)]" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">
+                                                        {res.concValue} {res.unit}
+                                                    </span>
+                                                    <span className="text-xs tabular-nums text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0">
+                                                        {formatTime(d)}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                                    {formatDate(d, lang)}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                                {formatDate(d, lang)}
+                                        </div>
+                                        <div className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                            <div className="overflow-hidden">
+                                                <div className="pb-4 pt-1">
+                                                    <LabResultForm
+                                                        resultToEdit={res}
+                                                        onSave={(updated) => {
+                                                            onSaveLabResult(updated);
+                                                            setEditingLabId(null);
+                                                        }}
+                                                        onCancel={() => setEditingLabId(null)}
+                                                        onDelete={(id) => {
+                                                            onDeleteLabResult(id);
+                                                            setEditingLabId(null);
+                                                        }}
+                                                        isInline={true}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={`grid transition-all duration-300 ease-in-out ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                        <div className="overflow-hidden">
-                                            <div className="px-4 pb-4 pt-1">
-                                                <LabResultForm
-                                                    resultToEdit={res}
-                                                    onSave={(updated) => {
-                                                        onSaveLabResult(updated);
-                                                        setEditingLabId(null);
-                                                    }}
-                                                    onCancel={() => setEditingLabId(null)}
-                                                    onDelete={(id) => {
-                                                        onDeleteLabResult(id);
-                                                        setEditingLabId(null);
-                                                    }}
-                                                    isInline={true}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                </div>
-            )}
+                                );
+                            })}
+                    </div>
+                )}
 
-            <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 flex items-center justify-between px-5 py-4">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('lab.tip_scale')} <span className="text-gray-900 dark:text-gray-100 font-semibold">×{calibrationFn(currentTime.getTime() / 3600000).toFixed(2)}</span>
-                </div>
-                <button
-                    onClick={onClearLabResults}
-                    disabled={!labResults.length}
-                    className={`px-3 py-1.5 rounded text-xs transition-colors ${labResults.length
-                        ? 'text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
-                        : 'text-gray-400 bg-gray-100 dark:bg-neutral-800 cursor-not-allowed'
+                {/* Calibration factor + clear */}
+                <div className="flex items-center justify-between py-4 mt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                    <p className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                        {t('lab.tip_scale')} <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-semibold">×{calibrationFn(currentTime.getTime() / 3600000).toFixed(2)}</span>
+                    </p>
+                    <button
+                        onClick={onClearLabResults}
+                        disabled={!labResults.length}
+                        className={`text-sm font-medium ${labResults.length
+                            ? 'text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300'
+                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-40 cursor-not-allowed'
                         }`}
-                >
-                    {t('lab.clear_all')}
-                </button>
+                    >
+                        {t('lab.clear_all')}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -98,7 +98,7 @@ const SessionsModal: React.FC<SessionsModalProps> = ({ isOpen, onClose, token })
     const otherSessions = sessions.filter(s => !s.is_current);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-neutral-800">
@@ -108,7 +108,7 @@ const SessionsModal: React.FC<SessionsModalProps> = ({ isOpen, onClose, token })
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
                     >
                         <X size={18} />
                     </button>
@@ -155,7 +155,7 @@ const SessionsModal: React.FC<SessionsModalProps> = ({ isOpen, onClose, token })
                                             <button
                                                 onClick={() => handleTerminate(s.id)}
                                                 disabled={isTerminating || terminating === 'others'}
-                                                className="shrink-0 mt-0.5 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-40"
+                                                className="shrink-0 mt-0.5 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
                                             >
                                                 {isTerminating ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                                             </button>
@@ -173,7 +173,7 @@ const SessionsModal: React.FC<SessionsModalProps> = ({ isOpen, onClose, token })
                         <button
                             onClick={handleTerminateOthers}
                             disabled={terminating === 'others'}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 disabled:opacity-50"
                         >
                             {terminating === 'others' ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
                             {t('account.sessions_terminate_others')}

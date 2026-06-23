@@ -1,81 +1,97 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ImportSectionProps {
     onImportJson: (text: string) => boolean | Promise<boolean>;
 }
 
+const rowBase = "flex items-start justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const rowLabel = "text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const rowDesc = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5";
+const actionBtn = "text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0 ml-6 mt-0.5";
+
 const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
     const { t } = useTranslation();
-    const [text, setText] = useState("");
+    const [showPaste, setShowPaste] = useState(false);
+    const [text, setText] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = async () => {
-            const content = reader.result as string;
-            await onImportJson(content);
+            await onImportJson(reader.result as string);
         };
         reader.readAsText(file);
-        e.target.value = "";
+        e.target.value = '';
     };
 
     const handleTextImport = async () => {
         await onImportJson(text);
-        setText("");
+        setText('');
+        setShowPaste(false);
     };
 
     return (
-        <div className="flex flex-col space-y-4 pt-1 pb-1">
-            <div className="space-y-4">
+        <div>
+            {/* File import */}
+            <div className={rowBase}>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
-                        {t('import.text')}
-                    </label>
-                    <textarea
-                        className="w-full h-24 p-3 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-[var(--color-m3-primary)]/20 focus:border-[var(--color-m3-primary)] outline-none font-mono text-gray-900 dark:text-gray-100 placeholder:text-gray-400 resize-none transition-all"
-                        placeholder={t('import.paste_hint')}
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                    />
-                    <button
-                        onClick={handleTextImport}
-                        disabled={!text.trim()}
-                        className="mt-3 w-full py-2.5 text-sm bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-                    >
-                        {t('drawer.import')}
-                    </button>
+                    <p className={rowLabel}>{t('import.file')}</p>
                 </div>
+                <button onClick={() => fileInputRef.current?.click()} className={actionBtn}>
+                    {t('import.file_btn')}
+                </button>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    onChange={handleFileChange}
+                />
+            </div>
 
-                <div className="relative flex items-center py-1">
-                    <div className="flex-grow border-t border-gray-100 dark:border-neutral-800"></div>
-                    <span className="flex-shrink-0 mx-3 text-gray-300 dark:text-gray-600 text-[10px] uppercase font-bold tracking-widest">OR</span>
-                    <div className="flex-grow border-t border-gray-100 dark:border-neutral-800"></div>
-                </div>
+            {/* Paste JSON */}
+            <div className="border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0">
+                <button
+                    onClick={() => { setShowPaste(v => !v); setText(''); }}
+                    className="w-full flex items-start justify-between py-[18px] text-start"
+                >
+                    <div>
+                        <p className={rowLabel}>{t('import.text')}</p>
+                        <p className={rowDesc}>{t('import.paste_hint')}</p>
+                    </div>
+                    <span className="shrink-0 ml-6 mt-0.5 p-1 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                        {showPaste ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                </button>
 
-                <div className="pb-1">
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-3.5 text-sm border-2 border-dashed border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 font-semibold rounded-lg hover:border-[var(--color-m3-primary)] dark:hover:border-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-[var(--color-m3-primary)]/10 hover:text-[var(--color-m3-primary)] dark:hover:text-[var(--color-m3-primary-light)] transition flex items-center justify-center gap-2 group"
-                    >
-                        <Upload size={18} className="transition-transform group-hover:-translate-y-0.5" />
-                        {t('import.file_btn')}
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/json"
-                        className="hidden"
-                        onChange={handleJsonFileChange}
-                    />
-                </div>
+                {showPaste && (
+                    <div className="pb-4 space-y-3">
+                        <textarea
+                            className="w-full h-28 p-3 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md outline-none focus:border-[var(--color-m3-outline)] dark:focus:border-[var(--color-m3-dark-outline)] font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)] resize-none"
+                            style={{ fontSize: '16px' }}
+                            placeholder={t('import.paste_hint')}
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                        />
+                        <div className="flex justify-end">
+                            <button
+                                onClick={handleTextImport}
+                                disabled={!text.trim()}
+                                className="px-4 py-2 text-sm font-medium bg-[var(--color-m3-primary)] text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {t('drawer.import')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

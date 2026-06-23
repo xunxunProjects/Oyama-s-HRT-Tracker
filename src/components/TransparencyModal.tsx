@@ -113,7 +113,7 @@ const TransparencyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                                 onClick={() => load()}
                                 disabled={loading}
                                 aria-label={t('transparency.refresh')}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50"
                             >
                                 {loading
                                     ? <Loader2 size={16} className="animate-spin text-gray-500" />
@@ -122,7 +122,7 @@ const TransparencyModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                             <button
                                 onClick={onClose}
                                 aria-label={t('btn.close') || 'Close'}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800"
                             >
                                 <X size={16} className="text-gray-500" />
                             </button>

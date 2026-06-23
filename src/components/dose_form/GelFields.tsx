@@ -9,22 +9,30 @@ interface GelFieldsProps {
     setGelSite: (val: number) => void;
     e2Dose: string;
     onE2Change: (val: string) => void;
+    bioMultiplier?: number;
 }
 
 const GelFields: React.FC<GelFieldsProps> = ({
     gelSite,
     setGelSite,
     e2Dose,
-    onE2Change
+    onE2Change,
+    bioMultiplier
 }) => {
     const { t } = useTranslation();
     const { isTransmasc } = useHRTMode();
     const equivLabelKey = isTransmasc ? 'field.dose_t' : 'field.dose_e2';
 
+    const appliedVal = parseFloat(e2Dose);
+    const hasDose = Number.isFinite(appliedVal) && appliedVal > 0;
+    const absorbed = hasDose && bioMultiplier ? appliedVal * bioMultiplier : null;
+    const bioPct = bioMultiplier ? (bioMultiplier * 100) : null;
+
     return (
         <div className="space-y-4">
-            <div className="space-y-2">
-                <label className="block text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('field.gel_site')}</label>
+            {/* Application site */}
+            <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.gel_site')}</label>
                 <CustomSelect
                     value={String(gelSite)}
                     onChange={(val) => setGelSite(parseInt(val, 10))}
@@ -33,13 +41,12 @@ const GelFields: React.FC<GelFieldsProps> = ({
                         label: t(`gel.site.${siteKey}`)
                     }))}
                 />
-                <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-[var(--radius-md)]">
-                    {t('beta.gel')}
-                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-400 pl-1">{t('beta.gel')}</p>
             </div>
 
-            <div className="space-y-2 col-span-2">
-                <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
+            {/* Applied dose */}
+            <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
                     {t(equivLabelKey)}
                 </label>
                 <input
@@ -47,9 +54,19 @@ const GelFields: React.FC<GelFieldsProps> = ({
                     min="0"
                     step="0.001"
                     value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                    className="w-full p-3 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-xl focus:ring-1 focus:ring-[var(--color-m3-accent)] focus:border-[var(--color-m3-accent)] outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0.0"
+                    style={{ fontSize: '16px' }}
                 />
+                {/* Absorbed estimate from site bioavailability */}
+                {bioPct !== null && (
+                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pl-1">
+                        {t('gel.bioavailability')}: {bioPct.toFixed(0)}%
+                        {absorbed !== null && (
+                            <> · {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg</>
+                        )}
+                    </p>
+                )}
             </div>
         </div>
     );

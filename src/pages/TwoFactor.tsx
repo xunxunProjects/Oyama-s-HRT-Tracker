@@ -34,14 +34,53 @@ function detectDeviceName(): string {
     return 'Unknown device';
 }
 
+const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const labelCls = `block text-xs font-semibold ${muted} uppercase tracking-wider mb-1`;
+const primaryBtn = "w-full py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2";
+
+const ErrLine: React.FC<{ msg: string | null }> = ({ msg }) =>
+    msg ? (
+        <p className="flex items-center gap-1.5 text-sm text-red-500 dark:text-red-400">
+            <AlertCircle size={13} className="shrink-0" />{msg}
+        </p>
+    ) : null;
+
+const BackupCodesBlock: React.FC<{
+    codes: string[];
+    copied: boolean;
+    onCopy: () => void;
+    onDownload: () => void;
+    t: (k: string) => string;
+}> = ({ codes, copied, onCopy, onDownload, t }) => (
+    <div className={`py-4 ${divider}`}>
+        <p className={`text-xs font-semibold ${muted} mb-3`}>{t('account.backup_codes_warning')}</p>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+            {codes.map((c, i) => (
+                <code key={i} className={`text-center text-xs font-mono tabular-nums py-1.5 px-2 rounded-md bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ${on}`}>{c}</code>
+            ))}
+        </div>
+        <div className="flex gap-3">
+            <button onClick={onCopy} className={`flex items-center gap-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}>
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
+            </button>
+            <button onClick={onDownload} className={`flex items-center gap-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}>
+                <Download size={12} />{t('account.backup_codes_download')}
+            </button>
+        </div>
+    </div>
+);
+
 const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack, setupRequired = false }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
 
-    // ---- Tab ----
     const [activeTab, setActiveTab] = useState<ActiveTab>('totp');
 
-    // ---- TOTP state ----
+    // TOTP
     const [step, setStep] = useState<SetupStep>('scan');
     const [secret, setSecret] = useState('');
     const [uri, setUri] = useState('');
@@ -58,7 +97,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [disableLoading, setDisableLoading] = useState(false);
     const [disableError, setDisableError] = useState<string | null>(null);
 
-    // ---- Passkey state ----
+    // Passkey
     const [passkeys, setPasskeys] = useState<Passkey[]>([]);
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [passkeyError, setPasskeyError] = useState<string | null>(null);
@@ -67,7 +106,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [passkeySuccess, setPasskeySuccess] = useState(false);
     const webauthnSupported = typeof window !== 'undefined' && !!window.PublicKeyCredential;
 
-    // ---- Backup codes state ----
+    // Backup codes
     const [backupCodes, setBackupCodes] = useState<string[]>([]);
     const [backupRemaining, setBackupRemaining] = useState<number | null>(null);
     const [backupLoading, setBackupLoading] = useState(false);
@@ -86,7 +125,6 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ---- TOTP helpers ----
     const handleCopySecret = () => {
         navigator.clipboard.writeText(secret).then(() => {
             if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
@@ -119,8 +157,6 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setBackupCodes(result.backupCodes ?? []);
             setBackupRemaining(result.backupCodes?.length ?? 0);
             setSuccess(true);
-            // onStatusChange(true) is called when the user dismisses the success screen,
-            // so the !enabled guard doesn't collapse the backup-codes view prematurely.
         } catch (e: any) {
             const msg = e.message || '';
             setError(msg.includes('Invalid') ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
@@ -129,7 +165,6 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         }
     };
 
-    // ---- Backup code helpers ----
     const fetchBackupRemaining = async () => {
         try {
             const data = await authService.getBackupCodesStatus(token);
@@ -192,25 +227,21 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         }
     };
 
-    // ---- Passkey helpers ----
     const fetchPasskeys = async () => {
         setPasskeyLoading(true);
         setPasskeyError(null);
         try {
             const list = await authService.listPasskeys(token);
             setPasskeys(list);
-        } catch {
-            setPasskeyError(t('account.passkey_fetch_failed'));
+        } catch (e: any) {
+            setPasskeyError(e.message);
         } finally {
             setPasskeyLoading(false);
         }
     };
 
     const handleRegisterPasskey = async () => {
-        if (!webauthnSupported) {
-            setPasskeyError(t('auth.passkey_unsupported'));
-            return;
-        }
+        if (!webauthnSupported) return;
         setRegisterLoading(true);
         setPasskeyError(null);
         setPasskeySuccess(false);
@@ -218,50 +249,43 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             const opts = await authService.registerPasskeyOptions(token);
             const credential = await navigator.credentials.create({
                 publicKey: {
-                    rp: opts.rp,
-                    user: {
-                        id: b64url2ab(opts.user.id),
-                        name: opts.user.name,
-                        displayName: opts.user.displayName,
-                    },
+                    rp: { name: 'HRT Tracker', id: window.location.hostname },
+                    user: { id: new Uint8Array(16), name: 'user', displayName: 'User' },
                     challenge: b64url2ab(opts.challenge),
-                    pubKeyCredParams: opts.pubKeyCredParams,
-                    timeout: opts.timeout,
-                    authenticatorSelection: opts.authenticatorSelection,
-                    attestation: opts.attestation,
+                    pubKeyCredParams: [
+                        { type: 'public-key', alg: -7 },
+                        { type: 'public-key', alg: -257 },
+                    ],
+                    authenticatorSelection: { userVerification: 'preferred', residentKey: 'preferred' },
+                    timeout: 60000,
+                    excludeCredentials: opts.excludeCredentialIds?.map(id => ({
+                        type: 'public-key' as const,
+                        id: b64url2ab(id),
+                    })) ?? [],
                 },
             }) as PublicKeyCredential | null;
-            if (!credential) throw new Error('Cancelled');
-            const result = await authService.registerPasskey(
-                token,
-                opts.challengeToken,
-                serializeAttestationCredential(credential),
-                detectDeviceName(),
-            );
-            if (result.backupCodes && result.backupCodes.length > 0) {
-                setBackupCodes(result.backupCodes);
-                setBackupRemaining(result.backupCodes.length);
-            }
+            if (!credential) return;
+            const deviceName = detectDeviceName();
+            await authService.registerPasskey(token, opts.challengeToken, serializeAttestationCredential(credential), deviceName);
             setPasskeySuccess(true);
-            onStatusChange(true);
             await fetchPasskeys();
         } catch (e: any) {
-            if (e.name !== 'NotAllowedError' && e.message !== 'Cancelled') {
-                setPasskeyError(e.message || t('account.passkey_register_failed'));
+            if (e.name !== 'NotAllowedError') {
+                setPasskeyError(e.message || t('auth.passkey_failed'));
             }
         } finally {
             setRegisterLoading(false);
         }
     };
 
-    const handleDeletePasskey = (pk: Passkey) => {
+    const handleDeletePasskey = async (pk: Passkey) => {
         showDialog('confirm', t('account.passkey_delete_confirm'), async () => {
             setDeleteLoadingId(pk.id);
             try {
                 await authService.deletePasskey(token, pk.id);
                 setPasskeys(prev => prev.filter(p => p.id !== pk.id));
-            } catch {
-                setPasskeyError(t('account.passkey_delete_failed'));
+            } catch (e: any) {
+                setPasskeyError(e.message);
             } finally {
                 setDeleteLoadingId(null);
             }
@@ -277,52 +301,44 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     };
 
     return (
-        <div className="relative pt-6 pb-32">
-            {/* Mandatory setup banner */}
-            {setupRequired && (
-                <div className="px-6 md:px-10 mb-4">
-                    <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm">
-                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                        <span>{t('auth.setup_2fa_required')}</span>
-                    </div>
-                </div>
-            )}
+        <div className="relative pb-32">
             {/* Header */}
-            <div className="px-6 md:px-10 mb-5">
-                <div className="w-full p-4 rounded-lg bg-white dark:bg-neutral-900 flex items-center gap-3 border border-gray-200 dark:border-neutral-800 transition-all duration-300">
-                    <button
-                        onClick={setupRequired ? undefined : onBack}
-                        disabled={setupRequired}
-                        className={`p-1.5 rounded-lg transition-colors ${setupRequired ? 'text-gray-200 dark:text-neutral-700 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800'}`}
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
+                <button
+                    onClick={setupRequired ? undefined : onBack}
+                    disabled={setupRequired}
+                    className={`flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg ${setupRequired ? 'opacity-30 cursor-default' : 'hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'}`}
+                >
+                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
                     <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-md ${enabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-purple-50 dark:bg-purple-900/20'}`}>
-                            {enabled
-                                ? <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
-                                : <Shield size={18} className="text-purple-600 dark:text-purple-400" />
-                            }
-                        </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">{t('account.2fa')}</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.2fa_desc')}</p>
-                        </div>
+                        {enabled
+                            ? <ShieldCheck size={18} className="text-emerald-500 shrink-0" />
+                            : <Shield size={18} className={`${muted} shrink-0`} />
+                        }
+                        <span className={`text-xl font-semibold ${on}`}>{t('account.2fa')}</span>
                     </div>
-                </div>
+                </button>
             </div>
 
-            <div className="px-6 md:px-10 space-y-4">
-                {/* Tab switcher */}
-                <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
+            {/* Mandatory setup notice */}
+            {setupRequired && (
+                <div className={`px-6 md:px-10 mb-4 flex items-start gap-2 text-sm ${muted}`}>
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{t('auth.setup_2fa_required')}</span>
+                </div>
+            )}
+
+            <div className="px-6 md:px-10 max-w-2xl">
+                {/* Tab switcher — underline style */}
+                <div className="flex gap-6 mb-6 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                     {(['totp', 'passkey'] as ActiveTab[]).map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-semibold transition-colors ${
+                            className={`flex items-center gap-1.5 pb-3 text-sm font-medium border-b-2 -mb-px ${
                                 activeTab === tab
-                                    ? 'bg-pink-600 text-white'
-                                    : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800'
+                                    ? `${on} border-[var(--color-m3-primary)]`
+                                    : `${muted} border-transparent`
                             }`}
                         >
                             {tab === 'totp' ? <Key size={14} /> : <Fingerprint size={14} />}
@@ -333,319 +349,219 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                 {/* ===== TOTP TAB ===== */}
                 {activeTab === 'totp' && (
-                    <>
+                    <div className="space-y-5">
                         {enabled && (
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                                <div className="px-6 py-5 space-y-4">
-                                    <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800/40">
-                                        <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                        <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">{t('account.2fa_is_active')}</p>
+                            <>
+                                <p className={`text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5`}>
+                                    <ShieldCheck size={14} />{t('account.2fa_is_active')}
+                                </p>
+                                <p className={`text-xs ${muted}`}>{t('account.2fa_disable_hint')}</p>
+                                <form onSubmit={handleDisable} className="space-y-4">
+                                    <ErrLine msg={disableError} />
+                                    <div>
+                                        <label className={labelCls}>{t('account.current_password')}</label>
+                                        <input type="password" value={disablePassword} onChange={e => setDisablePassword(e.target.value)}
+                                            className={inputCls} required autoComplete="current-password"
+                                            style={{ fontSize: '16px' }} />
                                     </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.2fa_disable_hint')}</p>
-                                    <form onSubmit={handleDisable} className="space-y-3">
-                                        {disableError && (
-                                            <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
-                                                <AlertCircle size={14} className="shrink-0" />{disableError}
-                                            </div>
-                                        )}
-                                        <div className="space-y-1">
-                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('account.current_password')}</label>
-                                            <input type="password" value={disablePassword} onChange={e => setDisablePassword(e.target.value)}
-                                                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100"
-                                                required autoComplete="current-password" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('account.2fa_code')}</label>
-                                            <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
-                                                value={disableCode} onChange={e => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100 tracking-[0.4em] font-mono"
-                                                placeholder="000000" required autoComplete="one-time-code" />
-                                        </div>
-                                        <button type="submit" disabled={disableLoading || !disablePassword || disableCode.length !== 6}
-                                            className="w-full py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                                            {disableLoading && <Loader2 size={14} className="animate-spin" />}
-                                            {t('account.2fa_disable')}
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                                    <div>
+                                        <label className={labelCls}>{t('account.2fa_code')}</label>
+                                        <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                                            value={disableCode} onChange={e => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className={`${inputCls} tracking-[0.4em] font-mono text-center`}
+                                            placeholder="000000" required autoComplete="one-time-code"
+                                            style={{ fontSize: '16px' }} />
+                                    </div>
+                                    <button type="submit" disabled={disableLoading || !disablePassword || disableCode.length !== 6}
+                                        className="text-sm font-medium text-red-500 dark:text-red-400 flex items-center gap-1.5 disabled:opacity-40">
+                                        {disableLoading && <Loader2 size={13} className="animate-spin" />}
+                                        {t('account.2fa_disable')}
+                                    </button>
+                                </form>
+                            </>
                         )}
 
                         {!enabled && (
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                                <div className="flex items-center gap-0 px-6 pt-5 pb-2">
+                            <>
+                                {/* Step indicator */}
+                                <div className="flex items-center gap-3 mb-2">
                                     {(['scan', 'verify'] as SetupStep[]).map((s, i) => (
                                         <React.Fragment key={s}>
                                             <div className="flex items-center gap-1.5">
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === s || (success && s === 'verify') ? 'bg-pink-600 text-white' : 'bg-gray-200 dark:bg-neutral-700 text-gray-500 dark:text-gray-400'}`}>
-                                                    {success && s === 'verify' ? <CheckCircle2 size={14} /> : i + 1}
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${step === s || (success && s === 'verify') ? 'bg-[var(--color-m3-primary)] text-white' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ' + muted}`}>
+                                                    {success && s === 'verify' ? <Check size={10} /> : i + 1}
                                                 </div>
-                                                <span className={`text-xs font-medium ${step === s ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-neutral-500'}`}>
+                                                <span className={`text-xs font-medium ${step === s ? on : muted}`}>
                                                     {s === 'scan' ? t('account.2fa_step_scan') : t('account.2fa_step_verify')}
                                                 </span>
                                             </div>
-                                            {i < 1 && <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700 mx-3" />}
+                                            {i < 1 && <div className={`flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]`} />}
                                         </React.Fragment>
                                     ))}
                                 </div>
 
-                                <div className="px-6 pb-6 pt-4 space-y-4">
-                                    {step === 'scan' && (
-                                        <>
-                                            {error && (
-                                                <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
-                                                    <AlertCircle size={14} className="shrink-0" />{error}
+                                {step === 'scan' && (
+                                    <div className="space-y-4">
+                                        <ErrLine msg={error} />
+                                        <p className={`text-sm ${muted}`}>{t('account.2fa_scan_qr')}</p>
+                                        <p className={`text-xs ${muted} opacity-70`}>{t('account.2fa_recommended_apps')}</p>
+                                        {setupLoading ? (
+                                            <div className="flex justify-center py-8"><Loader2 className={`animate-spin ${muted}`} size={24} /></div>
+                                        ) : uri ? (
+                                            <div className="flex justify-center py-2">
+                                                <div className="p-3 bg-white rounded-lg inline-block">
+                                                    <QRCodeSVG value={uri} size={160} />
                                                 </div>
-                                            )}
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('account.2fa_scan_qr')}</p>
-                                            <p className="text-xs text-gray-400 dark:text-neutral-500">{t('account.2fa_recommended_apps')}</p>
-                                            {setupLoading ? (
-                                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-300" size={28} /></div>
-                                            ) : uri ? (
-                                                <div className="flex justify-center">
-                                                    <div className="p-3 bg-white rounded-xl border border-gray-200 dark:border-neutral-700 inline-block">
-                                                        <QRCodeSVG value={uri} size={180} />
-                                                    </div>
+                                            </div>
+                                        ) : null}
+                                        {secret && (
+                                            <div>
+                                                <p className={`text-xs ${muted} mb-1.5`}>{t('account.2fa_secret')}</p>
+                                                <div className={`flex items-center gap-2 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md px-3 py-2`}>
+                                                    <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
+                                                    <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                                                    <button onClick={handleCopySecret} className={secretCopied ? 'text-emerald-500' : muted}>{secretCopied ? <Check size={14} /> : <Copy size={14} />}</button>
                                                 </div>
-                                            ) : null}
-                                            {secret && (
-                                                <div className="space-y-1">
-                                                    <p className="text-xs text-gray-400 dark:text-neutral-500">{t('account.2fa_secret')}</p>
-                                                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700 px-3 py-2">
-                                                        <code className={`flex-1 text-xs font-mono text-gray-800 dark:text-gray-200 tracking-widest break-all ${!secretVisible ? 'select-none blur-sm' : ''}`}>{secret}</code>
-                                                        <button onClick={() => setSecretVisible(v => !v)} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                                                            {secretVisible ? <EyeOff size={14} /> : <Eye size={14} />}
-                                                        </button>
-                                                        <button onClick={handleCopySecret} className={`shrink-0 transition-colors ${secretCopied ? 'text-emerald-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
-                                                            {secretCopied ? <Check size={14} /> : <Copy size={14} />}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <button onClick={() => setStep('verify')} disabled={!secret || setupLoading}
-                                                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                                                <QrCode size={15} />{t('account.2fa_next')}
+                                            </div>
+                                        )}
+                                        <button onClick={() => setStep('verify')} disabled={!secret || setupLoading} className={primaryBtn}>
+                                            <QrCode size={14} />{t('account.2fa_next')}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {step === 'verify' && !success && (
+                                    <form onSubmit={handleEnable} className="space-y-4">
+                                        <p className={`text-sm ${muted}`}>{t('account.2fa_verify')}</p>
+                                        <ErrLine msg={error} />
+                                        <div>
+                                            <label className={labelCls}>{t('account.2fa_code')}</label>
+                                            <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                                                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                className={`${inputCls} text-center tracking-[0.6em] font-mono text-xl py-3`}
+                                                placeholder="000000" autoComplete="one-time-code" autoFocus
+                                                style={{ fontSize: '16px' }} />
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => setStep('scan')}
+                                                className={`flex-1 py-2.5 text-sm font-medium ${muted} border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md`}>
+                                                ← {t('account.2fa_step_scan')}
                                             </button>
-                                        </>
-                                    )}
-
-                                    {step === 'verify' && !success && (
-                                        <form onSubmit={handleEnable} className="space-y-4">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('account.2fa_verify')}</p>
-                                            {error && (
-                                                <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
-                                                    <AlertCircle size={14} className="shrink-0" />{error}
-                                                </div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('account.2fa_code')}</label>
-                                                <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
-                                                    value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                    className="w-full px-4 py-3 text-center text-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100 tracking-[0.6em] font-mono"
-                                                    placeholder="000000" autoComplete="one-time-code" autoFocus />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button type="button" onClick={() => setStep('scan')}
-                                                    className="flex-1 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
-                                                    ← {t('account.2fa_step_scan')}
-                                                </button>
-                                                <button type="submit" disabled={loading || code.length !== 6}
-                                                    className="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                                                    {loading && <Loader2 size={14} className="animate-spin" />}
-                                                    {t('account.2fa_enable_btn')}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    )}
-
-                                    {success && (
-                                        <div className="flex flex-col items-center gap-3 py-4">
-                                            <CheckCircle2 size={48} className="text-emerald-500" />
-                                            <p className="font-semibold text-gray-900 dark:text-gray-100">{t('account.2fa_enabled_success')}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">{t('account.2fa_success_hint')}</p>
-                                            {backupCodes.length > 0 && (
-                                                <div className="w-full mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
-                                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
-                                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
-                                                        {backupCodes.map((c, i) => (
-                                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={handleCopyBackupCodes}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
-                                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
-                                                        </button>
-                                                        <button onClick={handleDownloadBackupCodes}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                                            <Download size={12} />{t('account.backup_codes_download')}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <button onClick={() => { onStatusChange(true); onBack(); }}
-                                                className="mt-2 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                                                {t('btn.ok')}
+                                            <button type="submit" disabled={loading || code.length !== 6} className="flex-1 py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2">
+                                                {loading && <Loader2 size={14} className="animate-spin" />}
+                                                {t('account.2fa_enable_btn')}
                                             </button>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                                    </form>
+                                )}
+
+                                {success && (
+                                    <div className="flex flex-col items-center gap-3 py-4 text-center">
+                                        <CheckCircle2 size={36} className="text-emerald-500" />
+                                        <p className={`font-semibold ${on}`}>{t('account.2fa_enabled_success')}</p>
+                                        <p className={`text-xs ${muted} max-w-xs`}>{t('account.2fa_success_hint')}</p>
+                                        {backupCodes.length > 0 && (
+                                            <div className="w-full text-left">
+                                                <BackupCodesBlock codes={backupCodes} copied={backupCopied} onCopy={handleCopyBackupCodes} onDownload={handleDownloadBackupCodes} t={t} />
+                                            </div>
+                                        )}
+                                        <button onClick={() => { onStatusChange(true); onBack(); }}
+                                            className="mt-2 px-6 py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md">
+                                            {t('btn.ok')}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </>
+                    </div>
                 )}
 
                 {/* ===== PASSKEY TAB ===== */}
                 {activeTab === 'passkey' && (
-                    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                        <div className="px-6 py-5 space-y-4">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.passkey_desc')}</p>
+                    <div className="space-y-5">
+                        <p className={`text-xs ${muted}`}>{t('account.passkey_desc')}</p>
 
-                            {passkeyError && (
-                                <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
-                                    <AlertCircle size={14} className="shrink-0" />{passkeyError}
-                                </div>
-                            )}
+                        <ErrLine msg={passkeyError} />
+                        {passkeySuccess && (
+                            <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 size={12} className="shrink-0" />{t('account.passkey_registered')}
+                            </p>
+                        )}
 
-                            {passkeySuccess && (
-                                <div className="flex items-center gap-2 p-2.5 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
-                                    <CheckCircle2 size={14} className="shrink-0" />{t('account.passkey_registered')}
-                                </div>
-                            )}
+                        {backupCodes.length > 0 && (
+                            <BackupCodesBlock codes={backupCodes} copied={backupCopied} onCopy={handleCopyBackupCodes} onDownload={handleDownloadBackupCodes} t={t} />
+                        )}
 
-                            {backupCodes.length > 0 && (
-                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
-                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
-                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
-                                        {backupCodes.map((c, i) => (
-                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={handleCopyBackupCodes}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
-                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
-                                        </button>
-                                        <button onClick={handleDownloadBackupCodes}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                            <Download size={12} />{t('account.backup_codes_download')}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {passkeyLoading ? (
-                                <div className="flex justify-center py-6"><Loader2 className="animate-spin text-gray-300" size={22} /></div>
-                            ) : passkeys.length === 0 ? (
-                                <div className="flex flex-col items-center gap-2 py-8 text-center">
-                                    <div className="p-3 bg-gray-100 dark:bg-neutral-800 rounded-full">
-                                        <Fingerprint size={24} className="text-gray-400 dark:text-neutral-500" />
-                                    </div>
-                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('account.passkey_empty')}</p>
-                                    <p className="text-xs text-gray-400 dark:text-neutral-500 max-w-xs">{t('account.passkey_empty_hint')}</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {passkeys.map(pk => (
-                                        <div key={pk.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700">
-                                            <div className="p-2 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-700 shrink-0">
-                                                <Fingerprint size={16} className="text-pink-500" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                                    {pk.device_name || 'Unknown device'}
-                                                </p>
-                                                <p className="text-xs text-gray-400 dark:text-neutral-500">{relativeTime(pk.created_at)}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => handleDeletePasskey(pk)}
-                                                disabled={deleteLoadingId === pk.id}
-                                                className="shrink-0 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50"
-                                            >
-                                                {deleteLoadingId === pk.id
-                                                    ? <Loader2 size={14} className="animate-spin" />
-                                                    : <Trash2 size={14} />}
-                                            </button>
+                        {passkeyLoading ? (
+                            <div className="flex justify-center py-6"><Loader2 className={`animate-spin ${muted}`} size={20} /></div>
+                        ) : passkeys.length === 0 ? (
+                            <div className={`flex flex-col items-center gap-1.5 py-10 text-center ${muted}`}>
+                                <Fingerprint size={24} className="opacity-40" />
+                                <p className="text-sm font-medium mt-1">{t('account.passkey_empty')}</p>
+                                <p className="text-xs opacity-70 max-w-xs">{t('account.passkey_empty_hint')}</p>
+                            </div>
+                        ) : (
+                            <div>
+                                {passkeys.map(pk => (
+                                    <div key={pk.id} className={`flex items-center gap-3 py-3.5 ${divider}`}>
+                                        <Fingerprint size={16} className={`${muted} shrink-0`} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm font-medium ${on} truncate`}>{pk.device_name || 'Unknown device'}</p>
+                                            <p className={`text-xs ${muted}`}>{relativeTime(pk.created_at)}</p>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        <button
+                                            onClick={() => handleDeletePasskey(pk)}
+                                            disabled={deleteLoadingId === pk.id}
+                                            className={`shrink-0 p-1 ${muted} hover:text-red-500 rounded disabled:opacity-40`}
+                                        >
+                                            {deleteLoadingId === pk.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
-                            {!webauthnSupported ? (
-                                <p className="text-xs text-center text-amber-600 dark:text-amber-400">{t('auth.passkey_unsupported')}</p>
-                            ) : (
-                                <button
-                                    onClick={handleRegisterPasskey}
-                                    disabled={registerLoading}
-                                    className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {registerLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                                    {passkeys.length === 0 ? t('account.passkey_add') : t('account.passkey_add_another')}
-                                </button>
-                            )}
-                        </div>
+                        {!webauthnSupported ? (
+                            <p className={`text-xs text-center ${muted}`}>{t('auth.passkey_unsupported')}</p>
+                        ) : (
+                            <button onClick={handleRegisterPasskey} disabled={registerLoading} className={primaryBtn}>
+                                {registerLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                {passkeys.length === 0 ? t('account.passkey_add') : t('account.passkey_add_another')}
+                            </button>
+                        )}
                     </div>
                 )}
-                {/* ===== BACKUP CODES SECTION (shown when 2FA enabled) ===== */}
+
+                {/* ===== BACKUP CODES SECTION (enabled) ===== */}
                 {enabled && (
-                    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                        <div className="px-6 py-5 space-y-4">
-                            <div className="flex items-center gap-2">
-                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
-                                    <KeyRound size={16} className="text-amber-600 dark:text-amber-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('account.backup_codes')}</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {backupRemaining !== null
-                                            ? t('account.backup_codes_remaining').replace('{n}', String(backupRemaining))
-                                            : t('account.backup_codes_none')}
-                                    </p>
-                                </div>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.backup_codes_generate_hint')}</p>
-
-                            {backupError && (
-                                <div className="flex items-center gap-2 p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-900/30">
-                                    <AlertCircle size={14} className="shrink-0" />{backupError}
-                                </div>
-                            )}
-
-                            {backupCodes.length > 0 && (
-                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
-                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t('account.backup_codes_warning')}</p>
-                                    <div className="grid grid-cols-2 gap-1.5 mb-3">
-                                        {backupCodes.map((c, i) => (
-                                            <code key={i} className="text-center text-xs font-mono bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-800/40 rounded px-2 py-1 text-gray-800 dark:text-gray-200">{c}</code>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={handleCopyBackupCodes}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                            {backupCopied ? <Check size={12} /> : <Copy size={12} />}
-                                            {backupCopied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
-                                        </button>
-                                        <button onClick={handleDownloadBackupCodes}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                                            <Download size={12} />{t('account.backup_codes_download')}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleGenerateBackupCodes}
-                                disabled={backupLoading}
-                                className="w-full py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {backupLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                                {backupRemaining !== null && backupRemaining > 0
-                                    ? t('account.backup_codes_regenerate')
-                                    : t('account.backup_codes_generate')}
-                            </button>
+                    <div className={`mt-8 pt-6 ${divider}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                            <KeyRound size={15} className={muted} />
+                            <h3 className={`text-sm font-semibold ${on}`}>{t('account.backup_codes')}</h3>
                         </div>
+                        <p className={`text-xs ${muted} mb-4`}>
+                            {backupRemaining !== null
+                                ? t('account.backup_codes_remaining').replace('{n}', String(backupRemaining))
+                                : t('account.backup_codes_none')}
+                        </p>
+                        <p className={`text-xs ${muted} mb-4`}>{t('account.backup_codes_generate_hint')}</p>
+
+                        <ErrLine msg={backupError} />
+
+                        {backupCodes.length > 0 && (
+                            <BackupCodesBlock codes={backupCodes} copied={backupCopied} onCopy={handleCopyBackupCodes} onDownload={handleDownloadBackupCodes} t={t} />
+                        )}
+
+                        <button
+                            onClick={handleGenerateBackupCodes}
+                            disabled={backupLoading}
+                            className={`flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] disabled:opacity-40 mt-3`}
+                        >
+                            {backupLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                            {backupRemaining !== null && backupRemaining > 0
+                                ? t('account.backup_codes_regenerate')
+                                : t('account.backup_codes_generate')}
+                        </button>
                     </div>
                 )}
             </div>

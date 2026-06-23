@@ -114,14 +114,14 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
     // ---- Manage/Disable 2FA (already enabled) ----
     if (enabled) {
         return (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
                 <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                     <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-neutral-800">
                         <div className="flex items-center gap-2">
                             <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
                             <h2 className="font-semibold text-gray-900 dark:text-gray-100">{t('account.2fa')}</h2>
                         </div>
-                        <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+                        <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800">
                             <X size={18} />
                         </button>
                     </div>
@@ -147,7 +147,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                                     type="password"
                                     value={disablePassword}
                                     onChange={e => setDisablePassword(e.target.value)}
-                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100"
+                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 text-gray-900 dark:text-gray-100"
                                     required
                                     autoComplete="current-password"
                                 />
@@ -161,7 +161,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                                     maxLength={6}
                                     value={disableCode}
                                     onChange={e => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100 tracking-[0.4em] font-mono"
+                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 text-gray-900 dark:text-gray-100 tracking-[0.4em] font-mono"
                                     placeholder="000000"
                                     required
                                     autoComplete="one-time-code"
@@ -170,7 +170,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                             <button
                                 type="submit"
                                 disabled={disableLoading || disablePassword.length < 1 || disableCode.length !== 6}
-                                className="w-full py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {disableLoading && <Loader2 size={14} className="animate-spin" />}
                                 {t('account.2fa_disable')}
@@ -184,7 +184,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
 
     // ---- Setup 2FA (not yet enabled) ----
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-neutral-800">
@@ -192,7 +192,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                         <Shield size={18} className="text-pink-600 dark:text-pink-400" />
                         <h2 className="font-semibold text-gray-900 dark:text-gray-100">{t('account.2fa_setup')}</h2>
                     </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+                    <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800">
                         <X size={18} />
                     </button>
                 </div>
@@ -202,7 +202,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                     {(['scan', 'verify'] as SetupStep[]).map((s, i) => (
                         <React.Fragment key={s}>
                             <div className="flex items-center gap-1.5">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === s || (success && s === 'verify') ? 'bg-pink-600 text-white' : 'bg-gray-200 dark:bg-neutral-700 text-gray-500 dark:text-gray-400'}`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step === s || (success && s === 'verify') ? 'bg-pink-600 text-white' : 'bg-gray-200 dark:bg-neutral-700 text-gray-500 dark:text-gray-400'}`}>
                                     {success && s === 'verify' ? <CheckCircle2 size={14} /> : i + 1}
                                 </div>
                                 <span className={`text-xs font-medium ${step === s ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-neutral-500'}`}>
@@ -247,7 +247,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                                         <code className={`flex-1 text-xs font-mono text-gray-800 dark:text-gray-200 tracking-widest break-all ${!secretVisible ? 'select-none blur-sm' : ''}`}>
                                             {secret}
                                         </code>
-                                        <button onClick={() => setSecretVisible(v => !v)} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                        <button onClick={() => setSecretVisible(v => !v)} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                             {secretVisible ? <EyeOff size={14} /> : <Eye size={14} />}
                                         </button>
                                     </div>
@@ -257,7 +257,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                             <button
                                 onClick={() => setStep('verify')}
                                 disabled={!secret || setupLoading}
-                                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 <QrCode size={15} />
                                 {t('account.2fa_next')}
@@ -286,7 +286,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                                     maxLength={6}
                                     value={code}
                                     onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    className="w-full px-4 py-3 text-center text-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all text-gray-900 dark:text-gray-100 tracking-[0.6em] font-mono"
+                                    className="w-full px-4 py-3 text-center text-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-500 text-gray-900 dark:text-gray-100 tracking-[0.6em] font-mono"
                                     placeholder="000000"
                                     autoComplete="one-time-code"
                                     autoFocus
@@ -298,14 +298,14 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                                 <button
                                     type="button"
                                     onClick={() => { setStep('scan'); setCode(''); setError(null); }}
-                                    className="flex-1 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+                                    className="flex-1 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-700 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800"
                                 >
                                     {t('btn.cancel')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={loading || code.length !== 6}
-                                    className="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {loading && <Loader2 size={14} className="animate-spin" />}
                                     {t('account.2fa_enable_btn')}
@@ -326,7 +326,7 @@ const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ isOpen, onClose, token,
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold rounded-xl"
                             >
                                 {t('btn.ok')}
                             </button>

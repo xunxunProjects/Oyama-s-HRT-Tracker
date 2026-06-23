@@ -71,7 +71,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.sl_absorption')}</label>
                     <button
                         onClick={() => setUseCustomTheta(!useCustomTheta)}
-                        className="text-xs font-semibold text-pink-600 dark:text-pink-400"
+                        className="text-xs font-semibold text-[var(--color-m3-primary)]"
                     >
                         {useCustomTheta ? t('sl.use_presets') : t('sl.use_custom')}
                     </button>
@@ -84,15 +84,16 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                         options={tierOptions}
                     />
                 ) : (
-                    <div className="p-3 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 space-y-2">
-                        <label className="text-xs font-medium text-gray-600 dark:text-gray-300 pl-0.5">{t('sl.hold_time_min')}</label>
+                    <div className="pt-2 pb-1 space-y-2">
+                        <label className="text-xs font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('sl.hold_time_min')}</label>
                         <div className="flex items-center gap-2">
                             <input
                                 type="number" inputMode="decimal"
                                 min="1" max="60"
                                 value={customHoldInput}
                                 onChange={e => handleCustomHoldChange(e.target.value)}
-                                className="w-16 h-9 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-16 h-9 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                style={{ fontSize: '16px' }}
                             />
                             <span className="text-xs text-gray-500 dark:text-gray-400">min</span>
                             <input
@@ -104,10 +105,10 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                     setCustomHoldValue(v);
                                     setCustomHoldInput(v.toString());
                                 }}
-                                className="flex-1 h-1 accent-pink-600"
+                                className="flex-1 h-1 accent-[var(--color-m3-primary)]"
                             />
                         </div>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-0.5">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)} (Keep E2)</p>
+                        <p className="text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)} (Keep E2)</p>
                     </div>
                 )}
             </div>
@@ -121,15 +122,16 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={rawDose} onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
+                            style={{ fontSize: '16px' }}
                         />
                     </div>
                 )}
 
                 {!(ester === Ester.EV && route === Route.sublingual) && ester !== Ester.CPA && (
                     <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                        <label className="block text-xs font-semibold text-rose-500 dark:text-rose-400 pl-1">
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
                             {t('field.dose_e2')}
                         </label>
                         <input
@@ -137,8 +139,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-rose-200 dark:border-rose-900/50 rounded-xl focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none text-rose-600 dark:text-rose-400 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
+                            style={{ fontSize: '16px' }}
                         />
                     </div>
                 )}

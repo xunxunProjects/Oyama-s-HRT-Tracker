@@ -1,93 +1,18 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
-import { SimulationResult, DoseEvent, interpolateConcentration, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS } from '../../logic';
-import { Activity, RotateCcw, Info, FlaskConical, Maximize2, Minimize2 } from 'lucide-react';
-import { useHRTMode } from '../contexts/HRTModeContext';
 import {
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart, Scatter, Brush, Line
-} from 'recharts';
+    SimulationResult, DoseEvent, LabResult,
+    interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T,
+    convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS,
+} from '../../logic';
+import { Activity } from 'lucide-react';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
-const CustomTooltip = ({ active, payload, label, t, lang, isDarkMode, isTransmasc }: any) => {
-    if (active && payload && payload.length) {
-        // If it's a lab result point
-        if (payload[0].payload.isLabResult) {
-            const data = payload[0].payload;
-            const primaryUnit = isTransmasc ? 'ng/dl' : 'pg/ml';
-            const altUnit = isTransmasc ? 'nmol/l' : 'pmol/l';
-            return (
-                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
-                        <FlaskConical size={10} />
-                        {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
-                    </p>
-                    <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm text-gray-800 dark:text-gray-200">
-                            {data.originalValue}
-                        </span>
-                        <span className="text-[10px] text-gray-400">{data.originalUnit}</span>
-                    </div>
-                    {data.originalUnit === altUnit && (
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                            ≈ {data.concE2.toFixed(isTransmasc ? 0 : 2)} {primaryUnit}
-                        </div>
-                    )}
-                </div>
-            );
-        }
+const HOUR = 3600000;
+const DAY = 24 * HOUR;
 
-        const dataPoint = payload[0].payload;
-        const concE2 = dataPoint.concE2;
-        const concCPA = dataPoint.concCPA; // Already in ng/mL
-
-        if (isTransmasc) {
-            return (
-                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
-                        {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
-                    </p>
-                    {concE2 !== undefined && concE2 !== null && (
-                        <div className="flex items-baseline gap-1.5">
-                            <span className="text-xs text-gray-500">{t('label.total_t')}:</span>
-                            <span className="text-sm text-gray-800 dark:text-gray-200">
-                                {concE2.toFixed(0)}
-                            </span>
-                            <span className="text-[10px] text-gray-400">ng/dl</span>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        return (
-            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 px-3 py-2 rounded shadow-sm relative lowercase font-mono">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
-                    {formatDate(new Date(label), lang)} {formatTime(new Date(label))}
-                </p>
-                {concE2 !== undefined && concE2 !== null && (
-                    <div className="flex items-baseline gap-1.5">
-                        <span className="text-xs text-gray-500">{t('label.e2')}:</span>
-                        <span className="text-sm text-gray-800 dark:text-gray-200">
-                            {concE2.toFixed(2)}
-                        </span>
-                        <span className="text-[10px] text-gray-400">pg/ml</span>
-                    </div>
-                )}
-                {concCPA !== undefined && concCPA !== null && (
-                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                        <span className="text-xs text-gray-500">{t('label.cpa_chart')}:</span>
-                        <span className="text-sm text-gray-800 dark:text-gray-200">
-                            {concCPA.toFixed(2)}
-                        </span>
-                        <span className="text-[10px] text-gray-400">ng/ml</span>
-                    </div>
-                )}
-            </div>
-        );
-    }
-    return null;
-};
+type RangeKey = '7d' | '30d' | 'all';
 
 // Pick a "nice" rounding step (1/2/5 × 10^n) near the requested magnitude.
 const niceStep = (raw: number): number => {
@@ -98,16 +23,11 @@ const niceStep = (raw: number): number => {
     return nice * mag;
 };
 
-// Build a padded, tick-friendly [min, max] Y domain from observed values.
-// Returns undefined when there is nothing to bound (caller falls back to auto).
-const buildYDomain = (min: number, max: number): [number, number] | undefined => {
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return undefined;
-    if (max <= 0) return [0, 1];
-    if (max === min) {
-        min = Math.max(0, min - (min * 0.1 || 0.5));
-        max = max + (max * 0.1 || 1);
-    }
-    const pad = (max - min) * 0.08;
+// Build a padded, tick-friendly [min, max] domain from observed values.
+const buildYDomain = (min: number, max: number): [number, number] => {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= 0) return [0, 1];
+    if (max === min) max = max + (max * 0.15 || 1);
+    const pad = (max - min) * 0.12;
     const step = niceStep((max - min + 2 * pad) / 4);
     const lo = Math.max(0, Math.floor((min - pad) / step) * step);
     let hi = Math.ceil((max + pad) / step) * step;
@@ -115,695 +35,515 @@ const buildYDomain = (min: number, max: number): [number, number] | undefined =>
     return [lo, hi];
 };
 
-const ResultChart = ({ sim, events, labResults = [], calibrationFn = (_t: number) => 1, onPointClick, isDarkMode = false }: { sim: SimulationResult | null, events: DoseEvent[], labResults?: LabResult[], calibrationFn?: (timeH: number) => number, onPointClick: (e: DoseEvent) => void, isDarkMode?: boolean }) => {
+const ticksFor = ([lo, hi]: [number, number]): number[] => {
+    const step = niceStep((hi - lo) / 4);
+    const out: number[] = [];
+    for (let v = lo; v <= hi + step * 0.5; v += step) out.push(Math.round(v / step) * step);
+    return out;
+};
+
+const fmtAxis = (v: number) => (v >= 100 || v % 1 === 0 ? String(Math.round(v)) : v < 1 ? v.toFixed(2) : v.toFixed(1));
+
+// Track the rendered pixel size of an element. Takes the node itself (via a
+// state-backed callback ref) rather than a ref object, so measurement re-runs
+// when the element actually mounts — e.g. after the simulation finishes loading
+// and the plot replaces the empty state. Measures on layout and on resize;
+// ResizeObserver is a bonus (some embedded browsers never fire it).
+const useElementSize = (el: HTMLElement | null) => {
+    const [size, setSize] = useState({ width: 0, height: 0 });
+    useLayoutEffect(() => {
+        if (!el) return;
+        const measure = () => {
+            const r = el.getBoundingClientRect();
+            setSize(prev => (prev.width === r.width && prev.height === r.height ? prev : { width: r.width, height: r.height }));
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        let ro: ResizeObserver | undefined;
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(measure);
+            ro.observe(el);
+        }
+        return () => {
+            window.removeEventListener('resize', measure);
+            ro?.disconnect();
+        };
+    }, [el]);
+    return size;
+};
+
+const ResultChart = ({
+    sim,
+    events,
+    labResults = [],
+    calibrationFn = (_t: number) => 1,
+    onPointClick,
+    isDarkMode = false,
+}: {
+    sim: SimulationResult | null;
+    events: DoseEvent[];
+    labResults?: LabResult[];
+    calibrationFn?: (timeH: number) => number;
+    onPointClick: (e: DoseEvent) => void;
+    isDarkMode?: boolean;
+}) => {
     const { t, lang } = useTranslation();
     const { isTransmasc } = useHRTMode();
-    const [xDomain, setXDomain] = useState<[number, number] | null>(null);
-    const initializedRef = useRef(false);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const getViewport = () => ({
-        width: typeof window !== 'undefined' ? window.innerWidth : 0,
-        height: typeof window !== 'undefined' ? window.innerHeight : 0,
-    });
-    const [viewport, setViewport] = useState(getViewport);
+    const clipId = useId().replace(/:/g, '');
 
-    // In transmasc mode, the primary series is total T (ng/dL) instead of E2 (pg/mL).
-    // We repurpose the `concE2` field in chart data to hold the primary series value.
-    // CPA is never relevant in transmasc mode.
-    const hasE2Data = useMemo(
-        () => isTransmasc
-            ? events.some(e => T_ESTERS.has(e.ester))
-            : events.some(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester)),
-        [events, isTransmasc]
-    );
-    const hasCPAData = useMemo(() => !isTransmasc && events.some(e => e.ester === 'CPA'), [events, isTransmasc]);
+    const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
+    const { width, height } = useElementSize(plotEl);
 
+    const [range, setRange] = useState<RangeKey>('7d');
+    const [hover, setHover] = useState<number | null>(null);
+    const [panOffset, setPanOffset] = useState(0); // ms the window is dragged from its centered base
+    const [dragging, setDragging] = useState(false);
+    const dragRef = useRef<{ startX: number; startY: number; startOffset: number; moved: boolean; pointerId: number } | null>(null);
+
+    const selectRange = (r: RangeKey) => { setRange(r); setPanOffset(0); };
+
+    // Warm, on-brand palette — terracotta primary against a muted neutral grid.
+    const c = isDarkMode
+        ? { primary: '#D8927C', second: '#7A776F', grid: '#2E2C28', axis: '#7A776F', faint: '#5C5953', dot: '#1C1B18', lab: '#E0A38C' }
+        : { primary: '#CC785C', second: '#C2BDB3', grid: '#E7E4DD', axis: '#A8A59E', faint: '#C2BDB3', dot: '#FAF9F7', lab: '#B5664C' };
+
+    // Which series are relevant for the current mode / logged doses.
+    const hasE2 = isTransmasc ? false : events.some(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester));
+    const hasT = isTransmasc && events.some(e => T_ESTERS.has(e.ester));
+    const hasCPA = !isTransmasc && events.some(e => e.ester === 'CPA');
+    const primaryIsCPA = !isTransmasc && !hasE2 && hasCPA;
+    const hasSecondary = hasE2 && hasCPA; // CPA shown on its own right-hand axis
+
+    const primaryMeta = isTransmasc
+        ? { label: t('label.total_t'), unit: 'ng/dl', decimals: 0 }
+        : primaryIsCPA
+            ? { label: t('label.cpa_chart'), unit: 'ng/ml', decimals: 2 }
+            : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
+
+    // Resample the simulation into the (time, primary, secondary) shape we plot.
     const data = useMemo(() => {
-        if (!sim || sim.timeH.length === 0) return [];
-        return sim.timeH.map((t, i) => {
-            const timeMs = t * 3600000;
-            if (isTransmasc) {
-                const concT = sim.concNGdL_T ? sim.concNGdL_T[i] : 0;
-                return {
-                    time: timeMs,
-                    concE2: concT, // repurposed as primary T series (ng/dL)
-                    concCPA: 0,
-                    conc: concT
-                };
-            }
-            const scale = calibrationFn(t);
-            const calibratedE2 = sim.concPGmL_E2[i] * scale;
-            const rawCPA_ngmL = sim.concPGmL_CPA[i];
-            return {
-                time: timeMs,
-                concE2: calibratedE2,
-                concCPA: rawCPA_ngmL,
-                conc: calibratedE2
-            };
+        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number; s: number | null }[];
+        return sim.timeH.map((h, i) => {
+            const time = h * HOUR;
+            if (isTransmasc) return { t: time, p: sim.concNGdL_T?.[i] ?? 0, s: null };
+            const e2 = sim.concPGmL_E2[i] * calibrationFn(h);
+            const cpa = sim.concPGmL_CPA[i];
+            return { t: time, p: primaryIsCPA ? cpa : e2, s: hasSecondary ? cpa : null };
         });
-    }, [sim, calibrationFn, isTransmasc]);
+    }, [sim, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
+
+    const now = Date.now();
+    const fullMin = data.length ? data[0].t : now;
+    const fullMax = data.length ? data[data.length - 1].t : now;
+
+    // Base window (before drag) — centered on "now" for 7d/30d, full span for "all".
+    const baseWindow = useMemo<[number, number]>(() => {
+        if (range === 'all' || data.length === 0) return [fullMin, fullMax];
+        const span = range === '7d' ? 7 * DAY : 30 * DAY;
+        const center = Math.min(Math.max(now, fullMin), fullMax);
+        let lo = center - span / 2;
+        let hi = center + span / 2;
+        if (lo < fullMin) { lo = fullMin; hi = Math.min(fullMax, lo + span); }
+        if (hi > fullMax) { hi = fullMax; lo = Math.max(fullMin, hi - span); }
+        return [lo, hi];
+    }, [range, data.length, fullMin, fullMax, now]);
+
+    // How far the window can be dragged in each direction without leaving the data.
+    const [minOffset, maxOffset] = useMemo<[number, number]>(() => {
+        const a = fullMin - baseWindow[0]; // shifts t0 down to fullMin
+        const b = fullMax - baseWindow[1]; // shifts t1 up to fullMax
+        return [Math.min(a, b), Math.max(a, b)];
+    }, [baseWindow, fullMin, fullMax]);
+
+    // Visible window with the (clamped) drag offset applied.
+    const [t0, t1] = useMemo<[number, number]>(() => {
+        const off = Math.max(minOffset, Math.min(maxOffset, panOffset));
+        return [baseWindow[0] + off, baseWindow[1] + off];
+    }, [baseWindow, panOffset, minOffset, maxOffset]);
+    const canPan = maxOffset - minOffset > DAY;
+
+    // Only the slice we draw (plus one neighbour each side so lines reach the edges).
+    const slice = useMemo(() => {
+        if (data.length === 0) return [];
+        let lo = 0, hi = data.length - 1;
+        while (lo < data.length - 1 && data[lo + 1].t < t0) lo++;
+        while (hi > 0 && data[hi - 1].t > t1) hi--;
+        return data.slice(Math.max(0, lo), Math.min(data.length, hi + 1));
+    }, [data, t0, t1]);
 
     const labPoints = useMemo(() => {
-        if (!labResults || labResults.length === 0) return [];
-        if (isTransmasc) {
-            // Only T-unit labs are relevant here.
-            return labResults.filter(l => isT_LabUnit(l.unit)).map(l => ({
-                time: l.timeH * 3600000,
-                concE2: convertToNgDl(l.concValue, l.unit), // primary series is ng/dL
-                originalValue: l.concValue,
-                originalUnit: l.unit,
-                isLabResult: true,
-                id: l.id
-            }));
+        if (!labResults.length) return [];
+        return labResults
+            .filter(l => (isTransmasc ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit)))
+            .map(l => ({
+                t: l.timeH * HOUR,
+                v: isTransmasc ? convertToNgDl(l.concValue, l.unit) : convertToPgMl(l.concValue, l.unit),
+                raw: l.concValue, unit: l.unit, id: l.id,
+            }))
+            .filter(l => l.t >= t0 && l.t <= t1);
+    }, [labResults, isTransmasc, t0, t1]);
+
+    // Dose markers sit on whichever axis their compound belongs to.
+    const markers = useMemo(() => {
+        if (!sim) return [];
+        return events.map(e => {
+            const isT = T_ESTERS.has(e.ester);
+            const isCPA = e.ester === 'CPA';
+            if (isTransmasc ? !isT : isT) return null;
+            let value: number | null, axis: 'p' | 's';
+            if (isTransmasc) { value = interpolateConcentration_T(sim, e.timeH); axis = 'p'; }
+            else if (isCPA) { value = interpolateConcentration_CPA(sim, e.timeH); axis = hasSecondary ? 's' : 'p'; }
+            else { const v = interpolateConcentration_E2(sim, e.timeH); value = v == null ? null : v * calibrationFn(e.timeH); axis = 'p'; }
+            const v = value != null && Number.isFinite(value) ? value : 0;
+            return { t: e.timeH * HOUR, v, axis, event: e };
+        }).filter((m): m is { t: number; v: number; axis: 'p' | 's'; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
+    }, [sim, events, isTransmasc, hasSecondary, calibrationFn, t0, t1]);
+
+    // Y domains scale to what's visible in the current window.
+    const yPrimary = useMemo(() => {
+        let mx = -Infinity;
+        for (const d of slice) if (d.p > mx) mx = d.p;
+        for (const l of labPoints) if (l.v > mx) mx = l.v;
+        for (const m of markers) if (m.axis === 'p' && m.v > mx) mx = m.v;
+        return buildYDomain(0, mx);
+    }, [slice, labPoints, markers]);
+
+    const ySecondary = useMemo(() => {
+        if (!hasSecondary) return [0, 1] as [number, number];
+        let mx = -Infinity;
+        for (const d of slice) if (d.s != null && d.s > mx) mx = d.s;
+        for (const m of markers) if (m.axis === 's' && m.v > mx) mx = m.v;
+        return buildYDomain(0, mx);
+    }, [slice, markers, hasSecondary]);
+
+    // Layout
+    const mL = 32;
+    const mR = hasSecondary ? 32 : 10;
+    const mT = 14;
+    const mB = 26;
+    const plotW = Math.max(0, width - mL - mR);
+    const plotH = Math.max(0, height - mT - mB);
+
+    const X = (time: number) => mL + (t1 === t0 ? 0 : ((time - t0) / (t1 - t0)) * plotW);
+    const YP = (v: number) => mT + plotH - ((v - yPrimary[0]) / (yPrimary[1] - yPrimary[0])) * plotH;
+    const YS = (v: number) => mT + plotH - ((v - ySecondary[0]) / (ySecondary[1] - ySecondary[0])) * plotH;
+
+    const linePath = (key: 'p' | 's') => {
+        let d = '';
+        let started = false;
+        for (const pt of slice) {
+            const val = key === 'p' ? pt.p : pt.s;
+            if (val == null || !Number.isFinite(val)) { started = false; continue; }
+            const x = X(pt.t).toFixed(1);
+            const y = (key === 'p' ? YP(val) : YS(val)).toFixed(1);
+            d += `${started ? 'L' : 'M'}${x} ${y}`;
+            started = true;
         }
-        return labResults.filter(l => !isT_LabUnit(l.unit)).map(l => ({
-            time: l.timeH * 3600000,
-            concE2: convertToPgMl(l.concValue, l.unit),
-            originalValue: l.concValue,
-            originalUnit: l.unit,
-            isLabResult: true,
-            id: l.id
-        }));
-    }, [labResults, isTransmasc]);
-
-    const eventPoints = useMemo(() => {
-        if (!sim || events.length === 0) return { e2Points: [], cpaEvents: [] };
-
-        if (isTransmasc) {
-            const tEvents = events.filter(e => T_ESTERS.has(e.ester));
-            const e2Points = tEvents.map(e => {
-                const timeMs = e.timeH * 3600000;
-                const concT = interpolateConcentration_T(sim, e.timeH);
-                const val = concT !== null && !Number.isNaN(concT) ? concT : 0;
-                return { time: timeMs, concE2: val, concCPA: 0, event: e, isEvent: true, isCPAEvent: false };
-            });
-            return { e2Points, cpaEvents: [] };
-        }
-
-        // Split events by ester type (transfem)
-        const e2Events = events.filter(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester));
-        const cpaEvents = events.filter(e => e.ester === 'CPA');
-
-        const e2Points = e2Events.map(e => {
-            const timeMs = e.timeH * 3600000;
-            const concE2 = interpolateConcentration_E2(sim, e.timeH);
-            const calibratedE2 = concE2 !== null && !Number.isNaN(concE2)
-                ? concE2 * calibrationFn(e.timeH)
-                : 0;
-
-            return {
-                time: timeMs,
-                concE2: calibratedE2,
-                concCPA: 0,
-                event: e,
-                isEvent: true,
-                isCPAEvent: false
-            };
-        });
-
-        return { e2Points, cpaEvents };
-    }, [sim, events, calibrationFn, isTransmasc]);
-
-    const cpaEventPoints = useMemo(() => {
-        if (!sim || !eventPoints?.cpaEvents || eventPoints.cpaEvents.length === 0) return [];
-
-        // Map CPA events to data points
-        // Use interpolation to get the exact concentration at the event time
-        return eventPoints.cpaEvents.map(e => {
-            const timeMs = e.timeH * 3600000;
-            const concCPA = interpolateConcentration_CPA(sim, e.timeH);
-            const finalCPA = (concCPA !== null && Number.isFinite(concCPA)) ? concCPA : 0; // ng/mL
-
-            return {
-                time: timeMs,
-                concE2: 0,
-                concCPA: finalCPA,
-                event: e,
-                isEvent: true,
-                isCPAEvent: true
-            };
-        });
-    }, [sim, eventPoints?.cpaEvents]);
-
-    const { minTime, maxTime, now } = useMemo(() => {
-        const n = new Date().getTime();
-        if (data.length === 0) return { minTime: n, maxTime: n, now: n };
-        return {
-            minTime: data[0].time,
-            maxTime: data[data.length - 1].time,
-            now: n
-        };
-    }, [data]);
-
-    const nowPoint = useMemo(() => {
-        if (!sim || data.length === 0) return null;
-        const h = now / 3600000;
-
-        if (isTransmasc) {
-            const concT = interpolateConcentration_T(sim, h);
-            const hasT = concT !== null && !Number.isNaN(concT);
-            if (!hasT) return null;
-            return { time: now, concE2: concT as number, concCPA: 0 };
-        }
-
-        const concE2 = interpolateConcentration_E2(sim, h);
-        const concCPA = interpolateConcentration_CPA(sim, h);
-
-        const hasE2 = concE2 !== null && !Number.isNaN(concE2);
-        const hasCPA = concCPA !== null && !Number.isNaN(concCPA);
-
-        if (!hasE2 && !hasCPA) return null;
-
-        const calibratedE2 = hasE2 ? concE2 * calibrationFn(h) : 0;
-        const finalCPA = hasCPA ? concCPA : 0;
-
-        return {
-            time: now,
-            concE2: calibratedE2,
-            concCPA: finalCPA
-        };
-    }, [sim, data, now, calibrationFn, isTransmasc]);
-
-    // Scale the Y axes to the data visible in the current X window, so that
-    // zooming/panning past a historical peak no longer squashes the curve.
-    const { yDomainLeft, yDomainRight } = useMemo(() => {
-        const [winStart, winEnd] = xDomain || [minTime, maxTime];
-        let lMin = Infinity, lMax = -Infinity;
-        let rMin = Infinity, rMax = -Infinity;
-        const addLeft = (time: number, v: number | null | undefined) => {
-            if (v == null || !Number.isFinite(v) || time < winStart || time > winEnd) return;
-            if (v < lMin) lMin = v;
-            if (v > lMax) lMax = v;
-        };
-        const addRight = (time: number, v: number | null | undefined) => {
-            if (v == null || !Number.isFinite(v) || time < winStart || time > winEnd) return;
-            if (v < rMin) rMin = v;
-            if (v > rMax) rMax = v;
-        };
-        for (const d of data) { addLeft(d.time, d.concE2); addRight(d.time, d.concCPA); }
-        for (const p of labPoints) addLeft(p.time, p.concE2);
-        if (eventPoints?.e2Points) for (const p of eventPoints.e2Points) addLeft(p.time, p.concE2);
-        for (const p of cpaEventPoints) addRight(p.time, p.concCPA);
-        if (nowPoint) { addLeft(nowPoint.time, nowPoint.concE2); addRight(nowPoint.time, nowPoint.concCPA); }
-        return {
-            yDomainLeft: buildYDomain(lMin, lMax),
-            yDomainRight: buildYDomain(rMin, rMax),
-        };
-    }, [xDomain, data, labPoints, eventPoints, cpaEventPoints, nowPoint, minTime, maxTime]);
-
-    // Animate the Y domains so the axis glides instead of snapping on zoom/pan.
-    const [dispYLeft,  setDispYLeft]  = useState<[number, number] | undefined>(undefined);
-    const [dispYRight, setDispYRight] = useState<[number, number] | undefined>(undefined);
-    const yLeftRafRef   = useRef<number>(0);
-    const yRightRafRef  = useRef<number>(0);
-    const yLeftFromRef  = useRef<[number, number] | null>(null);
-    const yRightFromRef = useRef<[number, number] | null>(null);
-
-    useEffect(() => {
-        if (!yDomainLeft) { cancelAnimationFrame(yLeftRafRef.current); setDispYLeft(undefined); return; }
-        cancelAnimationFrame(yLeftRafRef.current);
-        const from: [number, number] = yLeftFromRef.current ?? yDomainLeft;
-        const [tLo, tHi] = yDomainLeft;
-        const startTime = performance.now();
-        const tick = (now: number) => {
-            const t = Math.min((now - startTime) / 250, 1);
-            const ease = 1 - Math.pow(1 - t, 3);
-            const cur: [number, number] = [from[0] + (tLo - from[0]) * ease, from[1] + (tHi - from[1]) * ease];
-            yLeftFromRef.current = cur;
-            setDispYLeft(cur);
-            if (t < 1) yLeftRafRef.current = requestAnimationFrame(tick);
-        };
-        yLeftRafRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(yLeftRafRef.current);
-    }, [yDomainLeft]);
-
-    useEffect(() => {
-        if (!yDomainRight) { cancelAnimationFrame(yRightRafRef.current); setDispYRight(undefined); return; }
-        cancelAnimationFrame(yRightRafRef.current);
-        const from: [number, number] = yRightFromRef.current ?? yDomainRight;
-        const [tLo, tHi] = yDomainRight;
-        const startTime = performance.now();
-        const tick = (now: number) => {
-            const t = Math.min((now - startTime) / 250, 1);
-            const ease = 1 - Math.pow(1 - t, 3);
-            const cur: [number, number] = [from[0] + (tLo - from[0]) * ease, from[1] + (tHi - from[1]) * ease];
-            yRightFromRef.current = cur;
-            setDispYRight(cur);
-            if (t < 1) yRightRafRef.current = requestAnimationFrame(tick);
-        };
-        yRightRafRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(yRightRafRef.current);
-    }, [yDomainRight]);
-
-    // Slider helpers for quick panning (helps mobile users)
-    // Initialize view: center on "now" with a reasonable window (e.g. 14 days)
-    useEffect(() => {
-        if (!initializedRef.current && data.length > 0) {
-            const initialWindow = 7 * 24 * 3600 * 1000; // 1 week
-            const start = Math.max(minTime, now - initialWindow / 2);
-            const end = Math.min(maxTime, start + initialWindow);
-
-            // Adjust if end is clamped
-            const finalStart = Math.max(minTime, end - initialWindow);
-
-            setXDomain([finalStart, end]);
-            initializedRef.current = true;
-        }
-    }, [data, minTime, maxTime, now]);
-
-    const clampDomain = (domain: [number, number]): [number, number] => {
-        const width = domain[1] - domain[0];
-        // Enforce min zoom (e.g. 1 day) and max zoom (total range)
-        const MIN_ZOOM = 24 * 3600 * 1000;
-        const MAX_ZOOM = Math.max(maxTime - minTime, MIN_ZOOM);
-
-        let newWidth = Math.max(MIN_ZOOM, Math.min(width, MAX_ZOOM));
-        let newStart = domain[0];
-        let newEnd = newStart + newWidth;
-
-        // Clamp to data bounds
-        if (newStart < minTime) {
-            newStart = minTime;
-            newEnd = newStart + newWidth;
-        }
-        if (newEnd > maxTime) {
-            newEnd = maxTime;
-            newStart = newEnd - newWidth;
-        }
-
-        return [newStart, newEnd];
+        return d;
     };
 
-    const zoomToDuration = (days: number) => {
-        const duration = days * 24 * 3600 * 1000;
-        const currentCenter = xDomain ? (xDomain[0] + xDomain[1]) / 2 : now;
-        const targetCenter = (now >= minTime && now <= maxTime) ? now : currentCenter;
+    const areaPath = useMemo(() => {
+        const base = (mT + plotH).toFixed(1);
+        const line = linePath('p');
+        if (!line || slice.length === 0) return '';
+        const x0 = X(slice[0].t).toFixed(1);
+        const x1 = X(slice[slice.length - 1].t).toFixed(1);
+        return `${line}L${x1} ${base}L${x0} ${base}Z`;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slice, yPrimary, plotW, plotH, mT, t0, t1, width]);
 
-        const start = targetCenter - duration / 2;
-        const end = targetCenter + duration / 2;
-        setXDomain(clampDomain([start, end]));
-    };
-
-    const findClosestIndex = (time: number) => {
-        if (data.length === 0) return 0;
-        let low = 0;
-        let high = data.length - 1;
-        while (high - low > 1) {
-            const mid = Math.floor((low + high) / 2);
-            if (data[mid].time === time) return mid;
-            if (data[mid].time < time) low = mid;
-            else high = mid;
+    const xTicks = useMemo(() => {
+        if (plotW <= 0) return [];
+        const count = Math.max(2, Math.min(6, Math.floor(plotW / 90)));
+        const seen = new Set<string>();
+        const out: { x: number; label: string }[] = [];
+        for (let i = 0; i <= count; i++) {
+            const time = t0 + ((t1 - t0) * i) / count;
+            const label = formatDate(new Date(time), lang);
+            if (seen.has(label)) continue;
+            seen.add(label);
+            out.push({ x: X(time), label });
         }
+        return out;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [t0, t1, plotW, lang, mL]);
 
-        const lowDiff = Math.abs(data[low].time - time);
-        const highDiff = Math.abs(data[high].time - time);
-        return highDiff < lowDiff ? high : low;
-    };
+    // "Now" position on the primary curve.
+    const nowVal = useMemo(() => {
+        if (!sim) return null;
+        const h = now / HOUR;
+        const v = isTransmasc
+            ? interpolateConcentration_T(sim, h)
+            : primaryIsCPA
+                ? interpolateConcentration_CPA(sim, h)
+                : (() => { const e = interpolateConcentration_E2(sim, h); return e == null ? null : e * calibrationFn(h); })();
+        return v != null && Number.isFinite(v) ? v : null;
+    }, [sim, now, isTransmasc, primaryIsCPA, calibrationFn]);
 
-    const brushRange = useMemo(() => {
-        if (data.length === 0) return { startIndex: 0, endIndex: 0 };
-        const domain = xDomain || [minTime, maxTime];
-        const startIndex = findClosestIndex(domain[0]);
-        const endIndexRaw = findClosestIndex(domain[1]);
-        const endIndex = Math.max(startIndex + 1, endIndexRaw);
-        return { startIndex, endIndex: Math.min(data.length - 1, endIndex) };
-    }, [data, xDomain, minTime, maxTime]);
-
-    const handleBrushChange = (range: { startIndex?: number; endIndex?: number }) => {
-        if (!range || range.startIndex === undefined || range.endIndex === undefined || data.length === 0) return;
-        const startIndex = Math.max(0, Math.min(range.startIndex, data.length - 1));
-        const endIndex = Math.min(data.length - 1, Math.max(startIndex + 1, Math.min(range.endIndex, data.length - 1)));
-        if (startIndex >= endIndex) return;
-        const start = data[startIndex].time;
-        const end = data[endIndex].time;
-        setXDomain(clampDomain([start, end]));
-    };
-
-    const lockLandscape = async () => {
-        try {
-            await (screen as any)?.orientation?.lock?.('landscape');
-        } catch {
-            // Ignore unsupported orientation lock on some browsers.
+    // Hover lookup — nearest sample to the pointer.
+    const updateHover = (clientX: number) => {
+        if (!plotEl || data.length === 0) return;
+        const rect = plotEl.getBoundingClientRect();
+        const px = clientX - rect.left;
+        if (px < mL || px > mL + plotW) { setHover(null); return; }
+        const time = t0 + ((px - mL) / plotW) * (t1 - t0);
+        let best = 0, bestDiff = Infinity;
+        for (let i = 0; i < data.length; i++) {
+            const diff = Math.abs(data[i].t - time);
+            if (diff < bestDiff) { bestDiff = diff; best = i; }
         }
+        setHover(best);
     };
 
-    const unlockOrientation = () => {
-        try {
-            (screen as any)?.orientation?.unlock?.();
-        } catch {
-            // Ignore unsupported orientation unlock on some browsers.
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (!canPan) return;
+        dragRef.current = { startX: e.clientX, startY: e.clientY, startOffset: panOffset, moved: false, pointerId: e.pointerId };
+    };
+
+    const onPointerMove = (e: React.PointerEvent) => {
+        const drag = dragRef.current;
+        if (drag) {
+            const dx = e.clientX - drag.startX;
+            const dy = e.clientY - drag.startY;
+            if (!drag.moved) {
+                // Decide intent from the first decisive movement: horizontal pans
+                // the chart, vertical (or a tap) is left to the page scroller.
+                if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+                    drag.moved = true;
+                    setDragging(true);
+                    setHover(null);
+                    // Capture so the pan keeps tracking even if the finger leaves the SVG.
+                    try { e.currentTarget.setPointerCapture(drag.pointerId); } catch { /* ignore */ }
+                } else if (Math.abs(dy) > 6) {
+                    dragRef.current = null; // vertical scroll — bail out of the drag
+                    return;
+                }
+            }
+            if (drag.moved && plotW > 0) {
+                const span = baseWindow[1] - baseWindow[0];
+                const next = drag.startOffset - (dx / plotW) * span; // drag right → see earlier time
+                setPanOffset(Math.max(minOffset, Math.min(maxOffset, next)));
+            }
+            return;
         }
+        updateHover(e.clientX);
     };
 
-    const openFullscreenChart = async () => {
-        setIsFullscreen(true);
-        await lockLandscape();
+    const endDrag = (e?: React.PointerEvent) => {
+        const drag = dragRef.current;
+        if (drag && e) { try { e.currentTarget.releasePointerCapture(drag.pointerId); } catch { /* ignore */ } }
+        dragRef.current = null;
+        if (dragging) setDragging(false);
     };
 
-    const closeFullscreenChart = () => {
-        setIsFullscreen(false);
-        unlockOrientation();
-    };
+    const onPointerLeave = (e: React.PointerEvent) => { endDrag(e); setHover(null); };
 
-    useEffect(() => {
-        const handleResize = () => setViewport(getViewport());
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    const hoverPt = hover != null ? data[hover] : null;
+    const showHover = !dragging && hoverPt != null && hoverPt.t >= t0 && hoverPt.t <= t1 && plotW > 0;
+    const calFactor = calibrationFn(now / HOUR);
 
-    useEffect(() => {
-        if (!isFullscreen) return;
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = prevOverflow;
-        };
-    }, [isFullscreen]);
+    const rangeOpts: { key: RangeKey; label: string }[] = [
+        { key: '7d', label: t('chart.range_7d') },
+        { key: '30d', label: t('chart.range_30d') },
+        { key: 'all', label: t('chart.range_all') },
+    ];
 
-    useEffect(() => {
-        if (!isFullscreen) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') closeFullscreenChart();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isFullscreen]);
-
-    useEffect(() => {
-        return () => {
-            unlockOrientation();
-        };
-    }, []);
-
-    const isPortraitMobileFullscreen = isFullscreen && viewport.width < 768 && viewport.height > viewport.width;
-
-    const renderChartPanel = (fullscreen: boolean) => {
-        const chartHeightClass = fullscreen ? 'h-[58vh] md:h-[70vh] lg:h-[76vh]' : 'h-64 md:h-80 lg:h-96';
-        const miniMapGradientId = fullscreen ? 'overviewConcFullscreen' : 'overviewConc';
-
+    if (!sim || sim.timeH.length === 0) {
         return (
-            <div className={`bg-white dark:bg-neutral-900 relative flex flex-col h-full uppercase tracking-wide ${fullscreen ? '' : 'border border-gray-200 dark:border-neutral-800 rounded-lg'}`}>
-                <div className={`flex justify-between items-center ${fullscreen ? 'px-4 md:px-6 py-3' : 'px-4 md:px-6 py-4'} border-b border-gray-100 dark:border-neutral-800`}>
-                    <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        {t('chart.title')}
-                    </h2>
+            <div className="h-72 md:h-96 flex flex-col items-center justify-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                <Activity className="w-10 h-10 mb-3 opacity-25" strokeWidth={1.25} />
+                <p className="text-sm">{t('timeline.empty')}</p>
+            </div>
+        );
+    }
 
-                    <div className="flex items-center gap-2.5">
-                        <button
-                            onClick={fullscreen ? closeFullscreenChart : openFullscreenChart}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                            title={fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                        >
-                            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                        </button>
-                        <button
-                            onClick={() => zoomToDuration(7)}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                            title={t('chart.reset')}
-                        >
-                            <RotateCcw size={14} />
-                        </button>
+    const chipBase = 'px-2 py-0.5 text-[11px] rounded-md transition-colors';
+    const chipOn = 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container)]';
+    const chipOff = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]';
+
+    return (
+        <div className="w-full">
+            {/* Header: title + range chips — flat, matching the page */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <h2 className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] truncate">
+                    {t('chart.title')}
+                </h2>
+                <div className="flex items-center gap-2 shrink-0">
+                    {Math.abs(calFactor - 1) > 0.001 && (
+                        <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-70 tabular-nums">
+                            ×{calFactor.toFixed(2)}
+                        </span>
+                    )}
+                    <div className="flex items-center gap-0.5">
+                        {rangeOpts.map(o => (
+                            <button
+                                key={o.key}
+                                onClick={() => selectRange(o.key)}
+                                className={`${chipBase} ${range === o.key ? chipOn : chipOff}`}
+                            >
+                                {o.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
+            </div>
 
-                <div className={`${chartHeightClass} w-full touch-none relative select-none px-2 pb-2 mt-4`}>
-                    {(() => {
-                        const factorNow = calibrationFn(now / 3600000);
-                        return Math.abs(factorNow - 1) > 0.001 ? (
-                            <div className="absolute top-0 right-4 z-10 px-2 py-0.5 rounded border bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 flex items-center gap-1 opacity-80 pointer-events-none">
-                                <FlaskConical size={10} className="text-gray-400 dark:text-gray-500" />
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                                    ×{(factorNow ?? 1).toFixed(2)}
-                                </span>
-                            </div>
-                        ) : null;
-                    })()}
-                    <ResponsiveContainer width="100%" height="100%">
+            {/* Legend — always visible so each line is labelled, on mobile too */}
+            <div className="flex items-center gap-4 mb-1 text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                <span className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
+                    {primaryMeta.label}
+                </span>
+                {hasSecondary && (
+                    <span className="flex items-center gap-1.5">
+                        <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.second }} />
+                        {t('label.cpa_chart')}
+                    </span>
+                )}
+            </div>
 
-                        <ComposedChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 10 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#374151' : '#f2f4f7'} />
-                            <XAxis
-                                dataKey="time"
-                                type="number"
-                                domain={xDomain || ['auto', 'auto']}
-                                allowDataOverflow={true}
-                                tickFormatter={(ms) => formatDate(new Date(ms), lang)}
-                                tick={{ fontSize: 10, fill: isDarkMode ? '#9ca3af' : '#9aa3b1', fontWeight: 600 }}
-                                minTickGap={48}
-                                axisLine={false}
-                                tickLine={false}
-                                dy={10}
-                            />
-                            {hasE2Data && (
-                                <YAxis
-                                    yAxisId="left"
-                                    dataKey="concE2"
-                                    domain={dispYLeft ?? yDomainLeft ?? [0, 'auto']}
-                                    allowDataOverflow
-                                    tickCount={5}
-                                    tickFormatter={(v: number) => v.toFixed(1)}
-                                    tick={{ fontSize: 10, fill: isTransmasc ? '#0ea5e9' : '#ec4899', fontWeight: 600 }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    width={50}
-                                    label={{ value: isTransmasc ? t('label.t_unit') : t('label.e2_unit'), angle: -90, position: 'left', offset: 0, style: { fontSize: 11, fill: isTransmasc ? '#0ea5e9' : '#ec4899', fontWeight: 700, textAnchor: 'middle' } }}
-                                />
-                            )}
-                            {hasCPAData && (
-                                <YAxis
-                                    yAxisId="right"
-                                    orientation="right"
-                                    dataKey="concCPA"
-                                    domain={dispYRight ?? yDomainRight ?? [0, 'auto']}
-                                    allowDataOverflow
-                                    tickCount={5}
-                                    tickFormatter={(v: number) => v.toFixed(1)}
-                                    tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 600 }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    width={50}
-                                    label={{ value: t('label.cpa_unit'), angle: 90, position: 'right', offset: 0, style: { fontSize: 11, fill: '#8b5cf6', fontWeight: 700, textAnchor: 'middle' } }}
-                                />
-                            )}
-                            <Tooltip
-                                content={<CustomTooltip t={t} lang={lang} isDarkMode={isDarkMode} isTransmasc={isTransmasc} />}
-                                cursor={{ stroke: isDarkMode ? '#f9a8d4' : '#f472b6', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                trigger="hover"
-                            />
-                            {hasE2Data && (
-                                <ReferenceLine
-                                    x={now}
-                                    stroke="#f472b6"
-                                    strokeDasharray="3 3"
-                                    strokeWidth={1.2}
-                                    yAxisId="left"
-                                    ifOverflow="extendDomain"
-                                />
-                            )}
-                            {hasE2Data && (
-                                <Line
-                                    data={data}
-                                    type="linear"
-                                    dataKey="concE2"
-                                    yAxisId="left"
-                                    stroke="#f472b6"
-                                    strokeWidth={2}
-                                    dot={false}
-                                    isAnimationActive={false}
-                                    activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#ec4899' }}
-                                />
-                            )}
-                            {hasCPAData && (
-                                <Line
-                                    data={data}
-                                    type="monotone"
-                                    dataKey="concCPA"
-                                    yAxisId="right"
-                                    stroke="#8b5cf6"
-                                    strokeWidth={2}
-                                    dot={false}
-                                    isAnimationActive={false}
-                                    activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#7c3aed' }}
-                                />
-                            )}
-                            {eventPoints?.e2Points && eventPoints.e2Points.length > 0 && (
-                                <Scatter
-                                    data={eventPoints.e2Points}
-                                    yAxisId="left"
-                                    dataKey="concE2"
-                                    isAnimationActive={false}
-                                    onClick={(entry) => {
-                                        if (entry && entry.payload && entry.payload.event) {
-                                            onPointClick(entry.payload.event);
-                                        }
-                                    }}
-                                    shape={({ cx, cy }: any) => (
-                                        <g className="cursor-pointer">
-                                            <circle cx={cx} cy={cy} r={4} fill="#fff7ed" stroke="#fb923c" strokeWidth={1.4} />
-                                            <circle cx={cx} cy={cy} r={2} fill="#f97316" />
-                                        </g>
-                                    )}
-                                />
-                            )}
-                            {hasCPAData && cpaEventPoints.length > 0 && (
-                                <Scatter
-                                    data={cpaEventPoints}
-                                    yAxisId="right"
-                                    dataKey="concCPA"
-                                    isAnimationActive={false}
-                                    onClick={(entry) => {
-                                        if (entry && entry.payload && entry.payload.event) {
-                                            onPointClick(entry.payload.event);
-                                        }
-                                    }}
-                                    shape={({ cx, cy }: any) => (
-                                        <g className="cursor-pointer">
-                                            <circle cx={cx} cy={cy} r={4} fill="#faf5ff" stroke="#a855f7" strokeWidth={1.4} />
-                                            <circle cx={cx} cy={cy} r={2} fill="#8b5cf6" />
-                                        </g>
-                                    )}
-                                />
-                            )}
-                            {hasE2Data && (
-                                <Scatter
-                                    data={nowPoint ? [nowPoint] : []}
-                                    yAxisId="left"
-                                    isAnimationActive={false}
-                                    shape={({ cx, cy }: any) => (
-                                        <g>
-                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                            <circle
-                                                cx={cx} cy={cy}
-                                                r={5}
-                                                fill="#fbcfe8"
-                                                stroke="white"
-                                                strokeWidth={1.5}
-                                            />
-                                        </g>
-                                    )}
-                                />
-                            )}
-                            {hasCPAData && (
-                                <Scatter
-                                    data={nowPoint ? [nowPoint] : []}
-                                    yAxisId="right"
-                                    isAnimationActive={false}
-                                    shape={({ cx, cy }: any) => (
-                                        <g>
-                                            <circle cx={cx} cy={cy} r={1} fill="transparent" />
-                                            <circle
-                                                cx={cx} cy={cy}
-                                                r={5}
-                                                fill="#c4b5fd"
-                                                stroke="white"
-                                                strokeWidth={1.5}
-                                            />
-                                        </g>
-                                    )}
-                                />
-                            )}
-                            {labPoints.length > 0 && (
-                                <Scatter
-                                    data={labPoints}
-                                    yAxisId="left"
-                                    dataKey="concE2"
-                                    isAnimationActive={false}
-                                    shape={({ cx, cy }: any) => (
-                                        <g>
-                                            <circle cx={cx} cy={cy} r={6} fill="#14b8a6" stroke="white" strokeWidth={2} />
-                                            <g transform={`translate(${(cx ?? 0) - 6}, ${(cy ?? 0) - 6})`}>
-                                                <FlaskConical size={12} color="white" />
-                                            </g>
-                                        </g>
-                                    )}
-                                />
-                            )}
-                        </ComposedChart>
-                    </ResponsiveContainer>
-                </div>
+            {/* Plot */}
+            <div ref={setPlotEl} className="relative h-72 md:h-96 -mx-4 md:-mx-6 select-none touch-pan-y">
 
-                {data.length > 1 && (
-                    <div className={`${fullscreen ? 'px-4 md:px-6 pb-4 mt-1' : 'px-5 pb-5 mt-2'}`}>
-                        <div className="w-full h-12 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-800 rounded overflow-hidden">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 4 }}>
-                                    <defs>
-                                        <linearGradient id={miniMapGradientId} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={isDarkMode ? '#525252' : '#e5e7eb'} stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor={isDarkMode ? '#525252' : '#e5e7eb'} stopOpacity={0.1} />
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis
-                                        dataKey="time"
-                                        type="number"
-                                        hide
-                                        domain={[minTime, maxTime]}
+
+                {width > 0 && (
+                    <svg
+                        width={width}
+                        height={height}
+                        className="block"
+                        onPointerDown={onPointerDown}
+                        onPointerMove={onPointerMove}
+                        onPointerUp={endDrag}
+                        onPointerCancel={endDrag}
+                        onPointerLeave={onPointerLeave}
+                        style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
+                    >
+                        <defs>
+                            <linearGradient id={`fill-${clipId}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={c.primary} stopOpacity={isDarkMode ? 0.28 : 0.2} />
+                                <stop offset="100%" stopColor={c.primary} stopOpacity={0} />
+                            </linearGradient>
+                            <clipPath id={`clip-${clipId}`}>
+                                <rect x={mL} y={mT - 4} width={plotW} height={plotH + 8} />
+                            </clipPath>
+                        </defs>
+
+                        {/* Horizontal grid + primary axis labels */}
+                        {ticksFor(yPrimary).map((v, i) => {
+                            const y = YP(v);
+                            if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                            return (
+                                <g key={`yp-${i}`}>
+                                    <line x1={mL} y1={y} x2={mL + plotW} y2={y} stroke={c.grid} strokeWidth={1} />
+                                    <text x={mL - 8} y={y + 3} textAnchor="end" fontSize={10} fill={c.axis}>{fmtAxis(v)}</text>
+                                </g>
+                            );
+                        })}
+
+                        {/* Secondary (CPA) axis labels */}
+                        {hasSecondary && ticksFor(ySecondary).map((v, i) => {
+                            const y = YS(v);
+                            if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                            return (
+                                <text key={`ys-${i}`} x={mL + plotW + 8} y={y + 3} textAnchor="start" fontSize={10} fill={c.faint}>{fmtAxis(v)}</text>
+                            );
+                        })}
+
+                        {/* X axis labels */}
+                        {xTicks.map((tk, i) => (
+                            <text key={`x-${i}`} x={tk.x} y={mT + plotH + 16} textAnchor="middle" fontSize={10} fill={c.axis}>{tk.label}</text>
+                        ))}
+
+                        <g clipPath={`url(#clip-${clipId})`}>
+                            {/* Area + primary curve */}
+                            {areaPath && <path d={areaPath} fill={`url(#fill-${clipId})`} />}
+                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+
+                            {/* Secondary curve (CPA) — kept quiet so E2 stays the focus */}
+                            {hasSecondary && (
+                                <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+                            )}
+
+                            {/* "Now" line + dot */}
+                            {now >= t0 && now <= t1 && (
+                                <line x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+                            )}
+                            {nowVal != null && now >= t0 && now <= t1 && (
+                                <circle cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
+                            )}
+
+                            {/* Dose markers (clickable) */}
+                            {markers.map((m, i) => {
+                                const cx = X(m.t);
+                                const cy = m.axis === 'p' ? YP(m.v) : YS(m.v);
+                                const col = m.axis === 's' ? c.second : c.primary;
+                                return (
+                                    <g key={`m-${i}`} className="cursor-pointer" onClick={() => onPointClick(m.event)}>
+                                        <circle cx={cx} cy={cy} r={9} fill="transparent" />
+                                        <circle cx={cx} cy={cy} r={3} fill={c.dot} stroke={col} strokeWidth={1.5} />
+                                    </g>
+                                );
+                            })}
+
+                            {/* Lab results (measured) — hollow diamonds */}
+                            {labPoints.map((l, i) => {
+                                const cx = X(l.t);
+                                const cy = YP(l.v);
+                                return (
+                                    <rect
+                                        key={`l-${i}`}
+                                        x={cx - 4} y={cy - 4} width={8} height={8}
+                                        transform={`rotate(45 ${cx} ${cy})`}
+                                        fill={c.dot} stroke={c.lab} strokeWidth={1.75}
                                     />
-                                    <YAxis dataKey="conc" hide />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="conc"
-                                        stroke={isDarkMode ? '#525252' : '#d1d5db'}
-                                        strokeWidth={1}
-                                        fill={`url(#${miniMapGradientId})`}
-                                        isAnimationActive={false}
-                                    />
-                                    <Brush
-                                        dataKey="time"
-                                        height={20}
-                                        stroke={isDarkMode ? '#737373' : '#9ca3af'}
-                                        fill={isDarkMode ? '#171717' : '#ffffff'}
-                                        startIndex={brushRange.startIndex}
-                                        endIndex={brushRange.endIndex}
-                                        travellerWidth={8}
-                                        tickFormatter={(ms) => formatDate(new Date(ms), lang)}
-                                        onChange={handleBrushChange}
-                                    >
-                                        <Area
-                                            type="monotone"
-                                            dataKey="conc"
-                                            stroke="none"
-                                            fill={isDarkMode ? '#404040' : '#d1d5db'}
-                                            fillOpacity={0.4}
-                                            isAnimationActive={false}
-                                        />
-                                    </Brush>
-                                </AreaChart>
-                            </ResponsiveContainer>
+                                );
+                            })}
+
+                            {/* Hover crosshair + dot */}
+                            {showHover && (
+                                <>
+                                    <line x1={X(hoverPt!.t)} y1={mT} x2={X(hoverPt!.t)} y2={mT + plotH} stroke={c.faint} strokeWidth={1} />
+                                    <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
+                                    {hasSecondary && hoverPt!.s != null && (
+                                        <circle cx={X(hoverPt!.t)} cy={YS(hoverPt!.s)} r={3} fill={c.second} stroke={c.dot} strokeWidth={1.5} />
+                                    )}
+                                </>
+                            )}
+                        </g>
+                    </svg>
+                )}
+
+                {/* Hover tooltip */}
+                {showHover && (
+                    <div
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-lg shadow-sm bg-white dark:bg-neutral-800 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        style={{
+                            left: Math.min(Math.max(X(hoverPt!.t), mL + 4), mL + plotW - 4),
+                            top: Math.max(YP(hoverPt!.p) - 12, 8),
+                            transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
+                        }}
+                    >
+                        <div className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
+                            {formatDate(new Date(hoverPt!.t), lang)} · {formatTime(new Date(hoverPt!.t))}
                         </div>
+                        <div className="flex items-baseline gap-1 whitespace-nowrap">
+                            <span className="text-sm font-medium tabular-nums" style={{ color: c.primary }}>
+                                {hoverPt!.p.toFixed(primaryMeta.decimals)}
+                            </span>
+                            <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{primaryMeta.unit}</span>
+                        </div>
+                        {hasSecondary && hoverPt!.s != null && (
+                            <div className="flex items-baseline gap-1 whitespace-nowrap">
+                                <span className="text-xs font-medium tabular-nums" style={{ color: c.second }}>
+                                    {hoverPt!.s.toFixed(2)}
+                                </span>
+                                <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">ng/ml</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
-        );
-    };
-
-    if (!sim || sim.timeH.length === 0) return (
-        <div className="h-72 md:h-96 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-8">
-            <Activity className="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" strokeWidth={1} />
-            <p className="text-sm">{t('timeline.empty')}</p>
         </div>
-    );
-
-    return (
-        <>
-            {renderChartPanel(false)}
-            {isFullscreen && createPortal(
-                <div className="fixed inset-0 z-[120] bg-white dark:bg-neutral-900">
-                    {isPortraitMobileFullscreen ? (
-                        <div className="h-full w-full flex items-center justify-center overflow-hidden">
-                            <div className="origin-center rotate-90" style={{ width: viewport.height, height: viewport.width }}>
-                                {renderChartPanel(true)}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="h-full w-full">
-                            {renderChartPanel(true)}
-                        </div>
-                    )}
-                </div>,
-                document.body
-            )}
-        </>
     );
 };
 

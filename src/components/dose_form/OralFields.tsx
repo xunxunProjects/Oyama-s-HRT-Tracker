@@ -44,15 +44,16 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
+                        style={{ fontSize: '16px' }}
                     />
                 </div>
             )}
 
             {!(ester === Ester.EV && route === Route.oral) && ester !== Ester.CPA && (
                 <div className={`space-y-1.5 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-semibold text-rose-500 dark:text-rose-400 pl-1">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
                         {t('field.dose_e2')}
                     </label>
                     <input
@@ -60,8 +61,9 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-rose-200 dark:border-rose-900/50 rounded-md focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none font-medium text-rose-600 dark:text-rose-400 text-sm transition-colors"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none font-medium text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
+                        style={{ fontSize: '16px' }}
                     />
                 </div>
             )}

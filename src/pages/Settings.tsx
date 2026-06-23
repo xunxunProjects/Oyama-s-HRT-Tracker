@@ -1,8 +1,7 @@
-import React from 'react';
-import { Settings as SettingsIcon, Languages, Palette, Upload, Download, Trash2, Info, Github, AlertTriangle, Scale, Eye, User, SlidersHorizontal, ChevronRight, UploadCloud } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, Settings2, Database, Info, ArrowLeft, Globe } from 'lucide-react';
 import { Lang } from '../i18n/translations';
-import { DoseEvent } from '../../logic';
-import { PKCustomParams } from '../../logic';
+import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface SettingsProps {
@@ -20,7 +19,7 @@ interface SettingsProps {
     events: DoseEvent[];
     showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void;
     setIsDisclaimerOpen: (isOpen: boolean) => void;
-    setIsTransparencyOpen: (isOpen: boolean) => void;
+    onNavigateToTransparency: () => void;
     appVersion: string;
     weight: number;
     setIsWeightModalOpen: (isOpen: boolean) => void;
@@ -37,253 +36,262 @@ interface SettingsProps {
     isLoggedIn: boolean;
 }
 
+type SettingsCat = 'general' | 'data' | 'about';
+type MobileView = 'list' | SettingsCat;
+
+const rowBase = "w-full flex items-center justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-start";
+const rowLabel = "text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const rowValue = "flex items-center gap-1 text-[15px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+
+let _savedCat: SettingsCat = 'general';
+let _savedMobileView: MobileView = 'list';
+
 const Settings: React.FC<SettingsProps> = ({
-    t,
-    lang,
-    setLang,
-    theme,
-    setTheme,
-    languageOptions,
-    onImportJson,
-    labResults,
-    onExport,
-    onQuickExport,
-    onClearAllEvents,
-    events,
-    showDialog,
-    setIsDisclaimerOpen,
-    setIsTransparencyOpen,
-    appVersion,
-    weight,
-    setIsWeightModalOpen,
-    pkParams,
-    onNavigateToPKParams,
-    onNavigateToHRTMode,
-    onNavigateToLanguage,
-    onNavigateToAppearance,
-    onNavigateToWeight,
-    onNavigateToExport,
-    onNavigateToImport,
-    autoBackup,
-    setAutoBackup,
-    isLoggedIn,
+    t, lang, theme, languageOptions, onClearAllEvents, events,
+    showDialog, setIsDisclaimerOpen, onNavigateToTransparency, appVersion,
+    weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
+    onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
+    onNavigateToExport, onNavigateToImport, autoBackup, setAutoBackup, isLoggedIn,
 }) => {
     const { mode } = useHRTMode();
+    const [cat, setCat] = useState<SettingsCat>(_savedCat);
+    const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
+
+    const selectCat = (c: SettingsCat) => {
+        _savedCat = c;
+        setCat(c);
+    };
+
+    const enterMobileCat = (c: SettingsCat) => {
+        _savedCat = c;
+        _savedMobileView = c;
+        setCat(c);
+        setMobileView(c);
+    };
+
+    const exitMobileCat = () => {
+        _savedMobileView = 'list';
+        setMobileView('list');
+    };
+
+    const navTo = (fn: () => void, forCat: SettingsCat) => {
+        _savedCat = forCat;
+        _savedMobileView = forCat;
+        fn();
+    };
+
+    const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
+        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('settings.hrt_mode'), t('drawer.lang'), t('settings.theme')].join(' · ') },
+        { id: 'data',    label: t('settings.group.data'),    Icon: Database,  hint: [t('export.title'), t('import.title')].join(' · ') },
+        { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
+    ];
+
+    const catLabel = cats.find(c => c.id === (mobileView === 'list' ? 'general' : mobileView))?.label ?? '';
+
+    const GeneralContent = () => (
+        <div>
+            <button onClick={() => navTo(onNavigateToHRTMode, 'general')} className={rowBase}>
+                <span className={rowLabel}>{t('settings.hrt_mode')}</span>
+                <span className={rowValue}>
+                    {t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}
+                    <ChevronRight size={15} />
+                </span>
+            </button>
+
+            <button onClick={() => navTo(onNavigateToLanguage, 'general')} className={rowBase}>
+                <span className={rowLabel}>{t('drawer.lang')}</span>
+                <span className={rowValue}>
+                    <Globe size={14} className="opacity-50" />
+                    {languageOptions.find(o => o.value === lang)?.label ?? lang}
+                    <ChevronRight size={15} />
+                </span>
+            </button>
+
+            <button onClick={() => navTo(onNavigateToAppearance, 'general')} className={rowBase}>
+                <span className={rowLabel}>{t('settings.theme')}</span>
+                <span className={rowValue}>
+                    {theme === 'light' ? t('theme.light') : theme === 'dark' ? t('theme.dark') : t('theme.system')}
+                    <ChevronRight size={15} />
+                </span>
+            </button>
+
+            <button onClick={() => navTo(onNavigateToWeight, 'general')} className={rowBase}>
+                <span className={rowLabel}>{t('status.weight')}</span>
+                <span className={rowValue}>
+                    {weight} kg
+                    <ChevronRight size={15} />
+                </span>
+            </button>
+
+            {isLoggedIn && (
+                <div className={`${rowBase} cursor-default`}>
+                    <div>
+                        <p className={rowLabel}>{t('settings.auto_backup')}</p>
+                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.auto_backup_desc')}</p>
+                    </div>
+                    <button
+                        onClick={() => setAutoBackup(!autoBackup)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${autoBackup ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                        role="switch"
+                        aria-checked={autoBackup}
+                    >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${autoBackup ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+            )}
+
+            <button onClick={() => navTo(onNavigateToPKParams, 'general')} className={`${rowBase} border-b-0`}>
+                <span className={rowLabel}>{t('settings.pk_params')}</span>
+                <span className={rowValue}>
+                    {pkParams && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium mr-1">
+                            {t('pk.customized')}
+                        </span>
+                    )}
+                    <ChevronRight size={15} />
+                </span>
+            </button>
+        </div>
+    );
+
+    const DataContent = () => (
+        <div>
+            <button onClick={() => navTo(onNavigateToExport, 'data')} className={rowBase}>
+                <span className={rowLabel}>{t('export.title')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <button onClick={() => navTo(onNavigateToImport, 'data')} className={rowBase}>
+                <span className={rowLabel}>{t('import.title')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <button
+                onClick={onClearAllEvents}
+                disabled={!events.length}
+                className={`${rowBase} border-b-0 ${!events.length ? 'opacity-40 cursor-not-allowed' : ''}`}
+            >
+                <span className={`text-[15px] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
+                    {t('drawer.clear')}
+                </span>
+            </button>
+        </div>
+    );
+
+    const AboutContent = () => (
+        <div>
+            <button
+                onClick={() => showDialog('confirm', t('drawer.model_confirm'), () => window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'))}
+                className={rowBase}
+            >
+                <span className={rowLabel}>{t('drawer.model_title')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <button
+                onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank'))}
+                className={rowBase}
+            >
+                <span className={rowLabel}>{t('drawer.github')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <button onClick={() => navTo(onNavigateToTransparency, 'about')} className={rowBase}>
+                <span className={rowLabel}>{t('transparency.title')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <button onClick={() => setIsDisclaimerOpen(true)} className={`${rowBase} border-b-0`}>
+                <span className={rowLabel}>{t('drawer.disclaimer')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            <p className={`mt-10 text-xs ${muted}`}>{appVersion}</p>
+        </div>
+    );
+
+    const catContent = (id: SettingsCat) => {
+        if (id === 'general') return <GeneralContent />;
+        if (id === 'data') return <DataContent />;
+        return <AboutContent />;
+    };
 
     return (
-        <>
-        <div className="relative space-y-6 pt-6 pb-32">
-            <div className="px-6 md:px-8">
-                <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg flex items-center justify-between p-4 mb-6">
-                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg">
-                            <SettingsIcon size={20} />
-                        </div>
-                        {t('nav.settings')}
-                    </h2>
-                </div>
-            </div>
+        <div className="flex pt-8 pb-32 min-h-full">
 
-            {/* General Settings */}
-            <div className="space-y-2">
-                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.general')}</h3>
-                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    <button
-                        onClick={onNavigateToHRTMode}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <User className="text-pink-500 dark:text-pink-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.hrt_mode')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}</span>
-                            <ChevronRight size={16} className="text-gray-400" />
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={onNavigateToLanguage}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Languages className="text-pink-500 dark:text-pink-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.lang')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{languageOptions.find(o => o.value === lang)?.label ?? lang}</span>
-                            <ChevronRight size={16} className="text-gray-400" />
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={onNavigateToAppearance}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Palette className="text-pink-500 dark:text-pink-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.theme')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {theme === 'light' ? t('theme.light') : theme === 'dark' ? t('theme.dark') : t('theme.system')}
-                            </span>
-                            <ChevronRight size={16} className="text-gray-400" />
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={onNavigateToWeight}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Scale className="text-pink-500 dark:text-pink-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('status.weight')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{weight} kg</span>
-                            <ChevronRight size={16} className="text-gray-400" />
-                        </div>
-                    </button>
-
-                    {isLoggedIn && (
-                    <div className="w-full flex items-center justify-between p-4">
-                        <div className="flex items-center gap-3">
-                            <UploadCloud className="text-pink-500 dark:text-pink-400" size={18} />
-                            <div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.auto_backup')}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.auto_backup_desc')}</div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setAutoBackup(!autoBackup)}
-                            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
-                                autoBackup
-                                    ? 'bg-[var(--color-m3-primary)]'
-                                    : 'bg-gray-200 dark:bg-neutral-700'
-                            }`}
-                            role="switch"
-                            aria-checked={autoBackup}
-                        >
-                            <span
-                                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                                    autoBackup ? 'translate-x-6' : 'translate-x-1'
-                                }`}
-                            />
-                        </button>
-                    </div>
-                    )}
-
-                    <button
-                        onClick={onNavigateToPKParams}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <SlidersHorizontal className="text-pink-500 dark:text-pink-400" size={18} />
-                            <div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.pk_params')}</span>
-                                {pkParams && (
-                                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">{t('pk.customized')}</span>
-                                )}
-                            </div>
-                        </div>
-                        <ChevronRight size={16} className="text-gray-400" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Data Management */}
-            <div className="space-y-2">
-                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.data')}</h3>
-                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    <button
-                        onClick={onNavigateToExport}
-                        className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Upload className="text-pink-500 dark:text-pink-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('export.title')}</span>
-                        </div>
-                        <ChevronRight size={16} className="text-gray-400" />
-                    </button>
-
-                    <button
-                        onClick={onNavigateToImport}
-                        className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Download className="text-violet-500 dark:text-violet-400" size={18} />
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{t('import.title')}</span>
-                        </div>
-                        <ChevronRight size={16} className="text-gray-400" />
-                    </button>
-
-                    <button
-                        onClick={onClearAllEvents}
-                        disabled={!events.length}
-                        className={`w-full flex items-center gap-3 px-4 py-4 text-start transition-colors ${events.length ? 'hover:bg-red-50 dark:hover:bg-red-900/10 text-gray-900 dark:text-gray-100' : 'bg-gray-50 dark:bg-neutral-800/50 cursor-not-allowed opacity-60 text-gray-500'}`}
-                    >
-                        <Trash2 className="text-red-500" size={18} />
-                        <span className="font-semibold">{t('drawer.clear')}</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* About */}
-            <div className="space-y-2">
-                <h3 className="px-8 text-xs font-semibold text-gray-500 dark:text-gray-400">{t('settings.group.about')}</h3>
-                <div className="mx-6 md:mx-8 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    <button
-                        onClick={() => {
-                            showDialog('confirm', t('drawer.model_confirm'), () => {
-                                window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank');
-                            });
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <Info className="text-violet-500 dark:text-violet-400" size={18} />
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.model_title')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => {
-                            showDialog('confirm', t('drawer.github_confirm'), () => {
-                                window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank');
-                            });
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <Github className="text-gray-600 dark:text-gray-400" size={18} />
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.github')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => setIsTransparencyOpen(true)}
-                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <Eye className="text-emerald-500" size={18} />
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('transparency.title')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => setIsDisclaimerOpen(true)}
-                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                    >
-                        <AlertTriangle className="text-amber-500" size={18} />
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">{t('drawer.disclaimer')}</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Version Footer */}
-            <div className="pt-4 pb-6 flex justify-center">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">
-                    {appVersion}
+            {/* ── Left category nav (desktop) ─────────────────────────── */}
+            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${on}`}>
+                    {t('nav.settings')}
                 </p>
+                {cats.map(({ id, label, Icon }) => (
+                    <button
+                        key={id}
+                        onClick={() => selectCat(id)}
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[15px] text-start
+                            ${cat === id
+                                ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${on} font-medium`
+                                : `${muted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] hover:${on}`
+                            }`}
+                    >
+                        <Icon size={16} strokeWidth={1.75} />
+                        {label}
+                    </button>
+                ))}
+            </nav>
+
+            {/* ── Desktop content ─────────────────────────────────────── */}
+            <div className="hidden md:block flex-1 px-10 max-w-2xl">
+                <h2 className={`text-xl font-semibold ${on} mb-6`}>
+                    {cats.find(c => c.id === cat)?.label}
+                </h2>
+                {catContent(cat)}
+            </div>
+
+            {/* ── Mobile ──────────────────────────────────────────────── */}
+            <div className="md:hidden flex-1 px-6">
+                {mobileView === 'list' ? (
+                    <>
+                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${on}`}>{t('nav.settings')}</h1>
+                        {cats.map(({ id, label, Icon, hint }) => (
+                            <button
+                                key={id}
+                                onClick={() => enterMobileCat(id)}
+                                className={`${rowBase} items-center`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                        <Icon size={18} strokeWidth={1.75} className={muted} />
+                                    </div>
+                                    <div className="text-start">
+                                        <p className={`text-[15px] font-medium ${on}`}>{label}</p>
+                                        <p className={`text-xs ${muted} mt-0.5 leading-relaxed`}>{hint}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={15} className={muted} />
+                            </button>
+                        ))}
+                    </>
+                ) : (
+                    <>
+                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)]">
+                            <button
+                                onClick={exitMobileCat}
+                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                            >
+                                <ArrowLeft size={18} className={`${muted} shrink-0`} />
+                                <h1 className={`text-xl font-semibold ${on}`}>
+                                    {cats.find(c => c.id === mobileView)?.label}
+                                </h1>
+                            </button>
+                        </div>
+                        {catContent(mobileView as SettingsCat)}
+                    </>
+                )}
             </div>
         </div>
-
-        </>
     );
 };
 

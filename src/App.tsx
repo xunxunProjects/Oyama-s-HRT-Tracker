@@ -24,7 +24,6 @@ import ExportModal from './components/ExportModal';
 import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
-import TransparencyModal from './components/TransparencyModal';
 import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -41,6 +40,10 @@ import Account from './pages/Account';
 import Admin from './pages/Admin';
 import SessionsPage from './pages/Sessions';
 import TwoFactorPage from './pages/TwoFactor';
+import ChangePasswordPage from './pages/ChangePassword';
+import DeleteAccountPage from './pages/DeleteAccount';
+import EditProfilePage from './pages/EditProfile';
+import EditAvatarPage from './pages/EditAvatar';
 import PKParamsPage from './pages/PKParams';
 import HRTModeSettings from './pages/HRTModeSettings';
 import LanguageSettings from './pages/LanguageSettings';
@@ -48,6 +51,7 @@ import AppearanceSettings from './pages/AppearanceSettings';
 import WeightSettings from './pages/WeightSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
+import TransparencySettings from './pages/TransparencySettings';
 
 // Encrypt the export payload for cloud storage when a device key is present.
 // Without a key (e.g. a session predating E2EE, or a passwordless passkey
@@ -121,7 +125,6 @@ const AppContent = () => {
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
-    const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
     const [isLabModalOpen, setIsLabModalOpen] = useState(false);
     const [editingLab, setEditingLab] = useState<LabResult | null>(null);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
@@ -280,10 +283,10 @@ const AppContent = () => {
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
-        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen || isTransparencyOpen;
+        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen, isTransparencyOpen]);
+    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
 
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
@@ -456,13 +459,13 @@ const AppContent = () => {
     // The hook provides navItems.
 
     return (
-        <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden transition-colors duration-300">
+        <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden">
             <Sidebar
                 navItems={navItems}
                 currentView={currentView}
                 onViewChange={(v) => !needsSetup2FA && handleViewChange(v)}
             />
-            <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative transition-colors duration-300">
+            <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
 
                 <div
                     ref={mainScrollRef}
@@ -544,7 +547,7 @@ const AppContent = () => {
                             events={events}
                             showDialog={showDialog}
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
-                            setIsTransparencyOpen={setIsTransparencyOpen}
+                            onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             appVersion={APP_VERSION}
                             weight={weight}
                             setIsWeightModalOpen={setIsWeightModalOpen}
@@ -599,6 +602,7 @@ const AppContent = () => {
                             labResults={labResults}
                             weight={weight}
                             onExport={handleExportConfirm}
+                            onQuickExport={handleQuickExport}
                             onBack={() => handleViewChange('settings')}
                         />
                     )}
@@ -644,6 +648,38 @@ const AppContent = () => {
                         />
                     )}
 
+                    {currentView === 'change-password' && (
+                        <ChangePasswordPage
+                            onBack={() => handleViewChange('account')}
+                        />
+                    )}
+
+                    {currentView === 'delete-account' && (
+                        <DeleteAccountPage
+                            onBack={() => handleViewChange('account')}
+                        />
+                    )}
+
+                    {currentView === 'edit-profile' && (
+                        <EditProfilePage
+                            onBack={() => handleViewChange('account')}
+                        />
+                    )}
+
+                    {currentView === 'edit-avatar' && user && token && (
+                        <EditAvatarPage
+                            username={user.username}
+                            token={token}
+                            onBack={() => handleViewChange('account')}
+                        />
+                    )}
+
+                    {currentView === 'settings-transparency' && (
+                        <TransparencySettings
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
                     {currentView === 'pk-params' && (
                         <PKParamsPage
                             pkParams={pkParams}
@@ -659,8 +695,8 @@ const AppContent = () => {
                 </div>
 
                 {/* Bottom Navigation */}
-                <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden safe-area-pb bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <div className="flex items-stretch">
+                <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden safe-area-pb bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface-dim)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                    <div className="flex items-stretch px-2 pt-1 pb-1 gap-1">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             const activeTab = ({
                                 'home': 'home',
@@ -673,6 +709,7 @@ const AppContent = () => {
                                 'settings-weight': 'settings',
                                 'settings-export': 'settings',
                                 'settings-import': 'settings',
+                                'settings-transparency': 'settings',
                                 'pk-params': 'settings',
                                 'account': 'account',
                                 'sessions': 'account',
@@ -686,16 +723,16 @@ const AppContent = () => {
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-2 transition-colors duration-200
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg
                                         ${isDisabled
-                                            ? 'text-gray-300 dark:text-neutral-600 cursor-not-allowed'
+                                            ? 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] cursor-not-allowed'
                                             : isActive
-                                            ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
-                                            : 'text-gray-500 dark:text-gray-400'
+                                            ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
+                                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
                                         }`}
                                 >
-                                    <Icon size={22} strokeWidth={isActive ? 2.5 : 1.75} />
-                                    <span className="text-[10px] font-medium tracking-tight">
+                                    <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
+                                    <span className="text-[10px] font-medium">
                                         {label}
                                     </span>
                                 </button>
@@ -747,11 +784,6 @@ const AppContent = () => {
             <DisclaimerModal
                 isOpen={isDisclaimerOpen}
                 onClose={() => setIsDisclaimerOpen(false)}
-            />
-
-            <TransparencyModal
-                isOpen={isTransparencyOpen}
-                onClose={() => setIsTransparencyOpen(false)}
             />
 
             <ImportModal

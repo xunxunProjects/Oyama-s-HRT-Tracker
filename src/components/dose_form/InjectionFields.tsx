@@ -48,14 +48,15 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-gray-900 dark:text-gray-100 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
+                        style={{ fontSize: '16px' }}
                     />
                 </div>
             )}
             {!(ester === Ester.EV && route === Route.injection) && ester !== Ester.CPA && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-semibold text-rose-500 dark:text-rose-400 pl-1">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
                         {t(equivLabelKey)}
                     </label>
                     <input
@@ -63,8 +64,9 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-rose-200 dark:border-rose-900/50 rounded-xl focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none text-rose-600 dark:text-rose-400 font-medium text-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
+                        style={{ fontSize: '16px' }}
                     />
                 </div>
             )}

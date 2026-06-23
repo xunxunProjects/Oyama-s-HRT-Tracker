@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { LabResult } from '../../logic';
-import { Calendar, Check, Trash2, X, ChevronDown } from 'lucide-react';
+import { Check, Trash2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -15,6 +15,8 @@ interface LabResultFormProps {
 }
 
 type LabUnit = 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
+
+const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
 
 const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, isInline = false }) => {
     const { t } = useTranslation();
@@ -43,171 +45,150 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
     const handleSave = () => {
         if (!dateStr || !value) return;
-
         const timeH = new Date(dateStr).getTime() / 3600000;
         const numValue = parseFloat(value);
-
         if (isNaN(numValue) || numValue < 0 || isNaN(timeH)) return;
-
-        const newResult: LabResult = {
+        onSave({
             id: resultToEdit?.id || uuidv4(),
             timeH,
             concValue: numValue,
             unit
-        };
+        });
+    };
 
-        onSave(newResult);
+    const transfemUnits: LabUnit[] = ['pmol/l', 'pg/ml'];
+    const transmasUnits: LabUnit[] = ['ng/dl', 'nmol/l'];
+    const units = isTransmasc ? transmasUnits : transfemUnits;
+    const unitLabels: Record<LabUnit, string> = {
+        'pmol/l': 'pmol/L',
+        'pg/ml': 'pg/mL',
+        'ng/dl': 'ng/dL',
+        'nmol/l': 'nmol/L',
     };
 
     return (
-        <div className={`flex flex-col h-full bg-white dark:bg-neutral-900 transition-colors duration-300 ${isInline ? 'border border-gray-200 dark:border-neutral-800 rounded-lg' : ''}`}>
-            {/* Header */}
+        <div className="flex flex-col h-full">
+            {/* Inline section header */}
             {isInline && (
-                <div className="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center bg-gray-50/50 dark:bg-neutral-900 rounded-t-lg">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 px-2">
+                <div className={`px-0 pb-4 ${divider} mb-0`}>
+                    <span className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                         {t('lab.add_title')}
-                    </h3>
+                    </span>
                 </div>
             )}
 
-            <div className={`overflow-y-auto ${isInline ? 'p-4' : 'p-5'} space-y-4`}>
-                {/* Date & Time */}
-                <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
+            <div className="overflow-y-auto flex-1">
+                {/* Date row */}
+                <button
+                    type="button"
+                    onClick={() => setIsDatePickerOpen(v => !v)}
+                    className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
+                >
+                    <span className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                         {t('lab.date')}
-                    </label>
-                    <button
-                        type="button"
-                        onClick={() => setIsDatePickerOpen(true)}
-                        className="group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 rounded-md transition-colors outline-none flex items-center justify-between overflow-hidden"
-                    >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <Calendar size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
-                            <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
-                                {dateStr ? new Date(dateStr).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                            </span>
-                        </div>
-                        <ChevronDown size={16} className="text-gray-400 shrink-0" />
-                    </button>
-                    <DateTimePicker
-                        isOpen={isDatePickerOpen}
-                        onClose={() => setIsDatePickerOpen(false)}
-                        onConfirm={(date) => {
-                            const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                            setDateStr(iso);
-                            setIsDatePickerOpen(false);
-                        }}
-                        initialDate={dateStr ? new Date(dateStr) : new Date()}
-                        mode="datetime"
-                        title={t('lab.date')}
-                    />
-                </div>
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                        <span className="text-sm tabular-nums">
+                            {dateStr ? new Date(dateStr).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </span>
+                        <ChevronDown size={14} className={isDatePickerOpen ? 'rotate-180' : ''} />
+                    </div>
+                </button>
+                <DateTimePicker
+                    isOpen={isDatePickerOpen}
+                    inline
+                    onClose={() => setIsDatePickerOpen(false)}
+                    onConfirm={(date) => {
+                        const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        setDateStr(iso);
+                        setIsDatePickerOpen(false);
+                    }}
+                    initialDate={dateStr ? new Date(dateStr) : new Date()}
+                    mode="datetime"
+                    title={t('lab.date')}
+                />
 
-                {/* Value & Unit */}
-                <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1 flex items-center gap-1.5">
-                        {isTransmasc ? t('lab.value_t') : t('lab.value')}
-                    </label>
-                    <div className="flex gap-2 items-center">
-                        <div className="relative flex-1">
-                            <input
-                                type="number"
-                                inputMode="decimal"
-                                placeholder="0.0"
-                                value={value}
-                                onChange={(e) => setValue(e.target.value)}
-                                className="w-full bg-gray-50 dark:bg-neutral-900 rounded-md p-3 border border-gray-200 dark:border-neutral-800 focus:border-[var(--color-m3-primary)] focus:ring-1 focus:ring-[var(--color-m3-primary)] dark:focus:border-[var(--color-m3-primary)] outline-none transition-colors font-medium text-gray-900 dark:text-gray-100 text-sm"
-                            />
-                        </div>
-                        <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-md border border-gray-200 dark:border-neutral-700 shrink-0">
-                            {isTransmasc ? (
-                                <>
-                                    <button
-                                        onClick={() => setUnit('ng/dl')}
-                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'ng/dl' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                    >
-                                        ng/dL
-                                    </button>
-                                    <button
-                                        onClick={() => setUnit('nmol/l')}
-                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'nmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                    >
-                                        nmol/L
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => setUnit('pmol/l')}
-                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pmol/l' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                    >
-                                        pmol/L
-                                    </button>
-                                    <button
-                                        onClick={() => setUnit('pg/ml')}
-                                        className={`px-3 py-2 rounded text-xs font-semibold transition-colors ${unit === 'pg/ml' ? 'bg-white dark:bg-neutral-900 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                    >
-                                        pg/mL
-                                    </button>
-                                </>
-                            )}
+                {/* Value & unit row */}
+                <div className={`py-[18px] ${divider}`}>
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            {isTransmasc ? t('lab.value_t') : t('lab.value')}
+                        </span>
+                        {/* Underline unit selector */}
+                        <div className="flex gap-4">
+                            {units.map(u => (
+                                <button
+                                    key={u}
+                                    onClick={() => setUnit(u)}
+                                    className={`text-sm pb-0.5 border-b-2 ${unit === u
+                                        ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
+                                        : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
+                                    }`}
+                                >
+                                    {unitLabels[u]}
+                                </button>
+                            ))}
                         </div>
                     </div>
+                    <input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="0.0"
+                        value={value}
+                        onChange={e => setValue(e.target.value)}
+                        className="w-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md px-3 py-2 outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)] tabular-nums"
+                        style={{ fontSize: '16px' }}
+                    />
                 </div>
             </div>
 
             {/* Footer */}
-            <div className={`px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex justify-between items-center shrink-0 transition-colors duration-300 ${isInline ? 'rounded-b-lg' : ''}`}>
-                <div className="flex gap-2 items-center flex-wrap min-h-10">
+            <div className="pt-4 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
                     {resultToEdit && onDelete && (
-                        <div className="flex items-center">
-                            <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center ${
-                                showDeleteConfirm ? 'w-36 sm:w-40 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded opacity-100 pl-3 pr-1 py-1' : 'w-0 opacity-0 border border-transparent'
-                            }`}>
-                                <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap grow">{t('dialog.confirm_title')}?</span>
-                                <div className="flex items-center shrink-0 ml-2">
+                        <>
+                            {showDeleteConfirm ? (
+                                <div className="flex items-center gap-1 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded px-2 py-1">
+                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap">{t('dialog.confirm_title')}?</span>
                                     <button
-                                        onClick={() => {
-                                            onDelete(resultToEdit.id);
-                                            onCancel();
-                                        }}
-                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
-                                        title={t('btn.ok')}
+                                        onClick={() => { onDelete(resultToEdit.id); onCancel(); }}
+                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
                                     >
-                                        <Check size={16} />
+                                        <Check size={14} />
                                     </button>
                                     <button
                                         onClick={() => setShowDeleteConfirm(false)}
-                                        className="p-1 text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-                                        title={t('btn.cancel')}
+                                        className="p-1 text-[var(--color-m3-on-surface-variant)] hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                                     >
-                                        <X size={16} />
+                                        <X size={14} />
                                     </button>
                                 </div>
-                            </div>
-
-                            <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                                showDeleteConfirm ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
-                            }`}>
+                            ) : (
                                 <button
                                     onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 text-gray-400 hover:text-red-500 border border-transparent rounded transition-colors flex items-center justify-center"
+                                    className="p-2 text-[var(--color-m3-on-surface-variant)] hover:text-red-500 rounded"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={16} />
                                 </button>
-                            </div>
-                        </div>
+                            )}
+                        </>
                     )}
                 </div>
 
-                <div className="flex gap-2 ml-auto shrink-0">
+                <div className="flex gap-2 ml-auto">
+                    <button
+                        onClick={onCancel}
+                        className="min-w-[88px] px-4 py-2 text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] rounded-md flex items-center justify-center"
+                    >
+                        {t('btn.cancel')}
+                    </button>
                     <button
                         onClick={handleSave}
                         disabled={!value || !dateStr}
-                        className="px-5 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded font-medium text-sm transition-colors disabled:opacity-70 flex items-center justify-center gap-1.5"
+                        className="min-w-[88px] px-4 py-2 text-sm font-medium bg-[var(--color-m3-primary)] text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     >
-                        <Check size={16} />
-                        <span>{t('btn.save')}</span>
+                        <Check size={14} />
+                        {t('btn.save')}
                     </button>
                 </div>
             </div>

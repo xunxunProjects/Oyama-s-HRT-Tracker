@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Monitor, Smartphone, Loader2, Trash2, LogOut, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Monitor, Smartphone, Loader2, Trash2, LogOut } from 'lucide-react';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -92,64 +92,57 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
 
     const otherSessions = sessions.filter(s => !s.is_current);
 
+    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+
     return (
-        <div className="relative pt-6 pb-32">
+        <div className="relative pb-32">
             {/* Header */}
-            <div className="px-6 md:px-10 mb-5">
-                <div className="w-full p-4 rounded-lg bg-white dark:bg-neutral-900 flex items-center gap-3 border border-gray-200 dark:border-neutral-800 transition-all duration-300">
-                    <button
-                        onClick={onBack}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-md">
-                            <ShieldAlert size={18} className="text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">{t('account.sessions')}</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.sessions_desc')}</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                >
+                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
+                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.sessions')}</span>
+                </button>
+                <p className={`text-sm ${muted} mt-1 ml-0.5`}>{t('account.sessions_desc')}</p>
             </div>
 
-            <div className="px-6 md:px-10 space-y-4">
-                <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
+            <div className="px-6 md:px-10 mt-4 space-y-4 max-w-2xl">
+                <div className="bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-bright)] rounded-xl border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] overflow-hidden">
                     {loading ? (
                         <div className="flex justify-center py-16">
-                            <Loader2 className="animate-spin text-gray-300" size={24} />
+                            <Loader2 className={`animate-spin ${muted}`} size={22} />
                         </div>
                     ) : sessions.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-14">{t('account.sessions_empty')}</p>
+                        <p className={`text-sm ${muted} text-center py-14`}>{t('account.sessions_empty')}</p>
                     ) : (
-                        <div className="divide-y divide-gray-100 dark:divide-neutral-800">
+                        <div className="divide-y divide-[var(--color-m3-outline-variant)] dark:divide-[var(--color-m3-dark-outline-variant)]">
                             {sessions.map(s => {
                                 const { label, isMobile } = parseDevice(s.device_info || '');
                                 const isTerminating = terminating === s.id;
                                 return (
                                     <div
                                         key={s.id}
-                                        className={`flex items-start gap-3 px-5 py-4 ${s.is_current ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}
+                                        className={`flex items-start gap-3 px-5 py-4 ${s.is_current ? 'bg-[var(--color-m3-primary-container)]/40 dark:bg-[var(--color-m3-dark-surface-container)]/60' : ''}`}
                                     >
-                                        <div className={`mt-0.5 p-2 rounded-lg ${s.is_current ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-gray-100 dark:bg-neutral-800'}`}>
+                                        <div className={`mt-0.5 p-2 rounded-lg ${s.is_current ? 'bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]'}`}>
                                             {isMobile
-                                                ? <Smartphone size={16} className={s.is_current ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'} />
-                                                : <Monitor size={16} className={s.is_current ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'} />
+                                                ? <Smartphone size={16} className={s.is_current ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted} />
+                                                : <Monitor size={16} className={s.is_current ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted} />
                                             }
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 flex-wrap">
-                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{label}</p>
+                                                <p className="text-sm font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">{label}</p>
                                                 {s.is_current && (
-                                                    <span className="shrink-0 text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                    <span className="shrink-0 text-[10px] font-semibold bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-primary-container)] dark:text-[var(--color-m3-primary-light)] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                                                         {t('account.sessions_current')}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">{s.ip || '—'}</p>
-                                            <p className="text-xs text-gray-400 dark:text-neutral-500">
+                                            <p className={`text-xs ${muted} mt-0.5`}>{s.ip || '—'}</p>
+                                            <p className={`text-xs ${muted}`}>
                                                 {t('account.sessions_last_used')}: {relativeTime(s.last_used_at)}
                                                 {' · '}
                                                 {t('account.sessions_created')}: {relativeTime(s.created_at)}
@@ -159,7 +152,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             <button
                                                 onClick={() => handleTerminate(s.id)}
                                                 disabled={isTerminating || terminating === 'others'}
-                                                className="shrink-0 mt-0.5 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-40"
+                                                className={`shrink-0 mt-0.5 p-1.5 rounded-lg ${muted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40`}
                                             >
                                                 {isTerminating ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                                             </button>
@@ -175,7 +168,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                     <button
                         onClick={handleTerminateOthers}
                         disabled={terminating === 'others'}
-                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 bg-white dark:bg-neutral-900 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-500 dark:text-red-400 disabled:opacity-50"
                     >
                         {terminating === 'others' ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
                         {t('account.sessions_terminate_others')}

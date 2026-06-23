@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield, Fingerprint } from 'lucide-react';
-import { AvatarUpload } from '../components/AvatarUpload';
-import EditProfileModal from '../components/EditProfileModal';
-import ChangePasswordModal from '../components/ChangePasswordModal';
-import DeleteAccountModal from '../components/DeleteAccountModal';
+import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield, Fingerprint, Check, X } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -32,6 +28,11 @@ interface AccountProps {
     onTwoFAStatusChange: (enabled: boolean) => void;
 }
 
+const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const sectionLabel = "text-xs font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-2 block";
+const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
+const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+
 const Account: React.FC<AccountProps> = ({
     t,
     user,
@@ -46,9 +47,11 @@ const Account: React.FC<AccountProps> = ({
     twoFAEnabled,
     onTwoFAStatusChange
 }) => {
-    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-    const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+    const [avatarError, setAvatarError] = useState(false);
+    // Bust the avatar cache once per mount so returning from the edit-avatar
+    // page (which remounts Account) reflects a freshly uploaded image.
+    const avatarCacheBuster = useMemo(() => Date.now(), []);
+    const avatarUrl = `/api/user/avatar/${user?.username}?t=${avatarCacheBuster}`;
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
     const [savingCloud, setSavingCloud] = useState(false);
@@ -85,7 +88,6 @@ const Account: React.FC<AccountProps> = ({
     useEffect(() => {
         if (user && token) {
             fetchBackups();
-            // Fetch 2FA status
             authService.get2FAStatus(token).then(s => onTwoFAStatusChange(s.enabled)).catch(() => {});
         }
     }, [user, token]);
@@ -118,7 +120,7 @@ const Account: React.FC<AccountProps> = ({
     const toggleExpand = async (b: BackupMeta) => {
         if (expandedId === b.id) { setExpandedId(null); return; }
         setExpandedId(b.id);
-        if (expandedData[b.id]) return; // already loaded
+        if (expandedData[b.id]) return;
         setExpandLoading(b.id);
         try {
             const backup = await cloudService.loadOne(token!, b.id);
@@ -130,7 +132,6 @@ const Account: React.FC<AccountProps> = ({
         } finally { setExpandLoading(null); }
     };
 
-    // Compute merge diff for a given backup
     const computeDiff = (backupData: any) => {
         const localEventIds = new Set(localData.events.map((e: any) => e.id));
         const localLabIds = new Set(localData.labResults.map((r: any) => r.id));
@@ -168,7 +169,6 @@ const Account: React.FC<AccountProps> = ({
                 );
             } else {
                 await register(username, password);
-                // needsSetup2FA redirect is handled by App.tsx
                 return;
             }
             setUsername('');
@@ -185,7 +185,6 @@ const Account: React.FC<AccountProps> = ({
                 setTwoFAMethod(method);
                 setAuthError(null);
                 if (method === 'passkey') {
-                    // Auto-trigger passkey verification
                     setTimeout(() => handlePasskeyLogin(), 100);
                 }
             } else {
@@ -229,536 +228,481 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
+    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+
     return (
-        <div className="relative space-y-5 pt-6 pb-32">
-            <div className="px-6 md:px-10">
-                <div className="w-full p-5 rounded-lg bg-white dark:bg-neutral-900 flex items-center justify-between border border-gray-200 dark:border-neutral-800 transition-all duration-300">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-3">
-                        <div className="p-2 bg-pink-50 dark:bg-pink-900/20 rounded-md">
-                            <User size={20} className="text-pink-600 dark:text-pink-400" />
-                        </div>
-                        {t('account.title')}
-                    </h2>
-                </div>
-            </div>
+        <div className="relative pb-32 px-6 md:px-10">
+            <h1 className="sticky top-0 z-20 -mx-6 md:-mx-10 px-6 md:px-10 pt-8 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                {t('account.title')}
+            </h1>
 
-            <div className="space-y-4 px-6 md:px-10">
-                {user ? (
-                    <>
-                        {/* Profile Section */}
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors duration-300">
-                            <div className="p-6 flex flex-col items-center justify-center gap-4 bg-gray-50/50 dark:bg-neutral-800/30">
-                                {token && (
-                                    <AvatarUpload
-                                        username={user.username}
-                                        token={token}
-                                    />
-                                )}
-                                <div className="flex flex-col items-center gap-1">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-bold text-gray-900 dark:text-gray-100 text-xl">{user.username}</span>
-                                        {user.isAdmin && (
-                                            <BadgeCheck className="w-5 h-5 text-pink-600 fill-pink-100 dark:fill-pink-900/30" strokeWidth={2.5} />
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => setIsEditProfileOpen(true)}
-                                        className="text-xs font-medium text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+            {user ? (
+                <>
+                    {/* Profile */}
+                    <div className={`flex flex-col items-center py-6 gap-2 ${divider} mb-6`}>
+                        <button
+                            type="button"
+                            onClick={() => onNavigate('edit-avatar')}
+                            className="relative group w-28 h-28 rounded-full overflow-hidden cursor-pointer bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary)]/40 focus:ring-offset-2 focus:ring-offset-[var(--color-m3-surface)] dark:focus:ring-offset-[var(--color-m3-dark-surface)]"
+                            aria-label={t('avatar.change')}
+                        >
+                            <img
+                                src={avatarUrl}
+                                alt={user.username}
+                                className={`w-full h-full object-cover absolute inset-0 z-10 ${avatarError ? 'hidden' : 'block'}`}
+                                onError={() => setAvatarError(true)}
+                            />
+                            <div className="w-full h-full flex items-center justify-center text-4xl font-light text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] absolute inset-0">
+                                {user.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center z-20">
+                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-xs">
+                                    {t('avatar.change')}
+                                </span>
+                            </div>
+                        </button>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-lg">{user.username}</span>
+                            {user.isAdmin && (
+                                <BadgeCheck className="w-5 h-5 text-[var(--color-m3-primary)]" strokeWidth={2.5} />
+                            )}
+                        </div>
+                        <button
+                            onClick={() => onNavigate('edit-profile')}
+                            className="text-xs text-[var(--color-m3-primary)] flex items-center gap-1"
+                        >
+                            <Edit2 size={12} />
+                            {t('account.edit_profile')}
+                        </button>
+                    </div>
+
+                    {/* Security */}
+                    <div className="mb-6">
+                        <span className={sectionLabel}>{t('account.security')}</span>
+                        <button
+                            onClick={() => onNavigate('change-password')}
+                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
+                        >
+                            <Key className={iconCls} size={18} />
+                            <div className="flex-1 text-start">
+                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.change_password')}</p>
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.change_password_desc')}</p>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('two-factor')}
+                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
+                        >
+                            {twoFAEnabled
+                                ? <ShieldCheck className="text-emerald-600 dark:text-emerald-400 shrink-0" size={18} />
+                                : <Shield className={iconCls} size={18} />
+                            }
+                            <div className="flex-1 text-start">
+                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.2fa')}</p>
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.2fa_desc')}</p>
+                            </div>
+                            <span className={`text-xs font-medium tabular-nums ${twoFAEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'}`}>
+                                {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('sessions')}
+                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
+                        >
+                            <ShieldAlert className={iconCls} size={18} />
+                            <div className="flex-1 text-start">
+                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.sessions')}</p>
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.sessions_desc')}</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* Data / Cloud */}
+                    <div className="mb-6">
+                        <span className={sectionLabel}>{t('settings.group.data')}</span>
+                        <button
+                            onClick={handleSave}
+                            disabled={savingCloud}
+                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded disabled:opacity-50`}
+                        >
+                            {savingCloud
+                                ? <Loader2 className={`${iconCls} animate-spin`} size={18} />
+                                : <UploadCloud className={iconCls} size={18} />
+                            }
+                            <div className="flex-1 text-start">
+                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.backup_cloud')}</p>
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.backup_cloud_desc')}</p>
+                            </div>
+                            {backupList.length > 0 && (
+                                <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] tabular-nums shrink-0">{backupList.length}/10</span>
+                            )}
+                        </button>
+
+                        {/* Backup list */}
+                        {backupsLoading ? (
+                            <div className="flex justify-center py-6">
+                                <Loader2 className="animate-spin text-[var(--color-m3-on-surface-variant)]" size={20} />
+                            </div>
+                        ) : backupList.length === 0 ? (
+                            <div className="py-6 flex flex-col items-center gap-2">
+                                <Cloud size={28} className="text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]" />
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.no_backups')}</p>
+                            </div>
+                        ) : (
+                            backupList.map(b => (
+                                <div key={b.id} className={divider}>
+                                    <div
+                                        className="flex items-center py-3 cursor-pointer hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded"
+                                        onClick={() => toggleExpand(b)}
                                     >
-                                        <Edit2 size={12} />
-                                        {t('account.edit_profile')}
-                                    </button>
+                                        <HardDrive size={14} className={`${iconCls} mr-3`} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">
+                                                {new Date(b.created_at * 1000).toLocaleString()}
+                                            </p>
+                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{formatBytes(b.data_size)}</p>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
+                                            className="p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                        <ChevronDown size={14} className={`${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    <div className={`grid ${expandedId === b.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="pb-4 pt-1 space-y-3">
+                                                {expandLoading === b.id ? (
+                                                    <div className="flex justify-center py-6">
+                                                        <Loader2 className="animate-spin text-[var(--color-m3-on-surface-variant)]" size={20} />
+                                                    </div>
+                                                ) : expandedData[b.id] ? (() => {
+                                                    const data = expandedData[b.id];
+                                                    const diff = computeDiff(data);
+                                                    const showingDiff = mergeDiffId === b.id;
+                                                    return (
+                                                        <>
+                                                            {/* Stats row */}
+                                                            <div className="grid grid-cols-4 gap-3 py-2">
+                                                                {[
+                                                                    { label: t('account.backup_doses'), val: (data.events || []).length },
+                                                                    { label: t('account.backup_weight'), val: data.weight ?? '—' },
+                                                                    { label: t('account.backup_labs'), val: (data.labResults || []).length },
+                                                                    { label: t('account.backup_templates'), val: (data.doseTemplates || []).length },
+                                                                ].map(({ label, val }) => (
+                                                                    <div key={label} className="text-center">
+                                                                        <p className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider font-medium">{label}</p>
+                                                                        <p className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mt-0.5 tabular-nums">{val}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* Recent doses preview */}
+                                                            {(data.events || []).length > 0 && (
+                                                                <div>
+                                                                    {(data.events as any[]).slice(0, 3).map((ev: any, i: number) => (
+                                                                        <div key={i} className={`flex items-center justify-between py-2 text-xs ${divider} last:border-b-0`}>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{ev.ester}</span>
+                                                                                <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{ev.route}</span>
+                                                                            </div>
+                                                                            <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tabular-nums">{ev.doseMG} mg</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {(data.events || []).length > 3 && (
+                                                                        <p className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-center py-1.5">
+                                                                            +{(data.events || []).length - 3} …
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Merge diff panel */}
+                                                            <div className={`grid ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                                                <div className="overflow-hidden">
+                                                                    <div className="space-y-2 pt-2">
+                                                                        <p className="text-[10px] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('account.merge_preview')}</p>
+                                                                        {diff.totalDiff === 0 ? (
+                                                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] py-2 text-center">{t('account.nothing_to_merge')}</p>
+                                                                        ) : (
+                                                                            <div className="space-y-1.5">
+                                                                                {diff.newEvents.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_doses')}</span>
+                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newEvents.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {diff.newLabs.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_labs')}</span>
+                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newLabs.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {diff.newTemplates.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_templates')}</span>
+                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newTemplates.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {diff.localOnlyEvents.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_doses')}</span>
+                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyEvents.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {diff.localOnlyLabs.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_labs')}</span>
+                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyLabs.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {diff.localOnlyTemplates.length > 0 && (
+                                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_templates')}</span>
+                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyTemplates.length}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                        {diff.total > 0 && (
+                                                                            <button
+                                                                                onClick={() => { onCloudMerge(b.id); setExpandedId(null); setMergeDiffId(null); }}
+                                                                                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 mt-1"
+                                                                            >
+                                                                                <Merge size={13} />
+                                                                                {t('account.confirm_merge')} (+{diff.total})
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Action buttons */}
+                                                            <div className="flex gap-2 pt-1">
+                                                                <button
+                                                                    onClick={() => setMergeDiffId(showingDiff ? null : b.id)}
+                                                                    className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border ${showingDiff
+                                                                        ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
+                                                                        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
+                                                                    }`}
+                                                                >
+                                                                    <Merge size={13} />
+                                                                    {t('account.merge')}
+                                                                    {diff.total > 0 && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">+{diff.total}</span>}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
+                                                                    className="flex-1 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-semibold rounded-md flex items-center justify-center gap-1.5"
+                                                                >
+                                                                    <DownloadCloud size={13} />
+                                                                    {t('account.restore')}
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })() : null}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div className="mb-6">
+                        <span className={`${sectionLabel} text-red-500`}>{t('account.danger_zone')}</span>
+                        <button
+                            onClick={() => onNavigate('delete-account')}
+                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
+                        >
+                            <Trash2 className="text-red-500 shrink-0" size={18} />
+                            <div className="text-start">
+                                <p className="font-medium text-red-600 dark:text-red-400 text-sm">{t('account.delete_account')}</p>
+                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.delete_account_desc')}</p>
                             </div>
+                        </button>
+                    </div>
+
+                    {/* Sign out */}
+                    <div className="flex justify-center pt-2">
+                        <button
+                            onClick={onLogout}
+                            className="flex items-center gap-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] px-6 py-2 rounded-md text-sm"
+                        >
+                            <LogOut size={16} />
+                            {t('account.sign_out')}
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <div className="max-w-sm">
+                    {/* Login / Register tabs */}
+                    <div className={`flex gap-5 ${divider} mb-5`}>
+                        {[
+                            { key: true, label: t('auth.sign_in') },
+                            { key: false, label: t('auth.sign_up') },
+                        ].map(({ key, label }) => (
+                            <button
+                                key={String(key)}
+                                onClick={() => { setIsLogin(key); setAuthError(null); setNeedsTOTP(false); }}
+                                className={`text-sm pb-2 -mb-px border-b-2 ${isLogin === key
+                                    ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
+                                    : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <form onSubmit={handleAuthSubmit} className="space-y-4">
+                        {authError && (
+                            <p className="text-sm text-red-500 dark:text-red-400">
+                                {authError}
+                            </p>
+                        )}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.username')}</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className={inputCls}
+                                style={{ fontSize: '16px' }}
+                                placeholder={t('auth.username_placeholder')}
+                                autoComplete="username"
+                                required
+                            />
                         </div>
-
-                        {/* Security Section */}
-                        <div className="space-y-2">
-                            <h3 className="px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('account.security')}</h3>
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
-                                <button
-                                    onClick={() => setIsChangePasswordOpen(true)}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
-                                >
-                                    <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                                        <Key className="text-blue-600 dark:text-blue-400" size={18} />
-                                    </div>
-                                    <div className="text-start">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.change_password')}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.change_password_desc')}</p>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => onNavigate('two-factor')}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
-                                >
-                                    <div className={`p-1.5 rounded-md ${twoFAEnabled ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-purple-50 dark:bg-purple-900/20'}`}>
-                                        {twoFAEnabled
-                                            ? <ShieldCheck className="text-emerald-600 dark:text-emerald-400" size={18} />
-                                            : <Shield className="text-purple-600 dark:text-purple-400" size={18} />
-                                        }
-                                    </div>
-                                    <div className="text-start flex-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.2fa')}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.2fa_desc')}</p>
-                                    </div>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${twoFAEnabled ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400'}`}>
-                                        {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
-                                    </span>
-                                </button>
-                                <button
-                                    onClick={() => onNavigate('sessions')}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start"
-                                >
-                                    <div className="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
-                                        <ShieldAlert className="text-orange-600 dark:text-orange-400" size={18} />
-                                    </div>
-                                    <div className="text-start">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.sessions')}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.sessions_desc')}</p>
-                                    </div>
-                                </button>
-                            </div>
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.password')}</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={inputCls}
+                                style={{ fontSize: '16px' }}
+                                placeholder={t('auth.password_placeholder')}
+                                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                required
+                            />
                         </div>
-
-                        {/* Data Section */}
-                        <div className="space-y-2">
-                            <h3 className="px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('settings.group.data')}</h3>
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                                {/* Save button */}
-                                <button
-                                    onClick={handleSave}
-                                    disabled={savingCloud}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition text-start border-b border-gray-100 dark:border-neutral-800 disabled:opacity-50"
-                                >
-                                    <div className="p-1.5 bg-pink-50 dark:bg-pink-900/20 rounded-md">
-                                        {savingCloud ? <Loader2 className="text-pink-600 dark:text-pink-400 animate-spin" size={18} /> : <UploadCloud className="text-pink-600 dark:text-pink-400" size={18} />}
-                                    </div>
-                                    <div className="text-start flex-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{t('account.backup_cloud')}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.backup_cloud_desc')}</p>
-                                    </div>
-                                    {backupList.length > 0 && (
-                                        <span className="text-xs text-gray-400 tabular-nums">{backupList.length}/10</span>
-                                    )}
-                                </button>
-
-                                {/* Backup list */}
-                                {backupsLoading ? (
-                                    <div className="flex justify-center py-6">
-                                        <Loader2 className="animate-spin text-gray-300" size={20} />
-                                    </div>
-                                ) : backupList.length === 0 ? (
-                                    <div className="px-6 py-5 flex flex-col items-center gap-2">
-                                        <Cloud size={28} className="text-gray-300 dark:text-neutral-600" />
-                                        <p className="text-xs text-gray-400 dark:text-neutral-500">{t('account.no_backups')}</p>
+                        {needsTOTP && isLogin && (
+                            <div className="space-y-3">
+                                <div className="p-2.5 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md flex items-center gap-2">
+                                    <Shield size={14} className="shrink-0" />
+                                    {t('auth.needs_2fa')}
+                                </div>
+                                {useBackupCode ? (
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.backup_code_label')}</label>
+                                        <input
+                                            type="text"
+                                            value={backupCode}
+                                            onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
+                                            className={`${inputCls} tracking-[0.1em] font-mono text-center`}
+                                            style={{ fontSize: '16px' }}
+                                            placeholder={t('auth.backup_code_placeholder')}
+                                            autoComplete="off"
+                                            autoFocus
+                                            required={useBackupCode}
+                                        />
+                                        <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
+                                            className="text-xs text-[var(--color-m3-primary)] hover:underline">
+                                            ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
+                                        </button>
                                     </div>
                                 ) : (
-                                    <div className="divide-y divide-gray-100 dark:divide-neutral-800">
-                                        {backupList.map(b => (
-                                            <div key={b.id}>
-                                                <div className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-neutral-800/30 transition-colors cursor-pointer" onClick={() => toggleExpand(b)}>
-                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                        <div className="p-1 bg-gray-100 dark:bg-neutral-800 rounded">
-                                                            <HardDrive size={14} className="text-gray-400" />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
-                                                                {new Date(b.created_at * 1000).toLocaleString()}
-                                                            </p>
-                                                            <p className="text-xs text-gray-400">{formatBytes(b.data_size)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
-                                                            className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                        <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${expandedId === b.id ? 'rotate-180' : 'rotate-0'}`} />
-                                                    </div>
-                                                </div>
-                                                {/* Inline dropdown */}
-                                                <div className={`grid transition-all duration-300 ease-in-out ${expandedId === b.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                                    <div className="overflow-hidden">
-                                                        <div className="px-6 pb-4 pt-1 space-y-3">
-                                                            {expandLoading === b.id ? (
-                                                                <div className="flex justify-center py-6">
-                                                                    <Loader2 className="animate-spin text-gray-300" size={20} />
-                                                                </div>
-                                                            ) : expandedData[b.id] ? (() => {
-                                                                const data = expandedData[b.id];
-                                                                const diff = computeDiff(data);
-                                                                const showingDiff = mergeDiffId === b.id;
-                                                                return (
-                                                                <>
-                                                                    {/* Stats grid */}
-                                                                    <div className="grid grid-cols-4 gap-2">
-                                                                        <div className="bg-gray-50 dark:bg-neutral-800/50 rounded-lg p-2.5 text-center">
-                                                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{t('account.backup_doses')}</p>
-                                                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{(data.events || []).length}</p>
-                                                                        </div>
-                                                                        <div className="bg-gray-50 dark:bg-neutral-800/50 rounded-lg p-2.5 text-center">
-                                                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{t('account.backup_weight')}</p>
-                                                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{data.weight ? `${data.weight}` : '\u2014'}</p>
-                                                                        </div>
-                                                                        <div className="bg-gray-50 dark:bg-neutral-800/50 rounded-lg p-2.5 text-center">
-                                                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{t('account.backup_labs')}</p>
-                                                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{(data.labResults || []).length}</p>
-                                                                        </div>
-                                                                        <div className="bg-gray-50 dark:bg-neutral-800/50 rounded-lg p-2.5 text-center">
-                                                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{t('account.backup_templates')}</p>
-                                                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{(data.doseTemplates || []).length}</p>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Recent doses */}
-                                                                    {(data.events || []).length > 0 && (
-                                                                        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-                                                                            <div className="divide-y divide-gray-100 dark:divide-neutral-800">
-                                                                                {(data.events as any[]).slice(0, 3).map((ev: any, i: number) => (
-                                                                                    <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <span className="px-1.5 py-0.5 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded font-medium">{ev.ester}</span>
-                                                                                            <span className="text-gray-500">{ev.route}</span>
-                                                                                        </div>
-                                                                                        <span className="font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{ev.doseMG} mg</span>
-                                                                                    </div>
-                                                                                ))}
-                                                                                {(data.events || []).length > 3 && (
-                                                                                    <div className="px-3 py-1.5 text-[10px] text-gray-400 text-center bg-gray-50 dark:bg-neutral-800/50">
-                                                                                        +{(data.events || []).length - 3} ...
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* Merge diff panel */}
-                                                                    <div className={`grid transition-all duration-300 ease-in-out ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                                                        <div className="overflow-hidden">
-                                                                            <div className="space-y-2 pt-1">
-                                                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('account.merge_preview')}</p>
-                                                                                {diff.totalDiff === 0 ? (
-                                                                                    <p className="text-xs text-gray-400 py-2 text-center">{t('account.nothing_to_merge')}</p>
-                                                                                ) : (
-                                                                                    <div className="space-y-1.5">
-                                                                                        {/* Cloud → Local (mergeable) */}
-                                                                                        {diff.newEvents.length > 0 && (
-                                                                                            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5 mb-1">
-                                                                                                    <Plus size={12} className="text-emerald-600" />
-                                                                                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">{t('account.new_doses')} ({diff.newEvents.length})</span>
-                                                                                                </div>
-                                                                                                <div className="space-y-0.5">
-                                                                                                    {diff.newEvents.slice(0, 3).map((ev: any, i: number) => (
-                                                                                                        <div key={i} className="text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                                                                                                            <span className="font-medium">{ev.ester}</span>
-                                                                                                            <span className="text-emerald-600/70 dark:text-emerald-400/70">{ev.route}</span>
-                                                                                                            <span className="ml-auto font-semibold tabular-nums">{ev.doseMG} mg</span>
-                                                                                                        </div>
-                                                                                                    ))}
-                                                                                                    {diff.newEvents.length > 3 && (
-                                                                                                        <p className="text-[10px] text-emerald-600/60">+{diff.newEvents.length - 3} ...</p>
-                                                                                                    )}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {diff.newLabs.length > 0 && (
-                                                                                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5">
-                                                                                                    <Plus size={12} className="text-blue-600" />
-                                                                                                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">{t('account.new_labs')} ({diff.newLabs.length})</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {diff.newTemplates.length > 0 && (
-                                                                                            <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5">
-                                                                                                    <Plus size={12} className="text-violet-600" />
-                                                                                                    <span className="text-[10px] font-bold text-violet-700 dark:text-violet-400 uppercase">{t('account.new_templates')} ({diff.newTemplates.length})</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {/* Local → Cloud (local-only, info) */}
-                                                                                        {diff.localOnlyEvents.length > 0 && (
-                                                                                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5 mb-1">
-                                                                                                    <Minus size={12} className="text-amber-600" />
-                                                                                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">{t('account.local_only_doses')} ({diff.localOnlyEvents.length})</span>
-                                                                                                </div>
-                                                                                                <div className="space-y-0.5">
-                                                                                                    {diff.localOnlyEvents.slice(0, 3).map((ev: any, i: number) => (
-                                                                                                        <div key={i} className="text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                                                                                                            <span className="font-medium">{ev.ester}</span>
-                                                                                                            <span className="text-amber-600/70 dark:text-amber-400/70">{ev.route}</span>
-                                                                                                            <span className="ml-auto font-semibold tabular-nums">{ev.doseMG} mg</span>
-                                                                                                        </div>
-                                                                                                    ))}
-                                                                                                    {diff.localOnlyEvents.length > 3 && (
-                                                                                                        <p className="text-[10px] text-amber-600/60">+{diff.localOnlyEvents.length - 3} ...</p>
-                                                                                                    )}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {diff.localOnlyLabs.length > 0 && (
-                                                                                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5">
-                                                                                                    <Minus size={12} className="text-amber-600" />
-                                                                                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">{t('account.local_only_labs')} ({diff.localOnlyLabs.length})</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {diff.localOnlyTemplates.length > 0 && (
-                                                                                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5">
-                                                                                                <div className="flex items-center gap-1.5">
-                                                                                                    <Minus size={12} className="text-amber-600" />
-                                                                                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">{t('account.local_only_templates')} ({diff.localOnlyTemplates.length})</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                )}
-                                                                                {diff.total > 0 && (
-                                                                                    <button
-                                                                                        onClick={() => { onCloudMerge(b.id); setExpandedId(null); setMergeDiffId(null); }}
-                                                                                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
-                                                                                    >
-                                                                                        <Merge size={13} />
-                                                                                        {t('account.confirm_merge')} (+{diff.total})
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Action buttons */}
-                                                                    <div className="flex gap-2 pt-1">
-                                                                        <button
-                                                                            onClick={() => setMergeDiffId(showingDiff ? null : b.id)}
-                                                                            className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${showingDiff ? 'bg-gray-200 dark:bg-neutral-700 text-gray-900 dark:text-gray-100' : 'bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-900 dark:text-gray-100'}`}
-                                                                        >
-                                                                            <Merge size={14} />
-                                                                            {t('account.merge')}
-                                                                            {diff.total > 0 && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">+{diff.total}</span>}
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
-                                                                            className="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
-                                                                        >
-                                                                            <DownloadCloud size={14} />
-                                                                            {t('account.restore')}
-                                                                        </button>
-                                                                    </div>
-                                                                </>
-                                                                );
-                                                            })() : null}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                    <>
+                                        {twoFAMethod !== 'passkey' && (
+                                            <div className="space-y-1.5">
+                                                <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.totp_code')}</label>
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]{6}"
+                                                    maxLength={6}
+                                                    value={totpCode}
+                                                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    className={`${inputCls} tracking-[0.15em] font-mono text-center`}
+                                                    style={{ fontSize: '16px' }}
+                                                    placeholder={t('auth.totp_placeholder')}
+                                                    autoComplete="one-time-code"
+                                                    autoFocus
+                                                    required={needsTOTP && !useBackupCode}
+                                                />
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+                                        {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
+                                            <p className="text-xs text-red-500 text-center">{t('auth.passkey_unsupported')}</p>
+                                        )}
+                                        {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                                            <>
+                                                {twoFAMethod !== 'passkey' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                        <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">or</span>
+                                                        <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePasskeyLogin}
+                                                    disabled={passkeyLoading}
+                                                    className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                                >
+                                                    {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
+                                                    {t('auth.passkey_as_2fa')}
+                                                </button>
+                                            </>
+                                        )}
+                                        <button type="button" onClick={() => setUseBackupCode(true)}
+                                            className="w-full text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] text-center py-1">
+                                            {t('auth.use_backup_code')}
+                                        </button>
+                                    </>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Danger Zone */}
-                        <div className="space-y-2">
-                            <h3 className="px-4 text-xs font-bold text-red-500 uppercase tracking-wider">{t('account.danger_zone')}</h3>
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-red-200 dark:border-red-900/30 overflow-hidden">
-                                <button
-                                    onClick={() => setIsDeleteAccountOpen(true)}
-                                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-red-50 dark:hover:bg-red-900/10 transition text-start"
-                                >
-                                    <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-md">
-                                        <Trash2 className="text-red-600 dark:text-red-400" size={18} />
-                                    </div>
-                                    <div className="text-start">
-                                        <p className="font-medium text-red-600 dark:text-red-400 text-sm">{t('account.delete_account')}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('account.delete_account_desc')}</p>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Logout */}
-                        <div className="flex justify-center pt-4">
-                            <button
-                                onClick={onLogout}
-                                className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800 px-6 py-2 rounded-md transition-colors text-sm font-medium"
-                            >
-                                <LogOut size={16} />
-                                {t('account.sign_out')}
-                            </button>
-                        </div>
-
-                        <EditProfileModal
-                            isOpen={isEditProfileOpen}
-                            onClose={() => setIsEditProfileOpen(false)}
-                        />
-                        <ChangePasswordModal
-                            isOpen={isChangePasswordOpen}
-                            onClose={() => setIsChangePasswordOpen(false)}
-                        />
-                        <DeleteAccountModal
-                            isOpen={isDeleteAccountOpen}
-                            onClose={() => setIsDeleteAccountOpen(false)}
-                        />
-
-
-
-                    </>
-                ) : (
-                    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors duration-300">
-                        <form onSubmit={handleAuthSubmit} className="px-6 py-5 space-y-4">
-                            {authError && (
-                                <div className="p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md border border-red-200 dark:border-red-900/30">
-                                    {authError}
-                                </div>
-                            )}
-                            <div className="space-y-1.5">
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.username')}</label>
-                                <input
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100"
-                                    placeholder={t('auth.username_placeholder')}
-                                    autoComplete="username"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.password')}</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100"
-                                    placeholder={t('auth.password_placeholder')}
-                                    autoComplete={isLogin ? 'current-password' : 'new-password'}
-                                    required
-                                />
-                            </div>
-                            {needsTOTP && isLogin && (
-                                <div className="space-y-3">
-                                    <div className="p-2.5 text-xs text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800/40 flex items-center gap-2">
-                                        <Shield size={14} className="shrink-0" />
-                                        {t('auth.needs_2fa')}
-                                    </div>
-                                    {useBackupCode ? (
-                                        <div className="space-y-1.5">
-                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.backup_code_label')}</label>
-                                            <input
-                                                type="text"
-                                                value={backupCode}
-                                                onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                                                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.1em] font-mono text-center"
-                                                placeholder={t('auth.backup_code_placeholder')}
-                                                autoComplete="off"
-                                                autoFocus
-                                                required={useBackupCode}
-                                            />
-                                            <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                                className="text-xs text-[var(--color-m3-primary)] hover:underline">
-                                                ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {twoFAMethod !== 'passkey' && (
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('auth.totp_code')}</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        pattern="[0-9]{6}"
-                                                        maxLength={6}
-                                                        value={totpCode}
-                                                        onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                        className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)] focus:border-[var(--color-m3-primary)] transition-all text-gray-900 dark:text-gray-100 tracking-[0.15em] font-mono text-center"
-                                                        placeholder={t('auth.totp_placeholder')}
-                                                        autoComplete="one-time-code"
-                                                        autoFocus
-                                                        required={needsTOTP && !useBackupCode}
-                                                    />
-                                                </div>
-                                            )}
-                                            {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
-                                                <p className="text-xs text-red-500 text-center">{t('auth.passkey_unsupported')}</p>
-                                            )}
-                                            {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
-                                                <>
-                                                    {twoFAMethod !== 'passkey' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
-                                                            <span className="text-xs text-gray-400 dark:text-neutral-500">or</span>
-                                                            <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
-                                                        </div>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={handlePasskeyLogin}
-                                                        disabled={passkeyLoading}
-                                                        className="w-full py-2.5 text-sm font-medium border border-gray-200 dark:border-neutral-700 rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition text-gray-700 dark:text-gray-300 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                    >
-                                                        {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                                        {t('auth.passkey_as_2fa')}
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button type="button" onClick={() => setUseBackupCode(true)}
-                                                className="w-full text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300 text-center py-1 transition-colors">
-                                                {t('auth.use_backup_code')}
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                            {!(needsTOTP && twoFAMethod === 'passkey' && !useBackupCode) && (
+                        )}
+                        {!(needsTOTP && twoFAMethod === 'passkey' && !useBackupCode) && (
                             <button
                                 type="submit"
                                 disabled={authLoading}
-                                className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {authLoading && <Loader2 size={16} className="animate-spin" />}
                                 {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
                             </button>
-                            )}
-                            {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
-                                <>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
-                                        <span className="text-xs text-gray-400 dark:text-neutral-500">or</span>
-                                        <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-700" />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handlePasskeyLogin}
-                                        disabled={passkeyLoading}
-                                        className="w-full py-2.5 text-sm font-medium border border-gray-200 dark:border-neutral-700 rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition text-gray-700 dark:text-gray-300 disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                        {t('auth.passkey_login')}
-                                    </button>
-                                </>
-                            )}
-                            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                                {isLogin ? t('auth.no_account') : t('auth.has_account')}
+                        )}
+                        {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                    <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">or</span>
+                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => { setIsLogin(!isLogin); setAuthError(null); }}
-                                    className="text-[var(--color-m3-primary)] font-medium hover:underline ml-1"
+                                    onClick={handlePasskeyLogin}
+                                    disabled={passkeyLoading}
+                                    className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    {isLogin ? t('auth.go_register') : t('auth.go_login')}
+                                    {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
+                                    {t('auth.passkey_login')}
                                 </button>
-                            </p>
-                        </form>
-                    </div>
-                )}
-            </div>
+                            </>
+                        )}
+                    </form>
+                </div>
+            )}
         </div>
     );
 };

@@ -112,9 +112,9 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border transition-colors outline-none flex items-center justify-between overflow-hidden
+                    className={`group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border outline-none flex items-center justify-between overflow-hidden
                         ${isOpen
-                            ? 'border-pink-500 ring-1 ring-pink-500 rounded-t-md'
+                            ? 'border-[var(--color-m3-primary)] ring-1 ring-[var(--color-m3-primary)]/20 rounded-t-md'
                             : 'border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 rounded-md'}`}
                 >
                     {icon ? (
@@ -125,7 +125,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm text-gray-500">{selectedOption?.label}</span>
-                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     ) : (
@@ -138,7 +138,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 {selectedOption?.description && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">{selectedOption.description}</span>
                                 )}
-                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     )}
@@ -148,26 +148,26 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto animate-in fade-in duration-100 py-1"
+                        className="fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto py-1"
                     >
                         {options.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => handleSelect(opt.value)}
-                                className={`w-full px-3 py-2 text-start flex items-center gap-2 transition-colors relative overflow-hidden
+                                className={`w-full px-3 py-2 text-start flex items-center gap-2 relative overflow-hidden
                                     ${opt.value === value
-                                        ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-400 font-medium'
+                                        ? 'bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-surface)] font-medium'
                                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'}`}
                             >
-                                {opt.icon && <div className={`${opt.value === value ? 'text-inherit' : 'text-gray-400 dark:text-gray-500'}`}>{opt.icon}</div>}
+                                {opt.icon && <div className="text-gray-400 dark:text-gray-500">{opt.icon}</div>}
                                 <span className="flex-1 text-sm">{opt.label}</span>
                                 {opt.description && (
-                                    <span className={`text-xs ${opt.value === value ? 'text-pink-600 dark:text-pink-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    <span className={`text-xs ${opt.value === value ? 'text-[var(--color-m3-on-surface-variant)]' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {opt.description}
                                     </span>
                                 )}
                                 {opt.value === value && (
-                                    <Check size={16} className="text-pink-600 dark:text-pink-400" strokeWidth={2.5} />
+                                    <Check size={16} className="text-[var(--color-m3-primary)]" strokeWidth={2.5} />
                                 )}
                             </button>
                         ))}

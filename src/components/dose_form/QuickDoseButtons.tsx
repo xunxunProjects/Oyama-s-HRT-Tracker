@@ -83,13 +83,13 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                     <button
                         type="button"
                         onClick={() => onSelectDose(dose.value)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-[var(--radius-full)] border transition-all duration-200
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full border
                             bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]
                             border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
                             text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]
-                            hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-pink-900/30
-                            hover:border-[var(--color-m3-primary)] dark:hover:border-pink-500
-                            hover:text-[var(--color-m3-primary)] dark:hover:text-pink-400
+                            hover:bg-[var(--color-m3-primary-container)]
+                            hover:border-[var(--color-m3-primary)]
+                            hover:text-[var(--color-m3-primary)]
                             active:scale-95"
                     >
                         {formatValue(dose.value)} {unit}
@@ -99,7 +99,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                         onClick={(e) => { e.stopPropagation(); handleDelete(dose.id); }}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center
                             bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400
-                            opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                            opacity-0 group-hover:opacity-100
                             hover:bg-red-200 dark:hover:bg-red-900/60"
                     >
                         <X size={10} strokeWidth={3} />
@@ -109,12 +109,12 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
             <button
                 type="button"
                 onClick={handleAdd}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-[var(--radius-full)] border border-dashed transition-all duration-200
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full border border-dashed
                     border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]
                     text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]
-                    hover:border-[var(--color-m3-primary)] dark:hover:border-pink-400
-                    hover:text-[var(--color-m3-primary)] dark:hover:text-pink-400
-                    hover:bg-[var(--color-m3-primary-container)]/30 dark:hover:bg-pink-900/20
+                    hover:border-[var(--color-m3-primary)]
+                    hover:text-[var(--color-m3-primary)]
+                    hover:bg-[var(--color-m3-primary-container)]/30
                     active:scale-95"
                 title={t('quickdose.add')}
             >

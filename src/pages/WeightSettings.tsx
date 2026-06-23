@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Scale, Info } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 
@@ -28,57 +28,49 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
         }
     };
 
+    const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+
     return (
-        <div className="relative space-y-4 pt-6 pb-32">
-            <div className="px-6 md:px-8 mb-2">
-                <div className="w-full p-4 rounded-lg bg-white dark:bg-neutral-900 flex items-center gap-3 border border-gray-200 dark:border-neutral-800">
-                    <button
-                        onClick={onBack}
-                        className="p-1.5 rounded-lg transition-colors text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-md bg-pink-50 dark:bg-pink-900/20">
-                            <Scale size={18} className="text-pink-500 dark:text-pink-400" />
-                        </div>
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                            {t('status.weight')}
-                        </h2>
-                    </div>
-                </div>
+        <div className="relative pb-32">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                >
+                    <ArrowLeft size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
+                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                        {t('status.weight')}
+                    </span>
+                </button>
             </div>
 
-            <div className="mx-6 md:mx-8 space-y-4">
-                <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 p-6">
-                    <div className="flex justify-center mb-6">
-                        <div className="flex items-end gap-2">
-                            <input
-                                type="number"
-                                inputMode="decimal"
-                                value={weightStr}
-                                onChange={(e) => setWeightStr(e.target.value)}
-                                className="font-display text-5xl font-black text-[var(--color-m3-primary)] tabular-nums w-28 text-center bg-transparent border-b-2 border-gray-200 dark:border-neutral-700 focus:border-[var(--color-m3-primary)] outline-none transition-colors pb-1"
-                                placeholder="0.0"
-                                autoFocus
-                            />
-                            <div className="text-2xl font-medium text-gray-500 dark:text-gray-400 pb-2">kg</div>
-                        </div>
+            <div className="px-6 md:px-8 mt-4 max-w-2xl">
+                <div className={`flex items-center justify-between py-5 ${divider}`}>
+                    <div className="flex items-end gap-2">
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            value={weightStr}
+                            onChange={(e) => setWeightStr(e.target.value)}
+                            className="text-4xl font-light tabular-nums text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] w-28 bg-transparent border-b-2 border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] focus:border-[var(--color-m3-primary)] outline-none pb-1 text-center"
+                            placeholder="0.0"
+                            style={{ fontSize: '40px' }}
+                            autoFocus
+                        />
+                        <span className="text-lg font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pb-1">kg</span>
                     </div>
-
-                    <div className="bg-gray-50 dark:bg-neutral-800 p-3.5 rounded-lg flex gap-2.5 items-start border border-gray-200 dark:border-neutral-700">
-                        <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
-                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                            {t('modal.weight.desc')}
-                        </p>
-                    </div>
+                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] max-w-[140px] text-right">
+                        {t('modal.weight.desc')}
+                    </p>
                 </div>
 
                 <button
                     onClick={handleSave}
-                    className="w-full py-3 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-lg transition"
+                    className={`w-full flex items-center py-[18px] ${divider} text-start`}
                 >
-                    {t('btn.save')}
+                    <span className="text-[15px] font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                        {t('btn.save')}
+                    </span>
                 </button>
             </div>
         </div>

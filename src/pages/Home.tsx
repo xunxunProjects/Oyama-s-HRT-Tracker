@@ -42,136 +42,110 @@ const Home: React.FC<HomeProps> = ({
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
 
+    const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+    const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+    const dim = "text-[var(--color-m3-outline-variant)] dark:text-[var(--color-m3-dark-outline-variant)]";
+
     return (
         <>
             <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
-            <header className="relative px-4 md:px-8 pt-4 md:pt-6 pb-2">
-                <div className="flex flex-col gap-4">
 
-                    {/* Main Estimate Card - Flat Design */}
-                    <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-4 md:p-5 flex flex-col justify-between">
-
-                        {/* Status Header */}
-                        <div className="mb-4 flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
-                                    {t('status.estimate')}
-                                </span>
-                                <button
-                                    onClick={() => setIsEstimateInfoOpen(true)}
-                                    className="inline-flex items-center gap-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs transition-colors shrink-0"
-                                    title={t('status.read_me')}
-                                >
-                                    <Info size={13} />
-                                    <span className="hidden sm:inline">{t('status.read_me')}</span>
-                                </button>
-                            </div>
-                            {currentStatus && (
-                                <div className={`text-[11px] leading-tight text-left sm:text-right font-medium sm:max-w-[8.5rem] ${currentStatus.color}`}>
-                                    {t(currentStatus.label)}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Blood Levels Grid */}
-                        <div className="grid grid-cols-2 gap-4 uppercase tracking-wide">
-                            {isTransmasc ? (
-                                <>
-                                    {/* Total T (ng/dL) */}
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                            {t('label.total_t')} <span className="text-gray-400 dark:text-gray-600 normal-case lowercase">(ng/dL)</span>
-                                        </div>
-                                        <div className="flex items-baseline gap-1.5">
-                                            {currentT > 0 ? (
-                                                <>
-                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                        {currentT.toFixed(0)}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/dl</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {/* Total T (nmol/L) */}
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                            {t('label.total_t')} <span className="text-gray-400 dark:text-gray-600 normal-case lowercase">(nmol/L)</span>
-                                        </div>
-                                        <div className="flex items-baseline gap-1.5">
-                                            {currentT > 0 ? (
-                                                <>
-                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                        {(currentT / 28.842).toFixed(1)}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">nmol/l</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">0</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    {/* E2 Display */}
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                            {t('label.e2')}
-                                        </div>
-                                        <div className="flex items-baseline gap-1.5">
-                                            {currentLevel > 0 ? (
-                                                <>
-                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                        {currentLevel.toFixed(1)}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">pg/ml</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">--</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* CPA Display */}
-                                    <div>
-                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 mb-1.5">
-                                            {t('label.cpa')}
-                                        </div>
-                                        <div className="flex items-baseline gap-1.5">
-                                            {currentCPA > 0 ? (
-                                                <>
-                                                    <span className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-100">
-                                                        {currentCPA.toFixed(1)}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 lowercase">ng/ml</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-4xl md:text-5xl font-light text-gray-300 dark:text-gray-700">--</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+            <header className="px-6 md:px-8 pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                {/* Title row */}
+                <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-sm ${muted}`}>{t('status.estimate')}</span>
+                        <button
+                            onClick={() => setIsEstimateInfoOpen(true)}
+                            className={`${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}
+                            title={t('status.read_me')}
+                        >
+                            <Info size={13} />
+                        </button>
                     </div>
+                    {currentStatus && (
+                        <span className={`text-xs font-medium ${currentStatus.color}`}>
+                            {t(currentStatus.label)}
+                        </span>
+                    )}
+                </div>
+
+                {/* Blood level grid */}
+                <div className="grid grid-cols-2 gap-6">
+                    {isTransmasc ? (
+                        <>
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
+                                    {t('label.total_t')} <span className="lowercase normal-case opacity-60">(ng/dL)</span>
+                                </p>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentT > 0 ? (
+                                        <>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentT.toFixed(0)}</span>
+                                            <span className={`text-xs lowercase ${muted}`}>ng/dl</span>
+                                        </>
+                                    ) : (
+                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
+                                    {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
+                                </p>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentT > 0 ? (
+                                        <>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{(currentT / 28.842).toFixed(1)}</span>
+                                            <span className={`text-xs lowercase ${muted}`}>nmol/l</span>
+                                        </>
+                                    ) : (
+                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.e2')}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentLevel > 0 ? (
+                                        <>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentLevel.toFixed(1)}</span>
+                                            <span className={`text-xs lowercase ${muted}`}>pg/ml</span>
+                                        </>
+                                    ) : (
+                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa')}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                    {currentCPA > 0 ? (
+                                        <>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentCPA.toFixed(1)}</span>
+                                            <span className={`text-xs lowercase ${muted}`}>ng/ml</span>
+                                        </>
+                                    ) : (
+                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </header>
 
-            <main className="w-full px-4 py-6 md:px-8 md:py-8 pb-32 md:pb-8">
+            <main className="w-full px-6 py-8 md:px-8 pb-32">
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-                        <p className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                            {t('home.empty_title')}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
-                            {t('home.empty_subtitle')}
-                        </p>
+                        <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
+                        <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
                         <button
                             onClick={onNavigateToHistory}
-                            className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--color-m3-primary)] text-[var(--color-m3-primary)] dark:border-[var(--color-m3-primary-light)] dark:text-[var(--color-m3-primary-light)] transition-colors hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-neutral-800"
+                            className="px-5 py-2 text-sm font-medium rounded-md border border-[var(--color-m3-primary)] text-[var(--color-m3-primary)] dark:border-[var(--color-m3-primary-light)] dark:text-[var(--color-m3-primary-light)] hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
                         >
                             {t('home.empty_cta')}
                         </button>

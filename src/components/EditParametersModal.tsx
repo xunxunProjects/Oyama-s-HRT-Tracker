@@ -154,7 +154,7 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-full text-gray-400 bg-gray-100 dark:bg-neutral-800 transition-colors"
+                            className="p-2 rounded-full text-gray-400 bg-gray-100 dark:bg-neutral-800"
                         >
                             <X size={18} />
                         </button>
@@ -172,14 +172,14 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                             <div key={section.key} className="border border-gray-200 dark:border-neutral-700 rounded-lg overflow-hidden">
                                 <button
                                     onClick={() => toggleSection(section.key)}
-                                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-neutral-800/50 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors text-start"
+                                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-neutral-800/50 hover:bg-gray-100 dark:hover:bg-neutral-800 text-start"
                                 >
                                     <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                                         {t(section.titleKey)}
                                     </span>
                                     <ChevronDown
                                         size={15}
-                                        className={`text-gray-400 transition-transform ${openSections.has(section.key) ? 'rotate-180' : ''}`}
+                                        className={`text-gray-400 ${openSections.has(section.key) ? 'rotate-180' : ''}`}
                                     />
                                 </button>
 
@@ -216,7 +216,7 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                                                         {changed && (
                                                             <button
                                                                 onClick={() => setDraft(prev => ({ ...prev, [field.key]: defVal }))}
-                                                                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                                                                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800"
                                                                 title={t('pk.reset_field')}
                                                             >
                                                                 <RotateCcw size={14} />
@@ -242,7 +242,7 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                     <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 dark:border-neutral-800 flex-shrink-0">
                         <button
                             onClick={handleReset}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                         >
                             <RotateCcw size={15} />
                             {t('pk.reset')}
@@ -250,13 +250,13 @@ const EditParametersModal: React.FC<EditParametersModalProps> = ({
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg"
                             >
                                 {t('btn.cancel')}
                             </button>
                             <button
                                 onClick={handleSave}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-pink-500 hover:bg-pink-600 text-white rounded-lg"
                             >
                                 <Save size={15} />
                                 {saved ? t('pk.saved') : t('btn.save')}

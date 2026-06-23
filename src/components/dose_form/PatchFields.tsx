@@ -12,6 +12,8 @@ interface PatchFieldsProps {
     route: Route;
 }
 
+const inputCls = "w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+
 const PatchFields: React.FC<PatchFieldsProps> = ({
     patchMode,
     setPatchMode,
@@ -23,31 +25,34 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
 }) => {
     const { t } = useTranslation();
 
+    const modes: { key: "dose" | "rate"; label: string }[] = [
+        { key: "dose", label: t('field.patch_total') },
+        { key: "rate", label: t('field.patch_rate') },
+    ];
+
     return (
         <div className="space-y-4">
-            <div className="space-y-2">
-                <div className="p-1 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-md)] flex">
+            {/* Mode underline tabs */}
+            <div className="flex gap-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                {modes.map(m => (
                     <button
-                        onClick={() => setPatchMode("dose")}
-                        className={`flex-1 py-2 text-sm font-bold rounded-[var(--radius-sm)] transition-all ${patchMode === "dose" ? "bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] shadow text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" : "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]"}`}
+                        key={m.key}
+                        onClick={() => setPatchMode(m.key)}
+                        className={`text-sm pb-2 -mb-px border-b-2 ${patchMode === m.key
+                            ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
+                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
+                        }`}
                     >
-                        {t('field.patch_total')}
+                        {m.label}
                     </button>
-                    <button
-                        onClick={() => setPatchMode("rate")}
-                        className={`flex-1 py-2 text-sm font-bold rounded-[var(--radius-sm)] transition-all ${patchMode === "rate" ? "bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] shadow text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]" : "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]"}`}
-                    >
-                        {t('field.patch_rate')}
-                    </button>
-                </div>
-                <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-[var(--radius-md)]">
-                    {t('beta.patch')}
-                </div>
+                ))}
             </div>
 
+            <p className="text-xs text-amber-700 dark:text-amber-400">{t('beta.patch')}</p>
+
             {patchMode === "rate" ? (
-                <div className="space-y-2">
-                    <label className="block text-sm font-bold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('field.patch_rate')}</label>
+                <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.patch_rate')}</label>
                     <input
                         type="number"
                         inputMode="decimal"
@@ -55,28 +60,28 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         step="1"
                         value={patchRate}
                         onChange={e => setPatchRate(e.target.value)}
-                        className="w-full p-4 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 outline-none font-mono text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-bold"
+                        className={inputCls}
                         placeholder="e.g. 50, 100"
+                        style={{ fontSize: '16px' }}
                     />
-                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pl-1">
                         {t('field.patch_rate_hint')}
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 col-span-2">
-                        <label className="block text-xs font-bold text-[var(--color-m3-accent)] uppercase tracking-wider">
-                            {t('field.dose_raw')}
-                        </label>
-                        <input
-                            type="number" inputMode="decimal"
-                            min="0"
-                            step="0.001"
-                            value={rawDose} onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-4 bg-[var(--color-m3-accent-container)] dark:bg-rose-900/20 border border-[var(--color-m3-outline-variant)] dark:border-rose-900/30 rounded-[var(--radius-lg)] focus:ring-2 focus:ring-[var(--color-m3-accent)]/30 outline-none font-bold text-[var(--color-m3-accent)] dark:text-rose-400 font-mono"
-                            placeholder="0.0"
-                        />
-                    </div>
+                <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
+                        {t('field.dose_raw')}
+                    </label>
+                    <input
+                        type="number" inputMode="decimal"
+                        min="0"
+                        step="0.001"
+                        value={rawDose} onChange={e => onRawChange(e.target.value)}
+                        className={inputCls}
+                        placeholder="0.0"
+                        style={{ fontSize: '16px' }}
+                    />
                 </div>
             )}
         </div>

@@ -3,50 +3,50 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
-    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
 
-    /* M3 Pink Primary */
-    --color-m3-primary: #D4548A;
-    --color-m3-primary-light: #E07AAA;
-    --color-m3-primary-container: #FFD6E7;
+    /* Primary — Claude terracotta/orange */
+    --color-m3-primary: #CC785C;
+    --color-m3-primary-light: #D8927C;
+    --color-m3-primary-container: #FCEEE8;
     --color-m3-on-primary: #FFFFFF;
-    --color-m3-on-primary-container: #8B1A4A;
+    --color-m3-on-primary-container: #7A3920;
 
-    /* M3 Rose Accent */
-    --color-m3-accent: #E91E8C;
-    --color-m3-accent-light: #F06DAF;
-    --color-m3-accent-container: #FFE4F3;
+    /* Accent */
+    --color-m3-accent: #CC785C;
+    --color-m3-accent-light: #D8927C;
+    --color-m3-accent-container: #FCEEE8;
     --color-m3-on-accent: #FFFFFF;
-    --color-m3-on-accent-container: #9C0060;
+    --color-m3-on-accent-container: #7A3920;
 
-    /* M3 Surfaces — light pink neutrals */
-    --color-m3-surface: #FFF8FA;
-    --color-m3-surface-dim: #FAF0F4;
+    /* Surfaces — warm cream/off-white */
+    --color-m3-surface: #FAF9F7;
+    --color-m3-surface-dim: #F5F4F0;
     --color-m3-surface-bright: #FFFFFF;
     --color-m3-surface-container-lowest: #FFFFFF;
-    --color-m3-surface-container-low: #FDF2F6;
-    --color-m3-surface-container: #F8E8EF;
-    --color-m3-surface-container-high: #F2DCE6;
-    --color-m3-surface-container-highest: #EAD0DC;
-    --color-m3-on-surface: #26101A;
-    --color-m3-on-surface-variant: #7D5368;
-    --color-m3-outline: #B8899E;
-    --color-m3-outline-variant: #EAD0DC;
+    --color-m3-surface-container-low: #F7F6F3;
+    --color-m3-surface-container: #EDECEA;
+    --color-m3-surface-container-high: #E5E4E0;
+    --color-m3-surface-container-highest: #DDDBD7;
+    --color-m3-on-surface: #1A1916;
+    --color-m3-on-surface-variant: #6B6860;
+    --color-m3-outline: #9E9B94;
+    --color-m3-outline-variant: #E3E1DC;
 
-    /* M3 Dark Surfaces */
-    --color-m3-dark-surface: #1C1917;
-    --color-m3-dark-surface-dim: #171412;
-    --color-m3-dark-surface-bright: #292524;
-    --color-m3-dark-surface-container-lowest: #0C0A09;
-    --color-m3-dark-surface-container-low: #1C1917;
-    --color-m3-dark-surface-container: #292524;
-    --color-m3-dark-surface-container-high: #44403C;
-    --color-m3-dark-surface-container-highest: #57534E;
-    --color-m3-dark-on-surface: #E7E5E4;
-    --color-m3-dark-on-surface-variant: #A8A29E;
-    --color-m3-dark-outline: #78716C;
-    --color-m3-dark-outline-variant: #44403C;
+    /* Dark surfaces — warm dark */
+    --color-m3-dark-surface: #1C1B18;
+    --color-m3-dark-surface-dim: #141311;
+    --color-m3-dark-surface-bright: #2A2925;
+    --color-m3-dark-surface-container-lowest: #0D0C0A;
+    --color-m3-dark-surface-container-low: #1C1B18;
+    --color-m3-dark-surface-container: #272521;
+    --color-m3-dark-surface-container-high: #3A3835;
+    --color-m3-dark-surface-container-highest: #4D4B47;
+    --color-m3-dark-on-surface: #E8E6E1;
+    --color-m3-dark-on-surface-variant: #A8A59E;
+    --color-m3-dark-outline: #767370;
+    --color-m3-dark-outline-variant: #3A3835;
 
     /* M3 Shape Scale */
     --radius-xs: 4px;
@@ -120,154 +120,10 @@ body {
     font-family: var(--font-display);
 }
 
-/* M3 Expressive Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes m3-emphasized-decelerate {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes m3-emphasized-accelerate {
-    from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-
-    to {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-    }
-}
-
-@keyframes m3-pill-expand {
-    from {
-        width: 0;
-        opacity: 0;
-    }
-
-    to {
-        width: 100%;
-        opacity: 1;
-    }
-}
-
-@keyframes m3-container-open {
-    from {
-        opacity: 0;
-        transform: scaleY(0.92);
-        transform-origin: top;
-    }
-
-    to {
-        opacity: 1;
-        transform: scaleY(1);
-    }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
-}
-
-.animate-slide-up {
-    animation: slideInUp 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
-}
-
-.animate-m3-decelerate {
-    animation: m3-emphasized-decelerate 0.5s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
-}
-
-.animate-m3-container {
-    animation: m3-container-open 0.35s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
-}
-
-/* M3 Transition Curves */
-.transition-m3 {
-    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
-}
-
-.transition-m3-standard {
-    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
-    transition-duration: 300ms;
-}
-
-.transition-m3-emphasized {
-    transition-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1);
-    transition-duration: 500ms;
-}
-
-/* Page Transitions */
-.page-transition {
-    animation-duration: 0.75s;
-    animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1);
-    animation-fill-mode: both;
-    will-change: transform, opacity;
-}
-
-@keyframes pageForward {
-    from {
-        opacity: 0;
-        transform: scale(0.97) translateX(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateX(0);
-    }
-}
-
-@keyframes pageBackward {
-    from {
-        opacity: 0;
-        transform: scale(0.97) translateX(-12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateX(0);
-    }
-}
-
-.page-transition.page-forward {
-    animation-name: pageForward;
-}
-
-.page-transition.page-backward {
-    animation-name: pageBackward;
-}
-
 /* M3 Active indicator for nav */
 .m3-active-indicator {
     background-color: var(--color-m3-primary-container);
     border-radius: var(--radius-full);
-    transition: all 0.5s cubic-bezier(0.05, 0.7, 0.1, 1);
 }
 
 /* M3 Surface tint overlay */

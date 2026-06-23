@@ -164,7 +164,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
                     <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                            <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
                                 <ChevronLeft size={18} className="text-zinc-500" />
                             </button>
                             <div>
@@ -172,7 +172,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                 <p className="text-xs text-zinc-400 font-mono">{panel.type === 'password' ? 'Change Password' : panel.type === 'edit' ? 'Edit Profile' : 'Cloud Backups'}</p>
                             </div>
                         </div>
-                        <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                        <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
                             <X size={18} className="text-zinc-400" />
                         </button>
                     </div>
@@ -190,11 +190,11 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     autoFocus
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setPanel(null)} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Cancel</button>
+                                    <button onClick={() => setPanel(null)} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">Cancel</button>
                                     <button
                                         onClick={submitPassword}
                                         disabled={newPassword.length < 8}
-                                        className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30 transition-all"
+                                        className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30"
                                     >
                                         Update Password
                                     </button>
@@ -218,7 +218,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                         <button
                                             onClick={submitUsername}
                                             disabled={!newUsername.trim() || newUsername.trim() === panel.user.username}
-                                            className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30 transition-all"
+                                            className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30"
                                         >
                                             Save Username
                                         </button>
@@ -228,7 +228,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Avatar</label>
                                     <button
                                         onClick={() => handleResetAvatar(panel.user)}
-                                        className="flex items-center gap-2 px-4 py-2.5 border border-red-200 dark:border-red-900/30 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2.5 border border-red-200 dark:border-red-900/30 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/10"
                                     >
                                         <ImageOff size={16} /> Reset Avatar
                                     </button>
@@ -247,7 +247,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                         <span className="text-xs text-zinc-500">{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 dark:border-red-900/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 dark:border-red-900/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10"
                                         >
                                             <Trash size={14} /> Purge All
                                         </button>
@@ -255,14 +255,14 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                                         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                             {backups.map(b => (
-                                                <div key={b.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                                                <div key={b.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                                     <div>
                                                         <p className="text-sm text-zinc-900 dark:text-zinc-100">{new Date(b.created_at * 1000).toLocaleString()}</p>
                                                         <p className="text-xs text-zinc-400 mt-0.5">{formatBytes(b.data_size)} · <span className="font-mono">{b.id.slice(0, 8)}</span></p>
                                                     </div>
                                                     <button
                                                         onClick={() => handleDeleteBackup(b.id)}
-                                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                                                         title="Delete backup"
                                                     >
                                                         <Trash2 size={15} />
@@ -288,14 +288,14 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
             <div className="flex items-center gap-8 border-b border-zinc-200 dark:border-zinc-800 mb-12">
                 <button
                     onClick={() => setActiveTab('users')}
-                    className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'users' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                    className={`pb-4 text-sm font-semibold relative ${activeTab === 'users' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
                 >
                     Users
                     {activeTab === 'users' && <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-zinc-900 dark:bg-zinc-50 rounded-full" />}
                 </button>
                 <button
                     onClick={() => setActiveTab('system')}
-                    className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'system' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                    className={`pb-4 text-sm font-semibold relative ${activeTab === 'system' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
                 >
                     System
                     {activeTab === 'system' && <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-zinc-900 dark:bg-zinc-50 rounded-full" />}
@@ -303,7 +303,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
             </div>
 
             {activeTab === 'users' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Manage Users</h2>
@@ -324,7 +324,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                             </div>
                             <button
                                 onClick={fetchUsers}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 transition-all shrink-0"
+                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 shrink-0"
                                 title="Refresh"
                             >
                                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -347,7 +347,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                             {users.map(u => (
                                 <div
                                     key={u.id}
-                                    className="group bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-sm transition-all flex items-center justify-between"
+                                    className="group bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-sm flex items-center justify-between"
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-700">
@@ -379,16 +379,16 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                     </div>
 
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => openBackupsPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all" title="Cloud Backups">
+                                        <button onClick={() => openBackupsPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Cloud Backups">
                                             <Cloud size={16} />
                                         </button>
-                                        <button onClick={() => openPasswordPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all" title="Change Password">
+                                        <button onClick={() => openPasswordPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Change Password">
                                             <KeyRound size={16} />
                                         </button>
-                                        <button onClick={() => openEditPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all" title="Edit Profile">
+                                        <button onClick={() => openEditPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Edit Profile">
                                             <PenLine size={16} />
                                         </button>
-                                        <button onClick={() => handleDeleteUser(u)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="Delete User">
+                                        <button onClick={() => handleDeleteUser(u)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete User">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
@@ -403,7 +403,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page <= 1}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 disabled:opacity-30 disabled:pointer-events-none"
                             >
                                 <ChevronLeft size={16} />
                             </button>
@@ -421,7 +421,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                         <button
                                             key={item}
                                             onClick={() => setPage(item as number)}
-                                            className={`min-w-[36px] h-9 rounded-lg text-sm font-semibold transition-all ${
+                                            className={`min-w-[36px] h-9 rounded-lg text-sm font-semibold ${
                                                 page === item
                                                     ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
                                                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -434,7 +434,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 disabled:opacity-30 disabled:pointer-events-none"
                             >
                                 <ChevronRight size={16} />
                             </button>
@@ -444,7 +444,7 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
             )}
 
             {activeTab === 'system' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">System Status</h2>
                     </div>

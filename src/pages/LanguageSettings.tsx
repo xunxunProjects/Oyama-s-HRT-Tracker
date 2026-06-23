@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Languages, Check } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Lang } from '../i18n/translations';
 
@@ -14,41 +14,37 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ lang, setLang, lang
     const { t } = useTranslation();
 
     return (
-        <div className="relative space-y-4 pt-6 pb-32">
-            <div className="px-6 md:px-8 mb-2">
-                <div className="w-full p-4 rounded-lg bg-white dark:bg-neutral-900 flex items-center gap-3 border border-gray-200 dark:border-neutral-800">
-                    <button
-                        onClick={onBack}
-                        className="p-1.5 rounded-lg transition-colors text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-md bg-pink-50 dark:bg-pink-900/20">
-                            <Languages size={18} className="text-pink-500 dark:text-pink-400" />
-                        </div>
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                            {t('drawer.lang')}
-                        </h2>
-                    </div>
-                </div>
+        <div className="relative space-y-4 pb-32">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                >
+                    <ArrowLeft size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
+                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                        {t('drawer.lang')}
+                    </span>
+                </button>
             </div>
 
-            <div className="mx-6 md:mx-8">
-                <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden text-sm">
-                    {languageOptions.map(({ value, label }) => (
-                        <button
-                            key={value}
-                            onClick={() => setLang(value as Lang)}
-                            className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors text-start"
-                        >
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{label}</span>
-                            {lang === value && (
-                                <Check size={18} className="text-[var(--color-m3-primary)]" />
-                            )}
-                        </button>
-                    ))}
-                </div>
+            <div className="px-6 md:px-8 max-w-2xl">
+                {languageOptions.map(({ value, label }) => (
+                    <button
+                        key={value}
+                        onClick={() => setLang(value as Lang)}
+                        className="w-full flex items-center justify-between py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0 text-start"
+                    >
+                        <span className={`text-[15px] ${lang === value
+                            ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
+                            : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
+                        }`}>
+                            {label}
+                        </span>
+                        {lang === value && (
+                            <Check size={16} className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0" />
+                        )}
+                    </button>
+                ))}
             </div>
         </div>
     );

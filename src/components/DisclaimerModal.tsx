@@ -15,7 +15,7 @@ const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
             <div className="w-full md:max-w-sm safe-area-pb">
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-t-2xl md:rounded-xl shadow-lg p-6 md:p-5 max-h-[88vh] overflow-y-auto">
                 <div className="flex flex-col items-center mb-4">
-                    <AlertTriangle className="text-amber-500 mb-2" size={20} />
+                    <AlertTriangle className="text-amber-500 mb-2" size={36} />
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center">{t('disclaimer.title')}</h3>
                 </div>
 
