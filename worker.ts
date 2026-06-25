@@ -946,14 +946,27 @@ export default {
           }
 
           if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
-            const { password } = await request.json() as any;
-            const user = await env.DB.prepare('SELECT password_hash, created_at FROM users WHERE id = ?').bind(userId).first() as any;
+            await ensureTotpColumn(env);
+            const { password, code, backup_code } = await request.json() as any;
+            const user = await env.DB.prepare('SELECT password_hash, created_at, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
 
             const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             const passwordHash = user ? user.password_hash : dummyHash;
             const passwordValid = await bcrypt.compare(password, passwordHash);
 
             if (!user || !passwordValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+
+            // If TOTP-based 2FA is enabled, require a valid authenticator code
+            // (or a single-use backup code) before destroying the account.
+            if (user.totp_secret) {
+              if (!code && !backup_code) {
+                return withSecurityHeaders(new Response('2FA code required', { status: 400, headers: corsHeaders }));
+              }
+              const twoFAValid = backup_code
+                ? await verifyAndConsumeBackupCode(env, userId, String(backup_code), jwtSecret)
+                : await verifyTOTP(user.totp_secret, String(code));
+              if (!twoFAValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+            }
 
             await ensurePasskeys(env);
             await ensureBackupCodes(env);
@@ -1138,7 +1151,7 @@ export default {
             await ensurePasskeys(env);
             const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(userId).first() as any;
             const passkeyCount = pkRow?.cnt ?? 0;
-            return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) || passkeyCount > 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) || passkeyCount > 0, totp: !!row?.totp_secret, passkey: passkeyCount > 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // POST /api/user/2fa/setup — generate a new TOTP secret (not saved yet)

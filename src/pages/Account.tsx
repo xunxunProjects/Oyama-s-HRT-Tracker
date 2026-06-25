@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, User, BadgeCheck, Edit2, Key, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, ShieldAlert, ShieldCheck, Shield, Fingerprint, Check, X } from 'lucide-react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Shield, Fingerprint, Lock, MonitorSmartphone } from 'lucide-react';
+import { SettingsListItem } from '../components/SettingsListItem';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -32,6 +33,7 @@ const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[
 const sectionLabel = "text-xs font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-2 block";
 const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
 const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
 
 const Account: React.FC<AccountProps> = ({
     t,
@@ -279,42 +281,29 @@ const Account: React.FC<AccountProps> = ({
                     {/* Security */}
                     <div className="mb-6">
                         <span className={sectionLabel}>{t('account.security')}</span>
-                        <button
+                        <SettingsListItem
+                            icon={Lock}
+                            title={t('account.change_password')}
+                            description={t('account.change_password_desc')}
                             onClick={() => onNavigate('change-password')}
-                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
-                        >
-                            <Key className={iconCls} size={18} />
-                            <div className="flex-1 text-start">
-                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.change_password')}</p>
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.change_password_desc')}</p>
-                            </div>
-                        </button>
-                        <button
+                        />
+                        <SettingsListItem
+                            icon={Shield}
+                            title={t('account.2fa')}
+                            description={t('account.2fa_desc')}
                             onClick={() => onNavigate('two-factor')}
-                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
-                        >
-                            {twoFAEnabled
-                                ? <ShieldCheck className="text-emerald-600 dark:text-emerald-400 shrink-0" size={18} />
-                                : <Shield className={iconCls} size={18} />
+                            trailing={
+                                <span className={statusMuted}>
+                                    {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
+                                </span>
                             }
-                            <div className="flex-1 text-start">
-                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.2fa')}</p>
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.2fa_desc')}</p>
-                            </div>
-                            <span className={`text-xs font-medium tabular-nums ${twoFAEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'}`}>
-                                {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
-                            </span>
-                        </button>
-                        <button
+                        />
+                        <SettingsListItem
+                            icon={MonitorSmartphone}
+                            title={t('account.sessions')}
+                            description={t('account.sessions_desc')}
                             onClick={() => onNavigate('sessions')}
-                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
-                        >
-                            <ShieldAlert className={iconCls} size={18} />
-                            <div className="flex-1 text-start">
-                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.sessions')}</p>
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.sessions_desc')}</p>
-                            </div>
-                        </button>
+                        />
                     </div>
 
                     {/* Data / Cloud */}
@@ -429,44 +418,44 @@ const Account: React.FC<AccountProps> = ({
                                                                             <div className="space-y-1.5">
                                                                                 {diff.newEvents.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_doses')}</span>
-                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newEvents.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newEvents.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.newLabs.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_labs')}</span>
-                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newLabs.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newLabs.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.newTemplates.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} className="text-emerald-600 shrink-0" />
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_templates')}</span>
-                                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{diff.newTemplates.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newTemplates.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyEvents.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_doses')}</span>
-                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyEvents.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyEvents.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyLabs.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_labs')}</span>
-                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyLabs.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyLabs.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyTemplates.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} className="text-amber-600 shrink-0" />
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
                                                                                         <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_templates')}</span>
-                                                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">{diff.localOnlyTemplates.length}</span>
+                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyTemplates.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                             </div>
@@ -474,9 +463,9 @@ const Account: React.FC<AccountProps> = ({
                                                                         {diff.total > 0 && (
                                                                             <button
                                                                                 onClick={() => { onCloudMerge(b.id); setExpandedId(null); setMergeDiffId(null); }}
-                                                                                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 mt-1"
+                                                                                className="w-full py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-medium rounded-md flex items-center justify-center gap-1.5 mt-1 transition-colors"
                                                                             >
-                                                                                <Merge size={13} />
+                                                                                <Merge size={13} strokeWidth={1.5} />
                                                                                 {t('account.confirm_merge')} (+{diff.total})
                                                                             </button>
                                                                         )}
@@ -488,20 +477,20 @@ const Account: React.FC<AccountProps> = ({
                                                             <div className="flex gap-2 pt-1">
                                                                 <button
                                                                     onClick={() => setMergeDiffId(showingDiff ? null : b.id)}
-                                                                    className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border ${showingDiff
+                                                                    className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border transition-colors ${showingDiff
                                                                         ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
-                                                                        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
+                                                                        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
                                                                     }`}
                                                                 >
-                                                                    <Merge size={13} />
+                                                                    <Merge size={13} strokeWidth={1.5} />
                                                                     {t('account.merge')}
-                                                                    {diff.total > 0 && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">+{diff.total}</span>}
+                                                                    {diff.total > 0 && <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">+{diff.total}</span>}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
-                                                                    className="flex-1 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-semibold rounded-md flex items-center justify-center gap-1.5"
+                                                                    className="flex-1 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors"
                                                                 >
-                                                                    <DownloadCloud size={13} />
+                                                                    <DownloadCloud size={13} strokeWidth={1.5} />
                                                                     {t('account.restore')}
                                                                 </button>
                                                             </div>

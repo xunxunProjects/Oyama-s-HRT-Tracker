@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    ArrowLeft, Shield, ShieldCheck, QrCode, Loader2, CheckCircle2,
-    AlertCircle, Eye, EyeOff, Copy, Check, Fingerprint, Key, Trash2, Plus,
+    ArrowLeft, Shield, Loader2, Check,
+    AlertCircle, Eye, EyeOff, Copy, Fingerprint, X, Plus,
     KeyRound, Download, RefreshCw,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -11,6 +11,7 @@ import {
 } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
+import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
 
 interface TwoFactorPageProps {
     token: string;
@@ -35,11 +36,11 @@ function detectDeviceName(): string {
 }
 
 const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
-const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
-const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const muted = settingsMuted;
+const on = settingsOn;
 const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
 const labelCls = `block text-xs font-semibold ${muted} uppercase tracking-wider mb-1`;
-const primaryBtn = "w-full py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2";
+const primaryBtn = "w-full py-2.5 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2 transition-colors";
 
 const ErrLine: React.FC<{ msg: string | null }> = ({ msg }) =>
     msg ? (
@@ -63,12 +64,12 @@ const BackupCodesBlock: React.FC<{
             ))}
         </div>
         <div className="flex gap-3">
-            <button onClick={onCopy} className={`flex items-center gap-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}>
-                {copied ? <Check size={12} /> : <Copy size={12} />}
+            <button onClick={onCopy} className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}>
+                {copied ? <Check size={12} strokeWidth={1.5} /> : <Copy size={12} strokeWidth={1.5} />}
                 {copied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
             </button>
-            <button onClick={onDownload} className={`flex items-center gap-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}>
-                <Download size={12} />{t('account.backup_codes_download')}
+            <button onClick={onDownload} className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}>
+                <Download size={12} strokeWidth={1.5} />{t('account.backup_codes_download')}
             </button>
         </div>
     </div>
@@ -307,16 +308,10 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 <button
                     onClick={setupRequired ? undefined : onBack}
                     disabled={setupRequired}
-                    className={`flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg ${setupRequired ? 'opacity-30 cursor-default' : 'hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'}`}
+                    className={`flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md transition-colors ${setupRequired ? 'opacity-30 cursor-default' : 'hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)]'}`}
                 >
-                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
-                    <div className="flex items-center gap-2">
-                        {enabled
-                            ? <ShieldCheck size={18} className="text-emerald-500 shrink-0" />
-                            : <Shield size={18} className={`${muted} shrink-0`} />
-                        }
-                        <span className={`text-xl font-semibold ${on}`}>{t('account.2fa')}</span>
-                    </div>
+                    <ArrowLeft size={18} strokeWidth={1.5} className={`${muted} shrink-0`} />
+                    <span className={`text-xl font-semibold ${on}`}>{t('account.2fa')}</span>
                 </button>
             </div>
 
@@ -335,13 +330,13 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex items-center gap-1.5 pb-3 text-sm font-medium border-b-2 -mb-px ${
+                            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
                                 activeTab === tab
-                                    ? `${on} border-[var(--color-m3-primary)]`
-                                    : `${muted} border-transparent`
+                                    ? `${on} border-[var(--color-m3-on-surface)] dark:border-[var(--color-m3-dark-on-surface)]`
+                                    : `${muted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`
                             }`}
                         >
-                            {tab === 'totp' ? <Key size={14} /> : <Fingerprint size={14} />}
+                            {tab === 'totp' ? <KeyRound size={14} strokeWidth={1.5} /> : <Fingerprint size={14} strokeWidth={1.5} />}
                             {tab === 'totp' ? 'TOTP' : 'Passkey'}
                         </button>
                     ))}
@@ -352,10 +347,13 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                     <div className="space-y-5">
                         {enabled && (
                             <>
-                                <p className={`text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5`}>
-                                    <ShieldCheck size={14} />{t('account.2fa_is_active')}
-                                </p>
-                                <p className={`text-xs ${muted}`}>{t('account.2fa_disable_hint')}</p>
+                                <div className="flex items-start gap-3 pb-4">
+                                    <SettingsIconBox icon={Shield} />
+                                    <div>
+                                        <p className={`text-sm font-medium ${on}`}>{t('account.2fa_is_active')}</p>
+                                        <p className={`text-xs ${muted} mt-1 leading-relaxed`}>{t('account.2fa_disable_hint')}</p>
+                                    </div>
+                                </div>
                                 <form onSubmit={handleDisable} className="space-y-4">
                                     <ErrLine msg={disableError} />
                                     <div>
@@ -373,8 +371,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             style={{ fontSize: '16px' }} />
                                     </div>
                                     <button type="submit" disabled={disableLoading || !disablePassword || disableCode.length !== 6}
-                                        className="text-sm font-medium text-red-500 dark:text-red-400 flex items-center gap-1.5 disabled:opacity-40">
-                                        {disableLoading && <Loader2 size={13} className="animate-spin" />}
+                                        className={`text-sm font-medium ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] flex items-center gap-1.5 disabled:opacity-40 transition-colors`}>
+                                        {disableLoading && <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />}
                                         {t('account.2fa_disable')}
                                     </button>
                                 </form>
@@ -388,8 +386,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     {(['scan', 'verify'] as SetupStep[]).map((s, i) => (
                                         <React.Fragment key={s}>
                                             <div className="flex items-center gap-1.5">
-                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${step === s || (success && s === 'verify') ? 'bg-[var(--color-m3-primary)] text-white' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ' + muted}`}>
-                                                    {success && s === 'verify' ? <Check size={10} /> : i + 1}
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--color-m3-on-surface)] dark:border-[var(--color-m3-dark-on-surface)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]` : `border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${muted}`}`}>
+                                                    {success && s === 'verify' ? <Check size={10} strokeWidth={2} /> : i + 1}
                                                 </div>
                                                 <span className={`text-xs font-medium ${step === s ? on : muted}`}>
                                                     {s === 'scan' ? t('account.2fa_step_scan') : t('account.2fa_step_verify')}
@@ -419,13 +417,13 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <p className={`text-xs ${muted} mb-1.5`}>{t('account.2fa_secret')}</p>
                                                 <div className={`flex items-center gap-2 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md px-3 py-2`}>
                                                     <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
-                                                    <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-                                                    <button onClick={handleCopySecret} className={secretCopied ? 'text-emerald-500' : muted}>{secretCopied ? <Check size={14} /> : <Copy size={14} />}</button>
+                                                    <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}</button>
+                                                    <button onClick={handleCopySecret} className={secretCopied ? on : muted}>{secretCopied ? <Check size={14} strokeWidth={1.5} /> : <Copy size={14} strokeWidth={1.5} />}</button>
                                                 </div>
                                             </div>
                                         )}
                                         <button onClick={() => setStep('verify')} disabled={!secret || setupLoading} className={primaryBtn}>
-                                            <QrCode size={14} />{t('account.2fa_next')}
+                                            {t('account.2fa_next')}
                                         </button>
                                     </div>
                                 )}
@@ -447,8 +445,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 className={`flex-1 py-2.5 text-sm font-medium ${muted} border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md`}>
                                                 ← {t('account.2fa_step_scan')}
                                             </button>
-                                            <button type="submit" disabled={loading || code.length !== 6} className="flex-1 py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2">
-                                                {loading && <Loader2 size={14} className="animate-spin" />}
+                                            <button type="submit" disabled={loading || code.length !== 6} className={`flex-1 py-2.5 ${primaryBtn}`}>
+                                                {loading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
                                                 {t('account.2fa_enable_btn')}
                                             </button>
                                         </div>
@@ -457,16 +455,18 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                                 {success && (
                                     <div className="flex flex-col items-center gap-3 py-4 text-center">
-                                        <CheckCircle2 size={36} className="text-emerald-500" />
-                                        <p className={`font-semibold ${on}`}>{t('account.2fa_enabled_success')}</p>
-                                        <p className={`text-xs ${muted} max-w-xs`}>{t('account.2fa_success_hint')}</p>
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                                            <Check size={18} strokeWidth={1.5} className={on} />
+                                        </div>
+                                        <p className={`font-medium ${on}`}>{t('account.2fa_enabled_success')}</p>
+                                        <p className={`text-xs ${muted} max-w-xs leading-relaxed`}>{t('account.2fa_success_hint')}</p>
                                         {backupCodes.length > 0 && (
                                             <div className="w-full text-left">
                                                 <BackupCodesBlock codes={backupCodes} copied={backupCopied} onCopy={handleCopyBackupCodes} onDownload={handleDownloadBackupCodes} t={t} />
                                             </div>
                                         )}
                                         <button onClick={() => { onStatusChange(true); onBack(); }}
-                                            className="mt-2 px-6 py-2.5 bg-[var(--color-m3-primary)] hover:opacity-90 text-white text-sm font-medium rounded-md">
+                                            className={`mt-2 px-6 py-2.5 ${primaryBtn} w-auto`}>
                                             {t('btn.ok')}
                                         </button>
                                     </div>
@@ -483,8 +483,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                         <ErrLine msg={passkeyError} />
                         {passkeySuccess && (
-                            <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                                <CheckCircle2 size={12} className="shrink-0" />{t('account.passkey_registered')}
+                            <p className={`flex items-center gap-1.5 text-xs ${muted}`}>
+                                <Check size={12} strokeWidth={1.5} className="shrink-0" />{t('account.passkey_registered')}
                             </p>
                         )}
 
@@ -495,16 +495,16 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         {passkeyLoading ? (
                             <div className="flex justify-center py-6"><Loader2 className={`animate-spin ${muted}`} size={20} /></div>
                         ) : passkeys.length === 0 ? (
-                            <div className={`flex flex-col items-center gap-1.5 py-10 text-center ${muted}`}>
-                                <Fingerprint size={24} className="opacity-40" />
-                                <p className="text-sm font-medium mt-1">{t('account.passkey_empty')}</p>
-                                <p className="text-xs opacity-70 max-w-xs">{t('account.passkey_empty_hint')}</p>
+                            <div className={`flex flex-col items-center gap-2 py-10 text-center ${muted}`}>
+                                <SettingsIconBox icon={Fingerprint} />
+                                <p className={`text-sm font-medium mt-2 ${on}`}>{t('account.passkey_empty')}</p>
+                                <p className="text-xs max-w-xs leading-relaxed">{t('account.passkey_empty_hint')}</p>
                             </div>
                         ) : (
                             <div>
                                 {passkeys.map(pk => (
                                     <div key={pk.id} className={`flex items-center gap-3 py-3.5 ${divider}`}>
-                                        <Fingerprint size={16} className={`${muted} shrink-0`} />
+                                        <SettingsIconBox icon={Fingerprint} />
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm font-medium ${on} truncate`}>{pk.device_name || 'Unknown device'}</p>
                                             <p className={`text-xs ${muted}`}>{relativeTime(pk.created_at)}</p>
@@ -512,9 +512,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         <button
                                             onClick={() => handleDeletePasskey(pk)}
                                             disabled={deleteLoadingId === pk.id}
-                                            className={`shrink-0 p-1 ${muted} hover:text-red-500 rounded disabled:opacity-40`}
+                                            className={`shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40 transition-colors`}
                                         >
-                                            {deleteLoadingId === pk.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                            {deleteLoadingId === pk.id ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" /> : <X size={14} strokeWidth={1.5} />}
                                         </button>
                                     </div>
                                 ))}
@@ -536,8 +536,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 {enabled && (
                     <div className={`mt-8 pt-6 ${divider}`}>
                         <div className="flex items-center gap-2 mb-1">
-                            <KeyRound size={15} className={muted} />
-                            <h3 className={`text-sm font-semibold ${on}`}>{t('account.backup_codes')}</h3>
+                            <KeyRound size={15} strokeWidth={1.5} className={muted} />
+                            <h3 className={`text-sm font-medium ${on}`}>{t('account.backup_codes')}</h3>
                         </div>
                         <p className={`text-xs ${muted} mb-4`}>
                             {backupRemaining !== null
@@ -555,9 +555,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         <button
                             onClick={handleGenerateBackupCodes}
                             disabled={backupLoading}
-                            className={`flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] disabled:opacity-40 mt-3`}
+                            className={`flex items-center gap-1.5 text-sm font-medium ${on} hover:opacity-70 disabled:opacity-40 mt-3 transition-opacity`}
                         >
-                            {backupLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                            {backupLoading ? <Loader2 size={13} strokeWidth={1.5} className="animate-spin" /> : <RefreshCw size={13} strokeWidth={1.5} />}
                             {backupRemaining !== null && backupRemaining > 0
                                 ? t('account.backup_codes_regenerate')
                                 : t('account.backup_codes_generate')}

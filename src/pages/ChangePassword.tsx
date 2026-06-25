@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -12,9 +13,9 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-    const inputCls = `w-full px-4 py-3 text-sm font-mono bg-white dark:bg-neutral-900 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg focus:border-[var(--color-m3-primary)] focus:ring-1 focus:ring-[var(--color-m3-primary)] outline-none transition-colors ${on} placeholder-[var(--color-m3-outline)] dark:placeholder-[var(--color-m3-dark-outline)]`;
+    const on = settingsOn;
+    const muted = settingsMuted;
+    const inputCls = `w-full px-4 py-3 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:border-[var(--color-m3-on-surface)] dark:focus:border-[var(--color-m3-dark-on-surface)] outline-none ${on} placeholder:text-[var(--color-m3-outline)] dark:placeholder:text-[var(--color-m3-dark-outline)]`;
 
     const handleSubmit = async () => {
         if (!current || !newPass || !confirm) return;
@@ -35,23 +36,24 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
                 <button
                     onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)] transition-colors"
                 >
-                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
+                    <ArrowLeft size={18} strokeWidth={1.5} className={`${muted} shrink-0`} />
                     <span className={`text-xl font-semibold ${on}`}>{t('account.change_password')}</span>
                 </button>
             </div>
 
-            <div className="px-6 md:px-8 mt-4 max-w-md space-y-5">
-                <p className={`text-sm leading-relaxed ${muted}`}>{t('account.change_password_desc')}</p>
+            <div className="px-6 md:px-10 mt-2 max-w-md space-y-5">
+                <div className="flex items-start gap-3">
+                    <Lock size={18} className={`${muted} shrink-0 mt-0.5`} />
+                    <p className={`text-sm leading-relaxed ${muted}`}>{t('account.change_password_desc')}</p>
+                </div>
 
                 {error && (
-                    <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
-                        {error}
-                    </div>
+                    <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
                 )}
 
                 <div className="space-y-4">
@@ -72,7 +74,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <button
                     onClick={handleSubmit}
                     disabled={!current || !newPass || !confirm || isLoading}
-                    className="w-full py-3 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     {isLoading ? '...' : t('btn.save')}
                 </button>

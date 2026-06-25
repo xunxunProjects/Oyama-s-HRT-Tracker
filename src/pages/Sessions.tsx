@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Monitor, Smartphone, Loader2, Trash2, LogOut } from 'lucide-react';
+import { ArrowLeft, Monitor, Smartphone, Loader2, LogOut, X } from 'lucide-react';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
+import { SettingsIconBox, maskIpAddress, settingsMuted, settingsOn } from '../components/SettingsListItem';
 
 interface SessionsPageProps {
     token: string;
@@ -91,86 +92,82 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
-
-    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+    const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 
     return (
         <div className="relative pb-32">
-            {/* Header */}
             <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
                 <button
                     onClick={onBack}
-                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)] transition-colors"
                 >
-                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
-                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.sessions')}</span>
+                    <ArrowLeft size={18} strokeWidth={1.5} className={`${settingsMuted} shrink-0`} />
+                    <span className={`text-xl font-semibold ${settingsOn}`}>{t('account.sessions')}</span>
                 </button>
-                <p className={`text-sm ${muted} mt-1 ml-0.5`}>{t('account.sessions_desc')}</p>
+                <p className={`text-sm ${settingsMuted} mt-1 ml-0.5 leading-relaxed`}>{t('account.sessions_desc')}</p>
             </div>
 
-            <div className="px-6 md:px-10 mt-4 space-y-4 max-w-2xl">
-                <div className="bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-bright)] rounded-xl border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] overflow-hidden">
-                    {loading ? (
-                        <div className="flex justify-center py-16">
-                            <Loader2 className={`animate-spin ${muted}`} size={22} />
-                        </div>
-                    ) : sessions.length === 0 ? (
-                        <p className={`text-sm ${muted} text-center py-14`}>{t('account.sessions_empty')}</p>
-                    ) : (
-                        <div className="divide-y divide-[var(--color-m3-outline-variant)] dark:divide-[var(--color-m3-dark-outline-variant)]">
-                            {sessions.map(s => {
-                                const { label, isMobile } = parseDevice(s.device_info || '');
-                                const isTerminating = terminating === s.id;
-                                return (
-                                    <div
-                                        key={s.id}
-                                        className={`flex items-start gap-3 px-5 py-4 ${s.is_current ? 'bg-[var(--color-m3-primary-container)]/40 dark:bg-[var(--color-m3-dark-surface-container)]/60' : ''}`}
-                                    >
-                                        <div className={`mt-0.5 p-2 rounded-lg ${s.is_current ? 'bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container-high)]' : 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]'}`}>
-                                            {isMobile
-                                                ? <Smartphone size={16} className={s.is_current ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted} />
-                                                : <Monitor size={16} className={s.is_current ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted} />
-                                            }
+            <div className="px-6 md:px-10 mt-2 max-w-2xl">
+                {loading ? (
+                    <div className="flex justify-center py-16">
+                        <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                    </div>
+                ) : sessions.length === 0 ? (
+                    <p className={`text-sm ${settingsMuted} text-center py-14`}>{t('account.sessions_empty')}</p>
+                ) : (
+                    <div>
+                        {sessions.map(s => {
+                            const { label, isMobile } = parseDevice(s.device_info || '');
+                            const isTerminating = terminating === s.id;
+                            const DeviceIcon = isMobile ? Smartphone : Monitor;
+
+                            return (
+                                <div
+                                    key={s.id}
+                                    className={`flex items-start gap-3 py-4 ${divider}`}
+                                >
+                                    <SettingsIconBox icon={DeviceIcon} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className={`text-sm font-medium ${settingsOn} truncate`}>{label}</p>
+                                            {s.is_current && (
+                                                <span className={`shrink-0 text-[11px] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                                    {t('account.sessions_current')}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                <p className="text-sm font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">{label}</p>
-                                                {s.is_current && (
-                                                    <span className="shrink-0 text-[10px] font-semibold bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-primary-container)] dark:text-[var(--color-m3-primary-light)] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-                                                        {t('account.sessions_current')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className={`text-xs ${muted} mt-0.5`}>{s.ip || '—'}</p>
-                                            <p className={`text-xs ${muted}`}>
-                                                {t('account.sessions_last_used')}: {relativeTime(s.last_used_at)}
-                                                {' · '}
-                                                {t('account.sessions_created')}: {relativeTime(s.created_at)}
-                                            </p>
-                                        </div>
-                                        {!s.is_current && (
-                                            <button
-                                                onClick={() => handleTerminate(s.id)}
-                                                disabled={isTerminating || terminating === 'others'}
-                                                className={`shrink-0 mt-0.5 p-1.5 rounded-lg ${muted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40`}
-                                            >
-                                                {isTerminating ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                                            </button>
-                                        )}
+                                        <p className={`text-xs ${settingsMuted} mt-1 font-mono tracking-wide`}>
+                                            {maskIpAddress(s.ip)}
+                                        </p>
+                                        <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                            {t('account.sessions_last_used')} {relativeTime(s.last_used_at)}
+                                            {' · '}
+                                            {t('account.sessions_created')} {relativeTime(s.created_at)}
+                                        </p>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+                                    {!s.is_current && (
+                                        <button
+                                            onClick={() => handleTerminate(s.id)}
+                                            disabled={isTerminating || terminating === 'others'}
+                                            aria-label={t('account.sessions_terminate_confirm')}
+                                            className={`shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40 transition-colors`}
+                                        >
+                                            {isTerminating ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <X size={15} strokeWidth={1.5} />}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {otherSessions.length > 1 && (
                     <button
                         onClick={handleTerminateOthers}
                         disabled={terminating === 'others'}
-                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-500 dark:text-red-400 disabled:opacity-50"
+                        className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 transition-colors`}
                     >
-                        {terminating === 'others' ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
+                        {terminating === 'others' ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <LogOut size={15} strokeWidth={1.5} />}
                         {t('account.sessions_terminate_others')}
                     </button>
                 )}

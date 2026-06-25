@@ -22,6 +22,8 @@ export interface Session {
 
 export interface TwoFAStatus {
     enabled: boolean;
+    totp?: boolean;
+    passkey?: boolean;
 }
 
 export interface TwoFASetup {
@@ -142,14 +144,17 @@ export const authService = {
         if (!res.ok) throw new Error(await res.text());
     },
 
-    async deleteAccount(token: string, password: string): Promise<void> {
+    async deleteAccount(token: string, password: string, code?: string, backupCode?: string): Promise<void> {
+        const body: { password: string; code?: string; backup_code?: string } = { password };
+        if (code) body.code = code;
+        if (backupCode) body.backup_code = backupCode;
         const res = await fetch('/api/user/me', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ password })
+            body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error(await res.text());
     },

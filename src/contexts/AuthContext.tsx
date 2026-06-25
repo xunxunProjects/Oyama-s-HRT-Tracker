@@ -26,7 +26,7 @@ interface AuthContextType {
     isLoading: boolean;
     updateProfile: (username: string) => Promise<void>;
     changePassword: (current: string, newPass: string) => Promise<void>;
-    deleteAccount: (password: string) => Promise<void>;
+    deleteAccount: (password: string, code?: string, backupCode?: string) => Promise<void>;
     needsSetup2FA: boolean;
     clearSetup2FA: () => void;
 }
@@ -137,9 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (user) await setCloudKey(newPass, user.id);
     };
 
-    const deleteAccount = async (password: string) => {
+    const deleteAccount = async (password: string, code?: string, backupCode?: string) => {
         if (!token) return;
-        await authService.deleteAccount(token, password);
+        await authService.deleteAccount(token, password, code, backupCode);
         logout();
     };
 
