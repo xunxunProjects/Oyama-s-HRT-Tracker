@@ -21,11 +21,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         <nav className="hidden md:flex flex-col w-[260px] h-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface-dim)] shrink-0">
             {/* Logo */}
             <div className="px-5 pt-7 pb-6">
-                <span className="block text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] leading-none mb-1" style={{ fontFamily: 'cursive' }}>
-                    Oyama's
-                </span>
-                <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] leading-none">
-                    HRT Tracker
+                <h1 className="text-[15px] font-semibold tracking-tight text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] leading-snug">
+                    Oyama Tracker
                 </h1>
             </div>
 
@@ -38,10 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             key={item.id}
                             onClick={() => onViewChange(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm
                                 ${isActive
-                                    ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
-                                    : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]'
+                                    ? 'text-body font-medium bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]'
+                                    : 'text-muted hover:text-body hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'
                                 }`}
                         >
                             <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />

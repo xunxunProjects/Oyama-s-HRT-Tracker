@@ -237,7 +237,7 @@ const Account: React.FC<AccountProps> = ({
             </h1>
 
             {user ? (
-                <>
+                <div className="max-w-2xl">
                     {/* Profile */}
                     <div className={`flex flex-col items-center py-6 gap-2 ${divider} mb-6`}>
                         <button
@@ -541,7 +541,7 @@ const Account: React.FC<AccountProps> = ({
                             {t('account.sign_out')}
                         </button>
                     </div>
-                </>
+                </div>
             ) : (
                 <div className="max-w-sm">
                     {/* Login / Register tabs */}

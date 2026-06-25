@@ -68,15 +68,6 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
     return (
         <div className="flex flex-col h-full">
-            {/* Inline section header */}
-            {isInline && (
-                <div className={`px-0 pb-4 ${divider} mb-0`}>
-                    <span className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                        {t('lab.add_title')}
-                    </span>
-                </div>
-            )}
-
             <div className="overflow-y-auto flex-1">
                 {/* Date row */}
                 <button

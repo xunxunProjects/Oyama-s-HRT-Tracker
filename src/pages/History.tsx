@@ -6,6 +6,10 @@ import DoseForm from '../components/DoseForm';
 import { DoseTemplate } from '../components/DoseFormModal';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 
+// Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
+const formatWearDays = (days: number): string =>
+    (Math.round(days * 100) / 100).toString();
+
 interface HistoryProps {
     t: (key: string) => string;
     isQuickAddOpen: boolean;
@@ -101,7 +105,7 @@ const History: React.FC<HistoryProps> = ({
                                         onClick={() => setEditingId(isEditing ? null : ev.id)}
                                         className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isEditing ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}`}
                                     >
-                                        <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-primary)]" />
+                                        <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-outline)] dark:bg-[var(--color-m3-dark-outline)]" />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-2">
                                                 <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate text-sm">
@@ -132,6 +136,12 @@ const History: React.FC<HistoryProps> = ({
                                                                 {`(${t('label.t')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
                                                             </span>
                                                         )}
+                                                    </>
+                                                )}
+                                                {ev.route === Route.patchApply && typeof ev.extras[ExtraKey.patchWearH] === 'number' && ev.extras[ExtraKey.patchWearH]! > 0 && (
+                                                    <>
+                                                        <span className="opacity-40">·</span>
+                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
                                                     </>
                                                 )}
                                             </div>

@@ -358,8 +358,8 @@ const ResultChart = ({
     }
 
     const chipBase = 'px-2 py-0.5 text-[11px] rounded-md transition-colors';
-    const chipOn = 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-surface-container)]';
-    const chipOff = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]';
+    const chipOn = 'text-body font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+    const chipOff = 'text-muted hover:text-body';
 
     return (
         <div className="w-full">
@@ -419,10 +419,6 @@ const ResultChart = ({
                         style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
                     >
                         <defs>
-                            <linearGradient id={`fill-${clipId}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={c.primary} stopOpacity={isDarkMode ? 0.28 : 0.2} />
-                                <stop offset="100%" stopColor={c.primary} stopOpacity={0} />
-                            </linearGradient>
                             <clipPath id={`clip-${clipId}`}>
                                 <rect x={mL} y={mT - 4} width={plotW} height={plotH + 8} />
                             </clipPath>
@@ -455,9 +451,8 @@ const ResultChart = ({
                         ))}
 
                         <g clipPath={`url(#clip-${clipId})`}>
-                            {/* Area + primary curve */}
-                            {areaPath && <path d={areaPath} fill={`url(#fill-${clipId})`} />}
-                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                            {/* Primary curve */}
+                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
 
                             {/* Secondary curve (CPA) — kept quiet so E2 stays the focus */}
                             {hasSecondary && (
@@ -516,7 +511,7 @@ const ResultChart = ({
                 {/* Hover tooltip */}
                 {showHover && (
                     <div
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-lg shadow-sm bg-white dark:bg-neutral-800 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
                         style={{
                             left: Math.min(Math.max(X(hoverPt!.t), mL + 4), mL + plotW - 4),
                             top: Math.max(YP(hoverPt!.p) - 12, 8),

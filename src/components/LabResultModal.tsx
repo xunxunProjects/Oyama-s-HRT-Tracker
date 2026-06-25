@@ -35,16 +35,17 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
     if (!isVisible && !isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50">
-            <div className="bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]">
+        <div className="modal-overlay">
+            <div className="modal-shell">
+            <div className="modal-card overflow-hidden p-0 w-full max-w-lg flex flex-col max-h-[90vh] md:max-h-[85vh]">
 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center justify-between shrink-0">
-                    <h2 className="text-base font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                <div className="px-5 py-3 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex items-center justify-between shrink-0">
+                    <h2 className="text-[15px] font-semibold text-body">
                         {resultToEdit ? t('lab.edit_title') : t('lab.add_title')}
                     </h2>
-                    <button onClick={handleClose} className="p-1.5 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-lg">
-                        <X size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
+                    <button onClick={handleClose} className="p-1 text-muted hover:text-body">
+                        <X size={18} />
                     </button>
                 </div>
 
@@ -64,6 +65,7 @@ const LabResultModal = ({ isOpen, onClose, onSave, onDelete, resultToEdit }: Lab
                         }}
                     />
                 </div>
+            </div>
             </div>
         </div>
     );

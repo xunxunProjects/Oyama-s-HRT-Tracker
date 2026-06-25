@@ -9,19 +9,15 @@ export const useTranslation = () => {
     return ctx;
 };
 
-const RTL_LANGS: ReadonlySet<Lang> = new Set<Lang>(['ar', 'he']);
+const RTL_LANGS: ReadonlySet<Lang> = new Set<Lang>();
 
 const LANG_LOCALE: Record<Lang, string> = {
     'zh': 'zh-CN',
     'zh-TW': 'zh-TW',
     'yue': 'zh-HK',
     'en': 'en',
-    'ru': 'ru',
-    'uk': 'uk',
     'ja': 'ja',
     'ko': 'ko',
-    'ar': 'ar',
-    'he': 'he',
     'tr': 'tr',
 };
 

@@ -5,7 +5,7 @@ import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
-import { DoseEvent, LabResult, createCalibrationInterpolator, decompressData, encryptData, decryptData, encryptCloudPayload, decryptCloudPayload, isCloudEncrypted } from '../logic';
+import { DoseEvent, LabResult, decompressData, encryptData, decryptData, encryptCloudPayload, decryptCloudPayload, isCloudEncrypted } from '../logic';
 import { DoseTemplate } from './components/DoseFormModal';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
@@ -35,6 +35,7 @@ import { cloudService } from './services/cloud';
 import Home from './pages/Home';
 import History from './pages/History';
 import Lab from './pages/Lab';
+import CalibrationSettings from './pages/CalibrationSettings';
 import Settings from './pages/Settings';
 import Account from './pages/Account';
 import Admin from './pages/Admin';
@@ -89,6 +90,9 @@ const AppContent = () => {
         simulation,
         currentTime,
         calibrationFn,
+        calibrationMethod, setCalibrationMethod,
+        calibrationHistoryMode, setCalibrationHistoryMode,
+        calibration,
         currentLevel,
         currentCPA,
         currentT,
@@ -271,11 +275,7 @@ const AppContent = () => {
         { value: 'yue', label: '廣東話' },
         { value: 'en', label: 'English' },
         { value: 'ja', label: '日本語' },
-        { value: 'ru', label: 'Русский' },
-        { value: 'uk', label: 'Українська' },
         { value: 'ko', label: '한국어' },
-        { value: 'ar', label: 'العربية' },
-        { value: 'he', label: 'עברית' },
         { value: 'tr', label: 'Türkçe' },
     ]), []);
 
@@ -470,7 +470,7 @@ const AppContent = () => {
                 <div
                     ref={mainScrollRef}
                     key={currentView}
-                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav page-transition ${transitionDirection === 'forward' ? 'page-forward' : 'page-backward'}`}
+                    className="flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav"
                 >
                     {currentView === 'home' && (
                         <Home
@@ -525,9 +525,22 @@ const AppContent = () => {
                             onDeleteLabResult={deleteLabResult}
                             onEditLabResult={handleEditLabResult}
                             onClearLabResults={clearLabResults}
-                            calibrationFn={calibrationFn}
+                            calibrationMethod={calibrationMethod}
+                            calibration={calibration}
+                            onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
                             currentTime={currentTime}
                             lang={lang}
+                        />
+                    )}
+
+                    {currentView === 'lab-calibration' && (
+                        <CalibrationSettings
+                            method={calibrationMethod}
+                            setMethod={setCalibrationMethod}
+                            historyMode={calibrationHistoryMode}
+                            setHistoryMode={setCalibrationHistoryMode}
+                            calibration={calibration}
+                            onBack={() => handleViewChange('lab')}
                         />
                     )}
 
@@ -702,6 +715,7 @@ const AppContent = () => {
                                 'home': 'home',
                                 'history': 'history',
                                 'lab': 'lab',
+                                'lab-calibration': 'lab',
                                 'settings': 'settings',
                                 'settings-hrt-mode': 'settings',
                                 'settings-language': 'settings',
@@ -723,12 +737,12 @@ const AppContent = () => {
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2
                                         ${isDisabled
                                             ? 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] cursor-not-allowed'
                                             : isActive
-                                            ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
-                                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]'
+                                            ? 'text-body'
+                                            : 'text-muted'
                                         }`}
                                 >
                                     <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />

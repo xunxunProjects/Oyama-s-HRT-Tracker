@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { LabResult } from '../../logic';
+import React, { useState, useMemo } from 'react';
+import { Plus, ChevronRight } from 'lucide-react';
+import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
@@ -14,7 +14,9 @@ interface LabProps {
     onDeleteLabResult: (id: string) => void;
     onEditLabResult: (res: LabResult) => void;
     onClearLabResults: () => void;
-    calibrationFn: (timeH: number) => number;
+    calibrationMethod: CalibrationMethod;
+    calibration: CalibrationResult;
+    onOpenCalibrationSettings: () => void;
     currentTime: Date;
     lang: Lang;
 }
@@ -28,17 +30,43 @@ const Lab: React.FC<LabProps> = ({
     onDeleteLabResult,
     onEditLabResult,
     onClearLabResults,
-    calibrationFn,
+    calibrationMethod,
+    calibration,
+    onOpenCalibrationSettings,
     currentTime,
     lang
 }) => {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
 
+    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+    const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+
+    const pointById = useMemo(() => {
+        const m = new Map<string, CalibrationPoint>();
+        for (const p of calibration.points) m.set(p.id, p);
+        return m;
+    }, [calibration.points]);
+
+    const hasCal = calibration.points.length > 0;
+
+    // One-line summary of the active calibration for the settings entry row.
+    // Before any usable labs exist there's no fit to show, so we fall back to
+    // just the method name (a bare "×1.00" would be misleading).
+    const calSummary = calibrationMethod === 'off'
+        ? t('cal.off')
+        : !hasCal
+            ? t(`cal.${calibrationMethod}`)
+            : [
+                t(`cal.${calibrationMethod}`),
+                `×${calibration.scale.toFixed(2)}`,
+                calibration.fitErrPct !== null ? `±${calibration.fitErrPct.toFixed(0)}%` : null,
+            ].filter(Boolean).join(' · ');
+
     return (
         <div className="relative pb-32">
             {/* Header */}
             <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-4 flex items-center justify-between">
-                <h1 className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                <h1 className={`text-xl font-semibold ${on}`}>
                     {t('lab.title')}
                 </h1>
                 <button
@@ -68,10 +96,22 @@ const Lab: React.FC<LabProps> = ({
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="px-6 md:px-8">
+            <div className="px-6 md:px-8 max-w-2xl">
+                {/* Calibration settings entry — always available; how labs feed the estimate */}
+                <button
+                    onClick={onOpenCalibrationSettings}
+                    className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                >
+                    <div className="min-w-0">
+                        <p className={`text-[15px] ${on}`}>{t('cal.settings')}</p>
+                        <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{calSummary}</p>
+                    </div>
+                    <ChevronRight size={16} className={`${muted} shrink-0`} />
+                </button>
+
+                {/* Lab results list */}
                 {labResults.length === 0 ? (
-                    <div className="py-20 text-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    <div className={`py-20 text-center ${muted}`}>
                         <p className="text-sm">{t('lab.empty')}</p>
                     </div>
                 ) : (
@@ -82,6 +122,7 @@ const Lab: React.FC<LabProps> = ({
                             .map(res => {
                                 const d = new Date(res.timeH * 3600000);
                                 const isEditing = editingLabId === res.id;
+                                const pt = pointById.get(res.id);
                                 return (
                                     <div key={res.id} className="border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0">
                                         <div
@@ -91,15 +132,29 @@ const Lab: React.FC<LabProps> = ({
                                             <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-primary)]" />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">
+                                                    <span className={`font-medium ${on} text-sm`}>
                                                         {res.concValue} {res.unit}
                                                     </span>
-                                                    <span className="text-xs tabular-nums text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0">
+                                                    <span className={`text-xs tabular-nums ${muted} shrink-0`}>
                                                         {formatTime(d)}
                                                     </span>
                                                 </div>
-                                                <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                                    {formatDate(d, lang)}
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className={`text-xs ${muted}`}>{formatDate(d, lang)}</span>
+                                                    {pt && (
+                                                        <span className="flex items-center gap-1.5 text-xs tabular-nums shrink-0">
+                                                            <span className={muted}>{t('cal.model')} {Math.round(pt.pred)}</span>
+                                                            <span
+                                                                className="px-1.5 py-0.5 rounded font-medium"
+                                                                style={{
+                                                                    color: 'var(--color-m3-primary)',
+                                                                    background: 'var(--color-m3-primary-container)',
+                                                                }}
+                                                            >
+                                                                ×{pt.ratio.toFixed(2)}
+                                                            </span>
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -125,25 +180,18 @@ const Lab: React.FC<LabProps> = ({
                                     </div>
                                 );
                             })}
+
+                        {/* Clear all — the last result row's border-b is the divider above this */}
+                        <div className="flex items-center justify-end py-4">
+                            <button
+                                onClick={onClearLabResults}
+                                className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                                {t('lab.clear_all')}
+                            </button>
+                        </div>
                     </div>
                 )}
-
-                {/* Calibration factor + clear */}
-                <div className="flex items-center justify-between py-4 mt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <p className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                        {t('lab.tip_scale')} <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-semibold">×{calibrationFn(currentTime.getTime() / 3600000).toFixed(2)}</span>
-                    </p>
-                    <button
-                        onClick={onClearLabResults}
-                        disabled={!labResults.length}
-                        className={`text-sm font-medium ${labResults.length
-                            ? 'text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300'
-                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-40 cursor-not-allowed'
-                        }`}
-                    >
-                        {t('lab.clear_all')}
-                    </button>
-                </div>
             </div>
         </div>
     );
