@@ -40,7 +40,12 @@ export enum ExtraKey {
     releaseRateUGPerDay = "releaseRateUGPerDay",
     sublingualTheta = "sublingualTheta",
     sublingualTier = "sublingualTier",
-    gelSite = "gelSite"
+    gelSite = "gelSite",
+    // Planned wear duration (hours) for a patch application. When set, the patch
+    // is treated as removed `patchWearH` hours after it is applied, so a single
+    // "apply" event self-completes without a separate "remove" event. An explicit
+    // patchRemove event still takes precedence.
+    patchWearH = "patchWearH"
 }
 
 enum GelSite {
@@ -104,13 +109,81 @@ export function isT_LabUnit(unit: LabResult['unit']): boolean {
 }
 
 /**
- * Build a time-varying calibration scale based on lab results.
- * Returns a ratio function r(t) such that E2_conc(t) * r(t) is calibrated.
- * Strategy: compute ratio=obs/pred at each lab time, then linearly interpolate ratios over time.
- * NOTE: Lab results measure E2, not CPA, so calibration is only for E2.
+ * How lab results are used to calibrate the E2 estimate.
+ *  - 'off'      : ignore labs, show the raw model.
+ *  - 'average'  : amplitude-only regression — one personal scale (log-space
+ *                 least-squares over all labs). Optimal single multiplier, but
+ *                 cannot correct curve shape.
+ *  - 'adaptive' : self-learning regression — fits a personal amplitude AND
+ *                 clearance (half-life) by re-simulating over a clearance grid.
+ *                 Needs ≥2 well-spaced labs to move clearance; falls back to
+ *                 amplitude-only with sparse data. Bounded so it can't run away.
  */
-export function createCalibrationInterpolator(sim: SimulationResult | null, results: LabResult[]) {
-    if (!sim || !results.length) return (_timeH: number) => 1;
+/**
+ * Personal E2 calibration estimators. The three learning methods below mirror
+ * the calibration models offered by hrt.transmtf.com; they are reimplemented
+ * here over the two parameters this PK engine can actually identify from labs:
+ * a personal amplitude (Vd/bioavailability) and a personal clearance (half-life).
+ *
+ *  - 'off'       : no calibration; raw model.
+ *  - 'ekf'       : Extended Kalman Filter. Processes labs in time order, keeping
+ *                  a running estimate of (log-amplitude, log-clearance) with a
+ *                  covariance. Permanent memory (no forgetting); a Jensen term
+ *                  corrects the log→linear mean. Amplitude and clearance update
+ *                  through independent innovation channels.
+ *  - 'ou_kalman' : Ornstein-Uhlenbeck Kalman smoother. Models the log-correction
+ *                  as a mean-reverting process; a forward filter + RTS smoother
+ *                  yield a time-varying factor that decays toward the model
+ *                  between labs (information is nearly gone after ~3 weeks).
+ *  - 'mipd'      : Hybrid model-informed precision dosing. MAP fit of amplitude
+ *                  and clearance under a population prior with a Student-t
+ *                  (robust) likelihood; shrinks to population when data is
+ *                  sparse and resists single outliers.
+ */
+export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd';
+
+export const CALIBRATION_METHODS: readonly CalibrationMethod[] = ['off', 'ekf', 'ou_kalman', 'mipd'];
+
+/**
+ * How newly-added labs are allowed to act on the historical curve.
+ *  - 'forward'       : causal filtering — each point in time only uses labs up
+ *                      to that moment, so past estimates are never rewritten.
+ *  - 'retrospective' : smoothing — all labs (and the final personal fit) are
+ *                      used to re-estimate the whole history. More accurate in
+ *                      hindsight; a new lab can revise older estimates.
+ */
+export type CalibrationHistoryMode = 'forward' | 'retrospective';
+
+export const CALIBRATION_HISTORY_MODES: readonly CalibrationHistoryMode[] = ['forward', 'retrospective'];
+
+/** Map legacy stored method ids onto the current estimator set. */
+export function normalizeCalibrationMethod(raw: string | null | undefined): CalibrationMethod {
+    if (raw === 'off' || raw === 'ekf' || raw === 'ou_kalman' || raw === 'mipd') return raw;
+    if (raw === 'average') return 'mipd';      // amplitude-only LS → MAP with prior
+    if (raw === 'adaptive') return 'ekf';      // amplitude + clearance fit → EKF
+    return 'mipd';
+}
+
+/** A single measured-vs-model comparison derived from one E2 lab result. */
+export interface CalibrationPoint {
+    id: string;
+    timeH: number;
+    obs: number;   // measured E2, converted to pg/mL
+    pred: number;  // raw model-predicted E2 at the lab time (pg/mL)
+    ratio: number; // obs / pred (how far the body runs above/below the model)
+}
+
+const clampRatio = (r: number) => Math.max(0.01, Math.min(100, r));
+
+/**
+ * Compare each E2 lab result against the raw model prediction at the same time.
+ * Returned points power both the calibration factor and the per-lab UI insight.
+ * Testosterone-unit labs and points where the model predicts ~0 are excluded
+ * (a near-zero prediction means the lab doesn't correspond to the simulated PK
+ * state — e.g. a baseline draw before any dose — and would yield an absurd ratio).
+ */
+export function computeCalibrationPoints(sim: SimulationResult | null, results: LabResult[]): CalibrationPoint[] {
+    if (!sim || !results.length) return [];
 
     const getNearestConc_E2 = (timeH: number): number | null => {
         if (!sim.timeH.length) return null;
@@ -126,61 +199,431 @@ export function createCalibrationInterpolator(sim: SimulationResult | null, resu
         return sim.concPGmL_E2[idx];
     };
 
-    const points = results
-        // Exclude testosterone-unit lab results — they are not E2 measurements and
-        // would corrupt the E2 calibration ratio (convertToPgMl returns the raw
-        // value unchanged for T units). In normal operation labs are mode-scoped,
-        // but v1 imports or stale state may still contain T-unit rows here.
+    return results
         .filter(r => !isT_LabUnit(r.unit))
         .map(r => {
             const obs = convertToPgMl(r.concValue, r.unit);
             let pred = interpolateConcentration_E2(sim, r.timeH);
-            if (pred === null || Number.isNaN(pred)) {
-                pred = getNearestConc_E2(r.timeH);
-            }
-            if (pred === null || obs <= 0) return null;
-            // Skip calibration points where the predicted E2 is too low (< 1 pg/mL).
-            // A prediction this close to zero indicates the lab result falls outside
-            // the meaningful simulation range (e.g. a baseline measurement taken
-            // before any HRT dose events were entered). Using such points would
-            // produce an absurdly large multiplier and lock the displayed scale at
-            // the cap value. 1 pg/mL is well below any clinically relevant E2 level
-            // on HRT and serves as a reliable signal that the simulation and lab
-            // result do not correspond to the same pharmacokinetic state.
-            if (pred < 1) return null;
-            // Clamp the ratio between 0.01x (100-fold below model, i.e. the user's
-            // measured level is far lower than predicted — unusual but bounded) and
-            // 100x (allows for significant real-world PK variability while preventing
-            // extreme outliers from dominating the calibration).
-            const ratio = Math.max(0.01, Math.min(100, obs / pred));
-            return { timeH: r.timeH, ratio };
+            if (pred === null || Number.isNaN(pred)) pred = getNearestConc_E2(r.timeH);
+            if (pred === null || pred < 1 || obs <= 0) return null;
+            return { id: r.id, timeH: r.timeH, obs, pred, ratio: obs / pred };
         })
-        .filter((p): p is { timeH: number; ratio: number } => !!p)
+        .filter((p): p is CalibrationPoint => !!p)
         .sort((a, b) => a.timeH - b.timeH);
+}
 
-    if (!points.length) return (_timeH: number) => 1;
-    if (points.length === 1) {
-        const r0 = points[0].ratio;
-        return (_timeH: number) => r0;
+/** Geometric mean of the (clamped) lab ratios — the natural average for a multiplicative correction. */
+export function geometricMeanRatio(points: CalibrationPoint[]): number {
+    if (!points.length) return 1;
+    const sumLog = points.reduce((s, p) => s + Math.log(clampRatio(p.ratio)), 0);
+    return Math.exp(sumLog / points.length);
+}
+
+/** Typical residual of a log-space fit, expressed as a ± percentage (null if undefined). */
+function logRmsePct(sse: number, n: number): number | null {
+    if (n < 2) return null;
+    const rmse = Math.sqrt(sse / n);
+    return (Math.exp(rmse) - 1) * 100;
+}
+
+/** Outcome of fitting the personal E2 calibration to the user's labs. */
+export interface CalibrationResult {
+    method: CalibrationMethod;
+    /** Scale function r(t): calibrated E2 = model E2(t) * factorFn(t). */
+    factorFn: (timeH: number) => number;
+    /** Personal amplitude multiplier (bioavailability/Vd correction). */
+    scale: number;
+    /** Personal clearance multiplier (1 = unchanged; >1 = faster clearance). */
+    kMul: number;
+    /** Change in elimination half-life vs the model, as a signed percentage. */
+    halfLifeDeltaPct: number;
+    /** Number of E2 labs used in the fit. */
+    n: number;
+    /** Typical fit error as ±% (log-space RMSE), or null when not estimable (<2 labs / off). */
+    fitErrPct: number | null;
+    /** Per-lab measured-vs-model comparison points. */
+    points: CalibrationPoint[];
+}
+
+// Clearance search bounds for the personal-clearance fit: personal clearance
+// stays within 2× of the model in either direction (half-life within [0.5×, 2×]).
+const KMUL_MIN = 0.5;
+const KMUL_MAX = 2.0;
+const KMUL_STEPS = 21;
+
+// Log-space measurement noise of a single E2 lab (assay + draw-timing scatter),
+// as a fractional SD (~13%).
+const CAL_MEAS_SD = 0.13;
+// Population priors (log-space SD) for the personal parameters. Amplitude varies
+// a lot between people; clearance less so, and is only identifiable from several
+// well-spaced labs.
+const CAL_PRIOR_SD_AMP = 0.50; // ≈ ±65% amplitude
+const CAL_PRIOR_SD_K = 0.35;   // ≈ ±42% clearance
+// Minimum labs before personal *clearance* (curve shape) is allowed to move.
+const MIN_LABS_FOR_CLEARANCE = 3;
+// OU mean-reversion timescale for the dynamic (OU-Kalman) correction.
+const OU_TAU_H = 336;          // ~2 weeks; ≈63% of info decays per τ
+const OU_STAT_SD = 0.5;        // stationary SD of the log-correction
+const CAL_STUDENT_NU = 4;      // Student-t dof for the robust MIPD likelihood
+
+const clampLogFactor = (x: number) => Math.max(-4.6, Math.min(4.6, x)); // exp ∈ [0.01, 100]
+const clampFactor = (x: number) => Math.max(0.01, Math.min(100, x));
+
+/**
+ * Precomputed personal-clearance response. For a grid of clearance multipliers we
+ * re-simulate the PK once and record, per lab, the model-predicted log E2. The
+ * estimators then evaluate log-pred(amplitude a, log-clearance k) ≈ a + g_i(k),
+ * with g_i interpolated across the grid — so fitting needs no further simulation.
+ */
+interface ClearanceField {
+    logK: number[];                       // grid knots (ascending), log clearance-mult
+    sims: (SimulationResult | null)[];    // sim per knot (baseline reused at k≈0)
+    gLog: number[][];                     // gLog[knot][lab] = log model E2 at lab time
+    baselineSim: SimulationResult;
+}
+
+function buildClearanceField(
+    baselineSim: SimulationResult,
+    events: DoseEvent[],
+    bodyWeightKG: number,
+    labTimes: number[],
+): ClearanceField {
+    const baseParams = getActivePKParams();
+    const logKmin = Math.log(KMUL_MIN);
+    const logKmax = Math.log(KMUL_MAX);
+    const logK: number[] = [];
+    const sims: (SimulationResult | null)[] = [];
+    const gLog: number[][] = [];
+
+    for (let j = 0; j < KMUL_STEPS; j++) {
+        const lk = logKmin + (logKmax - logKmin) * (j / (KMUL_STEPS - 1));
+        const kMul = Math.exp(lk);
+        const atUnity = Math.abs(kMul - 1) < 1e-3;
+        const sim = atUnity
+            ? baselineSim
+            : runSimulationWithParams(events, bodyWeightKG, {
+                ...baseParams,
+                e2_kClear: baseParams.e2_kClear * kMul,
+                e2_kClearInj: baseParams.e2_kClearInj * kMul,
+            });
+        logK.push(lk);
+        sims.push(sim);
+        const row: number[] = [];
+        for (const t of labTimes) {
+            let c = sim ? interpolateConcentration_E2(sim, t) : null;
+            if (c === null || Number.isNaN(c) || c < 1e-6) {
+                const b = interpolateConcentration_E2(baselineSim, t);
+                c = (b === null || b < 1e-6) ? 1e-6 : b; // fall back to baseline shape
+            }
+            row.push(Math.log(c));
+        }
+        gLog.push(row);
+    }
+    return { logK, sims, gLog, baselineSim };
+}
+
+/** Model log-E2 at lab i for log-clearance k (linear interpolation across grid). */
+function fieldG(field: ClearanceField, i: number, k: number): number {
+    const { logK, gLog } = field;
+    const n = logK.length;
+    if (k <= logK[0]) return gLog[0][i];
+    if (k >= logK[n - 1]) return gLog[n - 1][i];
+    let j = 1;
+    while (j < n && logK[j] < k) j++;
+    const t = (k - logK[j - 1]) / (logK[j] - logK[j - 1]);
+    return gLog[j - 1][i] * (1 - t) + gLog[j][i] * t;
+}
+
+/** dg_i/dk via local grid slope (Jacobian of the clearance channel). */
+function fieldGSlope(field: ClearanceField, i: number, k: number): number {
+    const { logK, gLog } = field;
+    const n = logK.length;
+    let j = 1;
+    if (k >= logK[n - 1]) j = n - 1;
+    else if (k > logK[0]) { while (j < n - 1 && logK[j] < k) j++; }
+    return (gLog[j][i] - gLog[j - 1][i]) / (logK[j] - logK[j - 1]);
+}
+
+/** Nearest grid sim for a continuous log-clearance (used to build factor curves). */
+function fieldSimFor(field: ClearanceField, k: number): SimulationResult {
+    const { logK, sims, baselineSim } = field;
+    const n = logK.length;
+    const lo = logK[0], hi = logK[n - 1];
+    const frac = (Math.max(lo, Math.min(hi, k)) - lo) / (hi - lo);
+    return sims[Math.round(frac * (n - 1))] ?? baselineSim;
+}
+
+/** Constant-parameter factor: calibrated = model · scale · (curve_k / baseline). */
+function constantFactor(field: ClearanceField, a: number, k: number): (timeH: number) => number {
+    const scale = Math.exp(a);
+    const calSim = fieldSimFor(field, k);
+    const sameAsBaseline = calSim === field.baselineSim;
+    return (timeH: number) => {
+        const b = interpolateConcentration_E2(field.baselineSim, timeH);
+        if (b === null || b < 1 || sameAsBaseline) return clampFactor(scale);
+        const c = interpolateConcentration_E2(calSim, timeH);
+        if (c === null || Number.isNaN(c)) return clampFactor(scale);
+        return clampFactor((scale * c) / b);
+    };
+}
+
+/**
+ * Piecewise factor for forward (causal) mode: the segment after lab i uses only
+ * the parameters learned from labs up to i; before the first lab there is no
+ * calibration. Past estimates therefore never change when a later lab is added.
+ */
+function piecewiseFactor(
+    field: ClearanceField,
+    labTimes: number[],
+    params: { a: number; k: number }[],
+): (timeH: number) => number {
+    const segFns = params.map(p => constantFactor(field, p.a, p.k));
+    return (timeH: number) => {
+        if (!labTimes.length || timeH < labTimes[0]) return 1;
+        let idx = 0;
+        for (let i = 0; i < labTimes.length; i++) {
+            if (labTimes[i] <= timeH) idx = i; else break;
+        }
+        return segFns[idx](timeH);
+    };
+}
+
+interface EstimatorOut {
+    factorFn: (timeH: number) => number;
+    scale: number;
+    kMul: number;
+    halfLifeDeltaPct: number;
+    fitErrPct: number | null;
+}
+
+function sseAt(field: ClearanceField, logObs: number[], a: number, k: number): number {
+    let s = 0;
+    for (let i = 0; i < logObs.length; i++) {
+        const r = logObs[i] - (a + fieldG(field, i, k));
+        s += r * r;
+    }
+    return s;
+}
+
+/**
+ * Extended Kalman Filter over state [log-amplitude, log-clearance], processing
+ * labs chronologically. Near-zero process noise = permanent memory. Returns the
+ * running per-lab snapshots (for forward mode) and the final state + amplitude
+ * variance (for the Jensen log→linear mean correction).
+ */
+function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean) {
+    let x0 = 0, x1 = 0;                                   // [a, k]
+    let p00 = CAL_PRIOR_SD_AMP ** 2;
+    let p11 = allowClearance ? CAL_PRIOR_SD_K ** 2 : 1e-8;
+    let p01 = 0, p10 = 0;
+    const R = CAL_MEAS_SD ** 2;
+    const q00 = Math.log(1.01) ** 2;                     // tiny amplitude drift
+    const q11 = allowClearance ? Math.log(1.005) ** 2 : 0;
+    const snapshots: { a: number; k: number; paa: number }[] = [];
+
+    for (let i = 0; i < logObs.length; i++) {
+        p00 += q00; p11 += q11;                          // predict (random walk)
+        const H0 = 1;
+        const H1 = allowClearance ? fieldGSlope(field, i, x1) : 0;
+        const innov = logObs[i] - (x0 + fieldG(field, i, x1));
+        const ph0 = p00 * H0 + p01 * H1;                 // P·Hᵀ
+        const ph1 = p10 * H0 + p11 * H1;
+        const S = H0 * ph0 + H1 * ph1 + R;
+        const kg0 = ph0 / S, kg1 = ph1 / S;              // Kalman gain
+        x0 += kg0 * innov;
+        x1 = clampLogFactor(x1 + kg1 * innov);
+        // P ← (I − K·H)·P
+        const a00 = 1 - kg0 * H0, a01 = -kg0 * H1, a10 = -kg1 * H0, a11 = 1 - kg1 * H1;
+        const np00 = a00 * p00 + a01 * p10, np01 = a00 * p01 + a01 * p11;
+        const np10 = a10 * p00 + a11 * p10, np11 = a10 * p01 + a11 * p11;
+        p00 = np00; p01 = np01; p10 = np10; p11 = np11;
+        snapshots.push({ a: x0, k: x1, paa: p00 });
+    }
+    return { snapshots, aFinal: x0, kFinal: x1, paaFinal: p00 };
+}
+
+/**
+ * Hybrid model-informed MAP fit of [log-amplitude, log-clearance] under a Gaussian
+ * population prior with a Student-t (robust) likelihood, by iteratively reweighted
+ * Gauss-Newton. Uses the first `count` labs. Shrinks to the population mean (0,0)
+ * when labs are scarce and downweights single outliers.
+ */
+function mipdFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
+    let a = 0, k = 0;
+    const sigma = CAL_MEAS_SD, nu = CAL_STUDENT_NU;
+    const precA = 1 / CAL_PRIOR_SD_AMP ** 2;
+    const precK = allowClearance ? 1 / CAL_PRIOR_SD_K ** 2 : 1e8;
+    let A00 = precA, A01 = 0, A11 = precK, det = 1;
+
+    for (let iter = 0; iter < 16; iter++) {
+        A00 = precA; A01 = 0; A11 = precK;
+        let b0 = -precA * a, b1 = -precK * k;            // prior pulls toward (0,0)
+        for (let i = 0; i < count; i++) {
+            const r = logObs[i] - (a + fieldG(field, i, k));
+            const u = r / sigma;
+            const w = (nu + 1) / (nu + u * u) / (sigma * sigma); // Student-t IRLS weight
+            const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
+            A00 += w; A01 += w * J1; A11 += w * J1 * J1;
+            b0 += w * r; b1 += w * J1 * r;
+        }
+        det = A00 * A11 - A01 * A01;
+        if (Math.abs(det) < 1e-12) break;
+        const d0 = (A11 * b0 - A01 * b1) / det;
+        const d1 = (A00 * b1 - A01 * b0) / det;
+        a += d0;
+        k = clampLogFactor(k + d1);
+        if (Math.abs(d0) + Math.abs(d1) < 1e-5) break;
+    }
+    const paa = Math.abs(det) > 1e-12 ? A11 / det : CAL_PRIOR_SD_AMP ** 2; // marginal var(a)
+    return { a, k, paa };
+}
+
+/**
+ * Ornstein-Uhlenbeck Kalman calibration: the log-correction z(t) is a mean-
+ * reverting process, fit by a forward Kalman filter + RTS smoother over the labs.
+ * Produces a time-varying factor that relaxes back to the model between/after
+ * labs. Forward mode uses the causal filter; retrospective uses the smoother.
+ */
+function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistoryMode): EstimatorOut {
+    const n = points.length;
+    const labTimes = points.map(p => p.timeH);
+    const m = points.map(p => Math.log(p.obs) - Math.log(p.pred)); // observed log-correction
+    const theta = 1 / OU_TAU_H;
+    const Pstat = OU_STAT_SD ** 2;
+    const R = CAL_MEAS_SD ** 2;
+
+    const zf = new Array(n), Pf = new Array(n), zPred = new Array(n), Ppred = new Array(n);
+    for (let i = 0; i < n; i++) {
+        if (i === 0) { zPred[i] = 0; Ppred[i] = Pstat; }
+        else {
+            const phi = Math.exp(-theta * (labTimes[i] - labTimes[i - 1]));
+            zPred[i] = phi * zf[i - 1];
+            Ppred[i] = phi * phi * Pf[i - 1] + Pstat * (1 - phi * phi);
+        }
+        const S = Ppred[i] + R;
+        const kg = Ppred[i] / S;
+        zf[i] = zPred[i] + kg * (m[i] - zPred[i]);
+        Pf[i] = (1 - kg) * Ppred[i];
+    }
+    const zs = zf.slice(), Ps = Pf.slice();
+    for (let i = n - 2; i >= 0; i--) {
+        const phi = Math.exp(-theta * (labTimes[i + 1] - labTimes[i]));
+        const C = Pf[i] * phi / Ppred[i + 1];
+        zs[i] = zf[i] + C * (zs[i + 1] - zPred[i + 1]);
+        Ps[i] = Pf[i] + C * C * (Ps[i + 1] - Ppred[i + 1]);
     }
 
-    return (timeH: number) => {
-        if (timeH <= points[0].timeH) return points[0].ratio;
-        if (timeH >= points[points.length - 1].timeH) return points[points.length - 1].ratio;
-        // binary search
-        let low = 0;
-        let high = points.length - 1;
-        while (high - low > 1) {
-            const mid = Math.floor((low + high) / 2);
-            if (points[mid].timeH === timeH) return points[mid].ratio;
-            if (points[mid].timeH < timeH) low = mid;
-            else high = mid;
+    const forward = historyMode === 'forward';
+    const factorFn = (t: number): number => {
+        let z: number;
+        if (forward) {
+            let j = -1;
+            for (let i = 0; i < n; i++) { if (labTimes[i] <= t) j = i; else break; }
+            z = j < 0 ? 0 : Math.exp(-theta * (t - labTimes[j])) * zf[j];
+        } else if (t <= labTimes[0]) {
+            z = Math.exp(-theta * (labTimes[0] - t)) * zs[0];
+        } else if (t >= labTimes[n - 1]) {
+            z = Math.exp(-theta * (t - labTimes[n - 1])) * zs[n - 1];
+        } else {
+            let j = 0;
+            for (let i = 0; i < n - 1; i++) { if (labTimes[i] <= t) j = i; else break; }
+            const D = labTimes[j + 1] - labTimes[j], s = t - labTimes[j];
+            const sh = Math.sinh(theta * D) || 1;        // OU bridge conditional mean
+            z = (Math.sinh(theta * (D - s)) * zs[j] + Math.sinh(theta * s) * zs[j + 1]) / sh;
         }
-        const p1 = points[low];
-        const p2 = points[high];
-        const t = (timeH - p1.timeH) / (p2.timeH - p1.timeH);
-        const r = p1.ratio + (p2.ratio - p1.ratio) * t;
-        return Math.max(0.01, Math.min(100, r));
+        return clampFactor(Math.exp(z));
+    };
+
+    const zUse = forward ? zf : zs;
+    let sse = 0;
+    for (let i = 0; i < n; i++) { const r = m[i] - zUse[i]; sse += r * r; }
+    const zRep = zUse[n - 1];
+    return {
+        factorFn,
+        scale: clampFactor(Math.exp(zRep)),
+        kMul: 1,
+        halfLifeDeltaPct: 0,
+        fitErrPct: logRmsePct(sse, n),
+    };
+}
+
+/**
+ * Fit the personal E2 calibration to lab results.
+ *
+ * `method` selects the estimator (off / EKF / OU-Kalman / Hybrid-MIPD — the
+ * learning models mirror those on hrt.transmtf.com). `historyMode` selects how
+ * the result is applied across time: 'forward' is causal (past is never
+ * rewritten); 'retrospective' uses all labs to re-estimate the whole history.
+ *
+ * Lab results measure E2 only, so this never affects CPA/T. The returned factorFn
+ * is the time-varying multiplier on the baseline E2 curve, so all downstream
+ * consumers keep working unchanged.
+ */
+export function computeCalibration(
+    baselineSim: SimulationResult | null,
+    events: DoseEvent[],
+    bodyWeightKG: number,
+    results: LabResult[],
+    method: CalibrationMethod = 'mipd',
+    historyMode: CalibrationHistoryMode = 'retrospective',
+): CalibrationResult {
+    const points = computeCalibrationPoints(baselineSim, results);
+    const identity: CalibrationResult = {
+        method, factorFn: () => 1, scale: 1, kMul: 1, halfLifeDeltaPct: 0, n: points.length, fitErrPct: null, points,
+    };
+    if (method === 'off' || !baselineSim || points.length === 0) return identity;
+
+    const n = points.length;
+    const logObs = points.map(p => Math.log(p.obs));
+    const labTimes = points.map(p => p.timeH);
+
+    // OU-Kalman models a time-varying amplitude correction; no clearance grid needed.
+    if (method === 'ou_kalman') {
+        const out = ouCalibrate(points, historyMode);
+        return { method, ...out, n, points };
+    }
+
+    // EKF and MIPD identify amplitude + clearance; both share the clearance field.
+    const allowClearance = n >= MIN_LABS_FOR_CLEARANCE;
+    const field = buildClearanceField(baselineSim, events, bodyWeightKG, labTimes);
+
+    let factorFn: (timeH: number) => number;
+    let aRep: number, kRep: number;
+
+    if (method === 'ekf') {
+        const fit = ekfFit(field, logObs, allowClearance);
+        aRep = fit.aFinal + 0.5 * fit.paaFinal;          // Jensen log→linear mean correction
+        kRep = fit.kFinal;
+        factorFn = historyMode === 'forward'
+            ? piecewiseFactor(field, labTimes, fit.snapshots.map(s => ({ a: s.a + 0.5 * s.paa, k: s.k })))
+            : constantFactor(field, aRep, kRep);
+    } else {
+        // Hybrid-MIPD
+        if (historyMode === 'forward') {
+            const params: { a: number; k: number }[] = [];
+            for (let i = 0; i < n; i++) {
+                const f = mipdFit(field, logObs, i + 1, i + 1 >= MIN_LABS_FOR_CLEARANCE);
+                params.push({ a: f.a, k: f.k });
+            }
+            factorFn = piecewiseFactor(field, labTimes, params);
+            aRep = params[n - 1].a; kRep = params[n - 1].k;
+        } else {
+            const f = mipdFit(field, logObs, n, allowClearance);
+            aRep = f.a; kRep = f.k;
+            factorFn = constantFactor(field, aRep, kRep);
+        }
+    }
+
+    const kMul = Math.exp(kRep);
+    return {
+        method,
+        factorFn,
+        scale: clampFactor(Math.exp(aRep)),
+        kMul,
+        halfLifeDeltaPct: (1 / kMul - 1) * 100, // half-life ∝ 1/clearance
+        n,
+        fitErrPct: logRmsePct(sseAt(field, logObs, aRep, kRep), n),
+        points,
     };
 }
 
@@ -387,6 +830,26 @@ let _activePKParams: PKCustomParams = { ...DEFAULT_PK_PARAMS };
 
 export function applyPKOverrides(params: PKCustomParams | null): void {
     _activePKParams = params ? { ...DEFAULT_PK_PARAMS, ...params } : { ...DEFAULT_PK_PARAMS };
+}
+
+/** Snapshot of the currently-active (merged) PK parameters. */
+export function getActivePKParams(): PKCustomParams {
+    return { ..._activePKParams };
+}
+
+/**
+ * Run a simulation with an explicit parameter set, restoring the previously
+ * active parameters afterwards. Used by the adaptive calibration to evaluate
+ * candidate personal-PK fits without disturbing the live simulation's params.
+ */
+export function runSimulationWithParams(events: DoseEvent[], bodyWeightKG: number, params: PKCustomParams): SimulationResult | null {
+    const saved = _activePKParams;
+    _activePKParams = { ...DEFAULT_PK_PARAMS, ...params };
+    try {
+        return runSimulation(events, bodyWeightKG);
+    } finally {
+        _activePKParams = saved;
+    }
 }
 
 // Internal helpers
@@ -650,6 +1113,23 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
     return doseMG * p.F * k1 / (k1 - p.k3) * (Math.exp(-p.k3 * tau) - Math.exp(-k1 * tau));
 }
 
+/**
+ * How long (hours after application) a patch stays on the skin delivering drug.
+ * Resolution order:
+ *   1. An explicit patchRemove event logged after the application wins (the user
+ *      removed it at a known time, possibly earlier/later than planned).
+ *   2. Otherwise the planned wear duration stored on the apply event is used, so
+ *      a single "apply" event self-completes.
+ *   3. Otherwise the patch is assumed to be worn indefinitely (legacy behaviour).
+ */
+function resolvePatchWearH(event: DoseEvent, allEvents: DoseEvent[]): number {
+    const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > event.timeH);
+    if (remove) return remove.timeH - event.timeH;
+    const planned = event.extras?.[ExtraKey.patchWearH];
+    if (typeof planned === 'number' && Number.isFinite(planned) && planned > 0) return planned;
+    return Number.MAX_VALUE;
+}
+
 // Model Solver
 class PrecomputedEventModel {
     private model: (t: number) => number;
@@ -703,8 +1183,7 @@ class PrecomputedEventModel {
                 };
                 break;
             case Route.patchApply:
-                const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > startTime);
-                const wearH = (remove?.timeH ?? Number.MAX_VALUE) - startTime;
+                const wearH = resolvePatchWearH(event, allEvents);
 
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
@@ -748,11 +1227,12 @@ class PrecomputedEventModel {
  * oral recording for a year).
  */
 function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEvent[], eventTimeH: number): number {
-    // For patches: account for wear duration + post-removal decay
+    // For patches: account for wear duration + post-removal decay. The apply
+    // event carries the time, so reconstruct a minimal event for the resolver.
     if (route === Route.patchApply) {
-        const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > eventTimeH);
-        if (!remove) return Infinity; // Patch never removed, always contributes
-        const wearH = remove.timeH - eventTimeH;
+        const applyEvent = allEvents.find(e => e.route === Route.patchApply && e.timeH === eventTimeH);
+        const wearH = applyEvent ? resolvePatchWearH(applyEvent, allEvents) : Number.MAX_VALUE;
+        if (wearH >= Number.MAX_VALUE) return Infinity; // Worn indefinitely, always contributes
         const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
         return wearH + decayH;
     }

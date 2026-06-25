@@ -145,7 +145,7 @@ const Home: React.FC<HomeProps> = ({
                         <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
                         <button
                             onClick={onNavigateToHistory}
-                            className="px-5 py-2 text-sm font-medium rounded-md border border-[var(--color-m3-primary)] text-[var(--color-m3-primary)] dark:border-[var(--color-m3-primary-light)] dark:text-[var(--color-m3-primary-light)] hover:bg-[var(--color-m3-primary-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                            className="btn-secondary"
                         >
                             {t('home.empty_cta')}
                         </button>

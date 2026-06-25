@@ -18,21 +18,23 @@ const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] animate-in fade-in p-6">
-            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm p-6 animate-m3-decelerate safe-area-pb">
-                <h3 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-2 text-center tracking-tight">{t('export.password_title')}</h3>
-                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-5 text-center leading-relaxed">{t('export.password_desc')}</p>
+        <div className="modal-overlay z-[60] p-4">
+            <div className="modal-shell">
+                <div className="modal-card">
+                    <h3 className="modal-title text-center">{t('export.password_title')}</h3>
+                    <p className="text-xs text-muted mb-4 text-center leading-relaxed">{t('export.password_desc')}</p>
 
-                <div className="bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] p-3.5 rounded-[var(--radius-md)] mb-5 flex items-center justify-between">
-                    <span className="font-mono text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-widest select-all">{password}</span>
-                    <button onClick={handleCopy} className="p-2.5 hover:bg-[var(--color-m3-surface-container-high)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] rounded-[var(--radius-full)] transition text-[var(--color-m3-on-surface-variant)] hover:text-[var(--color-m3-on-surface)]">
-                        {copied ? <span className="text-xs font-bold text-emerald-500">{t('qr.copied')}</span> : <Copy size={20} />}
+                    <div className="callout mb-4 flex items-center justify-between">
+                        <span className="font-mono text-sm font-medium tracking-widest select-all text-body">{password}</span>
+                        <button onClick={handleCopy} className="p-1.5 text-muted hover:text-body">
+                            {copied ? <span className="text-xs">{t('qr.copied')}</span> : <Copy size={18} />}
+                        </button>
+                    </div>
+
+                    <button onClick={onClose} className="btn-primary w-full">
+                        {t('btn.ok')}
                     </button>
                 </div>
-
-                <button onClick={onClose} className="w-full py-3 md:py-2 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md transition">
-                    {t('btn.ok')}
-                </button>
             </div>
         </div>
     );

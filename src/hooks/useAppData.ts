@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, createCalibrationInterpolator, decompressData, decryptData, encryptData, isTestosteroneEster, isT_LabUnit, PKCustomParams, DEFAULT_PK_PARAMS, applyPKOverrides } from '../../logic';
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, decompressData, decryptData, encryptData, isTestosteroneEster, isT_LabUnit, PKCustomParams, DEFAULT_PK_PARAMS, applyPKOverrides } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -46,6 +46,22 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         return saved ? parseFloat(saved) : 70.0;
     });
     const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
+    const [calibrationMethod, setCalibrationMethodState] = useState<CalibrationMethod>(() =>
+        // Hybrid-MIPD is the default; legacy 'average'/'adaptive' values are migrated.
+        normalizeCalibrationMethod(localStorage.getItem('hrt-cal-method'))
+    );
+    const setCalibrationMethod = (m: CalibrationMethod) => {
+        setCalibrationMethodState(m);
+        localStorage.setItem('hrt-cal-method', m);
+    };
+    const [calibrationHistoryMode, setCalibrationHistoryModeState] = useState<CalibrationHistoryMode>(() => {
+        const saved = localStorage.getItem('hrt-cal-history-mode');
+        return saved === 'forward' ? 'forward' : 'retrospective';
+    });
+    const setCalibrationHistoryMode = (m: CalibrationHistoryMode) => {
+        setCalibrationHistoryModeState(m);
+        localStorage.setItem('hrt-cal-history-mode', m);
+    };
     const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
     const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
     const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
@@ -145,9 +161,14 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     }, [events, weight]);
 
     // --- Derived State ---
-    const calibrationFn = useMemo(() => {
-        return createCalibrationInterpolator(simulation, labResults);
-    }, [simulation, labResults]);
+    // Self-learning calibration: fits a personal amplitude (+ clearance, for the
+    // EKF/MIPD models) to the user's labs via the selected estimator and history
+    // mode. Returns the scale function plus the learned parameters and per-lab
+    // comparison used by the Lab page UI.
+    const calibration = useMemo(() => {
+        return computeCalibration(simulation, events, weight, labResults, calibrationMethod, calibrationHistoryMode);
+    }, [simulation, events, weight, labResults, calibrationMethod, calibrationHistoryMode]);
+    const calibrationFn = calibration.factorFn;
 
     const currentLevel = useMemo(() => {
         if (!simulation) return 0;
@@ -599,6 +620,9 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         simulation,
         currentTime,
         calibrationFn,
+        calibrationMethod, setCalibrationMethod,
+        calibrationHistoryMode, setCalibrationHistoryMode,
+        calibration,
         currentLevel,
         currentCPA,
         currentT,

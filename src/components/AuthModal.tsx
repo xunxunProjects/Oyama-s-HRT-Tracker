@@ -104,43 +104,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] rounded-[var(--radius-xl)] shadow-[var(--shadow-m3-3)] w-full max-w-sm overflow-hidden animate-m3-decelerate">
-                <div className="flex items-center justify-between px-6 pt-6 pb-3">
-                    <h2 className="font-display text-base font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+        <div className="modal-overlay">
+            <div className="modal-shell">
+            <div className="modal-card overflow-hidden p-0">
+                <div className="flex items-center justify-between px-5 pt-5 pb-2">
+                    <h2 className="text-[15px] font-semibold text-body">
                         {isLogin ? 'Sign In' : 'Create Account'}
                     </h2>
-                    <button onClick={onClose} className="p-1.5 -mr-1 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] rounded-[var(--radius-full)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]">
+                    <button onClick={onClose} className="p-1 text-muted hover:text-body">
                         <X size={18} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="px-6 pb-6 pt-2 space-y-3">
+                <form onSubmit={handleSubmit} className="px-5 pb-5 pt-1 space-y-3">
                     {error && (
-                        <div className="p-2.5 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-[var(--radius-sm)] border border-red-200 dark:border-red-900/30">
+                        <div className="p-2.5 text-xs text-red-600 dark:text-red-400 callout border-red-200 dark:border-red-900/30">
                             {error}
                         </div>
                     )}
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">Username</label>
+                    <div className="space-y-1.5">
+                        <label className="text-sm text-muted">Username</label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]"
+                            className="input-base"
                             placeholder="Enter username"
                             required
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">Password</label>
+                    <div className="space-y-1.5">
+                        <label className="text-sm text-muted">Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]"
+                            className="input-base"
                             placeholder="Enter password"
                             required
                         />
@@ -148,18 +149,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                     {needsTOTP && isLogin && (
                         <div className="space-y-3">
-                            <div className="p-2.5 text-xs text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 rounded-[var(--radius-sm)] border border-blue-200 dark:border-blue-800/40 flex items-center gap-2">
+                            <div className="callout flex items-center gap-2 text-xs">
                                 <Shield size={14} className="shrink-0" />
                                 {t('auth.needs_2fa')}
                             </div>
                             {useBackupCode ? (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.backup_code_label')}</label>
+                                    <label className="text-sm text-muted">{t('auth.backup_code_label')}</label>
                                     <input
                                         type="text"
                                         value={backupCode}
                                         onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                                        className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-[0.1em] font-mono text-center"
+                                        className="input-base font-mono text-center tracking-widest"
                                         placeholder={t('auth.backup_code_placeholder')}
                                         autoComplete="off"
                                         autoFocus
@@ -173,8 +174,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                             ) : (
                                 <>
                                     {twoFAMethod !== 'passkey' && (
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.totp_code')}</label>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm text-muted">{t('auth.totp_code')}</label>
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
@@ -182,7 +183,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                                 maxLength={6}
                                                 value={totpCode}
                                                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                className="w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary-container)] focus:border-[var(--color-m3-primary)] dark:focus:border-pink-400 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tracking-[0.15em] font-mono text-center"
+                                                className="input-base font-mono text-center tracking-widest"
                                                 placeholder={t('auth.totp_placeholder')}
                                                 autoComplete="one-time-code"
                                                 autoFocus
@@ -197,16 +198,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                         <>
                                             {twoFAMethod !== 'passkey' && (
                                                 <div className="flex items-center gap-2">
-                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)]" />
-                                                    <span className="text-xs text-[var(--color-m3-on-surface-variant)]">or</span>
-                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)]" />
+                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                    <span className="text-xs text-muted">or</span>
+                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
                                                 </div>
                                             )}
                                             <button
                                                 type="button"
                                                 onClick={handlePasskeyLogin}
                                                 disabled={passkeyLoading}
-                                                className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)] rounded-[var(--radius-md)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)] transition text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                                className="btn-secondary w-full"
                                             >
                                                 {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
                                                 {t('auth.passkey_as_2fa')}
@@ -214,7 +215,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                         </>
                                     )}
                                     <button type="button" onClick={() => setUseBackupCode(true)}
-                                        className="w-full text-xs text-[var(--color-m3-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] text-center py-1">
+                                        className="w-full text-xs text-muted hover:text-body text-center py-1">
                                         {t('auth.use_backup_code')}
                                     </button>
                                 </>
@@ -226,24 +227,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 md:py-2 mt-1 text-base md:text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-xl md:rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="btn-primary w-full mt-1"
                     >
                         {loading && <Loader2 size={16} className="animate-spin" />}
                         {isLogin ? 'Sign In' : 'Sign Up'}
                     </button>
                     )}
 
-                    <div className="pt-2 text-center text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    <div className="pt-2 text-center text-sm text-muted">
                         {isLogin ? "Don't have an account? " : "Already have an account? "}
                         <button
                             type="button"
                             onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                            className="text-[var(--color-m3-primary)] dark:text-pink-400 font-bold hover:underline"
+                            className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] hover:underline"
                         >
                             {isLogin ? 'Sign up' : 'Sign in'}
                         </button>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     );

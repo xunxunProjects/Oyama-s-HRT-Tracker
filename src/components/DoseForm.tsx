@@ -155,8 +155,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const [rawDose, setRawDose] = useState("");
     const [e2Dose, setE2Dose] = useState("");
 
-    const [patchMode, setPatchMode] = useState<"dose" | "rate">("dose");
+    const [patchMode, setPatchMode] = useState<"dose" | "rate">("rate");
     const [patchRate, setPatchRate] = useState("");
+    const [patchWearDays, setPatchWearDays] = useState("");
 
     const [gelSite, setGelSite] = useState(0); // Index in GEL_SITE_ORDER
 
@@ -244,6 +245,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 setGelSite(0);
             }
 
+            const wearH = eventToEdit.extras[ExtraKey.patchWearH];
+            if (eventToEdit.route === Route.patchApply && typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0) {
+                setPatchWearDays((wearH / 24).toString());
+            } else {
+                setPatchWearDays("");
+            }
+
         } else {
             const now = new Date();
             const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
@@ -252,8 +260,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             setEster(isTransmasc ? Ester.TC : Ester.EV);
             setRawDose("");
             setE2Dose("");
-            setPatchMode("dose");
+            setPatchMode("rate");
             setPatchRate("");
+            setPatchWearDays("");
             setSlTier(2);
             setGelSite(0);
             setUseCustomTheta(false);
@@ -335,6 +344,12 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (route === Route.patchApply && patchMode === 'rate') {
             template.extras[ExtraKey.releaseRateUGPerDay] = parseFloat(patchRate) || 0;
         }
+        if (route === Route.patchApply) {
+            const wearDays = parseFloat(patchWearDays);
+            if (Number.isFinite(wearDays) && wearDays > 0) {
+                template.extras[ExtraKey.patchWearH] = wearDays * 24;
+            }
+        }
 
         onSaveTemplate(template);
         setShowSaveTemplateInput(false);
@@ -354,6 +369,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (template.route === Route.patchApply && template.extras[ExtraKey.releaseRateUGPerDay]) {
             setPatchMode('rate');
             setPatchRate(template.extras[ExtraKey.releaseRateUGPerDay].toString());
+        }
+        if (template.route === Route.patchApply) {
+            const wearH = template.extras[ExtraKey.patchWearH];
+            setPatchWearDays(typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0 ? (wearH / 24).toString() : "");
         }
 
         if (template.route === Route.sublingual) {
@@ -441,6 +460,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
         if (route === Route.gel) {
             extras[ExtraKey.gelSite] = gelSite;
+        }
+
+        if (route === Route.patchApply) {
+            const wearDays = parseFloat(patchWearDays);
+            if (Number.isFinite(wearDays) && wearDays > 0) {
+                extras[ExtraKey.patchWearH] = wearDays * 24;
+            }
         }
 
         const newEvent: DoseEvent = {
@@ -792,6 +818,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setPatchRate={setPatchRate}
                                     rawDose={rawDose}
                                     onRawChange={handleRawChange}
+                                    patchWearDays={patchWearDays}
+                                    setPatchWearDays={setPatchWearDays}
                                     route={route}
                                 />
                             )}
