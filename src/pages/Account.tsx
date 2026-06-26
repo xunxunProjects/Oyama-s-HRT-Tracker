@@ -4,9 +4,10 @@ import { SettingsListItem } from '../components/SettingsListItem';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
-import { parseCloudBackup, normalizeBackupPayload } from '../utils/cloudBackup';
+import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
+import PasswordInputModal from '../components/PasswordInputModal';
 
 interface LocalData {
     events: any[];
@@ -62,6 +63,10 @@ const Account: React.FC<AccountProps> = ({
     const [expandedData, setExpandedData] = useState<Record<string, any>>({});
     const [expandLoading, setExpandLoading] = useState<string | null>(null);
     const [mergeDiffId, setMergeDiffId] = useState<string | null>(null);
+    // Unlock prompt for end-to-end-encrypted backups when this device lacks the key.
+    const [unlockTarget, setUnlockTarget] = useState<{ rawData: any; backupId: string } | null>(null);
+    const [unlockError, setUnlockError] = useState<string | null>(null);
+    const [unlockLoading, setUnlockLoading] = useState(false);
     const { showDialog } = useDialog();
 
     // Inline auth form state
@@ -127,17 +132,47 @@ const Account: React.FC<AccountProps> = ({
         setExpandLoading(b.id);
         try {
             const backup = await cloudService.loadOne(token!, b.id);
-            const parsed = await parseCloudBackup(backup.data);
-            if (!parsed) {
+            const res = await readCloudBackup(backup.data);
+            if (res.status === 'ok') {
+                setExpandedData(prev => ({ ...prev, [b.id]: normalizeBackupPayload(res.data) }));
+            } else if (res.status === 'locked') {
+                // Encrypted but no key on this device — ask for the password.
+                setExpandLoading(null);
+                setUnlockError(null);
+                setUnlockTarget({ rawData: backup.data, backupId: b.id });
+            } else {
                 showDialog('alert', t('account.load_backup_failed'));
                 setExpandedId(null);
-                return;
             }
-            setExpandedData(prev => ({ ...prev, [b.id]: normalizeBackupPayload(parsed) }));
         } catch {
             showDialog('alert', t('account.load_backup_failed'));
             setExpandedId(null);
         } finally { setExpandLoading(null); }
+    };
+
+    const handleUnlockSubmit = async (password: string) => {
+        if (!unlockTarget || !user) return;
+        setUnlockLoading(true);
+        setUnlockError(null);
+        try {
+            const res = await unlockCloudBackup(unlockTarget.rawData, password, user.id);
+            if (res.status === 'ok') {
+                setExpandedData(prev => ({ ...prev, [unlockTarget.backupId]: normalizeBackupPayload(res.data) }));
+                setExpandedId(unlockTarget.backupId);
+                setUnlockTarget(null);
+            } else {
+                // Wrong password, or the backup was encrypted under an old password.
+                setUnlockError(t('account.unlock_failed'));
+            }
+        } finally {
+            setUnlockLoading(false);
+        }
+    };
+
+    const cancelUnlock = () => {
+        setUnlockTarget(null);
+        setUnlockError(null);
+        setExpandedId(null);
     };
 
     const computeDiff = (backupData: any) => {
@@ -698,6 +733,17 @@ const Account: React.FC<AccountProps> = ({
                     </form>
                 </div>
             )}
+
+            <PasswordInputModal
+                isOpen={!!unlockTarget}
+                onClose={cancelUnlock}
+                onConfirm={handleUnlockSubmit}
+                title={t('account.unlock_title')}
+                description={t('account.unlock_desc')}
+                error={unlockError}
+                loading={unlockLoading}
+                masked
+            />
         </div>
     );
 };

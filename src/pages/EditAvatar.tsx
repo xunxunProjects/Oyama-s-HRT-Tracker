@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop';
 import { ArrowLeft, ImagePlus, Check } from 'lucide-react';
 import getCroppedImg from '../utils/cropImage';
 import { useTranslation } from '../contexts/LanguageContext';
+import { apiFetch } from '../services/apiClient';
 
 const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void }> = ({ username, token, onBack }) => {
     const { t } = useTranslation();
@@ -49,7 +50,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
         try {
             const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
             if (!blob) throw new Error('Failed to crop image');
-            const res = await fetch('/api/user/avatar', {
+            const res = await apiFetch('/api/user/avatar', {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
                 body: blob,
