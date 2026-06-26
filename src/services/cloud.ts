@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface CloudBackup {
     id: string;
     user_id: string;
@@ -13,7 +15,7 @@ export interface BackupMeta {
 
 export const cloudService = {
     async save(token: string, data: any): Promise<void> {
-        const res = await fetch('/api/content', {
+        const res = await apiFetch('/api/content', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -25,7 +27,7 @@ export const cloudService = {
     },
 
     async load(token: string): Promise<CloudBackup[]> {
-        const res = await fetch('/api/content', {
+        const res = await apiFetch('/api/content', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to load');
@@ -33,7 +35,7 @@ export const cloudService = {
     },
 
     async listMeta(token: string): Promise<BackupMeta[]> {
-        const res = await fetch('/api/content?meta=1', {
+        const res = await apiFetch('/api/content?meta=1', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to list backups');
@@ -41,7 +43,7 @@ export const cloudService = {
     },
 
     async loadOne(token: string, backupId: string): Promise<CloudBackup> {
-        const res = await fetch(`/api/content/${encodeURIComponent(backupId)}`, {
+        const res = await apiFetch(`/api/content/${encodeURIComponent(backupId)}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to load backup');
@@ -49,7 +51,7 @@ export const cloudService = {
     },
 
     async deleteBackup(token: string, backupId: string): Promise<void> {
-        const res = await fetch(`/api/content/${encodeURIComponent(backupId)}`, {
+        const res = await apiFetch(`/api/content/${encodeURIComponent(backupId)}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });

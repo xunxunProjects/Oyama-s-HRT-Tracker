@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface AdminUser {
     id: string;
     username: string;
@@ -27,7 +29,7 @@ export const adminService = {
         params.set('page', String(page));
         params.set('limit', String(limit));
         const url = `/api/admin/users?${params.toString()}`;
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch users');
@@ -35,7 +37,7 @@ export const adminService = {
     },
 
     async deleteUser(token: string, userId: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -43,7 +45,7 @@ export const adminService = {
     },
 
     async getUserBackups(token: string, userId: string): Promise<BackupMeta[]> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch backups');
@@ -51,7 +53,7 @@ export const adminService = {
     },
 
     async deleteBackup(token: string, userId: string, backupId: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/backups/${encodeURIComponent(backupId)}`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups/${encodeURIComponent(backupId)}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -59,7 +61,7 @@ export const adminService = {
     },
 
     async purgeBackups(token: string, userId: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -67,7 +69,7 @@ export const adminService = {
     },
 
     async changeUserPassword(token: string, userId: string, newPassword: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -79,7 +81,7 @@ export const adminService = {
     },
 
     async changeUsername(token: string, userId: string, username: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/username`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/username`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -91,7 +93,7 @@ export const adminService = {
     },
 
     async resetAvatar(token: string, userId: string): Promise<void> {
-        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/avatar`, {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/avatar`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });

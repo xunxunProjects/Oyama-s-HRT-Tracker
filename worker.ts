@@ -510,6 +510,16 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // Session-level 401s (missing/expired/revoked token) are tagged with a
+    // header so the client can tell them apart from business-logic 401s such
+    // as an incorrect password. The client only force-signs-out on tagged
+    // responses, never on a wrong-password attempt.
+    const sessionInvalid = (message: string) =>
+      withSecurityHeaders(new Response(message, {
+        status: 401,
+        headers: { ...corsHeaders, 'X-Session-Invalid': '1', 'Access-Control-Expose-Headers': 'X-Session-Invalid' },
+      }));
+
     try {
       // Validate JWT secret first — if misconfigured return 503 not 500
       let jwtSecret: string;
@@ -842,7 +852,7 @@ export default {
 
       // -- Protected API Routes --
       const authHeader = request.headers.get('Authorization');
-      if (!authHeader?.startsWith('Bearer ')) return withSecurityHeaders(new Response('Unauthorized', { status: 401, headers: corsHeaders }));
+      if (!authHeader?.startsWith('Bearer ')) return sessionInvalid('Unauthorized');
       const token = authHeader.split(' ')[1];
       const secret = new TextEncoder().encode(jwtSecret);
 
@@ -856,7 +866,7 @@ export default {
           await ensureSessions(env);
           const session = await env.DB.prepare('SELECT last_used_at FROM sessions WHERE id = ? AND user_id = ?').bind(sessionId, userId).first() as any;
           if (!session) {
-            return withSecurityHeaders(new Response('Session expired or revoked', { status: 401, headers: corsHeaders }));
+            return sessionInvalid('Session expired or revoked');
           }
           const nowTs = Math.floor(Date.now() / 1000);
           const lastUsed = session.last_used_at ?? nowTs;
@@ -865,7 +875,7 @@ export default {
           // shrinks the window a stolen token stays usable on a dormant account.
           if (nowTs - lastUsed > SESSION_IDLE_TIMEOUT_SECONDS) {
             ctx.waitUntil(env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run());
-            return withSecurityHeaders(new Response('Session expired due to inactivity', { status: 401, headers: corsHeaders }));
+            return sessionInvalid('Session expired due to inactivity');
           }
           // Lazy last_used_at update (only if >5 min stale)
           if (nowTs - lastUsed > 300) {
@@ -1325,7 +1335,7 @@ export default {
 
       } catch (e: any) {
         if (e.name === 'JWTExpired' || e.name === 'JWSSignatureVerificationFailed' || e.name === 'JWTInvalid' || e.name === 'JWSInvalid' || e.message?.includes('token')) {
-          return withSecurityHeaders(new Response('Invalid token', { status: 401, headers: corsHeaders }));
+          return sessionInvalid('Invalid token');
         }
         throw e;
       }

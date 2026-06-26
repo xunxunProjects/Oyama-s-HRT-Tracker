@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface User {
     id: string;
     username: string;
@@ -89,7 +91,7 @@ export const authService = {
         const body: { username: string; password: string; totp_code?: string; backup_code?: string } = { username, password };
         if (totpCode) body.totp_code = totpCode;
         if (backupCode) body.backup_code = backupCode;
-        const res = await fetch('/api/login', {
+        const res = await apiFetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -110,7 +112,7 @@ export const authService = {
     },
 
     async register(username: string, password: string): Promise<AuthResponse> {
-        const res = await fetch('/api/register', {
+        const res = await apiFetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -120,7 +122,7 @@ export const authService = {
     },
 
     async updateProfile(token: string, username: string): Promise<{ username: string }> {
-        const res = await fetch('/api/user/profile', {
+        const res = await apiFetch('/api/user/profile', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -133,7 +135,7 @@ export const authService = {
     },
 
     async changePassword(token: string, current: string, newPass: string): Promise<void> {
-        const res = await fetch('/api/user/password', {
+        const res = await apiFetch('/api/user/password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -148,7 +150,7 @@ export const authService = {
         const body: { password: string; code?: string; backup_code?: string } = { password };
         if (code) body.code = code;
         if (backupCode) body.backup_code = backupCode;
-        const res = await fetch('/api/user/me', {
+        const res = await apiFetch('/api/user/me', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -160,7 +162,7 @@ export const authService = {
     },
 
     async listSessions(token: string): Promise<Session[]> {
-        const res = await fetch('/api/user/sessions', {
+        const res = await apiFetch('/api/user/sessions', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error(await res.text());
@@ -168,7 +170,7 @@ export const authService = {
     },
 
     async terminateSession(token: string, sessionId: string): Promise<void> {
-        const res = await fetch(`/api/user/sessions/${sessionId}`, {
+        const res = await apiFetch(`/api/user/sessions/${sessionId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -176,7 +178,7 @@ export const authService = {
     },
 
     async terminateOtherSessions(token: string): Promise<void> {
-        const res = await fetch('/api/user/sessions', {
+        const res = await apiFetch('/api/user/sessions', {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -184,7 +186,7 @@ export const authService = {
     },
 
     async get2FAStatus(token: string): Promise<TwoFAStatus> {
-        const res = await fetch('/api/user/2fa/status', {
+        const res = await apiFetch('/api/user/2fa/status', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error(await res.text());
@@ -192,7 +194,7 @@ export const authService = {
     },
 
     async setup2FA(token: string): Promise<TwoFASetup> {
-        const res = await fetch('/api/user/2fa/setup', {
+        const res = await apiFetch('/api/user/2fa/setup', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -201,7 +203,7 @@ export const authService = {
     },
 
     async enable2FA(token: string, secret: string, code: string): Promise<{ backupCodes: string[] }> {
-        const res = await fetch('/api/user/2fa/enable', {
+        const res = await apiFetch('/api/user/2fa/enable', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -214,7 +216,7 @@ export const authService = {
     },
 
     async generateBackupCodes(token: string): Promise<string[]> {
-        const res = await fetch('/api/user/2fa/backup-codes/generate', {
+        const res = await apiFetch('/api/user/2fa/backup-codes/generate', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -224,7 +226,7 @@ export const authService = {
     },
 
     async getBackupCodesStatus(token: string): Promise<{ remaining: number }> {
-        const res = await fetch('/api/user/2fa/backup-codes', {
+        const res = await apiFetch('/api/user/2fa/backup-codes', {
             headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(await res.text());
@@ -232,7 +234,7 @@ export const authService = {
     },
 
     async disable2FA(token: string, password: string, code: string): Promise<void> {
-        const res = await fetch('/api/user/2fa', {
+        const res = await apiFetch('/api/user/2fa', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -244,7 +246,7 @@ export const authService = {
     },
 
     async listPasskeys(token: string): Promise<Passkey[]> {
-        const res = await fetch('/api/user/passkeys', {
+        const res = await apiFetch('/api/user/passkeys', {
             headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(await res.text());
@@ -252,7 +254,7 @@ export const authService = {
     },
 
     async registerPasskeyOptions(token: string): Promise<any> {
-        const res = await fetch('/api/user/passkey/register-options', {
+        const res = await apiFetch('/api/user/passkey/register-options', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -261,7 +263,7 @@ export const authService = {
     },
 
     async registerPasskey(token: string, challengeToken: string, credential: object, deviceName?: string): Promise<{ backupCodes?: string[] }> {
-        const res = await fetch('/api/user/passkey/register', {
+        const res = await apiFetch('/api/user/passkey/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ challengeToken, credential, deviceName }),
@@ -271,7 +273,7 @@ export const authService = {
     },
 
     async deletePasskey(token: string, id: string): Promise<void> {
-        const res = await fetch(`/api/user/passkeys/${id}`, {
+        const res = await apiFetch(`/api/user/passkeys/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -279,7 +281,7 @@ export const authService = {
     },
 
     async passkeyAuthOptions(username?: string): Promise<{ challengeToken: string; challenge: string; credentialIds: string[] }> {
-        const res = await fetch('/api/auth/passkey-options', {
+        const res = await apiFetch('/api/auth/passkey-options', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(username ? { username } : {}),
@@ -289,7 +291,7 @@ export const authService = {
     },
 
     async passkeyAuthVerify(challengeToken: string, credential: object): Promise<AuthResponse> {
-        const res = await fetch('/api/auth/passkey-verify', {
+        const res = await apiFetch('/api/auth/passkey-verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ challengeToken, credential }),
