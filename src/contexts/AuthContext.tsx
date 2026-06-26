@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService, User, AuthResponse } from '../services/auth';
 import { deriveCloudKey } from '../../logic';
+import { UNAUTHORIZED_EVENT } from '../services/apiClient';
+import { useDialog } from './DialogContext';
+import { useTranslation } from './LanguageContext';
 
 // Derive and cache the cloud-backup encryption key for this device. The key
 // is derived from the password (which only the client ever sees) so the
@@ -40,6 +43,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { showDialog } = useDialog();
+    const { t } = useTranslation();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
     const [isLoading, setIsLoading] = useState(true);
@@ -119,6 +124,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('needs_setup_2fa');
         localStorage.removeItem('enc_key');
     };
+
+    // When the server reports the session is no longer valid, drop the stale
+    // session and tell the user to sign in again — rather than leaving them on
+    // a "logged-in" screen where every cloud request silently 401s. A ref keeps
+    // the listener stable while always running the latest closure (current
+    // language, latest logout).
+    const onUnauthorizedRef = useRef<() => void>(() => {});
+    onUnauthorizedRef.current = () => {
+        // Already signed out — ignore so several concurrent 401s don't stack
+        // multiple prompts.
+        if (!localStorage.getItem('auth_token')) return;
+        logout();
+        showDialog('alert', t('auth.session_expired'));
+    };
+    useEffect(() => {
+        const handler = () => onUnauthorizedRef.current();
+        window.addEventListener(UNAUTHORIZED_EVENT, handler);
+        return () => window.removeEventListener(UNAUTHORIZED_EVENT, handler);
+    }, []);
 
     const updateProfile = async (username: string) => {
         if (!token) return;
