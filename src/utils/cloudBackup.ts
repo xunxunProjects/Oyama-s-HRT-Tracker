@@ -29,11 +29,24 @@ export function normalizeBackupPayload(parsed: any): BackupSummary {
     }
 
     if (parsed.modes && typeof parsed.modes === 'object') {
+        const modesBlock = parsed.modes as Record<string, any>;
+        const preferredMode = localStorage.getItem('hrt-mode') === 'transmasc' ? 'transmasc' : 'transfem';
+        const preferredBlock = modesBlock[preferredMode];
+
+        if (preferredBlock && typeof preferredBlock === 'object') {
+            return {
+                events: Array.isArray(preferredBlock.events) ? preferredBlock.events : [],
+                labResults: Array.isArray(preferredBlock.labResults) ? preferredBlock.labResults : [],
+                doseTemplates: Array.isArray(preferredBlock.doseTemplates) ? preferredBlock.doseTemplates : [],
+                weight: typeof parsed.weight === 'number' ? parsed.weight : undefined,
+            };
+        }
+
         const events: any[] = [];
         const labResults: any[] = [];
         const doseTemplates: any[] = [];
         for (const mode of ['transfem', 'transmasc'] as const) {
-            const block = parsed.modes[mode];
+            const block = modesBlock[mode];
             if (!block || typeof block !== 'object') continue;
             if (Array.isArray(block.events)) events.push(...block.events);
             if (Array.isArray(block.labResults)) labResults.push(...block.labResults);
