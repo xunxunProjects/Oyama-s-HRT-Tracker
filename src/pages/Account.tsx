@@ -4,6 +4,7 @@ import { SettingsListItem } from '../components/SettingsListItem';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
+import { parseCloudBackup, normalizeBackupPayload } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
 
@@ -126,8 +127,13 @@ const Account: React.FC<AccountProps> = ({
         setExpandLoading(b.id);
         try {
             const backup = await cloudService.loadOne(token!, b.id);
-            const parsed = JSON.parse(backup.data);
-            setExpandedData(prev => ({ ...prev, [b.id]: parsed }));
+            const parsed = await parseCloudBackup(backup.data);
+            if (!parsed) {
+                showDialog('alert', t('account.load_backup_failed'));
+                setExpandedId(null);
+                return;
+            }
+            setExpandedData(prev => ({ ...prev, [b.id]: normalizeBackupPayload(parsed) }));
         } catch {
             showDialog('alert', t('account.load_backup_failed'));
             setExpandedId(null);

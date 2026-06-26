@@ -5,7 +5,8 @@ import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION } from './constants';
-import { DoseEvent, LabResult, decompressData, encryptData, decryptData, encryptCloudPayload, decryptCloudPayload, isCloudEncrypted } from '../logic';
+import { DoseEvent, LabResult, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
+import { parseCloudBackup } from './utils/cloudBackup';
 import { DoseTemplate } from './components/DoseFormModal';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
@@ -61,18 +62,6 @@ async function prepareCloudPayload(exportData: any): Promise<any> {
     const key = localStorage.getItem('enc_key');
     if (!key) return exportData;
     return await encryptCloudPayload(JSON.stringify(exportData), key);
-}
-
-// Parse a stored backup, transparently decrypting cloud-encrypted ones.
-// Returns null if the backup is encrypted but cannot be decrypted here.
-async function parseCloudBackup(rawData: string): Promise<any | null> {
-    const parsed = JSON.parse(rawData);
-    if (!isCloudEncrypted(parsed)) return parsed;
-    const key = localStorage.getItem('enc_key');
-    if (!key) return null;
-    const plain = await decryptCloudPayload(parsed, key);
-    if (plain === null) return null;
-    return JSON.parse(plain);
 }
 
 const AppContent = () => {
