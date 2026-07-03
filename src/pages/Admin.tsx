@@ -3,6 +3,7 @@ import { Trash2, Loader2, AlertCircle, RefreshCw, Server, Search, KeyRound, PenL
 import { useAuth } from '../contexts/AuthContext';
 import { adminService, AdminUser, BackupMeta, PaginatedUsers } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
+import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 
 interface AdminProps {
     t: (key: string) => string;
@@ -10,6 +11,10 @@ interface AdminProps {
 
 type Tab = 'users' | 'system';
 type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser };
+
+const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const iconBtn = `p-2 rounded-md ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
+const dangerIconBtn = `p-2 rounded-md ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return bytes + ' B';
@@ -160,41 +165,36 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
         if (!panel) return null;
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setPanel(null)}>
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
-                                <ChevronLeft size={18} className="text-zinc-500" />
-                            </button>
+            <div className="modal-overlay" onClick={() => setPanel(null)}>
+                <div className="modal-shell-wide" onClick={e => e.stopPropagation()}>
+                    <div className="modal-card">
+                        <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{panel.user.username}</h3>
-                                <p className="text-xs text-zinc-400 font-mono">{panel.type === 'password' ? 'Change Password' : panel.type === 'edit' ? 'Edit Profile' : 'Cloud Backups'}</p>
+                                <h3 className={`text-[0.9375rem] font-semibold ${settingsOn}`}>{panel.user.username}</h3>
+                                <p className={`text-xs ${settingsMuted} mt-0.5`}>{panel.type === 'password' ? 'Change Password' : panel.type === 'edit' ? 'Edit Profile' : 'Cloud Backups'}</p>
                             </div>
+                            <button onClick={() => setPanel(null)} className={`${iconBtn} -mr-1 -mt-1`} aria-label="Close">
+                                <X size={16} strokeWidth={1.5} />
+                            </button>
                         </div>
-                        <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
-                            <X size={18} className="text-zinc-400" />
-                        </button>
-                    </div>
 
-                    <div className="p-6">
                         {panel.type === 'password' && (
                             <div className="space-y-4">
-                                <p className="text-sm text-zinc-500">Set a new password for <strong className="text-zinc-900 dark:text-zinc-100">{panel.user.username}</strong>.</p>
+                                <p className={`text-sm ${settingsMuted}`}>Set a new password for <span className={`font-medium ${settingsOn}`}>{panel.user.username}</span>.</p>
                                 <input
                                     type="password"
                                     value={newPassword}
                                     onChange={e => setNewPassword(e.target.value)}
                                     placeholder="New password (min 8 chars)"
-                                    className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 transition-shadow"
+                                    className="input-base"
                                     autoFocus
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setPanel(null)} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">Cancel</button>
+                                    <button onClick={() => setPanel(null)} className="btn-secondary">Cancel</button>
                                     <button
                                         onClick={submitPassword}
                                         disabled={newPassword.length < 8}
-                                        className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30"
+                                        className="btn-primary"
                                     >
                                         Update Password
                                     </button>
@@ -203,34 +203,34 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                         )}
 
                         {panel.type === 'edit' && (
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Username</label>
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className={`block text-xs font-medium ${settingsMuted}`}>Username</label>
                                     <input
                                         type="text"
                                         value={newUsername}
                                         onChange={e => setNewUsername(e.target.value)}
                                         placeholder="New username"
-                                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 transition-shadow"
+                                        className="input-base"
                                         autoFocus
                                     />
                                     <div className="flex justify-end">
                                         <button
                                             onClick={submitUsername}
                                             disabled={!newUsername.trim() || newUsername.trim() === panel.user.username}
-                                            className="px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-30"
+                                            className="btn-primary"
                                         >
                                             Save Username
                                         </button>
                                     </div>
                                 </div>
-                                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-2">
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Avatar</label>
+                                <div className={`border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] pt-4 space-y-2`}>
+                                    <label className={`block text-xs font-medium ${settingsMuted}`}>Avatar</label>
                                     <button
                                         onClick={() => handleResetAvatar(panel.user)}
-                                        className="flex items-center gap-2 px-4 py-2.5 border border-red-200 dark:border-red-900/30 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/10"
+                                        className="btn-secondary text-red-500 dark:text-red-400"
                                     >
-                                        <ImageOff size={16} /> Reset Avatar
+                                        <ImageOff size={15} strokeWidth={1.5} /> Reset Avatar
                                     </button>
                                 </div>
                             </div>
@@ -238,38 +238,36 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
 
                         {panel.type === 'backups' && (
                             backupsLoading ? (
-                                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
+                                <div className="flex justify-center py-12"><Loader2 className={`animate-spin ${settingsMuted}`} size={20} /></div>
                             ) : backups.length === 0 ? (
-                                <p className="text-sm text-zinc-400 text-center py-8">No backups found.</p>
+                                <p className={`text-sm ${settingsMuted} text-center py-8`}>No backups found.</p>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-500">{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
+                                        <span className={`text-xs ${settingsMuted}`}>{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 dark:border-red-900/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors"
                                         >
-                                            <Trash size={14} /> Purge All
+                                            <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>
                                     </div>
-                                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-                                        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                            {backups.map(b => (
-                                                <div key={b.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                                                    <div>
-                                                        <p className="text-sm text-zinc-900 dark:text-zinc-100">{new Date(b.created_at * 1000).toLocaleString()}</p>
-                                                        <p className="text-xs text-zinc-400 mt-0.5">{formatBytes(b.data_size)} · <span className="font-mono">{b.id.slice(0, 8)}</span></p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleDeleteBackup(b.id)}
-                                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                                                        title="Delete backup"
-                                                    >
-                                                        <Trash2 size={15} />
-                                                    </button>
+                                    <div>
+                                        {backups.map(b => (
+                                            <div key={b.id} className={`flex items-center justify-between py-3 ${divider}`}>
+                                                <div>
+                                                    <p className={`text-sm ${settingsOn}`}>{new Date(b.created_at * 1000).toLocaleString()}</p>
+                                                    <p className={`text-xs ${settingsMuted} mt-0.5`}>{formatBytes(b.data_size)} · <span className="font-mono">{b.id.slice(0, 8)}</span></p>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <button
+                                                    onClick={() => handleDeleteBackup(b.id)}
+                                                    className={dangerIconBtn}
+                                                    title="Delete backup"
+                                                >
+                                                    <Trash2 size={15} strokeWidth={1.5} />
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )
@@ -281,76 +279,72 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50 dark:bg-zinc-950/50 pt-8 pb-20 px-6 md:px-12 w-full">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight mb-12">Dashboard</h1>
+        <div className="pt-8 pb-24 px-6 md:px-8 w-full max-w-2xl">
+            <h1 className={`text-xl font-semibold ${settingsOn}`}>Dashboard</h1>
 
             {/* Tabs */}
-            <div className="flex items-center gap-8 border-b border-zinc-200 dark:border-zinc-800 mb-12">
+            <div className={`flex items-center gap-6 ${divider} mt-6 mb-8`}>
                 <button
                     onClick={() => setActiveTab('users')}
-                    className={`pb-4 text-sm font-semibold relative ${activeTab === 'users' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                    className={`pb-3 text-sm font-medium -mb-px border-b-2 transition-colors ${activeTab === 'users' ? `${settingsOn} border-[var(--color-m3-primary)]` : `${settingsMuted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}`}
                 >
                     Users
-                    {activeTab === 'users' && <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-zinc-900 dark:bg-zinc-50 rounded-full" />}
                 </button>
                 <button
                     onClick={() => setActiveTab('system')}
-                    className={`pb-4 text-sm font-semibold relative ${activeTab === 'system' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                    className={`pb-3 text-sm font-medium -mb-px border-b-2 transition-colors ${activeTab === 'system' ? `${settingsOn} border-[var(--color-m3-primary)]` : `${settingsMuted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}`}
                 >
                     System
-                    {activeTab === 'system' && <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-zinc-900 dark:bg-zinc-50 rounded-full" />}
                 </button>
             </div>
 
             {activeTab === 'users' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Manage Users</h2>
-                            <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                {totalUsers}
-                            </span>
+                <div className="space-y-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-baseline gap-2">
+                            <h2 className={`text-sm font-medium ${settingsOn}`}>Manage Users</h2>
+                            <span className={`text-xs ${settingsMuted}`}>{totalUsers}</span>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <div className="relative flex-1 sm:flex-initial">
-                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                                <Search size={15} strokeWidth={1.5} className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`} />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     placeholder="Search users..."
-                                    className="w-full sm:w-56 pl-9 pr-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 transition-shadow"
+                                    className="w-full sm:w-56 py-2.5 pr-3 pl-9 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
                                 />
                             </div>
                             <button
                                 onClick={fetchUsers}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 shrink-0"
+                                className={`${iconBtn} shrink-0`}
                                 title="Refresh"
                             >
-                                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                                <RefreshCw size={15} strokeWidth={1.5} className={loading ? 'animate-spin' : ''} />
                             </button>
                         </div>
                     </div>
 
                     {loading && users.length === 0 ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="animate-spin text-zinc-300" size={32} />
+                        <div className="flex justify-center py-16">
+                            <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
                         </div>
                     ) : error ? (
-                        <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm flex items-center gap-2">
-                            <AlertCircle size={18} /> {error}
-                        </div>
+                        <p className="flex items-center gap-2 text-sm text-red-500 dark:text-red-400 py-4">
+                            <AlertCircle size={16} strokeWidth={1.5} /> {error}
+                        </p>
                     ) : users.length === 0 ? (
-                        <p className="text-sm text-zinc-400 text-center py-12">No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.</p>
+                        <p className={`text-sm ${settingsMuted} text-center py-14`}>No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.</p>
                     ) : (
-                        <div className="grid gap-3">
+                        <div>
                             {users.map(u => (
                                 <div
                                     key={u.id}
-                                    className="group bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-sm flex items-center justify-between"
+                                    className={`flex items-center justify-between gap-3 py-4 ${divider}`}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-700">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-9 h-9 rounded-full bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-center overflow-hidden shrink-0">
                                             <img
                                                 src={`/api/user/avatar/${u.username}`}
                                                 alt={u.username}
@@ -360,17 +354,17 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                                                 }}
                                             />
-                                            <div className="hidden w-full h-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 font-semibold text-sm bg-zinc-100 dark:bg-zinc-800">
+                                            <div className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}>
                                                 {u.username.substring(0, 2).toUpperCase()}
                                             </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{u.username}</h3>
+                                        <div className="min-w-0">
+                                            <h3 className={`text-sm font-medium ${settingsOn} truncate`}>{u.username}</h3>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <p className="text-xs text-zinc-400 font-mono">{u.id.slice(0, 8)}</p>
+                                                <p className={`text-xs ${settingsMuted} font-mono`}>{u.id.slice(0, 8)}</p>
                                                 {(u.backup_count ?? 0) > 0 && (
-                                                    <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
-                                                        <Cloud size={11} />
+                                                    <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
+                                                        <Cloud size={11} strokeWidth={1.5} />
                                                         {u.backup_count} · {formatBytes(u.total_backup_size || 0)} · {timeAgo(u.last_backup_at)}
                                                     </span>
                                                 )}
@@ -378,18 +372,18 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-1">
-                                        <button onClick={() => openBackupsPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Cloud Backups">
-                                            <Cloud size={16} />
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                        <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud Backups">
+                                            <Cloud size={15} strokeWidth={1.5} />
                                         </button>
-                                        <button onClick={() => openPasswordPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Change Password">
-                                            <KeyRound size={16} />
+                                        <button onClick={() => openPasswordPanel(u)} className={iconBtn} title="Change Password">
+                                            <KeyRound size={15} strokeWidth={1.5} />
                                         </button>
-                                        <button onClick={() => openEditPanel(u)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg" title="Edit Profile">
-                                            <PenLine size={16} />
+                                        <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit Profile">
+                                            <PenLine size={15} strokeWidth={1.5} />
                                         </button>
-                                        <button onClick={() => handleDeleteUser(u)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete User">
-                                            <Trash2 size={16} />
+                                        <button onClick={() => handleDeleteUser(u)} className={dangerIconBtn} title="Delete User">
+                                            <Trash2 size={15} strokeWidth={1.5} />
                                         </button>
                                     </div>
                                 </div>
@@ -399,13 +393,13 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 pt-4">
+                        <div className="flex items-center justify-center gap-1 pt-2">
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page <= 1}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 disabled:opacity-30 disabled:pointer-events-none"
+                                className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
                             >
-                                <ChevronLeft size={16} />
+                                <ChevronLeft size={15} strokeWidth={1.5} />
                             </button>
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                                 .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
@@ -416,15 +410,15 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                                 }, [])
                                 .map((item, i) =>
                                     item === '...' ? (
-                                        <span key={`dot-${i}`} className="px-1 text-zinc-400 text-sm">...</span>
+                                        <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>...</span>
                                     ) : (
                                         <button
                                             key={item}
                                             onClick={() => setPage(item as number)}
-                                            className={`min-w-[36px] h-9 rounded-lg text-sm font-semibold ${
+                                            className={`min-w-[32px] h-8 rounded-md text-sm transition-colors ${
                                                 page === item
-                                                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
-                                                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                                    ? `font-medium ${settingsOn} bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`
+                                                    : `${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
                                             }`}
                                         >
                                             {item}
@@ -434,9 +428,9 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages}
-                                className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800/50 disabled:opacity-30 disabled:pointer-events-none"
+                                className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
                             >
-                                <ChevronRight size={16} />
+                                <ChevronRight size={15} strokeWidth={1.5} />
                             </button>
                         </div>
                     )}
@@ -444,25 +438,19 @@ const Admin: React.FC<AdminProps> = ({ t }) => {
             )}
 
             {activeTab === 'system' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">System Status</h2>
-                    </div>
-                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400">
-                                <Server size={24} />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Operational</h3>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-md">
-                                    All systems are running smoothly. The backend is connected to the
-                                    <span className="font-mono text-xs mx-1 px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300">
-                                        {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
-                                    </span>
-                                    environment.
-                                </p>
-                            </div>
+                <div className="space-y-5">
+                    <h2 className={`text-sm font-medium ${settingsOn}`}>System Status</h2>
+                    <div className={`flex items-start gap-3 py-4 ${divider}`}>
+                        <Server size={18} strokeWidth={1.5} className={`${settingsMuted} shrink-0 mt-0.5`} />
+                        <div>
+                            <h3 className={`text-sm font-medium ${settingsOn}`}>Operational</h3>
+                            <p className={`text-sm ${settingsMuted} mt-1 leading-relaxed max-w-md`}>
+                                All systems are running smoothly. The backend is connected to the
+                                <span className="font-mono text-xs mx-1 px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                                    {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
+                                </span>
+                                environment.
+                            </p>
                         </div>
                     </div>
                 </div>

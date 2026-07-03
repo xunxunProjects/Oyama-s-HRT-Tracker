@@ -232,11 +232,20 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const addEvent = (e: DoseEvent) => {
         setEvents(prev => [...prev, e]);
     };
+    const addEvents = (list: DoseEvent[]) => {
+        if (!list.length) return;
+        setEvents(prev => [...prev, ...list]);
+    };
     const updateEvent = (e: DoseEvent) => {
         setEvents(prev => prev.map(p => p.id === e.id ? e : p));
     };
     const deleteEvent = (id: string) => {
         setEvents(prev => prev.filter(e => e.id !== id));
+    };
+    const deleteEvents = (ids: string[]) => {
+        if (!ids.length) return;
+        const idSet = new Set(ids);
+        setEvents(prev => prev.filter(e => !idSet.has(e.id)));
     };
     const clearAllEvents = () => {
         if (!events.length) return;
@@ -628,7 +637,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         currentT,
         currentStatus,
         groupedEvents,
-        addEvent, updateEvent, deleteEvent, clearAllEvents,
+        addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,

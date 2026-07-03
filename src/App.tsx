@@ -87,7 +87,7 @@ const AppContent = () => {
         currentT,
         currentStatus,
         groupedEvents,
-        addEvent, updateEvent, deleteEvent, clearAllEvents,
+        addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
@@ -491,6 +491,8 @@ const AppContent = () => {
                                 else addEvent(e);
                             }}
                             onDeleteEvent={deleteEvent}
+                            onAddEvents={addEvents}
+                            onDeleteEvents={deleteEvents}
                             onSaveTemplate={addTemplate}
                             onDeleteTemplate={deleteTemplate}
                             quickDoses={quickDoses}

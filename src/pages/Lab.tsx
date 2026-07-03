@@ -65,7 +65,7 @@ const Lab: React.FC<LabProps> = ({
     return (
         <div className="relative pb-32">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-4 flex items-center justify-between">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-4 flex items-center justify-between max-w-2xl">
                 <h1 className={`text-xl font-semibold ${on}`}>
                     {t('lab.title')}
                 </h1>
@@ -81,7 +81,7 @@ const Lab: React.FC<LabProps> = ({
             {/* Expandable add form */}
             <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="px-6 md:px-8 mb-6">
+                    <div className="px-6 md:px-8 mb-6 max-w-2xl">
                         <LabResultForm
                             resultToEdit={null}
                             onSave={(res) => {
