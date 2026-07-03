@@ -35,14 +35,14 @@ export const getRouteIcon = (route: Route) => {
 
 export const getEsterIcon = (ester: Ester) => {
     switch (ester) {
-        case Ester.E2: return <Atom className="w-5 h-5 text-zinc-400" />;
-        case Ester.CPA: return <Shield className="w-5 h-5 text-zinc-400" />;
-        case Ester.EV: return <Shell className="w-5 h-5 text-zinc-400" />;
-        case Ester.EB: return <Hexagon className="w-5 h-5 text-zinc-400" />;
-        case Ester.EC: return <Orbit className="w-5 h-5 text-zinc-400" />;
-        case Ester.EN: return <Dna className="w-5 h-5 text-zinc-400" />;
-        case Ester.EU: return <FlaskConical className="w-5 h-5 text-zinc-400" />;
-        default: return <FlaskConical className="w-5 h-5 text-zinc-400" />;
+        case Ester.E2: return <Atom className={iconMuted} />;
+        case Ester.CPA: return <Shield className={iconMuted} />;
+        case Ester.EV: return <Shell className={iconMuted} />;
+        case Ester.EB: return <Hexagon className={iconMuted} />;
+        case Ester.EC: return <Orbit className={iconMuted} />;
+        case Ester.EN: return <Dna className={iconMuted} />;
+        case Ester.EU: return <FlaskConical className={iconMuted} />;
+        default: return <FlaskConical className={iconMuted} />;
     }
 };
 

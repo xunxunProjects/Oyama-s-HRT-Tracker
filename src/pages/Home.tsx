@@ -50,7 +50,8 @@ const Home: React.FC<HomeProps> = ({
         <>
             <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
 
-            <header className="px-6 md:px-8 pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <header className="pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <div className="px-6 md:px-8 max-w-2xl">
                 {/* Title row */}
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-1.5">
@@ -135,6 +136,7 @@ const Home: React.FC<HomeProps> = ({
                             </div>
                         </>
                     )}
+                </div>
                 </div>
             </header>
 
