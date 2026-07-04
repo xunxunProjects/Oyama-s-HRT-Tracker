@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             key={item.id}
                             onClick={() => onViewChange(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-150 motion-reduce:transition-none
                                 ${isActive
                                     ? 'text-body font-medium bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]'
                                     : 'text-muted hover:text-body hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'

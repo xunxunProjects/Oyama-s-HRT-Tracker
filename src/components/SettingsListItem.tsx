@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
@@ -8,12 +8,15 @@ const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[
 export const settingsMuted = muted;
 export const settingsOn = on;
 
-export function SettingsIconBox({ icon: Icon }: { icon: LucideIcon }) {
+// Accepts lucide icons as well as custom icon components with the same props.
+export type SettingsIcon = React.ComponentType<{ size?: number | string; className?: string }>;
+
+export function SettingsIconBox({ icon: Icon }: { icon: SettingsIcon }) {
     return <Icon size={18} className={`${muted} shrink-0`} />;
 }
 
 interface SettingsListItemProps {
-    icon: LucideIcon;
+    icon: SettingsIcon;
     title: string;
     description?: string;
     trailing?: React.ReactNode;

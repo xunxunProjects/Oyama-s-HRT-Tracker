@@ -125,7 +125,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm text-gray-500">{selectedOption?.label}</span>
-                                <ChevronDown size={16} className={`text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     ) : (
@@ -138,7 +138,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 {selectedOption?.description && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">{selectedOption.description}</span>
                                 )}
-                                <ChevronDown size={16} className={`text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     )}
@@ -148,7 +148,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto py-1"
+                        className="dropdown-in fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto py-1"
                     >
                         {options.map(opt => (
                             <button

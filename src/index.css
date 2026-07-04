@@ -60,6 +60,37 @@
     --shadow-m3-1: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-m3-2: 0 1px 3px rgba(0, 0, 0, 0.06);
     --shadow-m3-3: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    /* Motion — subtle and quick */
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --duration-quick: 150ms;
+    --duration-base: 220ms;
+}
+
+/* Motion primitives */
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes rise-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes menu-in {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes view-in-forward {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes view-in-backward {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Prevent auto-zoom on iOS/Android when focusing small inputs.
@@ -144,6 +175,7 @@ body {
     justify-content: center;
     padding: 0;
     background-color: rgba(0, 0, 0, 0.25);
+    animation: fade-in var(--duration-base) var(--ease-standard);
 }
 @media (min-width: 768px) {
     .modal-overlay {
@@ -156,6 +188,7 @@ body {
     width: 100%;
     max-width: 24rem;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: rise-in var(--duration-base) var(--ease-standard);
 }
 
 .modal-card {
@@ -199,6 +232,12 @@ body {
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-standard),
+                opacity var(--duration-quick) var(--ease-standard),
+                transform var(--duration-quick) var(--ease-standard);
+}
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
 }
 .btn-primary:hover:not(:disabled) {
     background-color: var(--color-m3-primary-light);
@@ -221,6 +260,12 @@ body {
     border: 1px solid var(--color-m3-outline-variant);
     border-radius: var(--radius-sm);
     cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-standard),
+                border-color var(--duration-quick) var(--ease-standard),
+                transform var(--duration-quick) var(--ease-standard);
+}
+.btn-secondary:active:not(:disabled) {
+    transform: scale(0.98);
 }
 .dark .btn-secondary {
     color: var(--color-m3-dark-on-surface);
@@ -242,6 +287,7 @@ body {
     border: 1px solid var(--color-m3-outline-variant);
     border-radius: var(--radius-sm);
     outline: none;
+    transition: border-color var(--duration-quick) var(--ease-standard);
 }
 .dark .input-base {
     color: var(--color-m3-dark-on-surface);
@@ -259,6 +305,7 @@ body {
     width: 100%;
     max-width: 36rem;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: rise-in var(--duration-base) var(--ease-standard);
 }
 
 .callout {
@@ -285,6 +332,7 @@ body {
     min-width: 112px;
     max-width: 280px;
     z-index: 100;
+    animation: menu-in var(--duration-quick) var(--ease-standard);
 }
 
 .dark .m3-menu {
@@ -327,4 +375,39 @@ body {
 .dark .m3-menu-item.selected {
     background-color: var(--color-m3-dark-secondary-container);
     color: var(--color-m3-dark-on-secondary-container);
+}
+
+.dropdown-in {
+    animation: menu-in var(--duration-quick) var(--ease-standard);
+}
+
+/* Page transitions — applied to the main view container, keyed by view */
+.view-enter-forward {
+    animation: view-in-forward var(--duration-base) var(--ease-standard);
+}
+
+.view-enter-backward {
+    animation: view-in-backward var(--duration-base) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-shell,
+    .modal-shell-wide,
+    .m3-menu,
+    .dropdown-in,
+    .view-enter-forward,
+    .view-enter-backward {
+        animation: none;
+    }
+    .btn-primary,
+    .btn-secondary,
+    .input-base,
+    .m3-menu-item {
+        transition: none;
+    }
+    .btn-primary:active:not(:disabled),
+    .btn-secondary:active:not(:disabled) {
+        transform: none;
+    }
 }

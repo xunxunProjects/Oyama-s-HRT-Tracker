@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Loader2, Shield, Fingerprint } from 'lucide-react';
+import { X, Loader2, Fingerprint } from 'lucide-react';
+import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
@@ -150,7 +151,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     {needsTOTP && isLogin && (
                         <div className="space-y-3">
                             <div className="callout flex items-center gap-2 text-xs">
-                                <Shield size={14} className="shrink-0" />
+                                <ShieldIcon size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
                                 {t('auth.needs_2fa')}
                             </div>
                             {useBackupCode ? (

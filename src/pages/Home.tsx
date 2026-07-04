@@ -3,6 +3,7 @@ import { Info } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
+import AnimatedNumber from '../components/AnimatedNumber';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface HomeProps {
@@ -82,7 +83,7 @@ const Home: React.FC<HomeProps> = ({
                                 <div className="flex items-baseline gap-1.5">
                                     {currentT > 0 ? (
                                         <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentT.toFixed(0)}</span>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT} decimals={0} /></span>
                                             <span className={`text-xs lowercase ${muted}`}>ng/dl</span>
                                         </>
                                     ) : (
@@ -97,7 +98,7 @@ const Home: React.FC<HomeProps> = ({
                                 <div className="flex items-baseline gap-1.5">
                                     {currentT > 0 ? (
                                         <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{(currentT / 28.842).toFixed(1)}</span>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT / 28.842} decimals={1} /></span>
                                             <span className={`text-xs lowercase ${muted}`}>nmol/l</span>
                                         </>
                                     ) : (
@@ -113,7 +114,7 @@ const Home: React.FC<HomeProps> = ({
                                 <div className="flex items-baseline gap-1.5">
                                     {currentLevel > 0 ? (
                                         <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentLevel.toFixed(1)}</span>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentLevel} decimals={1} /></span>
                                             <span className={`text-xs lowercase ${muted}`}>pg/ml</span>
                                         </>
                                     ) : (
@@ -126,7 +127,7 @@ const Home: React.FC<HomeProps> = ({
                                 <div className="flex items-baseline gap-1.5">
                                     {currentCPA > 0 ? (
                                         <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}>{currentCPA.toFixed(1)}</span>
+                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentCPA} decimals={1} /></span>
                                             <span className={`text-xs lowercase ${muted}`}>ng/ml</span>
                                         </>
                                     ) : (

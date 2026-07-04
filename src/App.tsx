@@ -459,7 +459,7 @@ const AppContent = () => {
                 <div
                     ref={mainScrollRef}
                     key={currentView}
-                    className="flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav"
+                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav ${transitionDirection === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     {currentView === 'home' && (
                         <Home
@@ -728,7 +728,7 @@ const AppContent = () => {
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors duration-150 motion-reduce:transition-none
                                         ${isDisabled
                                             ? 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] cursor-not-allowed'
                                             : isActive

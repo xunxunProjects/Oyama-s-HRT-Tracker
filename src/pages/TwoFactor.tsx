@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    ArrowLeft, Shield, Loader2, Check,
+    ArrowLeft, Loader2, Check,
     AlertCircle, Eye, EyeOff, Copy, Fingerprint, X, Plus,
     KeyRound, Download, RefreshCw,
 } from 'lucide-react';
+import ShieldIcon from '../components/ShieldIcon';
 import { QRCodeSVG } from 'qrcode.react';
 import {
     authService, Passkey,
@@ -348,7 +349,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         {enabled && (
                             <>
                                 <div className="flex items-start gap-3 pb-4">
-                                    <SettingsIconBox icon={Shield} />
+                                    <SettingsIconBox icon={ShieldIcon} />
                                     <div>
                                         <p className={`text-sm font-medium ${on}`}>{t('account.2fa_is_active')}</p>
                                         <p className={`text-xs ${muted} mt-1 leading-relaxed`}>{t('account.2fa_disable_hint')}</p>

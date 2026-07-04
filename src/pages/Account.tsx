@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Shield, Fingerprint, Lock, MonitorSmartphone } from 'lucide-react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone } from 'lucide-react';
+import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem } from '../components/SettingsListItem';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -329,7 +330,7 @@ const Account: React.FC<AccountProps> = ({
                             onClick={() => onNavigate('change-password')}
                         />
                         <SettingsListItem
-                            icon={Shield}
+                            icon={ShieldIcon}
                             title={t('account.2fa')}
                             description={t('account.2fa_desc')}
                             onClick={() => onNavigate('two-factor')}
@@ -628,7 +629,7 @@ const Account: React.FC<AccountProps> = ({
                         {needsTOTP && isLogin && (
                             <div className="space-y-3">
                                 <div className="p-2.5 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md flex items-center gap-2">
-                                    <Shield size={14} className="shrink-0" />
+                                    <ShieldIcon size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
                                     {t('auth.needs_2fa')}
                                 </div>
                                 {useBackupCode ? (
