@@ -459,6 +459,11 @@ const AppContent = () => {
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
 
+                {/* Mobile site label — static, takes its own space above the content */}
+                <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[11px] font-medium tracking-wide text-muted select-none">
+                    hrt.mahiro.uk
+                </div>
+
                 <div
                     ref={mainScrollRef}
                     key={currentView}
@@ -701,9 +706,9 @@ const AppContent = () => {
                     )}
                 </div>
 
-                {/* Bottom Navigation */}
-                <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden safe-area-pb bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface-dim)] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <div className="flex items-stretch px-2 pt-1 pb-1 gap-1">
+                {/* Bottom Navigation — floating island */}
+                <nav className="fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-2xl bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-3)]">
+                    <div className="flex items-stretch p-1.5 gap-1">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             const activeTab = ({
                                 'home': 'home',
@@ -731,7 +736,7 @@ const AppContent = () => {
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors duration-150 motion-reduce:transition-none
+                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 transition-colors duration-150 motion-reduce:transition-none
                                         ${isDisabled
                                             ? 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] cursor-not-allowed'
                                             : isActive

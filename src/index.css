@@ -34,6 +34,14 @@
     --color-m3-outline: #9E9B94;
     --color-m3-outline-variant: #E3E1DC;
 
+    /* Dark primary container — terracotta tint for selected states */
+    --color-m3-dark-primary-container: #4E2E20;
+    --color-m3-dark-on-primary-container: #F5D7C8;
+
+    /* Dark primary container — warm terracotta on dark */
+    --color-m3-dark-primary-container: #452B1F;
+    --color-m3-dark-on-primary-container: #F2D3C2;
+
     /* Dark surfaces — warm dark */
     --color-m3-dark-surface: #1C1B18;
     --color-m3-dark-surface-dim: #141311;
@@ -139,7 +147,8 @@ body {
 }
 
 .scroll-pb-nav {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    /* floating nav: bar height + bottom gap + breathing room */
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
 }
 @media (min-width: 768px) {
     .scroll-pb-nav {
