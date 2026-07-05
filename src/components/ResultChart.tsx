@@ -79,6 +79,7 @@ const ResultChart = ({
     calibrationFn = (_t: number) => 1,
     onPointClick,
     isDarkMode = false,
+    isMono = false,
 }: {
     sim: SimulationResult | null;
     events: DoseEvent[];
@@ -86,6 +87,7 @@ const ResultChart = ({
     calibrationFn?: (timeH: number) => number;
     onPointClick: (e: DoseEvent) => void;
     isDarkMode?: boolean;
+    isMono?: boolean;
 }) => {
     const { t, lang } = useTranslation();
     const { isTransmasc } = useHRTMode();
@@ -280,6 +282,13 @@ const ResultChart = ({
         return v != null && Number.isFinite(v) ? v : null;
     }, [sim, now, isTransmasc, primaryIsCPA, calibrationFn]);
 
+    // "Now" position on the secondary (CPA) curve.
+    const nowValS = useMemo(() => {
+        if (!sim || !hasSecondary) return null;
+        const v = interpolateConcentration_CPA(sim, now / HOUR);
+        return v != null && Number.isFinite(v) ? v : null;
+    }, [sim, now, hasSecondary]);
+
     // Hover lookup — nearest sample to the pointer.
     const updateHover = (clientX: number) => {
         if (!plotEl || data.length === 0) return;
@@ -396,7 +405,14 @@ const ResultChart = ({
                 </span>
                 {hasSecondary && (
                     <span className="flex items-center gap-1.5">
-                        <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.second }} />
+                        <span
+                            className="w-3.5 h-[2px] rounded-full"
+                            style={{
+                                background: isMono
+                                    ? `repeating-linear-gradient(90deg, ${c.second} 0, ${c.second} 2px, transparent 2px, transparent 5px)`
+                                    : c.second,
+                            }}
+                        />
                         {t('label.cpa_chart')}
                     </span>
                 )}
@@ -451,17 +467,20 @@ const ResultChart = ({
                         ))}
 
                         <g clipPath={`url(#clip-${clipId})`}>
-                            {/* Primary curve */}
-                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                            {/* Primary curve — dotted in mono when it's the CPA series */}
+                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
 
-                            {/* Secondary curve (CPA) — kept quiet so E2 stays the focus */}
+                            {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
                             {hasSecondary && (
-                                <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+                                <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
                             )}
 
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
                                 <line x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+                            )}
+                            {nowValS != null && now >= t0 && now <= t1 && (
+                                <circle cx={X(now)} cy={YS(nowValS)} r={4} fill={c.second} stroke={c.dot} strokeWidth={2} />
                             )}
                             {nowVal != null && now >= t0 && now <= t1 && (
                                 <circle cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />

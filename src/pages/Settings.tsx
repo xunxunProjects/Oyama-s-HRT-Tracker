@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, Settings2, Database, Info, ArrowLeft, Globe } from 'lucide-react';
 import { Lang } from '../i18n/translations';
+import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
@@ -8,8 +9,8 @@ interface SettingsProps {
     t: (key: string) => string;
     lang: Lang;
     setLang: (lang: Lang) => void;
-    theme: 'light' | 'dark' | 'system';
-    setTheme: (theme: 'light' | 'dark' | 'system') => void;
+    theme: AppTheme;
+    setTheme: (theme: AppTheme) => void;
     languageOptions: { value: string; label: string }[];
     onImportJson: (text: string) => boolean | Promise<boolean>;
     labResults: any[];
@@ -112,7 +113,7 @@ const Settings: React.FC<SettingsProps> = ({
             <button onClick={() => navTo(onNavigateToAppearance, 'general')} className={rowBase}>
                 <span className={rowLabel}>{t('settings.theme')}</span>
                 <span className={rowValue}>
-                    {theme === 'light' ? t('theme.light') : theme === 'dark' ? t('theme.dark') : t('theme.system')}
+                    {t(`theme.${theme}`)}
                     <ChevronRight size={15} />
                 </span>
             </button>

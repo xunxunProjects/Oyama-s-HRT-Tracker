@@ -313,6 +313,7 @@ export const TRANSLATIONS_BASE = {
         "theme.light": "浅色模式",
         "theme.dark": "深色模式",
         "theme.system": "跟随系统",
+        "theme.mono": "黑白模式",
 
         "disclaimer.title": "免责声明",
         "disclaimer.text.intro": "Oyama's HRT Tracker 不提供医学建议。尽管 Oyama's HRT Tracker 包含一些医学相关的内容，但不保证其准确性或时效性。可能无法完全适用于您的具体情况。请注意以下事项：",
@@ -902,6 +903,7 @@ export const TRANSLATIONS_BASE = {
         "theme.light": "Light",
         "theme.dark": "Dark",
         "theme.system": "System",
+        "theme.mono": "Black & White",
 
         "transparency.title": "Transparency",
         "transparency.intro": "Live server statistics. All data shown here is aggregate and anonymized — no usernames or personal information are exposed.",
@@ -1491,6 +1493,7 @@ export const TRANSLATIONS = {
         "theme.light": "淺色",
         "theme.dark": "深色",
         "theme.system": "跟隨系統",
+        "theme.mono": "黑白模式",
 
         "drawer.lang": "語言",
         "drawer.lang_hint": "切換介面語言。",
@@ -2444,6 +2447,7 @@ export const TRANSLATIONS = {
         "theme.light": "ライト",
         "theme.dark": "ダーク",
         "theme.system": "システム",
+        "theme.mono": "モノクロ",
 
         "disclaimer.title": "免責事項",
         "disclaimer.text.intro": "Oyama's HRT Tracker は医学的助言を提供するものではありません。Oyama's HRT Tracker には医学関連のコンテンツが含まれていますが、その正確性や適時性を保証するものではありません。お客様の特定の状況に完全に適用されない場合があります。以下の点にご注意ください：",
@@ -2985,6 +2989,7 @@ export const TRANSLATIONS = {
         "theme.light": "밝게",
         "theme.dark": "어둡게",
         "theme.system": "시스템",
+        "theme.mono": "흑백",
 
         "disclaimer.title": "면책 조항",
         "disclaimer.text.intro": "Oyama's HRT Tracker는 의학적 조언을 제공하지 않습니다. Oyama's HRT Tracker에는 의학 관련 콘텐츠가 포함되어 있지만 그 정확성이나 적시성을 보장하지 않습니다. 귀하의 특정 상황에 완전히 적용되지 않을 수 있습니다. 다음 사항에 유의하세요:",
@@ -3531,6 +3536,7 @@ export const TRANSLATIONS = {
         "theme.light": "Açık",
         "theme.dark": "Koyu",
         "theme.system": "Sistem",
+        "theme.mono": "Siyah-Beyaz",
 
         "transparency.title": "Şeffaflık",
         "transparency.intro": "Canlı sunucu istatistikleri. Burada gösterilen tüm veriler toplu ve anonimleştirilmiştir — kullanıcı adları veya kişisel bilgiler açıklanmaz.",

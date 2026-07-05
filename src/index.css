@@ -110,6 +110,11 @@ html {
     overscroll-behavior-y: contain;
 }
 
+/* Black & white theme — light palette rendered fully grayscale */
+html.mono {
+    filter: grayscale(1);
+}
+
 body {
     font-family: var(--font-sans);
     height: 100%;

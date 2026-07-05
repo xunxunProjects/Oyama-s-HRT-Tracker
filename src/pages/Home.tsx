@@ -5,6 +5,7 @@ import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { AppTheme } from '../constants';
 
 interface HomeProps {
     t: (key: string) => string;
@@ -19,7 +20,7 @@ interface HomeProps {
     labResults: LabResult[];
     onEditEvent: (e: DoseEvent) => void;
     calibrationFn: (timeH: number) => number;
-    theme: 'light' | 'dark' | 'system';
+    theme: AppTheme;
     onNavigateToHistory: () => void;
 }
 
@@ -40,6 +41,7 @@ const Home: React.FC<HomeProps> = ({
     onNavigateToHistory,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isMono = theme === 'mono';
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
 
@@ -72,8 +74,8 @@ const Home: React.FC<HomeProps> = ({
                     )}
                 </div>
 
-                {/* Blood level grid */}
-                <div className="grid grid-cols-2 gap-6">
+                {/* Blood level grid — first reading left, second flush right */}
+                <div className="flex items-start justify-between gap-12">
                     {isTransmasc ? (
                         <>
                             <div>
@@ -91,11 +93,11 @@ const Home: React.FC<HomeProps> = ({
                                     )}
                                 </div>
                             </div>
-                            <div>
+                            <div className="text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
                                     {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
                                 </p>
-                                <div className="flex items-baseline gap-1.5">
+                                <div className="flex items-baseline gap-1.5 justify-end">
                                     {currentT > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT / 28.842} decimals={1} /></span>
@@ -122,9 +124,9 @@ const Home: React.FC<HomeProps> = ({
                                     )}
                                 </div>
                             </div>
-                            <div>
-                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa')}</p>
-                                <div className="flex items-baseline gap-1.5">
+                            <div className="text-right">
+                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa_chart')}</p>
+                                <div className="flex items-baseline gap-1.5 justify-end">
                                     {currentCPA > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentCPA} decimals={1} /></span>
@@ -141,7 +143,7 @@ const Home: React.FC<HomeProps> = ({
                 </div>
             </header>
 
-            <main className="w-full px-6 py-8 md:px-8 pb-32">
+            <main className="w-full max-w-2xl px-6 py-8 md:px-8 pb-32">
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
@@ -161,6 +163,7 @@ const Home: React.FC<HomeProps> = ({
                         labResults={labResults}
                         calibrationFn={calibrationFn}
                         isDarkMode={isDarkMode}
+                        isMono={isMono}
                     />
                 )}
             </main>

@@ -4,7 +4,7 @@ import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import { APP_VERSION } from './constants';
+import { APP_VERSION, AppTheme } from './constants';
 import { DoseEvent, LabResult, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { DoseTemplate } from './components/DoseFormModal';
@@ -144,9 +144,9 @@ const AppContent = () => {
     const conflictCheckedRef = useRef(false);
 
 
-    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+    const [theme, setTheme] = useState<AppTheme>(() => {
         const saved = localStorage.getItem('app-theme');
-        return (saved as 'light' | 'dark' | 'system') || 'system';
+        return (saved as AppTheme) || 'system';
     });
 
 
@@ -246,6 +246,9 @@ const AppContent = () => {
             root.classList.remove('light', 'dark');
             root.classList.add(isDark ? 'dark' : 'light');
         };
+
+        // Mono renders as light with a grayscale filter (see html.mono in index.css)
+        root.classList.toggle('mono', theme === 'mono');
 
         if (theme === 'system') {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

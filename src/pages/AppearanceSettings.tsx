@@ -1,10 +1,11 @@
 import React from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
+import { AppTheme } from '../constants';
 
 interface AppearanceSettingsProps {
-    theme: 'light' | 'dark' | 'system';
-    setTheme: (theme: 'light' | 'dark' | 'system') => void;
+    theme: AppTheme;
+    setTheme: (theme: AppTheme) => void;
     onBack: () => void;
 }
 
@@ -15,6 +16,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ theme, setTheme
         { value: 'light' as const, labelKey: 'theme.light' },
         { value: 'dark' as const, labelKey: 'theme.dark' },
         { value: 'system' as const, labelKey: 'theme.system' },
+        { value: 'mono' as const, labelKey: 'theme.mono' },
     ];
 
     return (
