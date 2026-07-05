@@ -113,7 +113,7 @@ At the same time, I wish good health to all the women using this web app who are
 
 ## TODO
 
-- [ ] 2FA
+
 
 ---
 
