@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Activity, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
+import { Home, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import CalibrationCurveIcon from '../components/CalibrationCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -33,7 +33,7 @@ export const useAppNavigation = (user: any) => {
 
     // --- Derived Data ---
     const navItems = [
-        { id: 'home', label: t('nav.home'), icon: Activity },
+        { id: 'home', label: t('nav.home'), icon: Home },
         { id: 'history', label: t('nav.history'), icon: ListTodo },
         { id: 'lab', label: t('nav.lab'), icon: CalibrationCurveIcon },
         { id: 'settings', label: t('nav.settings'), icon: SettingsIcon },
