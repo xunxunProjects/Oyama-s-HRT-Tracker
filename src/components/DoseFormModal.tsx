@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DoseForm, { DoseTemplate } from './DoseForm';
 import { QuickDose } from './dose_form/QuickDoseButtons';
 import { useEscape } from '../hooks/useEscape';
+import { DoseEvent } from '../../logic';
 
 export type { DoseTemplate, QuickDose };
 
@@ -17,6 +18,7 @@ interface DoseFormModalProps {
     quickDoses?: QuickDose[];
     onAddQuickDose?: (dose: QuickDose) => void;
     onDeleteQuickDose?: (id: string) => void;
+    events?: DoseEvent[];
 }
 
 const DoseFormModal: React.FC<DoseFormModalProps> = ({
@@ -30,7 +32,8 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
     onDeleteTemplate,
     quickDoses = [],
     onAddQuickDose,
-    onDeleteQuickDose
+    onDeleteQuickDose,
+    events = []
 }) => {
     const [isVisible, setIsVisible] = useState(false);
 
@@ -75,6 +78,7 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
                     onAddQuickDose={onAddQuickDose}
                     onDeleteQuickDose={onDeleteQuickDose}
                     isInline={false}
+                    events={events}
                 />
             </div>
             </div>

@@ -5,8 +5,9 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
-import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor } from '../../logic';
+import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory } from '../../logic';
 import { Save, Trash2, Info, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
+import { DoseAdvisoryLine } from './DoseAdvisory';
 import InjectionFields from './dose_form/InjectionFields';
 import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
@@ -132,9 +133,11 @@ interface DoseFormProps {
     quickDoses?: QuickDose[];
     onAddQuickDose?: (dose: QuickDose) => void;
     onDeleteQuickDose?: (id: string) => void;
+    /** Existing doses, used only to show whether recent use is already running high. */
+    events?: DoseEvent[];
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const dateInputRef = useRef<HTMLInputElement>(null);
@@ -556,6 +559,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         return { config: cfg, level, value, showRateHint: false as const };
     }, [route, patchMode, patchRate, e2Dose, ester, isTransmasc]);
 
+    // Recent-use heads-up, based on doses already logged (not the still-unsaved
+    // value being typed here). Covers CPA and injections too, which the static
+    // per-dose guide above doesn't — see getDoseAdvisory in logic.ts.
+    const doseAdvisory = useMemo(() => getDoseAdvisory(events), [events]);
+
     const tierKey = SL_TIER_ORDER[slTier] || "standard";
     const currentTheta = SublingualTierParams[tierKey]?.theta || 0.11;
     const customTheta = thetaFromHold(customHoldValue);
@@ -939,6 +947,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         </p>
                                     )}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Recent-use heads-up — logged doses already running high */}
+                        {doseAdvisory && (
+                            <div className="mt-2 pt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                                <DoseAdvisoryLine advisory={doseAdvisory} t={t} />
                             </div>
                         )}
                     </>

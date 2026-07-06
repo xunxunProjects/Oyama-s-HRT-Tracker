@@ -108,6 +108,121 @@ export function isT_LabUnit(unit: LabResult['unit']): boolean {
     return unit === 'ng/dl' || unit === 'nmol/l';
 }
 
+// --- Dose advisory ("you've taken a lot" heads-up) ---
+//
+// This looks at the *doses the person actually logged*, not the modelled blood
+// level. Dose is a hard fact; the concentration curve is only an estimate that can
+// be wrong until it's calibrated against labs. So the warning is anchored to how
+// much medication is being taken, and the UI separately nudges toward calibration.
+
+export interface DoseAdvisory {
+    /**
+     * Which compound the advisory is about (drives the message shown).
+     * 'e2_cpa' fires when both are elevated at once — a real combination in
+     * transfem regimens — so the two per-compound risks are named together
+     * instead of silently dropping whichever has the lower ratio.
+     */
+    kind: 'e2' | 't' | 'cpa' | 'e2_cpa';
+}
+
+// Ceilings sit at the high end of typical GAHT dosing, so only clearly excessive
+// use trips them — not merely a high-normal dose. Sources: transfemscience.org
+// (E2/CPA ranges), UCSF masculinizing-therapy guidance (T ranges).
+const DOSE_CEILING = {
+    cpaPerDay: 12.5,   // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
+    e2DailyPerDay: 12, // mg/day — oral/sublingual/gel/patch estradiol
+    e2InjPerWeek: 20,  // mg/week — injected estradiol esters (5–10 mg/wk is high-normal)
+    e2InjSingle: 50,   // mg — a single injected-E2 dose this large is excessive
+    tDailyPerDay: 150, // mg/day — transdermal testosterone
+    tInjPerWeek: 200,  // mg/week — injected testosterone (50–100 mg/wk is typical)
+} as const;
+
+const _isDailyRoute = (r: Route) =>
+    r === Route.oral || r === Route.sublingual || r === Route.gel || r === Route.patchApply;
+
+/**
+ * Largest single-day total dose (mg) within the trailing `days` window for events
+ * matching `pred` — i.e. "how much did you take on your heaviest recent day". Used
+ * for daily-dosed routes; robust to how much history exists and to window edges (a
+ * trailing average would over/under-count depending on where dose times fall).
+ */
+function _maxDailyDose(events: DoseEvent[], nowH: number, days: number, pred: (e: DoseEvent) => boolean): number {
+    const byDay = new Map<number, number>();
+    for (const e of events) {
+        const age = nowH - e.timeH;
+        if (age >= 0 && age <= days * 24 && pred(e)) {
+            const day = Math.floor(e.timeH / 24);
+            byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG);
+        }
+    }
+    let mx = 0;
+    for (const v of byDay.values()) if (v > mx) mx = v;
+    return mx;
+}
+
+/**
+ * Weekly-equivalent dose for an injected family, inferred from the person's own
+ * cadence (dose ÷ typical gap between injections). This avoids false alarms right
+ * after a long-interval depot (e.g. undecanoate every 10–12 weeks), which a fixed
+ * trailing window would wrongly read as a huge weekly rate. Needs ≥2 injections to
+ * infer a gap; returns null otherwise (a lone depot's schedule is unknowable).
+ */
+function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number | null {
+    const fam = events
+        .filter(e => pred(e) && nowH - e.timeH >= 0 && nowH - e.timeH <= 120 * 24)
+        .sort((a, b) => a.timeH - b.timeH);
+    if (fam.length < 2) return null;
+    const gaps: number[] = [];
+    for (let i = 1; i < fam.length; i++) gaps.push(fam[i].timeH - fam[i - 1].timeH);
+    gaps.sort((a, b) => a - b);
+    const medGapH = gaps[Math.floor(gaps.length / 2)];
+    if (medGapH <= 0) return null;
+    return fam[fam.length - 1].doseMG / (medGapH / 168); // 168 h = 1 week
+}
+
+/**
+ * A gentle, non-diagnostic heads-up when the *logged doses* run clearly above the
+ * usual range. Returns the single most-exceeded family, or null. Not medical advice.
+ */
+export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() / (1000 * 60 * 60)): DoseAdvisory | null {
+    if (!events.length) return null;
+
+    const isE2 = (e: DoseEvent) => !isTestosteroneEster(e.ester) && e.ester !== Ester.CPA;
+    const isT = (e: DoseEvent) => isTestosteroneEster(e.ester);
+
+    // Daily-dosed families: heaviest single-day total in the trailing 14 days.
+    const cpaPerDay = _maxDailyDose(events, nowH, 14, e => e.ester === Ester.CPA);
+    const e2DailyPerDay = _maxDailyDose(events, nowH, 14, e => isE2(e) && _isDailyRoute(e.route));
+    const tDailyPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && (e.route === Route.gel || e.route === Route.patchApply));
+
+    // Injected families: cadence-inferred weekly rate, plus a single-dose guard for E2.
+    const e2InjWk = _injectionWeeklyRate(events, nowH, e => isE2(e) && e.route === Route.injection) ?? 0;
+    const tInjWk = _injectionWeeklyRate(events, nowH, e => isT(e) && e.route === Route.injection) ?? 0;
+    let e2InjSingle = 0;
+    for (const e of events) {
+        if (isE2(e) && e.route === Route.injection && nowH - e.timeH >= 0 && nowH - e.timeH <= 30 * 24) {
+            if (e.doseMG > e2InjSingle) e2InjSingle = e.doseMG;
+        }
+    }
+
+    const cpaRatio = cpaPerDay / DOSE_CEILING.cpaPerDay;
+    const e2Ratio = Math.max(e2DailyPerDay / DOSE_CEILING.e2DailyPerDay, e2InjWk / DOSE_CEILING.e2InjPerWeek, e2InjSingle / DOSE_CEILING.e2InjSingle);
+    const tRatio = Math.max(tDailyPerDay / DOSE_CEILING.tDailyPerDay, tInjWk / DOSE_CEILING.tInjPerWeek);
+
+    // Both estrogen and antiandrogen running high at once is a real combination
+    // (they're routinely dosed together in transfem regimens) and each carries
+    // its own distinct risk, so it takes priority over reporting just one.
+    if (e2Ratio > 1 && cpaRatio > 1) return { kind: 'e2_cpa' };
+
+    const checks: { kind: DoseAdvisory['kind']; ratio: number }[] = [
+        { kind: 'cpa', ratio: cpaRatio },
+        { kind: 'e2', ratio: e2Ratio },
+        { kind: 't', ratio: tRatio },
+    ];
+    const hit = checks.filter(c => c.ratio > 1).sort((a, b) => b.ratio - a.ratio)[0];
+    return hit ? { kind: hit.kind } : null;
+}
+
 /**
  * How lab results are used to calibrate the E2 estimate.
  *  - 'off'      : ignore labs, show the raw model.

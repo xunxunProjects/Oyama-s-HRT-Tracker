@@ -485,6 +485,7 @@ const AppContent = () => {
                             calibrationFn={calibrationFn}
                             theme={theme}
                             onNavigateToHistory={() => handleViewChange('history')}
+                            onNavigateToLab={() => handleViewChange('lab')}
                         />
                     )}
 
@@ -792,6 +793,7 @@ const AppContent = () => {
                 quickDoses={quickDoses}
                 onAddQuickDose={addQuickDose}
                 onDeleteQuickDose={deleteQuickDose}
+                events={events}
             />
 
             <DisclaimerModal

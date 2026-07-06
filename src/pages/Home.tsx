@@ -1,8 +1,9 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { DoseEvent, SimulationResult, LabResult } from '../../logic';
+import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
+import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { AppTheme } from '../constants';
@@ -22,6 +23,7 @@ interface HomeProps {
     calibrationFn: (timeH: number) => number;
     theme: AppTheme;
     onNavigateToHistory: () => void;
+    onNavigateToLab: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -39,11 +41,18 @@ const Home: React.FC<HomeProps> = ({
     calibrationFn,
     theme,
     onNavigateToHistory,
+    onNavigateToLab,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const isMono = theme === 'mono';
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
+
+    // Warn on how much medication was actually logged (a hard fact), and nudge
+    // toward calibration when there's no lab yet to anchor the estimate.
+    const doseAdvisory = React.useMemo(() => getDoseAdvisory(events), [events]);
+    const hasLabForMode = labResults.some(l => (isTransmasc ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit)));
+    const showCalibrate = events.length > 0 && !hasLabForMode;
 
     const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
     const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
@@ -53,7 +62,7 @@ const Home: React.FC<HomeProps> = ({
         <>
             <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
 
-            <header className="pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <header className="pt-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                 <div className="px-6 md:px-8 max-w-2xl">
                 {/* Title row */}
                 <div className="flex items-center justify-between mb-5">
@@ -140,10 +149,14 @@ const Home: React.FC<HomeProps> = ({
                         </>
                     )}
                 </div>
+
+                <div className="mt-2">
+                    <DoseAdvisoryNotice advisory={doseAdvisory} showCalibrate={showCalibrate} onCalibrate={onNavigateToLab} t={t} />
+                </div>
                 </div>
             </header>
 
-            <main className="w-full max-w-2xl px-6 py-8 md:px-8 pb-32">
+            <main className="w-full max-w-2xl px-6 pt-5 pb-32 md:px-8">
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>

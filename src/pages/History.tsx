@@ -234,6 +234,7 @@ const History: React.FC<HistoryProps> = ({
                             onSaveTemplate={onSaveTemplate}
                             onDeleteTemplate={onDeleteTemplate}
                             isInline={true}
+                            events={allEvents}
                         />
                     </div>
                 </div>
@@ -338,6 +339,7 @@ const History: React.FC<HistoryProps> = ({
                                                     onDeleteTemplate={onDeleteTemplate}
                                                     isInline={true}
                                                     hideHeader={true}
+                                                    events={allEvents}
                                                 />
                                             </div>
                                         </div>
