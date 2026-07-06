@@ -122,6 +122,16 @@ const ResultChart = ({
             ? { label: t('label.cpa_chart'), unit: 'ng/ml', decimals: 2 }
             : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
 
+    // Typical target band for the primary series, matching the reference ranges the
+    // app uses for its status labels (see useAppData currentStatus): transmasc total-T
+    // sits in the ~300–1000 ng/dL male range; transfem E2 in the ~100–200 pg/mL band.
+    // CPA has no target range, so it gets none. Shown as a quiet shaded region only.
+    const primaryTarget = useMemo<{ low: number; high: number } | null>(() => {
+        if (isTransmasc) return { low: 300, high: 1000 };
+        if (primaryIsCPA) return null;
+        return { low: 100, high: 200 };
+    }, [isTransmasc, primaryIsCPA]);
+
     // Resample the simulation into the (time, primary, secondary) shape we plot.
     const data = useMemo(() => {
         if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number; s: number | null }[];
@@ -207,8 +217,11 @@ const ResultChart = ({
         for (const d of slice) if (d.p > mx) mx = d.p;
         for (const l of labPoints) if (l.v > mx) mx = l.v;
         for (const m of markers) if (m.axis === 'p' && m.v > mx) mx = m.v;
+        // Keep the target band's lower edge on-screen so "below target" reads clearly,
+        // without forcing the whole (often much higher) band into view.
+        if (primaryTarget) mx = Math.max(mx, primaryTarget.low * 1.05);
         return buildYDomain(0, mx);
-    }, [slice, labPoints, markers]);
+    }, [slice, labPoints, markers, primaryTarget]);
 
     const ySecondary = useMemo(() => {
         if (!hasSecondary) return [0, 1] as [number, number];
@@ -439,6 +452,24 @@ const ResultChart = ({
                                 <rect x={mL} y={mT - 4} width={plotW} height={plotH + 8} />
                             </clipPath>
                         </defs>
+
+                        {/* Target reference band — quiet wash marking the typical range */}
+                        {primaryTarget && (() => {
+                            const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
+                            const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
+                            if (yLo - yHi < 0.5) return null; // band entirely off-screen
+                            const rawLo = YP(primaryTarget.low);
+                            const rawHi = YP(primaryTarget.high);
+                            const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
+                            return (
+                                <g>
+                                    <rect x={mL} y={yHi} width={plotW} height={yLo - yHi} fill={c.primary} opacity={0.06} />
+                                    {inView(rawLo) && <line x1={mL} y1={yLo} x2={mL + plotW} y2={yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                                    {inView(rawHi) && <line x1={mL} y1={yHi} x2={mL + plotW} y2={yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                                    <text x={mL + 4} y={Math.min(mT + plotH - 3, yHi + 11)} fontSize={9} fill={c.axis} opacity={0.75}>{t('chart.target')}</text>
+                                </g>
+                            );
+                        })()}
 
                         {/* Horizontal grid + primary axis labels */}
                         {ticksFor(yPrimary).map((v, i) => {

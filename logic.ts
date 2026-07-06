@@ -1089,14 +1089,39 @@ function resolveParams(event: DoseEvent): PKParams {
     return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
 }
 
-// 3-Compartment Analytical Solution
+/**
+ * Separate near-coincident first-order rate constants by a sub-permille amount so
+ * the triple-exponential kernel below stays clear of its removable singularities.
+ * The kernel is analytic in (k1, k2, k3): evaluated at a nudge of ~1e-6·max(k) it
+ * equals the exact l'Hôpital limit to full display precision, while the tiny offset
+ * avoids the catastrophic cancellation that appears as two rates collide. k1
+ * (absorption) is held fixed; k2 and k3 are moved minimally and deterministically.
+ * A few passes suffice to pull all three apart, even when all three coincide.
+ */
+function _separateRates(k1: number, k2: number, k3: number): [number, number, number] {
+    const eps = 1e-6 * Math.max(k1, k2, k3);
+    if (!(eps > 0)) return [k1, k2, k3];
+    if (Math.abs(k2 - k1) < eps) k2 = k1 + eps;
+    for (let i = 0; i < 6; i++) {
+        let moved = false;
+        if (Math.abs(k3 - k1) < eps) { k3 = k1 + (k3 >= k1 ? eps : -eps); moved = true; }
+        if (Math.abs(k3 - k2) < eps) { k3 = k2 + (k3 >= k2 ? eps : -eps); moved = true; }
+        if (!moved) break;
+    }
+    return [k1, k2, k3];
+}
+
+// 3-Compartment Analytical Solution (sequential first-order: absorption k1 → ester
+// hydrolysis k2 → central-compartment elimination k3). Returns the central-compartment
+// amount for a unit bolus, scaled by dose·F. Coincident rates are separated first so
+// the closed form reproduces the correct removable-singularity limit instead of a
+// zero dropout or a numerically unstable value.
 function _analytic3C(tau: number, doseMG: number, F: number, k1: number, k2: number, k3: number): number {
     if (k1 <= 0 || doseMG <= 0) return 0;
+    [k1, k2, k3] = _separateRates(k1, k2, k3);
     const k1_k2 = k1 - k2;
     const k1_k3 = k1 - k3;
     const k2_k3 = k2 - k3;
-
-    if (Math.abs(k1_k2) < 1e-9 || Math.abs(k1_k3) < 1e-9 || Math.abs(k2_k3) < 1e-9) return 0; // Singularity protection
 
     const term1 = Math.exp(-k1 * tau) / (k1_k2 * k1_k3);
     const term2 = Math.exp(-k2 * tau) / (-k1_k2 * k2_k3);
