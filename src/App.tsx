@@ -54,6 +54,7 @@ import WeightSettings from './pages/WeightSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
+import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 
 // Encrypt the export payload for cloud storage when a device key is present.
 // Without a key (e.g. a session predating E2EE, or a passwordless passkey
@@ -126,6 +127,14 @@ const AppContent = () => {
     const [autoBackup, setAutoBackup] = useState<boolean>(() =>
         localStorage.getItem('app-auto-backup') !== 'false'
     );
+
+    // --- Developer mode (unlocks the milk tea easter egg) ---
+    const [devMode, setDevMode] = useState<boolean>(() =>
+        localStorage.getItem('app-dev-mode') === 'true'
+    );
+    useEffect(() => {
+        localStorage.setItem('app-dev-mode', String(devMode));
+    }, [devMode]);
     const autoBackupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const initialLoadRef = useRef(true);
     const tokenRef = useRef(token);
@@ -575,6 +584,9 @@ const AppContent = () => {
                             autoBackup={autoBackup}
                             setAutoBackup={setAutoBackup}
                             isLoggedIn={!!user}
+                            devMode={devMode}
+                            setDevMode={setDevMode}
+                            onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
                         />
                     )}
 
@@ -693,6 +705,12 @@ const AppContent = () => {
                         />
                     )}
 
+                    {currentView === 'settings-milk-tea' && devMode && (
+                        <MilkTeaEasterEgg
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
                     {currentView === 'pk-params' && (
                         <PKParamsPage
                             pkParams={pkParams}
@@ -724,6 +742,7 @@ const AppContent = () => {
                                 'settings-export': 'settings',
                                 'settings-import': 'settings',
                                 'settings-transparency': 'settings',
+                                'settings-milk-tea': 'settings',
                                 'pk-params': 'settings',
                                 'account': 'account',
                                 'sessions': 'account',

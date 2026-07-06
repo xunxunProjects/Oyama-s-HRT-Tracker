@@ -35,6 +35,9 @@ interface SettingsProps {
     autoBackup: boolean;
     setAutoBackup: (v: boolean) => void;
     isLoggedIn: boolean;
+    devMode: boolean;
+    setDevMode: (v: boolean) => void;
+    onNavigateToMilkTea: () => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -55,6 +58,7 @@ const Settings: React.FC<SettingsProps> = ({
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoBackup, setAutoBackup, isLoggedIn,
+    devMode, setDevMode, onNavigateToMilkTea,
 }) => {
     const { mode } = useHRTMode();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
@@ -204,10 +208,32 @@ const Settings: React.FC<SettingsProps> = ({
                 <ChevronRight size={15} className={muted} />
             </button>
 
-            <button onClick={() => setIsDisclaimerOpen(true)} className={`${rowBase} border-b-0`}>
+            <button onClick={() => setIsDisclaimerOpen(true)} className={rowBase}>
                 <span className={rowLabel}>{t('drawer.disclaimer')}</span>
                 <ChevronRight size={15} className={muted} />
             </button>
+
+            <div className={`${rowBase} cursor-default`}>
+                <div>
+                    <p className={rowLabel}>{t('settings.developer_mode')}</p>
+                    <p className={`text-xs ${muted} mt-0.5`}>{t('settings.developer_mode_desc')}</p>
+                </div>
+                <button
+                    onClick={() => setDevMode(!devMode)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${devMode ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                    role="switch"
+                    aria-checked={devMode}
+                >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+            </div>
+
+            {devMode && (
+                <button onClick={() => navTo(onNavigateToMilkTea, 'about')} className={`${rowBase} border-b-0`}>
+                    <span className={rowLabel}>{t('settings.milk_tea_egg')}</span>
+                    <ChevronRight size={15} className={muted} />
+                </button>
+            )}
 
             <p className={`mt-10 text-xs ${muted}`}>{appVersion}</p>
         </div>
