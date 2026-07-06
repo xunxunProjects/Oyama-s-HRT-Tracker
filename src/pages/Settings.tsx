@@ -230,10 +230,7 @@ const Settings: React.FC<SettingsProps> = ({
 
             {devMode && (
                 <button onClick={() => navTo(onNavigateToMilkTea, 'about')} className={`${rowBase} border-b-0`}>
-                    <div>
-                        <span className={rowLabel}>{t('settings.milk_tea_egg')}</span>
-                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.milk_tea_egg_hint')}</p>
-                    </div>
+                    <span className={rowLabel}>{t('settings.milk_tea_egg')}</span>
                     <ChevronRight size={15} className={muted} />
                 </button>
             )}

@@ -74,7 +74,6 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                     <ArrowLeft size={18} className={`${muted} shrink-0`} />
                     <span className={`text-xl font-semibold ${on}`}>{t('milktea.title')}</span>
                 </button>
-                <p className={`text-xs ${muted} mt-2 ml-11`}>{t('milktea.subtitle')}</p>
             </div>
 
             <div className="px-6 md:px-8 max-w-2xl space-y-8">
