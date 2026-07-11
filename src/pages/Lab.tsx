@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
-import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint } from '../../logic';
+import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
+import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 
 interface LabProps {
     t: (key: string) => string;
@@ -48,6 +49,7 @@ const Lab: React.FC<LabProps> = ({
     }, [calibration.points]);
 
     const hasCal = calibration.points.length > 0;
+    const hormoneAdvisory = useMemo(() => getHormoneLevelAdvisory(labResults), [labResults]);
 
     // One-line summary of the active calibration for the settings entry row.
     // Before any usable labs exist there's no fit to show, so we fall back to
@@ -71,7 +73,7 @@ const Lab: React.FC<LabProps> = ({
                 </h1>
                 <button
                     onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] px-2 py-1 -mr-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] px-4 py-2.5 -mr-1 rounded-md active:scale-[0.97] transition-transform"
                 >
                     <Plus size={15} className={`transition-transform ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
                     <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
@@ -97,6 +99,12 @@ const Lab: React.FC<LabProps> = ({
             </div>
 
             <div className="px-6 md:px-8 max-w-2xl">
+                {hormoneAdvisory && (
+                    <div className="pb-4">
+                        <HormoneLevelAdvisoryLine advisory={hormoneAdvisory} t={t} />
+                    </div>
+                )}
+
                 {/* Calibration settings entry — always available; how labs feed the estimate */}
                 <button
                     onClick={onOpenCalibrationSettings}
