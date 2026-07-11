@@ -16,10 +16,14 @@ const MAX_BATCH_COUNT = 365;
 
 const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const headerBtn = 'flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]';
 const headerBtnSolid = 'flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-md active:scale-[0.97] transition-transform';
 const headerBtnSolidNeutral = `${headerBtnSolid} bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]`;
 const headerBtnSolidPrimary = `${headerBtnSolid} bg-[var(--color-m3-primary)] text-white hover:bg-[var(--color-m3-primary-light)]`;
+// Compact chip variant for the 3-button select-mode toolbar (全选/删除/取消), matching
+// the pill chrome of headerBtnSolid* so both toolbar states read as the same button language.
+const headerBtnChip = 'flex items-center gap-1 text-xs font-semibold px-2.5 py-[7px] rounded-md active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100';
+const headerBtnChipNeutral = `${headerBtnChip} bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]`;
+const headerBtnChipDanger = `${headerBtnChip} bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40`;
 const numInput = 'w-16 h-8 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 interface HistoryProps {
@@ -145,20 +149,20 @@ const History: React.FC<HistoryProps> = ({
                     </p>
                 </div>
                 {selectMode ? (
-                    <div className="flex items-center gap-1 -mr-2">
-                        <button onClick={toggleSelectAll} className={`${headerBtn} ${muted}`}>
-                            <ListChecks size={15} strokeWidth={1.5} />
+                    <div className="flex items-center gap-1.5 -mr-1">
+                        <button onClick={toggleSelectAll} className={headerBtnChipNeutral}>
+                            <ListChecks size={14} strokeWidth={1.5} />
                             <span>{t('timeline.select_all')}</span>
                         </button>
                         <button
                             onClick={handleDeleteSelected}
                             disabled={!selectedIds.size}
-                            className={`${headerBtn} text-red-500 dark:text-red-400 disabled:opacity-40`}
+                            className={headerBtnChipDanger}
                         >
-                            <Trash2 size={15} strokeWidth={1.5} />
+                            <Trash2 size={14} strokeWidth={1.5} />
                             <span>{t('btn.delete')}{selectedIds.size ? ` (${selectedIds.size})` : ''}</span>
                         </button>
-                        <button onClick={exitSelectMode} className={`${headerBtn} ${muted}`}>
+                        <button onClick={exitSelectMode} className={headerBtnChipNeutral}>
                             <span>{t('btn.cancel')}</span>
                         </button>
                     </div>
