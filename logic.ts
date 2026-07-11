@@ -223,6 +223,46 @@ export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() /
     return hit ? { kind: hit.kind } : null;
 }
 
+// --- Combined hormone-level advisory (measured labs, not the modelled curve) ---
+//
+// Unlike getDoseAdvisory (which looks at logged doses), this looks at the
+// person's actual lab results. Estradiol and testosterone are usually tracked
+// together (many people check both to confirm suppression alongside
+// replacement), and both landing low — or both landing high — at once is an
+// unusual combination worth a second look, distinct from either hormone being
+// off on its own. Thresholds reuse the same bands as the Home status chips.
+const HORMONE_LEVEL_THRESHOLDS = {
+    e2LowPgMl: 30,   // below follicular-phase range
+    e2HighPgMl: 300, // Home status chip's "high" cutoff
+    tLowNgDl: 50,    // well within the typical feminizing-suppression target
+    tHighNgDl: 300,  // adult male reference range lower bound
+} as const;
+
+export interface HormoneLevelAdvisory {
+    kind: 'both_low' | 'both_high';
+}
+
+/**
+ * Compares the most recent estradiol lab against the most recent testosterone
+ * lab (independently latest per hormone) and flags when both are low or both
+ * are high at once. Requires at least one lab of each hormone. Not medical advice.
+ */
+export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvisory | null {
+    const e2Labs = results.filter(r => !isT_LabUnit(r.unit));
+    const tLabs = results.filter(r => isT_LabUnit(r.unit));
+    if (!e2Labs.length || !tLabs.length) return null;
+
+    const latestE2 = e2Labs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
+    const latestT = tLabs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
+    const e2 = convertToPgMl(latestE2.concValue, latestE2.unit);
+    const t = convertToNgDl(latestT.concValue, latestT.unit);
+
+    const { e2LowPgMl, e2HighPgMl, tLowNgDl, tHighNgDl } = HORMONE_LEVEL_THRESHOLDS;
+    if (e2 < e2LowPgMl && t < tLowNgDl) return { kind: 'both_low' };
+    if (e2 > e2HighPgMl && t > tHighNgDl) return { kind: 'both_high' };
+    return null;
+}
+
 /**
  * How lab results are used to calibrate the E2 estimate.
  *  - 'off'      : ignore labs, show the raw model.

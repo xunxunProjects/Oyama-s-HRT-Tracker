@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, isT_LabUnit } from '../../logic';
+import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
@@ -51,6 +51,7 @@ const Home: React.FC<HomeProps> = ({
     // Warn on how much medication was actually logged (a hard fact), and nudge
     // toward calibration when there's no lab yet to anchor the estimate.
     const doseAdvisory = React.useMemo(() => getDoseAdvisory(events), [events]);
+    const hormoneAdvisory = React.useMemo(() => getHormoneLevelAdvisory(labResults), [labResults]);
     const hasLabForMode = labResults.some(l => (isTransmasc ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit)));
     const showCalibrate = events.length > 0 && !hasLabForMode;
 
@@ -151,7 +152,7 @@ const Home: React.FC<HomeProps> = ({
                 </div>
 
                 <div className="mt-2">
-                    <DoseAdvisoryNotice advisory={doseAdvisory} showCalibrate={showCalibrate} onCalibrate={onNavigateToLab} t={t} />
+                    <DoseAdvisoryNotice advisory={doseAdvisory} hormoneAdvisory={hormoneAdvisory} showCalibrate={showCalibrate} onCalibrate={onNavigateToLab} t={t} />
                 </div>
                 </div>
             </header>
