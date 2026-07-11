@@ -16,10 +16,10 @@ const MAX_BATCH_COUNT = 365;
 
 const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const headerBtn = 'flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]';
 const headerBtnSolid = 'flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-md active:scale-[0.97] transition-transform';
 const headerBtnSolidNeutral = `${headerBtnSolid} bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]`;
 const headerBtnSolidPrimary = `${headerBtnSolid} bg-[var(--color-m3-primary)] text-white hover:bg-[var(--color-m3-primary-light)]`;
+const headerBtnSolidDanger = `${headerBtnSolid} bg-red-500 text-white hover:bg-red-600 disabled:opacity-40 disabled:active:scale-100`;
 const numInput = 'w-16 h-8 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 interface HistoryProps {
@@ -135,47 +135,50 @@ const History: React.FC<HistoryProps> = ({
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-start justify-between max-w-2xl">
-                <div>
-                    <h1 className={`text-xl font-semibold ${on}`}>
-                        {t('timeline.title')}
-                    </h1>
-                    <p className={`text-sm ${muted} mt-0.5`}>
-                        {totalRecords} {t('timeline.records')}
-                    </p>
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 max-w-2xl">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className={`text-xl font-semibold ${on}`}>
+                            {t('timeline.title')}
+                        </h1>
+                        <p className={`text-sm ${muted} mt-0.5`}>
+                            {totalRecords} {t('timeline.records')}
+                        </p>
+                    </div>
+                    {!selectMode && (
+                        <div className="flex items-center gap-2 -mr-1">
+                            {totalRecords > 0 && (
+                                <button onClick={enterSelectMode} className={headerBtnSolidNeutral}>
+                                    <ListChecks size={15} strokeWidth={1.5} />
+                                    <span>{t('timeline.select')}</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                                className={headerBtnSolidPrimary}
+                            >
+                                <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
+                                <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
-                {selectMode ? (
-                    <div className="flex items-center gap-1 -mr-2">
-                        <button onClick={toggleSelectAll} className={`${headerBtn} ${muted}`}>
+                {selectMode && (
+                    <div className="flex items-center flex-wrap gap-2 mt-3 -mr-1 justify-end">
+                        <button onClick={toggleSelectAll} className={headerBtnSolidNeutral}>
                             <ListChecks size={15} strokeWidth={1.5} />
                             <span>{t('timeline.select_all')}</span>
                         </button>
                         <button
                             onClick={handleDeleteSelected}
                             disabled={!selectedIds.size}
-                            className={`${headerBtn} text-red-500 dark:text-red-400 disabled:opacity-40`}
+                            className={headerBtnSolidDanger}
                         >
                             <Trash2 size={15} strokeWidth={1.5} />
                             <span>{t('btn.delete')}{selectedIds.size ? ` (${selectedIds.size})` : ''}</span>
                         </button>
-                        <button onClick={exitSelectMode} className={`${headerBtn} ${muted}`}>
+                        <button onClick={exitSelectMode} className={headerBtnSolidNeutral}>
                             <span>{t('btn.cancel')}</span>
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 -mr-1">
-                        {totalRecords > 0 && (
-                            <button onClick={enterSelectMode} className={headerBtnSolidNeutral}>
-                                <ListChecks size={15} strokeWidth={1.5} />
-                                <span>{t('timeline.select')}</span>
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                            className={headerBtnSolidPrimary}
-                        >
-                            <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
-                            <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
                         </button>
                     </div>
                 )}
@@ -253,7 +256,7 @@ const History: React.FC<HistoryProps> = ({
             <div className="px-6 md:px-8 max-w-2xl">
                 {Object.entries(groupedEvents).map(([date, items]) => (
                     <div key={date} className="mb-6 last:mb-0">
-                        <div className="sticky top-[94px] z-10 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] py-2">
+                        <div className={`sticky z-10 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] py-2 ${selectMode ? 'top-[146px]' : 'top-[94px]'}`}>
                             <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{date}</span>
                         </div>
                         <div>
