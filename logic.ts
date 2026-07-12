@@ -1451,9 +1451,15 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
         nowH + 24
     );
-    // Adaptive step count: at least 1 point per hour, minimum 2000, capped at 5000
+    // Adaptive step count: at least 1 point per hour, minimum 2000. The cap only
+    // guards against a pathological/malformed event time (e.g. a bad timestamp
+    // decades away) blowing up memory — at realistic usage spans (even several
+    // years of history) it must stay well above the "1 point per hour" floor,
+    // otherwise the grid gets diluted across the whole history-to-now range and
+    // the curve visibly facets (straight-line segments, no smoothing) even when
+    // zoomed into a recent window. See ResultChart's linePath().
     const totalHours = endTime - startTime;
-    const steps = Math.min(5000, Math.max(2000, Math.ceil(totalHours)));
+    const steps = Math.min(100000, Math.max(2000, Math.ceil(totalHours)));
 
     // Different Vd for E2, CPA and T
     const plasmaVolumeML_E2 = CorePK.vdPerKG * bodyWeightKG * 1000; // E2: ~2.0 L/kg

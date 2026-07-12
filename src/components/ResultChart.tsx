@@ -243,17 +243,71 @@ const ResultChart = ({
     const YP = (v: number) => mT + plotH - ((v - yPrimary[0]) / (yPrimary[1] - yPrimary[0])) * plotH;
     const YS = (v: number) => mT + plotH - ((v - ySecondary[0]) / (ySecondary[1] - ySecondary[0])) * plotH;
 
+    // Monotone cubic Hermite interpolation (Fritsch–Carlson), the same curve
+    // family as d3's curveMonotoneX: smoothly connects the sample points
+    // without ever overshooting past a local min/max, so a peak never renders
+    // higher than the data and a trough never dips below it. Straight `L`
+    // segments would always look faceted at the scale a PK curve is viewed at,
+    // no matter how dense the underlying simulation grid is.
+    const monotonePath = (xs: number[], ys: number[]): string => {
+        const n = xs.length;
+        if (n === 0) return '';
+        if (n === 1) return `M${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+
+        const d: number[] = [];
+        for (let i = 0; i < n - 1; i++) {
+            const h = xs[i + 1] - xs[i];
+            d.push(h !== 0 ? (ys[i + 1] - ys[i]) / h : 0);
+        }
+
+        const m: number[] = new Array(n);
+        m[0] = d[0];
+        m[n - 1] = d[n - 2];
+        for (let i = 1; i < n - 1; i++) {
+            m[i] = (d[i - 1] === 0 || d[i] === 0 || (d[i - 1] < 0) !== (d[i] < 0))
+                ? 0
+                : (d[i - 1] + d[i]) / 2;
+        }
+        for (let i = 0; i < n - 1; i++) {
+            if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+            const a = m[i] / d[i];
+            const b = m[i + 1] / d[i];
+            const s = a * a + b * b;
+            if (s > 9) {
+                const t = 3 / Math.sqrt(s);
+                m[i] *= t;
+                m[i + 1] *= t;
+            }
+        }
+
+        let out = `M${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+        for (let i = 0; i < n - 1; i++) {
+            const dx = (xs[i + 1] - xs[i]) / 3;
+            const c1x = xs[i] + dx;
+            const c1y = ys[i] + m[i] * dx;
+            const c2x = xs[i + 1] - dx;
+            const c2y = ys[i + 1] - m[i + 1] * dx;
+            out += `C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${xs[i + 1].toFixed(1)} ${ys[i + 1].toFixed(1)}`;
+        }
+        return out;
+    };
+
     const linePath = (key: 'p' | 's') => {
         let d = '';
-        let started = false;
+        let xs: number[] = [];
+        let ys: number[] = [];
+        const flush = () => {
+            if (xs.length) d += monotonePath(xs, ys);
+            xs = [];
+            ys = [];
+        };
         for (const pt of slice) {
             const val = key === 'p' ? pt.p : pt.s;
-            if (val == null || !Number.isFinite(val)) { started = false; continue; }
-            const x = X(pt.t).toFixed(1);
-            const y = (key === 'p' ? YP(val) : YS(val)).toFixed(1);
-            d += `${started ? 'L' : 'M'}${x} ${y}`;
-            started = true;
+            if (val == null || !Number.isFinite(val)) { flush(); continue; }
+            xs.push(X(pt.t));
+            ys.push(key === 'p' ? YP(val) : YS(val));
         }
+        flush();
         return d;
     };
 

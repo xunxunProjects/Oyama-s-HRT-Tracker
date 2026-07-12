@@ -73,7 +73,7 @@ const Lab: React.FC<LabProps> = ({
                 </h1>
                 <button
                     onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] px-4 py-2.5 -mr-1 rounded-md active:scale-[0.97] transition-transform"
+                    className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] px-2 py-1 -mr-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
                 >
                     <Plus size={15} className={`transition-transform ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
                     <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>

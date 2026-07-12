@@ -17,9 +17,6 @@ const MAX_BATCH_COUNT = 365;
 const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
 const headerBtn = 'flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]';
-const headerBtnSolid = 'flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-md active:scale-[0.97] transition-transform';
-const headerBtnSolidNeutral = `${headerBtnSolid} bg-[var(--color-m3-surface-container-high)] dark:bg-[var(--color-m3-dark-surface-container-high)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-highest)] dark:hover:bg-[var(--color-m3-dark-surface-container-highest)]`;
-const headerBtnSolidPrimary = `${headerBtnSolid} bg-[var(--color-m3-primary)] text-white hover:bg-[var(--color-m3-primary-light)]`;
 const numInput = 'w-16 h-8 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 interface HistoryProps {
@@ -135,7 +132,7 @@ const History: React.FC<HistoryProps> = ({
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-start justify-between max-w-2xl">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center justify-between max-w-2xl">
                 <div>
                     <h1 className={`text-xl font-semibold ${on}`}>
                         {t('timeline.title')}
@@ -163,16 +160,16 @@ const History: React.FC<HistoryProps> = ({
                         </button>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 -mr-1">
+                    <div className="flex items-center gap-1 -mr-2">
                         {totalRecords > 0 && (
-                            <button onClick={enterSelectMode} className={headerBtnSolidNeutral}>
+                            <button onClick={enterSelectMode} className={`${headerBtn} ${muted}`}>
                                 <ListChecks size={15} strokeWidth={1.5} />
                                 <span>{t('timeline.select')}</span>
                             </button>
                         )}
                         <button
                             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                            className={headerBtnSolidPrimary}
+                            className={`${headerBtn} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
                         >
                             <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
                             <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
