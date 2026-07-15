@@ -226,6 +226,8 @@ const History: React.FC<HistoryProps> = ({
                             </div>
                         )}
                         <DoseForm
+                            // Force remount on open so the default date resets to "now" (this row never unmounts, only collapses via CSS).
+                            key={isQuickAddOpen ? 'open' : 'closed'}
                             eventToEdit={null}
                             onSave={handleQuickSave}
                             onCancel={() => setIsQuickAddOpen(false)}
