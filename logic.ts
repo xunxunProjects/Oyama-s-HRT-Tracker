@@ -1496,17 +1496,38 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     const eventTimes = sortedEvents.map(e => e.timeH);
     const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes])).sort((a, b) => a - b);
 
+    // `precomputed` and `allTimes` are both sorted ascending by time, so which
+    // events can contribute at a given t forms a sliding window: events
+    // activate (once) as t reaches their startTimeH and drop out (once) once
+    // their contribution has decayed past maxLifetimeH. Tracking that window
+    // instead of rescanning the full event list at every grid point turns the
+    // hot loop from O(steps × events) into O(steps × concurrently-active
+    // events) — the same result, since a dropped event's amount() is 0 at t
+    // anyway, just without visiting every historical event to find that out.
+    let activateIdx = 0;
+    const active: typeof precomputed = [];
+
     for (let i = 0; i < allTimes.length; i++) {
         const t = allTimes[i];
+
+        while (activateIdx < precomputed.length && precomputed[activateIdx].startTimeH <= t) {
+            active.push(precomputed[activateIdx]);
+            activateIdx++;
+        }
+        for (let j = 0; j < active.length;) {
+            if (t - active[j].startTimeH > active[j].maxLifetimeH) {
+                active[j] = active[active.length - 1];
+                active.pop();
+            } else {
+                j++;
+            }
+        }
+
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
         let totalAmountMG_T = 0;
 
-        for (const { model, ester, startTimeH, maxLifetimeH } of precomputed) {
-            // Skip events that haven't started yet or whose contribution has decayed to negligible
-            const tau = t - startTimeH;
-            if (tau < 0 || tau > maxLifetimeH) continue;
-
+        for (const { model, ester } of active) {
             const amount = model.amount(t);
             if (ester === Ester.CPA) {
                 totalAmountMG_CPA += amount;

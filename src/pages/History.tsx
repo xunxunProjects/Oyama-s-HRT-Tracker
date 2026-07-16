@@ -324,26 +324,32 @@ const History: React.FC<HistoryProps> = ({
 
                                     <div className={`grid ${isEditing && !selectMode ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                                         <div className="overflow-hidden">
-                                            <div className="pb-4 pt-1">
-                                                <DoseForm
-                                                    eventToEdit={ev}
-                                                    onSave={(e) => {
-                                                        onSaveEvent(e);
-                                                        setEditingId(null);
-                                                    }}
-                                                    onCancel={() => setEditingId(null)}
-                                                    onDelete={(id) => {
-                                                        onDeleteEvent(id);
-                                                        setEditingId(null);
-                                                    }}
-                                                    templates={doseTemplates}
-                                                    onSaveTemplate={onSaveTemplate}
-                                                    onDeleteTemplate={onDeleteTemplate}
-                                                    isInline={true}
-                                                    hideHeader={true}
-                                                    events={allEvents}
-                                                />
-                                            </div>
+                                            {/* Mounted only for the row being edited — with hundreds of
+                                                records, keeping every row's form mounted (even collapsed
+                                                to zero height) made every dose add/edit re-render all of
+                                                them at once. */}
+                                            {isEditing && !selectMode && (
+                                                <div className="pb-4 pt-1">
+                                                    <DoseForm
+                                                        eventToEdit={ev}
+                                                        onSave={(e) => {
+                                                            onSaveEvent(e);
+                                                            setEditingId(null);
+                                                        }}
+                                                        onCancel={() => setEditingId(null)}
+                                                        onDelete={(id) => {
+                                                            onDeleteEvent(id);
+                                                            setEditingId(null);
+                                                        }}
+                                                        templates={doseTemplates}
+                                                        onSaveTemplate={onSaveTemplate}
+                                                        onDeleteTemplate={onDeleteTemplate}
+                                                        isInline={true}
+                                                        hideHeader={true}
+                                                        events={allEvents}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

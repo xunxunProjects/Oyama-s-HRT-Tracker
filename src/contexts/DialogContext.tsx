@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from './LanguageContext';
 
 type DialogType = 'alert' | 'confirm';
@@ -29,13 +29,17 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         setIsOpen(true);
     }, []);
 
+    // Stable reference so opening/closing the dialog doesn't re-render every
+    // consumer of useDialog() across the app (showDialog itself never changes).
+    const contextValue = useMemo(() => ({ showDialog }), [showDialog]);
+
     const handleConfirm = () => {
         if (onConfirm) onConfirm();
         setIsOpen(false);
     };
 
     return (
-        <DialogContext.Provider value={{ showDialog }}>
+        <DialogContext.Provider value={contextValue}>
             {children}
             {isOpen && (
                 <div className="modal-overlay z-[100]">

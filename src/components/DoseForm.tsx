@@ -321,6 +321,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     }, [bioMultiplier, ester, route]);
 
     const [isSaving, setIsSaving] = useState(false);
+    const isSavingRef = useRef(false);
 
     const handleSaveAsTemplate = () => {
         if (!templateName.trim()) {
@@ -364,6 +365,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         setRoute(template.route);
         setEster(template.ester);
         setRawDose(template.doseMG.toFixed(3));
+        // Templates store the raw-ester dose, so mark the raw field as the
+        // source of truth — otherwise handleSave would re-derive the dose from
+        // the rounded E2-equivalent string and drift it (12.5 → 12.499934).
+        setLastEditedField(template.ester === Ester.E2 ? 'bio' : 'raw');
 
         const factor = getToE2Factor(template.ester) || 1;
         const e2Val = template.doseMG * factor;
@@ -400,8 +405,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     };
 
     const handleSave = () => {
-        if (isSaving) return;
+        // Ref latch, not state: setIsSaving(true/false) within one synchronous
+        // handler nets out to no visible change, so the disabled prop never
+        // engaged and a double-click/double-tap could add the dose twice
+        // (each click mints a fresh uuid in add mode).
+        if (isSavingRef.current) return;
+        isSavingRef.current = true;
         setIsSaving(true);
+        const failSave = (msg: string) => {
+            showDialog('alert', msg);
+            isSavingRef.current = false;
+            setIsSaving(false);
+        };
         let timeH = new Date(dateStr).getTime() / 3600000;
         if (isNaN(timeH)) {
             timeH = new Date().getTime() / 3600000;
@@ -409,14 +424,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
         let e2Equivalent = parseFloat(e2Dose);
         if (isNaN(e2Equivalent)) e2Equivalent = 0;
-
-        if (ester === Ester.EV && (route === Route.injection || route === Route.sublingual || route === Route.oral)) {
-            const rawVal = parseFloat(rawDose);
-            if (Number.isFinite(rawVal)) {
-                const factor = getToE2Factor(ester) || 1;
-                e2Equivalent = rawVal * factor;
-            }
-        }
         let finalDose = 0;
 
         const extras: any = {};
@@ -424,8 +431,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
         if (route === Route.sublingual && useCustomTheta) {
             if (!Number.isFinite(customHoldValue) || customHoldValue < 1) {
-                showDialog('alert', t('error.slHoldMinOne'));
-                setIsSaving(false);
+                failSave(t('error.slHoldMinOne'));
                 return;
             }
         }
@@ -433,8 +439,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (route === Route.patchApply && patchMode === "rate") {
             const rateVal = parseFloat(patchRate);
             if (!Number.isFinite(rateVal) || rateVal <= 0) {
-                showDialog('alert', nonPositiveMsg);
-                setIsSaving(false);
+                failSave(nonPositiveMsg);
                 return;
             }
             finalDose = 0;
@@ -442,19 +447,30 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         } else if (route === Route.patchApply && patchMode === "dose") {
             const raw = parseFloat(rawDose);
             if (!rawDose || rawDose.trim() === '' || !Number.isFinite(raw) || raw <= 0) {
-                showDialog('alert', nonPositiveMsg);
-                setIsSaving(false);
+                failSave(nonPositiveMsg);
                 return;
             }
             finalDose = raw;
         } else if (route !== Route.patchRemove) {
-            if (!e2Dose || e2Dose.trim() === '' || !Number.isFinite(e2Equivalent) || e2Equivalent <= 0) {
-                showDialog('alert', nonPositiveMsg);
-                setIsSaving(false);
-                return;
+            const rawVal = parseFloat(rawDose);
+            if (ester !== Ester.E2 && lastEditedField === 'raw') {
+                // doseMG is stored in raw-ester mg, and the raw field is what the
+                // user typed (or a template/quick-dose filled). Use it directly:
+                // round-tripping through the E2-equivalent string loses precision
+                // to its toFixed(3) — e.g. 12.5 mg CPA saved as 12.499934.
+                if (!rawDose || rawDose.trim() === '' || !Number.isFinite(rawVal) || rawVal <= 0) {
+                    failSave(nonPositiveMsg);
+                    return;
+                }
+                finalDose = rawVal;
+            } else {
+                if (!e2Dose || e2Dose.trim() === '' || !Number.isFinite(e2Equivalent) || e2Equivalent <= 0) {
+                    failSave(nonPositiveMsg);
+                    return;
+                }
+                const factor = getToE2Factor(ester) || 1;
+                finalDose = (ester === Ester.E2) ? e2Equivalent : e2Equivalent / factor;
             }
-            const factor = getToE2Factor(ester) || 1;
-            finalDose = (ester === Ester.E2) ? e2Equivalent : e2Equivalent / factor;
         }
 
         if (route === Route.sublingual && slExtras) {
@@ -484,7 +500,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         };
 
         onSave(newEvent);
-        setIsSaving(false);
+        // Every current mount point unmounts this form after a successful save;
+        // the delayed re-arm is a safety net for any future persistent mount,
+        // while still swallowing the double-click window.
+        window.setTimeout(() => {
+            isSavingRef.current = false;
+            setIsSaving(false);
+        }, 800);
     };
 
     const availableEsters = useMemo(() => {
