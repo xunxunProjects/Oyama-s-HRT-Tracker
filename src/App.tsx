@@ -470,7 +470,7 @@ const AppContent = () => {
 
                 {/* Mobile site label — static, takes its own space above the content */}
                 <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[11px] font-medium tracking-wide text-muted select-none">
-                    hrt.mahiro.uk
+                    HRT.zikin.net
                 </div>
 
                 <div

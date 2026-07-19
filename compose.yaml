@@ -1,18 +1,12 @@
 services:
   hrt-tracker:
-    build:
-      context: .
-    image: oyama-hrt-tracker:local
+    image: ghcr.io/zikinn/oyama-s-hrt-tracker-docker:latest
+    container_name: hrt-tracker
     init: true
     restart: unless-stopped
     ports:
-      - "${HRT_TRACKER_PORT:-3000}:8787"
-    environment:
-      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env to a random value of at least 32 characters}"
-      ADMIN_USERNAME: "${ADMIN_USERNAME:-}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      - "8787:8787"
+    env_file:
+      - .env
     volumes:
-      - hrt-tracker-data:/data
-
-volumes:
-  hrt-tracker-data:
+      - /data:/data
