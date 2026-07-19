@@ -8,6 +8,7 @@
 !.env.docker.example
 node_modules
 dist
+data
 src-tauri
 logs
 *.log

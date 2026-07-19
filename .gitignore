@@ -33,6 +33,7 @@ src-tauri/target/release
 .env
 .env.*
 !.env.docker.example
+data/
 
 # Test Data
 test_data_*.json
