@@ -726,7 +726,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         onConfirm={(date) => {
                             const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                             setDateStr(iso);
-                            setIsDatePickerOpen(false);
                         }}
                         initialDate={dateStr ? new Date(dateStr) : new Date()}
                         mode="datetime"
