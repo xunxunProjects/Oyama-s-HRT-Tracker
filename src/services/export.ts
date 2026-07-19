@@ -1,6 +1,6 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { DoseEvent, LabResult, Route, Ester, isTestosteroneEster, isT_LabUnit } from '../../logic';
+import { jsPDF } from 'jspdf';
+import { autoTable } from 'jspdf-autotable';
+import { DoseEvent, LabResult, Ester, isTestosteroneEster, isT_LabUnit } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
 
@@ -56,7 +56,16 @@ export const exportToCSV = (data: ExportData): string => {
     return rows.map(r => r.join(',')).join('\n');
 };
 
-export const exportToPDF = (data: ExportData) => {
+const sortByDateDescending = <T extends { timeH: number }>(items: T[]): T[] =>
+    items
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => b.item.timeH - a.item.timeH || a.index - b.index)
+        .map(({ item }) => item);
+
+export const getLabTestLabel = (labResult: LabResult): 'E2' | 'T' =>
+    isT_LabUnit(labResult.unit) ? 'T' : 'E2';
+
+export const buildPDFDocument = (data: ExportData, generatedAt = new Date()) => {
     const { events, labResults } = data;
     // Force English for PDF to avoid font issues with non-Latin characters
     const safeLang = 'en';
@@ -68,13 +77,13 @@ export const exportToPDF = (data: ExportData) => {
     doc.setFontSize(18);
     doc.text(tSafe('export.pdf.title'), 14, 22);
     doc.setFontSize(11);
-    doc.text(`${tSafe('export.pdf.generated_on')} ${new Date().toLocaleDateString('en-US')}`, 14, 30);
+    doc.text(`${tSafe('export.pdf.generated_on')} ${generatedAt.toLocaleDateString('en-US')}`, 14, 30);
 
     // --- Events Table ---
     doc.setFontSize(14);
     doc.text(tSafe('export.pdf.history'), 14, 45);
 
-    const eventRows = events.map(e => [
+    const eventRows = sortByDateDescending(events).map(e => [
         formatDate(new Date(e.timeH * 3600000), safeLang as Lang),
         `${e.doseMG} mg`,
         e.route,
@@ -96,14 +105,22 @@ export const exportToPDF = (data: ExportData) => {
 
     const labRows = labResults.map(l => [
         formatDate(new Date(l.timeH * 3600000), safeLang as Lang),
+        getLabTestLabel(l),
         `${l.concValue} ${l.unit}`
     ]);
 
     autoTable(doc, {
         startY: finalY + 20,
-        head: [['Date', 'Level']],
+        head: [['Date', 'Test', 'Level']],
         body: labRows,
     });
 
-    doc.save(`hrt-report-${new Date().toISOString().split('T')[0]}.pdf`);
+    return doc;
+};
+
+export const exportToPDF = (data: ExportData) => {
+    const generatedAt = new Date();
+    const doc = buildPDFDocument(data, generatedAt);
+
+    doc.save(`hrt-report-${generatedAt.toISOString().split('T')[0]}.pdf`);
 };
