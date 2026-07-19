@@ -1,0 +1,12 @@
+services:
+  hrt-tracker:
+    image: ghcr.io/zikinn/oyama-s-hrt-tracker-docker:latest
+    container_name: hrt-tracker
+    init: true
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data

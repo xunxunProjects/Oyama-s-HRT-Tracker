@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, ChevronDown, Check, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarDays, Clock3 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
 
@@ -14,6 +14,8 @@ interface DateTimePickerProps {
     inline?: boolean;
 }
 
+type DatePart = 'year' | 'month' | 'day' | 'hour' | 'minute';
+
 const DateTimePicker: React.FC<DateTimePickerProps> = ({
     isOpen,
     onClose,
@@ -21,289 +23,239 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     initialDate,
     mode = 'datetime',
     title,
-    inline = false
+    inline = false,
 }) => {
     const { t } = useTranslation();
     useEscape(onClose, isOpen);
+
     const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
-    const [view, setView] = useState<'date' | 'time'>(mode === 'time' ? 'time' : 'date');
-    const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({});
     const containerRef = useRef<HTMLDivElement>(null);
     const anchorRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({});
-    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-    const [openTimeSelect, setOpenTimeSelect] = useState<'hour' | 'minute' | null>(null);
 
     useEffect(() => {
-        if (typeof document !== 'undefined') {
-            setPortalTarget(document.body);
-        }
+        if (typeof document !== 'undefined') setPortalTarget(document.body);
     }, []);
 
-    useLayoutEffect(() => {
-        if (isOpen && anchorRef.current) {
-            const updatePosition = () => {
-                const isMobile = window.innerWidth < 768;
-                if (isMobile) {
-                    setPositionStyle({});
-                    return;
-                }
-                setPositionStyle({
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 360,
-                });
-            };
-            updatePosition();
-            window.addEventListener('resize', updatePosition);
-            window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
-            return () => {
-                window.removeEventListener('resize', updatePosition);
-                window.removeEventListener('scroll', updatePosition, { capture: true });
-            };
-        }
-    }, [isOpen, onClose]);
-
     useEffect(() => {
-        if (isOpen) {
-            const d = initialDate ? new Date(initialDate) : new Date();
-            setSelectedDate(d);
-            setCurrentMonth(d);
-            setView(mode === 'time' ? 'time' : 'date');
-        }
-    }, [isOpen, initialDate, mode]);
+        if (!isOpen) return;
+        const candidate = initialDate ? new Date(initialDate) : new Date();
+        setSelectedDate(Number.isNaN(candidate.getTime()) ? new Date() : candidate);
+    }, [isOpen, initialDate]);
 
-    if (!isOpen) return inline ? null : <div ref={anchorRef} className="hidden" />;
+    useLayoutEffect(() => {
+        if (!isOpen || inline) return;
 
-    // Fallback: If portal target is not ready yet, return anchor to prevent crash
-    if (!inline && !portalTarget) return <div ref={anchorRef} className="hidden" />;
+        const updatePosition = () => {
+            if (window.innerWidth < 768) {
+                setPositionStyle({});
+                return;
+            }
+            setPositionStyle({
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 440,
+            });
+        };
 
-    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        return () => window.removeEventListener('resize', updatePosition);
+    }, [isOpen, inline]);
 
-    const renderCalendar = () => {
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const daysInMonth = getDaysInMonth(year, month);
-        const firstDay = getFirstDayOfMonth(year, month);
-        const days = [];
+    const currentYear = new Date().getFullYear();
+    const years = useMemo(() => {
+        const first = Math.min(1900, selectedDate.getFullYear());
+        const last = Math.max(currentYear + 10, selectedDate.getFullYear());
+        return Array.from({ length: last - first + 1 }, (_, index) => first + index);
+    }, [currentYear, selectedDate]);
 
-        for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="h-9 w-9" />);
-        }
+    const months = useMemo(() => (
+        Array.from({ length: 12 }, (_, month) => ({
+            value: month,
+            label: new Date(2020, month, 1).toLocaleDateString(undefined, { month: 'long' }),
+        }))
+    ), []);
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const date = new Date(year, month, d);
-            const isSelected =
-                date.getDate() === selectedDate.getDate() &&
-                date.getMonth() === selectedDate.getMonth() &&
-                date.getFullYear() === selectedDate.getFullYear();
+    const daysInSelectedMonth = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth() + 1,
+        0,
+    ).getDate();
 
-            const isToday =
-                d === new Date().getDate() &&
-                month === new Date().getMonth() &&
-                year === new Date().getFullYear();
+    const days = Array.from({ length: daysInSelectedMonth }, (_, index) => index + 1);
+    const hours = Array.from({ length: 24 }, (_, index) => index);
+    const minutes = Array.from({ length: 60 }, (_, index) => index);
 
-            days.push(
-                <button
-                    key={d}
-                    onClick={() => {
-                        const newDate = new Date(selectedDate);
-                        newDate.setFullYear(year);
-                        newDate.setMonth(month);
-                        newDate.setDate(d);
-                        setSelectedDate(newDate);
-                        if (mode === 'datetime') {
-                            setView('time');
-                        }
-                    }}
-                    className={`h-9 w-9 flex items-center justify-center rounded-full text-sm tabular-nums
-                        ${isSelected
-                            ? 'bg-[var(--color-m3-primary)] text-white font-medium'
-                            : isToday
-                                ? 'text-[var(--color-m3-primary)] font-semibold ring-1 ring-inset ring-[var(--color-m3-primary)]/40'
-                                : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
-                        }
-                    `}
-                >
-                    {d}
-                </button>
-            );
-        }
-        return days;
+    const setPart = (part: DatePart, value: number) => {
+        setSelectedDate(previous => {
+            const next = new Date(previous);
+
+            if (part === 'year' || part === 'month') {
+                const originalDay = next.getDate();
+                next.setDate(1);
+                if (part === 'year') next.setFullYear(value);
+                else next.setMonth(value);
+                const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+                next.setDate(Math.min(originalDay, maxDay));
+            } else if (part === 'day') {
+                next.setDate(value);
+            } else if (part === 'hour') {
+                next.setHours(value);
+            } else {
+                next.setMinutes(value);
+            }
+
+            next.setSeconds(0, 0);
+            return next;
+        });
     };
 
-    const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
-    const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    const selectClass = 'w-full min-h-11 rounded-lg border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-white dark:bg-neutral-900 px-2.5 py-2 text-sm tabular-nums text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-primary)] focus:ring-1 focus:ring-[var(--color-m3-primary)]/20';
+    const labelClass = 'block mb-1.5 text-xs font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const minutes = Array.from({ length: 60 }, (_, i) => i);
-
-    const inner = (
-        <>
-                        <div className="pt-5 px-5 pb-3 flex items-center gap-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                            {mode !== 'time' && (
-                                <button
-                                    onClick={() => setView('date')}
-                                    className={`text-lg tracking-tight pb-1 border-b-2 -mb-[13px] ${view === 'date' ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]' : 'font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'}`}
-                                >
-                                    {selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                </button>
-                            )}
-                            {mode !== 'date' && (
-                                <button
-                                    onClick={() => setView('time')}
-                                    className={`text-lg tabular-nums tracking-tight pb-1 border-b-2 -mb-[13px] ${view === 'time' ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]' : 'font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'}`}
-                                >
-                                    {selectedDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="p-4 px-5">
-                            {view === 'date' && (
-                                <div className="h-full flex flex-col">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <button onClick={prevMonth} className="p-2 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-lg text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                            <ChevronLeft size={18} />
-                                        </button>
-                                        <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">
-                                            {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                                        </span>
-                                        <button onClick={nextMonth} className="p-2 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-lg text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                            <ChevronRight size={18} />
-                                        </button>
-                                    </div>
-
-                                    <div className="grid grid-cols-7 mb-1 text-center">
-                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                                            <span key={i} className="text-[11px] font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] w-9 block mx-auto">{d}</span>
-                                        ))}
-                                    </div>
-
-                                    <div className="grid grid-cols-7 gap-y-1 justify-items-center mt-1">
-                                        {renderCalendar()}
-                                    </div>
-                                </div>
-                            )}
-
-                            {view === 'time' && (
-                                <div className="h-[16rem] relative">
-                                    {/* Selection Row */}
-                                    <div className="flex items-center justify-center gap-2 h-full">
-                                        {/* Hour Button */}
-                                        <button
-                                            onClick={() => setOpenTimeSelect(openTimeSelect === 'hour' ? null : 'hour')}
-                                            className={`text-5xl tabular-nums font-light w-24 text-center pb-1 border-b-2 ${
-                                                openTimeSelect === 'hour'
-                                                    ? 'text-[var(--color-m3-primary)] border-[var(--color-m3-primary)]'
-                                                    : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-transparent hover:border-[var(--color-m3-outline-variant)] dark:hover:border-[var(--color-m3-dark-outline-variant)]'
-                                            }`}
-                                        >
-                                            {selectedDate.getHours().toString().padStart(2, '0')}
-                                        </button>
-
-                                        <span className="text-4xl font-light text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pb-2">:</span>
-
-                                        {/* Minute Button */}
-                                        <button
-                                            onClick={() => setOpenTimeSelect(openTimeSelect === 'minute' ? null : 'minute')}
-                                            className={`text-5xl tabular-nums font-light w-24 text-center pb-1 border-b-2 ${
-                                                openTimeSelect === 'minute'
-                                                    ? 'text-[var(--color-m3-primary)] border-[var(--color-m3-primary)]'
-                                                    : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-transparent hover:border-[var(--color-m3-outline-variant)] dark:hover:border-[var(--color-m3-dark-outline-variant)]'
-                                            }`}
-                                        >
-                                            {selectedDate.getMinutes().toString().padStart(2, '0')}
-                                        </button>
-                                    </div>
-
-                                    {/* Overlays for Dropdown Options */}
-                                    {openTimeSelect && (
-                                        <div className="absolute inset-0 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] z-10 flex flex-col">
-                                            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                                                <span className="text-sm font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                                    {openTimeSelect === 'hour' ? (t('time.select_hour') || 'Select Hour') : (t('time.select_minute') || 'Select Minute')}
-                                                </span>
-                                                <button onClick={() => setOpenTimeSelect(null)} className="p-1 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded-lg"><X size={14} className="text-[var(--color-m3-on-surface-variant)]" /></button>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto p-2 scrollbar-hide grid grid-cols-4 gap-1.5 content-start">
-                                                {(openTimeSelect === 'hour' ? hours : minutes).map(val => (
-                                                    <button
-                                                        key={val}
-                                                        onClick={() => {
-                                                            const d = new Date(selectedDate);
-                                                            if (openTimeSelect === 'hour') d.setHours(val);
-                                                            else d.setMinutes(val);
-                                                            setSelectedDate(d);
-                                                            setOpenTimeSelect(null);
-                                                        }}
-                                                        className={`h-9 rounded-md tabular-nums text-sm flex items-center justify-center
-                                                     ${(openTimeSelect === 'hour' ? selectedDate.getHours() : selectedDate.getMinutes()) === val
-                                                                ? 'bg-[var(--color-m3-primary)] text-white font-medium'
-                                                                : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
-                                                            }
-                                                 `}
-                                                    >
-                                                        {val.toString().padStart(2, '0')}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="px-5 pb-5 pt-2 flex gap-2 justify-end safe-area-pb border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] mt-1">
-                            <button
-                                onClick={onClose}
-                                className="px-4 py-2.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] text-sm"
-                            >
-                                {t('btn.cancel')}
-                            </button>
-                            <button
-                                onClick={() => onConfirm(selectedDate)}
-                                className="px-5 py-2.5 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white font-medium rounded-md text-sm"
-                            >
-                                {t('btn.ok') || 'Confirm'}
-                            </button>
-                        </div>
-        </>
+    const renderSelect = (
+        label: string,
+        part: DatePart,
+        value: number,
+        options: Array<{ value: number; label: string }>,
+    ) => (
+        <label className="min-w-0">
+            <span className={labelClass}>{label}</span>
+            <select
+                aria-label={label}
+                value={value}
+                onChange={event => setPart(part, Number(event.target.value))}
+                className={selectClass}
+            >
+                {options.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+            </select>
+        </label>
     );
 
-    // Inline mode: render in-flow below the trigger (no portal, no backdrop, no card)
-    if (inline) {
-        return (
-            <div className="mt-1 mb-2">
-                {inner}
+    if (!isOpen) return inline ? null : <div ref={anchorRef} className="hidden" />;
+    if (!inline && !portalTarget) return <div ref={anchorRef} className="hidden" />;
+
+    const showDate = mode !== 'time';
+    const showTime = mode !== 'date';
+    const dateSummary = selectedDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+    const timeSummary = selectedDate.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+
+    const inner = (
+        <div className={inline ? 'rounded-xl border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}>
+            <div className="px-5 pt-5 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                {title && (
+                    <p className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-1">
+                        {title}
+                    </p>
+                )}
+                <p className="text-sm tabular-nums text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    {[showDate ? dateSummary : null, showTime ? timeSummary : null].filter(Boolean).join(' · ')}
+                </p>
             </div>
-        );
-    }
+
+            <div className="px-5 py-5 space-y-5">
+                {showDate && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            <CalendarDays size={16} />
+                            <span className="text-sm font-medium">{t('date.select')}</span>
+                        </div>
+                        <div className="grid grid-cols-[1.05fr_1.35fr_0.8fr] gap-2.5">
+                            {renderSelect(
+                                t('time.year'),
+                                'year',
+                                selectedDate.getFullYear(),
+                                years.map(year => ({ value: year, label: String(year) })),
+                            )}
+                            {renderSelect(t('time.month'), 'month', selectedDate.getMonth(), months)}
+                            {renderSelect(
+                                t('time.day'),
+                                'day',
+                                selectedDate.getDate(),
+                                days.map(day => ({ value: day, label: String(day).padStart(2, '0') })),
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                {showTime && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            <Clock3 size={16} />
+                            <span className="text-sm font-medium">{t('time.select')}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            {renderSelect(
+                                t('time.hour'),
+                                'hour',
+                                selectedDate.getHours(),
+                                hours.map(hour => ({ value: hour, label: String(hour).padStart(2, '0') })),
+                            )}
+                            {renderSelect(
+                                t('time.minute'),
+                                'minute',
+                                selectedDate.getMinutes(),
+                                minutes.map(minute => ({ value: minute, label: String(minute).padStart(2, '0') })),
+                            )}
+                        </div>
+                    </section>
+                )}
+            </div>
+
+            <div className="px-5 pb-5 pt-3 flex justify-end gap-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 text-sm font-medium rounded-md text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]"
+                >
+                    {t('btn.cancel')}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onConfirm(selectedDate)}
+                    className="px-5 py-2.5 text-sm font-medium rounded-md bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white"
+                >
+                    {t('btn.ok')}
+                </button>
+            </div>
+        </div>
+    );
+
+    if (inline) return <div className="mt-2 mb-3">{inner}</div>;
 
     return (
         <>
             <div ref={anchorRef} className="hidden" />
             {createPortal(
                 <>
-                    <div
+                    <button
+                        type="button"
+                        aria-label={t('btn.cancel')}
+                        onClick={onClose}
                         className="fixed inset-0 z-[60] bg-black/30 dark:bg-black/50"
                     />
                     <div
                         ref={containerRef}
                         style={positionStyle}
-                        className={`fixed z-[70] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] overflow-hidden shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
-                            ${Object.keys(positionStyle).length > 0
-                                ? 'rounded-[var(--radius-xl)]' // Desktop
-                                : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-t border-b-0' // Mobile
-                            }
-                        `}
+                        className={`fixed z-[70] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] overflow-hidden shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${Object.keys(positionStyle).length > 0 ? 'rounded-[var(--radius-xl)]' : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-b-0'}`}
                     >
                         {inner}
                     </div>
                 </>,
-                portalTarget
+                portalTarget,
             )}
         </>
     );
