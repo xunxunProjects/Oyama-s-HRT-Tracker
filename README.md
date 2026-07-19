@@ -112,7 +112,7 @@ docker run -d --name hrt-tracker \
   -p 8787:8787 \
   --env-file .env \
   -v "$(pwd)/data:/data" \
-  ghcr.io/zikinn/oyama-s-hrt-tracker-docker:latest
+  ghcr.io/xunxunProjects/oyama-s-hrt-tracker-docker:latest
 ```
 
 `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. When used, set both. The
