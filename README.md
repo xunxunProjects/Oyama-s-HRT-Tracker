@@ -78,6 +78,57 @@ This project is built with **React** and **TypeScript**, bundled with [Vite](htt
 
 ---
 
+## Docker
+
+The Docker image runs the complete app locally, including the Worker API, D1
+database, and R2-compatible avatar storage. Data is kept in a named Docker
+volume and survives container restarts.
+
+Docker 镜像会在本地运行完整应用，包括 Worker API、D1 数据库和兼容 R2 的头像存储。
+数据保存在 Docker 命名卷中，容器重启不会丢失。
+
+```bash
+cp .env.docker.example .env
+# Replace JWT_SECRET in .env with the output of:
+openssl rand -base64 48
+docker compose up --build -d
+```
+
+Then open <http://localhost:3000>. / 然后访问 <http://localhost:3000>。
+
+To stop the app without deleting its data: / 停止应用但保留数据：
+
+```bash
+docker compose down
+```
+
+To use the image published by GitHub Actions: / 使用 GitHub Actions 发布的镜像：
+
+```bash
+docker run -d --name hrt-tracker \
+  -p 3000:8787 \
+  --env-file .env \
+  -v hrt-tracker-data:/data \
+  ghcr.io/zikinn/oyama-s-hrt-tracker-docker:latest
+```
+
+`ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. When used, set both. The
+container uses Wrangler's local workerd runtime and local persistent D1/R2
+resources; it does not connect to the Cloudflare production database or bucket.
+
+`ADMIN_USERNAME` 与 `ADMIN_PASSWORD` 是可选项；如需管理员账号，请同时设置。
+容器使用 Wrangler 的本地 workerd 运行时以及本地持久化 D1/R2 资源，不会连接
+Cloudflare 生产数据库或存储桶。
+
+The workflow in `.github/workflows/docker-publish.yml` validates pull requests
+and publishes `linux/amd64` and `linux/arm64` images to GitHub Container Registry
+for `main`, version tags, and manual runs.
+
+`.github/workflows/docker-publish.yml` 会在 PR 中验证构建，并在 `main`、版本标签或
+手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。
+
+---
+
 ## Deployment & Hosting 部署与托管
 
 You are **very welcome** to deploy this application to your own personal website, blog, or server!

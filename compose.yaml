@@ -1,0 +1,18 @@
+services:
+  hrt-tracker:
+    build:
+      context: .
+    image: oyama-hrt-tracker:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${HRT_TRACKER_PORT:-3000}:8787"
+    environment:
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env to a random value of at least 32 characters}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+    volumes:
+      - hrt-tracker-data:/data
+
+volumes:
+  hrt-tracker-data:
