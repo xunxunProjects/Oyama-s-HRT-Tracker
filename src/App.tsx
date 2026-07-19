@@ -468,9 +468,9 @@ const AppContent = () => {
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
 
-                {/* Mobile site label — static, takes its own space above the content */}
+                {/* Mobile site label — reflects the current deployment host */}
                 <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[11px] font-medium tracking-wide text-muted select-none">
-                    HRT.zikin.net
+                    {window.location.hostname}
                 </div>
 
                 <div
