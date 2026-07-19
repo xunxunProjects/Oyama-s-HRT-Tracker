@@ -3,17 +3,18 @@ import { Syringe, Pill, Droplet, Sticker, X, FlaskConical, Atom, Shield, Hexagon
 import { Route, DoseEvent, Ester, getBioavailabilityMultiplier, getToE2Factor, ExtraKey } from '../../logic';
 import { Lang } from '../i18n/translations';
 
+export const LOCALE_MAP: Record<Lang, string> = {
+    'zh': 'zh-CN',
+    'zh-TW': 'zh-TW',
+    'yue': 'zh-HK',
+    'en': 'en-US',
+    'ja': 'ja-JP',
+    'ko': 'ko-KR',
+    'tr': 'tr-TR',
+};
+
 export const formatDate = (date: Date, lang: Lang) => {
-    const localeMap: Record<Lang, string> = {
-        'zh': 'zh-CN',
-        'zh-TW': 'zh-TW',
-        'yue': 'zh-HK',
-        'en': 'en-US',
-        'ja': 'ja-JP',
-        'ko': 'ko-KR',
-        'tr': 'tr-TR',
-    };
-    return date.toLocaleDateString(localeMap[lang] || 'en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric' });
 };
 
 export const formatTime = (date: Date) => {
