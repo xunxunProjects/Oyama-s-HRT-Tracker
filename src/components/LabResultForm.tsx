@@ -4,6 +4,7 @@ import { LabResult, isT_LabUnit } from '../../logic';
 import { Check, Trash2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
+import { LOCALE_MAP } from '../utils/helpers';
 
 interface LabResultFormProps {
     resultToEdit?: LabResult | null;
@@ -70,7 +71,7 @@ const HormoneValueField: React.FC<{
 );
 
 const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, isInline = false }) => {
-    const { t } = useTranslation();
+    const { t, lang } = useTranslation();
     const [dateStr, setDateStr] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -143,7 +144,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     </span>
                     <div className="flex items-center gap-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                         <span className="text-sm tabular-nums">
-                            {dateStr ? new Date(dateStr).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </span>
                         <ChevronDown size={14} className={isDatePickerOpen ? 'rotate-180' : ''} />
                     </div>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { CalendarDays, Clock3, ChevronDown, Check } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
+import { LOCALE_MAP } from '../utils/helpers';
 
 interface DateTimePickerProps {
     isOpen: boolean;
@@ -150,8 +151,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     title,
     inline = false,
 }) => {
-    const { t } = useTranslation();
+    const { t, lang } = useTranslation();
     useEscape(onClose, isOpen);
+    const locale = LOCALE_MAP[lang] || 'en-US';
 
     const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
     const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -200,9 +202,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const months = useMemo(() => (
         Array.from({ length: 12 }, (_, month) => ({
             value: month,
-            label: new Date(2020, month, 1).toLocaleDateString(undefined, { month: 'long' }),
+            label: new Date(2020, month, 1).toLocaleDateString(locale, { month: 'long' }),
         }))
-    ), []);
+    ), [locale]);
 
     const daysInSelectedMonth = new Date(
         selectedDate.getFullYear(),
@@ -263,12 +265,12 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
     const showDate = mode !== 'time';
     const showTime = mode !== 'date';
-    const dateSummary = selectedDate.toLocaleDateString(undefined, {
+    const dateSummary = selectedDate.toLocaleDateString(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
     });
-    const timeSummary = selectedDate.toLocaleTimeString(undefined, {
+    const timeSummary = selectedDate.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
