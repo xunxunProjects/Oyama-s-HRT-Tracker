@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester, getToE2Factor } from '../../../logic';
+import { Route, Ester } from '../../../logic';
 
 interface OralFieldsProps {
     ester: Ester;
@@ -8,9 +8,7 @@ interface OralFieldsProps {
     e2Dose: string;
     onRawChange: (val: string) => void;
     onE2Change: (val: string) => void;
-    isInitializing: boolean;
     route: Route;
-    lastEditedField: 'raw' | 'bio';
 }
 
 const OralFields: React.FC<OralFieldsProps> = ({
@@ -19,20 +17,9 @@ const OralFields: React.FC<OralFieldsProps> = ({
     e2Dose,
     onRawChange,
     onE2Change,
-    isInitializing,
-    route,
-    lastEditedField
+    route
 }) => {
     const { t } = useTranslation();
-
-    useEffect(() => {
-        if (isInitializing || lastEditedField !== 'raw' || !rawDose) return;
-
-        const v = parseFloat(rawDose);
-        if (!isNaN(v)) {
-            const factor = getToE2Factor(ester) || 1;
-        }
-    }, [ester, route]);
 
     return (
         <div className="grid grid-cols-2 gap-4">

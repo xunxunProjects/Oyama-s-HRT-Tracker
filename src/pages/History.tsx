@@ -6,7 +6,6 @@ import { formatTime } from '../utils/helpers';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
 import { DoseTemplate } from '../components/DoseFormModal';
-import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
 const formatWearDays = (days: number): string =>
@@ -30,11 +29,7 @@ interface HistoryProps {
     onDeleteEvents: (ids: string[]) => void;
     onSaveTemplate: (t: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
-    quickDoses?: QuickDose[];
-    onAddQuickDose?: (dose: QuickDose) => void;
-    onDeleteQuickDose?: (id: string) => void;
     groupedEvents: Record<string, DoseEvent[]>;
-    onEditEvent: (e: DoseEvent) => void;
 }
 
 const History: React.FC<HistoryProps> = ({
@@ -48,11 +43,7 @@ const History: React.FC<HistoryProps> = ({
     onDeleteEvents,
     onSaveTemplate,
     onDeleteTemplate,
-    quickDoses = [],
-    onAddQuickDose,
-    onDeleteQuickDose,
-    groupedEvents,
-    onEditEvent
+    groupedEvents
 }) => {
     const { showDialog } = useDialog();
     const [editingId, setEditingId] = useState<string | null>(null);

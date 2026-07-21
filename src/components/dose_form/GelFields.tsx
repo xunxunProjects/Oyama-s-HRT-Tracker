@@ -41,7 +41,6 @@ const GelFields: React.FC<GelFieldsProps> = ({
                         label: t(`gel.site.${siteKey}`)
                     }))}
                 />
-                <p className="text-xs text-amber-700 dark:text-amber-400 pl-1">{t('beta.gel')}</p>
             </div>
 
             {/* Applied dose */}

@@ -72,7 +72,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                 ))}
             </div>
 
-            <p className="text-xs text-amber-700 dark:text-amber-400">{t('beta.patch')}</p>
+            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('patch.setup_hint')}</p>
 
             {patchMode === "rate" ? (
                 <div className="space-y-1.5">

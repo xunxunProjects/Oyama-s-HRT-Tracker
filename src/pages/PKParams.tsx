@@ -75,7 +75,9 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
         key: 't_other',
         titleKey: 'pk.group.t_other',
         fields: [
-            { key: 't_gel_F', labelKey: 'pk.t_gel_F', min: 0, max: 1, step: 0.001, precision: 3 },
+            { key: 't_gel_arm', labelKey: 'pk.t_gel.arm', min: 0, max: 1, step: 0.001, precision: 3 },
+            { key: 't_gel_thigh', labelKey: 'pk.t_gel.thigh', min: 0, max: 1, step: 0.001, precision: 3 },
+            { key: 't_gel_scrotal', labelKey: 'pk.t_gel.scrotal', min: 0, max: 1, step: 0.001, precision: 3 },
             { key: 't_kClear', labelKey: 'pk.t_kClear', min: 0.001, max: 5, step: 0.001, precision: 4 },
             { key: 't_kClearInj', labelKey: 'pk.t_kClearInj', min: 0.001, max: 1, step: 0.001, precision: 4 },
         ],

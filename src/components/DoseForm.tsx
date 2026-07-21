@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -48,15 +47,6 @@ const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
     high: 'text-amber-700 dark:text-amber-300',
     very_high: 'text-rose-700 dark:text-rose-300',
     above: 'text-red-700 dark:text-red-300'
-};
-
-const LEVEL_CONTAINER_STYLES: Record<DoseLevelKey | 'neutral', string> = {
-    low: 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-900/30',
-    medium: 'bg-sky-50 border-sky-100 dark:bg-sky-900/10 dark:border-sky-900/30',
-    high: 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30',
-    very_high: 'bg-rose-50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/30',
-    above: 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30',
-    neutral: 'bg-[var(--color-m3-surface-container)] border-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-surface-container-high)] dark:border-[var(--color-m3-dark-outline-variant)]'
 };
 
 const formatGuideNumber = (val: number) => {
@@ -141,7 +131,6 @@ interface DoseFormProps {
 const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
-    const dateInputRef = useRef<HTMLInputElement>(null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
@@ -587,9 +576,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     // per-dose guide above doesn't — see getDoseAdvisory in logic.ts.
     const doseAdvisory = useMemo(() => getDoseAdvisory(events), [events]);
 
-    const tierKey = SL_TIER_ORDER[slTier] || "standard";
-    const currentTheta = SublingualTierParams[tierKey]?.theta || 0.11;
-    const customTheta = thetaFromHold(customHoldValue);
     const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : "";
     const guideRangeText = doseGuide?.config
         ? `${doseGuide.config.thresholds.map((threshold) => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
@@ -746,8 +732,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 />
 
                 {route === Route.patchRemove && (
-                    <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-3 rounded-[var(--radius-md)]">
-                        {t('beta.patch_remove')}
+                    <div className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] p-3 rounded-[var(--radius-md)]">
+                        {t('patch.remove_hint')}
                     </div>
                 )}
 
@@ -788,9 +774,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     e2Dose={e2Dose}
                                     onRawChange={handleRawChange}
                                     onE2Change={handleE2Change}
-                                    isInitializing={isInitializingRef.current}
                                     route={route}
-                                    lastEditedField={lastEditedField}
                                 />
                             )}
 
@@ -801,9 +785,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     e2Dose={e2Dose}
                                     onRawChange={handleRawChange}
                                     onE2Change={handleE2Change}
-                                    isInitializing={isInitializingRef.current}
                                     route={route}
-                                    lastEditedField={lastEditedField}
                                 />
                             )}
 
@@ -822,11 +804,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setCustomHoldInput={setCustomHoldInput}
                                     customHoldValue={customHoldValue}
                                     setCustomHoldValue={setCustomHoldValue}
-                                    holdFromTheta={holdFromTheta}
                                     thetaFromHold={thetaFromHold}
-                                    isInitializing={isInitializingRef.current}
                                     route={route}
-                                    lastEditedField={lastEditedField}
                                 />
                             )}
 

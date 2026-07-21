@@ -11,7 +11,6 @@ interface LabResultFormProps {
     onSave: (result: LabResult) => void;
     onCancel: () => void;
     onDelete?: (id: string) => void;
-    isInline?: boolean;
 }
 
 type LabUnit = 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
@@ -70,7 +69,7 @@ const HormoneValueField: React.FC<{
     </div>
 );
 
-const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, isInline = false }) => {
+const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete }) => {
     const { t, lang } = useTranslation();
     const [dateStr, setDateStr] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
