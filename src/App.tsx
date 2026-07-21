@@ -1,34 +1,22 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Activity, Calendar, FlaskConical, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION, AppTheme } from './constants';
-import { DoseEvent, LabResult, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
+import { DoseEvent, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
 import { parseCloudBackup } from './utils/cloudBackup';
-import { DoseTemplate } from './components/DoseFormModal';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
-
-// Define NavItem interface to match what useAppNavigation returns
-interface NavItem {
-    id: string;
-    label: string;
-    icon: React.ElementType; // Use ElementType to accept components like Lucide icons
-}
 
 import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
-import ExportModal from './components/ExportModal';
 import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
-import LabResultModal from './components/LabResultModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import ReloadPrompt from './components/ReloadPrompt';
 import BackupConflictModal from './components/BackupConflictModal';
 import { cloudService } from './services/cloud';
 
@@ -73,12 +61,11 @@ const AppContent = () => {
 
     // Use Custom Hooks
     const {
-        events, setEvents,
+        events,
         weight, setWeight,
-        labResults, setLabResults,
-        doseTemplates, setDoseTemplates,
+        labResults,
+        doseTemplates,
         simulation,
-        currentTime,
         calibrationFn,
         calibrationMethod, setCalibrationMethod,
         calibrationHistoryMode, setCalibrationHistoryMode,
@@ -93,7 +80,7 @@ const AppContent = () => {
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
         quickDoses,
-        pkParams, setPkParams, clearPkParams, resetPkParams,
+        pkParams, setPkParams, clearPkParams,
         processImportedData,
         mergeImportedData,
         buildExportPayload
@@ -113,14 +100,11 @@ const AppContent = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
-    const [isLabModalOpen, setIsLabModalOpen] = useState(false);
-    const [editingLab, setEditingLab] = useState<LabResult | null>(null);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
     // --- Auto-backup state ---
@@ -284,10 +268,10 @@ const AppContent = () => {
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
-        const shouldLock = isExportModalOpen || isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen || isLabModalOpen;
+        const shouldLock = isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-    }, [isExportModalOpen, isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen, isLabModalOpen]);
+    }, [isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen]);
 
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
@@ -338,20 +322,7 @@ const AppContent = () => {
         }
     };
 
-    const handleAddEvent = () => { setEditingEvent(null); setIsFormOpen(true); };
     const handleEditEvent = (e: DoseEvent) => { setEditingEvent(e); setIsFormOpen(true); };
-
-    const handleAddLabResult = () => { setEditingLab(null); setIsLabModalOpen(true); };
-    const handleEditLabResult = (res: LabResult) => { setEditingLab(res); setIsLabModalOpen(true); };
-
-
-    const handleSaveDosages = () => {
-        if (events.length === 0 && labResults.length === 0) {
-            showDialog('alert', t('drawer.empty_export'));
-            return;
-        }
-        setIsExportModalOpen(true);
-    };
 
     const handleQuickExport = () => {
         if (events.length === 0 && labResults.length === 0) {
@@ -378,7 +349,6 @@ const AppContent = () => {
     };
 
     const handleExportConfirm = async (encrypt: boolean, customPassword?: string): Promise<string | null> => {
-        setIsExportModalOpen(false);
         const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
 
@@ -486,8 +456,6 @@ const AppContent = () => {
                             currentT={currentT}
                             currentStatus={currentStatus}
                             events={events}
-                            weight={weight}
-                            setIsWeightModalOpen={setIsWeightModalOpen}
                             simulation={simulation}
                             labResults={labResults}
                             onEditEvent={handleEditEvent}
@@ -513,11 +481,7 @@ const AppContent = () => {
                             onDeleteEvents={deleteEvents}
                             onSaveTemplate={addTemplate}
                             onDeleteTemplate={deleteTemplate}
-                            quickDoses={quickDoses}
-                            onAddQuickDose={addQuickDose}
-                            onDeleteQuickDose={deleteQuickDose}
                             groupedEvents={groupedEvents}
-                            onEditEvent={handleEditEvent}
                         />
                     )}
 
@@ -532,12 +496,10 @@ const AppContent = () => {
                                 else addLabResult(r);
                             }}
                             onDeleteLabResult={deleteLabResult}
-                            onEditLabResult={handleEditLabResult}
                             onClearLabResults={clearLabResults}
                             calibrationMethod={calibrationMethod}
                             calibration={calibration}
                             onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
-                            currentTime={currentTime}
                             lang={lang}
                         />
                     )}
@@ -644,7 +606,6 @@ const AppContent = () => {
                             t={t}
                             user={user}
                             token={token}
-                            onOpenAuth={() => setIsAuthModalOpen(true)}
                             onLogout={logout}
                             onCloudSave={handleCloudSave}
                             onCloudLoad={handleCloudLoad}
@@ -721,7 +682,7 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'admin' && user?.isAdmin && (
-                        <Admin t={t} />
+                        <Admin />
                     )}
                 </div>
 
@@ -775,15 +736,6 @@ const AppContent = () => {
                 </nav>
             </div>
 
-            <ExportModal
-                isOpen={isExportModalOpen}
-                onClose={() => setIsExportModalOpen(false)}
-                onExport={handleExportConfirm}
-                events={events}
-                labResults={labResults}
-                weight={weight}
-            />
-
             <PasswordInputModal
                 isOpen={isPasswordInputOpen}
                 onClose={() => setIsPasswordInputOpen(false)}
@@ -824,17 +776,6 @@ const AppContent = () => {
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 onImportJson={importEventsFromJson}
-            />
-
-            <LabResultModal
-                isOpen={isLabModalOpen}
-                onClose={() => setIsLabModalOpen(false)}
-                onSave={r => {
-                    if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
-                    else addLabResult(r);
-                }}
-                onDelete={deleteLabResult}
-                resultToEdit={editingLab}
             />
 
             <AuthModal

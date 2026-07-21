@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester, SL_TIER_ORDER, SublingualTierParams, getToE2Factor } from '../../../logic';
+import { Route, Ester, SL_TIER_ORDER, SublingualTierParams } from '../../../logic';
 import CustomSelect from '../CustomSelect';
 
 interface SublingualFieldsProps {
@@ -17,11 +17,8 @@ interface SublingualFieldsProps {
     setCustomHoldInput: (val: string) => void;
     customHoldValue: number;
     setCustomHoldValue: (val: number) => void;
-    holdFromTheta: (theta: number) => number;
     thetaFromHold: (hold: number) => number;
-    isInitializing: boolean;
     route: Route;
-    lastEditedField: 'raw' | 'bio';
 }
 
 const SublingualFields: React.FC<SublingualFieldsProps> = ({
@@ -38,17 +35,10 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     setCustomHoldInput,
     customHoldValue,
     setCustomHoldValue,
-    holdFromTheta,
     thetaFromHold,
-    isInitializing,
-    route,
-    lastEditedField
+    route
 }) => {
     const { t } = useTranslation();
-
-    useEffect(() => {
-        if (isInitializing || lastEditedField !== 'raw' || !rawDose) return;
-    }, [ester, route]);
 
     const handleCustomHoldChange = (str: string) => {
         setCustomHoldInput(str);

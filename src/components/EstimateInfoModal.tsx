@@ -1,5 +1,4 @@
 import { createPortal } from 'react-dom';
-import React from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
 

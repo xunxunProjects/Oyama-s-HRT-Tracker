@@ -111,7 +111,6 @@ const ResultChart = ({
 
     // Which series are relevant for the current mode / logged doses.
     const hasE2 = isTransmasc ? false : events.some(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester));
-    const hasT = isTransmasc && events.some(e => T_ESTERS.has(e.ester));
     const hasCPA = !isTransmasc && events.some(e => e.ester === 'CPA');
     const primaryIsCPA = !isTransmasc && !hasE2 && hasCPA;
     const hasSecondary = hasE2 && hasCPA; // CPA shown on its own right-hand axis
@@ -310,16 +309,6 @@ const ResultChart = ({
         flush();
         return d;
     };
-
-    const areaPath = useMemo(() => {
-        const base = (mT + plotH).toFixed(1);
-        const line = linePath('p');
-        if (!line || slice.length === 0) return '';
-        const x0 = X(slice[0].t).toFixed(1);
-        const x1 = X(slice[slice.length - 1].t).toFixed(1);
-        return `${line}L${x1} ${base}L${x0} ${base}Z`;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [slice, yPrimary, plotW, plotH, mT, t0, t1, width]);
 
     const xTicks = useMemo(() => {
         if (plotW <= 0) return [];

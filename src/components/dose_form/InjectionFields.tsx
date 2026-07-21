@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester, getToE2Factor, isTestosteroneEster } from '../../../logic';
+import { Route, Ester, isTestosteroneEster } from '../../../logic';
 
 interface InjectionFieldsProps {
     ester: Ester;
@@ -8,9 +8,7 @@ interface InjectionFieldsProps {
     e2Dose: string;
     onRawChange: (val: string) => void;
     onE2Change: (val: string) => void;
-    isInitializing: boolean;
     route: Route;
-    lastEditedField: 'raw' | 'bio';
 }
 
 const InjectionFields: React.FC<InjectionFieldsProps> = ({
@@ -19,24 +17,11 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
     e2Dose,
     onRawChange,
     onE2Change,
-    isInitializing,
-    route,
-    lastEditedField
+    route
 }) => {
     const { t } = useTranslation();
     const isT = isTestosteroneEster(ester);
     const equivLabelKey = isT ? 'field.dose_t' : 'field.dose_e2';
-
-    useEffect(() => {
-        if (isInitializing || lastEditedField !== 'raw' || !rawDose) return;
-
-        const v = parseFloat(rawDose);
-        if (!isNaN(v)) {
-            const factor = getToE2Factor(ester) || 1;
-            const e2Equivalent = v * factor;
-        }
-    }, [ester, route]);
-
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

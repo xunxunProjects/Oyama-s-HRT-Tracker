@@ -13,12 +13,10 @@ interface LabProps {
     labResults: LabResult[];
     onSaveLabResult: (res: LabResult) => void;
     onDeleteLabResult: (id: string) => void;
-    onEditLabResult: (res: LabResult) => void;
     onClearLabResults: () => void;
     calibrationMethod: CalibrationMethod;
     calibration: CalibrationResult;
     onOpenCalibrationSettings: () => void;
-    currentTime: Date;
     lang: Lang;
 }
 
@@ -29,12 +27,10 @@ const Lab: React.FC<LabProps> = ({
     labResults,
     onSaveLabResult,
     onDeleteLabResult,
-    onEditLabResult,
     onClearLabResults,
     calibrationMethod,
     calibration,
     onOpenCalibrationSettings,
-    currentTime,
     lang
 }) => {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
@@ -92,7 +88,6 @@ const Lab: React.FC<LabProps> = ({
                             }}
                             onCancel={() => setIsQuickAddLabOpen(false)}
                             onDelete={() => {}}
-                            isInline={true}
                         />
                     </div>
                 </div>
@@ -180,7 +175,6 @@ const Lab: React.FC<LabProps> = ({
                                                             onDeleteLabResult(id);
                                                             setEditingLabId(null);
                                                         }}
-                                                        isInline={true}
                                                     />
                                                 </div>
                                             </div>

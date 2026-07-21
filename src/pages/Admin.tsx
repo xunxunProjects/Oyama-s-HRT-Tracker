@@ -1,13 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Trash2, Loader2, AlertCircle, RefreshCw, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { adminService, AdminUser, BackupMeta, PaginatedUsers } from '../services/admin';
+import { adminService, AdminUser, BackupMeta } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
-
-interface AdminProps {
-    t: (key: string) => string;
-}
 
 type Tab = 'users' | 'system';
 type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser };
@@ -31,7 +27,7 @@ function timeAgo(ts: number | null | undefined): string {
     return Math.floor(diff / 86400) + 'd ago';
 }
 
-const Admin: React.FC<AdminProps> = ({ t }) => {
+const Admin: React.FC = () => {
     const { token } = useAuth();
     const { showDialog } = useDialog();
     const [users, setUsers] = useState<AdminUser[]>([]);

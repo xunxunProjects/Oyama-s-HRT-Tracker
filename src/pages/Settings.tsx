@@ -93,8 +93,6 @@ const Settings: React.FC<SettingsProps> = ({
         { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
     ];
 
-    const catLabel = cats.find(c => c.id === (mobileView === 'list' ? 'general' : mobileView))?.label ?? '';
-
     const GeneralContent = () => (
         <div>
             <button onClick={() => navTo(onNavigateToHRTMode, 'general')} className={rowBase}>

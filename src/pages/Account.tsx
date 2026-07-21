@@ -21,7 +21,6 @@ interface AccountProps {
     t: (key: string) => string;
     user: any;
     token: string | null;
-    onOpenAuth: () => void;
     onLogout: () => void;
     onCloudSave: () => void;
     onCloudLoad: (backupId?: string) => void;
@@ -42,7 +41,6 @@ const Account: React.FC<AccountProps> = ({
     t,
     user,
     token,
-    onOpenAuth,
     onLogout,
     onCloudSave,
     onCloudLoad,

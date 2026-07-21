@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Copy } from 'lucide-react';
 import { useEscape } from '../hooks/useEscape';

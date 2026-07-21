@@ -56,12 +56,6 @@ enum GelSite {
 
 export const GEL_SITE_ORDER = ["arm", "thigh", "scrotal"] as const;
 
-const GelSiteParams = {
-    [GelSite.arm]: 0.05,
-    [GelSite.thigh]: 0.05,
-    [GelSite.scrotal]: 0.40
-};
-
 export interface DoseEvent {
     id: string;
     route: Route;
@@ -870,12 +864,6 @@ const T_DepotPK = {
     k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: 0.0009 }
 };
 
-const T_InjectionPK = {
-    // Empirical formation fraction (net "T made available" per mg ester),
-    // calibrated so weekly‑dose steady state lands in the male reference range.
-    formationFraction: { [Ester.TC]: 0.025, [Ester.TE]: 0.025, [Ester.TU]: 0.025 }
-};
-
 // Hydrolysis rate (k2) for T esters in the 3-compartment analytical path.
 // Kept much larger than the slow‑library k1 so terminal kinetics are flip‑flop.
 const T_EsterPK = {
@@ -883,8 +871,8 @@ const T_EsterPK = {
 };
 
 const T_GelPK = {
-    k1: 0.05,   // h⁻¹ (Tmax ≈ a few hours after application)
-    F:  0.10    // ~10 % systemic bioavailability (Androgel‑like)
+    k1: 0.05    // h⁻¹ (Tmax ≈ a few hours after application)
+    // Bioavailability (F) is site-dependent — see DEFAULT_PK_PARAMS.t_gel_*.
 };
 
 const T_PatchPK = {
@@ -953,8 +941,11 @@ export interface PKCustomParams {
     t_ff_TC: number;         // Testosterone Cypionate (default: 0.025)
     t_ff_TE: number;         // Testosterone Enanthate (default: 0.025)
     t_ff_TU: number;         // Testosterone Undecanoate (default: 0.025)
-    // T gel
-    t_gel_F: number;         // T gel systemic bioavailability (default: 0.10)
+    // T gel bioavailability per site (arm/thigh ~AndroGel-like; scrotal skin is
+    // markedly more permeable — see DEFAULT_PK_PARAMS comment for sources)
+    t_gel_arm: number;       // Arm (default: 0.10)
+    t_gel_thigh: number;     // Thigh (default: 0.10)
+    t_gel_scrotal: number;   // Scrotal (default: 0.50)
 }
 
 export const DEFAULT_PK_PARAMS: PKCustomParams = {
@@ -970,15 +961,26 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_sl_casual: 0.04,
     e2_sl_standard: 0.11,
     e2_sl_strict: 0.18,
+    // Arm/thigh: ~5% absolute bioavailability (Järvinen et al. 1999, Maturitas —
+    // gel bioavailability vs. oral tablet/patch; Wikipedia "Pharmacokinetics of
+    // estradiol"). Scrotal/genital: ~5x arm/thigh, extrapolated from scrotal E2
+    // patch data (Premoli et al. 2005) and scrotal T gel data, since no direct
+    // human study of scrotal E2 gel exists (see transfemscience.org/articles/genital-e2-application/).
     e2_gel_arm: 0.05,
     e2_gel_thigh: 0.05,
-    e2_gel_scrotal: 0.40,
+    e2_gel_scrotal: 0.25,
     t_kClear: 0.5,
     t_kClearInj: 0.035,
     t_ff_TC: 0.025,
     t_ff_TE: 0.025,
     t_ff_TU: 0.025,
-    t_gel_F: 0.10,
+    // Arm/thigh: ~10% absolute bioavailability, matching AndroGel/Testim FDA
+    // labeling. Scrotal: scrotal skin is ~5–8x more permeable to androgens than
+    // arm/thigh skin (Iyer et al. 2017, Andrology; Kuhnert et al. 2005) — 0.50
+    // uses the conservative end of that range rather than the full 8x.
+    t_gel_arm: 0.10,
+    t_gel_thigh: 0.10,
+    t_gel_scrotal: 0.50,
 };
 
 let _activePKParams: PKCustomParams = { ...DEFAULT_PK_PARAMS };
@@ -1035,6 +1037,14 @@ function _getGelBio(siteKey: string): number {
     return p.e2_gel_arm;
 }
 
+function _getTGelBio(siteKey: string): number {
+    const p = _activePKParams;
+    if (siteKey === 'arm') return p.t_gel_arm;
+    if (siteKey === 'thigh') return p.t_gel_thigh;
+    if (siteKey === 'scrotal') return p.t_gel_scrotal;
+    return p.t_gel_arm;
+}
+
 function _getTInjFF(ester: Ester): number {
     const p = _activePKParams;
     if (ester === Ester.TC) return p.t_ff_TC;
@@ -1058,8 +1068,11 @@ export function getBioavailabilityMultiplier(
                 const formation = _getTInjFF(ester);
                 return formation * mwFactor;
             }
-            case Route.gel:
-                return _activePKParams.t_gel_F * mwFactor;
+            case Route.gel: {
+                const siteIdx = Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.gelSite] ?? 0)));
+                const siteKey = GEL_SITE_ORDER[siteIdx] as GelSite;
+                return _getTGelBio(siteKey) * mwFactor;
+            }
             case Route.patchApply:
                 return T_PatchPK.F * mwFactor;
             case Route.patchRemove:
@@ -1197,7 +1210,11 @@ function resolveParams(event: DoseEvent): PKParams {
 
         case Route.gel: {
             const F = getBioavailabilityMultiplier(Route.gel, event.ester, extras);
-            const k1 = 0.022;
+            // Under flip-flop kinetics (k1 << k3), the terminal decline is absorption-
+            // limited, so k1 is set from the reported apparent elimination half-life of
+            // transdermal E2 gel (~36h — Divigel FDA label; Wikipedia "Pharmacokinetics
+            // of estradiol"): k1 = ln(2)/36 ≈ 0.0193 h⁻¹.
+            const k1 = 0.0193;
             return { Frac_fast: 1.0, k1_fast: k1, k1_slow: 0, k2: 0, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
         }
 

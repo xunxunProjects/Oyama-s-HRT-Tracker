@@ -120,20 +120,22 @@ This README explains the algorithms used for each drug/route, key parameters and
 
 ### 3.3 调参与选择
 - 文献与说明书以 µg/day 标称，实际贴补图形更接近零阶，因此默认优先零阶，仅在缺乏数据时降级为一阶近似。
+- **`F = 1.0`（相对标称释放率）的依据**：现代基质型贴片（Vivelle-Dot、Climara、Alora 等）按设计使其"体内标称释放率"即为实际递送速率——FDA 说明书将其称为 nominal in vivo delivery rate，故零阶模型直接取 `F = 1.0 × toE2Factor`，不再额外打折。已于 2026-07 移除 UI 中的 Beta 标记。
 
 ---
 
-## 4) 经皮凝胶（E2）
+## 4) 经皮凝胶（E2 / T）
 
 ### 4.1 路由与参数
 - **模型**：单室一阶吸收 + 清除，`F` 为经皮可达的系统暴露分数。
-- **当前实现（为稳定起见的临时版）**：  
-  `TransdermalGelPK.baseK1 = 0.022 h⁻¹`（`t½ ≈ 31.5 h`）。  
-  `Fmax = 0.05`，并暂时忽略涂抹面积与剂量密度，始终返回 `(k₁ = baseK1, F = Fmax)`。  
-- **代码入口**：`ParameterResolver.resolve(... case .gel ...)` → `ThreeCompartmentModel.oneCompAmount(...)`。
+- **吸收速率 `k₁`**：在 flip-flop 动力学下（`k₁ ≪ k₃`），末端衰减速率由吸收主导，故 `k₁` 直接取自文献报道的凝胶表观消除半衰期（~36 h，Divigel FDA 说明书；Wikipedia "Pharmacokinetics of estradiol"）：`k₁ = ln(2)/36 ≈ 0.0193 h⁻¹`。
+- **`F`（生物利用率）按涂抹部位**：手臂/大腿 ≈ 5%（Järvinen et al. 1999, *Maturitas*：凝胶相对片剂/贴片的生物利用率比较），阴囊/生殖器部位 ≈ 25%（约 5×，外推自阴囊贴片给药数据 Premoli et al. 2005，因缺乏阴囊凝胶给药的直接人体研究）。
+- **睾酮凝胶（T）**：手臂/大腿 ≈ 10%（AndroGel/Testim FDA 说明书），阴囊 ≈ 50%（保守取 Iyer et al. 2017, *Andrology*；Kuhnert et al. 2005 报道的 5–8× 范围下限）。2026-07 之前，T 凝胶未按部位区分（`t_gel_F` 恒为 0.10，UI 的部位选择器对 T 无效），现已修复为与 E2 对称的按部位实现。
+- **代码入口**：`getBioavailabilityMultiplier(... case .gel ...)` → `resolveParams` → `oneCompAmount(...)`。
 
-### 4.2 先前思路与现状
-- 原设计包含剂量/面积的非线性饱和项：`sigmaSat ≈ 0.008 mg·cm⁻²`，用于低剂量上调、避免高剂量过估。调试阶段出现“低剂量偏低、高剂量偏高”的系统性误差，故临时退回常量 `(k₁, F)` 以便先校准其他路由。
+### 4.2 局限与后续方向
+- 仍忽略涂抹面积/剂量密度的非线性饱和效应（原型 `sigmaSat ≈ 0.008 mg·cm⁻²` 已从代码移除；调试阶段曾出现"低剂量偏低、高剂量偏高"的系统性误差）；当前按部位的常量 `F` 是文献支持的简化，而非该非线性效应的完整还原。
+- 阴囊/生殖器 E2 凝胶的 `F` 值为跨物质（T→E2）外推，非直接人体数据，标注于代码注释与 PK 自定义参数面板。
 - 待办：恢复面积/剂量依赖，并引入皮肤贮库的短暂零阶泄放以更好描述涂抹后前数小时的平台。
 
 ---
@@ -260,6 +262,12 @@ $$
 - **2026‑07‑06**：
   - 三室解析核 `_analytic3C` 的**可去奇点**处理修复：当任意两个速率常数（k₁/k₂/k₃）几乎相等时，旧实现直接返回 0（造成曲线掉零或数值抵消不稳）。新实现先用 `_separateRates` 将重合速率分开 ~1e‑6·max(k) 的极小量，使解析式收敛到正确的 l'Hôpital 极限。已用 RK4 数值积分交叉验证（最坏相对误差 < 5e‑6），且对默认参数曲线**零改动**（仅在校准清除网格 kMul∈[0.5,2] 扫过酯水解率 k₂ 等重合区才触发）。
   - 文档与代码对齐：`kClearInjection` 现记为默认 **0.041 h⁻¹**（t½ ≈ 16.9 h），口服 `kAbsE2` 记为 **0.32 h⁻¹**（与其 `Tmax ≈ 2–3 h` 一致），修正早前文档中的过时数值。
+- **2026‑07‑21**：
+  - 凝胶（E2）：吸收速率由经验常量 `k₁ = 0.022 h⁻¹` 改为按文献表观半衰期反推 `k₁ = ln(2)/36 ≈ 0.0193 h⁻¹`（见 §4.1）。
+  - 凝胶（T）：修复部位选择器对睾酮凝胶无效的问题——此前无论选择手臂/大腿/阴囊，`t_gel_F` 恒为 0.10；现按部位区分为 `t_gel_arm`/`t_gel_thigh`/`t_gel_scrotal`（默认 0.10 / 0.10 / 0.50），阴囊值外推自 Iyer et al. 2017、Kuhnert et al. 2005 的睾酮凝胶部位对比数据。PK 自定义参数面板同步更新。
+  - 凝胶（E2）阴囊/生殖器部位的 `e2_gel_scrotal` 由 0.40 调整为 0.25（约 5× 手臂/大腿），改为直接对齐 Premoli et al. 2005 阴囊贴片给药的实测倍数，而非睾酮凝胶类比的上限。
+  - 移除了未使用的死代码常量 `GelSiteParams`（与 `_getGelBio`/`_activePKParams` 的实际实现重复且未被引用）。
+  - UI：移除 Gel、Patch Apply、Patch Remove 路由标签与提示文案中的 "(Beta)" 标记及相应免责声明——上述路由的核心假设（零阶贴片以标称释放率为 `F=1.0`；凝胶按部位生物利用率）均可追溯到具体文献/官方说明书，不再视为实验性功能。`ester.EU`（十一酸雌二醇）保留 Beta 标记，因其人体药代数据仍非常有限（个体间差异可达 10 倍，终末半衰期未知）。
 
 ---
 
@@ -284,11 +292,20 @@ $$
 **期刊/综述（示例）**
 - Ginsburg ES et al. Half-life of estradiol in postmenopausal women. Fertil Steril. 1998：贴片移除后终末半衰期约 161 min（107–221 min）。<https://pubmed.ncbi.nlm.nih.gov/9473164/>
 - Kuhl H. Pharmacology of estrogens and progestogens: influence of different routes of administration. *Climacteric*. 2005. <https://pubmed.ncbi.nlm.nih.gov/16112947/>
-- Oinonen et al. Absorption and bioavailability of oestradiol from a gel, a patch and a tablet. *Eur J Pharm Biopharm*. 1999. <https://pubmed.ncbi.nlm.nih.gov/10465378/>
+- Oinonen et al. / Järvinen et al. Absorption and bioavailability of oestradiol from a gel, a patch and a tablet. *Maturitas*. 1999：凝胶生物利用率为片剂的 61%、贴片的 109%。<https://pubmed.ncbi.nlm.nih.gov/10465378/>
+- Premoli MC et al. Scrotal transdermal estradiol delivery, 2005：阴囊贴片给药雌二醇水平约为前臂给药的 5 倍。
+- Iyer R et al. Pharmacokinetics of testosterone cream applied to scrotal skin. *Andrology*. 2017：阴囊皮肤睾酮吸收显著高于腹部。<https://onlinelibrary.wiley.com/doi/full/10.1111/andr.12357>
+- Kuhnert B et al. Testosterone substitution with a new transdermal, hydroalcoholic gel applied to scrotal or non-scrotal skin. 2005：阴囊 vs 非阴囊皮肤睾酮凝胶吸收比较。
+- transfemscience.org: Genital Application via the Scrotum and Neolabia for Greatly Enhanced Absorption of Transdermal Estradiol in Transfeminine People（汇总阴囊/外阴部位给药的证据与外推依据）<https://transfemscience.org/articles/genital-e2-application/>
 - 比较矩阵与储库型贴片的生物利用度与速率差异的研究（如 Menorest® vs Estraderm®）。
+
+**官方说明书（补充）**
+- Divigel® (estradiol gel) FDA 说明书：凝胶表观消除半衰期 36 h；每日涂抹于大腿于第 12 天达稳态。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2007/022038lbl.pdf>
+- Vivelle-Dot® / AndroGel® FDA 说明书：贴片按"体内标称递送速率"设计（0.025–0.1 mg/day），凝胶睾酮系统生物利用率约 10%。
 
 **百科与药学数据库**
 - Wikipedia: Pharmacokinetics of estradiol（路由差异、凝胶 36 h 表观半衰期等聚合条目）<https://en.wikipedia.org/wiki/Pharmacokinetics_of_estradiol>
+- Wikipedia: Estradiol undecylate（人体药代数据有限、终末半衰期未知、个体差异可达 10 倍——`ester.EU` 保留 Beta 标记的依据）<https://en.wikipedia.org/wiki/Estradiol_undecylate>
 - DrugBank: Estradiol（透皮生物利用度对比口服、部位差异）<https://go.drugbank.com/drugs/DB00783>
 
 > 说明：实现中还参考了多份品牌说明书与审评文档、二级综述与数据手册，此处不一一列举。
