@@ -71,8 +71,9 @@ CREATE TABLE backup_codes (
 );
 CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id);
 
--- Immutable, privacy-minimized dosage snapshots shared through high-entropy
--- bearer links. Only the token digest is stored; passwords use bcrypt hashes.
+-- Privacy-minimized dosage snapshots shared through high-entropy bearer links.
+-- Static snapshots are immutable; live snapshots can be refreshed by owners.
+-- Only the token digest is stored; passwords use bcrypt hashes.
 CREATE TABLE dosage_shares (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -80,7 +81,10 @@ CREATE TABLE dosage_shares (
     snapshot_json TEXT NOT NULL,
     password_hash TEXT,
     expires_at INTEGER,
+    is_live INTEGER NOT NULL DEFAULT 0,
+    share_mode TEXT,
     created_at INTEGER DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_dosage_shares_user_id ON dosage_shares(user_id);

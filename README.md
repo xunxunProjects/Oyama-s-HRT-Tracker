@@ -32,7 +32,7 @@ We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided 
 
   **舌下服用指导**：基于严格的医学建模，提供详细的"含服时间（Hold Time）"与吸收参数（θ）参考。
 
-- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the current dosage history, modelled curve, and timezone until its expiration; it never includes lab results, weight, profile details, or account data.
+- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data.
 
   **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据。
 
@@ -98,6 +98,10 @@ docker compose up -d
 ```
 
 Then open <http://localhost:8787>. / 然后访问 <http://localhost:8787>。
+
+Web and Docker builds use same-origin `/api` requests by default. Desktop and
+other custom-protocol builds should set `VITE_API_ORIGIN` to their Worker/API
+origin at build time; the official Tauri workflow supplies the hosted origin.
 
 To stop the app without deleting its data: / 停止应用但保留数据：
 

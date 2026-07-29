@@ -71,7 +71,10 @@ CREATE TABLE IF NOT EXISTS dosage_shares (
     snapshot_json TEXT NOT NULL,
     password_hash TEXT,
     expires_at INTEGER,
+    is_live INTEGER NOT NULL DEFAULT 0,
+    share_mode TEXT,
     created_at INTEGER DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX IF NOT EXISTS idx_dosage_shares_user_id ON dosage_shares(user_id);

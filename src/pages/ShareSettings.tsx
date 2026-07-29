@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, Copy, Eye, EyeOff, Link2, Loader2, LockKeyhole, Trash2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { ArrowLeft, Check, ChevronDown, Copy, Eye, EyeOff, Link2, Loader2, LockKeyhole, RefreshCw, Trash2 } from 'lucide-react';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
-import { CreatedShare, ShareApiError, ShareSummary, sharingService } from '../services/sharing';
+import { CreatedShare, notifyLiveSharesChanged, ShareApiError, ShareSummary, sharingService } from '../services/sharing';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
+import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
 
 interface ShareSettingsProps {
     onBack: () => void;
@@ -23,56 +23,6 @@ const toLocalDateTimeValue = (timestamp: number): string => {
     return new Date(timestamp - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 };
 
-const MAX_SHARED_SIMULATION_POINTS = 2500;
-
-const evenlySampleRange = (start: number, end: number, count: number): number[] => {
-    if (count <= 0 || end < start) return [];
-    const length = end - start + 1;
-    if (length <= count) return Array.from({ length }, (_, index) => start + index);
-    if (count === 1) return [end];
-    return Array.from({ length: count }, (_, index) =>
-        start + Math.round(index * (length - 1) / (count - 1))
-    );
-};
-
-const nearestTimeIndex = (times: number[], target: number): number => {
-    let low = 0;
-    let high = times.length - 1;
-    while (low < high) {
-        const middle = Math.floor((low + high) / 2);
-        if (times[middle] < target) low = middle + 1;
-        else high = middle;
-    }
-    if (low > 0 && Math.abs(times[low - 1] - target) < Math.abs(times[low] - target)) return low - 1;
-    return low;
-};
-
-const sampleIndexes = (times: number[], events: DoseEvent[]): number[] => {
-    if (times.length <= MAX_SHARED_SIMULATION_POINTS) return Array.from({ length: times.length }, (_, index) => index);
-
-    const required = new Set<number>([0, times.length - 1]);
-    // Keep a bounded set of the most recent dose-adjacent curve samples. These
-    // are the points most likely to carry a short oral/sublingual peak.
-    for (const event of [...events].sort((a, b) => b.timeH - a.timeH).slice(0, 250)) {
-        required.add(nearestTimeIndex(times, event.timeH));
-    }
-
-    const recentCutoffH = Date.now() / 3_600_000 - 30 * 24;
-    let recentStart = times.findIndex(time => time >= recentCutoffH);
-    if (recentStart < 0) recentStart = times.length - 1;
-
-    const remaining = Math.max(0, MAX_SHARED_SIMULATION_POINTS - required.size);
-    const olderLength = recentStart;
-    const recentLength = times.length - recentStart;
-    const olderBudget = olderLength > 0 ? Math.min(450, Math.floor(remaining * 0.2), olderLength) : 0;
-    const recentBudget = Math.min(recentLength, remaining - olderBudget);
-    const spare = remaining - olderBudget - recentBudget;
-
-    evenlySampleRange(0, recentStart - 1, olderBudget + spare).forEach(index => required.add(index));
-    evenlySampleRange(recentStart, times.length - 1, recentBudget).forEach(index => required.add(index));
-    return [...required].sort((a, b) => a - b).slice(0, MAX_SHARED_SIMULATION_POINTS);
-};
-
 const ShareSettings: React.FC<ShareSettingsProps> = ({
     onBack,
     authToken,
@@ -85,6 +35,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     const { showDialog } = useDialog();
     const copy = getShareCopy(lang);
     const [passwordEnabled, setPasswordEnabled] = useState(false);
+    const [liveEnabled, setLiveEnabled] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [expiresAtInput, setExpiresAtInput] = useState('');
@@ -100,6 +51,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
 
     useEffect(() => {
         setPasswordEnabled(false);
+        setLiveEnabled(false);
         setPassword('');
         setShowPassword(false);
         setExpiresAtInput(toLocalDateTimeValue(Date.now() + 7 * 24 * 60 * 60_000));
@@ -116,25 +68,10 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
             .finally(() => setSharesLoading(false));
     }, [authToken]);
 
-    const sharedSimulation = useMemo<SimulationResult | null>(() => {
-        if (!simulation) return null;
-        const indexes = sampleIndexes(simulation.timeH, events);
-        // Preserve the exact calibrated E2 curve the sender sees without
-        // including the lab values used to calibrate it. The chart is sampled
-        // to a display-sized series so long histories stay comfortably below
-        // the share request/storage limit.
-        const calibratedE2 = indexes.map((sourceIndex) =>
-            simulation.concPGmL_E2[sourceIndex] * calibrationFn(simulation.timeH[sourceIndex])
-        );
-        return {
-            timeH: indexes.map(index => simulation.timeH[index]),
-            concPGmL_CPA: indexes.map(index => simulation.concPGmL_CPA[index]),
-            concNGdL_T: indexes.map(index => simulation.concNGdL_T[index]),
-            concPGmL_E2: calibratedE2,
-            concPGmL: calibratedE2,
-            auc: simulation.auc,
-        };
-    }, [simulation, calibrationFn, events]);
+    const shareSnapshot = useMemo(
+        () => buildSharedDosageSnapshot({ mode, events, simulation, calibrationFn }),
+        [mode, events, simulation, calibrationFn],
+    );
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -152,25 +89,21 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 setError(copy.invalidExpiry);
                 return;
             }
-            const result = await sharingService.create(authToken, {
-                version: 1,
-                mode,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                createdAt: Date.now(),
-                // Share-specific IDs prevent the same local record identifier
-                // from being correlated across different links or exports.
-                events: events.map(event => ({ ...event, id: uuidv4(), extras: { ...event.extras } })),
-                simulation: sharedSimulation,
-            }, {
+            const result = await sharingService.create(authToken, shareSnapshot, {
                 password: passwordEnabled ? password : undefined,
                 expiresAt,
+                live: liveEnabled,
             });
             setCreatedShare(result);
+            if (result.live) notifyLiveSharesChanged();
             setShares(previous => [{
                 id: result.id,
                 createdAt: result.createdAt,
                 expiresAt: result.expiresAt,
                 passwordRequired: result.passwordRequired,
+                live: result.live,
+                mode: result.mode,
+                updatedAt: result.updatedAt,
                 expired: false,
             }, ...previous.filter(item => item.id !== result.id)]);
         } catch (requestError) {
@@ -206,6 +139,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 await sharingService.revoke(authToken, share.id);
                 setShares(previous => previous.filter(item => item.id !== share.id));
                 if (createdShare?.id === share.id) setCreatedShare(null);
+                if (share.live) notifyLiveSharesChanged();
             } catch {
                 showDialog('alert', copy.revokeError);
             } finally {
@@ -262,17 +196,43 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 </button>
                             </div>
 
-                            {createdShare.passwordRequired && (
-                                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
-                                    <LockKeyhole size={13} />
-                                    {copy.passwordHint}
-                                </p>
+                            {(createdShare.live || createdShare.passwordRequired) && (
+                                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                                    {createdShare.live && (
+                                        <span className="inline-flex items-center gap-1.5 text-[var(--color-m3-primary)]">
+                                            <RefreshCw size={12} />
+                                            {copy.liveBadge}
+                                        </span>
+                                    )}
+                                    {createdShare.passwordRequired && (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <LockKeyhole size={13} />
+                                            {copy.passwordHint}
+                                        </span>
+                                    )}
+                                </div>
                             )}
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="border-b border-[var(--color-m3-outline-variant)] pb-6 dark:border-[var(--color-m3-dark-outline-variant)]">
                             <div className="callout mb-5">
-                                {copy.snapshotNote}
+                                {liveEnabled ? copy.liveSnapshotNote : copy.snapshotNote}
+                            </div>
+
+                            <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--color-m3-outline-variant)] py-[18px] dark:border-[var(--color-m3-dark-outline-variant)]">
+                                <label htmlFor="share-live-toggle" className="cursor-pointer text-[15px] font-medium text-body">
+                                    {copy.liveToggle}
+                                </label>
+                                <button
+                                    id="share-live-toggle"
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={liveEnabled}
+                                    onClick={() => setLiveEnabled(value => !value)}
+                                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${liveEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm ${liveEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
                             </div>
 
                             <div className="mb-5">
@@ -400,6 +360,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                         <div className="min-w-0 flex-1">
                                             <p className="flex items-center gap-1.5 text-xs font-medium text-body">
                                                 {copy.sharedOn} {new Date(share.createdAt).toLocaleString(LOCALE_MAP[lang])}
+                                                {share.live && (
+                                                    <span className="inline-flex items-center gap-1 text-[var(--color-m3-primary)]">
+                                                        <RefreshCw size={10} />
+                                                        {copy.liveBadge}
+                                                    </span>
+                                                )}
                                                 {share.passwordRequired && <LockKeyhole size={11} className="shrink-0 text-muted" />}
                                             </p>
                                             <p className="mt-0.5 truncate text-[11px] text-muted">
