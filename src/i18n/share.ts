@@ -5,6 +5,10 @@ export interface ShareCopy {
     modalTitle: string;
     modalDescription: string;
     snapshotNote: string;
+    liveSnapshotNote: string;
+    liveToggle: string;
+    liveBadge: string;
+    updatedOn: string;
     passwordToggle: string;
     passwordLabel: string;
     passwordPlaceholder: string;
@@ -56,6 +60,10 @@ const en: ShareCopy = {
     modalTitle: 'Share dosage details',
     modalDescription: 'Create a read-only snapshot of your dosage chart and history.',
     snapshotNote: 'A copy of your dosage records, modelled curve, and timezone is uploaded to this service and kept until the link expires. Later changes will not appear. Lab results, weight, profile details, and account data are not included.',
+    liveSnapshotNote: 'While you are signed in with HRT Tracker open, later dosage changes are copied to this link. Lab results, weight, profile details, and account data are not included.',
+    liveToggle: 'Keep this link updated',
+    liveBadge: 'Live',
+    updatedOn: 'Updated',
     passwordToggle: 'Protect with a password',
     passwordLabel: 'Link password',
     passwordPlaceholder: 'At least 8 characters',
@@ -108,6 +116,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: '分享', modalTitle: '分享用药详情', modalDescription: '创建一个仅可查看的快照，包含您的剂量图表和用药记录。',
         snapshotNote: '您的用药记录、模型曲线和时区副本会上传至本服务，并保存到链接过期。之后的修改不会同步；检查结果、体重、个人资料和账户数据不会被包含。',
+        liveSnapshotNote: '登录并打开 HRT Tracker 时，后续用药修改会自动同步至此链接；检查结果、体重、个人资料和账户数据不会被包含。',
+        liveToggle: '实时同步', liveBadge: '实时', updatedOn: '更新于',
         passwordToggle: '使用密码保护', passwordLabel: '链接密码', passwordPlaceholder: '至少 8 个字符', passwordHint: '请将密码和链接分开发送。',
         expiryLabel: '过期时间', expiryHint: '超过此时间后，链接将无法访问。', create: '创建链接', creating: '正在创建…', created: '分享链接已就绪',
         copy: '复制链接', copied: '已复制', createError: '无法创建链接，请重试。', tooLarge: '用药记录过大，无法放入一个分享链接。', limitReached: '您已达到有效链接数量上限，请在旧链接过期后重试。', invalidExpiry: '请选择将来的过期时间。', loginRequired: '请先登录，再创建分享链接。', noData: '请先添加一条用药记录。',
@@ -120,6 +130,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: '分享', modalTitle: '分享用藥詳情', modalDescription: '建立一個僅供檢視的快照，包含劑量圖表與用藥紀錄。',
         snapshotNote: '您的用藥紀錄、模型曲線與時區副本會上傳至本服務，並保存到連結到期。之後的修改不會同步；檢查結果、體重、個人資料與帳戶資料不會被包含。',
+        liveSnapshotNote: '登入並開啟 HRT Tracker 時，之後的用藥修改會自動同步至此連結；檢查結果、體重、個人資料與帳戶資料不會被包含。',
+        liveToggle: '即時同步', liveBadge: '即時', updatedOn: '更新於',
         passwordToggle: '使用密碼保護', passwordLabel: '連結密碼', passwordPlaceholder: '至少 8 個字元', passwordHint: '請將密碼與連結分開傳送。',
         expiryLabel: '到期時間', expiryHint: '超過此時間後，連結將無法存取。', create: '建立連結', creating: '正在建立…', created: '分享連結已就緒',
         copy: '複製連結', copied: '已複製', createError: '無法建立連結，請再試一次。', tooLarge: '用藥紀錄過大，無法放入一個分享連結。', limitReached: '您已達到有效連結數量上限，請在舊連結到期後再試。', invalidExpiry: '請選擇未來的到期時間。', loginRequired: '請先登入，再建立分享連結。', noData: '請先新增一筆用藥紀錄。',
@@ -132,6 +144,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: '分享', modalTitle: '分享用藥詳情', modalDescription: '建立一個只可以睇嘅快照，包含劑量圖表同用藥紀錄。',
         snapshotNote: '您嘅用藥紀錄、模型曲線同時區副本會上傳到本服務，保存到連結到期。之後嘅修改唔會同步；檢查結果、體重、個人資料同帳戶資料唔會包括。',
+        liveSnapshotNote: '登入並開住 HRT Tracker 時，之後嘅用藥修改會自動同步到呢條連結；檢查結果、體重、個人資料同帳戶資料唔會包括。',
+        liveToggle: '即時同步', liveBadge: '即時', updatedOn: '更新於',
         passwordToggle: '用密碼保護', passwordLabel: '連結密碼', passwordPlaceholder: '最少 8 個字元', passwordHint: '請將密碼同連結分開傳送。',
         expiryLabel: '到期時間', expiryHint: '過咗呢個時間，連結就唔可以再用。', create: '建立連結', creating: '建立緊…', created: '分享連結已準備好',
         copy: '複製連結', copied: '已複製', createError: '建立唔到連結，請再試。', tooLarge: '用藥紀錄太大，放唔入一條分享連結。', limitReached: '已達有效連結上限，請等舊連結到期後再試。', invalidExpiry: '請揀一個將來嘅到期時間。', loginRequired: '請先登入，再建立分享連結。', noData: '請先加一筆用藥紀錄。',
@@ -144,6 +158,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: '共有', modalTitle: '投与情報を共有', modalDescription: '投与量グラフと履歴の閲覧専用スナップショットを作成します。',
         snapshotNote: '投与記録、モデル曲線、タイムゾーンのコピーが本サービスへアップロードされ、リンクの期限まで保存されます。後の変更は反映されず、検査結果、体重、プロフィール、アカウント情報は含まれません。',
+        liveSnapshotNote: 'HRT Trackerにログインして開いている間、以後の投与変更がこのリンクへ自動同期されます。検査結果、体重、プロフィール、アカウント情報は含まれません。',
+        liveToggle: 'リアルタイム同期', liveBadge: 'ライブ', updatedOn: '更新',
         passwordToggle: 'パスワードで保護', passwordLabel: 'リンクのパスワード', passwordPlaceholder: '8文字以上', passwordHint: 'パスワードはリンクとは別に送ってください。',
         expiryLabel: '有効期限', expiryHint: 'この日時を過ぎるとリンクは開けなくなります。', create: 'リンクを作成', creating: '作成中…', created: '共有リンクを作成しました',
         copy: 'リンクをコピー', copied: 'コピー済み', createError: 'リンクを作成できませんでした。もう一度お試しください。', tooLarge: '履歴が大きすぎるため、1つのリンクでは共有できません。', limitReached: '有効なリンク数の上限に達しました。古いリンクの期限後に再試行してください。', invalidExpiry: '未来の有効期限を選択してください。', loginRequired: '共有リンクを作成するにはサインインしてください。', noData: '先に投与記録を追加してください。',
@@ -156,6 +172,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: '공유', modalTitle: '복용 정보 공유', modalDescription: '복용량 차트와 기록의 읽기 전용 스냅샷을 만듭니다.',
         snapshotNote: '복용 기록, 모델 곡선 및 시간대 사본이 이 서비스에 업로드되어 링크 만료 시점까지 보관됩니다. 이후 변경 사항은 반영되지 않으며 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
+        liveSnapshotNote: 'HRT Tracker에 로그인한 상태로 앱을 열어 두면 이후 복용 변경 사항이 이 링크에 자동 동기화됩니다. 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
+        liveToggle: '실시간 동기화', liveBadge: '실시간', updatedOn: '업데이트',
         passwordToggle: '비밀번호로 보호', passwordLabel: '링크 비밀번호', passwordPlaceholder: '8자 이상', passwordHint: '비밀번호는 링크와 별도로 보내세요.',
         expiryLabel: '만료 날짜', expiryHint: '이 시간이 지나면 링크가 열리지 않습니다.', create: '링크 만들기', creating: '만드는 중…', created: '공유 링크가 준비되었습니다',
         copy: '링크 복사', copied: '복사됨', createError: '링크를 만들 수 없습니다. 다시 시도해 주세요.', tooLarge: '기록이 너무 커서 하나의 링크로 공유할 수 없습니다.', limitReached: '활성 링크 한도에 도달했습니다. 이전 링크가 만료된 후 다시 시도하세요.', invalidExpiry: '미래의 만료 시간을 선택하세요.', loginRequired: '공유 링크를 만들려면 로그인하세요.', noData: '먼저 복용 기록을 추가하세요.',
@@ -168,6 +186,8 @@ const copy: Record<Lang, ShareCopy> = {
         ...en,
         action: 'Paylaş', modalTitle: 'Doz bilgilerini paylaş', modalDescription: 'Doz grafiğinizin ve geçmişinizin salt okunur bir anlık görüntüsünü oluşturun.',
         snapshotNote: 'Doz kayıtlarınızın, modellenmiş eğrinin ve saat diliminin bir kopyası bu hizmete yüklenir ve bağlantı sona erene kadar saklanır. Sonraki değişiklikler yansımaz; test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
+        liveSnapshotNote: 'HRT Tracker açık ve oturumunuz etkin olduğu sürece sonraki doz değişiklikleri bu bağlantıya otomatik eşitlenir. Test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
+        liveToggle: 'Canlı eşitleme', liveBadge: 'Canlı', updatedOn: 'Güncellendi',
         passwordToggle: 'Parolayla koru', passwordLabel: 'Bağlantı parolası', passwordPlaceholder: 'En az 8 karakter', passwordHint: 'Parolayı bağlantıdan ayrı gönderin.',
         expiryLabel: 'Son kullanma tarihi', expiryHint: 'Bu saatten sonra bağlantı açılmaz.', create: 'Bağlantı oluştur', creating: 'Oluşturuluyor…', created: 'Paylaşım bağlantınız hazır',
         copy: 'Bağlantıyı kopyala', copied: 'Kopyalandı', createError: 'Bağlantı oluşturulamadı. Lütfen yeniden deneyin.', tooLarge: 'Bu geçmiş tek bir bağlantıda paylaşmak için çok büyük.', limitReached: 'Etkin bağlantı sınırına ulaştınız. Eski bir bağlantı sona erdikten sonra yeniden deneyin.', invalidExpiry: 'Gelecekte bir son kullanma zamanı seçin.', loginRequired: 'Paylaşım bağlantısı oluşturmak için giriş yapın.', noData: 'Önce bir doz kaydı ekleyin.',

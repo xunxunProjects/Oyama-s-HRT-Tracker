@@ -8,6 +8,7 @@ import { DoseEvent, decompressData, encryptData, decryptData, encryptCloudPayloa
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
+import { useLiveShareSync } from './hooks/useLiveShareSync';
 
 import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
@@ -88,6 +89,14 @@ const AppContent = () => {
         mergeImportedData,
         buildExportPayload
     } = useAppData(showDialog);
+
+    useLiveShareSync({
+        authToken: token,
+        mode,
+        events,
+        simulation,
+        calibrationFn,
+    });
 
     const {
         currentView,

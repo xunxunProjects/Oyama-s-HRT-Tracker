@@ -102,9 +102,11 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
 
-// Dosage shares are immutable, deliberately minimal snapshots. The server
-// reconstructs this shape instead of storing the submitted object verbatim so
-// accidental account/profile fields can never be exposed by a public link.
+// Dosage shares are deliberately minimal snapshots. Static shares are
+// immutable; live shares may replace this sanitized payload when the owner
+// syncs their current dosage data. The server reconstructs the shape instead
+// of storing the submitted object verbatim so accidental account/profile
+// fields can never be exposed by a public link.
 const MAX_SHARE_REQUEST_BYTES = 2 * 1024 * 1024;
 const MAX_SHARE_EVENTS = 10_000;
 const MAX_SHARE_SIMULATION_POINTS = 100_000;
@@ -488,7 +490,7 @@ async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string
   return true;
 }
 
-// --- Immutable dosage share snapshots ---
+// --- Dosage share snapshots ---
 let dosageSharesEnsured = false;
 async function ensureDosageShares(env: Env): Promise<void> {
   if (dosageSharesEnsured) return;
@@ -501,10 +503,32 @@ async function ensureDosageShares(env: Env): Promise<void> {
         snapshot_json TEXT NOT NULL,
         password_hash TEXT,
         expires_at INTEGER,
+        is_live INTEGER NOT NULL DEFAULT 0,
+        share_mode TEXT,
         created_at INTEGER DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
         FOREIGN KEY (user_id) REFERENCES users(id)
       )`
     ).run();
+
+    // Local/self-hosted databases may have been created before live sharing
+    // existed and might not have run the numbered D1 migration. Inspect first
+    // and tolerate a concurrent Worker isolate winning the ALTER race.
+    const ensureColumn = async (name: string, ddl: string): Promise<void> => {
+      const columns = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
+      if ((columns.results || []).some(column => column.name === name)) return;
+      try {
+        await env.DB.prepare(ddl).run();
+      } catch (error) {
+        const refreshed = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
+        if (!(refreshed.results || []).some(column => column.name === name)) throw error;
+      }
+    };
+    await ensureColumn('is_live', 'ALTER TABLE dosage_shares ADD COLUMN is_live INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn('share_mode', 'ALTER TABLE dosage_shares ADD COLUMN share_mode TEXT');
+    await ensureColumn('updated_at', 'ALTER TABLE dosage_shares ADD COLUMN updated_at INTEGER');
+    await env.DB.prepare('UPDATE dosage_shares SET updated_at = created_at WHERE updated_at IS NULL').run();
+
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_dosage_shares_user_id ON dosage_shares(user_id)').run();
     await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_dosage_shares_token_hash ON dosage_shares(token_hash)').run();
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_dosage_shares_expires_at ON dosage_shares(expires_at)').run();
@@ -1084,11 +1108,14 @@ export default {
         const tokenHash = await sha256Hex(body.token);
         await ensureDosageShares(env);
         const share = await env.DB.prepare(
-          'SELECT password_hash, expires_at, created_at FROM dosage_shares WHERE token_hash = ?'
+          'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE token_hash = ?'
         ).bind(tokenHash).first() as {
           password_hash: string | null;
           expires_at: number | null;
+          is_live: number;
+          share_mode: DosageShareSnapshot['mode'] | null;
           created_at: number;
+          updated_at: number | null;
         } | null;
 
         if (!share) {
@@ -1104,6 +1131,7 @@ export default {
         }
 
         const createdAt = share.created_at * 1000;
+        const updatedAt = (share.updated_at ?? share.created_at) * 1000;
         const expiresAt = share.expires_at == null ? null : share.expires_at * 1000;
         if (share.expires_at != null && share.expires_at <= Math.floor(Date.now() / 1000)) {
           // Preserve a small tombstone so future requests still receive the
@@ -1120,7 +1148,9 @@ export default {
               code: 'PASSWORD_REQUIRED',
               message: 'Password required',
               passwordRequired: true,
+              live: share.is_live === 1,
               createdAt,
+              updatedAt,
               expiresAt,
             }, 401);
           }
@@ -1146,7 +1176,9 @@ export default {
         }
         return shareJson({
           passwordRequired: share.password_hash !== null,
+          live: share.is_live === 1,
           createdAt,
+          updatedAt,
           expiresAt,
           snapshot: JSON.parse(snapshotRow.snapshot_json),
         });
@@ -1213,6 +1245,11 @@ export default {
             return shareJson({ code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' }, 400);
           }
 
+          if (body.live !== undefined && typeof body.live !== 'boolean') {
+            return shareJson({ code: 'INVALID_REQUEST', message: 'live must be a boolean' }, 400);
+          }
+          const live = body.live === true;
+
           let password: string | null = null;
           if (body.password !== undefined && body.password !== null && body.password !== '') {
             if (typeof body.password !== 'string') return shareJson({ code: 'INVALID_REQUEST', message: 'password must be a string' }, 400);
@@ -1263,17 +1300,91 @@ export default {
           const tokenHash = await sha256Hex(rawShareToken);
           const passwordHash = password ? await bcrypt.hash(password, 10) : null;
           await env.DB.prepare(
-            'INSERT INTO dosage_shares (id, user_id, token_hash, snapshot_json, password_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).bind(id, userId, tokenHash, snapshotJson, passwordHash, expiresAtSeconds, nowSeconds).run();
+            'INSERT INTO dosage_shares (id, user_id, token_hash, snapshot_json, password_hash, expires_at, is_live, share_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          ).bind(id, userId, tokenHash, snapshotJson, passwordHash, expiresAtSeconds, live ? 1 : 0, sanitized.snapshot.mode, nowSeconds, nowSeconds).run();
 
           return shareJson({
             id,
             token: rawShareToken,
             url: `${(env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/+$/, '')}/share/#${rawShareToken}`,
+            live,
+            mode: sanitized.snapshot.mode,
             createdAt: nowSeconds * 1000,
+            updatedAt: nowSeconds * 1000,
             expiresAt: expiresAtSeconds * 1000,
             passwordRequired: passwordHash !== null,
           }, 201);
+        }
+
+        if (url.pathname === '/api/shares/live' && request.method === 'PUT') {
+          if (!(await checkRateLimit(env, `share-live-update:${userId}`, 30, 60000))) {
+            return shareJson({ code: 'RATE_LIMITED', message: 'Too many live share updates. Please try again later.' }, 429, { 'Retry-After': '60' });
+          }
+
+          const declaredLength = Number(request.headers.get('Content-Length'));
+          if (Number.isFinite(declaredLength) && declaredLength > MAX_SHARE_REQUEST_BYTES) {
+            return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
+          }
+          const rawBody = await request.text();
+          if (new TextEncoder().encode(rawBody).byteLength > MAX_SHARE_REQUEST_BYTES) {
+            return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
+          }
+
+          let body: unknown;
+          try {
+            body = JSON.parse(rawBody);
+          } catch {
+            return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
+          }
+          if (!isJsonObject(body)) {
+            return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
+          }
+          const sanitized = sanitizeShareSnapshot(body.snapshot);
+          if (!sanitized.snapshot) {
+            return shareJson({ code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' }, 400);
+          }
+
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          sanitized.snapshot.createdAt = nowSeconds * 1000;
+          const validatedSnapshotJson = JSON.stringify(sanitized.snapshot);
+          if (new TextEncoder().encode(validatedSnapshotJson).byteLength > MAX_SHARE_REQUEST_BYTES) {
+            return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
+          }
+
+          await ensureDosageShares(env);
+          const activeLiveShares = await env.DB.prepare(
+            `SELECT id FROM dosage_shares
+             WHERE user_id = ? AND is_live = 1
+               AND share_mode = ?
+               AND (expires_at IS NULL OR expires_at > ?)`
+          ).bind(userId, sanitized.snapshot.mode, nowSeconds).all<{ id: string }>();
+
+          // Give every link a different set of opaque event identifiers. This
+          // prevents recipients of separate links from correlating otherwise
+          // identical records through caller-provided/local IDs.
+          const updates = (activeLiveShares.results || []).map(({ id }) => {
+            const snapshotForShare: DosageShareSnapshot = {
+              ...sanitized.snapshot!,
+              events: sanitized.snapshot!.events.map(event => ({
+                ...event,
+                id: crypto.randomUUID(),
+                extras: { ...event.extras },
+              })),
+            };
+            return env.DB.prepare(
+              `UPDATE dosage_shares
+               SET snapshot_json = ?, updated_at = ?
+               WHERE id = ? AND user_id = ? AND is_live = 1
+                 AND share_mode = ?
+                 AND (expires_at IS NULL OR expires_at > ?)`
+            ).bind(JSON.stringify(snapshotForShare), nowSeconds, id, userId, sanitized.snapshot!.mode, nowSeconds);
+          });
+          const results = updates.length > 0 ? await env.DB.batch(updates) : [];
+          const updated = results.reduce((count, result) => count + (result.meta.changes ?? 0), 0);
+          return shareJson({
+            updated,
+            updatedAt: nowSeconds * 1000,
+          });
         }
 
         if (url.pathname === '/api/shares' && request.method === 'GET') {
@@ -1290,11 +1401,14 @@ export default {
             )`
           ).bind(userId, nowSeconds, MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER).run();
           const rows = await env.DB.prepare(
-            'SELECT id, password_hash, expires_at, created_at FROM dosage_shares WHERE user_id = ? ORDER BY created_at DESC'
+            'SELECT id, password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE user_id = ? ORDER BY created_at DESC'
           ).bind(userId).all();
           const shares = (rows.results || []).map((share: any) => ({
             id: share.id,
+            live: share.is_live === 1,
+            mode: share.share_mode,
             createdAt: share.created_at * 1000,
+            updatedAt: (share.updated_at ?? share.created_at) * 1000,
             expiresAt: share.expires_at == null ? null : share.expires_at * 1000,
             passwordRequired: share.password_hash !== null,
             expired: share.expires_at != null && share.expires_at <= nowSeconds,

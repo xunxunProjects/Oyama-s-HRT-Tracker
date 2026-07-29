@@ -15,6 +15,9 @@ jobs:
     env:
       # Needed by tauri-action for code signing steps (we skip signing here)
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Custom-protocol desktop builds cannot use browser-relative /api URLs.
+      # Forks can replace this with their own Worker/API origin.
+      VITE_API_ORIGIN: https://hrt.mahiro.uk
     steps:
       - name: Checkout
         uses: actions/checkout@v4

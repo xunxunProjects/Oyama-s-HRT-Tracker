@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertCircle, Clock3, Eye, EyeOff, LockKeyhole } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, AlertCircle, Clock3, Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
 import { DoseEvent, Ester, ExtraKey, getToE2Factor, isTestosteroneEster, Route } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -29,6 +29,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [unlocking, setUnlocking] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
+    const unlockedPasswordRef = useRef('');
 
     const classifyError = (error: unknown): ShareState => {
         if (error instanceof ShareApiError && (error.status === 410 || error.code === 'SHARE_EXPIRED')) {
@@ -56,6 +57,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
 
     useEffect(() => {
         let cancelled = false;
+        unlockedPasswordRef.current = '';
         setPassword('');
         setPasswordError(null);
 
@@ -86,6 +88,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         setPasswordError(null);
         try {
             const details = await sharingService.unlock(token, password);
+            unlockedPasswordRef.current = password;
             setState({ kind: 'ready', details });
             setPassword('');
         } catch (error) {
@@ -98,6 +101,50 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
             setUnlocking(false);
         }
     };
+
+    const liveReady = state.kind === 'ready' && state.details.live;
+    useEffect(() => {
+        if (!token || !liveReady) return;
+
+        let cancelled = false;
+        let refreshing = false;
+        const refresh = async () => {
+            if (cancelled || refreshing || document.hidden) return;
+            refreshing = true;
+            try {
+                const result = unlockedPasswordRef.current
+                    ? await sharingService.unlock(token, unlockedPasswordRef.current)
+                    : await sharingService.open(token);
+                if (!cancelled && 'snapshot' in result) {
+                    setState({ kind: 'ready', details: result });
+                }
+            } catch (error) {
+                if (cancelled) return;
+                if (error instanceof ShareApiError && (error.status === 410 || error.code === 'SHARE_EXPIRED')) {
+                    setState({ kind: 'expired' });
+                } else if (error instanceof ShareApiError && error.status === 404) {
+                    setState({ kind: 'unavailable' });
+                }
+                // Keep showing the most recently loaded data for transient
+                // network failures and rate limits.
+            } finally {
+                refreshing = false;
+            }
+        };
+
+        const onVisibilityChange = () => {
+            if (!document.hidden) void refresh();
+        };
+        const timer = window.setInterval(() => void refresh(), 30_000);
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refresh);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+    }, [token, liveReady]);
 
     if (state.kind === 'loading') {
         return (
@@ -252,6 +299,13 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                             <dt>{copy.sharedOn}</dt>
                             <dd className="text-body">{formatDateTime(details.createdAt)}</dd>
                         </div>
+                        {details.live && (
+                            <div className="flex items-center gap-1.5 text-[var(--color-m3-primary)]">
+                                <RefreshCw size={12} />
+                                <dt>{copy.liveBadge}</dt>
+                                <dd>{copy.updatedOn} {formatDateTime(details.updatedAt)}</dd>
+                            </div>
+                        )}
                     </dl>
                 </section>
 
