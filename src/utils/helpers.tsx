@@ -12,12 +12,12 @@ export const LOCALE_MAP: Record<Lang, string> = {
     'tr': 'tr-TR',
 };
 
-export const formatDate = (date: Date, lang: Lang) => {
-    return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric' });
+export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
+    return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', timeZone });
 };
 
-export const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+export const formatTime = (date: Date, timeZone?: string) => {
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 };
 
 const iconMuted = "w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";

@@ -5,6 +5,9 @@ compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/*", "!/assets/*"]
 
 [observability]
 enabled = true
@@ -23,4 +26,3 @@ database_id = "916011c6-3b95-4116-a10e-76af94496170"
 [[r2_buckets]]
 binding = "AVATAR_BUCKET"
 bucket_name = "mahiro-contents"
-

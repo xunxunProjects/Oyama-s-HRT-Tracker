@@ -25,8 +25,8 @@ export default defineConfig(() => {
           name: 'HRT Tracker',
           short_name: 'HRT Tracker',
           description: 'Track your HRT dosage and simulate E2 levels',
-          theme_color: '#ffffff',
-          background_color: '#ffffff',
+          theme_color: '#FAF9F7',
+          background_color: '#FAF9F7',
           display: 'standalone',
           orientation: 'portrait',
           icons: [
