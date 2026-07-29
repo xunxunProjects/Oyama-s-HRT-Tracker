@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS dosage_shares;
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -69,3 +70,19 @@ CREATE TABLE backup_codes (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id);
+
+-- Immutable, privacy-minimized dosage snapshots shared through high-entropy
+-- bearer links. Only the token digest is stored; passwords use bcrypt hashes.
+CREATE TABLE dosage_shares (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    snapshot_json TEXT NOT NULL,
+    password_hash TEXT,
+    expires_at INTEGER,
+    created_at INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE INDEX idx_dosage_shares_user_id ON dosage_shares(user_id);
+CREATE UNIQUE INDEX idx_dosage_shares_token_hash ON dosage_shares(token_hash);
+CREATE INDEX idx_dosage_shares_expires_at ON dosage_shares(expires_at);

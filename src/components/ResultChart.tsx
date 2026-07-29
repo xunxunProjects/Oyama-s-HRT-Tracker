@@ -2,7 +2,7 @@ import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
-    SimulationResult, DoseEvent, LabResult,
+    SimulationResult, DoseEvent, LabResult, HRTMode,
     interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T,
     convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS,
 } from '../../logic';
@@ -80,17 +80,24 @@ const ResultChart = ({
     onPointClick,
     isDarkMode = false,
     isMono = false,
+    mode,
+    title,
+    timeZone,
 }: {
     sim: SimulationResult | null;
     events: DoseEvent[];
     labResults?: LabResult[];
     calibrationFn?: (timeH: number) => number;
-    onPointClick: (e: DoseEvent) => void;
+    onPointClick?: (e: DoseEvent) => void;
     isDarkMode?: boolean;
     isMono?: boolean;
+    mode?: HRTMode;
+    title?: string;
+    timeZone?: string;
 }) => {
     const { t, lang } = useTranslation();
-    const { isTransmasc } = useHRTMode();
+    const { isTransmasc: contextIsTransmasc } = useHRTMode();
+    const isTransmasc = mode ? mode === 'transmasc' : contextIsTransmasc;
     const clipId = useId().replace(/:/g, '');
 
     const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
@@ -317,14 +324,14 @@ const ResultChart = ({
         const out: { x: number; label: string }[] = [];
         for (let i = 0; i <= count; i++) {
             const time = t0 + ((t1 - t0) * i) / count;
-            const label = formatDate(new Date(time), lang);
+            const label = formatDate(new Date(time), lang, timeZone);
             if (seen.has(label)) continue;
             seen.add(label);
             out.push({ x: X(time), label });
         }
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [t0, t1, plotW, lang, mL]);
+    }, [t0, t1, plotW, lang, timeZone, mL]);
 
     // "Now" position on the primary curve.
     const nowVal = useMemo(() => {
@@ -431,7 +438,7 @@ const ResultChart = ({
             {/* Header: title + range chips — flat, matching the page */}
             <div className="flex items-center justify-between gap-3 mb-2">
                 <h2 className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] truncate">
-                    {t('chart.title')}
+                    {title ?? t('chart.title')}
                 </h2>
                 <div className="flex items-center gap-2 shrink-0">
                     {Math.abs(calFactor - 1) > 0.001 && (
@@ -566,7 +573,11 @@ const ResultChart = ({
                                 const cy = m.axis === 'p' ? YP(m.v) : YS(m.v);
                                 const col = m.axis === 's' ? c.second : c.primary;
                                 return (
-                                    <g key={`m-${i}`} className="cursor-pointer" onClick={() => onPointClick(m.event)}>
+                                    <g
+                                        key={`m-${i}`}
+                                        className={onPointClick ? 'cursor-pointer' : undefined}
+                                        onClick={() => onPointClick?.(m.event)}
+                                    >
                                         <circle cx={cx} cy={cy} r={9} fill="transparent" />
                                         <circle cx={cx} cy={cy} r={3} fill={c.dot} stroke={col} strokeWidth={1.5} />
                                     </g>
@@ -612,7 +623,7 @@ const ResultChart = ({
                         }}
                     >
                         <div className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
-                            {formatDate(new Date(hoverPt!.t), lang)} · {formatTime(new Date(hoverPt!.t))}
+                            {formatDate(new Date(hoverPt!.t), lang, timeZone)} · {formatTime(new Date(hoverPt!.t), timeZone)}
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className="text-sm font-medium tabular-nums" style={{ color: c.primary }}>

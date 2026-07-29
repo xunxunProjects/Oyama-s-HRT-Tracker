@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
-import { HRTModeProvider } from './contexts/HRTModeContext';
+import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION, AppTheme } from './constants';
 import { DoseEvent, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
@@ -43,6 +43,8 @@ import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
+import PublicShare from './pages/PublicShare';
+import ShareSettings from './pages/ShareSettings';
 
 // Encrypt the export payload for cloud storage when a device key is present.
 // Without a key (e.g. a session predating E2EE, or a passwordless passkey
@@ -56,6 +58,7 @@ async function prepareCloudPayload(exportData: any): Promise<any> {
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
+    const { mode } = useHRTMode();
     const { user, token, logout, needsSetup2FA, clearSetup2FA } = useAuth();
     const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
@@ -463,6 +466,20 @@ const AppContent = () => {
                             theme={theme}
                             onNavigateToHistory={() => handleViewChange('history')}
                             onNavigateToLab={() => handleViewChange('lab')}
+                            onNavigateToShare={() => handleViewChange('share')}
+                            authToken={token}
+                            onAuthRequired={() => setIsAuthModalOpen(true)}
+                        />
+                    )}
+
+                    {currentView === 'share' && token && (
+                        <ShareSettings
+                            onBack={() => handleViewChange('home')}
+                            authToken={token}
+                            mode={mode}
+                            events={events}
+                            simulation={simulation}
+                            calibrationFn={calibrationFn}
                         />
                     )}
 
@@ -799,18 +816,49 @@ const AppContent = () => {
     );
 };
 
-const App = () => (
-    <LanguageProvider>
-        <HRTModeProvider>
-            <DialogProvider>
-                <AuthProvider>
+const getShareRoute = (): { isShareRoute: boolean; token: string | null } => {
+    if (!/^\/share\/?$/.test(window.location.pathname)) {
+        return { isShareRoute: false, token: null };
+    }
+
+    const fragmentToken = window.location.hash
+        .slice(1)
+        .replace(/^\/+/, '')
+        .split(/[/?]/, 1)[0];
+
+    return { isShareRoute: true, token: fragmentToken || null };
+};
+
+const App = () => {
+    const [shareRoute, setShareRoute] = useState(getShareRoute);
+    useEffect(() => {
+        const updateRoute = () => setShareRoute(getShareRoute());
+        window.addEventListener('hashchange', updateRoute);
+        window.addEventListener('popstate', updateRoute);
+        return () => {
+            window.removeEventListener('hashchange', updateRoute);
+            window.removeEventListener('popstate', updateRoute);
+        };
+    }, []);
+    return (
+        <LanguageProvider>
+            <HRTModeProvider>
+                {shareRoute.isShareRoute ? (
                     <ErrorBoundary>
-                        <AppContent />
+                        <PublicShare token={shareRoute.token} />
                     </ErrorBoundary>
-                </AuthProvider>
-            </DialogProvider>
-        </HRTModeProvider>
-    </LanguageProvider>
-);
+                ) : (
+                    <DialogProvider>
+                        <AuthProvider>
+                            <ErrorBoundary>
+                                <AppContent />
+                            </ErrorBoundary>
+                        </AuthProvider>
+                    </DialogProvider>
+                )}
+            </HRTModeProvider>
+        </LanguageProvider>
+    );
+};
 
 export default App;

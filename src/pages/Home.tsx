@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info } from 'lucide-react';
+import { Info, Share2 } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
@@ -7,6 +7,8 @@ import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { AppTheme } from '../constants';
+import { useTranslation } from '../contexts/LanguageContext';
+import { getShareCopy } from '../i18n/share';
 
 interface HomeProps {
     t: (key: string) => string;
@@ -22,6 +24,9 @@ interface HomeProps {
     theme: AppTheme;
     onNavigateToHistory: () => void;
     onNavigateToLab: () => void;
+    onNavigateToShare: () => void;
+    authToken: string | null;
+    onAuthRequired: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -38,11 +43,16 @@ const Home: React.FC<HomeProps> = ({
     theme,
     onNavigateToHistory,
     onNavigateToLab,
+    onNavigateToShare,
+    authToken,
+    onAuthRequired,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const isMono = theme === 'mono';
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
+    const { lang } = useTranslation();
+    const shareCopy = getShareCopy(lang);
 
     // Warn on how much medication was actually logged (a hard fact), and nudge
     // toward calibration when there's no lab yet to anchor the estimate.
@@ -73,11 +83,29 @@ const Home: React.FC<HomeProps> = ({
                             <Info size={13} />
                         </button>
                     </div>
-                    {currentStatus && (
-                        <span className={`text-xs font-medium ${currentStatus.color}`}>
-                            {t(currentStatus.label)}
-                        </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {currentStatus && (
+                            <span className={`hidden sm:inline text-xs font-medium ${currentStatus.color}`}>
+                                {t(currentStatus.label)}
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            disabled={!events.length}
+                            onClick={() => {
+                                if (!authToken) {
+                                    onAuthRequired();
+                                    return;
+                                }
+                                onNavigateToShare();
+                            }}
+                            className={`${muted} inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium hover:text-[var(--color-m3-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:text-[var(--color-m3-dark-on-surface)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:cursor-not-allowed disabled:opacity-40`}
+                            title={events.length ? shareCopy.modalDescription : shareCopy.noData}
+                        >
+                            <Share2 size={14} strokeWidth={1.75} />
+                            {shareCopy.action}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Blood level grid — first reading left, second flush right */}

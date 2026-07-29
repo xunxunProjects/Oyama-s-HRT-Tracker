@@ -32,9 +32,9 @@ We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided 
 
   **舌下服用指导**：基于严格的医学建模，提供详细的"含服时间（Hold Time）"与吸收参数（θ）参考。
 
-- **Privacy First**: All data is stored entirely in your browser's `localStorage`. No data is ever sent to a server.
+- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the current dosage history, modelled curve, and timezone until its expiration; it never includes lab results, weight, profile details, or account data.
 
-  **隐私优先**：所有数据都完全存储在你浏览器的 `localStorage` 中，绝不会发送到任何服务器。
+  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据。
 
 - **Internationalization**: Native support for **Simplified Chinese**, **English**, **Cantonese**, **Russian**, **Ukrainian**, and more.
 

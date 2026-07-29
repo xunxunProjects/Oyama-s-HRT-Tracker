@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "wrangler:dev": "npm run build && wrangler dev",
     "wrangler:migrate:local": "wrangler d1 execute hrt-tracker-prod --local --file=schema.sql",
-    "wrangler:migrate:remote": "wrangler d1 execute hrt-tracker-prod --remote --file=schema.sql",
+    "wrangler:migrate:remote": "wrangler d1 migrations apply hrt-tracker-prod --remote",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri": "tauri"
