@@ -56,6 +56,18 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
     }, [copy.publicTitle]);
 
     useEffect(() => {
+        if (!('serviceWorker' in navigator)) return;
+        let reloading = false;
+        const useUpdatedApp = () => {
+            if (reloading) return;
+            reloading = true;
+            window.location.reload();
+        };
+        navigator.serviceWorker.addEventListener('controllerchange', useUpdatedApp);
+        return () => navigator.serviceWorker.removeEventListener('controllerchange', useUpdatedApp);
+    }, []);
+
+    useEffect(() => {
         let cancelled = false;
         unlockedPasswordRef.current = '';
         setPassword('');
@@ -108,8 +120,9 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
 
         let cancelled = false;
         let refreshing = false;
+        let retryAfter = 0;
         const refresh = async () => {
-            if (cancelled || refreshing || document.hidden) return;
+            if (cancelled || refreshing || document.hidden || Date.now() < retryAfter) return;
             refreshing = true;
             try {
                 const result = unlockedPasswordRef.current
@@ -124,6 +137,8 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                     setState({ kind: 'expired' });
                 } else if (error instanceof ShareApiError && error.status === 404) {
                     setState({ kind: 'unavailable' });
+                } else if (error instanceof ShareApiError && error.status === 429) {
+                    retryAfter = Date.now() + (error.retryAfterMs ?? 60_000);
                 }
                 // Keep showing the most recently loaded data for transient
                 // network failures and rate limits.
@@ -135,13 +150,18 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         const onVisibilityChange = () => {
             if (!document.hidden) void refresh();
         };
-        const timer = window.setInterval(() => void refresh(), 30_000);
+        void refresh();
+        const timer = window.setInterval(() => void refresh(), 10_000);
         window.addEventListener('focus', refresh);
+        window.addEventListener('online', refresh);
+        window.addEventListener('pageshow', refresh);
         document.addEventListener('visibilitychange', onVisibilityChange);
         return () => {
             cancelled = true;
             window.clearInterval(timer);
             window.removeEventListener('focus', refresh);
+            window.removeEventListener('online', refresh);
+            window.removeEventListener('pageshow', refresh);
             document.removeEventListener('visibilitychange', onVisibilityChange);
         };
     }, [token, liveReady]);

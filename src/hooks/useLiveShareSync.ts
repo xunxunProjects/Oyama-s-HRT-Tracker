@@ -28,6 +28,8 @@ export const useLiveShareSync = ({
         () => buildSharedDosageSnapshot({ mode, events, simulation, calibrationFn }),
         [mode, events, simulation, calibrationFn],
     );
+    const latestSnapshotRef = useRef(snapshot);
+    latestSnapshotRef.current = snapshot;
 
     useEffect(() => {
         baselineSnapshotRef.current = dataReady ? snapshot : null;
@@ -36,13 +38,21 @@ export const useLiveShareSync = ({
         if (!authToken || !dataReady) return;
 
         let cancelled = false;
+        let previouslyFound = false;
         const refresh = () => {
             sharingService.list(authToken)
                 .then(shares => {
                     if (!cancelled) {
                         const found = shares.some(share => !share.expired && share.live && share.mode === mode);
                         setHasLiveShare(found);
-                        if (found) setRefreshTick(value => value + 1);
+                        if (found && !previouslyFound) {
+                            // Refresh an existing live link when the owner opens
+                            // the app, including changes made before this tab
+                            // discovered the link.
+                            pendingSnapshotRef.current ??= latestSnapshotRef.current;
+                            setRefreshTick(value => value + 1);
+                        }
+                        previouslyFound = found;
                     }
                 })
                 .catch(() => undefined);

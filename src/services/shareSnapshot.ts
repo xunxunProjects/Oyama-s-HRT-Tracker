@@ -66,7 +66,10 @@ export const buildSharedDosageSnapshot = ({
     calibrationFn,
 }: BuildShareSnapshotOptions): SharedDosageSnapshot => {
     let sharedSimulation: SimulationResult | null = null;
-    if (simulation) {
+    // useAppData clears the previous simulation one effect after the final
+    // dosage is removed. Do not let that one-render lag keep an obsolete curve
+    // in a live snapshot whose event history is already empty.
+    if (simulation && events.length > 0) {
         const indexes = sampleIndexes(simulation.timeH, events);
         // Preserve the sender's calibrated curve without disclosing the lab
         // values or weight used to calibrate it.
