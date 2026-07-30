@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 
 interface TransparencyStats {
@@ -71,7 +71,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
     return (
         <div className="pb-32">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center justify-between">
+            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center">
                 <button
                     onClick={onBack}
                     className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
@@ -80,15 +80,6 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                     <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                         {t('transparency.title')}
                     </span>
-                </button>
-                <button
-                    onClick={() => load()}
-                    disabled={loading}
-                    className="p-1.5 rounded-lg text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40"
-                >
-                    {loading
-                        ? <Loader2 size={16} className="animate-spin" />
-                        : <RefreshCw size={16} />}
                 </button>
             </div>
 

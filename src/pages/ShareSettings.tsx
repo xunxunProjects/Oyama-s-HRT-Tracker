@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, Copy, Eye, EyeOff, Link2, Loader2, LockKeyhole, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Copy, Eye, EyeOff, Link2, Loader2, LockKeyhole, Trash2 } from 'lucide-react';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
@@ -22,6 +22,21 @@ const toLocalDateTimeValue = (timestamp: number): string => {
     const date = new Date(timestamp);
     return new Date(timestamp - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 };
+
+// `toLocaleString()` renders seconds, which makes every timestamp in the list
+// read as noise. Share stamps only ever matter to the minute.
+const formatStamp = (timestamp: number, lang: string): string =>
+    new Date(timestamp).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+const badgeBase = 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium leading-none';
+const liveBadgeClass = `${badgeBase} bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)] dark:text-[var(--color-m3-dark-on-primary-container)]`;
+const metaBadgeClass = `${badgeBase} bg-[var(--color-m3-surface-container)] text-muted dark:bg-[var(--color-m3-dark-surface-container)]`;
 
 const ShareSettings: React.FC<ShareSettingsProps> = ({
     onBack,
@@ -167,50 +182,54 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 <p className="pb-5 text-sm leading-relaxed text-muted">{copy.modalDescription}</p>
                     {createdShare ? (
                         <div className="pb-0 pt-5">
-                            <div className="flex items-center gap-2 mb-4 text-body">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)]">
+                            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-body">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)]">
                                     <Check size={14} strokeWidth={2.25} />
                                 </span>
-                                <p className="text-sm font-medium">{copy.created}</p>
+                                <p className="text-[15px] font-medium">{copy.created}</p>
+                                {createdShare.live && (
+                                    <span className={liveBadgeClass}>{copy.liveBadge}</span>
+                                )}
+                                {createdShare.passwordRequired && (
+                                    <span className={metaBadgeClass}>
+                                        <LockKeyhole size={12} />
+                                        {copy.protected}
+                                    </span>
+                                )}
                             </div>
 
                             <label className="sr-only" htmlFor="created-share-link">
                                 {copy.copy}
                             </label>
-                            <div className="flex overflow-hidden rounded-lg border border-[var(--color-m3-outline-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:border-[var(--color-m3-dark-outline-variant)] dark:bg-[var(--color-m3-dark-surface-container-low)]">
+                            <div className="flex flex-col gap-1 border-b border-[var(--color-m3-outline-variant)] py-1 dark:border-[var(--color-m3-dark-outline-variant)] sm:flex-row sm:items-center sm:gap-3">
                                 <input
                                     ref={linkInputRef}
                                     id="created-share-link"
                                     readOnly
                                     value={createdShare.url}
-                                    className="min-w-0 flex-1 select-all border-0 bg-transparent px-3 py-2.5 font-mono text-sm text-body outline-none"
+                                    className="min-w-0 flex-1 select-all truncate border-0 bg-transparent py-2.5 font-mono text-[13px] text-body outline-none"
                                     onFocus={(event) => event.currentTarget.select()}
                                 />
+                                {/* Both labels share one grid cell so the button keeps a single
+                                    width across the copy → copied swap, in every locale. */}
                                 <button
                                     type="button"
                                     onClick={handleCopy}
-                                    className="inline-flex shrink-0 items-center gap-1.5 border-l border-[var(--color-m3-outline-variant)] px-3.5 text-sm font-medium text-[var(--color-m3-primary)] hover:bg-[var(--color-m3-surface-container)] dark:border-[var(--color-m3-dark-outline-variant)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                                    className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[15px] font-medium text-[var(--color-m3-primary)] transition-colors hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] sm:self-auto"
                                 >
-                                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                                    {copied ? copy.copied : copy.copy}
+                                    <span className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 ${copied ? 'invisible' : ''}`}>
+                                        <Copy size={14} />
+                                        {copy.copy}
+                                    </span>
+                                    <span className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 ${copied ? '' : 'invisible'}`}>
+                                        <Check size={14} />
+                                        {copy.copied}
+                                    </span>
                                 </button>
                             </div>
 
-                            {(createdShare.live || createdShare.passwordRequired) && (
-                                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                                    {createdShare.live && (
-                                        <span className="inline-flex items-center gap-1.5 text-[var(--color-m3-primary)]">
-                                            <RefreshCw size={12} />
-                                            {copy.liveBadge}
-                                        </span>
-                                    )}
-                                    {createdShare.passwordRequired && (
-                                        <span className="inline-flex items-center gap-1.5">
-                                            <LockKeyhole size={13} />
-                                            {copy.passwordHint}
-                                        </span>
-                                    )}
-                                </div>
+                            {createdShare.passwordRequired && (
+                                <p className="mt-3 text-sm leading-relaxed text-muted">{copy.passwordHint}</p>
                             )}
                         </div>
                     ) : (
@@ -299,15 +318,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     <span className="text-[15px] text-body">{copy.expiryLabel}</span>
                                     <span className="flex items-center gap-1.5 text-muted">
                                         <span className="text-sm tabular-nums">
-                                            {expiresAtInput
-                                                ? new Date(expiresAtInput).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })
-                                                : '—'}
+                                            {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                         </span>
                                         <ChevronDown size={14} className={isExpiryPickerOpen ? 'rotate-180' : ''} />
                                     </span>
@@ -345,40 +356,44 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                     )}
 
                     <div className="pb-6 pt-5">
-                        <h3 className="text-sm font-medium text-body">{copy.manageTitle}</h3>
-                        <p className="mt-1 text-xs leading-relaxed text-muted">{copy.manageDescription}</p>
+                        <h3 className="text-[15px] font-medium text-body">{copy.manageTitle}</h3>
+                        <p className="mt-1 text-sm leading-relaxed text-muted">{copy.manageDescription}</p>
                         {sharesLoading ? (
-                            <div className="flex items-center gap-2 py-4 text-xs text-muted">
-                                <Loader2 size={13} className="animate-spin" /> {copy.loading}
+                            <div className="flex items-center gap-2 py-4 text-sm text-muted">
+                                <Loader2 size={14} className="animate-spin" /> {copy.loading}
                             </div>
                         ) : shares.length === 0 ? (
-                            <p className="py-4 text-xs text-muted">{copy.noneActive}</p>
+                            <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
                         ) : (
-                            <div className="mt-3 max-h-40 overflow-y-auto border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                            <div className="mt-3 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                                 {shares.map(share => (
-                                    <div key={share.id} className="flex items-center gap-3 border-b border-[var(--color-m3-outline-variant)] py-3 last:border-b-0 dark:border-[var(--color-m3-dark-outline-variant)]">
+                                    <div key={share.id} className="flex items-center gap-3 border-b border-[var(--color-m3-outline-variant)] py-3.5 last:border-b-0 dark:border-[var(--color-m3-dark-outline-variant)]">
                                         <div className="min-w-0 flex-1">
-                                            <p className="flex items-center gap-1.5 text-xs font-medium text-body">
-                                                {copy.sharedOn} {new Date(share.createdAt).toLocaleString(LOCALE_MAP[lang])}
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                                                <p className="text-sm font-medium text-body">
+                                                    {copy.sharedOn} {formatStamp(share.createdAt, lang)}
+                                                </p>
                                                 {share.live && (
-                                                    <span className="inline-flex items-center gap-1 text-[var(--color-m3-primary)]">
-                                                        <RefreshCw size={10} />
-                                                        {copy.liveBadge}
+                                                    <span className={liveBadgeClass}>{copy.liveBadge}</span>
+                                                )}
+                                                {share.passwordRequired && (
+                                                    <span className={metaBadgeClass}>
+                                                        <LockKeyhole size={12} />
+                                                        {copy.protected}
                                                     </span>
                                                 )}
-                                                {share.passwordRequired && <LockKeyhole size={11} className="shrink-0 text-muted" />}
-                                            </p>
-                                            <p className="mt-0.5 truncate text-[11px] text-muted">
-                                                {copy.expiresOn} {share.expiresAt ? new Date(share.expiresAt).toLocaleString(LOCALE_MAP[lang]) : copy.neverExpires}
+                                            </div>
+                                            <p className="mt-1 truncate text-xs text-muted">
+                                                {copy.expiresOn} {share.expiresAt ? formatStamp(share.expiresAt, lang) : copy.neverExpires}
                                             </p>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => handleRevoke(share)}
                                             disabled={revokingId === share.id}
-                                            className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/20"
+                                            className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/20"
                                         >
-                                            {revokingId === share.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                                            {revokingId === share.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                                             {copy.revoke}
                                         </button>
                                     </div>

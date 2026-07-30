@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, AlertCircle, Clock3, Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
+import { AlertCircle, Clock3, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
 import { DoseEvent, Ester, ExtraKey, getToE2Factor, isTestosteroneEster, Route } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -170,7 +170,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         return (
             <PublicShell>
                 <div className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center" aria-live="polite">
-                    <Activity size={26} strokeWidth={1.5} className="mb-4 text-[var(--color-m3-primary)]" />
+                    <Loader2 size={24} strokeWidth={1.5} className="mb-4 animate-spin text-[var(--color-m3-primary)]" aria-hidden="true" />
                     <p className="text-sm text-muted">{copy.loading}</p>
                 </div>
             </PublicShell>
@@ -321,7 +321,6 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         </div>
                         {details.live && (
                             <div className="flex items-center gap-1.5 text-[var(--color-m3-primary)]">
-                                <RefreshCw size={12} />
                                 <dt>{copy.liveBadge}</dt>
                                 <dd>{copy.updatedOn} {formatDateTime(details.updatedAt)}</dd>
                             </div>

@@ -200,17 +200,6 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                 className="w-28 px-2.5 py-1.5 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-primary)] tabular-nums"
                                                 style={{ fontSize: '16px' }}
                                             />
-                                            {changed ? (
-                                                <button
-                                                    onClick={() => setDraft(prev => ({ ...prev, [field.key]: defVal }))}
-                                                    className="p-1.5 rounded text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                                                    title={t('pk.reset_field')}
-                                                >
-                                                    <RotateCcw size={12} />
-                                                </button>
-                                            ) : (
-                                                <div className="w-7" />
-                                            )}
                                         </div>
                                     );
                                 })}

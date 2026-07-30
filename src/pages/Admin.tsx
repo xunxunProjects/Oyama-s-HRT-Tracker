@@ -1,16 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Trash2, Loader2, AlertCircle, RefreshCw, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash } from 'lucide-react';
+import { Trash2, Loader2, AlertCircle, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash, Users, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { adminService, AdminUser, BackupMeta } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 
-type Tab = 'users' | 'system';
+type AdminCat = 'users' | 'system';
+type MobileView = 'list' | AdminCat;
 type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser };
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
-const iconBtn = `p-2 rounded-md ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
-const dangerIconBtn = `p-2 rounded-md ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
+const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
+const rowLabel = 'text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+const rowValue = `flex items-center gap-1 text-[15px] ${settingsMuted}`;
+const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
+const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
+
+let _savedCat: AdminCat = 'users';
+let _savedMobileView: MobileView = 'list';
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return bytes + ' B';
@@ -33,7 +40,8 @@ const Admin: React.FC = () => {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<Tab>('users');
+    const [cat, setCat] = useState<AdminCat>(_savedCat);
+    const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchDebounce, setSearchDebounce] = useState('');
     const [panel, setPanel] = useState<UserPanel>(null);
@@ -47,6 +55,28 @@ const Admin: React.FC = () => {
     const [newUsername, setNewUsername] = useState('');
     const [backups, setBackups] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
+
+    const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
+        { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts · Passwords · Cloud backups' },
+        { id: 'system', label: 'System', Icon: Server, hint: 'Status · Environment' },
+    ];
+
+    const selectCat = (c: AdminCat) => {
+        _savedCat = c;
+        setCat(c);
+    };
+
+    const enterMobileCat = (c: AdminCat) => {
+        _savedCat = c;
+        _savedMobileView = c;
+        setCat(c);
+        setMobileView(c);
+    };
+
+    const exitMobileCat = () => {
+        _savedMobileView = 'list';
+        setMobileView('list');
+    };
 
     // Debounced search
     useEffect(() => {
@@ -243,7 +273,7 @@ const Admin: React.FC = () => {
                                         <span className={`text-xs ${settingsMuted}`}>{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors"
                                         >
                                             <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>
@@ -274,183 +304,237 @@ const Admin: React.FC = () => {
         );
     };
 
-    return (
-        <div className="pt-8 pb-24 px-6 md:px-8 w-full max-w-2xl">
-            <h1 className={`text-xl font-semibold ${settingsOn}`}>Dashboard</h1>
-
-            {/* Tabs */}
-            <div className={`flex items-center gap-6 ${divider} mt-6 mb-8`}>
-                <button
-                    onClick={() => setActiveTab('users')}
-                    className={`pb-3 text-sm font-medium -mb-px border-b-2 transition-colors ${activeTab === 'users' ? `${settingsOn} border-[var(--color-m3-primary)]` : `${settingsMuted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}`}
-                >
-                    Users
-                </button>
-                <button
-                    onClick={() => setActiveTab('system')}
-                    className={`pb-3 text-sm font-medium -mb-px border-b-2 transition-colors ${activeTab === 'system' ? `${settingsOn} border-[var(--color-m3-primary)]` : `${settingsMuted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}`}
-                >
-                    System
-                </button>
+    // Rendered as plain elements (not a nested component) so typing in the search
+    // field doesn't remount the subtree and drop focus on every keystroke.
+    const renderUsers = () => (
+        <div>
+            <div className="relative mb-5">
+                <Search size={15} strokeWidth={1.5} className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`} />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search users..."
+                    className="w-full py-2.5 pr-3 pl-9 text-[15px] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
+                />
             </div>
 
-            {activeTab === 'users' && (
-                <div className="space-y-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-baseline gap-2">
-                            <h2 className={`text-sm font-medium ${settingsOn}`}>Manage Users</h2>
-                            <span className={`text-xs ${settingsMuted}`}>{totalUsers}</span>
-                        </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:flex-initial">
-                                <Search size={15} strokeWidth={1.5} className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`} />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    placeholder="Search users..."
-                                    className="w-full sm:w-56 py-2.5 pr-3 pl-9 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
-                                />
-                            </div>
-                            <button
-                                onClick={fetchUsers}
-                                className={`${iconBtn} shrink-0`}
-                                title="Refresh"
-                            >
-                                <RefreshCw size={15} strokeWidth={1.5} className={loading ? 'animate-spin' : ''} />
-                            </button>
-                        </div>
-                    </div>
-
-                    {loading && users.length === 0 ? (
-                        <div className="flex justify-center py-16">
-                            <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
-                        </div>
-                    ) : error ? (
-                        <p className="flex items-center gap-2 text-sm text-red-500 dark:text-red-400 py-4">
-                            <AlertCircle size={16} strokeWidth={1.5} /> {error}
-                        </p>
-                    ) : users.length === 0 ? (
-                        <p className={`text-sm ${settingsMuted} text-center py-14`}>No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.</p>
-                    ) : (
-                        <div>
-                            {users.map(u => (
-                                <div
-                                    key={u.id}
-                                    className={`flex items-center justify-between gap-3 py-4 ${divider}`}
-                                >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-9 h-9 rounded-full bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-center overflow-hidden shrink-0">
-                                            <img
-                                                src={`/api/user/avatar/${u.username}`}
-                                                alt={u.username}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none';
-                                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                                }}
-                                            />
-                                            <div className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}>
-                                                {u.username.substring(0, 2).toUpperCase()}
-                                            </div>
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className={`text-sm font-medium ${settingsOn} truncate`}>{u.username}</h3>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <p className={`text-xs ${settingsMuted} font-mono`}>{u.id.slice(0, 8)}</p>
-                                                {(u.backup_count ?? 0) > 0 && (
-                                                    <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
-                                                        <Cloud size={11} strokeWidth={1.5} />
-                                                        {u.backup_count} · {formatBytes(u.total_backup_size || 0)} · {timeAgo(u.last_backup_at)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-0.5 shrink-0">
-                                        <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud Backups">
-                                            <Cloud size={15} strokeWidth={1.5} />
-                                        </button>
-                                        <button onClick={() => openPasswordPanel(u)} className={iconBtn} title="Change Password">
-                                            <KeyRound size={15} strokeWidth={1.5} />
-                                        </button>
-                                        <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit Profile">
-                                            <PenLine size={15} strokeWidth={1.5} />
-                                        </button>
-                                        <button onClick={() => handleDeleteUser(u)} className={dangerIconBtn} title="Delete User">
-                                            <Trash2 size={15} strokeWidth={1.5} />
-                                        </button>
+            {loading && users.length === 0 ? (
+                <div className="flex justify-center py-16">
+                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                </div>
+            ) : error ? (
+                <p className="flex items-center gap-2 text-sm text-red-500 dark:text-red-400 py-4">
+                    <AlertCircle size={16} strokeWidth={1.5} /> {error}
+                </p>
+            ) : users.length === 0 ? (
+                <p className={`text-sm ${settingsMuted} text-center py-14`}>No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.</p>
+            ) : (
+                <div>
+                    {users.map(u => (
+                        <div
+                            key={u.id}
+                            className={`flex items-center justify-between gap-3 py-4 ${divider}`}
+                        >
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-full bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-center overflow-hidden shrink-0">
+                                    <img
+                                        src={`/api/user/avatar/${u.username}`}
+                                        alt={u.username}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                    />
+                                    <div className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}>
+                                        {u.username.substring(0, 2).toUpperCase()}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <div className="min-w-0">
+                                    <h3 className={`text-sm font-medium ${settingsOn} truncate`}>{u.username}</h3>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <p className={`text-xs ${settingsMuted} font-mono`}>{u.id.slice(0, 8)}</p>
+                                        {(u.backup_count ?? 0) > 0 && (
+                                            <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
+                                                <Cloud size={11} strokeWidth={1.5} />
+                                                {u.backup_count} · {formatBytes(u.total_backup_size || 0)} · {timeAgo(u.last_backup_at)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-1 pt-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page <= 1}
-                                className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
-                            >
-                                <ChevronLeft size={15} strokeWidth={1.5} />
-                            </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
-                                .reduce<(number | '...')[]>((acc, p, i, arr) => {
-                                    if (i > 0 && p - (arr[i - 1]) > 1) acc.push('...');
-                                    acc.push(p);
-                                    return acc;
-                                }, [])
-                                .map((item, i) =>
-                                    item === '...' ? (
-                                        <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>...</span>
-                                    ) : (
-                                        <button
-                                            key={item}
-                                            onClick={() => setPage(item as number)}
-                                            className={`min-w-[32px] h-8 rounded-md text-sm transition-colors ${
-                                                page === item
-                                                    ? `font-medium ${settingsOn} bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`
-                                                    : `${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
-                                            }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    )
-                                )}
-                            <button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page >= totalPages}
-                                className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
-                            >
-                                <ChevronRight size={15} strokeWidth={1.5} />
-                            </button>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                                <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud Backups">
+                                    <Cloud size={15} strokeWidth={1.5} />
+                                </button>
+                                <button onClick={() => openPasswordPanel(u)} className={iconBtn} title="Change Password">
+                                    <KeyRound size={15} strokeWidth={1.5} />
+                                </button>
+                                <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit Profile">
+                                    <PenLine size={15} strokeWidth={1.5} />
+                                </button>
+                                <button onClick={() => handleDeleteUser(u)} className={dangerIconBtn} title="Delete User">
+                                    <Trash2 size={15} strokeWidth={1.5} />
+                                </button>
+                            </div>
                         </div>
-                    )}
+                    ))}
                 </div>
             )}
 
-            {activeTab === 'system' && (
-                <div className="space-y-5">
-                    <h2 className={`text-sm font-medium ${settingsOn}`}>System Status</h2>
-                    <div className={`flex items-start gap-3 py-4 ${divider}`}>
-                        <Server size={18} strokeWidth={1.5} className={`${settingsMuted} shrink-0 mt-0.5`} />
-                        <div>
-                            <h3 className={`text-sm font-medium ${settingsOn}`}>Operational</h3>
-                            <p className={`text-sm ${settingsMuted} mt-1 leading-relaxed max-w-md`}>
-                                All systems are running smoothly. The backend is connected to the
-                                <span className="font-mono text-xs mx-1 px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
-                                    {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
-                                </span>
-                                environment.
-                            </p>
-                        </div>
-                    </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1 pt-4">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                        className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
+                        aria-label="Previous page"
+                    >
+                        <ChevronLeft size={15} strokeWidth={1.5} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                        .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                            if (i > 0 && p - (arr[i - 1]) > 1) acc.push('...');
+                            acc.push(p);
+                            return acc;
+                        }, [])
+                        .map((item, i) =>
+                            item === '...' ? (
+                                <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>...</span>
+                            ) : (
+                                <button
+                                    key={item}
+                                    onClick={() => setPage(item as number)}
+                                    className={`min-w-[32px] h-8 rounded-lg text-sm transition-colors ${
+                                        page === item
+                                            ? `font-medium ${settingsOn} bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`
+                                            : `${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                    }`}
+                                >
+                                    {item}
+                                </button>
+                            )
+                        )}
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages}
+                        className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
+                        aria-label="Next page"
+                    >
+                        <ChevronRight size={15} strokeWidth={1.5} />
+                    </button>
                 </div>
             )}
+
+            <p className={`mt-6 text-xs ${settingsMuted}`}>
+                {totalUsers.toLocaleString()} registered account{totalUsers === 1 ? '' : 's'}
+            </p>
+        </div>
+    );
+
+    const renderSystem = () => (
+        <div>
+            <div className={`${rowBase} cursor-default`}>
+                <div>
+                    <p className={rowLabel}>Status</p>
+                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>All systems are running smoothly.</p>
+                </div>
+                <span className={rowValue}>Operational</span>
+            </div>
+
+            <div className={`${rowBase} border-b-0 cursor-default`}>
+                <div>
+                    <p className={rowLabel}>Environment</p>
+                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>Where the backend is connected.</p>
+                </div>
+                <span className={rowValue}>
+                    <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                        {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
+                    </span>
+                </span>
+            </div>
+        </div>
+    );
+
+    const catContent = (id: AdminCat) => (id === 'users' ? renderUsers() : renderSystem());
+
+    return (
+        <div className="flex pt-8 pb-32 min-h-full">
+
+            {/* ── Left category nav (desktop) ─────────────────────────── */}
+            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>
+                    Admin
+                </p>
+                {cats.map(({ id, label, Icon }) => (
+                    <button
+                        key={id}
+                        onClick={() => selectCat(id)}
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[15px] text-start
+                            ${cat === id
+                                ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
+                                : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                            }`}
+                    >
+                        <Icon size={16} strokeWidth={1.75} />
+                        {label}
+                    </button>
+                ))}
+            </nav>
+
+            {/* ── Desktop content ─────────────────────────────────────── */}
+            <div className="hidden md:block flex-1 px-10 max-w-2xl">
+                <h2 className={`text-xl font-semibold ${settingsOn} mb-6`}>
+                    {cats.find(c => c.id === cat)?.label}
+                </h2>
+                {catContent(cat)}
+            </div>
+
+            {/* ── Mobile ──────────────────────────────────────────────── */}
+            <div className="md:hidden flex-1 px-6">
+                {mobileView === 'list' ? (
+                    <>
+                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${settingsOn}`}>Admin</h1>
+                        {cats.map(({ id, label, Icon, hint }) => (
+                            <button
+                                key={id}
+                                onClick={() => enterMobileCat(id)}
+                                className={`${rowBase} items-center`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                                        <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
+                                    </div>
+                                    <div className="text-start">
+                                        <p className={`text-[15px] font-medium ${settingsOn}`}>{label}</p>
+                                        <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>{hint}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={15} className={settingsMuted} />
+                            </button>
+                        ))}
+                    </>
+                ) : (
+                    <>
+                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)]">
+                            <button
+                                onClick={exitMobileCat}
+                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                            >
+                                <ArrowLeft size={18} className={`${settingsMuted} shrink-0`} />
+                                <h1 className={`text-xl font-semibold ${settingsOn}`}>
+                                    {cats.find(c => c.id === mobileView)?.label}
+                                </h1>
+                            </button>
+                        </div>
+                        {catContent(mobileView as AdminCat)}
+                    </>
+                )}
+            </div>
 
             {renderPanel()}
         </div>
