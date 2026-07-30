@@ -37,7 +37,10 @@ export function watchForAppUpdates(): void {
             // PWA that people leave open for days, so poll as well and re-check
             // whenever the tab comes back to the foreground.
             const check = () => {
-                if (document.visibilityState === 'visible') void registration.update();
+                if (document.visibilityState !== 'visible') return;
+                // Rejects when the device is offline or sw.js 404s mid-deploy;
+                // an unhandled rejection here would just be console noise.
+                registration.update().catch(() => {});
             };
             window.setInterval(check, UPDATE_CHECK_INTERVAL_MS);
             document.addEventListener('visibilitychange', check);

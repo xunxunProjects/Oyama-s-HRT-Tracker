@@ -67,13 +67,14 @@ const Home: React.FC<HomeProps> = ({
     // A cat turns up for each kind of record that's been logged: the donut for
     // doses, the loaf for labs. Sits in the gap between the two readings, so it
     // has to be rendered inside whichever mode branch is active.
+    // Sits inline right after the reading, so it costs a bit of the number's own
+    // line rather than a block of its own — which is the only way it fits on a
+    // 375px screen alongside the second reading.
     const cats = showCats && (events.length > 0 || labResults.length > 0) ? (
-        // mr-auto hands the leftover space to the right of the cats, so they sit
-        // next to the reading instead of floating in the middle of the gap.
-        <div className="hidden sm:flex items-end gap-2 self-end mr-auto pb-1.5">
-            {events.length > 0 && <PixelCat pose="donut" size={62} />}
-            {labResults.length > 0 && <PixelCat pose="loaf" size={62} />}
-        </div>
+        <span className="flex shrink-0 items-end gap-1 self-end pb-1">
+            {events.length > 0 && <PixelCat pose="donut" size={44} />}
+            {labResults.length > 0 && <PixelCat pose="loaf" size={44} />}
+        </span>
     ) : null;
 
     const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
@@ -140,9 +141,9 @@ const Home: React.FC<HomeProps> = ({
                                     ) : (
                                         <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
                                     )}
+                                    {cats}
                                 </div>
                             </div>
-                            {cats}
                             <div className="text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
                                     {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
@@ -172,9 +173,9 @@ const Home: React.FC<HomeProps> = ({
                                     ) : (
                                         <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
                                     )}
+                                    {cats}
                                 </div>
                             </div>
-                            {cats}
                             <div className="text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa_chart')}</p>
                                 <div className="flex items-baseline gap-1.5 justify-end">
