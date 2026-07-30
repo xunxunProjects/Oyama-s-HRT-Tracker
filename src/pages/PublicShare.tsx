@@ -56,18 +56,6 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
     }, [copy.publicTitle]);
 
     useEffect(() => {
-        if (!('serviceWorker' in navigator)) return;
-        let reloading = false;
-        const useUpdatedApp = () => {
-            if (reloading) return;
-            reloading = true;
-            window.location.reload();
-        };
-        navigator.serviceWorker.addEventListener('controllerchange', useUpdatedApp);
-        return () => navigator.serviceWorker.removeEventListener('controllerchange', useUpdatedApp);
-    }, []);
-
-    useEffect(() => {
         let cancelled = false;
         unlockedPasswordRef.current = '';
         setPassword('');

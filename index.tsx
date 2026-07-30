@@ -2,6 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './src/index.css';
 import App from './src/App';
+import { watchForAppUpdates } from './src/utils/swUpdate';
+
+watchForAppUpdates();
 
 const container = document.getElementById('root');
 if (container) {
