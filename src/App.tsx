@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
+import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION, AppTheme } from './constants';
 import { DoseEvent, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
@@ -863,9 +864,11 @@ const App = () => {
                 ) : (
                     <DialogProvider>
                         <AuthProvider>
-                            <ErrorBoundary>
-                                <AppContent />
-                            </ErrorBoundary>
+                            <PixelCatProvider>
+                                <ErrorBoundary>
+                                    <AppContent />
+                                </ErrorBoundary>
+                            </PixelCatProvider>
                         </AuthProvider>
                     </DialogProvider>
                 )}

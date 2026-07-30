@@ -5,7 +5,9 @@ import ResultChart from '../components/ResultChart';
 import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
+import PixelCat from '../components/PixelCat';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { usePixelCats } from '../contexts/PixelCatContext';
 import { AppTheme } from '../constants';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
@@ -51,6 +53,7 @@ const Home: React.FC<HomeProps> = ({
     const isMono = theme === 'mono';
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
+    const { showCats } = usePixelCats();
     const { lang } = useTranslation();
     const shareCopy = getShareCopy(lang);
 
@@ -60,6 +63,18 @@ const Home: React.FC<HomeProps> = ({
     const hormoneAdvisory = React.useMemo(() => getHormoneLevelAdvisory(labResults), [labResults]);
     const hasLabForMode = labResults.some(l => (isTransmasc ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit)));
     const showCalibrate = events.length > 0 && !hasLabForMode;
+
+    // A cat turns up for each kind of record that's been logged: the donut for
+    // doses, the loaf for labs. Sits in the gap between the two readings, so it
+    // has to be rendered inside whichever mode branch is active.
+    const cats = showCats && (events.length > 0 || labResults.length > 0) ? (
+        // mr-auto hands the leftover space to the right of the cats, so they sit
+        // next to the reading instead of floating in the middle of the gap.
+        <div className="hidden sm:flex items-end gap-2 self-end mr-auto pb-1.5">
+            {events.length > 0 && <PixelCat pose="donut" size={62} />}
+            {labResults.length > 0 && <PixelCat pose="loaf" size={62} />}
+        </div>
+    ) : null;
 
     const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
     const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
@@ -127,6 +142,7 @@ const Home: React.FC<HomeProps> = ({
                                     )}
                                 </div>
                             </div>
+                            {cats}
                             <div className="text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
                                     {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
@@ -158,6 +174,7 @@ const Home: React.FC<HomeProps> = ({
                                     )}
                                 </div>
                             </div>
+                            {cats}
                             <div className="text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa_chart')}</p>
                                 <div className="flex items-baseline gap-1.5 justify-end">

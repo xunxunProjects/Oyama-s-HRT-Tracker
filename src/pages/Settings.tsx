@@ -4,6 +4,7 @@ import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { usePixelCats } from '../contexts/PixelCatContext';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -63,6 +64,7 @@ const Settings: React.FC<SettingsProps> = ({
     devMode, setDevMode, onNavigateToMilkTea, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
+    const { showCats, setShowCats } = usePixelCats();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
 
@@ -146,6 +148,21 @@ const Settings: React.FC<SettingsProps> = ({
                     </button>
                 </div>
             )}
+
+            <div className={`${rowBase} cursor-default`}>
+                <div>
+                    <p className={rowLabel}>{t('settings.pixel_cats')}</p>
+                    <p className={`text-xs ${muted} mt-0.5`}>{t('settings.pixel_cats_desc')}</p>
+                </div>
+                <button
+                    onClick={() => setShowCats(!showCats)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${showCats ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                    role="switch"
+                    aria-checked={showCats}
+                >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${showCats ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+            </div>
 
             <button
                 onClick={() => navTo(onNavigateToPKParams, 'general')}

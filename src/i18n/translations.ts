@@ -2,6 +2,8 @@ export type Lang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr';
 
 export const TRANSLATIONS_BASE = {
     zh: {
+        "settings.pixel_cats": "像素猫猫",
+        "settings.pixel_cats_desc": "在概览和空白页面显示像素猫猫",
         "nav.home": "概览",
         "app.title": "HRT Tracker",
         "nav.history": "记录",
@@ -639,6 +641,8 @@ export const TRANSLATIONS_BASE = {
     },
 
     en: {
+        "settings.pixel_cats": "Pixel cats",
+        "settings.pixel_cats_desc": "Show pixel cats on the overview and empty pages",
         "app.title": "HRT Tracker",
         "nav.home": "Overview",
         "nav.history": "History",
@@ -1278,6 +1282,8 @@ export const TRANSLATIONS = {
     zh: TRANSLATIONS_BASE.zh,
 
     "zh-TW": {
+        "settings.pixel_cats": "像素貓貓",
+        "settings.pixel_cats_desc": "在總覽與空白頁面顯示像素貓貓",
         "app.title": "HRT 紀錄",
         "nav.home": "總覽",
         "nav.history": "紀錄",
@@ -1837,6 +1843,8 @@ export const TRANSLATIONS = {
     },
 
     yue: {
+        "settings.pixel_cats": "像素貓貓",
+        "settings.pixel_cats_desc": "喺總覽同空白頁面顯示像素貓貓",
         ...TRANSLATIONS_BASE.zh,
         "app.title": "HRT 記錄",
         "nav.home": "總覽",
@@ -2235,6 +2243,8 @@ export const TRANSLATIONS = {
         "app.title": "HRT Tracker",
     },
     ja: {
+        "settings.pixel_cats": "ドット絵の猫",
+        "settings.pixel_cats_desc": "概要と空のページにドット絵の猫を表示します",
         "nav.home": "概要",
         "app.title": "HRT Tracker",
         "nav.history": "記録",
@@ -2834,6 +2844,8 @@ export const TRANSLATIONS = {
     },
 
     ko: {
+        "settings.pixel_cats": "픽셀 고양이",
+        "settings.pixel_cats_desc": "개요와 빈 페이지에 픽셀 고양이를 표시합니다",
         "app.title": "HRT 추적기",
         "nav.home": "개요",
         "nav.history": "기록",
@@ -3382,6 +3394,8 @@ export const TRANSLATIONS = {
         "backup.auto_saved": "클라우드에 자동 백업됨",
     },
     tr: {
+        "settings.pixel_cats": "Piksel kediler",
+        "settings.pixel_cats_desc": "Genel bakışta ve boş sayfalarda piksel kedileri göster",
         ...TRANSLATIONS_BASE.en,
         "app.title": "HRT Tracker",
         "nav.home": "Genel Bakış",

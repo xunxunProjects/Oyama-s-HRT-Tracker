@@ -404,6 +404,85 @@ body {
     animation: view-in-backward var(--duration-base) var(--ease-standard);
 }
 
+/* ── Pixel cat (empty states) ─────────────────────────────────── */
+:root {
+    --pixel-blue: #9FD4EE;
+    --pixel-pink: #F6BFCE;
+    --pixel-white: #FFFFFF;
+    /* shade = the tail lying in front; edge = the silhouette outline */
+    --pixel-blue-shade: #7FB8D6;
+    --pixel-pink-shade: #DFA1B3;
+    --pixel-white-shade: #E2D6DA;
+    --pixel-blue-edge: #6FA8C9;
+    --pixel-pink-edge: #D191A5;
+    --pixel-white-edge: #CFBFC4;
+    --pixel-eye: #3F3238;
+    --pixel-nose: #E58BA4;
+}
+
+/* Pastels this light glare against a dark surface, so knock them back. */
+.dark {
+    --pixel-blue: #7FB3CE;
+    --pixel-pink: #D69FAF;
+    --pixel-white: #E4DBDE;
+    --pixel-blue-shade: #688FA6;
+    --pixel-pink-shade: #B8848F;
+    --pixel-white-shade: #C3B7BB;
+    --pixel-blue-edge: #547588;
+    --pixel-pink-edge: #966B76;
+    --pixel-white-edge: #A0959A;
+    --pixel-eye: #2B2226;
+    --pixel-nose: #C97488;
+}
+
+/* Steps, not tweens — the point is that it moves a whole pixel at a time. */
+@keyframes px-bob {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-1px); }
+}
+@keyframes px-tail-low {
+    0%, 50%      { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+}
+@keyframes px-tail-high {
+    0%, 50%      { opacity: 0; }
+    50.01%, 100% { opacity: 1; }
+}
+@keyframes px-blink {
+    0%, 92%      { opacity: 0; }
+    92.01%, 96%  { opacity: 1; }
+    96.01%, 100% { opacity: 0; }
+}
+
+/* Ear flick: mostly at rest, one quick step out and back. */
+@keyframes px-ear-rest {
+    0%, 88%      { opacity: 1; }
+    88.01%, 94%  { opacity: 0; }
+    94.01%, 100% { opacity: 1; }
+}
+@keyframes px-ear-twitch {
+    0%, 88%      { opacity: 0; }
+    88.01%, 94%  { opacity: 1; }
+    94.01%, 100% { opacity: 0; }
+}
+
+/* Rolling about: a whole-pixel circuit, never a diagonal in-between. */
+@keyframes px-roll {
+    0%   { transform: translate(-1px, 0); }
+    25%  { transform: translate(0, -1px); }
+    50%  { transform: translate(1px, 0); }
+    75%  { transform: translate(0, 1px); }
+    100% { transform: translate(-1px, 0); }
+}
+
+.px-bob        { animation: px-bob 1.5s steps(1) infinite alternate; }
+.px-roll       { animation: px-roll 1.6s steps(1) infinite; }
+.px-tail-low   { animation: px-tail-low 1.9s steps(1) infinite; }
+.px-tail-high  { animation: px-tail-high 1.9s steps(1) infinite; }
+.px-ear-rest   { animation: px-ear-rest 3.4s steps(1) infinite; }
+.px-ear-twitch { animation: px-ear-twitch 3.4s steps(1) infinite; }
+.px-blink      { animation: px-blink 4.8s steps(1) infinite; }
+
 @media (prefers-reduced-motion: reduce) {
     .modal-overlay,
     .modal-shell,
@@ -413,6 +492,24 @@ body {
     .view-enter-forward,
     .view-enter-backward {
         animation: none;
+    }
+    /* Hold a single resting pose instead of flicking between frames. */
+    .px-bob,
+    .px-roll,
+    .px-tail-low,
+    .px-tail-high,
+    .px-ear-rest,
+    .px-ear-twitch,
+    .px-blink {
+        animation: none;
+    }
+    .px-roll {
+        transform: none;
+    }
+    .px-tail-high,
+    .px-ear-twitch,
+    .px-blink {
+        opacity: 0;
     }
     .btn-primary,
     .btn-secondary,

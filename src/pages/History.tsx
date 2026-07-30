@@ -5,6 +5,7 @@ import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster }
 import { formatTime } from '../utils/helpers';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
+import PixelCat from '../components/PixelCat';
 import { DoseTemplate } from '../components/DoseFormModal';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
@@ -234,7 +235,8 @@ const History: React.FC<HistoryProps> = ({
             </div>
 
             {Object.keys(groupedEvents).length === 0 && (
-                <div className="px-6 md:px-8 text-center py-20 max-w-2xl text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                <div className="px-6 md:px-8 flex flex-col items-center text-center py-20 max-w-2xl text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    <PixelCat pose="donut" className="mb-4" />
                     <p className="text-sm">{t('timeline.empty')}</p>
                 </div>
             )}
