@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Settings2, Database, Info, ArrowLeft, Globe } from 'lucide-react';
+import { ChevronRight, Settings2, Database, Info, ArrowLeft, Globe, ShieldCheck } from 'lucide-react';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
@@ -38,6 +38,8 @@ interface SettingsProps {
     devMode: boolean;
     setDevMode: (v: boolean) => void;
     onNavigateToMilkTea: () => void;
+    isAdmin: boolean;
+    onNavigateToAdmin: () => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -58,7 +60,7 @@ const Settings: React.FC<SettingsProps> = ({
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoBackup, setAutoBackup, isLoggedIn,
-    devMode, setDevMode, onNavigateToMilkTea,
+    devMode, setDevMode, onNavigateToMilkTea, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
@@ -145,7 +147,10 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
             )}
 
-            <button onClick={() => navTo(onNavigateToPKParams, 'general')} className={`${rowBase} border-b-0`}>
+            <button
+                onClick={() => navTo(onNavigateToPKParams, 'general')}
+                className={`${rowBase} ${isAdmin ? 'md:border-b-0' : 'border-b-0'}`}
+            >
                 <span className={rowLabel}>{t('settings.pk_params')}</span>
                 <span className={rowValue}>
                     {pkParams && (
@@ -156,6 +161,21 @@ const Settings: React.FC<SettingsProps> = ({
                     <ChevronRight size={15} />
                 </span>
             </button>
+
+            {/* Desktop reaches the admin area from the left nav rail; on mobile that
+                rail doesn't exist, so this is the only way in. */}
+            {isAdmin && (
+                <button
+                    onClick={() => navTo(onNavigateToAdmin, 'general')}
+                    className={`${rowBase} border-b-0 md:hidden`}
+                >
+                    <span className={rowLabel}>{t('admin.dashboard')}</span>
+                    <span className={rowValue}>
+                        <ShieldCheck size={14} className="opacity-50" />
+                        <ChevronRight size={15} />
+                    </span>
+                </button>
+            )}
         </div>
     );
 
@@ -276,7 +296,9 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             {/* ── Mobile ──────────────────────────────────────────────── */}
-            <div className="md:hidden flex-1 px-6">
+            {/* See Admin.tsx: a stretched `flex-1` child under the shell's `min-h-full`
+                hides its own overflow from the scroller. */}
+            <div className="md:hidden flex-1 self-start px-6 pb-32">
                 {mobileView === 'list' ? (
                     <>
                         <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${on}`}>{t('nav.settings')}</h1>

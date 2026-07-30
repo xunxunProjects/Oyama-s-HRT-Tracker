@@ -495,7 +495,10 @@ const Admin: React.FC = () => {
             </div>
 
             {/* ── Mobile ──────────────────────────────────────────────── */}
-            <div className="md:hidden flex-1 px-6">
+            {/* self-start + own bottom padding: the shell's `min-h-full` makes its
+                height definite, so a stretched `flex-1` child never reports its own
+                overflow to the scroller and the last rows hide under the nav island. */}
+            <div className="md:hidden flex-1 self-start px-6 pb-32">
                 {mobileView === 'list' ? (
                     <>
                         <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${settingsOn}`}>Admin</h1>

@@ -575,6 +575,8 @@ const AppContent = () => {
                             devMode={devMode}
                             setDevMode={setDevMode}
                             onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
+                            isAdmin={!!user?.isAdmin}
+                            onNavigateToAdmin={() => handleViewChange('admin')}
                         />
                     )}
 
@@ -734,7 +736,9 @@ const AppContent = () => {
                                 'account': 'account',
                                 'sessions': 'account',
                                 'two-factor': 'account',
-                                'admin': 'account',
+                                // Mobile reaches admin from Settings → General, so the
+                                // settings tab is the one that should read as active.
+                                'admin': 'settings',
                             } as Record<string, string>)[currentView] ?? currentView;
                             const isActive = activeTab === id;
                             const isDisabled = needsSetup2FA && id !== 'two-factor';

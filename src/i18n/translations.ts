@@ -2227,6 +2227,7 @@ export const TRANSLATIONS = {
         "account.unlock_title": "解鎖雲端備份",
         "account.unlock_desc": "你嘅雲端備份經過端到端加密。請輸入你嘅帳戶密碼喺呢部裝置上解鎖。",
         "account.unlock_failed": "密碼錯誤，解鎖唔到備份。如果你改過密碼，請用返舊密碼。",
+        "admin.dashboard": "控制台",
     },
 
     en: {
