@@ -2,6 +2,10 @@ export type Lang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr';
 
 export const TRANSLATIONS_BASE = {
     zh: {
+        "settings.cat_style": "猫猫配色",
+        "settings.cat_style.flag": "旗帜",
+        "settings.cat_style.blue": "纯蓝",
+        "settings.cat_style.pink": "纯粉",
         "settings.pixel_cats": "像素猫猫",
         "settings.pixel_cats_desc": "在概览和空白页面显示像素猫猫",
         "nav.home": "概览",
@@ -641,6 +645,10 @@ export const TRANSLATIONS_BASE = {
     },
 
     en: {
+        "settings.cat_style": "Cat colours",
+        "settings.cat_style.flag": "Flag",
+        "settings.cat_style.blue": "Blue",
+        "settings.cat_style.pink": "Pink",
         "settings.pixel_cats": "Pixel cats",
         "settings.pixel_cats_desc": "Show pixel cats on the overview and empty pages",
         "app.title": "HRT Tracker",
@@ -1282,6 +1290,10 @@ export const TRANSLATIONS = {
     zh: TRANSLATIONS_BASE.zh,
 
     "zh-TW": {
+        "settings.cat_style": "貓貓配色",
+        "settings.cat_style.flag": "旗幟",
+        "settings.cat_style.blue": "純藍",
+        "settings.cat_style.pink": "純粉",
         "settings.pixel_cats": "像素貓貓",
         "settings.pixel_cats_desc": "在總覽與空白頁面顯示像素貓貓",
         "app.title": "HRT 紀錄",
@@ -1843,6 +1855,10 @@ export const TRANSLATIONS = {
     },
 
     yue: {
+        "settings.cat_style": "貓貓配色",
+        "settings.cat_style.flag": "旗幟",
+        "settings.cat_style.blue": "純藍",
+        "settings.cat_style.pink": "純粉",
         "settings.pixel_cats": "像素貓貓",
         "settings.pixel_cats_desc": "喺總覽同空白頁面顯示像素貓貓",
         ...TRANSLATIONS_BASE.zh,
@@ -2243,6 +2259,10 @@ export const TRANSLATIONS = {
         "app.title": "HRT Tracker",
     },
     ja: {
+        "settings.cat_style": "猫の配色",
+        "settings.cat_style.flag": "フラッグ",
+        "settings.cat_style.blue": "ブルー",
+        "settings.cat_style.pink": "ピンク",
         "settings.pixel_cats": "ドット絵の猫",
         "settings.pixel_cats_desc": "概要と空のページにドット絵の猫を表示します",
         "nav.home": "概要",
@@ -2844,6 +2864,10 @@ export const TRANSLATIONS = {
     },
 
     ko: {
+        "settings.cat_style": "고양이 색상",
+        "settings.cat_style.flag": "깃발",
+        "settings.cat_style.blue": "블루",
+        "settings.cat_style.pink": "핑크",
         "settings.pixel_cats": "픽셀 고양이",
         "settings.pixel_cats_desc": "개요와 빈 페이지에 픽셀 고양이를 표시합니다",
         "app.title": "HRT 추적기",
@@ -3394,6 +3418,10 @@ export const TRANSLATIONS = {
         "backup.auto_saved": "클라우드에 자동 백업됨",
     },
     tr: {
+        "settings.cat_style": "Kedi renkleri",
+        "settings.cat_style.flag": "Bayrak",
+        "settings.cat_style.blue": "Mavi",
+        "settings.cat_style.pink": "Pembe",
         "settings.pixel_cats": "Piksel kediler",
         "settings.pixel_cats_desc": "Genel bakışta ve boş sayfalarda piksel kedileri göster",
         ...TRANSLATIONS_BASE.en,

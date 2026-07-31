@@ -4,7 +4,7 @@ import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
-import { usePixelCats } from '../contexts/PixelCatContext';
+import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -52,6 +52,18 @@ const rowValue = "flex items-center gap-1 text-[15px] text-[var(--color-m3-on-su
 const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
 const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
 
+// Hard stops rather than a smooth blend, in equal fifths — the flag's stripes
+// are even, and anything else reads as a lopsided swatch.
+const CAT_STYLE_SWATCHES: { id: CatStyle; background: string }[] = [
+    {
+        id: 'flag',
+        background:
+            'linear-gradient(180deg, var(--pixel-blue) 0 20%, var(--pixel-pink) 20% 40%, var(--pixel-white) 40% 60%, var(--pixel-pink) 60% 80%, var(--pixel-blue) 80% 100%)',
+    },
+    { id: 'blue', background: 'var(--pixel-blue)' },
+    { id: 'pink', background: 'var(--pixel-pink)' },
+];
+
 let _savedCat: SettingsCat = 'general';
 let _savedMobileView: MobileView = 'list';
 
@@ -64,7 +76,7 @@ const Settings: React.FC<SettingsProps> = ({
     devMode, setDevMode, onNavigateToMilkTea, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
-    const { showCats, setShowCats } = usePixelCats();
+    const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
 
@@ -163,6 +175,30 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${showCats ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
+
+            {/* Only worth showing once the cats themselves are on. */}
+            {showCats && (
+                <div className={`${rowBase} cursor-default`}>
+                    <span className={rowLabel}>{t('settings.cat_style')}</span>
+                    <div className="flex items-center gap-2.5">
+                        {CAT_STYLE_SWATCHES.map(({ id, background }) => (
+                            <button
+                                key={id}
+                                onClick={() => setCatStyle(id)}
+                                aria-label={t(`settings.cat_style.${id}`)}
+                                title={t(`settings.cat_style.${id}`)}
+                                aria-pressed={catStyle === id}
+                                className={`h-6 w-6 shrink-0 rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${
+                                    catStyle === id
+                                        ? 'ring-2 ring-[var(--color-m3-primary)] ring-offset-2 ring-offset-[var(--color-m3-surface-dim)] dark:ring-offset-[var(--color-m3-dark-surface)]'
+                                        : ''
+                                }`}
+                                style={{ background }}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <button
                 onClick={() => navTo(onNavigateToPKParams, 'general')}

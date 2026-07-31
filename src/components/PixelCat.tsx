@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePixelCats } from '../contexts/PixelCatContext';
+import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 
 // Pixel cats for empty states, drawn on a 26×15 grid. Horizontal bands echo the
 // trans pride flag (blue · pink · white · pink · blue).
@@ -159,7 +159,11 @@ const GRID_H = 15;
 
 type Band = 'blue' | 'pink' | 'white';
 
-function bandAt(y: number): Band {
+// 'flag' stripes the sprite; the solid styles keep the same three-tone
+// fill/shade/edge structure, so the tail and paws still read.
+function bandAt(y: number, style: CatStyle): Band {
+    if (style === 'blue') return 'blue';
+    if (style === 'pink') return 'pink';
     if (y <= 3) return 'blue';
     if (y <= 5) return 'pink';
     if (y <= 8) return 'white';
@@ -198,8 +202,8 @@ function silhouetteOf(grids: string[][]): Set<string> {
     return solid;
 }
 
-function fillFor(ch: string, x: number, y: number, solid: Set<string>): string | null {
-    const band = bandAt(y);
+function fillFor(ch: string, x: number, y: number, solid: Set<string>, style: CatStyle): string | null {
+    const band = bandAt(y, style);
     const onEdge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(
         ([dx, dy]) => !solid.has(`${x + dx},${y + dy}`),
     );
@@ -222,11 +226,11 @@ function fillFor(ch: string, x: number, y: number, solid: Set<string>): string |
     }
 }
 
-function pixels(grid: string[], keyPrefix: string, solid: Set<string>): React.ReactNode[] {
+function pixels(grid: string[], keyPrefix: string, solid: Set<string>, style: CatStyle): React.ReactNode[] {
     const out: React.ReactNode[] = [];
     grid.forEach((row, y) => {
         for (let x = 0; x < row.length; x++) {
-            const fill = fillFor(row[x], x, y, solid);
+            const fill = fillFor(row[x], x, y, solid, style);
             if (!fill) continue;
             out.push(
                 <rect key={`${keyPrefix}-${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />,
@@ -244,7 +248,7 @@ interface PixelCatProps {
 }
 
 const PixelCat: React.FC<PixelCatProps> = ({ pose = 'donut', size = 150, className = '' }) => {
-    const { showCats } = usePixelCats();
+    const { showCats, catStyle } = usePixelCats();
     const { body, silhouette, layers, wrapperClass } = POSES[pose];
     if (!showCats) return null;
     const solid = silhouetteOf([body, ...silhouette]);
@@ -259,10 +263,10 @@ const PixelCat: React.FC<PixelCatProps> = ({ pose = 'donut', size = 150, classNa
             className={className}
         >
             <g className={wrapperClass}>
-                {pixels(body, 'body', solid)}
+                {pixels(body, 'body', solid, catStyle)}
                 {layers.map((layer, i) => (
                     <g key={i} className={layer.className}>
-                        {pixels(layer.grid, `layer-${i}`, solid)}
+                        {pixels(layer.grid, `layer-${i}`, solid, catStyle)}
                     </g>
                 ))}
             </g>
