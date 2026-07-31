@@ -9,6 +9,8 @@ interface PixelCatContextValue {
     setShowCats: (v: boolean) => void;
     catStyle: CatStyle;
     setCatStyle: (v: CatStyle) => void;
+    /** After dark the cats turn in — see NIGHT_FROM_HOUR. */
+    isNight: boolean;
 }
 
 const PixelCatContext = createContext<PixelCatContextValue | null>(null);
@@ -21,6 +23,16 @@ export const usePixelCats = (): PixelCatContextValue => {
 
 const SHOW_KEY = 'app-pixel-cats';
 const STYLE_KEY = 'app-pixel-cat-style';
+
+// Bedtime by the device clock, not by the app theme — someone reading in dark
+// mode at noon has not put their cats to bed.
+const NIGHT_FROM_HOUR = 21;
+const NIGHT_UNTIL_HOUR = 6;
+
+const isNightNow = (): boolean => {
+    const h = new Date().getHours();
+    return h >= NIGHT_FROM_HOUR || h < NIGHT_UNTIL_HOUR;
+};
 
 export const PixelCatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // On by default — opting out is the deliberate act.
@@ -41,8 +53,16 @@ export const PixelCatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem(STYLE_KEY, catStyle);
     }, [catStyle]);
 
+    // Polled rather than scheduled on the boundary: a tab left open overnight
+    // has to notice too, and nobody minds the cats turning in a minute late.
+    const [isNight, setIsNight] = useState(isNightNow);
+    useEffect(() => {
+        const id = setInterval(() => setIsNight(isNightNow()), 60_000);
+        return () => clearInterval(id);
+    }, []);
+
     return (
-        <PixelCatContext.Provider value={{ showCats, setShowCats, catStyle, setCatStyle }}>
+        <PixelCatContext.Provider value={{ showCats, setShowCats, catStyle, setCatStyle, isNight }}>
             {children}
         </PixelCatContext.Provider>
     );

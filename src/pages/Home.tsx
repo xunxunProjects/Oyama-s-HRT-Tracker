@@ -67,9 +67,10 @@ const Home: React.FC<HomeProps> = ({
     // A cat turns up for each kind of record that's been logged: the donut for
     // doses, the loaf for labs. Sits in the gap between the two readings, so it
     // has to be rendered inside whichever mode branch is active.
-    // Sits inline right after the reading, so it costs a bit of the number's own
-    // line rather than a block of its own — which is the only way it fits on a
-    // 375px screen alongside the second reading.
+    // Sits inline right after the reading so it costs a bit of the number's own
+    // line rather than a block of its own. On a narrow screen two cats and two
+    // long readings don't fit across; the line wraps and the cats drop under the
+    // number rather than shoving the second reading off the edge.
     const cats = showCats && (events.length > 0 || labResults.length > 0) ? (
         <span className="flex shrink-0 items-end gap-1 self-end pb-1">
             {events.length > 0 && <PixelCat pose="donut" size={44} />}
@@ -124,15 +125,22 @@ const Home: React.FC<HomeProps> = ({
                     </div>
                 </div>
 
-                {/* Blood level grid — first reading left, second flush right */}
-                <div className="flex items-start justify-between gap-12">
+                {/* Blood level grid — first reading left, second flush right.
+                    On a 375px screen two cats plus two four-digit readings don't
+                    fit across, and the second column was being pushed clean off
+                    the right edge. The left column is the one that gives: min-w-0
+                    lets it shrink and its number line wraps, so the cats drop
+                    under the reading. The right column is shrink-0 so it keeps its
+                    number and unit together on one line instead of both sides
+                    wrapping at once. */}
+                <div className="flex items-start justify-between gap-4 sm:gap-8 md:gap-12">
                     {isTransmasc ? (
                         <>
-                            <div>
+                            <div className="min-w-0">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
                                     {t('label.total_t')} <span className="lowercase normal-case opacity-60">(ng/dL)</span>
                                 </p>
-                                <div className="flex items-baseline gap-1.5">
+                                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
                                     {currentT > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT} decimals={0} /></span>
@@ -144,11 +152,11 @@ const Home: React.FC<HomeProps> = ({
                                     {cats}
                                 </div>
                             </div>
-                            <div className="text-right">
+                            <div className="shrink-0 text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
                                     {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
                                 </p>
-                                <div className="flex items-baseline gap-1.5 justify-end">
+                                <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
                                     {currentT > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT / 28.842} decimals={1} /></span>
@@ -162,9 +170,9 @@ const Home: React.FC<HomeProps> = ({
                         </>
                     ) : (
                         <>
-                            <div>
+                            <div className="min-w-0">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.e2')}</p>
-                                <div className="flex items-baseline gap-1.5">
+                                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
                                     {currentLevel > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentLevel} decimals={1} /></span>
@@ -176,9 +184,9 @@ const Home: React.FC<HomeProps> = ({
                                     {cats}
                                 </div>
                             </div>
-                            <div className="text-right">
+                            <div className="shrink-0 text-right">
                                 <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa_chart')}</p>
-                                <div className="flex items-baseline gap-1.5 justify-end">
+                                <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
                                     {currentCPA > 0 ? (
                                         <>
                                             <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentCPA} decimals={1} /></span>

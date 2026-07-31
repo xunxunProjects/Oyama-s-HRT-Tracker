@@ -418,6 +418,11 @@ body {
     --pixel-white-edge: #CFBFC4;
     --pixel-eye: #3F3238;
     --pixel-nose: #E58BA4;
+    /* Quilt — off the flag palette, picked up from the app's terracotta so the
+       one thing on the sprite that isn't cat is obviously not cat. */
+    --pixel-quilt: #E8C0AC;
+    --pixel-quilt-shade: #D2A28C;
+    --pixel-quilt-edge: #B27F68;
 }
 
 /* Pastels this light glare against a dark surface, so knock them back. */
@@ -433,25 +438,69 @@ body {
     --pixel-white-edge: #A0959A;
     --pixel-eye: #2B2226;
     --pixel-nose: #C97488;
+    --pixel-quilt: #A9806B;
+    --pixel-quilt-shade: #8C6857;
+    --pixel-quilt-edge: #6B4E40;
 }
 
-/* Steps, not tweens — the point is that it moves a whole pixel at a time. */
-@keyframes px-bob {
-    from { transform: translateY(0); }
-    to   { transform: translateY(-1px); }
-}
-@keyframes px-tail-low {
-    0%, 50%      { opacity: 1; }
-    50.01%, 100% { opacity: 0; }
-}
-@keyframes px-tail-high {
-    0%, 50%      { opacity: 0; }
-    50.01%, 100% { opacity: 1; }
-}
+/* Steps, not tweens — the point is that it moves a whole pixel at a time. The
+   cat itself never shifts; only the parts of it that a real cat would move. */
 @keyframes px-blink {
     0%, 92%      { opacity: 0; }
     92.01%, 96%  { opacity: 1; }
     96.01%, 100% { opacity: 0; }
+}
+
+/* Tail: still for most of the loop, then two quick swishes. A tail that wags
+   on a metronome reads as a clock; the pause is what makes it a cat. */
+@keyframes px-tail-rest {
+    0%, 68%      { opacity: 1; }
+    68.01%, 74%  { opacity: 0; }
+    74.01%, 80%  { opacity: 1; }
+    80.01%, 86%  { opacity: 0; }
+    86.01%, 100% { opacity: 1; }
+}
+@keyframes px-tail-flick {
+    0%, 68%      { opacity: 0; }
+    68.01%, 74%  { opacity: 1; }
+    74.01%, 80%  { opacity: 0; }
+    80.01%, 86%  { opacity: 1; }
+    86.01%, 100% { opacity: 0; }
+}
+
+/* Making biscuits: four alternating beats, then the paws settle again. The
+   rest frame has to be hidden across the whole run, or the down paw doubles. */
+@keyframes px-paw-rest {
+    0%, 58%      { opacity: 1; }
+    58.01%, 90%  { opacity: 0; }
+    90.01%, 100% { opacity: 1; }
+}
+@keyframes px-paw-left {
+    0%, 58%      { opacity: 0; }
+    58.01%, 66%  { opacity: 1; }
+    66.01%, 74%  { opacity: 0; }
+    74.01%, 82%  { opacity: 1; }
+    82.01%, 100% { opacity: 0; }
+}
+@keyframes px-paw-right {
+    0%, 66%      { opacity: 0; }
+    66.01%, 74%  { opacity: 1; }
+    74.01%, 82%  { opacity: 0; }
+    82.01%, 90%  { opacity: 1; }
+    90.01%, 100% { opacity: 0; }
+}
+
+/* The loaf only has the one paw to push out, so it gets a slow two-beat
+   stretch instead of the knead. */
+@keyframes px-paw-still {
+    0%, 62%      { opacity: 1; }
+    62.01%, 78%  { opacity: 0; }
+    78.01%, 100% { opacity: 1; }
+}
+@keyframes px-paw-stretch {
+    0%, 62%      { opacity: 0; }
+    62.01%, 78%  { opacity: 1; }
+    78.01%, 100% { opacity: 0; }
 }
 
 /* Ear flick: mostly at rest, one quick step out and back. */
@@ -466,22 +515,18 @@ body {
     94.01%, 100% { opacity: 0; }
 }
 
-/* Rolling about: a whole-pixel circuit, never a diagonal in-between. */
-@keyframes px-roll {
-    0%   { transform: translate(-1px, 0); }
-    25%  { transform: translate(0, -1px); }
-    50%  { transform: translate(1px, 0); }
-    75%  { transform: translate(0, 1px); }
-    100% { transform: translate(-1px, 0); }
-}
-
-.px-bob        { animation: px-bob 1.5s steps(1) infinite alternate; }
-.px-roll       { animation: px-roll 1.6s steps(1) infinite; }
-.px-tail-low   { animation: px-tail-low 1.9s steps(1) infinite; }
-.px-tail-high  { animation: px-tail-high 1.9s steps(1) infinite; }
-.px-ear-rest   { animation: px-ear-rest 3.4s steps(1) infinite; }
-.px-ear-twitch { animation: px-ear-twitch 3.4s steps(1) infinite; }
-.px-blink      { animation: px-blink 4.8s steps(1) infinite; }
+/* Deliberately mismatched periods: nothing here shares a factor, so the cat
+   never falls into doing two things on the same beat twice running. */
+.px-ear-rest    { animation: px-ear-rest 3.4s steps(1) infinite; }
+.px-ear-twitch  { animation: px-ear-twitch 3.4s steps(1) infinite; }
+.px-blink       { animation: px-blink 4.8s steps(1) infinite; }
+.px-tail-rest   { animation: px-tail-rest 5.6s steps(1) infinite; }
+.px-tail-flick  { animation: px-tail-flick 5.6s steps(1) infinite; }
+.px-paw-rest    { animation: px-paw-rest 6.4s steps(1) infinite; }
+.px-paw-left    { animation: px-paw-left 6.4s steps(1) infinite; }
+.px-paw-right   { animation: px-paw-right 6.4s steps(1) infinite; }
+.px-paw-still   { animation: px-paw-still 7.1s steps(1) infinite; }
+.px-paw-stretch { animation: px-paw-stretch 7.1s steps(1) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
     .modal-overlay,
@@ -494,21 +539,24 @@ body {
         animation: none;
     }
     /* Hold a single resting pose instead of flicking between frames. */
-    .px-bob,
-    .px-roll,
-    .px-tail-low,
-    .px-tail-high,
     .px-ear-rest,
     .px-ear-twitch,
-    .px-blink {
+    .px-blink,
+    .px-tail-rest,
+    .px-tail-flick,
+    .px-paw-rest,
+    .px-paw-left,
+    .px-paw-right,
+    .px-paw-still,
+    .px-paw-stretch {
         animation: none;
     }
-    .px-roll {
-        transform: none;
-    }
-    .px-tail-high,
     .px-ear-twitch,
-    .px-blink {
+    .px-blink,
+    .px-tail-flick,
+    .px-paw-left,
+    .px-paw-right,
+    .px-paw-stretch {
         opacity: 0;
     }
     .btn-primary,
