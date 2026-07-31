@@ -758,11 +758,15 @@ export default {
       // Rate limiting for auth/sensitive endpoints
       const sensitivePaths = ['/api/login', '/api/register', '/api/user/password', '/api/user/me'];
       if (sensitivePaths.some(p => url.pathname === p)) {
-        let clientIP = request.headers.get('CF-Connecting-IP') ||
-          request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-          request.headers.get('X-Real-IP');
-
-        if (!clientIP) return withSecurityHeaders(new Response('Unable to identify client IP', { status: 400, headers: corsHeaders }));
+        // CF-Connecting-IP only. X-Forwarded-For / X-Real-IP were a fallback here,
+        // but behind the Cloudflare edge they are never reached (CF always sets
+        // CF-Connecting-IP), and anywhere else they are attacker-controlled — one
+        // header per request buys a fresh bucket and the limiter stops existing.
+        // Same reasoning already spelled out 15 lines below for /api/transparency.
+        // Missing header falls back to one shared bucket rather than a 400, so the
+        // self-hosted build still serves; the per-account limiter in the login
+        // handler is what actually bounds brute force there.
+        const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
         if (!(await checkRateLimit(env, clientIP, 10, 60000))) { // Slightly relaxed but broader coverage
           return withSecurityHeaders(new Response('Too many requests. Please try again later.', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
         }
@@ -878,6 +882,17 @@ export default {
         let { username, password, totp_code, backup_code } = body;
         if (!username || !password) return withSecurityHeaders(new Response('Missing credentials', { status: 400, headers: corsHeaders }));
         username = username.trim();
+
+        // Per-account throttle, keyed on nothing the caller can rotate. The IP
+        // bucket above is only as good as the IP header; this one bounds guessing
+        // against a single account no matter how many identities the caller
+        // presents, which is the case that matters on a self-hosted deployment
+        // with no trusted edge in front of it. Covers the admin branch too.
+        if (!(await checkRateLimit(env, `login-user:${username.toLowerCase()}`, 10, 60000))) {
+          return withSecurityHeaders(new Response('Too many attempts for this account. Please try again later.', {
+            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' },
+          }));
+        }
 
         // Admin login check
         // Guard against undefined/empty env vars allowing "null" or "undefined" login
@@ -1125,8 +1140,14 @@ export default {
         }
 
         // A second, token-specific bucket more tightly throttles guesses
-        // against a real password-protected share.
-        if (!(await checkRateLimit(env, `share-access-token:${clientIP}:${tokenHash.slice(0, 20)}`, 10, 60000))) {
+        // against a real password-protected share. Deliberately NOT keyed on the
+        // client IP: with the IP in the key this "per-token" limit rotated away
+        // along with the IP, which on a deployment without a trusted edge left
+        // the share password open to unlimited bcrypt guessing. Keyed on the
+        // token alone it holds however the caller presents themselves. Only
+        // reached for a token that resolves to a real share, so an attacker
+        // cannot use it to lock out arbitrary shares they haven't found.
+        if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 10, 60000))) {
           return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
         }
 
@@ -1192,8 +1213,27 @@ export default {
 
       try {
         const { payload } = await jwtVerify(token, secret);
-        const userId = payload.sub as string;
+
+        // jwtVerify only proves "signed with JWT_SECRET" — it says nothing about
+        // what the token is FOR, and this worker signs several kinds with that
+        // one secret. The passkey challenge tokens minted by the *public*,
+        // credential-free /api/auth/passkey-options carry {challenge, purpose,
+        // origin} and nothing else, so without these checks they sailed through
+        // here: `sub` was undefined and, with no `sid`, the revocation and idle
+        // checks below were skipped wholesale. Reject anything that isn't a
+        // session token before it can be treated as one.
+        const purpose = (payload as any).purpose;
         const sessionId = (payload as any).sid as string | undefined;
+        if (typeof payload.sub !== 'string' || !payload.sub || purpose !== undefined) {
+          return sessionInvalid('Invalid token');
+        }
+        // Every session token minted by this worker carries a `sid` (login,
+        // register and passkey-verify all insert a sessions row first); the
+        // admin token is the one deliberate exception.
+        if (payload.role !== 'admin' && !sessionId) {
+          return sessionInvalid('Invalid token');
+        }
+        const userId = payload.sub as string;
 
         // Session validation (only for user JWTs with a session ID)
         if (sessionId && payload.role !== 'admin') {

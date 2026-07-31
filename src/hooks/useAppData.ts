@@ -4,10 +4,56 @@ import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateCo
 import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { useAuth } from '../contexts/AuthContext';
 
-// Storage key prefix per HRT mode — keeps transfem and transmasc data independent.
-const keyFor = (mode: 'transfem' | 'transmasc', suffix: string) =>
-    mode === 'transmasc' ? `hrt-masc-${suffix}` : `hrt-${suffix}`;
+/** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
+const LOCAL_OWNER = 'local';
+
+// Storage keys are namespaced by account as well as by HRT mode. Without the
+// account half, a shared device (family tablet, clinic kiosk, installed PWA)
+// showed the previous user's full dose history to whoever signed in next, and
+// the auto-backup then encrypted those records under the new account's key and
+// uploaded them.
+//
+// Signed-out keys keep their original, un-prefixed names, so records written
+// before this change — and by anyone who never signs in — are still found
+// exactly where they were.
+const nsFor = (owner: string, suffix: string) =>
+    owner === LOCAL_OWNER ? `hrt-${suffix}` : `hrt-u${owner}-${suffix}`;
+
+const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: string) =>
+    nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
+
+const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses'] as const;
+const SHARED_SUFFIXES = ['weight', 'pk-params', 'cal-method', 'cal-history-mode'] as const;
+
+/**
+ * First sign-in on this device adopts whatever was recorded while signed out.
+ *
+ * The entries are *moved*, not copied: leaving a copy behind under the
+ * signed-out names is exactly the leak this namespacing exists to close, since
+ * the next person to use the device would land on them. Adoption is skipped
+ * once the account's namespace holds anything, so signing in on a second device
+ * can't overwrite records already there.
+ */
+function adoptSignedOutData(owner: string): void {
+    if (owner === LOCAL_OWNER) return;
+    const moves: [string, string][] = [];
+    for (const m of ['transfem', 'transmasc'] as const) {
+        for (const s of MODE_SUFFIXES) {
+            moves.push([modeKeyFor(LOCAL_OWNER, m, s), modeKeyFor(owner, m, s)]);
+        }
+    }
+    for (const s of SHARED_SUFFIXES) moves.push([nsFor(LOCAL_OWNER, s), nsFor(owner, s)]);
+
+    if (moves.some(([, to]) => localStorage.getItem(to) !== null)) return;
+    for (const [from, to] of moves) {
+        const value = localStorage.getItem(from);
+        if (value === null) continue;
+        localStorage.setItem(to, value);
+        localStorage.removeItem(from);
+    }
+}
 
 export interface DoseTemplate {
     id: string;
@@ -30,6 +76,14 @@ export interface QuickDose {
 export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void) => {
     const { t, lang } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
+    const { user } = useAuth();
+
+    // Everything below is scoped to (account, mode). `scope` is the composite the
+    // reload/persist handshake keys on — see loadedScopeRef.
+    const owner = user?.id ?? LOCAL_OWNER;
+    const scope = `${owner}|${mode}`;
+    const keyFor = (m: 'transfem' | 'transmasc', suffix: string) => modeKeyFor(owner, m, suffix);
+    const sharedKey = (suffix: string) => nsFor(owner, suffix);
 
     const loadJSON = <T,>(key: string, fallback: T): T => {
         try {
@@ -42,30 +96,30 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const [events, setEvents] = useState<DoseEvent[]>(() => loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
     const [weight, setWeight] = useState<number>(() => {
         // Weight is shared across modes (a physical attribute of the person).
-        const saved = localStorage.getItem('hrt-weight');
+        const saved = localStorage.getItem(sharedKey('weight'));
         return saved ? parseFloat(saved) : 70.0;
     });
     const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
     const [calibrationMethod, setCalibrationMethodState] = useState<CalibrationMethod>(() =>
         // Hybrid-MIPD is the default; legacy 'average'/'adaptive' values are migrated.
-        normalizeCalibrationMethod(localStorage.getItem('hrt-cal-method'))
+        normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method')))
     );
     const setCalibrationMethod = (m: CalibrationMethod) => {
         setCalibrationMethodState(m);
-        localStorage.setItem('hrt-cal-method', m);
+        localStorage.setItem(sharedKey('cal-method'), m);
     };
     const [calibrationHistoryMode, setCalibrationHistoryModeState] = useState<CalibrationHistoryMode>(() => {
-        const saved = localStorage.getItem('hrt-cal-history-mode');
+        const saved = localStorage.getItem(sharedKey('cal-history-mode'));
         return saved === 'forward' ? 'forward' : 'retrospective';
     });
     const setCalibrationHistoryMode = (m: CalibrationHistoryMode) => {
         setCalibrationHistoryModeState(m);
-        localStorage.setItem('hrt-cal-history-mode', m);
+        localStorage.setItem(sharedKey('cal-history-mode'), m);
     };
     const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
     const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
     const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
-        const saved = localStorage.getItem('hrt-pk-params');
+        const saved = localStorage.getItem(sharedKey('pk-params'));
         if (!saved) return null;
         try {
             const parsed = JSON.parse(saved) as PKCustomParams;
@@ -78,28 +132,44 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // --- Effects ---
-    // Tracks the mode whose data is currently held in state. Persist effects must
-    // wait until the reload-on-mode-change effect has swapped state to the new
-    // mode's data, otherwise stale (previous-mode) state would overwrite the
-    // newly-selected mode's localStorage entries.
+    // Tracks the (account, mode) scope whose data is currently held in state.
+    // Persist effects must wait until the reload effect has swapped state to the
+    // new scope's data, otherwise stale state would overwrite the newly-selected
+    // scope's localStorage entries — writing the previous mode's doses into this
+    // mode, or worse, the previous account's into this one.
     //
     // IMPORTANT: setState calls inside the reload effect do NOT apply to the
     // current commit — they schedule a re-render. Any persist effect that also
-    // runs in the *same* commit (because `mode` is in its dep array) would
-    // therefore observe stale, previous-mode state. We mark the ref as `null`
-    // during reload so persist effects skip, and re-establish it only after
-    // the new data has actually flushed into state (detected in a follow-up
-    // effect that also watches the data itself).
-    const loadedModeRef = useRef<'transfem' | 'transmasc' | null>(mode);
+    // runs in the *same* commit (because `scope` is in its dep array) would
+    // therefore observe stale state. We mark the ref as `null` during reload so
+    // persist effects skip, and re-establish it only after the new data has
+    // actually flushed into state (detected in a follow-up effect that also
+    // watches the data itself).
+    const loadedScopeRef = useRef<string | null>(scope);
 
-    // Reload all mode-scoped state whenever the HRT mode changes.
+    // Reload every piece of scoped state whenever the HRT mode OR the signed-in
+    // account changes. Signing out drops `owner` back to the signed-out
+    // namespace, which is empty once the account adopted it — that is what stops
+    // the next person on a shared device from seeing the last one's records.
+    //
+    // Declared before the persist effects on purpose: on mount it runs first, so
+    // adoption happens before any persist effect can write an empty array into
+    // the account's namespace and make adoption think it was already used.
     useEffect(() => {
-        loadedModeRef.current = null;
+        adoptSignedOutData(owner);
+        loadedScopeRef.current = null;
         setEvents(loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
         setLabResults(loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
         setDoseTemplates(loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
         setQuickDoses(loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
-    }, [mode]);
+        // Mode-independent, but still per-account, so they reload on the same beat.
+        const savedWeight = localStorage.getItem(sharedKey('weight'));
+        setWeight(savedWeight ? parseFloat(savedWeight) : 70.0);
+        setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
+        setCalibrationHistoryModeState(localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective');
+        setPkParamsState(loadJSON<PKCustomParams | null>(sharedKey('pk-params'), null));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scope]);
 
     // Mark the ref as "loaded for this mode" only after state updates have
     // flushed. Runs on every data mutation for the current mode, which is
@@ -115,36 +185,44 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     // exactly when the reload's setState calls have actually committed
     // (because loadJSON always returns fresh array references).
     useEffect(() => {
-        loadedModeRef.current = mode;
+        loadedScopeRef.current = scope;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, labResults, doseTemplates, quickDoses]);
 
 
     useEffect(() => {
-        if (loadedModeRef.current !== mode) return;
+        if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'events'), JSON.stringify(events));
-    }, [events, mode]);
-    useEffect(() => { localStorage.setItem('hrt-weight', weight.toString()); }, [weight]);
+    }, [events, scope]);
     useEffect(() => {
-        if (pkParams) {
-            localStorage.setItem('hrt-pk-params', JSON.stringify(pkParams));
-        } else {
-            localStorage.removeItem('hrt-pk-params');
-        }
+        if (loadedScopeRef.current !== scope) return;
+        localStorage.setItem(sharedKey('weight'), weight.toString());
+    }, [weight, scope]);
+    useEffect(() => {
+        // The override is applied unconditionally — the simulation must track
+        // whatever is in state right now. Only the *write* waits for the scope
+        // handshake, so a mid-switch commit can't persist the previous account's
+        // parameters into this one's namespace.
         applyPKOverrides(pkParams);
-    }, [pkParams]);
+        if (loadedScopeRef.current !== scope) return;
+        if (pkParams) {
+            localStorage.setItem(sharedKey('pk-params'), JSON.stringify(pkParams));
+        } else {
+            localStorage.removeItem(sharedKey('pk-params'));
+        }
+    }, [pkParams, scope]);
     useEffect(() => {
-        if (loadedModeRef.current !== mode) return;
+        if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'lab-results'), JSON.stringify(labResults));
-    }, [labResults, mode]);
+    }, [labResults, scope]);
     useEffect(() => {
-        if (loadedModeRef.current !== mode) return;
+        if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'dose-templates'), JSON.stringify(doseTemplates));
-    }, [doseTemplates, mode]);
+    }, [doseTemplates, scope]);
     useEffect(() => {
-        if (loadedModeRef.current !== mode) return;
+        if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'quick-doses'), JSON.stringify(quickDoses));
-    }, [quickDoses, mode]);
+    }, [quickDoses, scope]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);

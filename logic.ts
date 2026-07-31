@@ -1311,17 +1311,49 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
 }
 
 /**
+ * Pair each patch application with its own removal.
+ *
+ * Nothing on a patchRemove event says which application it ends, so the pairing
+ * has to come from order: walk the timeline and give each removal the oldest
+ * application still on the skin (FIFO). Picking the first removal *after* each
+ * application instead — which is what a per-event `find` does — hands the same
+ * early removal to every overlapping patch, so on a staggered two-patch
+ * regimen the second patch stops delivering the moment the first comes off.
+ *
+ * Keyed on event identity rather than `id` because imported files can carry
+ * duplicate ids. Memoised per event array: the caller builds one array per
+ * simulation and asks once per patch event.
+ */
+const patchRemovalCache = new WeakMap<DoseEvent[], Map<DoseEvent, number>>();
+
+function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
+    const cached = patchRemovalCache.get(allEvents);
+    if (cached) return cached;
+    const pairs = new Map<DoseEvent, number>();
+    const onSkin: DoseEvent[] = []; // applications awaiting a removal, oldest first
+    for (const e of allEvents) {
+        if (e.route === Route.patchApply) onSkin.push(e);
+        else if (e.route === Route.patchRemove) {
+            const apply = onSkin.shift();
+            if (apply) pairs.set(apply, e.timeH);
+        }
+    }
+    patchRemovalCache.set(allEvents, pairs);
+    return pairs;
+}
+
+/**
  * How long (hours after application) a patch stays on the skin delivering drug.
  * Resolution order:
- *   1. An explicit patchRemove event logged after the application wins (the user
+ *   1. The patchRemove event paired with this application wins (the user
  *      removed it at a known time, possibly earlier/later than planned).
  *   2. Otherwise the planned wear duration stored on the apply event is used, so
  *      a single "apply" event self-completes.
  *   3. Otherwise the patch is assumed to be worn indefinitely (legacy behaviour).
  */
 function resolvePatchWearH(event: DoseEvent, allEvents: DoseEvent[]): number {
-    const remove = allEvents.find(e => e.route === Route.patchRemove && e.timeH > event.timeH);
-    if (remove) return remove.timeH - event.timeH;
+    const removeAt = patchRemovalTimes(allEvents).get(event);
+    if (removeAt !== undefined && removeAt > event.timeH) return removeAt - event.timeH;
     const planned = event.extras?.[ExtraKey.patchWearH];
     if (typeof planned === 'number' && Number.isFinite(planned) && planned > 0) return planned;
     return Number.MAX_VALUE;
