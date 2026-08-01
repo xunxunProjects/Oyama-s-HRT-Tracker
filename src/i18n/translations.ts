@@ -658,6 +658,7 @@ export const TRANSLATIONS_BASE = {
         "backup.conflict_changed_note": "合并只会补齐本机缺少的记录，不会覆盖已有记录的内容。内容不一致的记录需要手动确认。",
         "backup.conflict_merge": "立即合并",
         "backup.conflict_skip": "暂时跳过",
+        "backup.conflict_dismiss": "知道了",
         "backup.auto_saved": "已自动备份到云端",
     },
 
@@ -1316,6 +1317,7 @@ export const TRANSLATIONS_BASE = {
         "backup.conflict_changed_note": "Merging only adds records this device is missing — it never overwrites one that already exists. Differing records need to be reconciled by hand.",
         "backup.conflict_merge": "Merge Now",
         "backup.conflict_skip": "Skip for Now",
+        "backup.conflict_dismiss": "Got it",
         "backup.auto_saved": "Auto-backed up to cloud",
     }
 };
@@ -1888,6 +1890,7 @@ export const TRANSLATIONS = {
         "backup.conflict_changed_note": "合併只會補齊本機缺少的記錄，不會覆蓋已有記錄的內容。內容不一致的記錄需要手動確認。",
         "backup.conflict_merge": "立即合併",
         "backup.conflict_skip": "暫時跳過",
+        "backup.conflict_dismiss": "知道了",
         "backup.auto_saved": "已自動備份至雲端",
         "settings.cat_states": "貓貓狀態一覽",
         "settings.cat_states_desc": "貓貓會依照一天中的時段切換狀態。這裡把所有狀態排在一起，方便對照。",
@@ -2320,6 +2323,7 @@ export const TRANSLATIONS = {
         "cat.state.asleep": "瞓覺",
         "backup.conflict_changed": "有 {n} 條記錄兩邊內容唔一致",
         "backup.conflict_changed_note": "合併只會補返本機冇嘅記錄，唔會覆蓋已有記錄嘅內容。唔一致嘅記錄要自己手動處理。",
+        "backup.conflict_dismiss": "知道喇",
     },
 
     en: {
@@ -2887,6 +2891,7 @@ export const TRANSLATIONS = {
         "backup.conflict_changed_note": "マージはこの端末にない記録を追加するだけで、既存の記録を上書きしません。内容が異なる記録は手動で確認してください。",
         "backup.conflict_merge": "今すぐマージ",
         "backup.conflict_skip": "後で確認",
+        "backup.conflict_dismiss": "了解",
         "backup.auto_saved": "クラウドへ自動バックアップ済み",
         "cal.method": "補正方法",
         "cal.settings": "補正の設定",
@@ -3503,6 +3508,7 @@ export const TRANSLATIONS = {
         "backup.conflict_changed_note": "병합은 이 기기에 없는 기록만 추가하며 기존 기록을 덮어쓰지 않습니다. 내용이 다른 기록은 직접 확인해야 합니다.",
         "backup.conflict_merge": "지금 병합",
         "backup.conflict_skip": "나중에",
+        "backup.conflict_dismiss": "확인",
         "backup.auto_saved": "클라우드에 자동 백업됨",
         "settings.cat_states": "고양이 상태 목록",
         "settings.cat_states_desc": "고양이는 하루의 시간대에 따라 상태가 바뀝니다. 모든 상태를 한눈에 볼 수 있습니다.",
@@ -4143,5 +4149,6 @@ export const TRANSLATIONS = {
         "cat.state.asleep": "Uyuyor",
         "backup.conflict_changed": "{n} kayıt iki tarafta farklı",
         "backup.conflict_changed_note": "Birleştirme yalnızca bu cihazda olmayan kayıtları ekler, mevcut kayıtların üzerine yazmaz. Farklı kayıtların elle düzeltilmesi gerekir.",
+        "backup.conflict_dismiss": "Anladım",
     },
 } as const;

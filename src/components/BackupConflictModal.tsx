@@ -10,6 +10,12 @@ interface BackupConflictModalProps {
     localNewCount: number;
     /** Present on both sides under the same id but with different contents. */
     changedCount: number;
+    /**
+     * Whether merging would actually add anything. Merge only ever pulls
+     * cloud -> local, so with nothing on the cloud this device lacks the button
+     * is a no-op — offering it produced the "0 added" result people reported.
+     */
+    canMerge: boolean;
     onMerge: () => void;
 }
 
@@ -19,6 +25,7 @@ const BackupConflictModal: React.FC<BackupConflictModalProps> = ({
     cloudNewCount,
     localNewCount,
     changedCount,
+    canMerge,
     onMerge,
 }) => {
     const { t } = useTranslation();
@@ -71,14 +78,16 @@ const BackupConflictModal: React.FC<BackupConflictModalProps> = ({
                     )}
 
                     <div className="flex gap-2">
-                        <button onClick={onClose} className="btn-secondary flex-1">
+                        <button onClick={onClose} className={canMerge ? 'btn-secondary flex-1' : 'btn-primary flex-1'}>
                             <SkipForward size={15} />
-                            {t('backup.conflict_skip')}
+                            {canMerge ? t('backup.conflict_skip') : t('backup.conflict_dismiss')}
                         </button>
-                        <button onClick={handleMerge} className="btn-primary flex-1">
-                            <Merge size={15} />
-                            {t('backup.conflict_merge')}
-                        </button>
+                        {canMerge && (
+                            <button onClick={handleMerge} className="btn-primary flex-1">
+                                <Merge size={15} />
+                                {t('backup.conflict_merge')}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

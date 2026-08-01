@@ -149,6 +149,8 @@ const AppContent = () => {
         localNewCount: number;
         /** Same id on both sides, different contents — an edit on one device. */
         changedCount: number;
+        /** False when the cloud holds nothing this device lacks, so merge is a no-op. */
+        canMerge: boolean;
         cloudParsed: any;
     } | null>(null);
     const conflictCheckedRef = useRef(false);
@@ -224,13 +226,38 @@ const AppContent = () => {
             }
             if (!cloudParsed) return; // Encrypted but undecryptable on this device — skip
 
-            const diff = diffBackup(buildExportPayload(), cloudParsed);
+            const localPayload = buildExportPayload();
+            const diff = diffBackup(localPayload, cloudParsed);
             if (!diff.hasDifference) return;
+
+            // Merging pulls cloud -> local and only ever ADDS records this device
+            // is missing. So when the cloud has nothing this device lacks, the
+            // dialog's one button provably does nothing — which is exactly the
+            // "0 added" people were seeing.
+            if (diff.onlyCloud === 0) {
+                // Cloud strictly behind and no contested edits: local is a
+                // superset, so pushing it up loses nothing and settles the
+                // difference. Without this the prompt returned on every single
+                // launch, because nothing else ever uploads unless the data
+                // changes — closing the app inside the 3s auto-backup debounce
+                // was enough to wedge it there permanently.
+                if (diff.changed === 0 && autoBackupRef.current) {
+                    try {
+                        await cloudService.save(token, await prepareCloudPayload(localPayload));
+                    } catch { /* next data change will retry */ }
+                    return;
+                }
+                // Contents differ under the same ids. Worth telling the user
+                // about — merge still can't reconcile it, so the dialog says so
+                // and offers no merge.
+                if (diff.changed === 0) return;
+            }
 
             setConflictState({
                 cloudNewCount: diff.onlyCloud,
                 localNewCount: diff.onlyLocal,
                 changedCount: diff.changed,
+                canMerge: diff.onlyCloud > 0,
                 cloudParsed,
             });
         })().catch(() => {});
@@ -829,6 +856,7 @@ const AppContent = () => {
                 cloudNewCount={conflictState?.cloudNewCount ?? 0}
                 localNewCount={conflictState?.localNewCount ?? 0}
                 changedCount={conflictState?.changedCount ?? 0}
+                canMerge={conflictState?.canMerge ?? false}
                 onMerge={() => {
                     if (conflictState?.cloudParsed) {
                         mergeImportedData(conflictState.cloudParsed);
