@@ -39,6 +39,7 @@ interface SettingsProps {
     devMode: boolean;
     setDevMode: (v: boolean) => void;
     onNavigateToMilkTea: () => void;
+    onNavigateToCatStates: () => void;
     isAdmin: boolean;
     onNavigateToAdmin: () => void;
 }
@@ -73,7 +74,7 @@ const Settings: React.FC<SettingsProps> = ({
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoBackup, setAutoBackup, isLoggedIn,
-    devMode, setDevMode, onNavigateToMilkTea, isAdmin, onNavigateToAdmin,
+    devMode, setDevMode, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -298,6 +299,13 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
+
+            {devMode && (
+                <button onClick={() => navTo(onNavigateToCatStates, 'about')} className={rowBase}>
+                    <span className={rowLabel}>{t('settings.cat_states')}</span>
+                    <ChevronRight size={15} className={muted} />
+                </button>
+            )}
 
             {devMode && (
                 <button onClick={() => navTo(onNavigateToMilkTea, 'about')} className={`${rowBase} border-b-0`}>

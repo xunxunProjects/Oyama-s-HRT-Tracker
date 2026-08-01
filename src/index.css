@@ -497,6 +497,10 @@ select,
     --pixel-quilt: #E8C0AC;
     --pixel-quilt-shade: #D2A28C;
     --pixel-quilt-edge: #B27F68;
+    /* Kibble. Warmer and darker than the bowl so the food reads against it. */
+    --pixel-food: #C4785A;
+    /* Sleep marks. Muted on purpose — they should read as a soft puff, not text. */
+    --pixel-zzz: #B7ADB0;
 }
 
 /* Pastels this light glare against a dark surface, so knock them back. */
@@ -515,6 +519,8 @@ select,
     --pixel-quilt: #A9806B;
     --pixel-quilt-shade: #8C6857;
     --pixel-quilt-edge: #6B4E40;
+    --pixel-food: #9A5C43;
+    --pixel-zzz: #6E656A;
 }
 
 /* Steps, not tweens — the point is that it moves a whole pixel at a time. The
@@ -589,6 +595,26 @@ select,
     94.01%, 100% { opacity: 0; }
 }
 
+/* Grooming: the paw travels to the face and back, twice a second. Faster than
+   the tail or the ears because a lick is a quick, repetitive motion. */
+@keyframes px-lick-a { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes px-lick-b { 0%, 49.99% { opacity: 0; } 50%, 100% { opacity: 1; } }
+
+/* Chewing: the head-down frame flicks on and off. Held down slightly longer
+   than up, which is what stops it reading as a metronome. */
+@keyframes px-chew {
+    0%, 44%      { opacity: 0; }
+    44.01%, 100% { opacity: 1; }
+}
+
+/* Sleep marks: a slow swell and fade, with a long gap so they punctuate the
+   sleeping rather than blink at you. */
+@keyframes px-zzz {
+    0%, 6%       { opacity: 0; }
+    22%, 62%     { opacity: 1; }
+    82%, 100%    { opacity: 0; }
+}
+
 /* Deliberately mismatched periods: nothing here shares a factor, so the cat
    never falls into doing two things on the same beat twice running. */
 .px-ear-rest    { animation: px-ear-rest 3.4s steps(1) infinite; }
@@ -601,6 +627,10 @@ select,
 .px-paw-right   { animation: px-paw-right 6.4s steps(1) infinite; }
 .px-paw-still   { animation: px-paw-still 7.1s steps(1) infinite; }
 .px-paw-stretch { animation: px-paw-stretch 7.1s steps(1) infinite; }
+.px-lick-a      { animation: px-lick-a .5s steps(1) infinite; }
+.px-lick-b      { animation: px-lick-b .5s steps(1) infinite; }
+.px-chew        { animation: px-chew .62s steps(1) infinite; }
+.px-zzz         { animation: px-zzz 4.6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
     .modal-overlay,
@@ -622,7 +652,11 @@ select,
     .px-paw-left,
     .px-paw-right,
     .px-paw-still,
-    .px-paw-stretch {
+    .px-paw-stretch,
+    .px-lick-a,
+    .px-lick-b,
+    .px-chew,
+    .px-zzz {
         animation: none;
     }
     .px-ear-twitch,
@@ -630,7 +664,9 @@ select,
     .px-tail-flick,
     .px-paw-left,
     .px-paw-right,
-    .px-paw-stretch {
+    .px-paw-stretch,
+    .px-lick-b,
+    .px-chew {
         opacity: 0;
     }
     .btn-primary,

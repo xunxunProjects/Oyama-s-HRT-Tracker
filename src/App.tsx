@@ -46,6 +46,7 @@ import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
+import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
 
@@ -578,6 +579,7 @@ const AppContent = () => {
                             devMode={devMode}
                             setDevMode={setDevMode}
                             onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
+                            onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
                             isAdmin={!!user?.isAdmin}
                             onNavigateToAdmin={() => handleViewChange('admin')}
                         />
@@ -703,6 +705,10 @@ const AppContent = () => {
                         />
                     )}
 
+                    {currentView === 'settings-cat-states' && devMode && (
+                        <CatStates onBack={() => handleViewChange('settings')} />
+                    )}
+
                     {currentView === 'pk-params' && (
                         <PKParamsPage
                             pkParams={pkParams}
@@ -735,6 +741,7 @@ const AppContent = () => {
                                 'settings-import': 'settings',
                                 'settings-transparency': 'settings',
                                 'settings-milk-tea': 'settings',
+                                'settings-cat-states': 'settings',
                                 'pk-params': 'settings',
                                 'account': 'account',
                                 'sessions': 'account',

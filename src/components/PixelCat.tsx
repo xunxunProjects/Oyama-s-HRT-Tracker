@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
+import { usePixelCats, CatStyle, CatState } from '../contexts/PixelCatContext';
 
 // Pixel cats for empty states, drawn on a 26×15 grid. Horizontal bands echo the
 // trans pride flag (blue · pink · white · pink · blue).
@@ -22,9 +22,8 @@ interface Pose {
     body: string[];
     /** Grids folded into the silhouette used for outlining. */
     silhouette: string[][];
-    layers: Layer[];
-    /** Swapped in after dark: tucked in, eyes shut. Paws stay under the quilt. */
-    nightLayers: Layer[];
+    /** One layer stack per state of the day. See CAT_SCHEDULE. */
+    states: Record<CatState, Layer[]>;
 }
 
 // ── Donut: curled up, facing the viewer. Flicks its tail, kneads, twitches
@@ -230,52 +229,333 @@ const LOAF_QUILT = [
 ];
 
 
+// Narrowed, not shut: two pixels where the open eye is one and the shut eye is
+// three. Drawn in eye colour — a lid painted in fur colour simply deletes the
+// eye and the cat looks faceless.
+const DONUT_EYES_DROOPY = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '...EE......EE.............',
+];
+
+// The quilt kicked down to the base overnight — still on, no longer up to the
+// chin. Same clay tones as the full quilt so it reads as the same object.
+const DONUT_QUILT_LOW = [
+    '', '', '', '', '', '', '', '', '', '', '',
+    '.oooooooooooooooooooo.....',
+    'oBBBBBBBBBBBBBBBBBBBBo....',
+    '.oooooooooooooooooooo.....',
+];
+
+// Raised to the cheek and deliberately poking past the head's left edge. Kept
+// entirely inside the body it was white-edge on white and vanished.
+const DONUT_PAW_FACE = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    'PP........................',
+    'pp........................',
+    'Pp........................',
+];
+
+// A ball of wool on the floor, in the same clay palette as the bowl and quilt
+// so the props read as one set.
+const DONUT_YARN = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '.oo.......................',
+    'oBoBo.....................',
+    '.ooo......................',
+];
+
+// Bowl on the floor at the cat's left. y13 is the only row with space beside
+// the body, and y14 is free the whole way across.
+const DONUT_BOWL_EMPTY = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'oBBBBBo...................',
+    '.ooooo....................',
+];
+
+const DONUT_BOWL_FULL = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '..FFF.....................',
+    'oFFFFFo...................',
+    '.ooooo....................',
+];
+
+const LOAF_EYES_DROOPY = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '..........EE.....EE.......',
+];
+
+const LOAF_QUILT_LOW = [
+    '', '', '', '', '', '', '', '', '', '', '',
+    '.....oooooooooooooooooooo.',
+    '....oBBBBBBBBBBBBBBBBBBBBo',
+    '.....oooooooooooooooooooo.',
+];
+
+const LOAF_PAW_FACE = [
+    '',
+    '',
+    '',
+    '',
+    '....PP....................',
+    '....pp....................',
+    '....Pp....................',
+];
+
+const LOAF_YARN = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '......................oo..',
+    '.....................oBoBo',
+    '......................ooo.',
+];
+
+// Bowl to the cat's right: y13 leaves x23-25 clear and y14 is free, so the
+// bowl tucks against the body rather than floating.
+const LOAF_BOWL_EMPTY = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '...................oBBBBBo',
+    '....................ooooo.',
+];
+
+const LOAF_BOWL_FULL = [
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '.....................FFF..',
+    '...................oFFFFFo',
+    '....................ooooo.',
+];
+
+// Second grooming frame: the same paw a pixel higher. Alternating the two is
+// the lick — the paw travelling to the face and back, not the cat moving.
+const DONUT_PAW_FACE_UP = [
+    '', '', '', '',
+    'PP........................',
+    'pp........................',
+    'Pp........................',
+];
+
+// Head down into the bowl. Covers the resting face in fur and redraws it a row
+// lower, so only the head dips — shifting the whole cat would be the idle bob
+// that was deliberately removed. Drawn after the shut-eye layer, so toggling
+// this one layer is the whole chew.
+const DONUT_EAT_FACE_LOW = [
+    '', '', '', '', '', '',
+    '...###.....###............',
+    '...EEE.##..EEE............',
+    '.......NN.................',
+];
+
+// Two z's drifting up and to the right, in the free corner above the tail.
+const DONUT_ZZZ = [
+    '.......................zzz',
+    '........................z.',
+    '.......................zzz',
+    '....................zzz...',
+    '.....................z....',
+    '....................zzz...',
+];
+
+const LOAF_PAW_FACE_UP = [
+    '', '', '',
+    '....PP....................',
+    '....pp....................',
+    '....Pp....................',
+];
+
+const LOAF_EAT_FACE_LOW = [
+    '', '', '', '', '',
+    '..........###....###......',
+    '..........EEE....EEE......',
+    '..............##..........',
+    '..............NN..........',
+];
+
+// Up and to the left here: the loaf's right side is body all the way out, but
+// everything above its shoulder on the left is clear.
+const LOAF_ZZZ = [
+    'zzz.......................',
+    '.z........................',
+    'zzz.......................',
+    '...zzz....................',
+    '....z.....................',
+    '...zzz....................',
+];
+
 export type CatPose = 'donut' | 'loaf';
+
+/**
+ * The day, per pose.
+ *
+ * Ears twitch in every state, asleep included — that much a sleeping cat does
+ * do. Everything else is composed from the shared overlays, so a state is a
+ * choice of eyes, of what the paws are doing, and of at most one prop. Order
+ * matters: a prop listed after the body is drawn in front of it.
+ */
+function donutStates(): Record<CatState, Layer[]> {
+    const ears: Layer[] = [
+        { grid: DONUT_EARS_REST, className: 'px-ear-rest' },
+        { grid: DONUT_EARS_TWITCH, className: 'px-ear-twitch' },
+    ];
+    const tailIdle: Layer[] = [
+        { grid: DONUT_TAIL, className: 'px-tail-rest' },
+        { grid: DONUT_TAIL_FLICK, className: 'px-tail-flick' },
+    ];
+    const tailStill: Layer[] = [{ grid: DONUT_TAIL, className: '' }];
+    const pawsIdle: Layer[] = [{ grid: DONUT_PAWS, className: '' }];
+    const pawsKnead: Layer[] = [
+        { grid: DONUT_PAWS, className: 'px-paw-rest' },
+        { grid: DONUT_PAWS_LEFT, className: 'px-paw-left' },
+        { grid: DONUT_PAWS_RIGHT, className: 'px-paw-right' },
+    ];
+    const blink: Layer = { grid: DONUT_BLINK, className: 'px-blink' };
+    const shut: Layer = { grid: DONUT_SLEEP_EYES, className: '' };
+    const droopy: Layer = { grid: DONUT_EYES_DROOPY, className: '' };
+
+    return {
+        // Quilt kicked to the base, eyes not open yet.
+        waking: [...tailStill, { grid: DONUT_QUILT_LOW, className: '' }, ...ears, droopy],
+        // The liveliest stretch: everything that moves, moves.
+        alert: [...tailIdle, ...pawsKnead, ...ears, blink],
+        playing: [...tailIdle, { grid: DONUT_YARN, className: '' }, ...ears, blink],
+        napping: [...tailStill, ...pawsIdle, ...ears, shut],
+        grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
+            { grid: DONUT_PAW_FACE, className: 'px-lick-a' },
+            { grid: DONUT_PAW_FACE_UP, className: 'px-lick-b' }],
+        // Bowl first so the cat sits in front of it, then a hard stare at it.
+        waiting: [{ grid: DONUT_BOWL_EMPTY, className: '' }, ...tailIdle, ...pawsIdle, ...ears],
+        eating: [{ grid: DONUT_BOWL_FULL, className: '' }, ...tailStill, ...pawsIdle, ...ears, shut,
+            { grid: DONUT_EAT_FACE_LOW, className: 'px-chew' }],
+        winding: [...tailStill, ...pawsIdle, ...ears, droopy],
+        asleep: [...tailStill, { grid: DONUT_QUILT, className: '' }, ...ears, shut,
+            { grid: DONUT_ZZZ, className: 'px-zzz' }],
+    };
+}
+
+function loafStates(): Record<CatState, Layer[]> {
+    const ears: Layer[] = [
+        { grid: LOAF_EARS_REST, className: 'px-ear-rest' },
+        { grid: LOAF_EARS_TWITCH, className: 'px-ear-twitch' },
+    ];
+    const tailIdle: Layer[] = [
+        { grid: LOAF_TAIL, className: 'px-tail-rest' },
+        { grid: LOAF_TAIL_WAG, className: 'px-tail-flick' },
+    ];
+    const tailStill: Layer[] = [{ grid: LOAF_TAIL, className: '' }];
+    const pawsIdle: Layer[] = [{ grid: LOAF_PAWS, className: '' }];
+    const pawsStretch: Layer[] = [
+        { grid: LOAF_PAWS, className: 'px-paw-still' },
+        { grid: LOAF_PAWS_STRETCH, className: 'px-paw-stretch' },
+    ];
+    const blink: Layer = { grid: LOAF_BLINK, className: 'px-blink' };
+    const shut: Layer = { grid: LOAF_SLEEP_EYES, className: '' };
+    const droopy: Layer = { grid: LOAF_EYES_DROOPY, className: '' };
+
+    return {
+        waking: [...tailStill, { grid: LOAF_QUILT_LOW, className: '' }, ...ears, droopy],
+        alert: [...tailIdle, ...pawsStretch, ...ears, blink],
+        playing: [...tailIdle, { grid: LOAF_YARN, className: '' }, ...ears, blink],
+        napping: [...tailStill, ...pawsIdle, ...ears, shut],
+        grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
+            { grid: LOAF_PAW_FACE, className: 'px-lick-a' },
+            { grid: LOAF_PAW_FACE_UP, className: 'px-lick-b' }],
+        waiting: [{ grid: LOAF_BOWL_EMPTY, className: '' }, ...tailIdle, ...pawsIdle, ...ears],
+        eating: [{ grid: LOAF_BOWL_FULL, className: '' }, ...tailStill, ...pawsIdle, ...ears, shut,
+            { grid: LOAF_EAT_FACE_LOW, className: 'px-chew' }],
+        winding: [...tailStill, ...pawsIdle, ...ears, droopy],
+        asleep: [...tailStill, { grid: LOAF_QUILT, className: '' }, ...ears, shut,
+            { grid: LOAF_ZZZ, className: 'px-zzz' }],
+    };
+}
 
 const POSES: Record<CatPose, Pose> = {
     donut: {
         body: DONUT_BODY,
         silhouette: [DONUT_EARS_REST, DONUT_TAIL],
-        layers: [
-            { grid: DONUT_TAIL, className: 'px-tail-rest' },
-            { grid: DONUT_TAIL_FLICK, className: 'px-tail-flick' },
-            { grid: DONUT_PAWS, className: 'px-paw-rest' },
-            { grid: DONUT_PAWS_LEFT, className: 'px-paw-left' },
-            { grid: DONUT_PAWS_RIGHT, className: 'px-paw-right' },
-            { grid: DONUT_EARS_REST, className: 'px-ear-rest' },
-            { grid: DONUT_EARS_TWITCH, className: 'px-ear-twitch' },
-            { grid: DONUT_BLINK, className: 'px-blink' },
-        ],
-        // Quilt after the tail, so the tail goes under it and only the hook
-        // clear of the quilt's right edge still shows. Ears keep twitching —
-        // that much a sleeping cat does do.
-        nightLayers: [
-            { grid: DONUT_TAIL, className: '' },
-            { grid: DONUT_QUILT, className: '' },
-            { grid: DONUT_EARS_REST, className: 'px-ear-rest' },
-            { grid: DONUT_EARS_TWITCH, className: 'px-ear-twitch' },
-            { grid: DONUT_SLEEP_EYES, className: '' },
-        ],
+        states: donutStates(),
     },
     loaf: {
         body: LOAF_BODY,
         silhouette: [LOAF_EARS_REST, LOAF_TAIL],
-        layers: [
-            { grid: LOAF_TAIL, className: 'px-tail-rest' },
-            { grid: LOAF_TAIL_WAG, className: 'px-tail-flick' },
-            { grid: LOAF_PAWS, className: 'px-paw-still' },
-            { grid: LOAF_PAWS_STRETCH, className: 'px-paw-stretch' },
-            { grid: LOAF_EARS_REST, className: 'px-ear-rest' },
-            { grid: LOAF_EARS_TWITCH, className: 'px-ear-twitch' },
-            { grid: LOAF_BLINK, className: 'px-blink' },
-        ],
-        nightLayers: [
-            { grid: LOAF_TAIL, className: '' },
-            { grid: LOAF_QUILT, className: '' },
-            { grid: LOAF_EARS_REST, className: 'px-ear-rest' },
-            { grid: LOAF_EARS_TWITCH, className: 'px-ear-twitch' },
-            { grid: LOAF_SLEEP_EYES, className: '' },
-        ],
+        states: loafStates(),
     },
 };
 
@@ -354,6 +634,10 @@ function fillFor(ch: string, x: number, y: number, solid: Set<string>, style: Ca
             return 'var(--pixel-quilt-shade)';
         case 'o':
             return 'var(--pixel-quilt-edge)';
+        case 'F':
+            return 'var(--pixel-food)';
+        case 'z':
+            return 'var(--pixel-zzz)';
         default:
             return null;
     }
@@ -378,14 +662,24 @@ interface PixelCatProps {
     /** Rendered width in px. Height follows the 26:15 grid. */
     size?: number;
     className?: string;
+    /**
+     * Show a specific state instead of whatever the clock says. Only the
+     * developer-mode gallery passes this — everywhere else the time of day is
+     * the point, and pinning it would be a lie about what the cat is doing.
+     */
+    state?: CatState;
+    /** Ignore the "show pixel cats" preference. The gallery is about the art. */
+    force?: boolean;
 }
 
-const PixelCat: React.FC<PixelCatProps> = ({ pose = 'donut', size = 150, className = '' }) => {
-    const { showCats, catStyle, isNight } = usePixelCats();
-    const { body, silhouette, layers, nightLayers } = POSES[pose];
-    if (!showCats) return null;
+const PixelCat: React.FC<PixelCatProps> = ({
+    pose = 'donut', size = 150, className = '', state, force = false,
+}) => {
+    const { showCats, catStyle, catState } = usePixelCats();
+    const { body, silhouette, states } = POSES[pose];
+    if (!showCats && !force) return null;
     const solid = silhouetteOf([body, ...silhouette]);
-    const activeLayers = isNight ? nightLayers : layers;
+    const activeLayers = states[state ?? catState];
     return (
         <svg
             viewBox={`0 0 ${GRID_W} ${GRID_H}`}

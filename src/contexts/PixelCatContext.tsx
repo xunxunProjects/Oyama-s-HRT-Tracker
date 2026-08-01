@@ -9,8 +9,8 @@ interface PixelCatContextValue {
     setShowCats: (v: boolean) => void;
     catStyle: CatStyle;
     setCatStyle: (v: CatStyle) => void;
-    /** After dark the cats turn in — see NIGHT_FROM_HOUR. */
-    isNight: boolean;
+    /** What the cats are up to right now — see CAT_SCHEDULE. */
+    catState: CatState;
 }
 
 const PixelCatContext = createContext<PixelCatContextValue | null>(null);
@@ -24,15 +24,60 @@ export const usePixelCats = (): PixelCatContextValue => {
 const SHOW_KEY = 'app-pixel-cats';
 const STYLE_KEY = 'app-pixel-cat-style';
 
-// Bedtime by the device clock, not by the app theme — someone reading in dark
-// mode at noon has not put their cats to bed.
-const NIGHT_FROM_HOUR = 21;
-const NIGHT_UNTIL_HOUR = 6;
+/**
+ * A cat's day, by the device clock — not by the app theme, since someone
+ * reading in dark mode at noon has not put their cats to bed.
+ *
+ * Each entry is the hour the state begins; it runs until the next one. The last
+ * entry wraps past midnight back to the first, so the table always covers all
+ * 24 hours and can never leave a gap.
+ */
+export type CatState =
+    | 'waking'    // 06-08  still half under the covers
+    | 'alert'     // 08-10  properly up, the liveliest stretch
+    | 'playing'   // 10-12  batting at something
+    | 'napping'   // 12-15  the long midday sleep
+    | 'grooming'  // 15-17  washing up
+    | 'waiting'   // 17-18  sat by an empty bowl, staring
+    | 'eating'    // 18-20  dinner
+    | 'winding'   // 20-21  fed, drowsy, not yet down
+    | 'asleep';   // 21-06  out cold under the quilt
 
-const isNightNow = (): boolean => {
-    const h = new Date().getHours();
-    return h >= NIGHT_FROM_HOUR || h < NIGHT_UNTIL_HOUR;
+const CAT_SCHEDULE: readonly (readonly [number, CatState])[] = [
+    [6, 'waking'],
+    [8, 'alert'],
+    [10, 'playing'],
+    [12, 'napping'],
+    [15, 'grooming'],
+    [17, 'waiting'],
+    [18, 'eating'],
+    [20, 'winding'],
+    [21, 'asleep'],
+];
+
+/**
+ * The schedule as inclusive-start/exclusive-end windows, derived rather than
+ * written out a second time — a hand-kept copy is how a viewer ends up labelling
+ * a state with hours it no longer covers. The final window wraps past midnight,
+ * so its `to` is the first entry's `from`.
+ */
+export const CAT_STATE_WINDOWS: readonly { state: CatState; from: number; to: number }[] =
+    CAT_SCHEDULE.map(([from, state], i) => ({
+        state,
+        from,
+        to: CAT_SCHEDULE[(i + 1) % CAT_SCHEDULE.length][0],
+    }));
+
+export const catStateForHour = (hour: number): CatState => {
+    // Before the first entry is still the previous day's last state.
+    let state: CatState = CAT_SCHEDULE[CAT_SCHEDULE.length - 1][1];
+    for (const [from, s] of CAT_SCHEDULE) {
+        if (hour >= from) state = s;
+    }
+    return state;
 };
+
+const catStateNow = (): CatState => catStateForHour(new Date().getHours());
 
 export const PixelCatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // On by default — opting out is the deliberate act.
@@ -53,16 +98,16 @@ export const PixelCatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem(STYLE_KEY, catStyle);
     }, [catStyle]);
 
-    // Polled rather than scheduled on the boundary: a tab left open overnight
-    // has to notice too, and nobody minds the cats turning in a minute late.
-    const [isNight, setIsNight] = useState(isNightNow);
+    // Polled rather than scheduled on the boundary: a tab left open all day has
+    // to notice too, and nobody minds the cats changing over a minute late.
+    const [catState, setCatState] = useState(catStateNow);
     useEffect(() => {
-        const id = setInterval(() => setIsNight(isNightNow()), 60_000);
+        const id = setInterval(() => setCatState(catStateNow()), 60_000);
         return () => clearInterval(id);
     }, []);
 
     return (
-        <PixelCatContext.Provider value={{ showCats, setShowCats, catStyle, setCatStyle, isNight }}>
+        <PixelCatContext.Provider value={{ showCats, setShowCats, catStyle, setCatStyle, catState }}>
             {children}
         </PixelCatContext.Provider>
     );

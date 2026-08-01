@@ -572,6 +572,35 @@ async function ensureDosageShares(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Discard the payload of every share that has passed its expiry, for all users.
+ *
+ * Setting an expiry on a share link is a promise that the data stops existing
+ * then, not merely that it stops being served. Two scrubs already existed but
+ * both needed someone to show up: the read path only fires if the expired link
+ * is visited again, and the create path is scoped `WHERE user_id = ?` so it only
+ * cleans the author's own shares. A link that expires and is then never touched
+ * — by anyone, including its owner — kept its dose snapshot and password hash
+ * indefinitely. This one is keyed on nothing but the clock.
+ *
+ * The `expires_at` index makes the scan cheap, and the guard on the last clause
+ * means rows already scrubbed are not rewritten, so repeat runs are free.
+ * Tombstones are deliberately left in place: a visitor to an expired link should
+ * get "expired", not "never existed". Trimming those stays per-user on create.
+ */
+async function sweepExpiredShares(env: Env): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL
+       WHERE expires_at IS NOT NULL AND expires_at <= ?
+         AND (snapshot_json != 'null' OR password_hash IS NOT NULL)`
+    ).bind(Math.floor(Date.now() / 1000)).run();
+  } catch (e) {
+    // Best-effort housekeeping — never fail a request over it.
+    console.error('Failed to sweep expired shares:', e);
+  }
+}
+
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1172,6 +1201,11 @@ export default {
 
         const tokenHash = await sha256Hex(body.token);
         await ensureDosageShares(env);
+        // Opportunistic, request-count driven rather than scheduled — same shape
+        // as the rate_limits cleanup. This is the anonymous share-access path, so
+        // it is the one endpoint guaranteed to see traffic even when no owner
+        // signs in, which is exactly the case the other two scrubs miss.
+        if (Math.random() < 0.1) ctx.waitUntil(sweepExpiredShares(env));
         const share = await env.DB.prepare(
           'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE token_hash = ?'
         ).bind(tokenHash).first() as {
@@ -1371,9 +1405,11 @@ export default {
           }
 
           await ensureDosageShares(env);
-          await env.DB.prepare(
-            "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (snapshot_json != 'null' OR password_hash IS NOT NULL)"
-          ).bind(userId, nowSeconds).run();
+          // Was scoped to this author's own shares, which left every other
+          // user's expired snapshot sitting there until they happened to create
+          // one themselves. The sweep is global; the per-user tombstone trim
+          // below still is not, since its cap is per user by design.
+          await sweepExpiredShares(env);
           await env.DB.prepare(
             `DELETE FROM dosage_shares WHERE id IN (
               SELECT id FROM dosage_shares
