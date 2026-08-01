@@ -125,7 +125,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm text-gray-500">{selectedOption?.label}</span>
-                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`chev text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     ) : (
@@ -138,7 +138,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 {selectedOption?.description && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">{selectedOption.description}</span>
                                 )}
-                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`chev text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     )}

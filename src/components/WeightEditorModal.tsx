@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isPlausibleBodyWeightKG } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
@@ -18,11 +19,13 @@ const WeightEditorModal = ({ isOpen, onClose, currentWeight, onSave }: any) => {
         if (isSaving) return;
         setIsSaving(true);
         const val = parseFloat(weightStr);
-        if (!isNaN(val) && val > 0) {
+        // `> 0` alone accepted 1e-9, and weight sets the distribution volume —
+        // a near-zero one turns a normal dose into a reading in the trillions.
+        if (isPlausibleBodyWeightKG(val)) {
             onSave(val);
             onClose();
         } else {
-            showDialog('alert', t('error.nonPositive'));
+            showDialog('alert', t('error.weightRange'));
             setIsSaving(false);
         }
         setIsSaving(false);

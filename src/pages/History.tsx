@@ -180,11 +180,11 @@ const History: React.FC<HistoryProps> = ({
                             </div>
                             <button
                                 onClick={() => setBatchOn(!batchOn)}
-                                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${batchOn ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                                className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${batchOn ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                                 role="switch"
                                 aria-checked={batchOn}
                             >
-                                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${batchOn ? 'translate-x-6' : 'translate-x-1'}`} />
+                                <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${batchOn ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
                         </div>
                         {batchOn && (

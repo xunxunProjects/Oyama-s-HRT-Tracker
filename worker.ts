@@ -9,6 +9,8 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   PUBLIC_APP_ORIGIN?: string;
   AVATAR_BUCKET: R2Bucket;
+  /** Set to 'development' only in local config; anything else means production. */
+  ENVIRONMENT?: string;
 }
 
 // Rate limiting backed by D1 so limits are enforced across Cloudflare's
@@ -35,22 +37,25 @@ async function checkRateLimit(env: Env, key: string, maxRequests = 5, windowMs =
   await ensureRateLimitTable(env);
   const now = Date.now();
   try {
-    const record = await env.DB.prepare('SELECT count, reset_time FROM rate_limits WHERE key = ?').bind(key).first() as { count: number; reset_time: number } | null;
+    // One statement: read, expire-or-increment and write happen atomically inside
+    // SQLite. The previous SELECT -> compare -> UPDATE sequence was three separate
+    // round-trips across independent Worker invocations with no transaction, so
+    // concurrent requests all read the same stale count — a burst against a cold
+    // key every window slipped through together.
+    const row = await env.DB.prepare(
+      `INSERT INTO rate_limits (key, count, reset_time) VALUES (?1, 1, ?2)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN rate_limits.reset_time < ?3 THEN 1 ELSE rate_limits.count + 1 END,
+         reset_time = CASE WHEN rate_limits.reset_time < ?3 THEN ?2 ELSE rate_limits.reset_time END
+       RETURNING count`
+    ).bind(key, now + windowMs, now).first() as { count: number } | null;
 
-    if (!record || now > record.reset_time) {
-      await env.DB.prepare(
-        'INSERT INTO rate_limits (key, count, reset_time) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = 1, reset_time = excluded.reset_time'
-      ).bind(key, now + windowMs).run();
-      // Opportunistic cleanup of expired rows to keep the table small.
-      if (Math.random() < 0.05) {
-        await env.DB.prepare('DELETE FROM rate_limits WHERE reset_time < ?').bind(now).run();
-      }
-      return true;
+    // Opportunistic cleanup of expired rows to keep the table small.
+    if (Math.random() < 0.05) {
+      await env.DB.prepare('DELETE FROM rate_limits WHERE reset_time < ?').bind(now).run();
     }
 
-    if (record.count >= maxRequests) return false;
-    await env.DB.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').bind(key).run();
-    return true;
+    return (row?.count ?? 1) <= maxRequests;
   } catch (e) {
     // Fail open on DB errors — never lock every user out due to an infra hiccup.
     console.error('Rate limit check failed:', e);
@@ -343,12 +348,33 @@ async function hotp(secret: string, counter: number): Promise<string> {
 }
 
 async function verifyTOTP(secret: string, token: string, windowSize = 1): Promise<boolean> {
-  if (!/^\d{6}$/.test(token)) return false;
+  return (await matchTOTPStep(secret, token, windowSize)) !== null;
+}
+
+/** The 30-second step a code matches, or null. Needed so it can be consumed. */
+async function matchTOTPStep(secret: string, token: string, windowSize = 1): Promise<number | null> {
+  if (!/^\d{6}$/.test(token)) return null;
   const T = Math.floor(Date.now() / 1000 / 30);
   for (let i = -windowSize; i <= windowSize; i++) {
-    if (await hotp(secret, T + i) === token) return true;
+    if (await hotp(secret, T + i) === token) return T + i;
   }
-  return false;
+  return null;
+}
+
+/**
+ * Verify a TOTP code and burn it, so the same six digits can't be presented
+ * twice. The ±1 step window means a code stayed valid for up to 90 seconds;
+ * without consumption, anyone who observed one inside that window could reuse
+ * it. RFC 6238 §5.2 requires one-time acceptance. Backup codes already did this
+ * via their used_at column — this brings TOTP in line.
+ */
+async function consumeTOTP(env: Env, userId: string, secret: string, token: string): Promise<boolean> {
+  const step = await matchTOTPStep(secret, token);
+  if (step === null) return false;
+  const row = await env.DB.prepare('SELECT totp_last_step FROM users WHERE id = ?').bind(userId).first() as { totp_last_step: number | null } | null;
+  if (row?.totp_last_step != null && step <= row.totp_last_step) return false;
+  await env.DB.prepare('UPDATE users SET totp_last_step = ? WHERE id = ?').bind(step, userId).run();
+  return true;
 }
 
 // --- Sessions table lazy creation ---
@@ -383,6 +409,13 @@ async function ensureTotpColumn(env: Env): Promise<void> {
   if (totpColumnEnsured) return;
   try {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN totp_secret TEXT').run();
+  } catch (_) {
+    // Column likely already exists
+  }
+  try {
+    // Highest TOTP step already accepted for this user, so a code cannot be
+    // replayed inside its validity window. See consumeTOTP.
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN totp_last_step INTEGER').run();
   } catch (_) {
     // Column likely already exists
   }
@@ -581,25 +614,42 @@ function b64urlEncode(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-/** Minimal CBOR decoder covering types used by WebAuthn (major types 0-5, 7 booleans). */
+/**
+ * Minimal CBOR decoder covering types used by WebAuthn (major types 0-5, 7 booleans).
+ *
+ * Every length is checked against what is actually left in the buffer. Without
+ * that, a 5-byte header could declare a 4-billion-element array: reads past the
+ * end return `undefined`, and since `undefined >> 5` is 0 and `undefined & 0x1f`
+ * is 0, `readValue()` kept returning 0 forever instead of throwing — so the loop
+ * ran to the declared length and burned the isolate. The input here is an
+ * attacker-supplied attestationObject, so the declared length is never to be
+ * trusted over the bytes actually present.
+ */
 function decodeCBOR(bytes: Uint8Array): any {
   let offset = 0;
+  function need(n: number): void {
+    if (n < 0 || offset + n > bytes.length) throw new Error('CBOR: truncated input');
+  }
   function readLen(info: number): number {
     if (info < 24) return info;
-    if (info === 24) return bytes[offset++];
-    if (info === 25) { const v = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2; return v; }
-    if (info === 26) { const v = ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0; offset += 4; return v; }
+    if (info === 24) { need(1); return bytes[offset++]; }
+    if (info === 25) { need(2); const v = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2; return v; }
+    if (info === 26) { need(4); const v = ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0; offset += 4; return v; }
     throw new Error('CBOR: unsupported length info ' + info);
   }
   function readValue(): any {
+    need(1);
     const b = bytes[offset++];
     const major = b >> 5, info = b & 0x1f;
     if (major === 0) return readLen(info);
     if (major === 1) return -1 - readLen(info);
-    if (major === 2) { const len = readLen(info); const sl = bytes.slice(offset, offset + len); offset += len; return sl; }
-    if (major === 3) { const len = readLen(info); const sl = bytes.slice(offset, offset + len); offset += len; return new TextDecoder().decode(sl); }
-    if (major === 4) { const len = readLen(info); return Array.from({ length: len }, () => readValue()); }
-    if (major === 5) { const len = readLen(info); const map: any = {}; for (let i = 0; i < len; i++) { const k = readValue(); map[k] = readValue(); } return map; }
+    if (major === 2) { const len = readLen(info); need(len); const sl = bytes.slice(offset, offset + len); offset += len; return sl; }
+    if (major === 3) { const len = readLen(info); need(len); const sl = bytes.slice(offset, offset + len); offset += len; return new TextDecoder().decode(sl); }
+    // A container's items cost at least one byte each, so a declared count
+    // larger than the bytes remaining is a lie and can be rejected up front —
+    // before allocating anything.
+    if (major === 4) { const len = readLen(info); need(len); return Array.from({ length: len }, () => readValue()); }
+    if (major === 5) { const len = readLen(info); need(len * 2); const map: any = {}; for (let i = 0; i < len; i++) { const k = readValue(); map[k] = readValue(); } return map; }
     if (major === 7) { if (info === 20) return false; if (info === 21) return true; if (info === 22) return null; }
     throw new Error('CBOR: unsupported major ' + major);
   }
@@ -936,7 +986,7 @@ export default {
             const backupValid = await verifyAndConsumeBackupCode(env, user.id, String(backup_code), jwtSecret);
             if (!backupValid) return withSecurityHeaders(new Response('Invalid or already-used backup code', { status: 401, headers: corsHeaders }));
           } else {
-            const totpValid = await verifyTOTP(userWithTotp.totp_secret, String(totp_code));
+            const totpValid = await consumeTOTP(env, user.id, userWithTotp.totp_secret, String(totp_code));
             if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
           }
           twoFAVerified = true;
@@ -1169,10 +1219,12 @@ export default {
               code: 'PASSWORD_REQUIRED',
               message: 'Password required',
               passwordRequired: true,
-              live: share.is_live === 1,
-              createdAt,
-              updatedAt,
-              expiresAt,
+              // Deliberately nothing else. This branch is reached on token
+              // possession alone, no credential checked, and `updated_at` is
+              // rewritten on every owner sync — which the client fires a couple
+              // of seconds after each dose is logged. Returning it here let
+              // anyone holding a forwarded link poll a locked share and read off
+              // exactly when the owner takes their medication.
             }, 401);
           }
           if (typeof body.password !== 'string') {
@@ -1477,7 +1529,32 @@ export default {
             return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
           if (url.pathname === '/api/content' && request.method === 'POST') {
-            const { data } = await request.json() as any;
+            // Same guard the share endpoints already apply. Without it this
+            // buffered, parsed and re-serialised whatever was sent against the
+            // isolate's memory ceiling, with no rate limit on the path either.
+            if (!(await checkRateLimit(env, `content-write:${userId}`, 20, 60000))) {
+              return withSecurityHeaders(new Response('Too many backups. Please try again later.', {
+                status: 429, headers: { ...corsHeaders, 'Retry-After': '60' },
+              }));
+            }
+            const declaredLength = Number(request.headers.get('Content-Length'));
+            if (Number.isFinite(declaredLength) && declaredLength > MAX_SHARE_REQUEST_BYTES) {
+              return withSecurityHeaders(new Response('Backup exceeds the 2 MiB limit', { status: 413, headers: corsHeaders }));
+            }
+            const rawBody = await request.text();
+            if (new TextEncoder().encode(rawBody).byteLength > MAX_SHARE_REQUEST_BYTES) {
+              return withSecurityHeaders(new Response('Backup exceeds the 2 MiB limit', { status: 413, headers: corsHeaders }));
+            }
+            let parsedBody: any;
+            try { parsedBody = JSON.parse(rawBody); } catch {
+              return withSecurityHeaders(new Response('Invalid JSON body', { status: 400, headers: corsHeaders }));
+            }
+            const data = parsedBody?.data;
+            // `JSON.stringify(undefined)` is undefined, which the D1 bind below
+            // rejects with a 500 — reject it here as the 400 it actually is.
+            if (data === undefined) {
+              return withSecurityHeaders(new Response('Missing data', { status: 400, headers: corsHeaders }));
+            }
             const id = crypto.randomUUID();
             await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
             // Auto-prune: keep only the latest 10 backups per user
@@ -1534,6 +1611,15 @@ export default {
             if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error, { status: 400, headers: corsHeaders }));
             const hashed = await bcrypt.hash(newPassword, 10);
             await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashed, userId).run();
+            // Changing the password is the standard response to "someone has my
+            // account", so it has to invalidate whatever they took. Without this
+            // a stolen 7-day JWT kept working after the change — and every
+            // request refreshed last_used_at, so the idle timeout never fired
+            // either. The caller's own session is kept so they stay signed in.
+            if (sessionId) {
+              await ensureSessions(env);
+              await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?').bind(userId, sessionId).run();
+            }
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Password updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
@@ -1556,7 +1642,7 @@ export default {
               }
               const twoFAValid = backup_code
                 ? await verifyAndConsumeBackupCode(env, userId, String(backup_code), jwtSecret)
-                : await verifyTOTP(user.totp_secret, String(code));
+                : await consumeTOTP(env, userId, user.totp_secret, String(code));
               if (!twoFAValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
             }
 
@@ -1762,10 +1848,30 @@ export default {
 
           // POST /api/user/2fa/enable — verify code and save secret to DB
           if (url.pathname === '/api/user/2fa/enable' && request.method === 'POST') {
-            const { secret: totpSecret, code } = await request.json() as any;
+            const { secret: totpSecret, code, password, currentCode } = await request.json() as any;
             if (!totpSecret || !code) return withSecurityHeaders(new Response('Missing secret or code', { status: 400, headers: corsHeaders }));
             // Validate secret format (base32 chars, 16-32 chars)
             if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret)) return withSecurityHeaders(new Response('Invalid secret format', { status: 400, headers: corsHeaders }));
+
+            // Re-enrolment is a credential *replacement*, so it needs the same
+            // proof DELETE /api/user/2fa asks for. Without this, anyone holding
+            // a stolen bearer token could pick their own secret, verify it
+            // against itself, overwrite the victim's, and wipe every backup code
+            // in one request — locking the real owner out permanently, since
+            // both disabling 2FA and deleting the account then demand a code
+            // from the attacker's secret. First-time enrolment is unaffected.
+            const existing = await env.DB.prepare('SELECT password_hash, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
+            if (existing?.totp_secret) {
+              if (!password || !currentCode) {
+                return withSecurityHeaders(new Response('2FA is already enabled: current password and a code from the current authenticator are required', { status: 400, headers: corsHeaders }));
+              }
+              const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+              const passValid = await bcrypt.compare(password, existing.password_hash ?? dummyHash);
+              if (!passValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+              const currentValid = await consumeTOTP(env, userId, existing.totp_secret, String(currentCode));
+              if (!currentValid) return withSecurityHeaders(new Response('Invalid code from current authenticator', { status: 401, headers: corsHeaders }));
+            }
+
             const valid = await verifyTOTP(totpSecret, String(code));
             if (!valid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
             await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
@@ -1783,7 +1889,7 @@ export default {
             const passValid = await bcrypt.compare(password, userRow.password_hash ?? dummyHash);
             if (!passValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
             if (!userRow.totp_secret) return withSecurityHeaders(new Response('2FA is not enabled', { status: 400, headers: corsHeaders }));
-            const totpValid = await verifyTOTP(userRow.totp_secret, String(code));
+            const totpValid = await consumeTOTP(env, userId, userRow.totp_secret, String(code));
             if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
             await env.DB.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').bind(userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA disabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
@@ -1800,6 +1906,16 @@ export default {
 
           // POST /api/user/2fa/backup-codes/generate — regenerate backup codes
           if (url.pathname === '/api/user/2fa/backup-codes/generate' && request.method === 'POST') {
+            // Regenerating deletes every existing code (generateAndStoreBackupCodes
+            // opens with DELETE FROM backup_codes), so it destroys the recovery
+            // path and needs the password — same reasoning as re-enrolment above.
+            const { password } = await request.json().catch(() => ({})) as any;
+            if (!password) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            const row = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+            const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+            if (!(await bcrypt.compare(password, row?.password_hash ?? dummyHash))) {
+              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            }
             const codes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
             return withSecurityHeaders(new Response(JSON.stringify({ codes }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
@@ -1910,6 +2026,18 @@ export default {
           // DELETE /api/user/passkeys/:id — remove a passkey
           if (url.pathname.match(/^\/api\/user\/passkeys\/[^/]+$/) && request.method === 'DELETE') {
             const passkeyId = url.pathname.split('/').pop();
+            // Deleting the last passkey drops a passkey-only account back to
+            // username+password (the login path demands an assertion purely
+            // because the passkeys table is non-empty), so this weakens
+            // authentication and needs the password — the same bar DELETE
+            // /api/user/2fa sets for the equivalent TOTP action.
+            const { password: pkPassword } = await request.json().catch(() => ({})) as any;
+            if (!pkPassword) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            const pkUser = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+            const pkDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+            if (!(await bcrypt.compare(pkPassword, pkUser?.password_hash ?? pkDummy))) {
+              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            }
             await env.DB.prepare('DELETE FROM passkeys WHERE id = ? AND user_id = ?').bind(passkeyId, userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Passkey deleted' }), {
               status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1929,7 +2057,10 @@ export default {
     } catch (err: any) {
       console.error('API Error:', err);
       // Sanitize internal error messages for production
-      const isProd = url.hostname !== 'localhost' && !url.hostname.includes('127.0.0.1');
+      // `url` is reconstructed from the request's Host header, which the caller
+      // sets. Gating error verbosity on it meant `Host: localhost` turned raw
+      // exception text back on for anyone who asked. Deployment config decides.
+      const isProd = (env.ENVIRONMENT ?? 'production') !== 'development';
       const message = isProd ? 'Internal Server Error' : (err.message || 'Internal Server Error');
       return withSecurityHeaders(new Response(message, { status: 500, headers: corsHeaders }));
     }

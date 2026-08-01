@@ -21,6 +21,7 @@ import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import BackupConflictModal from './components/BackupConflictModal';
 import { cloudService } from './services/cloud';
+import { diffBackup } from './utils/backupDiff';
 
 // Pages
 import Home from './pages/Home';
@@ -145,6 +146,8 @@ const AppContent = () => {
     const [conflictState, setConflictState] = useState<{
         cloudNewCount: number;
         localNewCount: number;
+        /** Same id on both sides, different contents — an edit on one device. */
+        changedCount: number;
         cloudParsed: any;
     } | null>(null);
     const conflictCheckedRef = useRef(false);
@@ -201,40 +204,35 @@ const AppContent = () => {
         if (conflictCheckedRef.current) return;
         conflictCheckedRef.current = true;
 
-        cloudService.load(token).then(async list => {
-            if (!list || list.length === 0) return;
-            const latest = list[0];
+        // Fetch the metadata list first, then only the newest backup's body.
+        // This used to call cloudService.load(), whose endpoint is SELECT * —
+        // it pulled every retained backup (up to 10, each capped at 2 MiB) on
+        // every single launch and then read list[0] and discarded the rest.
+        (async () => {
+            const metas = await cloudService.listMeta(token);
+            if (!metas || metas.length === 0) return;
+            // The endpoint orders by created_at DESC, but don't depend on it.
+            const newest = metas.reduce((a, b) => (b.created_at > a.created_at ? b : a));
+
+            const backup = await cloudService.loadOne(token, newest.id);
             let cloudParsed: any;
             try {
-                cloudParsed = await parseCloudBackup(latest.data);
+                cloudParsed = await parseCloudBackup(backup.data);
             } catch {
                 return; // Corrupt backup data — skip conflict check
             }
             if (!cloudParsed) return; // Encrypted but undecryptable on this device — skip
 
-            const localPayload = buildExportPayload();
-            const localIds = new Set<string>([
-                ...localPayload.modes.transfem.events.map((e: any) => e.id),
-                ...localPayload.modes.transmasc.events.map((e: any) => e.id),
-                ...localPayload.modes.transfem.labResults.map((e: any) => e.id),
-                ...localPayload.modes.transmasc.labResults.map((e: any) => e.id),
-            ]);
+            const diff = diffBackup(buildExportPayload(), cloudParsed);
+            if (!diff.hasDifference) return;
 
-            const cloudEvents = [
-                ...(cloudParsed?.modes?.transfem?.events ?? cloudParsed?.events ?? []),
-                ...(cloudParsed?.modes?.transmasc?.events ?? []),
-                ...(cloudParsed?.modes?.transfem?.labResults ?? cloudParsed?.labResults ?? []),
-                ...(cloudParsed?.modes?.transmasc?.labResults ?? []),
-            ];
-            const cloudIds = new Set<string>(cloudEvents.map((e: any) => e.id));
-
-            const cloudNewCount = cloudEvents.filter((e: any) => !localIds.has(e.id)).length;
-            const localNewCount = [...localIds].filter(id => !cloudIds.has(id)).length;
-
-            if (cloudNewCount > 0 || localNewCount > 0) {
-                setConflictState({ cloudNewCount, localNewCount, cloudParsed });
-            }
-        }).catch(() => {});
+            setConflictState({
+                cloudNewCount: diff.onlyCloud,
+                localNewCount: diff.onlyLocal,
+                changedCount: diff.changed,
+                cloudParsed,
+            });
+        })().catch(() => {});
     }, [user, token]);
 
     // --- Theme Effect ---
@@ -399,12 +397,16 @@ const AppContent = () => {
                 parsed = await parseCloudBackup(backup.data);
                 timestamp = backup.created_at;
             } else {
-                const list = await cloudService.load(token);
-                if (!list || list.length === 0) {
+                // Metadata first, then fetch only the newest body — the same
+                // reason as the startup check: the plain list endpoint is
+                // SELECT * and would ship every retained backup to read one.
+                const metas = await cloudService.listMeta(token);
+                if (!metas || metas.length === 0) {
                     showDialog('alert', t('account.no_cloud_backups'));
                     return;
                 }
-                const latest = list[0];
+                const newest = metas.reduce((a, b) => (b.created_at > a.created_at ? b : a));
+                const latest = await cloudService.loadOne(token, newest.id);
                 parsed = await parseCloudBackup(latest.data);
                 timestamp = latest.created_at;
             }
@@ -819,6 +821,7 @@ const AppContent = () => {
                 onClose={() => setConflictState(null)}
                 cloudNewCount={conflictState?.cloudNewCount ?? 0}
                 localNewCount={conflictState?.localNewCount ?? 0}
+                changedCount={conflictState?.changedCount ?? 0}
                 onMerge={() => {
                     if (conflictState?.cloudParsed) {
                         mergeImportedData(conflictState.cloudParsed);

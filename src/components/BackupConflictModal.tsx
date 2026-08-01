@@ -8,6 +8,8 @@ interface BackupConflictModalProps {
     onClose: () => void;
     cloudNewCount: number;
     localNewCount: number;
+    /** Present on both sides under the same id but with different contents. */
+    changedCount: number;
     onMerge: () => void;
 }
 
@@ -16,6 +18,7 @@ const BackupConflictModal: React.FC<BackupConflictModalProps> = ({
     onClose,
     cloudNewCount,
     localNewCount,
+    changedCount,
     onMerge,
 }) => {
     const { t } = useTranslation();
@@ -50,7 +53,22 @@ const BackupConflictModal: React.FC<BackupConflictModalProps> = ({
                                 {(t('backup.conflict_local_new') as string).replace('{n}', String(localNewCount))}
                             </div>
                         )}
+                        {changedCount > 0 && (
+                            <div className="text-sm">
+                                {(t('backup.conflict_changed') as string).replace('{n}', String(changedCount))}
+                            </div>
+                        )}
                     </div>
+
+                    {/* Merging only fills in records this device is missing; it never
+                        overwrites one that already exists. Saying so matters most when
+                        the only difference IS an edit, because then the merge button
+                        genuinely does nothing and silence would look like a bug. */}
+                    {changedCount > 0 && (
+                        <p className="text-xs text-muted leading-relaxed mb-5 -mt-3">
+                            {t('backup.conflict_changed_note')}
+                        </p>
+                    )}
 
                     <div className="flex gap-2">
                         <button onClick={onClose} className="btn-secondary flex-1">

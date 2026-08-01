@@ -145,7 +145,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                         <span className="text-sm tabular-nums">
                             {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </span>
-                        <ChevronDown size={14} className={isDatePickerOpen ? 'rotate-180' : ''} />
+                        <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                     </div>
                 </button>
                 <DateTimePicker

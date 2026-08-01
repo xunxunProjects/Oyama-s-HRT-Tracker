@@ -248,9 +248,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     role="switch"
                                     aria-checked={liveEnabled}
                                     onClick={() => setLiveEnabled(value => !value)}
-                                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${liveEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${liveEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                                 >
-                                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm ${liveEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow-sm ${liveEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
 
@@ -270,9 +270,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             setPasswordEnabled(value => !value);
                                             setError(null);
                                         }}
-                                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${passwordEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${passwordEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                                     >
-                                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm ${passwordEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow-sm ${passwordEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </button>
                                 </div>
 
@@ -320,7 +320,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                         <span className="text-sm tabular-nums">
                                             {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                         </span>
-                                        <ChevronDown size={14} className={isExpiryPickerOpen ? 'rotate-180' : ''} />
+                                        <ChevronDown size={14} className={`chev ${isExpiryPickerOpen ? 'rotate-180' : ''}`} />
                                     </span>
                                 </button>
                                 <DateTimePicker

@@ -164,12 +164,12 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             </span>
                             <ChevronDown
                                 size={14}
-                                className={`text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ${openSections.has(section.key) ? 'rotate-180' : ''}`}
+                                className={`chev text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ${openSections.has(section.key) ? 'rotate-180' : ''}`}
                             />
                         </button>
 
-                        {openSections.has(section.key) && (
-                            <div>
+                        <div className="disclosure" data-open={openSections.has(section.key)}>
+                            <div className="disclosure-inner">
                                 {section.fields.map(field => {
                                     const defVal = DEFAULT_PK_PARAMS[field.key] as number;
                                     const curVal = draft[field.key] as number;
@@ -204,7 +204,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                     );
                                 })}
                             </div>
-                        )}
+                        </div>
                     </div>
                 ))}
 

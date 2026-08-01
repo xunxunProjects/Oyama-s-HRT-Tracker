@@ -106,7 +106,7 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                 <span className="truncate">{selected?.label ?? value}</span>
                 <ChevronDown
                     size={14}
-                    className={`shrink-0 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] transition-transform motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`}
+                    className={`chev shrink-0 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 

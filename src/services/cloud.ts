@@ -26,13 +26,10 @@ export const cloudService = {
         if (!res.ok) throw new Error('Failed to save');
     },
 
-    async load(token: string): Promise<CloudBackup[]> {
-        const res = await apiFetch('/api/content', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to load');
-        return await res.json() as CloudBackup[];
-    },
+    // No `load()` that fetches every backup at once. Its endpoint is SELECT *,
+    // so it shipped all ten retained bodies (2 MiB cap each) to callers that
+    // only ever wanted the newest — which is what both callers did. Use
+    // listMeta() to pick, then loadOne() to fetch that one.
 
     async listMeta(token: string): Promise<BackupMeta[]> {
         const res = await apiFetch('/api/content?meta=1', {

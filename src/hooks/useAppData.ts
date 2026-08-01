@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides } from '../../logic';
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
+         BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
+         EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -122,7 +124,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         const saved = localStorage.getItem(sharedKey('pk-params'));
         if (!saved) return null;
         try {
-            const parsed = JSON.parse(saved) as PKCustomParams;
+            const parsed = sanitizePKParams(JSON.parse(saved));
             applyPKOverrides(parsed); // Apply immediately so first simulation uses custom params
             return parsed;
         } catch { return null; }
@@ -167,7 +169,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         setWeight(savedWeight ? parseFloat(savedWeight) : 70.0);
         setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
         setCalibrationHistoryModeState(localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective');
-        setPkParamsState(loadJSON<PKCustomParams | null>(sharedKey('pk-params'), null));
+        setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope]);
 
@@ -358,14 +360,25 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         });
     };
 
+    // A backup with hundreds of thousands of same-day events makes the
+    // simulation's peri-event sampling explode into a synchronous loop that
+    // never finishes — and because state is persisted before the simulation
+    // runs, the wedged data is reloaded on every subsequent open. Reject the
+    // file outright so nothing is written.
+    const MAX_IMPORT_ENTRIES = 20000;
+
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
+        if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
         return raw.map((item: any) => {
             if (!item || typeof item !== 'object') return null;
             const { route, timeH, doseMG, ester, extras } = item;
             if (!Object.values(Route).includes(route)) return null;
             const timeNum = Number(timeH);
-            if (!Number.isFinite(timeNum)) return null;
+            // Out-of-range timestamps are dropped rather than clamped: moving a
+            // record to a date the user never chose is worse than losing it, and
+            // a stray one stretches the simulation grid over the whole span.
+            if (!Number.isFinite(timeNum) || timeNum < EVENT_TIME_H_MIN || timeNum > EVENT_TIME_H_MAX) return null;
             const doseNum = Number(doseMG);
             const validEster = Object.values(Ester).includes(ester) ? ester : Ester.E2;
             const sanitizedExtras = (extras && typeof extras === 'object') ? extras : {};
@@ -373,7 +386,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 id: typeof item.id === 'string' ? item.id : uuidv4(),
                 route,
                 timeH: timeNum,
-                doseMG: Number.isFinite(doseNum) ? doseNum : 0,
+                doseMG: Number.isFinite(doseNum) ? Math.min(DOSE_MG_MAX, Math.max(0, doseNum)) : 0,
                 ester: validEster,
                 extras: sanitizedExtras
             } as DoseEvent;
@@ -382,6 +395,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
     const sanitizeImportedLabResults = (raw: any): LabResult[] => {
         if (!Array.isArray(raw)) return [];
+        if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
         return raw.map((item: any) => {
             if (!item || typeof item !== 'object') return null;
             const { timeH, concValue, unit } = item;
@@ -400,6 +414,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
     const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
         if (!Array.isArray(raw)) return [];
+        if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
         return raw.map((item: any) => {
             if (!item || typeof item !== 'object') return null;
             const { name, route, ester, doseMG, extras, createdAt } = item;
@@ -455,11 +470,11 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                         importedOtherMode = true;
                     }
                 }
-                if (typeof parsed.weight === 'number' && parsed.weight > 0) {
-                    newWeight = parsed.weight;
+                if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
+                    newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
                 if (parsed.pkParams && typeof parsed.pkParams === 'object') {
-                    newPkParams = parsed.pkParams as PKCustomParams;
+                    newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
                 }
             } else if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
@@ -469,8 +484,8 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     newEvents = sanitizeImportedEvents(parsed.events);
                     replacedCurrentMode = true;
                 }
-                if (typeof parsed.weight === 'number' && parsed.weight > 0) {
-                    newWeight = parsed.weight;
+                if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
+                    newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
@@ -481,7 +496,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     replacedCurrentMode = true;
                 }
                 if (parsed.pkParams && typeof parsed.pkParams === 'object') {
-                    newPkParams = parsed.pkParams as PKCustomParams;
+                    newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
                 }
             }
 

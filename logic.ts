@@ -983,10 +983,90 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     t_gel_scrotal: 0.50,
 };
 
+/**
+ * Bounds for the user-supplied numbers that feed the simulation.
+ *
+ * Finiteness alone is not enough. Body weight sets the distribution volume, so
+ * `weight: 1e-9` — which passes a bare `> 0` check, whether typed in or
+ * imported — divides a normal dose into a reading of ~1.2e13 pg/mL. A dose of
+ * 1e12 mg does the same from the other side, and a timestamp far outside the
+ * app's lifetime dilutes the simulation grid across geological time.
+ */
+export const BODY_WEIGHT_KG_MIN = 20;
+export const BODY_WEIGHT_KG_MAX = 400;
+export const DOSE_MG_MAX = 10000;
+/** Hours since 1970: 1970-01-01 through roughly the year 2140. */
+export const EVENT_TIME_H_MIN = 0;
+export const EVENT_TIME_H_MAX = 1_500_000;
+
+export function isPlausibleBodyWeightKG(kg: number): boolean {
+    return Number.isFinite(kg) && kg >= BODY_WEIGHT_KG_MIN && kg <= BODY_WEIGHT_KG_MAX;
+}
+
+/**
+ * Accepted range per parameter, mirroring the clamps the settings screen applies
+ * as you type. Kept here, next to the defaults, because the settings screen is
+ * not the only writer: an imported backup file can carry a `pkParams` block too,
+ * and that path had no validation at all.
+ */
+export const PK_PARAM_RANGES: Record<keyof PKCustomParams, readonly [number, number]> = {
+    e2_kClear: [0.001, 5],
+    e2_kClearInj: [0.001, 1],
+    e2_ff_EB: [0, 1],
+    e2_ff_EV: [0, 1],
+    e2_ff_EC: [0, 1],
+    e2_ff_EN: [0, 1],
+    e2_ff_EU: [0, 1],
+    e2_oral_bio: [0, 1],
+    e2_sl_quick: [0, 1],
+    e2_sl_casual: [0, 1],
+    e2_sl_standard: [0, 1],
+    e2_sl_strict: [0, 1],
+    e2_gel_arm: [0, 1],
+    e2_gel_thigh: [0, 1],
+    e2_gel_scrotal: [0, 1],
+    t_kClear: [0.001, 5],
+    t_kClearInj: [0.001, 1],
+    t_ff_TC: [0, 1],
+    t_ff_TE: [0, 1],
+    t_ff_TU: [0, 1],
+    t_gel_arm: [0, 1],
+    t_gel_thigh: [0, 1],
+    t_gel_scrotal: [0, 1],
+};
+
+/**
+ * Clamp an untrusted parameter blob into a usable model.
+ *
+ * Anything non-numeric, NaN, Infinity or unrecognised is dropped back to the
+ * default rather than carried through: an elimination rate of 0 or a negative
+ * one turns decay into growth, and a single NaN propagates to every displayed
+ * concentration. Returns null when nothing usable was supplied.
+ */
+export function sanitizePKParams(raw: unknown): PKCustomParams | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const src = raw as Record<string, unknown>;
+    const out: PKCustomParams = { ...DEFAULT_PK_PARAMS };
+    let recognised = 0;
+    for (const key of Object.keys(PK_PARAM_RANGES) as (keyof PKCustomParams)[]) {
+        if (!(key in src)) continue;
+        const value = Number(src[key]);
+        if (!Number.isFinite(value)) continue;
+        const [min, max] = PK_PARAM_RANGES[key];
+        out[key] = Math.min(max, Math.max(min, value));
+        recognised++;
+    }
+    return recognised > 0 ? out : null;
+}
+
 let _activePKParams: PKCustomParams = { ...DEFAULT_PK_PARAMS };
 
+/**
+ * Single choke point for user-supplied parameters — sanitised here so no caller
+ * can poison the model, whatever route the blob arrived by.
+ */
 export function applyPKOverrides(params: PKCustomParams | null): void {
-    _activePKParams = params ? { ...DEFAULT_PK_PARAMS, ...params } : { ...DEFAULT_PK_PARAMS };
+    _activePKParams = sanitizePKParams(params) ?? { ...DEFAULT_PK_PARAMS };
 }
 
 /** Snapshot of the currently-active (merged) PK parameters. */
@@ -1288,6 +1368,15 @@ function _separateRates(k1: number, k2: number, k3: number): [number, number, nu
 // amount for a unit bolus, scaled by dose·F. Coincident rates are separated first so
 // the closed form reproduces the correct removable-singularity limit instead of a
 // zero dropout or a numerically unstable value.
+// 2-Compartment (Bateman) solution: absorption k_a → elimination k_e, no
+// hydrolysis step. Used wherever there is no ester to cleave — the 3C form is
+// multiplied by k2 throughout, so feeding it k2 = 0 returns a flat zero.
+function _analytic2C(tau: number, doseMG: number, F: number, ka: number, ke: number): number {
+    if (ka <= 0 || doseMG <= 0) return 0;
+    if (Math.abs(ka - ke) < 1e-9) return doseMG * F * ka * tau * Math.exp(-ke * tau);
+    return doseMG * F * ka / (ka - ke) * (Math.exp(-ke * tau) - Math.exp(-ka * tau));
+}
+
 function _analytic3C(tau: number, doseMG: number, F: number, k1: number, k2: number, k3: number): number {
     if (k1 <= 0 || doseMG <= 0) return 0;
     [k1, k2, k3] = _separateRates(k1, k2, k3);
@@ -1376,8 +1465,17 @@ class PrecomputedEventModel {
                     const doseFast = dose * params.Frac_fast;
                     const doseSlow = dose * (1.0 - params.Frac_fast);
 
-                    return _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
-                        _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3);
+                    // Unesterified estradiol has k2 = 0 — nothing to hydrolyse —
+                    // and the 3C kernel multiplies by k2, so it returned exactly
+                    // zero for all time: a logged dose that contributed nothing,
+                    // silently. Fall back to the two-compartment form, matching
+                    // what the sublingual branch already does for the same case.
+                    if (params.k2 > 0) {
+                        return _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
+                            _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3);
+                    }
+                    return _analytic2C(tau, doseFast, params.F, params.k1_fast, params.k3) +
+                        _analytic2C(tau, doseSlow, params.F, params.k1_slow, params.k3);
                 };
                 break;
             case Route.gel:
@@ -1396,17 +1494,12 @@ class PrecomputedEventModel {
                     const doseS = dose * (1.0 - params.Frac_fast);
 
                     // Dual-branch first-order helper (same closed form as oneCompAmount).
-                    const branch = (d: number, F: number, ka: number, ke: number, t: number) => {
-                        if (Math.abs(ka - ke) < 1e-9) return d * F * ka * t * Math.exp(-ke * t);
-                        return d * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
-                    };
-
                     const fastAmount = params.k2 > 0
                         ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
-                        : branch(doseF, params.F_fast, params.k1_fast, params.k3, tau);
+                        : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
 
                     // Swallowed (gut) fraction follows oral simplified path, so no extra k2 hydrolysis here.
-                    const slowAmount = branch(doseS, params.F_slow, params.k1_slow, params.k3, tau);
+                    const slowAmount = _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
 
                     return fastAmount + slowAmount;
                 };
@@ -1785,7 +1878,14 @@ export async function decryptData(jsonString: string, password: string): Promise
         const salt = base64ToBuff(bundle.salt);
         const iv = base64ToBuff(bundle.iv);
         const data = base64ToBuff(bundle.data);
-        const iterations = (typeof bundle.iter === 'number' && bundle.iter > 0) ? bundle.iter : 100000;
+        // The iteration count comes out of the file being imported, so it is
+        // attacker-controlled. A positivity check alone let `"iter": 1e11`
+        // through to PBKDF2, where it never returns — the import silently hangs
+        // forever with no error and no way to cancel. Bounded to the range this
+        // app actually writes (600k today, 100k in older exports).
+        const declaredIter = bundle.iter;
+        const iterations = (typeof declaredIter === 'number' && Number.isSafeInteger(declaredIter)
+            && declaredIter >= 100000 && declaredIter <= 1000000) ? declaredIter : 100000;
 
         const key = await generateKey(password, salt, iterations);
         const decrypted = await window.crypto.subtle.decrypt(

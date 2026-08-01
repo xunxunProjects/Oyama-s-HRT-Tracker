@@ -404,6 +404,80 @@ body {
     animation: view-in-backward var(--duration-base) var(--ease-standard);
 }
 
+/* ── Ambient motion ───────────────────────────────────────────────
+   Deliberately narrow: colour, opacity and small transforms only. No scale,
+   no bounce, no spring, nothing that draws attention to itself — the point is
+   that state changes stop snapping, not that they perform.
+
+   The baseline below covers every interactive surface in the app at once
+   (settings rows, range chips, nav items, links, form controls) so hover,
+   focus and selected states ease instead of jumping. Only paint properties
+   are listed, never layout ones, so this can't cause reflow jank. Components
+   that need transform motion opt in with the utilities underneath.
+
+   .btn-primary and friends declare their own transition and win on
+   specificity, so their existing timing is untouched. */
+a,
+button,
+summary,
+label,
+select,
+[role="button"],
+[role="tab"],
+[role="switch"],
+[role="option"] {
+    transition: background-color var(--duration-quick) var(--ease-standard),
+                border-color var(--duration-quick) var(--ease-standard),
+                color var(--duration-quick) var(--ease-standard),
+                opacity var(--duration-quick) var(--ease-standard);
+}
+
+/* Toggle switches: the knob slid instantly between its two offsets and the
+   track colour cut over with it. */
+.switch-track {
+    transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+/* Both properties on purpose: Tailwind v4's `translate-x-*` compiles to the
+   standalone `translate` property, not to `transform`, so transitioning only
+   `transform` animates nothing. Keeping `transform` too means this still works
+   if a knob is ever positioned the older way. */
+.switch-knob {
+    transition: translate var(--duration-base) var(--ease-standard),
+                transform var(--duration-base) var(--ease-standard);
+}
+
+/* Disclosure chevrons. `rotate-180` compiles to the standalone `rotate`
+   property in Tailwind v4, so that is what has to be transitioned — see the
+   note on .switch-knob. */
+.chev {
+    transition: rotate var(--duration-base) var(--ease-standard),
+                transform var(--duration-base) var(--ease-standard);
+}
+
+/* Collapsible sections. grid-template-rows 0fr -> 1fr is the one way to
+   animate to intrinsic height without measuring it in JS or hard-coding a
+   max-height that clips longer content. The child must be the sole grid item
+   and carry `overflow: hidden`, which .disclosure-inner provides. */
+.disclosure {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+}
+
+.disclosure[data-open="true"] {
+    grid-template-rows: 1fr;
+}
+
+/* No opacity here on purpose. Fading the inner meant its resting state was
+   `opacity: 0`, revealed only by a parent-state selector — so any path that
+   didn't apply that selector left readable content permanently invisible while
+   still taking up space. A collapsed section is already zero-height, so the
+   fade bought nothing and risked hiding the panel outright. */
+.disclosure-inner {
+    overflow: hidden;
+}
+
 /* ── Pixel cat (empty states) ─────────────────────────────────── */
 :root {
     --pixel-blue: #9FD4EE;
@@ -568,5 +642,23 @@ body {
     .btn-primary:active:not(:disabled),
     .btn-secondary:active:not(:disabled) {
         transform: none;
+    }
+    /* Ambient motion: everything still lands in the same end state, it just
+       gets there immediately. Collapsibles keep grid-template-rows so they
+       still open and close — only the tween is dropped. */
+    a,
+    button,
+    summary,
+    label,
+    select,
+    [role="button"],
+    [role="tab"],
+    [role="switch"],
+    [role="option"],
+    .switch-track,
+    .switch-knob,
+    .chev,
+    .disclosure {
+        transition: none;
     }
 }

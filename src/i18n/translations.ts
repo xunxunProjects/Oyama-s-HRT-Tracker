@@ -133,6 +133,7 @@ export const TRANSLATIONS_BASE = {
         "qr.help": "数据可能包含个人隐私，请谨慎分享。",
 
         "error.nonPositive": "不能输入小于等于 0 的值。",
+        "error.weightRange": "体重需在 20 到 400 公斤之间。",
         "error.slHoldMinOne": "含服时长需大于等于 1 分钟。",
 
         "export.encrypt_ask": "是否加密导出？",
@@ -639,6 +640,8 @@ export const TRANSLATIONS_BASE = {
         "backup.conflict_desc": "云端备份与本地数据存在差异，建议合并以避免数据丢失。",
         "backup.conflict_cloud_new": "云端有 {n} 条新记录",
         "backup.conflict_local_new": "本地有 {n} 条新记录",
+        "backup.conflict_changed": "有 {n} 条记录两边内容不一致",
+        "backup.conflict_changed_note": "合并只会补齐本机缺少的记录，不会覆盖已有记录的内容。内容不一致的记录需要手动确认。",
         "backup.conflict_merge": "立即合并",
         "backup.conflict_skip": "暂时跳过",
         "backup.auto_saved": "已自动备份到云端",
@@ -776,6 +779,7 @@ export const TRANSLATIONS_BASE = {
         "qr.help": "Contains personal dosage data. Share carefully.",
 
         "error.nonPositive": "Value must be greater than zero.",
+        "error.weightRange": "Weight must be between 20 and 400 kg.",
         "error.slHoldMinOne": "Sublingual hold time must be at least 1 minute.",
 
         "export.encrypt_ask": "Encrypt export?",
@@ -1280,6 +1284,8 @@ export const TRANSLATIONS_BASE = {
         "backup.conflict_desc": "Your cloud backup differs from local data. Merging is recommended to avoid data loss.",
         "backup.conflict_cloud_new": "{n} new records in cloud",
         "backup.conflict_local_new": "{n} new records locally",
+        "backup.conflict_changed": "{n} records differ between the two",
+        "backup.conflict_changed_note": "Merging only adds records this device is missing — it never overwrites one that already exists. Differing records need to be reconciled by hand.",
         "backup.conflict_merge": "Merge Now",
         "backup.conflict_skip": "Skip for Now",
         "backup.auto_saved": "Auto-backed up to cloud",
@@ -1410,6 +1416,7 @@ export const TRANSLATIONS = {
         "qr.help": "資料可能包含個人資訊，請謹慎分享。",
 
         "error.nonPositive": "不能輸入小於或等於 0 的值",
+        "error.weightRange": "體重需在 20 到 400 公斤之間。",
         "error.slHoldMinOne": "含服時長需大於等於 1 分鐘",
 
         "export.encrypt_ask": "要加密匯出嗎？",
@@ -1849,6 +1856,8 @@ export const TRANSLATIONS = {
         "backup.conflict_desc": "雲端備份與本機資料有差異，建議合併以避免資料遺失。",
         "backup.conflict_cloud_new": "雲端有 {n} 筆新記錄",
         "backup.conflict_local_new": "本機有 {n} 筆新記錄",
+        "backup.conflict_changed": "有 {n} 筆記錄兩邊內容不一致",
+        "backup.conflict_changed_note": "合併只會補齊本機缺少的記錄，不會覆蓋已有記錄的內容。內容不一致的記錄需要手動確認。",
         "backup.conflict_merge": "立即合併",
         "backup.conflict_skip": "暫時跳過",
         "backup.auto_saved": "已自動備份至雲端",
@@ -1973,6 +1982,7 @@ export const TRANSLATIONS = {
         "qr.help": "含有個人數據，分享要小心。",
 
         "error.nonPositive": "唔可以輸入小於等於 0 嘅值",
+        "error.weightRange": "體重要喺 20 到 400 公斤之間。",
         "error.slHoldMinOne": "含服時間要大於等於 1 分鐘",
 
         "export.encrypt_ask": "要唔要加密匯出？",
@@ -2394,6 +2404,7 @@ export const TRANSLATIONS = {
         "qr.help": "個人データを含む可能性があります。共有にはご注意ください。",
 
         "error.nonPositive": "0 以下の値は入力できません。",
+        "error.weightRange": "体重は 20〜400 kg の範囲で入力してください。",
         "error.slHoldMinOne": "舌下保持時間は 1 分以上必要です。",
 
         "export.encrypt_ask": "暗号化してエクスポートしますか？",
@@ -2814,6 +2825,8 @@ export const TRANSLATIONS = {
         "backup.conflict_desc": "クラウドバックアップとローカルデータに差異があります。データ損失を防ぐためにマージをお勧めします。",
         "backup.conflict_cloud_new": "クラウドに {n} 件の新しい記録",
         "backup.conflict_local_new": "ローカルに {n} 件の新しい記録",
+        "backup.conflict_changed": "{n} 件の記録が両者で異なります",
+        "backup.conflict_changed_note": "マージはこの端末にない記録を追加するだけで、既存の記録を上書きしません。内容が異なる記録は手動で確認してください。",
         "backup.conflict_merge": "今すぐマージ",
         "backup.conflict_skip": "後で確認",
         "backup.auto_saved": "クラウドへ自動バックアップ済み",
@@ -2991,6 +3004,7 @@ export const TRANSLATIONS = {
         "qr.help": "개인 용량 데이터가 포함되어 있습니다. 신중하게 공유하세요.",
 
         "error.nonPositive": "값은 0보다 커야 합니다.",
+        "error.weightRange": "몸무게는 20~400kg 사이여야 합니다.",
         "error.slHoldMinOne": "설하 유지 시간은 최소 1분 이상이어야 합니다.",
 
         "export.encrypt_ask": "내보내기를 암호화하시겠습니까?",
@@ -3413,6 +3427,8 @@ export const TRANSLATIONS = {
         "backup.conflict_desc": "클라우드 백업과 로컬 데이터가 다릅니다. 데이터 손실을 방지하려면 병합하는 것을 권장합니다.",
         "backup.conflict_cloud_new": "클라우드에 새 기록 {n}개",
         "backup.conflict_local_new": "로컬에 새 기록 {n}개",
+        "backup.conflict_changed": "{n}개의 기록이 서로 다릅니다",
+        "backup.conflict_changed_note": "병합은 이 기기에 없는 기록만 추가하며 기존 기록을 덮어쓰지 않습니다. 내용이 다른 기록은 직접 확인해야 합니다.",
         "backup.conflict_merge": "지금 병합",
         "backup.conflict_skip": "나중에",
         "backup.auto_saved": "클라우드에 자동 백업됨",
@@ -3565,6 +3581,7 @@ export const TRANSLATIONS = {
         "qr.help": "Kişisel doz verileri içerir. Dikkatli paylaşın.",
 
         "error.nonPositive": "Değer sıfırdan büyük olmalıdır.",
+        "error.weightRange": "Kilo 20 ile 400 kg arasında olmalıdır.",
         "error.slHoldMinOne": "Dil altı tutma süresi en az 1 dakika olmalıdır.",
 
         "export.encrypt_ask": "Dışa aktarma şifrelensin mi?",

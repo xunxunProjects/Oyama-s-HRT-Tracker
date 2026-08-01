@@ -397,10 +397,10 @@ const Account: React.FC<AccountProps> = ({
                                         >
                                             <Trash2 size={14} />
                                         </button>
-                                        <ChevronDown size={14} className={`${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
+                                        <ChevronDown size={14} className={`chev ${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
                                     </div>
-                                    <div className={`grid ${expandedId === b.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                        <div className="overflow-hidden">
+                                    <div className="disclosure" data-open={expandedId === b.id}>
+                                        <div className="disclosure-inner">
                                             <div className="pb-4 pt-1 space-y-3">
                                                 {expandLoading === b.id ? (
                                                     <div className="flex justify-center py-6">

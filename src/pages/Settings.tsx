@@ -152,11 +152,11 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                     <button
                         onClick={() => setAutoBackup(!autoBackup)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${autoBackup ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${autoBackup ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                         role="switch"
                         aria-checked={autoBackup}
                     >
-                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${autoBackup ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${autoBackup ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                 </div>
             )}
@@ -168,11 +168,11 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
                 <button
                     onClick={() => setShowCats(!showCats)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${showCats ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${showCats ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                     role="switch"
                     aria-checked={showCats}
                 >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${showCats ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${showCats ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
 
@@ -291,11 +291,11 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
                 <button
                     onClick={() => setDevMode(!devMode)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${devMode ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${devMode ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                     role="switch"
                     aria-checked={devMode}
                 >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
 
