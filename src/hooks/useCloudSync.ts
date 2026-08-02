@@ -16,14 +16,22 @@
  *     result here, upload it if the cloud copy is behind. Runs on sign-in, when
  *     the tab is brought back to the foreground, when the network returns, and
  *     on a slow timer while visible.
- *   - **Push** — upload local after a change, debounced. No fetch, so typing a
- *     dose doesn't cost a round trip each way.
+ *   - **Push** — upload local after a change, debounced. Fetches only the
+ *     backup list, not a body, so logging a dose doesn't cost a full download.
  *
- * Three things keep this from hammering the backup endpoint, which keeps ten
- * revisions per account and rate-limits to twenty writes a minute:
- * a push is skipped when the payload's content fingerprint matches what was
- * last uploaded; a full sync in flight absorbs any trigger that arrives while
- * it runs; and foreground/poll syncs are floored at one a minute.
+ * Nothing writes over a revision it hasn't read. Storage gives no help here:
+ * every save inserts a new newest revision, with no "only if unchanged", so a
+ * device that uploads without looking silently replaces whatever another one
+ * wrote. Records survive that — the next merge unions them back — but deletions
+ * do not, because the tombstone goes with the revision that was overwritten and
+ * the record returns. So the push path first checks the newest revision is
+ * still the one it reconciled with, and hands off to a full sync when it isn't.
+ *
+ * Three more things keep this from hammering the endpoint, which keeps ten
+ * revisions per account and rate-limits to twenty writes a minute: a push is
+ * skipped when the payload's content fingerprint matches what was last
+ * uploaded; a sync in flight absorbs any trigger that arrives while it runs;
+ * and foreground/poll syncs are floored at one a minute.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -47,6 +55,15 @@ export interface CloudSyncState {
     status: SyncStatus;
     /** Epoch ms of the last successful reconcile, or null if none yet this session. */
     lastSyncedAt: number | null;
+    /**
+     * Reconcile right now, ignoring the auto-sync toggle. Resolves true when the
+     * cloud ends up holding this device's data.
+     *
+     * This is what the manual "back up to cloud" button runs. It cannot be a
+     * plain upload: that would overwrite the newest revision without reading it,
+     * which is how one device's press erases a deletion another device made.
+     */
+    syncNow: () => Promise<boolean>;
 }
 
 interface Options {
@@ -79,6 +96,18 @@ const POLL_INTERVAL_MS = 5 * 60_000;
  */
 const MAX_BACKUP_PROBES = 3;
 
+/**
+ * Newest first. The endpoint already orders by created_at DESC, but don't
+ * depend on it; the sort is stable, so revisions written in the same second
+ * keep whatever order it gave them and both devices read them the same way.
+ */
+const byNewest = <T extends { created_at: number }>(metas: T[]): T[] =>
+    [...metas].sort((a, b) => b.created_at - a.created_at);
+
+/** Id of the newest revision, whether or not it turned out to be readable. */
+const newestBackupId = (metas: { id: string }[]): string | null =>
+    metas.length ? metas[0].id : null;
+
 type RemoteRead =
     | { kind: 'state'; state: SyncState }
     | { kind: 'empty' }
@@ -104,7 +133,10 @@ export const useCloudSync = ({
     token, userId, enabled, ready, buildPayload, applyRemote,
     events, labResults, doseTemplates, weight, pkParams,
 }: Options): CloudSyncState => {
-    const [state, setState] = useState<CloudSyncState>({ status: 'off', lastSyncedAt: null });
+    // The reported half of the state. `syncNow` is grafted on at the end so
+    // the setters below stay plain data.
+    const [state, setState] = useState<Omit<CloudSyncState, 'syncNow'>>(
+        { status: 'off', lastSyncedAt: null });
 
     // Callbacks and auth are read at fire time, not captured when a timer is
     // armed: a sync started before a render can otherwise upload a payload
@@ -151,55 +183,77 @@ export const useCloudSync = ({
      * should stop the upload that hasn't happened yet, and stop the run from
      * reporting "up to date" over the "sync off" the toggle just set.
      */
-    const stillCurrent = useCallback((account: string, authToken: string): boolean =>
-        activeRef.current && userIdRef.current === account && tokenRef.current === authToken,
+    const stillCurrent = useCallback((account: string, authToken: string, force = false): boolean =>
+        (force || activeRef.current) && userIdRef.current === account && tokenRef.current === authToken,
         []);
 
-    /** Fetch the newest backup we can actually read. */
-    const readRemote = useCallback(async (authToken: string): Promise<RemoteRead> => {
-        const metas = await cloudService.listMeta(authToken);
-        if (!metas || metas.length === 0) return { kind: 'empty' };
+    /**
+     * Id of the newest cloud revision this device has actually reconciled with
+     * — either one it read, or one its own push created.
+     *
+     * This is the compare-and-swap the storage layer doesn't have. Every POST
+     * inserts a new "newest" revision; there is no "only if unchanged". So a
+     * push that hasn't looked first silently overwrites whatever another device
+     * wrote in the meantime. Records survive that (the next merge unions them
+     * back) but deletions do not: a device that never saw the tombstone
+     * re-uploads its copy of the record, and the delete comes undone.
+     */
+    const lastSeenBackupRef = useRef<string | null>(null);
 
-        // The endpoint orders by created_at DESC, but don't depend on it.
-        const ordered = [...metas].sort((a, b) => b.created_at - a.created_at);
+    /** Fetch the newest backup we can actually read, plus what the newest *is*. */
+    const readRemote = useCallback(async (
+        authToken: string,
+    ): Promise<{ read: RemoteRead; newestId: string | null }> => {
+        const metas = await cloudService.listMeta(authToken);
+        if (!metas || metas.length === 0) return { read: { kind: 'empty' }, newestId: null };
+
+        const ordered = byNewest(metas);
+        const newestId = newestBackupId(ordered);
         let sawLocked = false;
         for (const meta of ordered.slice(0, MAX_BACKUP_PROBES)) {
             const backup = await cloudService.loadOne(authToken, meta.id);
             const read = await readCloudBackup(backup.data);
-            if (read.status === 'ok') return { kind: 'state', state: normalizeSyncState(read.data) };
+            if (read.status === 'ok') {
+                return { read: { kind: 'state', state: normalizeSyncState(read.data) }, newestId };
+            }
             if (read.status === 'locked') { sawLocked = true; break; }
             // Corrupt: a body that isn't JSON tells us nothing about the ones
             // under it, so keep looking rather than treating the cloud as empty
             // and overwriting readable history.
         }
-        if (!sawLocked) return { kind: 'unreadable' };
-        return hasCloudKey() ? { kind: 'orphaned' } : { kind: 'locked' };
+        if (!sawLocked) return { read: { kind: 'unreadable' }, newestId };
+        return { read: hasCloudKey() ? { kind: 'orphaned' } : { kind: 'locked' }, newestId };
     }, []);
 
-    const runSync = useCallback(async (): Promise<void> => {
-        if (!activeRef.current) return;
-        if (runningRef.current) { rerunRef.current = true; return; }
+    /**
+     * `force` runs a reconcile even with auto-sync switched off — the manual
+     * backup button, which is a deliberate act rather than a scheduled one.
+     * It still refuses to write over a cloud copy it could not read.
+     */
+    const runSync = useCallback(async (force = false): Promise<boolean> => {
+        if (!force && !activeRef.current) return false;
+        if (runningRef.current) { rerunRef.current = true; return false; }
 
         const authToken = tokenRef.current;
         const account = userIdRef.current;
-        if (!authToken || !account) return;
+        if (!authToken || !account) return false;
 
         runningRef.current = true;
         lastSyncAttemptRef.current = Date.now();
         setState(prev => ({ ...prev, status: 'syncing' }));
 
         try {
-            const remote = await readRemote(authToken);
-            if (!stillCurrent(account, authToken)) return;
+            const { read: remote, newestId } = await readRemote(authToken);
+            if (!stillCurrent(account, authToken, force)) return false;
 
             if (remote.kind === 'locked') {
                 lockedRef.current = true;
                 setState(prev => ({ ...prev, status: 'locked' }));
-                return;
+                return false;
             }
             if (remote.kind === 'unreadable') {
                 setState(prev => ({ ...prev, status: 'error' }));
-                return;
+                return false;
             }
             lockedRef.current = false;
 
@@ -213,14 +267,16 @@ export const useCloudSync = ({
                 // keys, each finds the other's copy orphaned, and without it
                 // they would take turns re-uploading on every poll.
                 const fingerprint = fingerprintState(local);
+                lastSeenBackupRef.current = newestId;
                 if (hasContent(local) && fingerprint !== lastPushedRef.current) {
-                    await cloudService.save(authToken, await prepareCloudPayload(localPayload));
-                    if (!stillCurrent(account, authToken)) return;
+                    const savedId = await cloudService.save(authToken, await prepareCloudPayload(localPayload));
+                    if (!stillCurrent(account, authToken, force)) return false;
                     lastPushedRef.current = fingerprint;
+                    lastSeenBackupRef.current = savedId;
                 }
                 bootstrappedForRef.current = account;
-                setState({ status: 'synced', lastSyncedAt: Date.now() });
-                return;
+                setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
+                return true;
             }
 
             const result = mergeSyncStates(local, remote.kind === 'state' ? remote.state : null);
@@ -228,6 +284,7 @@ export const useCloudSync = ({
             if (result.localChanged) applyRemoteRef.current(result.merged);
 
             const mergedFingerprint = fingerprintState(result.merged);
+            lastSeenBackupRef.current = newestId;
             if (result.remoteStale) {
                 // Upload the merge, not the local payload: they differ whenever
                 // the cloud held something this device didn't, and uploading
@@ -235,14 +292,17 @@ export const useCloudSync = ({
                 const outgoing = result.localChanged
                     ? toPayload(localPayload, result.merged)
                     : localPayload;
-                await cloudService.save(authToken, await prepareCloudPayload(outgoing));
-                if (!stillCurrent(account, authToken)) return;
+                const savedId = await cloudService.save(authToken, await prepareCloudPayload(outgoing));
+                if (!stillCurrent(account, authToken, force)) return false;
+                lastSeenBackupRef.current = savedId;
             }
             lastPushedRef.current = mergedFingerprint;
             bootstrappedForRef.current = account;
-            setState({ status: 'synced', lastSyncedAt: Date.now() });
+            setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
+            return true;
         } catch {
             setState(prev => ({ ...prev, status: 'error' }));
+            return false;
         } finally {
             runningRef.current = false;
             if (rerunRef.current && activeRef.current) {
@@ -270,9 +330,27 @@ export const useCloudSync = ({
         runningRef.current = true;
         setState(prev => ({ ...prev, status: 'syncing' }));
         try {
-            await cloudService.save(authToken, await prepareCloudPayload(payload));
+            // Check the cloud hasn't moved since the revision this device last
+            // reconciled with. A blind write is what undoes another device's
+            // deletion: this device would upload its own copy of a record it
+            // never learned was deleted, and the tombstone would be gone with
+            // the revision it overwrote. Only the metadata is fetched, so the
+            // common case — nothing else wrote — stays one small request.
+            const metas = await cloudService.listMeta(authToken);
+            if (!stillCurrent(account, authToken)) return;
+            if (newestBackupId(byNewest(metas ?? [])) !== lastSeenBackupRef.current) {
+                // Someone else wrote. Hand off to a full reconcile, which the
+                // finally below starts once this run has released the lock —
+                // clearing the lock here instead would let that reconcile and
+                // this run's own cleanup trip over each other.
+                rerunRef.current = true;
+                return;
+            }
+
+            const savedId = await cloudService.save(authToken, await prepareCloudPayload(payload));
             if (!stillCurrent(account, authToken)) return;
             lastPushedRef.current = fingerprint;
+            lastSeenBackupRef.current = savedId;
             setState({ status: 'synced', lastSyncedAt: Date.now() });
         } catch {
             setState(prev => ({ ...prev, status: 'error' }));
@@ -288,6 +366,7 @@ export const useCloudSync = ({
     // --- Reset whenever the account (or the toggle) changes ---
     useEffect(() => {
         lastPushedRef.current = null;
+        lastSeenBackupRef.current = null;
         bootstrappedForRef.current = null;
         lockedRef.current = false;
         lastSyncAttemptRef.current = 0;
@@ -351,7 +430,9 @@ export const useCloudSync = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, labResults, doseTemplates, weight, pkParams]);
 
-    return state;
+    const syncNow = useCallback(() => runSync(true), [runSync]);
+
+    return { ...state, syncNow };
 };
 
 /**
