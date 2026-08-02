@@ -7,6 +7,10 @@ import { formatDate } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
+import {
+    MODE_KEYS, RecordKind, SyncState, Tombstones,
+    pruneTombstones, sanitizeTombstones,
+} from '../utils/syncMerge';
 
 /** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
 const LOCAL_OWNER = 'local';
@@ -26,8 +30,11 @@ const nsFor = (owner: string, suffix: string) =>
 const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: string) =>
     nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
-const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses'] as const;
-const SHARED_SUFFIXES = ['weight', 'pk-params', 'cal-method', 'cal-history-mode'] as const;
+const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses', 'deletions'] as const;
+const SHARED_SUFFIXES = [
+    'weight', 'pk-params', 'cal-method', 'cal-history-mode',
+    'weight-at', 'pk-params-at',
+] as const;
 
 /**
  * First sign-in on this device adopts whatever was recorded while signed out.
@@ -65,6 +72,8 @@ export interface DoseTemplate {
     doseMG: number;
     extras: any;
     createdAt: number;
+    /** Epoch ms of the last edit — see DoseEvent.updatedAt. */
+    updatedAt?: number;
 }
 
 export interface QuickDose {
@@ -94,13 +103,77 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         } catch { return fallback; }
     };
 
+    // --- Deletion log ------------------------------------------------------
+    // Cloud sync unions records by id, so without a record of what was deleted
+    // "the cloud has an id we don't" always reads as "another device added it".
+    // Every deletion this device makes therefore leaves a tombstone, which is
+    // what makes a delete stick instead of coming back on the next sync.
+    // Tombstones live outside React state: they are never rendered, and reading
+    // them straight from storage keeps deletes correct even when several land in
+    // the same commit.
+    const readTombstones = (m: 'transfem' | 'transmasc'): Tombstones =>
+        sanitizeTombstones(loadJSON<unknown>(keyFor(m, 'deletions'), null));
+
+    const writeTombstones = (m: 'transfem' | 'transmasc', next: Tombstones) => {
+        localStorage.setItem(keyFor(m, 'deletions'), JSON.stringify(pruneTombstones(next, Date.now())));
+    };
+
+    const recordDeletions = (kind: RecordKind, ids: string[], m: 'transfem' | 'transmasc' = mode) => {
+        if (!ids.length) return;
+        const current = readTombstones(m);
+        const at = Date.now();
+        for (const id of ids) if (id) current[kind][id] = at;
+        writeTombstones(m, current);
+    };
+
+    /**
+     * Bringing a record back by hand — a file import, an explicit merge from a
+     * backup — has to clear its tombstone, or the sync engine would dutifully
+     * delete it again as soon as it ran.
+     */
+    const forgetDeletions = (kind: RecordKind, ids: string[], m: 'transfem' | 'transmasc' = mode) => {
+        if (!ids.length) return;
+        const current = readTombstones(m);
+        let touched = false;
+        for (const id of ids) {
+            if (current[kind][id] !== undefined) { delete current[kind][id]; touched = true; }
+        }
+        if (touched) writeTombstones(m, current);
+    };
+
+    /**
+     * A replace-style import (including "restore this backup") is a statement
+     * about the whole set: whatever it leaves out is meant to be gone. Recording
+     * those as deletions is what lets a restore survive the next sync instead of
+     * being immediately undone by the cloud copy it was restoring from.
+     */
+    const reconcileReplacement = (
+        m: 'transfem' | 'transmasc',
+        kind: RecordKind,
+        before: { id: string }[],
+        after: { id: string }[],
+    ) => {
+        const keep = new Set(after.map(r => r.id));
+        const gone = before.map(r => r.id).filter(id => id && !keep.has(id));
+        forgetDeletions(kind, [...keep], m);
+        recordDeletions(kind, gone, m);
+    };
+
     // --- State ---
     const [events, setEvents] = useState<DoseEvent[]>(() => loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
-    const [weight, setWeight] = useState<number>(() => {
+    const [weight, setWeightState] = useState<number>(() => {
         // Weight is shared across modes (a physical attribute of the person).
         const saved = localStorage.getItem(sharedKey('weight'));
         return saved ? parseFloat(saved) : 70.0;
     });
+    // Weight and the PK overrides are single values, not record sets, so sync
+    // resolves them last-write-wins — which needs a "when" alongside the "what".
+    // Stamped here at the point of an actual user edit; the reload effect and
+    // the sync apply path use the raw setters so neither forges a fresh write.
+    const setWeight = (w: number) => {
+        setWeightState(w);
+        localStorage.setItem(sharedKey('weight-at'), String(Date.now()));
+    };
     const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
     const [calibrationMethod, setCalibrationMethodState] = useState<CalibrationMethod>(() =>
         // Hybrid-MIPD is the default; legacy 'average'/'adaptive' values are migrated.
@@ -166,7 +239,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         setQuickDoses(loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
         // Mode-independent, but still per-account, so they reload on the same beat.
         const savedWeight = localStorage.getItem(sharedKey('weight'));
-        setWeight(savedWeight ? parseFloat(savedWeight) : 70.0);
+        setWeightState(savedWeight ? parseFloat(savedWeight) : 70.0);
         setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
         setCalibrationHistoryModeState(localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective');
         setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
@@ -186,8 +259,16 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     // previous-mode state. Watching only the data ensures we re-arm the ref
     // exactly when the reload's setState calls have actually committed
     // (because loadJSON always returns fresh array references).
+    //
+    // `readyScope` mirrors the ref into render output for the same reason, but
+    // for consumers outside this hook: cloud sync must not read (let alone
+    // upload) a payload assembled mid-switch, when in-memory state still belongs
+    // to the previous account while the storage keys already point at the new
+    // one. It waits for readyScope === scope.
+    const [readyScope, setReadyScope] = useState<string>(scope);
     useEffect(() => {
         loadedScopeRef.current = scope;
+        setReadyScope(prev => (prev === scope ? prev : scope));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, labResults, doseTemplates, quickDoses]);
 
@@ -309,54 +390,83 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
 
     // --- Actions ---
+    // Every write goes through here, which makes this the one place that has to
+    // stamp `updatedAt`. Sync uses the stamp to tell an edit from its older
+    // twin; an unstamped record silently loses that argument.
+    const stamp = <T extends object>(record: T): T & { updatedAt: number } =>
+        ({ ...record, updatedAt: Date.now() });
+
     const addEvent = (e: DoseEvent) => {
-        setEvents(prev => [...prev, e]);
+        forgetDeletions('events', [e.id]);
+        setEvents(prev => [...prev, stamp(e)]);
     };
     const addEvents = (list: DoseEvent[]) => {
         if (!list.length) return;
-        setEvents(prev => [...prev, ...list]);
+        forgetDeletions('events', list.map(e => e.id));
+        setEvents(prev => [...prev, ...list.map(stamp)]);
     };
     const updateEvent = (e: DoseEvent) => {
-        setEvents(prev => prev.map(p => p.id === e.id ? e : p));
+        const next = stamp(e);
+        setEvents(prev => prev.map(p => p.id === e.id ? next : p));
     };
     const deleteEvent = (id: string) => {
+        recordDeletions('events', [id]);
         setEvents(prev => prev.filter(e => e.id !== id));
     };
     const deleteEvents = (ids: string[]) => {
         if (!ids.length) return;
+        recordDeletions('events', ids);
         const idSet = new Set(ids);
         setEvents(prev => prev.filter(e => !idSet.has(e.id)));
     };
     const clearAllEvents = () => {
         if (!events.length) return;
         showDialog('confirm', t('drawer.clear_confirm'), () => {
+            recordDeletions('events', events.map(e => e.id));
             setEvents([]);
         });
     }
 
-    const addLabResult = (res: LabResult) => setLabResults(prev => [...prev, res]);
-    const updateLabResult = (res: LabResult) => setLabResults(prev => prev.map(r => r.id === res.id ? res : r));
+    const addLabResult = (res: LabResult) => {
+        forgetDeletions('labResults', [res.id]);
+        setLabResults(prev => [...prev, stamp(res)]);
+    };
+    const updateLabResult = (res: LabResult) => {
+        const next = stamp(res);
+        setLabResults(prev => prev.map(r => r.id === res.id ? next : r));
+    };
     const deleteLabResult = (id: string) => {
+        recordDeletions('labResults', [id]);
         setLabResults(prev => prev.filter(r => r.id !== id));
     };
     const clearLabResults = () => {
         if (!labResults.length) return;
         showDialog('confirm', t('lab.clear_confirm'), () => {
+            recordDeletions('labResults', labResults.map(r => r.id));
             setLabResults([]);
         });
     }
 
-    const addTemplate = (template: DoseTemplate) => setDoseTemplates(prev => [...prev, template]);
-    const deleteTemplate = (id: string) => setDoseTemplates(prev => prev.filter(t => t.id !== id));
+    const addTemplate = (template: DoseTemplate) => {
+        forgetDeletions('doseTemplates', [template.id]);
+        setDoseTemplates(prev => [...prev, stamp(template)]);
+    };
+    const deleteTemplate = (id: string) => {
+        recordDeletions('doseTemplates', [id]);
+        setDoseTemplates(prev => prev.filter(t => t.id !== id));
+    };
 
+    // Quick doses are a per-device shortcut list, not part of the record — they
+    // are neither exported nor synced, so no tombstone is needed.
     const addQuickDose = (dose: QuickDose) => setQuickDoses(prev => [...prev, dose]);
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
-    const setPkParams = (params: PKCustomParams) => setPkParamsState(params);
-    const clearPkParams = () => setPkParamsState(null);
+    const touchPkParams = () => localStorage.setItem(sharedKey('pk-params-at'), String(Date.now()));
+    const setPkParams = (params: PKCustomParams) => { touchPkParams(); setPkParamsState(params); };
+    const clearPkParams = () => { touchPkParams(); setPkParamsState(null); };
     const resetPkParams = () => {
         showDialog('confirm', t('pk.reset_confirm'), () => {
-            setPkParamsState(null);
+            clearPkParams();
         });
     };
 
@@ -366,6 +476,12 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     // runs, the wedged data is reloaded on every subsequent open. Reject the
     // file outright so nothing is written.
     const MAX_IMPORT_ENTRIES = 20000;
+
+    /** Carry a record's edit stamp through sanitising; absent or junk becomes undefined. */
+    const keepStamp = (raw: any): number | undefined => {
+        const n = Number(raw?.updatedAt);
+        return Number.isFinite(n) && n > 0 ? n : undefined;
+    };
 
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
@@ -388,7 +504,8 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 timeH: timeNum,
                 doseMG: Number.isFinite(doseNum) ? Math.min(DOSE_MG_MAX, Math.max(0, doseNum)) : 0,
                 ester: validEster,
-                extras: sanitizedExtras
+                extras: sanitizedExtras,
+                updatedAt: keepStamp(item)
             } as DoseEvent;
         }).filter((item): item is DoseEvent => item !== null);
     };
@@ -407,7 +524,8 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 id: typeof item.id === 'string' ? item.id : uuidv4(),
                 timeH: timeNum,
                 concValue: valNum,
-                unit: unitVal
+                unit: unitVal,
+                updatedAt: keepStamp(item)
             } as LabResult;
         }).filter((item): item is LabResult => item !== null);
     };
@@ -429,7 +547,8 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 ester,
                 doseMG: doseNum,
                 extras: (extras && typeof extras === 'object') ? extras : {},
-                createdAt: Number.isFinite(createdAt) ? createdAt : Date.now()
+                createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+                updatedAt: keepStamp(item)
             } as DoseTemplate;
         }).filter((item): item is DoseTemplate => item !== null);
     };
@@ -442,11 +561,19 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             let newTemplates: DoseTemplate[] = [];
             let newPkParams: PKCustomParams | undefined = undefined;
             let importedOtherMode = false;
-            // Did the payload explicitly carry a block for the *current* mode?
-            // Only then should we overwrite active-mode state (otherwise a v2
-            // payload that only contains the other mode's data would wipe the
-            // user's current-mode records on replace-import).
-            let replacedCurrentMode = false;
+            // Which kinds the payload actually *speaks about*, tracked one by
+            // one. A single "it had something for this mode" flag replaced all
+            // three lists, so a file carrying only `events` — the shape a v1
+            // export or a hand-written file often has — cleared the user's lab
+            // results and templates as a side effect of importing doses.
+            //
+            // A present-but-empty array still means "none", so restoring a
+            // backup with no labs still clears them. Only an absent key is
+            // silence. The distinction matters more now that a replace-import
+            // records what it drops as deletions: silence used to cost a wipe
+            // this device might get back from another one, and would now cost
+            // the same wipe on every device.
+            const replaced = { events: false, labResults: false, doseTemplates: false };
 
             // New multi-mode payload: { modes: { transfem: {...}, transmasc: {...} } }
             if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
@@ -458,16 +585,26 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
                     const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
                     if (m === mode) {
-                        newEvents = evs;
-                        newLabs = ls;
-                        newTemplates = tmps;
-                        replacedCurrentMode = true;
+                        if (Array.isArray(block.events)) { newEvents = evs; replaced.events = true; }
+                        if (Array.isArray(block.labResults)) { newLabs = ls; replaced.labResults = true; }
+                        if (Array.isArray(block.doseTemplates)) { newTemplates = tmps; replaced.doseTemplates = true; }
                     } else {
                         // Write other mode's data straight to localStorage.
-                        localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
-                        localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
-                        localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
-                        importedOtherMode = true;
+                        if (Array.isArray(block.events)) {
+                            reconcileReplacement(m, 'events', loadJSON<DoseEvent[]>(keyFor(m, 'events'), []), evs);
+                            localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
+                            importedOtherMode = true;
+                        }
+                        if (Array.isArray(block.labResults)) {
+                            reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
+                            localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
+                            importedOtherMode = true;
+                        }
+                        if (Array.isArray(block.doseTemplates)) {
+                            reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
+                            localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
+                            importedOtherMode = true;
+                        }
                     }
                 }
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
@@ -478,22 +615,22 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 }
             } else if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
-                replacedCurrentMode = true;
+                replaced.events = true;
             } else if (typeof parsed === 'object' && parsed !== null) {
                 if (Array.isArray(parsed.events)) {
                     newEvents = sanitizeImportedEvents(parsed.events);
-                    replacedCurrentMode = true;
+                    replaced.events = true;
                 }
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
                     newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
-                    replacedCurrentMode = true;
+                    replaced.labResults = true;
                 }
                 if (Array.isArray(parsed.doseTemplates)) {
                     newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
-                    replacedCurrentMode = true;
+                    replaced.doseTemplates = true;
                 }
                 if (parsed.pkParams && typeof parsed.pkParams === 'object') {
                     newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
@@ -513,6 +650,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 if (otherEvs.length) {
                     const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
                     const existingIds = new Set(existing.map(x => x.id));
+                    forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
                     localStorage.setItem(
                         keyFor(otherMode, 'events'),
                         JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))])
@@ -528,6 +666,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 if (otherLs.length) {
                     const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
                     const existingIds = new Set(existing.map(x => x.id));
+                    forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
                     localStorage.setItem(
                         keyFor(otherMode, 'lab-results'),
                         JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))])
@@ -539,13 +678,24 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
             if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length && !newPkParams) throw new Error('No valid entries');
 
-            if (replacedCurrentMode) {
+            // A replace-import states the whole set for each kind it mentions,
+            // so anything it drops from one is a deletion. Recording it is what
+            // stops the next sync from pulling the dropped records straight back
+            // out of the cloud — which would make "restore this backup" a no-op.
+            if (replaced.events) {
+                reconcileReplacement(mode, 'events', events, newEvents);
                 setEvents(newEvents);
+            }
+            if (replaced.labResults) {
+                reconcileReplacement(mode, 'labResults', labResults, newLabs);
                 setLabResults(newLabs);
+            }
+            if (replaced.doseTemplates) {
+                reconcileReplacement(mode, 'doseTemplates', doseTemplates, newTemplates);
                 setDoseTemplates(newTemplates);
             }
             if (newWeight !== undefined) setWeight(newWeight);
-            if (newPkParams !== undefined) setPkParamsState(newPkParams);
+            if (newPkParams !== undefined) setPkParams(newPkParams);
 
             showDialog('alert', t('drawer.import_success'));
             return true;
@@ -587,6 +737,11 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                         const newEvs = evs.filter(e => !evIds.has(e.id));
                         const newLs = ls.filter(l => !lsIds.has(l.id));
                         const newTmps = tmps.filter(tm => !tmpIds.has(tm.id));
+                        // An explicit merge is the user asking for these records
+                        // back, so any tombstone standing in the way goes.
+                        forgetDeletions('events', evs.map(e => e.id), m);
+                        forgetDeletions('labResults', ls.map(l => l.id), m);
+                        forgetDeletions('doseTemplates', tmps.map(tm => tm.id), m);
                         if (newEvs.length) localStorage.setItem(keyFor(m, 'events'), JSON.stringify([...existingEvs, ...newEvs]));
                         if (newLs.length) localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify([...existingLs, ...newLs]));
                         if (newTmps.length) localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify([...existingTmps, ...newTmps]));
@@ -617,6 +772,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
                     const existingIds = new Set(existing.map(x => x.id));
                     const newOnes = otherEvs.filter(e => !existingIds.has(e.id));
+                    forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
                     if (newOnes.length) {
                         localStorage.setItem(keyFor(otherMode, 'events'), JSON.stringify([...existing, ...newOnes]));
                         mergedOther += newOnes.length;
@@ -632,6 +788,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
                     const existingIds = new Set(existing.map(x => x.id));
                     const newOnes = otherLs.filter(l => !existingIds.has(l.id));
+                    forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
                     if (newOnes.length) {
                         localStorage.setItem(keyFor(otherMode, 'lab-results'), JSON.stringify([...existing, ...newOnes]));
                         mergedOther += newOnes.length;
@@ -652,6 +809,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 const existingIds = new Set(events.map(e => e.id));
                 const newOnes = incomingEvents.filter(e => !existingIds.has(e.id));
                 merged += newOnes.length;
+                forgetDeletions('events', incomingEvents.map(e => e.id));
                 if (newOnes.length > 0) setEvents(prev => [...prev, ...newOnes]);
             }
 
@@ -663,6 +821,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 const existingIds = new Set(labResults.map(r => r.id));
                 const newOnes = incomingLabs.filter(r => !existingIds.has(r.id));
                 merged += newOnes.length;
+                forgetDeletions('labResults', incomingLabs.map(r => r.id));
                 if (newOnes.length > 0) setLabResults(prev => [...prev, ...newOnes]);
             }
 
@@ -670,6 +829,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 const existingIds = new Set(doseTemplates.map(t => t.id));
                 const newOnes = incomingTemplates.filter(t => !existingIds.has(t.id));
                 merged += newOnes.length;
+                forgetDeletions('doseTemplates', incomingTemplates.map(t => t.id));
                 if (newOnes.length > 0) setDoseTemplates(prev => [...prev, ...newOnes]);
             }
 
@@ -687,26 +847,85 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             events: loadJSON<DoseEvent[]>(keyFor(m, 'events'), []),
             labResults: loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []),
             doseTemplates: loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []),
+            deletions: readTombstones(m),
         });
         const modes = {
             transfem: readMode('transfem'),
             transmasc: readMode('transmasc'),
         };
         // Overlay current in-memory state for the active mode.
-        modes[mode] = { events, labResults, doseTemplates };
+        modes[mode] = { events, labResults, doseTemplates, deletions: readTombstones(mode) };
 
         return {
             meta: { version: 2, exportedAt: new Date().toISOString() },
             mode,
             weight,
+            // Last-write stamps for the two values sync can't merge per record.
+            // Missing on payloads written before sync existed, which is exactly
+            // how they should lose to a stamped one.
+            weightUpdatedAt: Number(localStorage.getItem(sharedKey('weight-at'))) || undefined,
             modes,
             // Flat v1-compatible fields mirror the currently active mode.
             events,
             labResults,
             doseTemplates,
-            // PK parameter overrides (null means defaults are in use)
-            pkParams: pkParams ?? undefined,
+            // PK parameter overrides. Explicitly `null` when the user cleared
+            // them — omitting the key would read as "this payload says nothing
+            // about PK params", and the cleared state would never propagate.
+            pkParams: pkParams ?? null,
+            pkParamsUpdatedAt: Number(localStorage.getItem(sharedKey('pk-params-at'))) || undefined,
         };
+    };
+
+    /**
+     * Install the result of a cloud sync. Deliberately silent: this runs on its
+     * own schedule, not because anyone pressed anything, and a dialog for it
+     * would fire at arbitrary moments.
+     *
+     * Records go through the same sanitisers as a file import — the payload has
+     * made a round trip through storage this device does not control, and the
+     * import limits (entry ceiling, field validation, timestamp range) are the
+     * reason a malformed one can't wedge the simulation.
+     */
+    const applySyncedState = (state: SyncState): void => {
+        // Sanitise both modes up front: the sanitisers throw on an oversized
+        // payload, and doing that halfway through the writes would leave one
+        // mode updated and the other not.
+        const clean = MODE_KEYS.map(m => ({
+            m,
+            events: sanitizeImportedEvents(state.modes[m].events),
+            labResults: sanitizeImportedLabResults(state.modes[m].labResults),
+            doseTemplates: sanitizeImportedTemplates(state.modes[m].doseTemplates),
+            deletions: state.modes[m].deletions,
+        }));
+
+        for (const block of clean) {
+            writeTombstones(block.m, block.deletions);
+            localStorage.setItem(keyFor(block.m, 'events'), JSON.stringify(block.events));
+            localStorage.setItem(keyFor(block.m, 'lab-results'), JSON.stringify(block.labResults));
+            localStorage.setItem(keyFor(block.m, 'dose-templates'), JSON.stringify(block.doseTemplates));
+            if (block.m === mode) {
+                setEvents(block.events);
+                setLabResults(block.labResults);
+                setDoseTemplates(block.doseTemplates);
+            }
+        }
+
+        // Scalars keep the winning side's stamp rather than being restamped
+        // "now" — restamping would make every sync look like a fresh local edit
+        // and let a stale value beat a newer one on the next round.
+        if (state.weight !== undefined && isPlausibleBodyWeightKG(state.weight)) {
+            setWeightState(state.weight);
+            localStorage.setItem(sharedKey('weight'), String(state.weight));
+            if (state.weightUpdatedAt > 0) localStorage.setItem(sharedKey('weight-at'), String(state.weightUpdatedAt));
+        }
+        if (state.pkParams !== undefined) {
+            const next = sanitizePKParams(state.pkParams);
+            setPkParamsState(next);
+            if (next) localStorage.setItem(sharedKey('pk-params'), JSON.stringify(next));
+            else localStorage.removeItem(sharedKey('pk-params'));
+            if (state.pkParamsUpdatedAt > 0) localStorage.setItem(sharedKey('pk-params-at'), String(state.pkParamsUpdatedAt));
+        }
     };
 
     return {
@@ -736,6 +955,11 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         addQuickDose, deleteQuickDose,
         processImportedData,
         mergeImportedData,
-        buildExportPayload
+        buildExportPayload,
+        applySyncedState,
+        // (account, mode) currently selected vs. the one whose data is actually
+        // in state. Cloud sync waits for the two to agree — see readyScope.
+        scope,
+        readyScope,
     };
 };

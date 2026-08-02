@@ -1,4 +1,39 @@
-import { decryptCloudPayload, isCloudEncrypted, deriveCloudKey } from '../../logic';
+import { decryptCloudPayload, isCloudEncrypted, deriveCloudKey, encryptCloudPayload } from '../../logic';
+
+/**
+ * Fired when this device gains (or changes) the key that decrypts cloud
+ * backups. Sync is suspended while a backup is readable only in principle, so
+ * it needs to know the moment that stops being true — otherwise unlocking on
+ * the Account page leaves sync idle until the next scheduled poll.
+ */
+export const CLOUD_KEY_CHANGED_EVENT = 'hrt-cloud-key-changed';
+
+function announceKeyChange(): void {
+    try { window.dispatchEvent(new Event(CLOUD_KEY_CHANGED_EVENT)); } catch { /* non-DOM host */ }
+}
+
+/** Cache a derived cloud key on this device and wake anything waiting on one. */
+export function cacheCloudKey(rawKeyB64: string | null): void {
+    if (rawKeyB64) localStorage.setItem('enc_key', rawKeyB64);
+    else localStorage.removeItem('enc_key');
+    announceKeyChange();
+}
+
+/** Whether this device holds a key at all — distinct from holding the right one. */
+export function hasCloudKey(): boolean {
+    return !!localStorage.getItem('enc_key');
+}
+
+/**
+ * Encrypt an export payload for cloud storage when a device key is present.
+ * Without a key (a session predating E2EE, or a passwordless passkey login on a
+ * fresh device) the payload is stored as-is.
+ */
+export async function prepareCloudPayload(exportData: any): Promise<any> {
+    const key = localStorage.getItem('enc_key');
+    if (!key) return exportData;
+    return await encryptCloudPayload(JSON.stringify(exportData), key);
+}
 
 export interface BackupSummary {
     events: any[];
@@ -67,6 +102,7 @@ export async function unlockCloudBackup(
     if (plain === null) return { status: 'locked' };
 
     localStorage.setItem('enc_key', candidate);
+    announceKeyChange();
     try { return { status: 'ok', data: JSON.parse(plain) }; }
     catch { return { status: 'corrupt' }; }
 }
