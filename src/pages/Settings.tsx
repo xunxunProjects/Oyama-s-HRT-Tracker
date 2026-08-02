@@ -21,6 +21,7 @@ interface SettingsProps {
     events: DoseEvent[];
     showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void;
     setIsDisclaimerOpen: (isOpen: boolean) => void;
+    onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     appVersion: string;
     weight: number;
@@ -70,7 +71,7 @@ let _savedMobileView: MobileView = 'list';
 
 const Settings: React.FC<SettingsProps> = ({
     t, lang, theme, languageOptions, onClearAllEvents, events,
-    showDialog, setIsDisclaimerOpen, onNavigateToTransparency, appVersion,
+    showDialog, setIsDisclaimerOpen, onShowIntro, onNavigateToTransparency, appVersion,
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
@@ -282,6 +283,13 @@ const Settings: React.FC<SettingsProps> = ({
 
             <button onClick={() => setIsDisclaimerOpen(true)} className={rowBase}>
                 <span className={rowLabel}>{t('drawer.disclaimer')}</span>
+                <ChevronRight size={15} className={muted} />
+            </button>
+
+            {/* The intro only ever shows itself once, so this is the only way back
+                to it — and the only way anyone who skipped it can read it. */}
+            <button onClick={onShowIntro} className={rowBase}>
+                <span className={rowLabel}>{t('settings.show_intro')}</span>
                 <ChevronRight size={15} className={muted} />
             </button>
 

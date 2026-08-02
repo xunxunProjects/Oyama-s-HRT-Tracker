@@ -48,6 +48,7 @@ import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
+import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -121,6 +122,9 @@ const AppContent = () => {
     const [autoSync, setAutoSync] = useState<boolean>(() =>
         localStorage.getItem('app-auto-backup') !== 'false'
     );
+
+    // --- First run ---
+    const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
 
     // --- Developer mode (unlocks the milk tea easter egg) ---
     const [devMode, setDevMode] = useState<boolean>(() =>
@@ -363,10 +367,23 @@ const AppContent = () => {
 
     // Construct Nav Items again just for Sidebar prop, or reuse from hook if we exported it
     // Actually we exported navItems from useAppNavigation
-    // But we need to pass them to sidebar. 
+    // But we need to pass them to sidebar.
     // And also reconstruct the bottom nav bar manually because it was inline in the original App.tsx
     // Let's grab navItems logic from hook or just reconstruct here?
     // The hook provides navItems.
+
+    // Takes over the whole screen rather than sitting in the view stack: the
+    // intro is where language and HRT mode get chosen, and leaving the nav up
+    // would let someone tab away with both still on their defaults. Yields to a
+    // forced 2FA setup, which is the one thing that can't wait behind a tour.
+    if (showOnboarding && !needsSetup2FA) {
+        return (
+            <Onboarding
+                languageOptions={languageOptions}
+                onDone={() => { markOnboardingSeen(); setShowOnboarding(false); }}
+            />
+        );
+    }
 
     return (
         <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden">
@@ -484,6 +501,7 @@ const AppContent = () => {
                             events={events}
                             showDialog={showDialog}
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
+                            onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             appVersion={APP_VERSION}
                             weight={weight}
