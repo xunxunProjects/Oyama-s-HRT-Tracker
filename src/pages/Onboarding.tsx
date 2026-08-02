@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Activity, AlertTriangle, Check, Cloud, FlaskConical, Lock, Syringe } from 'lucide-react';
+import { AlertTriangle, Check, Cloud, Lock, Syringe } from 'lucide-react';
 import PixelCat from '../components/PixelCat';
+import LevelCurveIcon from '../components/LevelCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { Lang } from '../i18n/translations';
@@ -37,16 +38,23 @@ export const markOnboardingSeen = (): void => {
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 
+/** Every mark sits in the same 34px well, whether it's a glyph or a lettermark. */
+const markProps = { size: 18, strokeWidth: 1.75, className: 'text-muted' };
+
 interface PointProps {
-    Icon: React.ElementType;
+    /** A lucide glyph or a short lettermark — see `hormoneMark`. */
+    mark: React.ReactNode;
     title: string;
     desc: string;
 }
 
-const Point: React.FC<PointProps> = ({ Icon, title, desc }) => (
+const Point: React.FC<PointProps> = ({ mark, title, desc }) => (
     <div className={`flex items-start gap-3.5 py-4 ${divider} last:border-b-0`}>
-        <div className="mt-0.5 shrink-0 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] p-2">
-            <Icon size={18} strokeWidth={1.75} className="text-muted" />
+        {/* Fixed 34px rather than padding around the content: an 18px glyph and
+            two letters have different intrinsic sizes, and the wells have to
+            line up down the column regardless. */}
+        <div className="mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+            {mark}
         </div>
         <div>
             <p className="text-[15px] font-medium text-body">{title}</p>
@@ -73,7 +81,16 @@ interface OnboardingProps {
  */
 const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     const { t, lang, setLang } = useTranslation();
-    const { mode, setMode } = useHRTMode();
+    const { mode, setMode, isTransmasc } = useHRTMode();
+
+    // The lettermark for the hormone this user actually tracks. Hard-coding E2
+    // would be wrong for anyone who picked transmasc on the step before this
+    // one — the mark names the thing they'll be getting measured.
+    const hormoneMark = (
+        <span className="text-[11px] font-semibold tracking-tight text-muted">
+            {isTransmasc ? 'T' : 'E2'}
+        </span>
+    );
 
     const [step, setStep] = useState(0);
     // Only so the step change slides the way the app's view changes do.
@@ -146,9 +163,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.how_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
             <div className="mt-4">
-                <Point Icon={Syringe} title={t('onboarding.how_log')} desc={t('onboarding.how_log_desc')} />
-                <Point Icon={Activity} title={t('onboarding.how_chart')} desc={t('onboarding.how_chart_desc')} />
-                <Point Icon={FlaskConical} title={t('onboarding.how_calibrate')} desc={t('onboarding.how_calibrate_desc')} />
+                <Point mark={<Syringe {...markProps} />} title={t('onboarding.how_log')} desc={t('onboarding.how_log_desc')} />
+                <Point mark={<LevelCurveIcon {...markProps} />} title={t('onboarding.how_chart')} desc={t('onboarding.how_chart_desc')} />
+                <Point mark={hormoneMark} title={t('onboarding.how_calibrate')} desc={t('onboarding.how_calibrate_desc')} />
             </div>
             <p className="callout mt-5">{t('onboarding.how_note')}</p>
         </div>,
@@ -157,9 +174,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.privacy_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
             <div className="mt-4">
-                <Point Icon={Lock} title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
-                <Point Icon={Cloud} title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
-                <Point Icon={AlertTriangle} title={t('onboarding.privacy_medical')} desc={t('onboarding.privacy_medical_desc')} />
+                <Point mark={<Lock {...markProps} />} title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
+                <Point mark={<Cloud {...markProps} />} title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
+                <Point mark={<AlertTriangle {...markProps} />} title={t('onboarding.privacy_medical')} desc={t('onboarding.privacy_medical_desc')} />
             </div>
         </div>,
     ];
