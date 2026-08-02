@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone } from 'lucide-react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, RefreshCw, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem } from '../components/SettingsListItem';
 
@@ -9,6 +9,7 @@ import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload } from '../u
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
 import PasswordInputModal from '../components/PasswordInputModal';
+import { SyncStatus } from '../hooks/useCloudSync';
 
 interface LocalData {
     events: any[];
@@ -29,6 +30,8 @@ interface AccountProps {
     onNavigate: (view: string) => void;
     twoFAEnabled: boolean;
     onTwoFAStatusChange: (enabled: boolean) => void;
+    syncStatus: SyncStatus;
+    lastSyncedAt: number | null;
 }
 
 const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
@@ -36,6 +39,17 @@ const sectionLabel = "text-xs font-semibold uppercase tracking-wide text-[var(--
 const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
 const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
 const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+
+const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
+    switch (status) {
+        case 'syncing': return <RefreshCw size={18} className={`${className} animate-spin`} />;
+        case 'synced': return <CheckCircle2 size={18} className={className} />;
+        case 'locked': return <Lock size={18} className={className} />;
+        case 'error': return <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />;
+        case 'off': return <CloudOff size={18} className={className} />;
+        default: return <Cloud size={18} className={className} />;
+    }
+};
 
 const Account: React.FC<AccountProps> = ({
     t,
@@ -48,7 +62,9 @@ const Account: React.FC<AccountProps> = ({
     localData,
     onNavigate,
     twoFAEnabled,
-    onTwoFAStatusChange
+    onTwoFAStatusChange,
+    syncStatus,
+    lastSyncedAt,
 }) => {
     const [avatarError, setAvatarError] = useState(false);
     // Bust the avatar cache once per mount so returning from the edit-avatar
@@ -98,6 +114,13 @@ const Account: React.FC<AccountProps> = ({
             authService.get2FAStatus(token).then(s => onTwoFAStatusChange(s.enabled)).catch(() => {});
         }
     }, [user, token]);
+
+    // A sync that uploaded leaves a new revision behind; refresh so the list
+    // below isn't showing a version that has already been superseded.
+    useEffect(() => {
+        if (lastSyncedAt && user && token) fetchBackups();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lastSyncedAt]);
 
     const handleSave = async () => {
         setSavingCloud(true);
@@ -349,6 +372,25 @@ const Account: React.FC<AccountProps> = ({
                     {/* Data / Cloud */}
                     <div className="mb-6">
                         <span className={sectionLabel}>{t('settings.group.data')}</span>
+
+                        {/* Sync runs on its own — no prompts, no buttons. This line
+                            is the only place it reports for duty, so a failure
+                            (or a backup this device can't decrypt) is visible
+                            somewhere rather than silently never happening. */}
+                        <div className={`flex items-center gap-2.5 py-3 ${divider}`}>
+                            <SyncIcon status={syncStatus} className={iconCls} />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                                    {t(`sync.status.${syncStatus}`)}
+                                </p>
+                                {lastSyncedAt !== null && syncStatus !== 'off' && (
+                                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                        {(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt).toLocaleTimeString())}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
                         <button
                             onClick={handleSave}
                             disabled={savingCloud}

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService, User, AuthResponse } from '../services/auth';
 import { deriveCloudKey } from '../../logic';
+import { cacheCloudKey } from '../utils/cloudBackup';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
 import { useDialog } from './DialogContext';
 import { useTranslation } from './LanguageContext';
@@ -11,11 +12,10 @@ import { useTranslation } from './LanguageContext';
 // data but cannot be used to authenticate.
 async function setCloudKey(password: string, userId: string): Promise<void> {
     try {
-        const raw = await deriveCloudKey(password, userId);
-        localStorage.setItem('enc_key', raw);
+        cacheCloudKey(await deriveCloudKey(password, userId));
     } catch {
         // If derivation fails, fall back to no key (saves stay plaintext).
-        localStorage.removeItem('enc_key');
+        cacheCloudKey(null);
     }
 }
 
@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('needs_setup_2fa');
-        localStorage.removeItem('enc_key');
+        cacheCloudKey(null);
     };
 
     // When the server reports the session is no longer valid, drop the stale

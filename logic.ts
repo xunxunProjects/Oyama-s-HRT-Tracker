@@ -63,6 +63,11 @@ export interface DoseEvent {
     doseMG: number; // Dose in mg (of the ester/compound), NOT E2-equivalent
     ester: Ester;
     extras: Partial<Record<ExtraKey, number>>;
+    // Epoch ms of the last edit, stamped by the app on write. Only cloud sync
+    // reads it: when two devices hold the same id with different contents, this
+    // is what says which edit came second. Optional because records written
+    // before sync existed (and hand-made imports) simply don't have one.
+    updatedAt?: number;
 }
 
 export interface SimulationResult {
@@ -83,6 +88,8 @@ export interface LabResult {
     concValue: number; // Value in the user's unit
     // E2 units (transfem) or T units (transmasc). Kept in one field for storage simplicity.
     unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
+    // Epoch ms of the last edit — see DoseEvent.updatedAt.
+    updatedAt?: number;
 }
 
 export function convertToPgMl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l'): number {

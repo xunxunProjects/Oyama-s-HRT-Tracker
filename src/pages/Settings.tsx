@@ -33,8 +33,8 @@ interface SettingsProps {
     onNavigateToWeight: () => void;
     onNavigateToExport: () => void;
     onNavigateToImport: () => void;
-    autoBackup: boolean;
-    setAutoBackup: (v: boolean) => void;
+    autoSync: boolean;
+    setAutoSync: (v: boolean) => void;
     isLoggedIn: boolean;
     devMode: boolean;
     setDevMode: (v: boolean) => void;
@@ -73,7 +73,7 @@ const Settings: React.FC<SettingsProps> = ({
     showDialog, setIsDisclaimerOpen, onNavigateToTransparency, appVersion,
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
-    onNavigateToExport, onNavigateToImport, autoBackup, setAutoBackup, isLoggedIn,
+    onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
     devMode, setDevMode, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
@@ -148,16 +148,16 @@ const Settings: React.FC<SettingsProps> = ({
             {isLoggedIn && (
                 <div className={`${rowBase} cursor-default`}>
                     <div>
-                        <p className={rowLabel}>{t('settings.auto_backup')}</p>
-                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.auto_backup_desc')}</p>
+                        <p className={rowLabel}>{t('settings.auto_sync')}</p>
+                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.auto_sync_desc')}</p>
                     </div>
                     <button
-                        onClick={() => setAutoBackup(!autoBackup)}
-                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${autoBackup ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                        onClick={() => setAutoSync(!autoSync)}
+                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${autoSync ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
                         role="switch"
-                        aria-checked={autoBackup}
+                        aria-checked={autoSync}
                     >
-                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${autoBackup ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${autoSync ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                 </div>
             )}

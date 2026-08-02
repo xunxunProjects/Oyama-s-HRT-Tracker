@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
 import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION, AppTheme } from './constants';
-import { DoseEvent, decompressData, encryptData, decryptData, encryptCloudPayload } from '../logic';
-import { parseCloudBackup } from './utils/cloudBackup';
+import { DoseEvent, decompressData, encryptData, decryptData } from '../logic';
+import { parseCloudBackup, prepareCloudPayload } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
+import { useCloudSync } from './hooks/useCloudSync';
 
 import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
@@ -19,9 +20,7 @@ import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import AuthModal from './components/AuthModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import BackupConflictModal from './components/BackupConflictModal';
 import { cloudService } from './services/cloud';
-import { diffBackup } from './utils/backupDiff';
 
 // Pages
 import Home from './pages/Home';
@@ -49,15 +48,6 @@ import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
-
-// Encrypt the export payload for cloud storage when a device key is present.
-// Without a key (e.g. a session predating E2EE, or a passwordless passkey
-// login on a fresh device) the payload is stored as-is.
-async function prepareCloudPayload(exportData: any): Promise<any> {
-    const key = localStorage.getItem('enc_key');
-    if (!key) return exportData;
-    return await encryptCloudPayload(JSON.stringify(exportData), key);
-}
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -90,7 +80,10 @@ const AppContent = () => {
         pkParams, setPkParams, clearPkParams,
         processImportedData,
         mergeImportedData,
-        buildExportPayload
+        buildExportPayload,
+        applySyncedState,
+        scope,
+        readyScope,
     } = useAppData(showDialog);
 
     useLiveShareSync({
@@ -122,8 +115,10 @@ const AppContent = () => {
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
-    // --- Auto-backup state ---
-    const [autoBackup, setAutoBackup] = useState<boolean>(() =>
+    // --- Auto-sync preference ---
+    // Storage key kept from when this only ever uploaded, so an existing
+    // preference carries over rather than silently resetting to on.
+    const [autoSync, setAutoSync] = useState<boolean>(() =>
         localStorage.getItem('app-auto-backup') !== 'false'
     );
 
@@ -134,134 +129,36 @@ const AppContent = () => {
     useEffect(() => {
         localStorage.setItem('app-dev-mode', String(devMode));
     }, [devMode]);
-    const autoBackupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const initialLoadRef = useRef(true);
-    const tokenRef = useRef(token);
-    const userRef = useRef(user);
-    const autoBackupRef = useRef(autoBackup);
-    useEffect(() => { tokenRef.current = token; }, [token]);
-    useEffect(() => { userRef.current = user; }, [user]);
-    useEffect(() => { autoBackupRef.current = autoBackup; }, [autoBackup]);
-
-    // --- Startup conflict check state ---
-    const [conflictState, setConflictState] = useState<{
-        cloudNewCount: number;
-        localNewCount: number;
-        /** Same id on both sides, different contents — an edit on one device. */
-        changedCount: number;
-        /** False when the cloud holds nothing this device lacks, so merge is a no-op. */
-        canMerge: boolean;
-        cloudParsed: any;
-    } | null>(null);
-    const conflictCheckedRef = useRef(false);
-
 
     const [theme, setTheme] = useState<AppTheme>(() => {
         const saved = localStorage.getItem('app-theme');
         return (saved as AppTheme) || 'system';
     });
 
-
     useEffect(() => {
-        localStorage.setItem('app-auto-backup', String(autoBackup));
-    }, [autoBackup]);
+        localStorage.setItem('app-auto-backup', String(autoSync));
+    }, [autoSync]);
 
-    // --- Auto-backup: debounced save when data changes ---
-    // Deliberately depends ONLY on data slices, not on user/token/autoBackup.
-    // Including those would trigger an unwanted backup on login (potentially
-    // overwriting cloud data with empty local state) or when toggling the
-    // setting. We read current auth/toggle state via refs at fire time.
-    useEffect(() => {
-        if (initialLoadRef.current) {
-            initialLoadRef.current = false;
-            return;
-        }
-        if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
-        autoBackupTimerRef.current = setTimeout(async () => {
-            if (!autoBackupRef.current) return;
-            const currentToken = tokenRef.current;
-            const currentUser = userRef.current;
-            if (!currentToken || !currentUser) return;
-            try {
-                const exportData = buildExportPayload();
-                const payload = await prepareCloudPayload(exportData);
-                await cloudService.save(currentToken, payload);
-                // Silent success — no blocking dialog for background auto-backup
-            } catch {
-                // silent fail for auto-backup
-            }
-        }, 3000);
-        return () => {
-            if (autoBackupTimerRef.current) clearTimeout(autoBackupTimerRef.current);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates]);
-
-    // --- Startup conflict check when user logs in ---
-    useEffect(() => {
-        if (!user || !token) {
-            conflictCheckedRef.current = false;
-            setConflictState(null); // Clear any lingering modal data from previous session
-            return;
-        }
-        if (conflictCheckedRef.current) return;
-        conflictCheckedRef.current = true;
-
-        // Fetch the metadata list first, then only the newest backup's body.
-        // This used to call cloudService.load(), whose endpoint is SELECT * —
-        // it pulled every retained backup (up to 10, each capped at 2 MiB) on
-        // every single launch and then read list[0] and discarded the rest.
-        (async () => {
-            const metas = await cloudService.listMeta(token);
-            if (!metas || metas.length === 0) return;
-            // The endpoint orders by created_at DESC, but don't depend on it.
-            const newest = metas.reduce((a, b) => (b.created_at > a.created_at ? b : a));
-
-            const backup = await cloudService.loadOne(token, newest.id);
-            let cloudParsed: any;
-            try {
-                cloudParsed = await parseCloudBackup(backup.data);
-            } catch {
-                return; // Corrupt backup data — skip conflict check
-            }
-            if (!cloudParsed) return; // Encrypted but undecryptable on this device — skip
-
-            const localPayload = buildExportPayload();
-            const diff = diffBackup(localPayload, cloudParsed);
-            if (!diff.hasDifference) return;
-
-            // Merging pulls cloud -> local and only ever ADDS records this device
-            // is missing. So when the cloud has nothing this device lacks, the
-            // dialog's one button provably does nothing — which is exactly the
-            // "0 added" people were seeing.
-            if (diff.onlyCloud === 0) {
-                // Cloud strictly behind and no contested edits: local is a
-                // superset, so pushing it up loses nothing and settles the
-                // difference. Without this the prompt returned on every single
-                // launch, because nothing else ever uploads unless the data
-                // changes — closing the app inside the 3s auto-backup debounce
-                // was enough to wedge it there permanently.
-                if (diff.changed === 0 && autoBackupRef.current) {
-                    try {
-                        await cloudService.save(token, await prepareCloudPayload(localPayload));
-                    } catch { /* next data change will retry */ }
-                    return;
-                }
-                // Contents differ under the same ids. Worth telling the user
-                // about — merge still can't reconcile it, so the dialog says so
-                // and offers no merge.
-                if (diff.changed === 0) return;
-            }
-
-            setConflictState({
-                cloudNewCount: diff.onlyCloud,
-                localNewCount: diff.onlyLocal,
-                changedCount: diff.changed,
-                canMerge: diff.onlyCloud > 0,
-                cloudParsed,
-            });
-        })().catch(() => {});
-    }, [user, token]);
+    // Two-way sync with the cloud backup: pull, reconcile, push. Replaces both
+    // the upload-only auto-backup and the startup "your data differs" prompt —
+    // the prompt could only add records the cloud had and this device lacked, so
+    // edits and deletions stayed unresolved and it reappeared every launch.
+    const syncState = useCloudSync({
+        token,
+        userId: user?.id ?? null,
+        enabled: autoSync,
+        // Never touch the cloud while the data layer is mid-switch between
+        // accounts or modes: the payload would mix one account's in-memory
+        // records with another's storage keys.
+        ready: readyScope === scope,
+        buildPayload: buildExportPayload,
+        applyRemote: applySyncedState,
+        events,
+        labResults,
+        doseTemplates,
+        weight,
+        pkParams,
+    });
 
     // --- Theme Effect ---
     useEffect(() => {
@@ -600,8 +497,8 @@ const AppContent = () => {
                             onNavigateToWeight={() => handleViewChange('settings-weight')}
                             onNavigateToExport={() => handleViewChange('settings-export')}
                             onNavigateToImport={() => handleViewChange('settings-import')}
-                            autoBackup={autoBackup}
-                            setAutoBackup={setAutoBackup}
+                            autoSync={autoSync}
+                            setAutoSync={setAutoSync}
                             isLoggedIn={!!user}
                             devMode={devMode}
                             setDevMode={setDevMode}
@@ -674,6 +571,8 @@ const AppContent = () => {
                             onNavigate={(v) => handleViewChange(v as ViewKey)}
                             twoFAEnabled={twoFAEnabled}
                             onTwoFAStatusChange={setTwoFAEnabled}
+                            syncStatus={syncState.status}
+                            lastSyncedAt={syncState.lastSyncedAt}
                         />
                     )}
 
@@ -848,20 +747,6 @@ const AppContent = () => {
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
-            />
-
-            <BackupConflictModal
-                isOpen={!!conflictState}
-                onClose={() => setConflictState(null)}
-                cloudNewCount={conflictState?.cloudNewCount ?? 0}
-                localNewCount={conflictState?.localNewCount ?? 0}
-                changedCount={conflictState?.changedCount ?? 0}
-                canMerge={conflictState?.canMerge ?? false}
-                onMerge={() => {
-                    if (conflictState?.cloudParsed) {
-                        mergeImportedData(conflictState.cloudParsed);
-                    }
-                }}
             />
 
         </div >
