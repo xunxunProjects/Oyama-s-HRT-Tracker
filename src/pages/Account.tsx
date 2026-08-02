@@ -98,14 +98,18 @@ const Account: React.FC<AccountProps> = ({
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const { login, register, loginWithToken } = useAuth();
 
-    const fetchBackups = async () => {
+    // `silent` refreshes the list in place. Sync reports in on its own schedule
+    // — including a poll every few minutes — and swapping the whole list for a
+    // spinner each time it does would have the page blinking at someone who
+    // never asked for anything.
+    const fetchBackups = async (silent = false) => {
         if (!token) return;
-        setBackupsLoading(true);
+        if (!silent) setBackupsLoading(true);
         try {
             const list = await cloudService.listMeta(token);
             setBackupList(list);
-        } catch { setBackupList([]); }
-        finally { setBackupsLoading(false); }
+        } catch { if (!silent) setBackupList([]); }
+        finally { if (!silent) setBackupsLoading(false); }
     };
 
     useEffect(() => {
@@ -118,7 +122,7 @@ const Account: React.FC<AccountProps> = ({
     // A sync that uploaded leaves a new revision behind; refresh so the list
     // below isn't showing a version that has already been superseded.
     useEffect(() => {
-        if (lastSyncedAt && user && token) fetchBackups();
+        if (lastSyncedAt && user && token) fetchBackups(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lastSyncedAt]);
 

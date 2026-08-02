@@ -29,7 +29,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cloudService } from '../services/cloud';
 import { CLOUD_KEY_CHANGED_EVENT, hasCloudKey, prepareCloudPayload, readCloudBackup } from '../utils/cloudBackup';
-import { fingerprintState, mergeSyncStates, normalizeSyncState, SyncState } from '../utils/syncMerge';
+import { fingerprintState, hasContent, mergeSyncStates, normalizeSyncState, SyncState } from '../utils/syncMerge';
 
 export type SyncStatus =
     /** Signed out, or the user turned sync off. */
@@ -86,11 +86,16 @@ type RemoteRead =
     | { kind: 'locked' }
     /**
      * Encrypted under a key this device doesn't have, but it does have one of
-     * its own. Changing the account password re-derives the key and orphans
-     * every backup written under the old one — permanently, by design, since
-     * that is what stops a password reset from exposing them. Waiting for a key
-     * that will never exist would mean this device never reaches the cloud
-     * again, so the orphaned copy gets superseded instead.
+     * its own — which in practice means the password was just changed here.
+     * Changing it re-derives the key and orphans every backup written under the
+     * old one, permanently and by design, since that is what stops a password
+     * reset from exposing them. Waiting for a key that will never exist would
+     * mean this device never reaches the cloud again, so the orphaned copy gets
+     * superseded instead.
+     *
+     * Other devices don't reach this state: the password endpoint drops their
+     * sessions, so they sign out and re-derive rather than uploading under a key
+     * the account has moved on from.
      */
     | { kind: 'orphaned' }
     | { kind: 'unreadable' };
@@ -139,6 +144,17 @@ export const useCloudSync = ({
      */
     const lockedRef = useRef(false);
 
+    /**
+     * Re-checked after every await. Signing out or switching accounts mid-flight
+     * invalidates the payload we would build — it belongs to a different
+     * account's storage namespace — and switching the toggle off mid-flight
+     * should stop the upload that hasn't happened yet, and stop the run from
+     * reporting "up to date" over the "sync off" the toggle just set.
+     */
+    const stillCurrent = useCallback((account: string, authToken: string): boolean =>
+        activeRef.current && userIdRef.current === account && tokenRef.current === authToken,
+        []);
+
     /** Fetch the newest backup we can actually read. */
     const readRemote = useCallback(async (authToken: string): Promise<RemoteRead> => {
         const metas = await cloudService.listMeta(authToken);
@@ -174,10 +190,7 @@ export const useCloudSync = ({
 
         try {
             const remote = await readRemote(authToken);
-            // Signing out or switching accounts mid-flight invalidates
-            // everything below — the payload we would build and upload now
-            // belongs to a different account's storage namespace.
-            if (userIdRef.current !== account || tokenRef.current !== authToken) return;
+            if (!stillCurrent(account, authToken)) return;
 
             if (remote.kind === 'locked') {
                 lockedRef.current = true;
@@ -200,9 +213,9 @@ export const useCloudSync = ({
                 // keys, each finds the other's copy orphaned, and without it
                 // they would take turns re-uploading on every poll.
                 const fingerprint = fingerprintState(local);
-                if (fingerprint !== lastPushedRef.current) {
+                if (hasContent(local) && fingerprint !== lastPushedRef.current) {
                     await cloudService.save(authToken, await prepareCloudPayload(localPayload));
-                    if (userIdRef.current !== account) return;
+                    if (!stillCurrent(account, authToken)) return;
                     lastPushedRef.current = fingerprint;
                 }
                 bootstrappedForRef.current = account;
@@ -223,7 +236,7 @@ export const useCloudSync = ({
                     ? toPayload(localPayload, result.merged)
                     : localPayload;
                 await cloudService.save(authToken, await prepareCloudPayload(outgoing));
-                if (userIdRef.current !== account) return;
+                if (!stillCurrent(account, authToken)) return;
             }
             lastPushedRef.current = mergedFingerprint;
             bootstrappedForRef.current = account;
@@ -237,7 +250,7 @@ export const useCloudSync = ({
                 void runSync();
             }
         }
-    }, [readRemote]);
+    }, [readRemote, stillCurrent]);
 
     const runPush = useCallback(async (): Promise<void> => {
         if (!activeRef.current || lockedRef.current) return;
@@ -258,7 +271,7 @@ export const useCloudSync = ({
         setState(prev => ({ ...prev, status: 'syncing' }));
         try {
             await cloudService.save(authToken, await prepareCloudPayload(payload));
-            if (userIdRef.current !== account) return;
+            if (!stillCurrent(account, authToken)) return;
             lastPushedRef.current = fingerprint;
             setState({ status: 'synced', lastSyncedAt: Date.now() });
         } catch {
@@ -270,7 +283,7 @@ export const useCloudSync = ({
                 void runSync();
             }
         }
-    }, [runSync]);
+    }, [runSync, stillCurrent]);
 
     // --- Reset whenever the account (or the toggle) changes ---
     useEffect(() => {

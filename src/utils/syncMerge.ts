@@ -83,7 +83,12 @@ export interface MergeResult {
  */
 export const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 
-/** Hard ceiling per kind, so a mass delete can't push the backup past its size cap. */
+/**
+ * Hard ceiling per kind, so a mass delete can't push the backup past the 2 MiB
+ * the endpoint accepts. Past it the oldest tombstones are dropped, and records
+ * they covered come back if another device still holds them — clearing a
+ * history longer than this in one go is the only way to reach that.
+ */
 export const TOMBSTONE_MAX_PER_KIND = 5000;
 
 // --- Shapes -----------------------------------------------------------------
@@ -361,14 +366,13 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
     const stats: MergeStats = { added: 0, updated: 0, removed: 0 };
 
     if (!remote) {
-        const localFp = fingerprintState(local);
         return {
             merged: local,
             stats,
             localChanged: false,
             // Nothing in the cloud yet — worth uploading only if there is
             // something to upload.
-            remoteStale: localFp !== fingerprintState(emptySyncState()),
+            remoteStale: hasContent(local),
         };
     }
 
@@ -402,6 +406,26 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
         localChanged: mergedFp !== fingerprintState(local),
         remoteStale: mergedFp !== fingerprintState(remote),
     };
+}
+
+/**
+ * Whether a state holds anything a user put there.
+ *
+ * Comparing against an empty state does not answer this: every payload this app
+ * builds carries a body weight, defaulted to 70 kg, so "differs from empty" is
+ * true the moment you sign in and mints a backup holding nothing but that
+ * default. A scalar counts only once it has a real stamp — the floor stamp of 1
+ * is what an unstamped payload gets, the untouched default included.
+ */
+export function hasContent(state: SyncState): boolean {
+    for (const m of MODE_KEYS) {
+        const block = state.modes[m];
+        for (const kind of RECORD_KINDS) {
+            if ((block[kind] as any[]).length > 0) return true;
+            if (Object.keys(block.deletions[kind]).length > 0) return true;
+        }
+    }
+    return state.weightUpdatedAt > 1 || state.pkParamsUpdatedAt > 1;
 }
 
 /**

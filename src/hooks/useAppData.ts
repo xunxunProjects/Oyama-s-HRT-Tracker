@@ -561,11 +561,19 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
             let newTemplates: DoseTemplate[] = [];
             let newPkParams: PKCustomParams | undefined = undefined;
             let importedOtherMode = false;
-            // Did the payload explicitly carry a block for the *current* mode?
-            // Only then should we overwrite active-mode state (otherwise a v2
-            // payload that only contains the other mode's data would wipe the
-            // user's current-mode records on replace-import).
-            let replacedCurrentMode = false;
+            // Which kinds the payload actually *speaks about*, tracked one by
+            // one. A single "it had something for this mode" flag replaced all
+            // three lists, so a file carrying only `events` — the shape a v1
+            // export or a hand-written file often has — cleared the user's lab
+            // results and templates as a side effect of importing doses.
+            //
+            // A present-but-empty array still means "none", so restoring a
+            // backup with no labs still clears them. Only an absent key is
+            // silence. The distinction matters more now that a replace-import
+            // records what it drops as deletions: silence used to cost a wipe
+            // this device might get back from another one, and would now cost
+            // the same wipe on every device.
+            const replaced = { events: false, labResults: false, doseTemplates: false };
 
             // New multi-mode payload: { modes: { transfem: {...}, transmasc: {...} } }
             if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
@@ -577,19 +585,26 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                     const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
                     const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
                     if (m === mode) {
-                        newEvents = evs;
-                        newLabs = ls;
-                        newTemplates = tmps;
-                        replacedCurrentMode = true;
+                        if (Array.isArray(block.events)) { newEvents = evs; replaced.events = true; }
+                        if (Array.isArray(block.labResults)) { newLabs = ls; replaced.labResults = true; }
+                        if (Array.isArray(block.doseTemplates)) { newTemplates = tmps; replaced.doseTemplates = true; }
                     } else {
                         // Write other mode's data straight to localStorage.
-                        reconcileReplacement(m, 'events', loadJSON<DoseEvent[]>(keyFor(m, 'events'), []), evs);
-                        reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
-                        reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
-                        localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
-                        localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
-                        localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
-                        importedOtherMode = true;
+                        if (Array.isArray(block.events)) {
+                            reconcileReplacement(m, 'events', loadJSON<DoseEvent[]>(keyFor(m, 'events'), []), evs);
+                            localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
+                            importedOtherMode = true;
+                        }
+                        if (Array.isArray(block.labResults)) {
+                            reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
+                            localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
+                            importedOtherMode = true;
+                        }
+                        if (Array.isArray(block.doseTemplates)) {
+                            reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
+                            localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
+                            importedOtherMode = true;
+                        }
                     }
                 }
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
@@ -600,22 +615,22 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
                 }
             } else if (Array.isArray(parsed)) {
                 newEvents = sanitizeImportedEvents(parsed);
-                replacedCurrentMode = true;
+                replaced.events = true;
             } else if (typeof parsed === 'object' && parsed !== null) {
                 if (Array.isArray(parsed.events)) {
                     newEvents = sanitizeImportedEvents(parsed.events);
-                    replacedCurrentMode = true;
+                    replaced.events = true;
                 }
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
                     newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
-                    replacedCurrentMode = true;
+                    replaced.labResults = true;
                 }
                 if (Array.isArray(parsed.doseTemplates)) {
                     newTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
-                    replacedCurrentMode = true;
+                    replaced.doseTemplates = true;
                 }
                 if (parsed.pkParams && typeof parsed.pkParams === 'object') {
                     newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
@@ -663,16 +678,20 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
 
             if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length && !newPkParams) throw new Error('No valid entries');
 
-            if (replacedCurrentMode) {
-                // A replace-import states the whole set, so anything it drops is
-                // a deletion. Recording it is what stops the next sync from
-                // pulling the dropped records straight back out of the cloud —
-                // which would make "restore this backup" a no-op.
+            // A replace-import states the whole set for each kind it mentions,
+            // so anything it drops from one is a deletion. Recording it is what
+            // stops the next sync from pulling the dropped records straight back
+            // out of the cloud — which would make "restore this backup" a no-op.
+            if (replaced.events) {
                 reconcileReplacement(mode, 'events', events, newEvents);
-                reconcileReplacement(mode, 'labResults', labResults, newLabs);
-                reconcileReplacement(mode, 'doseTemplates', doseTemplates, newTemplates);
                 setEvents(newEvents);
+            }
+            if (replaced.labResults) {
+                reconcileReplacement(mode, 'labResults', labResults, newLabs);
                 setLabResults(newLabs);
+            }
+            if (replaced.doseTemplates) {
+                reconcileReplacement(mode, 'doseTemplates', doseTemplates, newTemplates);
                 setDoseTemplates(newTemplates);
             }
             if (newWeight !== undefined) setWeight(newWeight);
