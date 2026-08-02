@@ -6,7 +6,7 @@ import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { APP_VERSION, AppTheme } from './constants';
 import { DoseEvent, decompressData, encryptData, decryptData } from '../logic';
-import { parseCloudBackup, prepareCloudPayload } from './utils/cloudBackup';
+import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
@@ -300,16 +300,15 @@ const AppContent = () => {
         return null;
     };
 
+    // Reconcile, then upload — not a plain upload. Every save inserts a new
+    // newest revision with no "only if unchanged", so writing without reading
+    // first would let one device's press erase a dose another device deleted.
+    // Works with auto-sync switched off; refuses when the cloud copy is
+    // encrypted and unreadable here, rather than replacing it with plaintext.
     const handleCloudSave = async () => {
         if (!token) { setIsAuthModalOpen(true); return; }
-        const exportData = buildExportPayload();
-        try {
-            const payload = await prepareCloudPayload(exportData);
-            await cloudService.save(token, payload);
-            showDialog('alert', t('account.cloud_save_success'));
-        } catch (e) {
-            showDialog('alert', t('account.cloud_save_failed'));
-        }
+        const ok = await syncState.syncNow();
+        showDialog('alert', t(ok ? 'account.cloud_save_success' : 'account.cloud_save_failed'));
     };
 
     const handleCloudLoad = async (backupId?: string) => {

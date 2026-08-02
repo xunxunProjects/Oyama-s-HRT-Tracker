@@ -14,7 +14,13 @@ export interface BackupMeta {
 }
 
 export const cloudService = {
-    async save(token: string, data: any): Promise<void> {
+    /**
+     * Store a new backup revision. Returns its id, which sync uses to recognise
+     * its own write when it next checks whether the cloud moved under it — see
+     * useCloudSync. `null` when the server didn't say, which callers must treat
+     * as "the cloud may have moved" rather than as their own revision.
+     */
+    async save(token: string, data: any): Promise<string | null> {
         const res = await apiFetch('/api/content', {
             method: 'POST',
             headers: {
@@ -24,6 +30,10 @@ export const cloudService = {
             body: JSON.stringify({ data })
         });
         if (!res.ok) throw new Error('Failed to save');
+        try {
+            const body = await res.json() as { id?: string };
+            return typeof body?.id === 'string' ? body.id : null;
+        } catch { return null; }
     },
 
     // No `load()` that fetches every backup at once. Its endpoint is SELECT *,
