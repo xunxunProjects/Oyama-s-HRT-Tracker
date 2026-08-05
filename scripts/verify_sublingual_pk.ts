@@ -7,7 +7,7 @@
  *
  *   1. `SublingualTierParams` still matches the mouth model of
  *      "Algorithm Explanation.md" §6.2 run at the documented mid scenario.
- *   2. The simulation those thetas feed still reproduces the measured
+ *   2. The simulation that those thetas feed still reproduces the measured
  *      single-dose numbers it was calibrated against.
  *
  * Why this file exists: issue #22 reported that 2 mg sublingual at the
