@@ -912,11 +912,43 @@ const OralPK = {
 // Define deterministic order for mapping integer tiers (0-3)   to keys
 export const SL_TIER_ORDER = ["quick", "casual", "standard", "strict"] as const;
 
+/**
+ * Sublingual hold-time presets. `theta` is the fraction of the dose that
+ * crosses the oral mucosa; the rest is swallowed and follows the oral path.
+ *
+ * Recalibrated against Doll et al. 2022 (Endocr Pract 28(3):237–242, PMID
+ * 34781041) — the only sublingual estradiol study that used LC-MS/MS, dosed
+ * the population this app is for, and measured the same subjects orally as a
+ * within-subject control. There, 1 mg sublingual reached a peak of 144 pg/mL
+ * at 1 h against 35 pg/mL for 1 mg oral, with an AUC(0–8 h) only 1.8x the
+ * oral one.
+ *
+ * The previous table (0.01/0.04/0.11/0.18) put a 2 mg standard-tier dose at
+ * ~1400 pg/mL for a 55 kg body — about 5x that measurement — and implied an
+ * oral-relative bioavailability of 4.6x, above every reported value. The
+ * cause was one substitution in the mouth model of "Algorithm Explanation.md"
+ * §6.2: it used k_SL = 1.8 h⁻¹ as the rate at which drug leaves the mouth
+ * *into the mucosa*, but 1.8 h⁻¹ is the plasma-side absorption constant,
+ * fitted to the observed Tmax ≈ 1 h. Those are different rates, and the
+ * plasma one is ~5x too fast for the mouth, so mucosal capture won a
+ * competition against swallowing that it does not win in vivo. Refitting
+ * that single constant to 0.37 h⁻¹ against the measured peak yields the
+ * values below; the rest of the model, k_SL = 1.8 h⁻¹ on the plasma side
+ * included, is untouched — Tmax stays at ~1 h, matching Doll et al.
+ *
+ * The older peaks these values replace came from 1981–1997 radioimmunoassay
+ * studies (Price 1997; Burnier 1981), which read 2–3x higher than LC-MS/MS
+ * for the same route. Those studies remain the only source for hold times
+ * longer than ~15 min, so `strict` is still placed near their 2.5x oral AUC.
+ *
+ * `scripts/verify_sublingual_pk.ts` re-derives this table from the mouth
+ * model and re-checks it against both sets of measurements.
+ */
 export const SublingualTierParams = {
-    quick: { theta: 0.01, hold: 2 },
-    casual: { theta: 0.04, hold: 5 },
-    standard: { theta: 0.11, hold: 10 },
-    strict: { theta: 0.18, hold: 15 }
+    quick: { theta: 0.002, hold: 2 },
+    casual: { theta: 0.008, hold: 5 },
+    standard: { theta: 0.025, hold: 10 },
+    strict: { theta: 0.044, hold: 15 }
 };
 
 // --- PK Custom Parameters ---
@@ -933,10 +965,10 @@ export interface PKCustomParams {
     e2_ff_EU: number;        // Estradiol Undecylate (default: 0.040)
     // E2 oral/sublingual
     e2_oral_bio: number;     // oral bioavailability fraction (default: 0.03)
-    e2_sl_quick: number;     // SL theta — quick tier (default: 0.01)
-    e2_sl_casual: number;    // SL theta — casual tier (default: 0.04)
-    e2_sl_standard: number;  // SL theta — standard tier (default: 0.11)
-    e2_sl_strict: number;    // SL theta — strict tier (default: 0.18)
+    e2_sl_quick: number;     // SL theta — quick tier (default: 0.002)
+    e2_sl_casual: number;    // SL theta — casual tier (default: 0.008)
+    e2_sl_standard: number;  // SL theta — standard tier (default: 0.025)
+    e2_sl_strict: number;    // SL theta — strict tier (default: 0.044)
     // E2 gel bioavailability per site
     e2_gel_arm: number;      // Arm (default: 0.05)
     e2_gel_thigh: number;    // Thigh (default: 0.05)
@@ -964,10 +996,14 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_ff_EN: 0.12,
     e2_ff_EU: 0.040,
     e2_oral_bio: 0.03,
-    e2_sl_quick: 0.01,
-    e2_sl_casual: 0.04,
-    e2_sl_standard: 0.11,
-    e2_sl_strict: 0.18,
+    // Read off the tier table rather than repeated here: the settings screen
+    // edits these, the dose form reads the table, and until now recalibrating
+    // one and forgetting the other left the presets disagreeing with the
+    // curve they were supposed to produce.
+    e2_sl_quick: SublingualTierParams.quick.theta,
+    e2_sl_casual: SublingualTierParams.casual.theta,
+    e2_sl_standard: SublingualTierParams.standard.theta,
+    e2_sl_strict: SublingualTierParams.strict.theta,
     // Arm/thigh: ~5% absolute bioavailability (Järvinen et al. 1999, Maturitas —
     // gel bioavailability vs. oral tablet/patch; Wikipedia "Pharmacokinetics of
     // estradiol"). Scrotal/genital: ~5x arm/thigh, extrapolated from scrotal E2
