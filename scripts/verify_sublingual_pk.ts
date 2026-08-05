@@ -37,8 +37,13 @@
  *   conjugates that oral and sublingual dosing generate in quantity — so
  *   these bound the top of the plausible range rather than the middle of it.
  *
- * The tier table is fitted to Doll et al. at the `standard` (10 min) preset;
- * `strict` lands near the RIA-era AUC ratio, `quick` near plain oral.
+ * The tier table is fitted at the `standard` preset to 168 pg/mL at a 70 kg
+ * reference — the midpoint of the paper's 144 and the abstract's 178, not
+ * the paper's figure alone. Doll et al. do not report participant weights,
+ * and that assumption dominates the uncertainty here: anchoring on 144 at
+ * 70 kg would give a standard tier of 0.020 rather than 0.025, and the same
+ * target at 55 kg would give 0.012. See §6.2.1 for the full grid. `strict`
+ * lands near the RIA-era AUC ratio, `quick` near plain oral.
  */
 
 import {
@@ -195,7 +200,8 @@ console.log(`\nsingle 1 mg dose at ${REF_WEIGHT_KG} kg vs. Doll et al. 2022 (LC-
 const sl = probe(Route.sublingual, 1, REF_WEIGHT_KG, standardTheta);
 const oral = probe(Route.oral, 1, REF_WEIGHT_KG);
 // The paper reports 144 pg/mL; the conference abstract for the same cohort
-// reports 178 ± 47 for the LC-MS/MS arm. The band covers both.
+// reports 178 ± 47 for the LC-MS/MS arm. The table is fitted to the midpoint,
+// so the band covers both rather than centring on either.
 check('sublingual Cmax (measured 144–178)', sl.cmax, 110, 200, ' pg/mL');
 check('sublingual Tmax (measured 1.0)', sl.tmax, 0.6, 1.6, ' h');
 // Doll's 1.8 is AUC(0-8 h), which cuts oral off at its own Tmax and so

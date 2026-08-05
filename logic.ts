@@ -921,7 +921,12 @@ export const SL_TIER_ORDER = ["quick", "casual", "standard", "strict"] as const;
  * the population this app is for, and measured the same subjects orally as a
  * within-subject control. There, 1 mg sublingual reached a peak of 144 pg/mL
  * at 1 h against 35 pg/mL for 1 mg oral, with an AUC(0–8 h) only 1.8x the
- * oral one.
+ * oral one. (The conference abstract for the same cohort's LC-MS/MS arm
+ * reports 178 ± 47 for that peak; the values here are fitted to 168, the
+ * midpoint, at a 70 kg reference. The study does not report participant
+ * weights, and that assumption is the largest single uncertainty in these
+ * numbers — anchoring on the paper's 144 alone at 70 kg would put the
+ * standard tier at 0.020 rather than 0.025.)
  *
  * The previous table (0.01/0.04/0.11/0.18) put a 2 mg standard-tier dose at
  * ~1400 pg/mL for a 55 kg body — about 5x that measurement — and implied an
