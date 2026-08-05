@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:watch": "vite build --watch",
+    "verify:sublingual": "node --experimental-transform-types --no-warnings scripts/verify_sublingual_pk.ts",
     "preview": "vite preview",
     "wrangler:dev": "npm run build && wrangler dev",
     "wrangler:migrate:local": "wrangler d1 execute hrt-tracker-prod --local --file=schema.sql",

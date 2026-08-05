@@ -61,7 +61,7 @@ const SL_POINTS = SL_TIER_ORDER
 
 const thetaFromHold = (holdMin: number): number => {
     if (holdMin <= 0) return 0;
-    if (SL_POINTS.length === 0) return 0.11;
+    if (SL_POINTS.length === 0) return SublingualTierParams.standard.theta;
     const h = Math.max(1, holdMin);
     // Linear interpolation with endpoint extrapolation
     for (let i = 0; i < SL_POINTS.length - 1; i++) {
@@ -217,7 +217,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 } else if (eventToEdit.extras[ExtraKey.sublingualTheta] !== undefined) {
                     const thetaVal = eventToEdit.extras[ExtraKey.sublingualTheta];
                     setUseCustomTheta(true);
-                    const safeTheta = (typeof thetaVal === 'number' && Number.isFinite(thetaVal)) ? thetaVal : 0.11;
+                    const safeTheta = (typeof thetaVal === 'number' && Number.isFinite(thetaVal)) ? thetaVal : SublingualTierParams.standard.theta;
                     const hold = Math.max(1, Math.min(60, holdFromTheta(safeTheta)));
                     setCustomHoldValue(hold);
                     setCustomHoldInput(hold.toString());
@@ -379,7 +379,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 setUseCustomTheta(false);
             } else if (template.extras[ExtraKey.sublingualTheta] !== undefined) {
                 const theta = template.extras[ExtraKey.sublingualTheta];
-                const hold = Math.max(1, Math.min(60, holdFromTheta(typeof theta === 'number' ? theta : 0.11)));
+                const hold = Math.max(1, Math.min(60, holdFromTheta(typeof theta === 'number' ? theta : SublingualTierParams.standard.theta)));
                 setCustomHoldValue(hold);
                 setCustomHoldInput(hold.toString());
                 setUseCustomTheta(true);

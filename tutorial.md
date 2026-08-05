@@ -186,28 +186,28 @@ $$
 超过 $T_{\text{hold}}$ 的残留（未吸收固体与溶解相）一律视为吞咽，进入口服通道（即我们的**慢支**）。
 
 **参数锚点与合理区间**
-- $k_{\text{SL}}$ 以**实测达峰**锚定：舌下 E2 常见 $T_{\max}\approx 1\ \mathrm{h}$。一室解析
-  $T_{\max}=\frac{\ln(k_a/k_e)}{k_a-k_e}$，代入 $k_e=k_3=0.41\ \mathrm{h}^{-1}$ 反推 $k_a\approx 1.8\text{–}2.0\ \mathrm{h}^{-1}$。本项目取 **$k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$**。
+- $k_{\text{perm}}$：**口腔黏膜渗透速率常数**（溶解相离开口腔进入黏膜的速率），以实测峰值反标定，取 **$k_{\text{perm}}=0.37\ \mathrm{h}^{-1}$**。
+  **它与血浆侧的 $k_{\text{SL}}$ 不是同一个常数**：$k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$ 由实测达峰反推（舌下 E2 常见 $T_{\max}\approx 1\ \mathrm{h}$；一室解析 $T_{\max}=\frac{\ln(k_a/k_e)}{k_a-k_e}$，代入 $k_e=k_3=0.41\ \mathrm{h}^{-1}$ 得 $k_a\approx 1.8\text{–}2.0\ \mathrm{h}^{-1}$），描述的是已走上黏膜通路的药物在血浆中出现的快慢。早期版本在口腔模型里误用了 $k_{\text{SL}}$，导致 θ 偏高约 5 倍，详见《Algorithm Explanation.md》§6.2.1。
 - $k_{\text{diss}}$：口腔制剂溶解/崩解的**分钟级**过程，经验半衰期选 **3/5/10 min** 三档（速崩/常规/偏慢），便于随配方微调。
-- $k_{\text{sw}}$：**有效**唾液清除率（非吞咽频次），经验区间 **0.8 / 1.8 / 3.0 h⁻¹** 代表低/中/高个体差异，后续可用外部数据回归精化。
+- $k_{\text{sw}}$：**有效**唾液清除率（非吞咽频次），经验区间 **0.8 / 1.8 / 3.0 h⁻¹** 代表低/中/高个体差异。
 
 **计算实现**
 - App 内对上式做**数值积分**（固定步长 Δt≈3.6 s 的 Euler），得到 $\theta(T_{\text{hold}})$。
 - 为便于直观理解，我们也提供一个保守的闭式近似（作为上界/直觉，不用于核心计算）：
 
 $$
-\theta_{\text{eff}}\ \approx\ \frac{k_{\text{SL}}}{k_{\text{SL}}+k_{\text{sw}}}\Bigl(1-e^{-(k_{\text{SL}}+k_{\text{sw}})T_{\text{hold}}}\Bigr)\Bigl(1-e^{-k_{\text{diss}}T_{\text{hold}}}\Bigr)
+\theta_{\text{eff}}\ \approx\ \frac{k_{\text{perm}}}{k_{\text{perm}}+k_{\text{sw}}}\Bigl(1-e^{-(k_{\text{perm}}+k_{\text{sw}})T_{\text{hold}}}\Bigr)\Bigl(1-e^{-k_{\text{diss}}T_{\text{hold}}}\Bigr)
 $$
 
 **UI 档位（不再使用 `theta_default`，用户必须选择一档）**  
-采用中档场景（$k_{\text{sw}}=1.8\ \mathrm{h}^{-1}$，溶解半衰期 5 min）计算，并给出跨场景范围作参考：
+采用中档场景（$k_{\text{sw}}=1.8\ \mathrm{h}^{-1}$，溶解半衰期 5 min）计算，并给出跨场景范围作参考。θ 已按 Doll et al. 2022（PMID 34781041，LC-MS/MS，1 mg 舌下实测峰值 144 pg/mL）重新标定：
 
-| 档位 | 建议含服时长 | θ 推荐 | 典型范围（跨不同 $k_{\text{sw}}$/$k_{\text{diss}}$） |
-| --- | ---: | ---: | ---: |
-| Quick | ≈ 2 min | **0.01** | 0.004–0.012 |
-| Casual | ≈ 5 min | **0.04** | 0.021–0.057 |
-| Standard | ≈ 10 min | **0.11** | 0.064–0.156 |
-| Strict | ≈ 15 min | **0.18** | 0.115–0.253 |
+| 档位 | 建议含服时长 | θ 推荐 | 典型范围（跨不同 $k_{\text{sw}}$/$k_{\text{diss}}$） | 旧值（已废弃） |
+| --- | ---: | ---: | ---: | ---: |
+| Quick | ≈ 2 min | **0.002** | 0.001–0.002 | 0.01 |
+| Casual | ≈ 5 min | **0.008** | 0.004–0.012 | 0.04 |
+| Standard | ≈ 10 min | **0.025** | 0.014–0.035 | 0.11 |
+| Strict | ≈ 15 min | **0.044** | 0.027–0.060 | 0.18 |
 
 - UI 选择的档位直接映射为 \(\theta\) 并写入 `DoseEvent.extras[.sublingualTheta]`；**不再读取/依赖 `theta_default`**。
 

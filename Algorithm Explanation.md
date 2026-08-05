@@ -183,35 +183,71 @@ $$
 
 在用户的“含服窗口” $T_{\text{hold}}$ 内，**真正走黏膜**的比例定义为
 $$
-\boxed{\ \theta(T_{\text{hold}})=\frac{1}{\text{Dose}}\int_{0}^{T_{\text{hold}}} k_{\text{SL}}\,D(t)\,dt\ }
+\boxed{\ \theta(T_{\text{hold}})=\frac{1}{\text{Dose}}\int_{0}^{T_{\text{hold}}} k_{\text{perm}}\,D(t)\,dt\ }
 $$
 超过 $T_{\text{hold}}$ 的残留（未吸收固体与溶解相）一律视为吞咽，进入口服通道（即我们的**慢支**）。
 
 **参数锚点与合理区间**
-- $k_{\text{SL}}$ 以**实测达峰**锚定：舌下 E2 常见 $T_{\max}\approx 1\ \mathrm{h}$。一室解析
-  $T_{\max}=\frac{\ln(k_a/k_e)}{k_a-k_e}$，代入 $k_e=k_3=0.41\ \mathrm{h}^{-1}$ 反推 $k_a\approx 1.8\text{–}2.0\ \mathrm{h}^{-1}$。本项目取 **$k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$**。
+- $k_{\text{perm}}$：**口腔黏膜渗透速率常数**，即溶解相离开口腔进入黏膜的速率。以实测峰值反标定，取 **$k_{\text{perm}}=0.37\ \mathrm{h}^{-1}$**（标定过程见 6.2.1）。
+  **注意：它与血浆侧的 $k_{\text{SL}}$ 不是同一个常数。** $k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$ 由实测达峰反推（舌下 E2 常见 $T_{\max}\approx 1\ \mathrm{h}$；一室解析 $T_{\max}=\frac{\ln(k_a/k_e)}{k_a-k_e}$，代入 $k_e=k_3=0.41\ \mathrm{h}^{-1}$ 得 $k_a\approx 1.8\text{–}2.0\ \mathrm{h}^{-1}$），描述的是**已经走上黏膜通路的药物在血浆中出现的快慢**，用它来代替口腔内的渗透速率会把 θ 抬高约 5 倍（见 6.2.1）。血浆侧仍用 $k_{1,\text{fast}}=k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$，未做改动。
 - $k_{\text{diss}}$：口腔制剂溶解/崩解的**分钟级**过程，经验半衰期选 **3/5/10 min** 三档（速崩/常规/偏慢），便于随配方微调。
-- $k_{\text{sw}}$：**有效**唾液清除率（非吞咽频次），经验区间 **0.8 / 1.8 / 3.0 h⁻¹** 代表低/中/高个体差异，后续可用外部数据回归精化。
+- $k_{\text{sw}}$：**有效**唾液清除率（非吞咽频次），经验区间 **0.8 / 1.8 / 3.0 h⁻¹** 代表低/中/高个体差异。
 
 **计算实现**
 - App 内对上式做**数值积分**（固定步长 Δt≈3.6 s 的 Euler），得到 $\theta(T_{\text{hold}})$。
 - 为便于直观理解，我们也提供一个保守的闭式近似（作为上界/直觉，不用于核心计算）：
 
 $$
-\theta_{\text{eff}}\ \approx\ \frac{k_{\text{SL}}}{k_{\text{SL}}+k_{\text{sw}}}\Bigl(1-e^{-(k_{\text{SL}}+k_{\text{sw}})T_{\text{hold}}}\Bigr)\Bigl(1-e^{-k_{\text{diss}}T_{\text{hold}}}\Bigr)
+\theta_{\text{eff}}\ \approx\ \frac{k_{\text{perm}}}{k_{\text{perm}}+k_{\text{sw}}}\Bigl(1-e^{-(k_{\text{perm}}+k_{\text{sw}})T_{\text{hold}}}\Bigr)\Bigl(1-e^{-k_{\text{diss}}T_{\text{hold}}}\Bigr)
 $$
 
 **UI 档位（不再使用 `theta_default`，用户必须选择一档）**  
 采用中档场景（$k_{\text{sw}}=1.8\ \mathrm{h}^{-1}$，溶解半衰期 5 min）计算，并给出跨场景范围作参考：
 
-| 档位 | 建议含服时长 | θ 推荐 | 典型范围（跨不同 $k_{\text{sw}}$/$k_{\text{diss}}$） |
-| --- | ---: | ---: | ---: |
-| Quick | ≈ 2 min | **0.01** | 0.004–0.012 |
-| Casual | ≈ 5 min | **0.04** | 0.021–0.057 |
-| Standard | ≈ 10 min | **0.11** | 0.064–0.156 |
-| Strict | ≈ 15 min | **0.18** | 0.115–0.253 |
+| 档位 | 建议含服时长 | θ 推荐 | 典型范围（跨不同 $k_{\text{sw}}$/$k_{\text{diss}}$） | 旧值（已废弃） |
+| --- | ---: | ---: | ---: | ---: |
+| Quick | ≈ 2 min | **0.002** | 0.001–0.002 | 0.01 |
+| Casual | ≈ 5 min | **0.008** | 0.004–0.012 | 0.04 |
+| Standard | ≈ 10 min | **0.025** | 0.014–0.035 | 0.11 |
+| Strict | ≈ 15 min | **0.044** | 0.027–0.060 | 0.18 |
 
 - UI 选择的档位直接映射为 \(\theta\) 并写入 `DoseEvent.extras[.sublingualTheta]`；**不再读取/依赖 `theta_default`**。
+- 代码中该表为 `logic.ts` 的 `SublingualTierParams`，`DEFAULT_PK_PARAMS.e2_sl_*` 直接从该表取值，不再各写一份。
+- `npm run verify:sublingual` 会重新推导该表并与实测数据对拍，参数漂移时脚本退出码非 0（脚本为 `scripts/verify_sublingual_pk.ts`，Node ≥ 22.7 或 bun 均可运行，无需额外依赖）。
+
+### 6.2.1 θ 的量级标定（针对 issue #22）
+
+有用户报告：2 mg 舌下、Standard 档、体重 55 kg，模型给出峰值约 **1400 pg/mL**，与直觉不符。该数值可复现，且确实**偏高约 3–5 倍**。
+
+**实测参照**
+
+| 来源 | 人群 / 例数 | 剂量 | 测定方法 | 实测峰值 | 相对口服 |
+| --- | --- | ---: | --- | ---: | ---: |
+| Doll et al. 2022（PMID [34781041](https://pubmed.ncbi.nlm.nih.gov/34781041/)） | 跨性别女性，n=10，自身对照 | 1 mg | **LC-MS/MS** | **144 pg/mL @ 1 h**（同队列会议摘要 LC-MS/MS 臂报 178±47） | AUC(0–8 h) **1.8×** |
+| Price et al. 1997（PMID [9052581](https://pubmed.ncbi.nlm.nih.gov/9052581/)）／Kuhl 2000 综述 | 绝经后女性，n=6 | 1 mg | RIA | ~450 pg/mL | AUC ~2.5× |
+| 同上（高剂量组） | 绝经后女性 | 4 mg | RIA | 1759±704 pg/mL | — |
+
+Doll et al. 是**唯一**同时满足「现代质谱法 + 目标人群 + 同一批受试者的口服自身对照」三个条件的研究，因此作为主锚点。RIA 与质谱的系统差异是已知的：直接法 RIA 与雌酮及其硫酸/葡萄糖醛酸结合物存在交叉反应，而口服/舌下给药恰恰会产生大量这类代谢物，故 1981–1997 年那批数据整体偏高，用作**上界**而非中心值。
+
+**问题定位**：不是解析核、$V_d$ 或 $k_3$ 的问题，而是 6.2 的口腔模型把血浆侧的 $k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$ 直接当成了口腔内的黏膜渗透常数。二者物理意义不同（见上），而 1.8 h⁻¹ 对口腔而言快了约 5 倍，于是「黏膜吸收 vs 吞咽清除」这场竞争被模型判给了黏膜。把该常数单独重新拟合为 $k_{\text{perm}}=0.37\ \mathrm{h}^{-1}$ 即得上表；模型其余部分一律未动，$T_{\max}$ 仍在 1 h 左右。
+
+**拟合靶值与其不确定度（重要）**：拟合靶值取 **168 pg/mL @ 70 kg**，即论文值 144 与同队列会议摘要值 178 的中点，而非论文值本身。该研究**未报告受试者体重**，这是这组数字里最大的单一不确定来源——θ 需要多大才能复现某个峰值，强烈依赖于假设的参考体重：
+
+| 目标 Cmax（1 mg 舌下） | 55 kg | 70 kg | 85 kg |
+| --- | ---: | ---: | ---: |
+| 144 pg/mL（论文） | 0.0123 | **0.0196** | 0.0266 |
+| 168 pg/mL（本表所用） | 0.0168 | **0.0250** | 0.0332 |
+| 178 pg/mL（会议摘要） | 0.0186 | **0.0273** | 0.0359 |
+
+注意 θ 并**不**与体重成正比：吞咽支贡献了一个与 θ 无关的峰值底座，体重越轻该底座占比越高，故轻体重端对参考体重的假设格外敏感（55 kg 下拟合值 0.0123 明显低于按比例外推的 0.0154）。若改以论文值 144 pg/mL、70 kg 为锚，则整表按 0.78 缩放为 `0.0016 / 0.0063 / 0.0196 / 0.0345`。
+
+需要强调的是：**上述不确定度影响的是标定的精度，而非「旧值 0.11 严重偏高」这一结论。** 后者由与体重、$V_d$ 无关的 AUC 比值独立支撑（见下），任何合理的参考体重都无法把 0.11 拉回文献区间。
+
+**AUC 侧的独立佐证**：舌下相对口服的生物利用度比值为 $[\theta+(1-\theta)F_{\text{oral}}]/F_{\text{oral}}$，与体重、$V_d$ 无关。旧的 $\theta=0.11$ 对应 **4.6×**、$\theta=0.18$ 对应 **6.8×**，均高于文献报告的 2–5×；新的 0.025 / 0.044 分别对应 **1.9× / 2.7×**，正好落在 Doll（1.8×）与 Price（2.5×）之间。峰值与 AUC 两条互不依赖的线索指向同一区间。
+
+**标定后的预测**（2 mg，55 kg，峰值 / 达峰）：Quick 192 pg/mL @ 2.5 h、Casual 245 @ 1.9 h、Standard **427 @ 1.4 h**、Strict 643 @ 1.2 h。含服越短，快支占比越低、曲线越向口服的慢峰靠拢，故达峰反而推后——这是双通路模型的预期行为。
+
+**已知偏差（本次未处理）**：口服支单剂峰值本身约偏高 2 倍（1 mg / 70 kg 模型给 69 pg/mL，Doll 实测 35 pg/mL），达峰也早约 3 h。原因见 §10——模型不含雌酮/硫酸雌酮储库，`e2_oral_bio` 用一个偏高的表观 $F$ 去凑稳态谷值。这正是本次标定以**绝对峰值**（只由快支决定）为锚、而不以舌下/口服比值为锚的原因：后者的分母带着这个误差。
 
 **一致性校验（慢支=口服）**  
 当 $\theta=0$ 时，舌下模型**严格退化为口服**：慢支的 $k_{1,\text{slow}}$、$F_{\text{slow}}$、$k_2$、$k_3$ 与对应口服路由完全一致。在回归测试中对比了 “SL，$\theta=0$” 与 “Oral” 的整轨迹，差异 0。
@@ -268,6 +304,11 @@ $$
   - 凝胶（E2）阴囊/生殖器部位的 `e2_gel_scrotal` 由 0.40 调整为 0.25（约 5× 手臂/大腿），改为直接对齐 Premoli et al. 2005 阴囊贴片给药的实测倍数，而非睾酮凝胶类比的上限。
   - 移除了未使用的死代码常量 `GelSiteParams`（与 `_getGelBio`/`_activePKParams` 的实际实现重复且未被引用）。
   - UI：移除 Gel、Patch Apply、Patch Remove 路由标签与提示文案中的 "(Beta)" 标记及相应免责声明——上述路由的核心假设（零阶贴片以标称释放率为 `F=1.0`；凝胶按部位生物利用率）均可追溯到具体文献/官方说明书，不再视为实验性功能。`ester.EU`（十一酸雌二醇）保留 Beta 标记，因其人体药代数据仍非常有限（个体间差异可达 10 倍，终末半衰期未知）。
+- **2026‑08‑05**（issue #22）：
+  - 舌下 θ 档位重新标定：0.01 / 0.04 / 0.11 / 0.18 → **0.002 / 0.008 / 0.025 / 0.044**。2 mg Standard 档、55 kg 的预测峰值由 ~1400 pg/mL 降至 ~427 pg/mL。定位与依据见 §6.2.1：口腔模型此前把血浆侧的 $k_{\text{SL}}=1.8\ \mathrm{h}^{-1}$ 当作黏膜渗透常数使用，重新拟合为 $k_{\text{perm}}=0.37\ \mathrm{h}^{-1}$，模型其余部分未动。
+  - `DEFAULT_PK_PARAMS.e2_sl_*` 改为直接引用 `SublingualTierParams`，消除两处各写一份 θ 导致的漂移风险；`DoseForm` 中三处硬编码的 `0.11` 兜底值同样改为引用该表。
+  - 新增 `scripts/verify_sublingual_pk.ts`：重新推导口腔模型、核对档位表与 `DEFAULT_PK_PARAMS` 一致性，并与 Doll et al. 2022（LC-MS/MS）及 RIA 时代文献对拍；同时把「口服支单剂峰值偏高约 2 倍」记录为已知偏差并监控其漂移。
+  - **对既有数据的影响**：以档位（`extras.sublingualTier`）记录的历史给药会自动按新 θ 重算；以自定义含服时长记录的给药存的是当时算出的 θ 数值（`extras.sublingualTheta`），不会被追溯修改——如需按新标定重算，需在剂量表单里重新选一次含服时长。
 
 ---
 
@@ -292,6 +333,10 @@ $$
 **期刊/综述（示例）**
 - Ginsburg ES et al. Half-life of estradiol in postmenopausal women. Fertil Steril. 1998：贴片移除后终末半衰期约 161 min（107–221 min）。<https://pubmed.ncbi.nlm.nih.gov/9473164/>
 - Kuhl H. Pharmacology of estrogens and progestogens: influence of different routes of administration. *Climacteric*. 2005. <https://pubmed.ncbi.nlm.nih.gov/16112947/>
+- Doll E, Gunsolus I, Thorgerson A, Tangpricha V, Lamberton N, Sarvaideo JL. Pharmacokinetics of Sublingual Versus Oral Estradiol in Transgender Women. *Endocr Pract*. 2022;28(3):237–242：10 名跨性别女性、1 mg 单剂自身对照、LC-MS/MS；舌下 Cmax 144 pg/mL @ 1 h，口服 35 pg/mL，AUC(0–8 h) 之比 1.8。**§6.2.1 中 θ 标定的主锚点。**<https://pubmed.ncbi.nlm.nih.gov/34781041/>
+- Price TM, Blauer KL, Hansen M, Stanczyk F, Lobo R, Bates GW. Single-dose pharmacokinetics of sublingual versus oral administration of micronized 17β-estradiol. *Obstet Gynecol*. 1997;89(3):340–5：RIA 时代的舌下单剂 PK，1 mg 峰值 ~450 pg/mL，作为 θ 的上界参照。<https://pubmed.ncbi.nlm.nih.gov/9052581/>
+- Burnier AM, Martin PL, Yen SS, Brooks P. Sublingual absorption of micronized 17β-estradiol. *Am J Obstet Gynecol*. 1981;140(2):146–50。<https://pubmed.ncbi.nlm.nih.gov/6786097/>
+- 直接法（未萃取）RIA 对雌二醇的系统性高估——与雌酮及雌激素结合物交叉反应，是 1981–1997 年舌下数据高于质谱结果的主要原因之一。<https://pmc.ncbi.nlm.nih.gov/articles/PMC3615207/>、<https://pmc.ncbi.nlm.nih.gov/articles/PMC3667264/>
 - Oinonen et al. / Järvinen et al. Absorption and bioavailability of oestradiol from a gel, a patch and a tablet. *Maturitas*. 1999：凝胶生物利用率为片剂的 61%、贴片的 109%。<https://pubmed.ncbi.nlm.nih.gov/10465378/>
 - Premoli MC et al. Scrotal transdermal estradiol delivery, 2005：阴囊贴片给药雌二醇水平约为前臂给药的 5 倍。
 - Iyer R et al. Pharmacokinetics of testosterone cream applied to scrotal skin. *Andrology*. 2017：阴囊皮肤睾酮吸收显著高于腹部。<https://onlinelibrary.wiley.com/doi/full/10.1111/andr.12357>
@@ -316,7 +361,7 @@ $$
 - 个体差异未建模：肝功能、SHBG、年龄、体脂、并用药等可能改变 `F` 与各速率常数。
 - 凝胶的面积/负荷非线性：当前未在模型中体现；存在低剂量低估与高剂量高估的潜在风险。
 - 注射溶剂/体积影响：对扩散 `k₁` 的影响尚未显式参数化，现仅可用全局系数 `depotK1Corr` 近似。
-- 口服/舌下仅建模游离 E2：雌酮及其硫酸酯的储库效应未纳入。
+- 口服/舌下仅建模游离 E2：雌酮及其硫酸酯的储库效应未纳入。该储库在真实体内延长了口服 E2 的暴露，模型用一个偏高的表观 `e2_oral_bio` 去补稳态谷值，代价是**单剂峰值偏高约 2 倍、达峰早约 3 h**（见 §6.2.1 的实测对照）。因此口服曲线的形状不宜按单剂 PK 解读，`scripts/verify_sublingual_pk.ts` 会持续监控这一偏差。
 - AUC 的跨路由可比性有限：参数含经验缩放，AUC 适合于相同路由内的相对比较与个体内优化。
 
 ---
