@@ -1,7 +1,12 @@
 /**
  * Sublingual estradiol calibration check.
  *
- *   bun run scripts/verify_sublingual_pk.ts
+ *   npm run verify:sublingual
+ *
+ * That runs on plain Node (>= 22.7, for --experimental-transform-types, which
+ * the enums in logic.ts need — plain --experimental-strip-types is not
+ * enough). `bun run scripts/verify_sublingual_pk.ts` works too; neither needs
+ * a dependency this repo does not already have.
  *
  * Two things are checked, and the script exits non-zero if either drifts:
  *
@@ -44,7 +49,7 @@ import {
     SL_TIER_ORDER,
     SublingualTierParams,
     DEFAULT_PK_PARAMS,
-} from '../logic';
+} from '../logic.ts';
 
 // --- mouth model (Algorithm Explanation.md §6.2) ------------------------------
 //
@@ -77,12 +82,17 @@ function theta(holdMin: number, kPerm = MUCOSAL_PERMEATION_H, kSw = SWALLOW_CLEA
     return absorbed;
 }
 
-/** kPerm that puts a 10-minute hold at the given mucosal fraction. */
-function fitPermeation(targetTheta: number): number {
+/**
+ * kPerm that puts the given hold at the given mucosal fraction. The hold
+ * comes from the tier table rather than a literal 10, so that moving a
+ * preset's hold time moves the fit with it instead of silently leaving this
+ * readout describing a hold the app no longer offers.
+ */
+function fitPermeation(targetTheta: number, holdMin: number): number {
     let lo = 0, hi = 5;
     for (let i = 0; i < 200; i++) {
         const mid = (lo + hi) / 2;
-        if (theta(10, mid) < targetTheta) lo = mid; else hi = mid;
+        if (theta(holdMin, mid) < targetTheta) lo = mid; else hi = mid;
     }
     return (lo + hi) / 2;
 }
@@ -112,9 +122,18 @@ function probe(route: Route, doseMG: number, weightKG: number, slTheta?: number)
     const aucTo = (endH: number) => {
         let area = 0;
         for (let i = 1; i < times.length; i++) {
-            const a = Math.max(t0, times[i - 1]), b = Math.min(t0 + endH, times[i]);
+            const t1 = times[i - 1], t2 = times[i];
+            const a = Math.max(t0, t1), b = Math.min(t0 + endH, t2);
             if (b <= a) continue;
-            area += (conc[i - 1] + conc[i]) / 2 * (b - a);
+            // Interpolate at the clipped endpoints. The window boundaries
+            // rarely land on a grid point, and pairing full-segment
+            // concentrations with a partial width biases exactly the segment
+            // the 0-8 h cut always falls in.
+            const span = t2 - t1;
+            const at = (t: number) => span > 0
+                ? conc[i - 1] + (conc[i] - conc[i - 1]) * ((t - t1) / span)
+                : conc[i];
+            area += (at(a) + at(b)) / 2 * (b - a);
         }
         return area;
     };
@@ -145,7 +164,8 @@ function known(label: string, actual: number, lo: number, hi: number, unit: stri
 }
 
 console.log('mouth model (Algorithm Explanation.md §6.2)');
-console.log(`  fitted mucosal permeation constant: ${fitPermeation(SublingualTierParams.standard.theta).toFixed(3)} h⁻¹ (file uses ${MUCOSAL_PERMEATION_H})`);
+const fitted = fitPermeation(SublingualTierParams.standard.theta, SublingualTierParams.standard.hold);
+console.log(`  fitted mucosal permeation constant: ${fitted.toFixed(3)} h⁻¹ at the ${SublingualTierParams.standard.hold} min standard hold (file uses ${MUCOSAL_PERMEATION_H})`);
 console.log('\ntier table vs. mouth model');
 for (const key of SL_TIER_ORDER) {
     const tier = SublingualTierParams[key];

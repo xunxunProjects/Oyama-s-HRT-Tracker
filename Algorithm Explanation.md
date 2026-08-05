@@ -213,7 +213,7 @@ $$
 
 - UI 选择的档位直接映射为 \(\theta\) 并写入 `DoseEvent.extras[.sublingualTheta]`；**不再读取/依赖 `theta_default`**。
 - 代码中该表为 `logic.ts` 的 `SublingualTierParams`，`DEFAULT_PK_PARAMS.e2_sl_*` 直接从该表取值，不再各写一份。
-- `scripts/verify_sublingual_pk.ts` 会重新推导该表并与实测数据对拍，参数漂移时脚本退出码非 0。
+- `npm run verify:sublingual` 会重新推导该表并与实测数据对拍，参数漂移时脚本退出码非 0（脚本为 `scripts/verify_sublingual_pk.ts`，Node ≥ 22.7 或 bun 均可运行，无需额外依赖）。
 
 ### 6.2.1 θ 的量级标定（针对 issue #22）
 
