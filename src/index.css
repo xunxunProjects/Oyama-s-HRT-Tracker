@@ -116,6 +116,14 @@
 html {
     height: 100%;
     overscroll-behavior-y: contain;
+    /* No page-level pinch or double-tap zoom. The layout is already responsive,
+       so scaling it just strands the user inside a viewport they then have to
+       pinch their way back out of. Blink and Gecko honour this; Safari ignores
+       it for page zoom and needs its gesture events cancelled instead — see
+       utils/preventPinchZoom.ts. Panning stays allowed, so scrolling and the
+       chart's own drag are untouched, and components that implement their own
+       pinch (the avatar cropper) set a stricter value on their own container. */
+    touch-action: pan-x pan-y;
 }
 
 /* Black & white theme — light palette rendered fully grayscale */
