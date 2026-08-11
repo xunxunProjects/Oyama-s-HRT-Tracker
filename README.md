@@ -161,16 +161,10 @@ If you deploy this app publicly, please: / 如果你将该应用公开部署，�
 ---
 
 I wish you a smooth transition and Happy Estimating! 🏳️‍⚧️
-
 祝你性转顺利，快乐估测(>^ω^<)
 
 同时，祝所有用此 webapp 的停经期女性身体健康 ❤️
 At the same time, I wish good health to all the women using this web app who are going through menopause. ❤️
-
----
-
-## TODO
-
 
 
 ---
