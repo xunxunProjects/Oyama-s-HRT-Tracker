@@ -20,9 +20,9 @@
     --color-m3-on-accent: #FFFFFF;
     --color-m3-on-accent-container: #7A3920;
 
-    /* Surfaces — warm cream/off-white */
-    --color-m3-surface: #FAF9F7;
-    --color-m3-surface-dim: #F5F4F0;
+    /* Surfaces — white page, warm neutrals for everything raised off it */
+    --color-m3-surface: #FFFFFF;
+    --color-m3-surface-dim: #FFFFFF;
     --color-m3-surface-bright: #FFFFFF;
     --color-m3-surface-container-lowest: #FFFFFF;
     --color-m3-surface-container-low: #F7F6F3;
@@ -73,6 +73,22 @@
     --ease-standard: cubic-bezier(0.2, 0, 0, 1);
     --duration-quick: 150ms;
     --duration-base: 220ms;
+    /* How long the chart line takes to draw itself on. Markers and the "now"
+       read-off are delayed along this same span so they land as it passes. */
+    --duration-sweep: 900ms;
+}
+
+/* Chart entrance, following the product film: the line draws on from the left,
+   each dose and lab marker lands as the line reaches it, and the grid, target
+   band and current reading fade up around it. */
+@keyframes chart-sweep {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes chart-mark-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: none; }
 }
 
 /* Motion primitives */
@@ -112,8 +128,55 @@
     }
 }
 
+/* The layout is drawn for a ~1280 px column, which leaves it undersized on a
+   wide display: small type stranded in a lot of empty page. Everything is sized
+   in rem, so lifting the root size scales type, spacing and the content column
+   together, keeping the proportions and just rendering them larger. Phones and
+   tablets stay at 16px, where the layout is already full-width. */
+:root { --ui-scale: 1; }
+@media (min-width: 1280px) { :root { --ui-scale: 1.10; } }
+@media (min-width: 1600px) { :root { --ui-scale: 1.20; } }
+@media (min-width: 1920px) { :root { --ui-scale: 1.28; } }
+
+/* Icons carry their size as a px width/height attribute, so unlike everything
+   else they do not follow the root font size. Zoom scales the whole glyph,
+   stroke included, keeping them in proportion with the type beside them.
+   Excludes the chart, which lays itself out in measured pixels. */
+svg.lucide {
+    zoom: var(--ui-scale);
+}
+
+/* Sweeps the clip the curves are drawn through. */
+.chart-sweep {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: chart-sweep var(--duration-sweep) var(--ease-standard) both;
+}
+
+/* Grid, axis labels, target band, the "now" read-off. */
+.chart-appear {
+    animation: fade-in var(--duration-base) var(--ease-standard) both;
+}
+
+/* Dose and lab markers. Delayed per point so they arrive with the line. */
+.chart-mark {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: chart-mark-in 260ms var(--ease-standard) both;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .chart-sweep,
+    .chart-appear,
+    .chart-mark {
+        animation: none;
+    }
+}
+
 /* Base Styles */
 html {
+    font-size: calc(16px * var(--ui-scale));
     height: 100%;
     overscroll-behavior-y: contain;
     /* No page-level pinch or double-tap zoom. The layout is already responsive,
@@ -131,8 +194,13 @@ html.mono {
     filter: grayscale(1);
 }
 
+html.dark body {
+    background: var(--color-m3-dark-surface);
+}
+
 body {
     font-family: var(--font-sans);
+    background: var(--color-m3-surface);
     height: 100%;
     margin: 0;
     overscroll-behavior-y: contain;
@@ -232,8 +300,9 @@ body {
 }
 
 .modal-title {
-    font-size: 0.9375rem;
+    font-size: 1.125rem;
     font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--color-m3-on-surface);
     margin-bottom: 0.75rem;
 }

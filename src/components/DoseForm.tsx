@@ -683,7 +683,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             {/* Inline Header (Simpler) */}
             {isInline && !hideHeader && (
                 <div className="pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center">
-                    <span className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+          <span className="text-[0.8125rem] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                         {t('timeline.add_title')}
                     </span>
                     {renderLoadTemplateControl()}
@@ -698,7 +698,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         onClick={() => setIsDatePickerOpen(v => !v)}
                         className="w-full flex items-center justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-start"
                     >
-                        <span className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('field.time')}</span>
+                        <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('field.time')}</span>
                         <div className="flex items-center gap-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                             <span className="text-sm tabular-nums">
                                 {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -938,12 +938,12 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         {t('dose.guide.current')}: {doseGuide.value !== null ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}` : t('dose.guide.current_blank')}
                                     </p>
                                     {guideRangeText && (
-                                        <p className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] leading-snug">
+                                        <p className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] leading-snug">
                                             {t('dose.guide.reference')}: {guideRangeText}
                                         </p>
                                     )}
                                     {doseGuide.showRateHint && (
-                                        <p className="text-[11px] text-amber-700 dark:text-amber-500 leading-snug">
+                                        <p className="text-[0.6875rem] text-amber-700 dark:text-amber-500 leading-snug">
                                             {t('dose.guide.patch_rate_hint')}
                                         </p>
                                     )}

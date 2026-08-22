@@ -137,8 +137,8 @@ const Home: React.FC<HomeProps> = ({
                     {isTransmasc ? (
                         <>
                             <div className="min-w-0">
-                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
-                                    {t('label.total_t')} <span className="lowercase normal-case opacity-60">(ng/dL)</span>
+                <p className={`text-xs font-semibold ${muted} mb-2`}>
+                                    {t('label.total_t')} <span className="opacity-60">(ng/dL)</span>
                                 </p>
                                 <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
                                     {currentT > 0 ? (
@@ -153,8 +153,8 @@ const Home: React.FC<HomeProps> = ({
                                 </div>
                             </div>
                             <div className="shrink-0 text-right">
-                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>
-                                    {t('label.total_t')} <span className="lowercase normal-case opacity-60">(nmol/L)</span>
+                <p className={`text-xs font-semibold ${muted} mb-2`}>
+                                    {t('label.total_t')} <span className="opacity-60">(nmol/L)</span>
                                 </p>
                                 <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
                                     {currentT > 0 ? (
@@ -171,7 +171,7 @@ const Home: React.FC<HomeProps> = ({
                     ) : (
                         <>
                             <div className="min-w-0">
-                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.e2')}</p>
+                <p className={`text-xs font-semibold ${muted} mb-2`}>{t('label.e2')}</p>
                                 <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
                                     {currentLevel > 0 ? (
                                         <>
@@ -185,7 +185,7 @@ const Home: React.FC<HomeProps> = ({
                                 </div>
                             </div>
                             <div className="shrink-0 text-right">
-                                <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>{t('label.cpa_chart')}</p>
+                <p className={`text-xs font-semibold ${muted} mb-2`}>{t('label.cpa_chart')}</p>
                                 <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
                                     {currentCPA > 0 ? (
                                         <>

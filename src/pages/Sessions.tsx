@@ -131,7 +131,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <p className={`text-sm font-medium ${settingsOn} truncate`}>{label}</p>
                                             {s.is_current && (
-                                                <span className={`shrink-0 text-[11px] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                                <span className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
                                                     {t('account.sessions_current')}
                                                 </span>
                                             )}

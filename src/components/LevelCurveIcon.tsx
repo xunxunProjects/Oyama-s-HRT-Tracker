@@ -30,6 +30,7 @@ const LevelCurveIcon: React.FC<LevelCurveIconProps> = ({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
+        className="lucide"
         {...props}
     >
         {/* Axes */}

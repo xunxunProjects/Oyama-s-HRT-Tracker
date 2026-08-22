@@ -159,7 +159,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             onClick={() => toggleSection(section.key)}
                             className={`w-full flex items-center justify-between py-4 ${divider} text-start`}
                         >
-                            <span className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+              <span className="text-[0.8125rem] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                                 {t(section.titleKey)}
                             </span>
                             <ChevronDown
@@ -219,7 +219,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     onClick={handleSave}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[15px] font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('btn.save')}</span>
+                    <span className="text-[0.9375rem] font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('btn.save')}</span>
                     {saved && (
                         <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t('pk.saved')}</span>
                     )}
@@ -231,7 +231,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     className="w-full flex items-center gap-2 py-[18px] text-start"
                 >
                     <RotateCcw size={14} className="text-red-500 dark:text-red-400" />
-                    <span className="text-[15px] text-red-600 dark:text-red-400">{t('pk.reset')}</span>
+                    <span className="text-[0.9375rem] text-red-600 dark:text-red-400">{t('pk.reset')}</span>
                 </button>
             </div>
         </div>

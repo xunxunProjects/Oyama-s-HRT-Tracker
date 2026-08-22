@@ -49,8 +49,8 @@ type SettingsCat = 'general' | 'data' | 'about';
 type MobileView = 'list' | SettingsCat;
 
 const rowBase = "w-full flex items-center justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-start";
-const rowLabel = "text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
-const rowValue = "flex items-center gap-1 text-[15px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const rowLabel = "text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const rowValue = "flex items-center gap-1 text-[0.9375rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
 const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
 const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
 
@@ -251,7 +251,7 @@ const Settings: React.FC<SettingsProps> = ({
                 disabled={!events.length}
                 className={`${rowBase} border-b-0 ${!events.length ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
-                <span className={`text-[15px] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
+                <span className={`text-[0.9375rem] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
                     {t('drawer.clear')}
                 </span>
             </button>
@@ -344,7 +344,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <button
                         key={id}
                         onClick={() => selectCat(id)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[15px] text-start
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
                             ${cat === id
                                 ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${on} font-medium`
                                 : `${muted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] hover:${on}`
@@ -382,7 +382,7 @@ const Settings: React.FC<SettingsProps> = ({
                                         <Icon size={18} strokeWidth={1.75} className={muted} />
                                     </div>
                                     <div className="text-start">
-                                        <p className={`text-[15px] font-medium ${on}`}>{label}</p>
+                                        <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
                                         <p className={`text-xs ${muted} mt-0.5 leading-relaxed`}>{hint}</p>
                                     </div>
                                 </div>

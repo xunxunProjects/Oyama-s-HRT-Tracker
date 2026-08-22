@@ -107,7 +107,7 @@ const Lab: React.FC<LabProps> = ({
                     className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
                 >
                     <div className="min-w-0">
-                        <p className={`text-[15px] ${on}`}>{t('cal.settings')}</p>
+                        <p className={`text-[0.9375rem] ${on}`}>{t('cal.settings')}</p>
                         <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{calSummary}</p>
                     </div>
                     <ChevronRight size={16} className={`${muted} shrink-0`} />

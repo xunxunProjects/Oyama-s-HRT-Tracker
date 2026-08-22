@@ -35,7 +35,7 @@ interface AccountProps {
 }
 
 const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
-const sectionLabel = "text-xs font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-2 block";
+const sectionLabel ="text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-2 block";
 const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
 const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
 const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
@@ -467,7 +467,7 @@ const Account: React.FC<AccountProps> = ({
                                                                     { label: t('account.backup_templates'), val: (data.doseTemplates || []).length },
                                                                 ].map(({ label, val }) => (
                                                                     <div key={label} className="text-center">
-                                                                        <p className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider font-medium">{label}</p>
+                                    <p className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">{label}</p>
                                                                         <p className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mt-0.5 tabular-nums">{val}</p>
                                                                     </div>
                                                                 ))}
@@ -486,7 +486,7 @@ const Account: React.FC<AccountProps> = ({
                                                                         </div>
                                                                     ))}
                                                                     {(data.events || []).length > 3 && (
-                                                                        <p className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-center py-1.5">
+                                                                        <p className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-center py-1.5">
                                                                             +{(data.events || []).length - 3} …
                                                                         </p>
                                                                     )}
@@ -497,7 +497,7 @@ const Account: React.FC<AccountProps> = ({
                                                             <div className={`grid ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                                                                 <div className="overflow-hidden">
                                                                     <div className="space-y-2 pt-2">
-                                                                        <p className="text-[10px] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('account.merge_preview')}</p>
+                                    <p className="text-[0.625rem] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.merge_preview')}</p>
                                                                         {diff.totalDiff === 0 ? (
                                                                             <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] py-2 text-center">{t('account.nothing_to_merge')}</p>
                                                                         ) : (
@@ -570,7 +570,7 @@ const Account: React.FC<AccountProps> = ({
                                                                 >
                                                                     <Merge size={13} strokeWidth={1.5} />
                                                                     {t('account.merge')}
-                                                                    {diff.total > 0 && <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">+{diff.total}</span>}
+                                                                    {diff.total > 0 && <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">+{diff.total}</span>}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
@@ -645,7 +645,7 @@ const Account: React.FC<AccountProps> = ({
                             </p>
                         )}
                         <div className="space-y-1.5">
-                            <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.username')}</label>
+              <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.username')}</label>
                             <input
                                 type="text"
                                 value={username}
@@ -658,7 +658,7 @@ const Account: React.FC<AccountProps> = ({
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.password')}</label>
+              <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.password')}</label>
                             <input
                                 type="password"
                                 value={password}
@@ -678,7 +678,7 @@ const Account: React.FC<AccountProps> = ({
                                 </div>
                                 {useBackupCode ? (
                                     <div className="space-y-1.5">
-                                        <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.backup_code_label')}</label>
+                    <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.backup_code_label')}</label>
                                         <input
                                             type="text"
                                             value={backupCode}
@@ -699,7 +699,7 @@ const Account: React.FC<AccountProps> = ({
                                     <>
                                         {twoFAMethod !== 'passkey' && (
                                             <div className="space-y-1.5">
-                                                <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] uppercase tracking-wider">{t('auth.totp_code')}</label>
+                        <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.totp_code')}</label>
                                                 <input
                                                     type="text"
                                                     inputMode="numeric"

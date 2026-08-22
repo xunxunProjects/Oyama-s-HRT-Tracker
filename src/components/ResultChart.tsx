@@ -237,13 +237,30 @@ const ResultChart = ({
         return buildYDomain(0, mx);
     }, [slice, markers, hasSecondary]);
 
-    // Layout
-    const mL = 32;
-    const mR = hasSecondary ? 32 : 10;
-    const mT = 14;
-    const mB = 26;
+    // Layout. The plot is drawn in raw SVG units, so unlike the rest of the UI
+    // it does not follow the root font size. Reading that size back keeps the
+    // axis type and the gutters it sits in proportional when the desktop scale
+    // steps up. Recomputed with the measured size, which is what a breakpoint
+    // change triggers.
+    const ui = useMemo(() => {
+        if (typeof window === 'undefined') return 1;
+        const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return Number.isFinite(px) && px > 0 ? px / 16 : 1;
+    }, [width, height]);
+    const axisFont = 10 * ui;
+
+    const mL = 32 * ui;
+    const mR = (hasSecondary ? 32 : 10) * ui;
+    const mT = 14 * ui;
+    const mB = 26 * ui;
     const plotW = Math.max(0, width - mL - mR);
     const plotH = Math.max(0, height - mT - mB);
+
+    // Entrance timing. A marker at x is delayed by however long the sweep takes
+    // to reach it, so it lands with the line rather than ahead of it.
+    const SWEEP_MS = 900;
+    const sweepDelay = (x: number) =>
+        plotW > 0 ? `${Math.round(Math.max(0, Math.min(1, (x - mL) / plotW)) * SWEEP_MS)}ms` : '0ms';
 
     const X = (time: number) => mL + (t1 === t0 ? 0 : ((time - t0) / (t1 - t0)) * plotW);
     const YP = (v: number) => mT + plotH - ((v - yPrimary[0]) / (yPrimary[1] - yPrimary[0])) * plotH;
@@ -319,7 +336,7 @@ const ResultChart = ({
 
     const xTicks = useMemo(() => {
         if (plotW <= 0) return [];
-        const count = Math.max(2, Math.min(6, Math.floor(plotW / 90)));
+        const count = Math.max(2, Math.min(6, Math.floor(plotW / (90 * ui))));
         const seen = new Set<string>();
         const out: { x: number; label: string }[] = [];
         for (let i = 0; i <= count; i++) {
@@ -331,7 +348,7 @@ const ResultChart = ({
         }
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [t0, t1, plotW, lang, timeZone, mL]);
+    }, [t0, t1, plotW, lang, timeZone, mL, ui]);
 
     // "Now" position on the primary curve.
     const nowVal = useMemo(() => {
@@ -429,7 +446,7 @@ const ResultChart = ({
         );
     }
 
-    const chipBase = 'px-2 py-0.5 text-[11px] rounded-md transition-colors';
+    const chipBase = 'px-2 py-0.5 text-[0.6875rem] rounded-md transition-colors';
     const chipOn = 'text-body font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
     const chipOff = 'text-muted hover:text-body';
 
@@ -442,7 +459,7 @@ const ResultChart = ({
                 </h2>
                 <div className="flex items-center gap-2 shrink-0">
                     {Math.abs(calFactor - 1) > 0.001 && (
-                        <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-70 tabular-nums">
+                        <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-70 tabular-nums">
                             ×{calFactor.toFixed(2)}
                         </span>
                     )}
@@ -461,7 +478,7 @@ const ResultChart = ({
             </div>
 
             {/* Legend — always visible so each line is labelled, on mobile too */}
-            <div className="flex items-center gap-4 mb-1 text-[11px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+            <div className="flex items-center gap-4 mb-1 text-[0.6875rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                 <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
@@ -498,6 +515,9 @@ const ResultChart = ({
                         style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
                     >
                         <defs>
+                            <clipPath id={`sweep-${clipId}`}>
+                                <rect className="chart-sweep" x={mL} y={0} width={plotW} height={height} />
+                            </clipPath>
                             <clipPath id={`clip-${clipId}`}>
                                 <rect x={mL} y={mT - 4} width={plotW} height={plotH + 8} />
                             </clipPath>
@@ -512,11 +532,11 @@ const ResultChart = ({
                             const rawHi = YP(primaryTarget.high);
                             const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
                             return (
-                                <g>
+                                <g className="chart-appear" style={{ animationDelay: '120ms' }}>
                                     <rect x={mL} y={yHi} width={plotW} height={yLo - yHi} fill={c.primary} opacity={0.06} />
                                     {inView(rawLo) && <line x1={mL} y1={yLo} x2={mL + plotW} y2={yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
                                     {inView(rawHi) && <line x1={mL} y1={yHi} x2={mL + plotW} y2={yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    <text x={mL + 4} y={Math.min(mT + plotH - 3, yHi + 11)} fontSize={9} fill={c.axis} opacity={0.75}>{t('chart.target')}</text>
+                                    <text x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, yHi + 11 * ui)} fontSize={9 * ui} fill={c.axis} opacity={0.75}>{t('chart.target')}</text>
                                 </g>
                             );
                         })()}
@@ -526,9 +546,9 @@ const ResultChart = ({
                             const y = YP(v);
                             if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
                             return (
-                                <g key={`yp-${i}`}>
+                                <g key={`yp-${i}`} className="chart-appear" style={{ animationDelay: `${i * 45}ms` }}>
                                     <line x1={mL} y1={y} x2={mL + plotW} y2={y} stroke={c.grid} strokeWidth={1} />
-                                    <text x={mL - 8} y={y + 3} textAnchor="end" fontSize={10} fill={c.axis}>{fmtAxis(v)}</text>
+                                    <text x={mL - 8 * ui} y={y + 3 * ui} textAnchor="end" fontSize={axisFont} fill={c.axis}>{fmtAxis(v)}</text>
                                 </g>
                             );
                         })}
@@ -538,33 +558,35 @@ const ResultChart = ({
                             const y = YS(v);
                             if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
                             return (
-                                <text key={`ys-${i}`} x={mL + plotW + 8} y={y + 3} textAnchor="start" fontSize={10} fill={c.faint}>{fmtAxis(v)}</text>
+                                <text key={`ys-${i}`} className="chart-appear" style={{ animationDelay: `${i * 45}ms` }} x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start" fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
                             );
                         })}
 
                         {/* X axis labels */}
                         {xTicks.map((tk, i) => (
-                            <text key={`x-${i}`} x={tk.x} y={mT + plotH + 16} textAnchor="middle" fontSize={10} fill={c.axis}>{tk.label}</text>
+                            <text key={`x-${i}`} className="chart-appear" style={{ animationDelay: sweepDelay(tk.x) }} x={tk.x} y={mT + plotH + 16 * ui} textAnchor="middle" fontSize={axisFont} fill={c.axis}>{tk.label}</text>
                         ))}
 
                         <g clipPath={`url(#clip-${clipId})`}>
-                            {/* Primary curve — dotted in mono when it's the CPA series */}
-                            <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
+                            <g clipPath={`url(#sweep-${clipId})`}>
+                                {/* Primary curve — dotted in mono when it's the CPA series */}
+                                <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
 
-                            {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
-                            {hasSecondary && (
-                                <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
-                            )}
+                                {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
+                                {hasSecondary && (
+                                    <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
+                                )}
+                            </g>
 
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
-                                <line x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+                                <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
                             )}
                             {nowValS != null && now >= t0 && now <= t1 && (
-                                <circle cx={X(now)} cy={YS(nowValS)} r={4} fill={c.second} stroke={c.dot} strokeWidth={2} />
+                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YS(nowValS)} r={4} fill={c.second} stroke={c.dot} strokeWidth={2} />
                             )}
                             {nowVal != null && now >= t0 && now <= t1 && (
-                                <circle cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
+                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
                             )}
 
                             {/* Dose markers (clickable) */}
@@ -575,7 +597,8 @@ const ResultChart = ({
                                 return (
                                     <g
                                         key={`m-${i}`}
-                                        className={onPointClick ? 'cursor-pointer' : undefined}
+                                        className={`chart-mark${onPointClick ? ' cursor-pointer' : ''}`}
+                                        style={{ animationDelay: sweepDelay(cx) }}
                                         onClick={() => onPointClick?.(m.event)}
                                     >
                                         <circle cx={cx} cy={cy} r={9} fill="transparent" />
@@ -589,12 +612,13 @@ const ResultChart = ({
                                 const cx = X(l.t);
                                 const cy = YP(l.v);
                                 return (
-                                    <rect
-                                        key={`l-${i}`}
-                                        x={cx - 4} y={cy - 4} width={8} height={8}
-                                        transform={`rotate(45 ${cx} ${cy})`}
-                                        fill={c.dot} stroke={c.lab} strokeWidth={1.75}
-                                    />
+                                    <g key={`l-${i}`} className="chart-mark" style={{ animationDelay: sweepDelay(cx) }}>
+                                        <rect
+                                            x={cx - 4} y={cy - 4} width={8} height={8}
+                                            transform={`rotate(45 ${cx} ${cy})`}
+                                            fill={c.dot} stroke={c.lab} strokeWidth={1.75}
+                                        />
+                                    </g>
                                 );
                             })}
 
@@ -622,21 +646,21 @@ const ResultChart = ({
                             transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
+                        <div className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
                             {formatDate(new Date(hoverPt!.t), lang, timeZone)} · {formatTime(new Date(hoverPt!.t), timeZone)}
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className="text-sm font-medium tabular-nums" style={{ color: c.primary }}>
                                 {hoverPt!.p.toFixed(primaryMeta.decimals)}
                             </span>
-                            <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{primaryMeta.unit}</span>
+                            <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{primaryMeta.unit}</span>
                         </div>
                         {hasSecondary && hoverPt!.s != null && (
                             <div className="flex items-baseline gap-1 whitespace-nowrap">
                                 <span className="text-xs font-medium tabular-nums" style={{ color: c.second }}>
                                     {hoverPt!.s.toFixed(2)}
                                 </span>
-                                <span className="text-[10px] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">ng/ml</span>
+                                <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">ng/ml</span>
                             </div>
                         )}
                     </div>

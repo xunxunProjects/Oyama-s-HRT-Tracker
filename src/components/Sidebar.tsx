@@ -18,10 +18,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     onViewChange
 }) => {
     return (
-        <nav className="hidden md:flex flex-col w-[260px] h-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface-dim)] shrink-0">
+        <nav className="hidden md:flex flex-col w-[16.25rem] h-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface-dim)] shrink-0">
             {/* Logo */}
             <div className="px-5 pt-7 pb-6">
-                <h1 className="text-[15px] font-semibold tracking-tight text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] leading-snug">
+                <h1 className="text-[0.9375rem] font-semibold tracking-tight text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] leading-snug">
                     Oyama Tracker
                 </h1>
             </div>
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     : 'text-muted hover:text-body hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'
                                 }`}
                         >
-                            <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />
+                            <Icon size={18} className="shrink-0" strokeWidth={isActive ? 2 : 1.75} />
                             <span>{item.label}</span>
                         </button>
                     );

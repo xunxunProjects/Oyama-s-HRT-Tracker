@@ -246,7 +246,7 @@ const History: React.FC<HistoryProps> = ({
                 {Object.entries(groupedEvents).map(([date, items]) => (
                     <div key={date} className="mb-6 last:mb-0">
                         <div className="sticky top-[94px] z-10 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] py-2">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{date}</span>
+              <span className="text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{date}</span>
                         </div>
                         <div>
                             {(items as DoseEvent[]).map(ev => {
@@ -273,7 +273,7 @@ const History: React.FC<HistoryProps> = ({
                                                         {ev.route === Route.patchRemove ? t('route.patchRemove') : t(`ester.${ev.ester}`)}
                                                     </span>
                                                     {isFuture && (
-                                                        <span className={`shrink-0 text-[11px] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                                        <span className={`shrink-0 text-[0.6875rem] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
                                                             {t('timeline.future')}
                                                         </span>
                                                     )}

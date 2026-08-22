@@ -89,7 +89,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                                         onClick={() => choose(catIdx, optIdx)}
                                         className="w-full flex items-center justify-between py-3 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0 text-start"
                                     >
-                                        <span className="flex items-center gap-2 text-[15px]">
+                                        <span className="flex items-center gap-2 text-[0.9375rem]">
                                             <span className={isSelected ? `font-semibold ${on}` : on}>{opt.label}</span>
                                             {opt.tag === 'recommended' && (
                                                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">

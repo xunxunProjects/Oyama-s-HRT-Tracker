@@ -109,7 +109,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="modal-shell">
             <div className="modal-card overflow-hidden p-0">
                 <div className="flex items-center justify-between px-5 pt-5 pb-2">
-                    <h2 className="text-[15px] font-semibold text-body">
+                    <h2 className="modal-title mb-0">
                         {isLogin ? 'Sign In' : 'Create Account'}
                     </h2>
                     <button onClick={onClose} className="p-1 text-muted hover:text-body">

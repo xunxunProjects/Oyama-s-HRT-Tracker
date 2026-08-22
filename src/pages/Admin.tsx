@@ -11,8 +11,8 @@ type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; 
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
-const rowLabel = 'text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const rowValue = `flex items-center gap-1 text-[15px] ${settingsMuted}`;
+const rowLabel = 'text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+const rowValue = `flex items-center gap-1 text-[0.9375rem] ${settingsMuted}`;
 const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
 const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
 
@@ -315,7 +315,7 @@ const Admin: React.FC = () => {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full py-2.5 pr-3 pl-9 text-[15px] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
+                    className="w-full py-2.5 pr-3 pl-9 text-[0.9375rem] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
                 />
             </div>
 
@@ -474,7 +474,7 @@ const Admin: React.FC = () => {
                     <button
                         key={id}
                         onClick={() => selectCat(id)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[15px] text-start
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
                             ${cat === id
                                 ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
                                 : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
@@ -513,7 +513,7 @@ const Admin: React.FC = () => {
                                         <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
                                     </div>
                                     <div className="text-start">
-                                        <p className={`text-[15px] font-medium ${settingsOn}`}>{label}</p>
+                                        <p className={`text-[0.9375rem] font-medium ${settingsOn}`}>{label}</p>
                                         <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>{hint}</p>
                                     </div>
                                 </div>

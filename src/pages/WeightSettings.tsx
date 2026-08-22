@@ -68,7 +68,7 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
                     onClick={handleSave}
                     className={`w-full flex items-center py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[15px] font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                    <span className="text-[0.9375rem] font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
                         {t('btn.save')}
                     </span>
                 </button>

@@ -26,6 +26,7 @@ const CalibrationCurveIcon: React.FC<CalibrationCurveIconProps> = ({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
+        className="lucide"
         {...props}
     >
         {/* Solid model curve — starts high, bends down through the dashed curve */}

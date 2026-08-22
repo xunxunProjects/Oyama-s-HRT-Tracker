@@ -57,8 +57,8 @@ const Point: React.FC<PointProps> = ({ mark, title, desc }) => (
             {mark}
         </div>
         <div>
-            <p className="text-[15px] font-medium text-body">{title}</p>
-            <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{desc}</p>
+            <p className="text-[0.9375rem] font-medium text-body">{title}</p>
+            <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
         </div>
     </div>
 );
@@ -87,7 +87,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     // would be wrong for anyone who picked transmasc on the step before this
     // one — the mark names the thing they'll be getting measured.
     const hormoneMark = (
-        <span className="text-[11px] font-semibold tracking-tight text-muted">
+        <span className="text-[0.6875rem] font-semibold tracking-tight text-muted">
             {isTransmasc ? 'T' : 'E2'}
         </span>
     );
@@ -122,7 +122,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                         key={value}
                         onClick={() => setLang(value as Lang)}
                         aria-pressed={lang === value}
-                        className={`rounded-full border px-3.5 py-1.5 text-[13px] ${lang === value
+                        className={`rounded-full border px-3.5 py-1.5 text-[0.8125rem] ${lang === value
                             ? 'border-[var(--color-m3-primary)] bg-[var(--color-m3-primary-container)] font-medium text-[var(--color-m3-on-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)] dark:text-[var(--color-m3-dark-on-primary-container)]'
                             : 'border-[var(--color-m3-outline-variant)] text-muted dark:border-[var(--color-m3-dark-outline-variant)]'
                         }`}
@@ -144,10 +144,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                         className={`flex w-full items-center justify-between gap-4 py-4 text-start ${divider} last:border-b-0`}
                     >
                         <span>
-                            <span className={`block text-[15px] text-body ${mode === value ? 'font-semibold' : ''}`}>
+                            <span className={`block text-[0.9375rem] text-body ${mode === value ? 'font-semibold' : ''}`}>
                                 {t(labelKey)}
                             </span>
-                            <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+                            <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">
                                 {t(descKey)}
                             </span>
                         </span>
@@ -193,7 +193,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
-                    className={`rounded-lg px-2 py-1.5 text-[13px] text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isLast ? 'invisible' : ''}`}
+                    className={`rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isLast ? 'invisible' : ''}`}
                     tabIndex={isLast ? -1 : 0}
                 >
                     {t('onboarding.skip')}

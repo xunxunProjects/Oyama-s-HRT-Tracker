@@ -103,7 +103,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                 <div>
                     <div className={rowBase}>
-                        <span className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                        <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                             {t('transparency.stat.total_users')}
                         </span>
                         <span className="text-2xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tabular-nums">
@@ -112,7 +112,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                     </div>
 
                     <div className={rowBase}>
-                        <span className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                        <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                             {t('transparency.stat.total_backups')}
                         </span>
                         <span className="text-2xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tabular-nums">
@@ -122,7 +122,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            <p className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                 {t('transparency.stat.new_users_24h')}
                             </p>
                             <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5">
@@ -136,7 +136,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            <p className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                 {t('transparency.stat.self_deleted')}
                             </p>
                             <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5">
@@ -150,7 +150,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={`${rowBase} border-b-0`}>
                         <div>
-                            <p className="text-[15px] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                            <p className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                 {t('transparency.stat.admin_deleted')}
                             </p>
                             <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5">

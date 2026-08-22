@@ -40,7 +40,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ theme, setTheme
                         onClick={() => setTheme(value)}
                         className="w-full flex items-center justify-between py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0 text-start"
                     >
-                        <span className={`text-[15px] ${theme === value
+                        <span className={`text-[0.9375rem] ${theme === value
                             ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
                             : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
                         }`}>{t(labelKey)}</span>

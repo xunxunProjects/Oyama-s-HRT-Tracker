@@ -342,7 +342,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         <div className="grid gap-x-12 lg:grid-cols-2">
                             {groups.map(group => (
                                 <div key={group.label} className="mb-7 break-inside-avoid">
-                                    <h3 className="mb-1 border-b border-[var(--color-m3-outline-variant)] pb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  <h3 className="mb-1 border-b border-[var(--color-m3-outline-variant)] pb-2 text-xs font-semibold text-muted">
                                         {group.label}
                                     </h3>
                                     {group.events.map(event => (

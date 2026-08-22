@@ -395,7 +395,7 @@ const AppContent = () => {
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
 
                 {/* Mobile site label — reflects the current deployment host */}
-                <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[11px] font-medium tracking-wide text-muted select-none">
+                <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none">
                     {window.location.hostname}
                 </div>
 
@@ -709,7 +709,7 @@ const AppContent = () => {
                                         }`}
                                 >
                                     <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
-                                    <span className="text-[10px] font-medium">
+                                    <span className="text-[0.625rem] font-medium">
                                         {label}
                                     </span>
                                 </button>
