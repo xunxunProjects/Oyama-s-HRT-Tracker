@@ -53,19 +53,30 @@ const useEasedPair = (target: [number, number], instant: boolean): [number, numb
     const [shown, setShown] = useState<[number, number]>(target);
     const shownRef = useRef<[number, number]>(target);
     const targetRef = useRef<[number, number]>(target);
+    const rafRef = useRef(0);
+    const lastRef = useRef(0);
     targetRef.current = target;
 
+    // The loop lives across renders rather than inside one. It reads the target
+    // through a ref, so a target that keeps moving (the window tracks "now", and
+    // the y domain follows the slice the ease itself is widening) just steers the
+    // animation already in flight. Tearing the effect down and rebuilding it on
+    // every target change instead cancelled the pending frame before it could
+    // run, and the ease then never advanced at all: switching 30d/all back to 7d
+    // left the drawn window stuck on the old one, squeezing the whole visible
+    // range into a hairline at the right-hand edge.
     useEffect(() => {
         if (instant || prefersReducedMotion()) {
-            shownRef.current = target;
-            setShown(target);
+            if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
+            shownRef.current = targetRef.current;
+            setShown(targetRef.current);
             return;
         }
-        let raf = 0;
-        let last = performance.now();
+        if (rafRef.current) return;                     // already easing — let it keep going
+        lastRef.current = performance.now();
         const step = (now: number) => {
-            const dt = Math.min(64, now - last);
-            last = now;
+            const dt = Math.min(64, now - lastRef.current);
+            lastRef.current = now;
             const [tl, th] = targetRef.current;
             const [cl, ch] = shownRef.current;
             const k = 1 - Math.exp(-dt / 95);            // ~95 ms time constant
@@ -75,12 +86,13 @@ const useEasedPair = (target: [number, number], instant: boolean): [number, numb
             const done = Math.abs(nl - tl) / span < 1e-4 && Math.abs(nh - th) / span < 1e-4;
             shownRef.current = done ? [tl, th] : [nl, nh];
             setShown(shownRef.current);
-            if (!done) raf = requestAnimationFrame(step);
+            rafRef.current = done ? 0 : requestAnimationFrame(step);
         };
-        raf = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(raf);
+        rafRef.current = requestAnimationFrame(step);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [target[0], target[1], instant]);
+
+    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
     return shown;
 };
@@ -223,7 +235,18 @@ const ResultChart = ({
         });
     }, [sim, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
 
-    const now = Date.now();
+    // A clock that ticks, not one that is read on every render. `now` anchors the
+    // visible window, the "now" marker and the calibration read-off; taking it
+    // from Date.now() inline made every one of those a fresh value on each of the
+    // ~60 renders a second an animation produces, so nothing downstream of it
+    // could ever settle. A minute is finer than this chart resolves, and it is
+    // the cadence the readings above it already refresh on.
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(id);
+    }, []);
+
     const fullMin = data.length ? data[0].t : now;
     const fullMax = data.length ? data[data.length - 1].t : now;
 
