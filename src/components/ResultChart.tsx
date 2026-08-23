@@ -1,4 +1,4 @@
-import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
@@ -41,6 +41,79 @@ const ticksFor = ([lo, hi]: [number, number]): number[] => {
     for (let v = lo; v <= hi + step * 0.5; v += step) out.push(Math.round(v / step) * step);
     return out;
 };
+
+const prefersReducedMotion = () =>
+    typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** Eases a [lo, hi] pair toward its target, so a change of scale glides under
+ *  the curve instead of snapping to it. This is the axis behaviour from the
+ *  product film. `instant` bypasses it, which is what a live drag needs: the
+ *  window has to track the finger, not lag behind it. */
+const useEasedPair = (target: [number, number], instant: boolean): [number, number] => {
+    const [shown, setShown] = useState<[number, number]>(target);
+    const shownRef = useRef<[number, number]>(target);
+    const targetRef = useRef<[number, number]>(target);
+    targetRef.current = target;
+
+    useEffect(() => {
+        if (instant || prefersReducedMotion()) {
+            shownRef.current = target;
+            setShown(target);
+            return;
+        }
+        let raf = 0;
+        let last = performance.now();
+        const step = (now: number) => {
+            const dt = Math.min(64, now - last);
+            last = now;
+            const [tl, th] = targetRef.current;
+            const [cl, ch] = shownRef.current;
+            const k = 1 - Math.exp(-dt / 95);            // ~95 ms time constant
+            const nl = cl + (tl - cl) * k;
+            const nh = ch + (th - ch) * k;
+            const span = Math.abs(th - tl) || 1;
+            const done = Math.abs(nl - tl) / span < 1e-4 && Math.abs(nh - th) / span < 1e-4;
+            shownRef.current = done ? [tl, th] : [nl, nh];
+            setShown(shownRef.current);
+            if (!done) raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [target[0], target[1], instant]);
+
+    return shown;
+};
+
+/** Holds the outgoing label set on screen alongside the incoming one, so axis
+ *  labels dissolve between scales rather than popping in and out. */
+function useFadingSet<T>(items: T[], sig: string, instant = false): { prev: T[]; next: T[]; u: number } {
+    const last = useRef({ items, sig });
+    const [fade, setFade] = useState<{ prev: T[]; u: number }>({ prev: [], u: 1 });
+
+    useEffect(() => {
+        if (sig === last.current.sig) return;
+        const outgoing = last.current.items;
+        last.current = { items, sig };
+        // Dates change on every frame of a drag; dissolving each one just
+        // reads as flicker, so during a drag they simply swap.
+        if (instant || prefersReducedMotion()) { setFade({ prev: [], u: 1 }); return; }
+        setFade({ prev: outgoing, u: 0 });
+        let raf = 0;
+        const start = performance.now();
+        const step = (now: number) => {
+            const u = Math.min(1, (now - start) / 280);
+            setFade(f => ({ prev: f.prev, u }));
+            if (u < 1) raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sig, instant]);
+
+    if (sig === last.current.sig) last.current.items = items;
+    return { prev: fade.prev, next: items, u: fade.u };
+}
 
 const fmtAxis = (v: number) => (v >= 100 || v % 1 === 0 ? String(Math.round(v)) : v < 1 ? v.toFixed(2) : v.toFixed(1));
 
@@ -180,14 +253,23 @@ const ResultChart = ({
     }, [baseWindow, panOffset, minOffset, maxOffset]);
     const canPan = maxOffset - minOffset > DAY;
 
-    // Only the slice we draw (plus one neighbour each side so lines reach the edges).
+    // The window actually on screen. It eases toward the target so a change of
+    // range glides, but a live drag is exempt: the plot has to track the finger.
+    const [vt0, vt1] = useEasedPair([t0, t1], dragging);
+
+    // Only the slice we draw (plus one neighbour each side so lines reach the
+    // edges). It spans the union of the target window and the one currently
+    // drawn: mid-ease those differ, and slicing to the target alone leaves the
+    // rest of the plot with no data to draw, which is what made 30d to 7d snap
+    // rather than stretch.
     const slice = useMemo(() => {
         if (data.length === 0) return [];
+        const lo0 = Math.min(t0, vt0), hi0 = Math.max(t1, vt1);
         let lo = 0, hi = data.length - 1;
-        while (lo < data.length - 1 && data[lo + 1].t < t0) lo++;
-        while (hi > 0 && data[hi - 1].t > t1) hi--;
+        while (lo < data.length - 1 && data[lo + 1].t < lo0) lo++;
+        while (hi > 0 && data[hi - 1].t > hi0) hi--;
         return data.slice(Math.max(0, lo), Math.min(data.length, hi + 1));
-    }, [data, t0, t1]);
+    }, [data, t0, t1, vt0, vt1]);
 
     const labPoints = useMemo(() => {
         if (!labResults.length) return [];
@@ -262,9 +344,14 @@ const ResultChart = ({
     const sweepDelay = (x: number) =>
         plotW > 0 ? `${Math.round(Math.max(0, Math.min(1, (x - mL) / plotW)) * SWEEP_MS)}ms` : '0ms';
 
-    const X = (time: number) => mL + (t1 === t0 ? 0 : ((time - t0) / (t1 - t0)) * plotW);
-    const YP = (v: number) => mT + plotH - ((v - yPrimary[0]) / (yPrimary[1] - yPrimary[0])) * plotH;
-    const YS = (v: number) => mT + plotH - ((v - ySecondary[0]) / (ySecondary[1] - ySecondary[0])) * plotH;
+    // The vertical axes ease too. Targets stay exact, so hit-testing and the
+    // window maths are unaffected; only what is drawn glides.
+    const [vy0, vy1] = useEasedPair(yPrimary, false);
+    const [vs0, vs1] = useEasedPair(ySecondary, false);
+
+    const X = (time: number) => mL + (vt1 === vt0 ? 0 : ((time - vt0) / (vt1 - vt0)) * plotW);
+    const YP = (v: number) => mT + plotH - ((v - vy0) / (vy1 - vy0)) * plotH;
+    const YS = (v: number) => mT + plotH - ((v - vs0) / (vs1 - vs0)) * plotH;
 
     // Monotone cubic Hermite interpolation (Fritsch–Carlson), the same curve
     // family as d3's curveMonotoneX: smoothly connects the sample points
@@ -338,17 +425,29 @@ const ResultChart = ({
         if (plotW <= 0) return [];
         const count = Math.max(2, Math.min(6, Math.floor(plotW / (90 * ui))));
         const seen = new Set<string>();
-        const out: { x: number; label: string }[] = [];
+        const out: { time: number; label: string }[] = [];
         for (let i = 0; i <= count; i++) {
             const time = t0 + ((t1 - t0) * i) / count;
             const label = formatDate(new Date(time), lang, timeZone);
             if (seen.has(label)) continue;
             seen.add(label);
-            out.push({ x: X(time), label });
+            out.push({ time, label });
         }
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [t0, t1, plotW, lang, timeZone, mL, ui]);
+
+    // Label sets for both axes, each carrying whatever it is replacing.
+    const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
+    const ysTickVals = useMemo(() => ticksFor(ySecondary), [ySecondary]);
+    const yFade = useFadingSet(yTickVals, yTickVals.join(','));
+    const ysFade = useFadingSet(ysTickVals, ysTickVals.join(','));
+    const xFade = useFadingSet(xTicks, xTicks.map(t => t.label).join('|'), dragging);
+
+    // Mid-rescale an incoming set can be crushed together. Its rules still
+    // read; the numbers wait until there is room to hold them.
+    const roomFor = (vals: number[]) =>
+        vals.length < 2 || Math.abs(YP(vals[0]) - YP(vals[1])) >= 26 * ui;
 
     // "Now" position on the primary curve.
     const nowVal = useMemo(() => {
@@ -541,31 +640,68 @@ const ResultChart = ({
                             );
                         })()}
 
-                        {/* Horizontal grid + primary axis labels */}
-                        {ticksFor(yPrimary).map((v, i) => {
-                            const y = YP(v);
-                            if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
-                            return (
-                                <g key={`yp-${i}`} className="chart-appear" style={{ animationDelay: `${i * 45}ms` }}>
-                                    <line x1={mL} y1={y} x2={mL + plotW} y2={y} stroke={c.grid} strokeWidth={1} />
-                                    <text x={mL - 8 * ui} y={y + 3 * ui} textAnchor="end" fontSize={axisFont} fill={c.axis}>{fmtAxis(v)}</text>
+                        {/* Horizontal grid + primary axis labels. The outgoing
+                            set is kept alongside the incoming one and both are
+                            positioned on the eased domain, so a rescale slides
+                            and dissolves rather than jumping. */}
+                        {([['out', yFade.prev, 1 - yFade.u], ['in', yFade.next, yFade.u]] as const).map(([tag, set, o]) =>
+                            o <= 0.002 ? null : (
+                                <g key={`yg-${tag}`} opacity={o}>
+                                    {set.map((v, i) => {
+                                        const y = YP(v);
+                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                                        return (
+                                            <g key={`yp-${i}`}
+                                               className={tag === 'in' ? 'chart-appear' : undefined}
+                                               style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}>
+                                                <line x1={mL} y1={y} x2={mL + plotW} y2={y} stroke={c.grid} strokeWidth={1} />
+                                                {roomFor(set) && (
+                                                    <text x={mL - 8 * ui} y={y + 3 * ui} textAnchor="end" fontSize={axisFont} fill={c.axis}>{fmtAxis(v)}</text>
+                                                )}
+                                            </g>
+                                        );
+                                    })}
                                 </g>
-                            );
-                        })}
+                            )
+                        )}
 
                         {/* Secondary (CPA) axis labels */}
-                        {hasSecondary && ticksFor(ySecondary).map((v, i) => {
-                            const y = YS(v);
-                            if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
-                            return (
-                                <text key={`ys-${i}`} className="chart-appear" style={{ animationDelay: `${i * 45}ms` }} x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start" fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
-                            );
-                        })}
+                        {hasSecondary && ([['out', ysFade.prev, 1 - ysFade.u], ['in', ysFade.next, ysFade.u]] as const).map(([tag, set, o]) =>
+                            o <= 0.002 ? null : (
+                                <g key={`ysg-${tag}`} opacity={o}>
+                                    {set.map((v, i) => {
+                                        const y = YS(v);
+                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                                        return (
+                                            <text key={`ys-${i}`}
+                                                  className={tag === 'in' ? 'chart-appear' : undefined}
+                                                  style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
+                                                  x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start"
+                                                  fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
+                                        );
+                                    })}
+                                </g>
+                            )
+                        )}
 
-                        {/* X axis labels */}
-                        {xTicks.map((tk, i) => (
-                            <text key={`x-${i}`} className="chart-appear" style={{ animationDelay: sweepDelay(tk.x) }} x={tk.x} y={mT + plotH + 16 * ui} textAnchor="middle" fontSize={axisFont} fill={c.axis}>{tk.label}</text>
-                        ))}
+                        {/* X axis labels, on the same treatment */}
+                        {([['out', xFade.prev, 1 - xFade.u], ['in', xFade.next, xFade.u]] as const).map(([tag, set, o]) =>
+                            o <= 0.002 ? null : (
+                                <g key={`xg-${tag}`} opacity={o}>
+                                    {set.map((tk, i) => {
+                                        const x = X(tk.time);
+                                        if (x < mL - 40 || x > mL + plotW + 40) return null;
+                                        return (
+                                            <text key={`x-${i}`}
+                                                  className={tag === 'in' ? 'chart-appear' : undefined}
+                                                  style={tag === 'in' ? { animationDelay: sweepDelay(x) } : undefined}
+                                                  x={x} y={mT + plotH + 16 * ui} textAnchor="middle"
+                                                  fontSize={axisFont} fill={c.axis}>{tk.label}</text>
+                                        );
+                                    })}
+                                </g>
+                            )
+                        )}
 
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
