@@ -377,6 +377,27 @@ async function consumeTOTP(env: Env, userId: string, secret: string, token: stri
   return true;
 }
 
+// --- Content indexes lazy creation ---
+// `content` predates the ensure*() pattern every other table uses, so its index
+// only ever existed in schema.sql — a file that opens with DROP TABLE and is
+// therefore never run against a database that holds real data. The result was a
+// full table scan plus a temp B-tree sort on every per-user backup query. See
+// migrations/0003_add_content_user_index.sql; this mirror keeps a self-hosted
+// database that skips the numbered migrations from silently paying the same
+// cost, and is a no-op once the index is there.
+let contentIndexesEnsured = false;
+async function ensureContentIndexes(env: Env): Promise<void> {
+  if (contentIndexesEnsured) return;
+  try {
+    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_content_user_created ON content(user_id, created_at)').run();
+    // Superseded by the composite above, whose leftmost column is user_id.
+    await env.DB.prepare('DROP INDEX IF EXISTS idx_content_user_id').run();
+    contentIndexesEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure content indexes:', e);
+  }
+}
+
 // --- Sessions table lazy creation ---
 // Revoke sessions left idle beyond this window (seconds). Shorter than the
 // 7-day JWT lifetime so inactivity caps how long a stolen token survives.
@@ -547,20 +568,30 @@ async function ensureDosageShares(env: Env): Promise<void> {
     // Local/self-hosted databases may have been created before live sharing
     // existed and might not have run the numbered D1 migration. Inspect first
     // and tolerate a concurrent Worker isolate winning the ALTER race.
-    const ensureColumn = async (name: string, ddl: string): Promise<void> => {
+    // Reports whether *this* call added the column, so the one-time backfill
+    // below runs only alongside the ALTER that makes it necessary.
+    const ensureColumn = async (name: string, ddl: string): Promise<boolean> => {
       const columns = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
-      if ((columns.results || []).some(column => column.name === name)) return;
+      if ((columns.results || []).some(column => column.name === name)) return false;
       try {
         await env.DB.prepare(ddl).run();
+        return true;
       } catch (error) {
         const refreshed = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
         if (!(refreshed.results || []).some(column => column.name === name)) throw error;
+        return false;
       }
     };
     await ensureColumn('is_live', 'ALTER TABLE dosage_shares ADD COLUMN is_live INTEGER NOT NULL DEFAULT 0');
     await ensureColumn('share_mode', 'ALTER TABLE dosage_shares ADD COLUMN share_mode TEXT');
-    await ensureColumn('updated_at', 'ALTER TABLE dosage_shares ADD COLUMN updated_at INTEGER');
-    await env.DB.prepare('UPDATE dosage_shares SET updated_at = created_at WHERE updated_at IS NULL').run();
+    const addedUpdatedAt = await ensureColumn('updated_at', 'ALTER TABLE dosage_shares ADD COLUMN updated_at INTEGER');
+    // Backfill for the ALTER directly above, and only for it. Unconditionally it
+    // scanned the whole table on every cold isolate to update nothing — roughly
+    // 11,700 pointless scans a week. Rows that predate the column are already
+    // covered by migrations/0002, and every read site falls back to created_at.
+    if (addedUpdatedAt) {
+      await env.DB.prepare('UPDATE dosage_shares SET updated_at = created_at WHERE updated_at IS NULL').run();
+    }
 
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_dosage_shares_user_id ON dosage_shares(user_id)').run();
     await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_dosage_shares_token_hash ON dosage_shares(token_hash)').run();
@@ -1555,6 +1586,7 @@ export default {
 
         // Content
         if (url.pathname.startsWith('/api/content')) {
+          await ensureContentIndexes(env);
           if (url.pathname === '/api/content' && request.method === 'GET') {
             const metaOnly = url.searchParams.get('meta') === '1';
             if (metaOnly) {

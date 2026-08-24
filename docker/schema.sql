@@ -13,7 +13,10 @@ CREATE TABLE IF NOT EXISTS content (
     created_at INTEGER DEFAULT (unixepoch()),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE INDEX IF NOT EXISTS idx_content_user_id ON content(user_id);
+-- Composite so `WHERE user_id = ? ORDER BY created_at DESC` is served entirely
+-- from the index, with no temp B-tree sort. See migrations/0003.
+CREATE INDEX IF NOT EXISTS idx_content_user_created ON content(user_id, created_at);
+DROP INDEX IF EXISTS idx_content_user_id;
 
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
