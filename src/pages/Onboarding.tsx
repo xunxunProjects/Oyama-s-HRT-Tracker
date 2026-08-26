@@ -4,7 +4,7 @@ import PixelCat from '../components/PixelCat';
 import LevelCurveIcon from '../components/LevelCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
-import { Lang } from '../i18n/translations';
+import { Lang, TRANSLATIONS } from '../i18n/translations';
 
 const ONBOARDING_KEY = 'app-onboarded';
 
@@ -48,6 +48,9 @@ const markProps = { size: 18, strokeWidth: 1.75, className: 'text-muted' };
  * the languages — on a short screen that quietly hides two of them.
  */
 const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent)';
+
+/** Read straight out of the packs to size the greeting — see the welcome step. */
+const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
 
 interface PointProps {
     /** A lucide glyph or a short lettermark — see `hormoneMark`. */
@@ -152,9 +155,31 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                     <PixelCat pose="donut" size={176} />
                 </div>
                 <h1 className="mt-6 text-2xl font-semibold text-body">{t('onboarding.welcome_title')}</h1>
-                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted">
-                    {t('onboarding.welcome_subtitle')}
-                </p>
+                {/* Every translation of the sentence stacked into one grid cell,
+                    the inactive ones hidden but still taking up their space, so
+                    the box is as tall as the longest one at whatever width this
+                    is. The list below therefore starts at the same y in every
+                    language — otherwise picking Türkçe after 简体中文 grows the
+                    sentence by a line and slides the list down under the finger
+                    that just tapped it. A fixed height can't stand in for this:
+                    the longest runs to four lines at 320px and three at 375px. */}
+                <div className="mx-auto mt-3 grid max-w-sm">
+                    {languageOptions.map(({ value }) => {
+                        const current = value === lang;
+                        const text = current
+                            ? t(SUBTITLE_KEY)
+                            : (TRANSLATIONS as Record<string, Record<string, string>>)[value]?.[SUBTITLE_KEY];
+                        if (!text) return null;
+                        return (
+                            <p
+                                key={value}
+                                className={`col-start-1 row-start-1 text-sm leading-relaxed text-muted ${current ? '' : 'invisible'}`}
+                            >
+                                {text}
+                            </p>
+                        );
+                    })}
+                </div>
             </div>
             {/* Narrower than the step's max-w-md: the labels are one or two
                 words, and across the full column the check would drift far
