@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, Cloud, Lock, Syringe } from 'lucide-react';
 import PixelCat from '../components/PixelCat';
 import LevelCurveIcon from '../components/LevelCurveIcon';
@@ -40,6 +40,14 @@ const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[
 
 /** Every mark sits in the same 34px well, whether it's a glyph or a lettermark. */
 const markProps = { size: 18, strokeWidth: 1.75, className: 'text-muted' };
+
+/**
+ * Softens the last rows of the language list while any are still below the
+ * fold. The list's scrollbar is hidden like every other scroller in the app, so
+ * without this a row can end flush against the footer and read as the end of
+ * the languages — on a short screen that quietly hides two of them.
+ */
+const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent)';
 
 interface PointProps {
     /** A lucide glyph or a short lettermark — see `hormoneMark`. */
@@ -96,6 +104,32 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     // Only so the step change slides the way the app's view changes do.
     const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
+    const langListRef = useRef<HTMLDivElement>(null);
+    const [langsBelow, setLangsBelow] = useState(false);
+    const syncLangsBelow = () => {
+        const el = langListRef.current;
+        setLangsBelow(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+    };
+    // Re-measured on step change, since the list only exists on step 0. The two
+    // watchers cover different things and neither subsumes the other: `resize`
+    // catches the rotation, while the observer catches the list's box moving
+    // without the window doing anything — the address bar sliding away, or a
+    // font landing late and retyping the rows.
+    useEffect(() => {
+        syncLangsBelow();
+        window.addEventListener('resize', syncLangsBelow);
+        const el = langListRef.current;
+        const observer = new ResizeObserver(syncLangsBelow);
+        if (el) {
+            observer.observe(el);
+            for (const row of Array.from(el.children)) observer.observe(row);
+        }
+        return () => {
+            window.removeEventListener('resize', syncLangsBelow);
+            observer.disconnect();
+        };
+    }, [step]);
+
     const modeOptions = [
         { value: 'transfem', labelKey: 'mode.transfem', descKey: 'onboarding.mode_transfem_desc' },
         { value: 'transmasc', labelKey: 'mode.transmasc', descKey: 'onboarding.mode_transmasc_desc' },
@@ -108,26 +142,47 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
         // isn't living out its day. It obeys the "show pixel cats" preference
         // like every other cat: someone replaying the intro with them switched
         // off asked not to see one.
-        <div key="welcome" className="pt-6 text-center">
-            <div className="flex justify-center">
-                <PixelCat pose="donut" size={176} />
+        <div key="welcome" className="flex h-full flex-col pt-6 text-center">
+            {/* The greeting holds its place; only the list below it travels.
+                Seven languages don't fit under the cat on a short screen, and
+                scrolling the whole step would carry away the one sentence
+                explaining what is being chosen. */}
+            <div className="shrink-0">
+                <div className="flex justify-center">
+                    <PixelCat pose="donut" size={176} />
+                </div>
+                <h1 className="mt-6 text-2xl font-semibold text-body">{t('onboarding.welcome_title')}</h1>
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted">
+                    {t('onboarding.welcome_subtitle')}
+                </p>
             </div>
-            <h1 className="mt-6 text-2xl font-semibold text-body">{t('onboarding.welcome_title')}</h1>
-            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted">
-                {t('onboarding.welcome_subtitle')}
-            </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-2">
+            {/* Narrower than the step's max-w-md: the labels are one or two
+                words, and across the full column the check would drift far
+                enough from its language to stop reading as one row.
+
+                min-h keeps the list usable rather than letting flex-1 squeeze
+                it to nothing on a very short viewport — past that point the
+                step outgrows its box and the outer scroller takes over, which
+                is the graceful way to lose the pinned greeting. */}
+            <div
+                ref={langListRef}
+                onScroll={syncLangsBelow}
+                style={langsBelow ? { maskImage: FADE_OUT, WebkitMaskImage: FADE_OUT } : undefined}
+                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start"
+            >
                 {languageOptions.map(({ value, label }) => (
                     <button
                         key={value}
                         onClick={() => setLang(value as Lang)}
                         aria-pressed={lang === value}
-                        className={`rounded-full border px-3.5 py-1.5 text-[0.8125rem] ${lang === value
-                            ? 'border-[var(--color-m3-primary)] bg-[var(--color-m3-primary-container)] font-medium text-[var(--color-m3-on-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)] dark:text-[var(--color-m3-dark-on-primary-container)]'
-                            : 'border-[var(--color-m3-outline-variant)] text-muted dark:border-[var(--color-m3-dark-outline-variant)]'
-                        }`}
+                        className={`flex w-full items-center justify-between gap-4 py-3.5 text-start ${divider} last:border-b-0`}
                     >
-                        {label}
+                        <span className={`text-[0.9375rem] text-body ${lang === value ? 'font-semibold' : ''}`}>
+                            {label}
+                        </span>
+                        {lang === value && (
+                            <Check size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+                        )}
                     </button>
                 ))}
             </div>
@@ -200,10 +255,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide px-6">
+            <div className="flex flex-1 items-start overflow-y-auto scrollbar-hide px-6">
+                {/* The welcome step pins its greeting and scrolls its own list,
+                    so it needs the scroller's height to divide up; the rest are
+                    read top to bottom and just grow. */}
                 <div
                     key={step}
-                    className={`mx-auto w-full max-w-md pb-8 ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className={`mx-auto w-full max-w-md ${step === 0 ? 'h-full pb-6' : 'pb-8'} ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     {steps[step]}
                 </div>
