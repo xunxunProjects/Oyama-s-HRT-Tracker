@@ -215,10 +215,12 @@ export const authService = {
         return await res.json() as { backupCodes: string[] };
     },
 
-    async generateBackupCodes(token: string): Promise<string[]> {
+    /** Replaces every existing code, so the worker requires the password. */
+    async generateBackupCodes(token: string, password: string): Promise<string[]> {
         const res = await apiFetch('/api/user/2fa/backup-codes/generate', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ password }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json() as { codes: string[] };
@@ -272,10 +274,12 @@ export const authService = {
         return await res.json() as { backupCodes?: string[] };
     },
 
-    async deletePasskey(token: string, id: string): Promise<void> {
+    /** Removing a passkey weakens the account, so the worker requires the password. */
+    async deletePasskey(token: string, id: string, password: string): Promise<void> {
         const res = await apiFetch(`/api/user/passkeys/${id}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ password }),
         });
         if (!res.ok) throw new Error(await res.text());
     },
