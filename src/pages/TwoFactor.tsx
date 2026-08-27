@@ -13,6 +13,7 @@ import {
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
+import PasswordInputModal from '../components/PasswordInputModal';
 
 interface TwoFactorPageProps {
     token: string;
@@ -98,6 +99,12 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [disableCode, setDisableCode] = useState('');
     const [disableLoading, setDisableLoading] = useState(false);
     const [disableError, setDisableError] = useState<string | null>(null);
+    // The `enabled` prop is the OR of every factor, so a passkey-only account
+    // arrives here with enabled=true and this tab used to render its "disable"
+    // form — demanding an authenticator code from someone who never enrolled an
+    // authenticator, with no way to reach setup. The TOTP tab keys off the TOTP
+    // flag alone; null means the status is still loading.
+    const [totpEnabled, setTotpEnabled] = useState<boolean | null>(null);
 
     // Passkey
     const [passkeys, setPasskeys] = useState<Passkey[]>([]);
@@ -116,11 +123,30 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [backupCopied, setBackupCopied] = useState(false);
     const backupCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Removing a passkey and replacing the backup codes both destroy a recovery
+    // path, so the worker asks for the password on each. Nothing collected it,
+    // which is why both actions came back "Current password is required".
+    const [pwPrompt, setPwPrompt] = useState<null | { kind: 'passkey'; passkey: Passkey } | { kind: 'backup' }>(null);
+    const [pwError, setPwError] = useState<string | null>(null);
+    const [pwLoading, setPwLoading] = useState(false);
+
     useEffect(() => {
-        if (!enabled) initSetup();
+        let cancelled = false;
+        // Ask the server which factors this account actually has rather than
+        // inferring them from the combined flag the parent passes down.
+        authService.get2FAStatus(token).then(s => {
+            if (cancelled) return;
+            setTotpEnabled(s.totp);
+            if (!s.totp) initSetup();
+            if (s.totp || s.passkey) fetchBackupRemaining();
+        }).catch(() => {
+            if (cancelled) return;
+            setTotpEnabled(false);
+            initSetup();
+        });
         fetchPasskeys();
-        if (enabled) fetchBackupRemaining();
         return () => {
+            cancelled = true;
             if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
             if (backupCopyTimerRef.current) clearTimeout(backupCopyTimerRef.current);
         };
@@ -158,6 +184,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             const result = await authService.enable2FA(token, secret, code);
             setBackupCodes(result.backupCodes ?? []);
             setBackupRemaining(result.backupCodes?.length ?? 0);
+            setTotpEnabled(true);
             setSuccess(true);
         } catch (e: any) {
             const msg = e.message || '';
@@ -174,17 +201,46 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         } catch { /* best-effort */ }
     };
 
-    const handleGenerateBackupCodes = async () => {
-        setBackupLoading(true);
+    const handleGenerateBackupCodes = () => {
         setBackupError(null);
+        setPwError(null);
+        setPwPrompt({ kind: 'backup' });
+    };
+
+    const submitPasswordPrompt = async (password: string) => {
+        if (!pwPrompt) return;
+        setPwLoading(true);
+        setPwError(null);
         try {
-            const codes = await authService.generateBackupCodes(token);
-            setBackupCodes(codes);
-            setBackupRemaining(codes.length);
+            if (pwPrompt.kind === 'backup') {
+                setBackupLoading(true);
+                const codes = await authService.generateBackupCodes(token, password);
+                setBackupCodes(codes);
+                setBackupRemaining(codes.length);
+            } else {
+                const pk = pwPrompt.passkey;
+                setDeleteLoadingId(pk.id);
+                await authService.deletePasskey(token, pk.id, password);
+                const left = passkeys.filter(p => p.id !== pk.id);
+                setPasskeys(left);
+                // Dropping the last passkey can take the account back to a
+                // single factor, so the parent's badge has to hear about it.
+                onStatusChange(totpEnabled === true || left.length > 0);
+            }
+            setPwPrompt(null);
         } catch (e: any) {
-            setBackupError(e.message || t('account.backup_codes_generate'));
+            const msg = e.message || '';
+            if (msg.includes('Incorrect password') || msg.includes('password is required')) {
+                setPwError(t('account.2fa_verify_failed'));
+            } else {
+                setPwPrompt(null);
+                if (pwPrompt.kind === 'backup') setBackupError(msg || t('account.backup_codes_generate'));
+                else setPasskeyError(msg || t('auth.passkey_failed'));
+            }
         } finally {
+            setPwLoading(false);
             setBackupLoading(false);
+            setDeleteLoadingId(null);
         }
     };
 
@@ -214,7 +270,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         setDisableError(null);
         try {
             await authService.disable2FA(token, disablePassword, disableCode);
-            onStatusChange(false);
+            setTotpEnabled(false);
+            // Any remaining passkey still makes this a two-factor account.
+            onStatusChange(passkeys.length > 0);
             showDialog('alert', t('account.2fa_disabled_success'));
             onBack();
         } catch (e: any) {
@@ -280,17 +338,11 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         }
     };
 
-    const handleDeletePasskey = async (pk: Passkey) => {
-        showDialog('confirm', t('account.passkey_delete_confirm'), async () => {
-            setDeleteLoadingId(pk.id);
-            try {
-                await authService.deletePasskey(token, pk.id);
-                setPasskeys(prev => prev.filter(p => p.id !== pk.id));
-            } catch (e: any) {
-                setPasskeyError(e.message);
-            } finally {
-                setDeleteLoadingId(null);
-            }
+    const handleDeletePasskey = (pk: Passkey) => {
+        showDialog('confirm', t('account.passkey_delete_confirm'), () => {
+            setPasskeyError(null);
+            setPwError(null);
+            setPwPrompt({ kind: 'passkey', passkey: pk });
         });
     };
 
@@ -346,7 +398,11 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 {/* ===== TOTP TAB ===== */}
                 {activeTab === 'totp' && (
                     <div className="space-y-5">
-                        {enabled && (
+                        {totpEnabled === null && (
+                            <div className="flex justify-center py-10"><Loader2 className={`animate-spin ${muted}`} size={20} /></div>
+                        )}
+
+                        {totpEnabled === true && (
                             <>
                                 <div className="flex items-start gap-3 pb-4">
                                     <SettingsIconBox icon={ShieldIcon} />
@@ -380,7 +436,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             </>
                         )}
 
-                        {!enabled && (
+                        {totpEnabled === false && (
                             <>
                                 {/* Step indicator */}
                                 <div className="flex items-center gap-3 mb-2">
@@ -566,6 +622,19 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                     </div>
                 )}
             </div>
+
+            <PasswordInputModal
+                isOpen={!!pwPrompt}
+                onClose={() => { setPwPrompt(null); setPwError(null); }}
+                onConfirm={submitPasswordPrompt}
+                title={t('account.current_password')}
+                description={pwPrompt?.kind === 'passkey'
+                    ? t('account.passkey_delete_password_desc')
+                    : t('account.backup_codes_password_desc')}
+                error={pwError}
+                loading={pwLoading}
+                masked
+            />
         </div>
     );
 };
