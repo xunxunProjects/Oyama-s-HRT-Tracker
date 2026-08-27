@@ -7,6 +7,29 @@ export interface AdminUser {
     backup_count?: number;
     last_backup_at?: number | null;
     total_backup_size?: number;
+    has_totp?: number;
+    passkey_count?: number;
+}
+
+export interface AdminUser2FA {
+    /** An authenticator app secret is enrolled. */
+    totp: boolean;
+    /** Registered passkeys. */
+    passkeys: number;
+    /** Unused backup codes left. */
+    backupCodes: number;
+    /** Either second factor is present, i.e. login demands more than a password. */
+    enabled: boolean;
+}
+
+export type TwoFactorScope = 'all' | 'totp' | 'passkeys' | 'backup_codes';
+
+export interface Cleared2FA {
+    totp: boolean;
+    passkeys: number;
+    backupCodes: number;
+    /** Sessions revoked alongside, so a stripped factor evicts whoever held one. */
+    sessions: number;
 }
 
 export interface BackupMeta {
@@ -98,5 +121,28 @@ export const adminService = {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to reset avatar');
+    },
+
+    async getUser2FA(token: string, userId: string): Promise<AdminUser2FA> {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return await res.json() as AdminUser2FA;
+    },
+
+    /** Erase a user's second factors. Omit `scope` to clear every one of them. */
+    async clearUser2FA(token: string, userId: string, scope: TwoFactorScope = 'all'): Promise<Cleared2FA> {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ scope })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const body = await res.json() as { cleared: Cleared2FA };
+        return body.cleared;
     }
 };

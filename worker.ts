@@ -1745,6 +1745,11 @@ export default {
         // Admin
         if (url.pathname.startsWith('/api/admin/')) {
           if (payload.role !== 'admin') return withSecurityHeaders(new Response('Forbidden', { status: 403, headers: corsHeaders }));
+          // The user list reports each account's 2FA posture and the /2fa routes
+          // below read and clear it, so the column and table both have to exist
+          // before any of those queries name them. Cached per isolate.
+          await ensureTotpColumn(env);
+          await ensurePasskeys(env);
 
           // Search users (with backup stats, paginated)
           if (url.pathname === '/api/admin/users' && request.method === 'GET') {
@@ -1758,10 +1763,15 @@ export default {
               ? await env.DB.prepare(countSql).bind(`%${query}%`).first<{ total: number }>()
               : await env.DB.prepare(countSql).first<{ total: number }>();
             const total = countResult?.total ?? 0;
+            // Passkeys come from a correlated subquery rather than a second
+            // LEFT JOIN: joining both tables would multiply the rows and inflate
+            // every content aggregate above by the passkey count.
             const sql = `SELECT u.id, u.username, u.created_at,
               COUNT(c.id) AS backup_count,
               MAX(c.created_at) AS last_backup_at,
-              COALESCE(SUM(LENGTH(c.data)), 0) AS total_backup_size
+              COALESCE(SUM(LENGTH(c.data)), 0) AS total_backup_size,
+              CASE WHEN u.totp_secret IS NOT NULL AND u.totp_secret != '' THEN 1 ELSE 0 END AS has_totp,
+              (SELECT COUNT(*) FROM passkeys p WHERE p.user_id = u.id) AS passkey_count
               FROM users u LEFT JOIN content c ON u.id = c.user_id
               ${whereClause}
               GROUP BY u.id ORDER BY u.username ASC LIMIT ? OFFSET ?`;
@@ -1826,6 +1836,84 @@ export default {
             const targetId = url.pathname.split('/')[4];
             try { await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${targetId}`); } catch (e) { }
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Avatar reset' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Admin read a user's 2FA posture
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/2fa$/) && request.method === 'GET') {
+            const targetId = url.pathname.split('/')[4];
+            await ensureBackupCodes(env);
+            const target = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(targetId).first() as any;
+            if (!target) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            const pkRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?').bind(targetId).first<{ n: number }>();
+            const bcRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM backup_codes WHERE user_id = ? AND used_at IS NULL').bind(targetId).first<{ n: number }>();
+            const passkeys = pkRow?.n ?? 0;
+            // Deliberately never returns totp_secret itself — an admin needs to
+            // know whether a factor exists, not to be handed the seed that
+            // would let them mint codes as the user.
+            return withSecurityHeaders(new Response(JSON.stringify({
+              totp: !!target.totp_secret,
+              passkeys,
+              backupCodes: bcRow?.n ?? 0,
+              enabled: !!target.totp_secret || passkeys > 0,
+            }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Admin disable / erase a user's 2FA.
+          // This is the recovery path for someone who lost their authenticator:
+          // the self-service DELETE /api/user/2fa demands a code from the very
+          // device they no longer have, and DELETE /api/user/passkeys/:id needs
+          // a login they can't complete, so without an admin route the account
+          // is stranded behind a factor nobody can present. `scope` defaults to
+          // every factor; a narrower scope drops one without touching the rest.
+          if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/2fa$/) && request.method === 'DELETE') {
+            const targetId = url.pathname.split('/')[4];
+            const { scope } = await request.json().catch(() => ({})) as any;
+            const which = scope === undefined || scope === null ? 'all' : String(scope);
+            if (!['all', 'totp', 'passkeys', 'backup_codes'].includes(which)) {
+              return withSecurityHeaders(new Response('Invalid scope', { status: 400, headers: corsHeaders }));
+            }
+            const target = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(targetId).first() as any;
+            if (!target) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            await ensureBackupCodes(env);
+            await ensureSessions(env);
+
+            const clearTotp = which === 'all' || which === 'totp';
+            const clearPasskeys = which === 'all' || which === 'passkeys';
+            const clearBackupCodes = which === 'all' || which === 'backup_codes';
+
+            // Stripping a factor weakens the account, so whoever currently holds
+            // a session on it loses that session too: otherwise an attacker who
+            // enrolled their own authenticator on a hijacked account keeps the
+            // foothold that this very reset exists to evict. Clearing spent
+            // backup codes alone is not a downgrade, so it leaves sessions be.
+            const revokeSessions = clearTotp || clearPasskeys;
+
+            // Counted before the batch — D1 exposes no portable per-statement
+            // row count, and the admin UI reports exactly what was removed.
+            const pkRow = clearPasskeys ? await env.DB.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
+            const bcRow = clearBackupCodes ? await env.DB.prepare('SELECT COUNT(*) AS n FROM backup_codes WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
+            const sessRow = revokeSessions ? await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
+
+            const statements: D1PreparedStatement[] = [];
+            // totp_last_step goes with the secret: a stale high-water mark left
+            // behind would reject the opening codes of whatever secret the user
+            // enrols next, since consumeTOTP compares steps against it.
+            if (clearTotp) statements.push(env.DB.prepare('UPDATE users SET totp_secret = NULL, totp_last_step = NULL WHERE id = ?').bind(targetId));
+            if (clearPasskeys) statements.push(env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId));
+            if (clearBackupCodes) statements.push(env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId));
+            if (revokeSessions) statements.push(env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId));
+            await env.DB.batch(statements);
+
+            return withSecurityHeaders(new Response(JSON.stringify({
+              message: '2FA cleared',
+              scope: which,
+              cleared: {
+                totp: clearTotp && !!target.totp_secret,
+                passkeys: pkRow?.n ?? 0,
+                backupCodes: bcRow?.n ?? 0,
+                sessions: sessRow?.n ?? 0,
+              },
+            }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // Delete user
