@@ -128,8 +128,11 @@ This README explains the algorithms used for each drug/route, key parameters and
 
 ### 4.1 路由与参数
 - **模型**：单室一阶吸收 + 清除，`F` 为经皮可达的系统暴露分数。
-- **吸收速率 `k₁`**：在 flip-flop 动力学下（`k₁ ≪ k₃`），末端衰减速率由吸收主导，故 `k₁` 直接取自文献报道的凝胶表观消除半衰期（~36 h，Divigel FDA 说明书；Wikipedia "Pharmacokinetics of estradiol"）：`k₁ = ln(2)/36 ≈ 0.0193 h⁻¹`。
-- **`F`（生物利用率）按涂抹部位**：手臂/大腿 ≈ 5%（Järvinen et al. 1999, *Maturitas*：凝胶相对片剂/贴片的生物利用率比较），阴囊/生殖器部位 ≈ 25%（约 5×，外推自阴囊贴片给药数据 Premoli et al. 2005，因缺乏阴囊凝胶给药的直接人体研究）。
+- **吸收速率 `k₁`**：在 flip-flop 动力学下（`k₁ ≪ k₃`），末端衰减速率由吸收主导，故 `k₁` 取自说明书报告的凝胶表观消除半衰期（~36 h）：`k₁ = ln(2)/36 ≈ 0.0193 h⁻¹`。注意 36 h 出自 **EstroGel** 说明书（"about 36 hours following administration of 1.25 g EstroGel"，NDA 021166），此前本文档与代码注释均误标为 Divigel；Divigel 说明书写的是 "about 10 hours"（NDA 022038）。两份说明书确有分歧（产品、剂型、涂抹部位皆不同），36 h 属于二选一而非共识值。`k₁` 不影响暴露量（AUC = F·D/k₃ 与 `k₁` 无关），只决定 Tmax 与峰谷形状。
+- **`F`（生物利用率）按涂抹部位**：手臂/大腿 ≈ 5%，阴囊/生殖器部位 ≈ 25%（约 5×，外推自阴囊贴片给药数据 Premoli et al. 2005，因缺乏阴囊凝胶给药的直接人体研究）。
+  - 手臂/大腿的 5% 由**说明书自身的稳态血药浓度反推**得出，而非引用任何现成百分比——美国的雌二醇凝胶说明书根本未给出百分比（Divigel NDA 022038、EstroGel NDA 021166 对吸收只有定性描述）。Divigel 0.25/0.5/1.0 mg/day 的 Cavg 为 9.8/21/30.5 pg/mL，EstroGel 0.75 mg/day 为 28.3 pg/mL；本模型在 65–70 kg 下需 F = 0.039–0.058（均值 0.050）才能复现。说明书数值未做基线校正，故属上限，真值可能更接近 0.04。
+  - **不应引用 Järvinen et al. 1999 来支撑这个数**：其"61% 片剂 / 109% 贴片"是**相对**生物利用率，无法确定绝对分数。不过贴片一侧可佐证量级：1.09 × 50 µg/day ÷ 1.5 mg 应用量 ≈ 3.6%。
+  - **常见的"10%"是另一个量，不可直接代入 `F`**：那是在厂商大面积涂抹法（Oestrogel SmPC，750 cm² 整条手臂）下**穿过皮肤**的比例；Wikipedia "Pharmacokinetics of estradiol" 也给出 10%（引 Sitruk-Ware 1989），但针对的是醇溶液这一类别。同一款 0.06% 凝胶的德国 Gynokadin Fachinformation 则写 5–6% "Bioverfügbarkeit"，而两者报告的血药浓度相同（2.5 g 给药 60–80 pg/mL）。`F` 在模型中线性且只出现一次，改成 0.10 会让所有预测值翻倍；由于用户按预测值调整剂量，偏高的 `F` 会把实际用量推向偏低。
 - **睾酮凝胶（T）**：手臂/大腿 ≈ 10%（AndroGel/Testim FDA 说明书），阴囊 ≈ 50%（保守取 Iyer et al. 2017, *Andrology*；Kuhnert et al. 2005 报道的 5–8× 范围下限）。2026-07 之前，T 凝胶未按部位区分（`t_gel_F` 恒为 0.10，UI 的部位选择器对 T 无效），现已修复为与 E2 对称的按部位实现。
 - **代码入口**：`getBioavailabilityMultiplier(... case .gel ...)` → `resolveParams` → `oneCompAmount(...)`。
 
@@ -292,7 +295,7 @@ $$
 **期刊/综述（示例）**
 - Ginsburg ES et al. Half-life of estradiol in postmenopausal women. Fertil Steril. 1998：贴片移除后终末半衰期约 161 min（107–221 min）。<https://pubmed.ncbi.nlm.nih.gov/9473164/>
 - Kuhl H. Pharmacology of estrogens and progestogens: influence of different routes of administration. *Climacteric*. 2005. <https://pubmed.ncbi.nlm.nih.gov/16112947/>
-- Oinonen et al. / Järvinen et al. Absorption and bioavailability of oestradiol from a gel, a patch and a tablet. *Maturitas*. 1999：凝胶生物利用率为片剂的 61%、贴片的 109%。<https://pubmed.ncbi.nlm.nih.gov/10465378/>
+- Oinonen et al. / Järvinen et al. Absorption and bioavailability of oestradiol from a gel, a patch and a tablet. *Maturitas*. 1999：凝胶生物利用率为片剂的 61%、贴片的 109%。**这是相对值**，仅用于佐证量级（贴片一侧折算约 3.6%），不作为 `e2_gel_arm` 的依据。<https://pubmed.ncbi.nlm.nih.gov/10465378/>
 - Premoli MC et al. Scrotal transdermal estradiol delivery, 2005：阴囊贴片给药雌二醇水平约为前臂给药的 5 倍。
 - Iyer R et al. Pharmacokinetics of testosterone cream applied to scrotal skin. *Andrology*. 2017：阴囊皮肤睾酮吸收显著高于腹部。<https://onlinelibrary.wiley.com/doi/full/10.1111/andr.12357>
 - Kuhnert B et al. Testosterone substitution with a new transdermal, hydroalcoholic gel applied to scrotal or non-scrotal skin. 2005：阴囊 vs 非阴囊皮肤睾酮凝胶吸收比较。
@@ -300,7 +303,9 @@ $$
 - 比较矩阵与储库型贴片的生物利用度与速率差异的研究（如 Menorest® vs Estraderm®）。
 
 **官方说明书（补充）**
-- Divigel® (estradiol gel) FDA 说明书：凝胶表观消除半衰期 36 h；每日涂抹于大腿于第 12 天达稳态。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2007/022038lbl.pdf>
+- EstroGel® 0.06% (estradiol gel) FDA 说明书：表观终末消除半衰期 **36 h**（`k₁` 即取自此处）；1.25 g/day 稳态 Cavg 28.3 pg/mL。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/021166s019lbl.pdf>
+- Divigel® 0.1% (estradiol gel) FDA 说明书：表观终末半衰期 **10 h**（与 EstroGel 不一致）；每日涂抹于大腿于第 12 天达稳态；0.25/0.5/1.0 mg/day 稳态 Cavg 9.8/21/30.5 pg/mL（未做基线校正）。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2007/022038lbl.pdf>
+- 两份美国雌二醇凝胶说明书均**未**给出任何吸收百分比或生物利用率数字。
 - Vivelle-Dot® / AndroGel® FDA 说明书：贴片按"体内标称递送速率"设计（0.025–0.1 mg/day），凝胶睾酮系统生物利用率约 10%。
 
 **百科与药学数据库**
