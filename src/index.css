@@ -34,10 +34,6 @@
     --color-m3-outline: #9E9B94;
     --color-m3-outline-variant: #E3E1DC;
 
-    /* Dark primary container — terracotta tint for selected states */
-    --color-m3-dark-primary-container: #4E2E20;
-    --color-m3-dark-on-primary-container: #F5D7C8;
-
     /* Dark primary container — warm terracotta on dark */
     --color-m3-dark-primary-container: #452B1F;
     --color-m3-dark-on-primary-container: #F2D3C2;
@@ -166,10 +162,90 @@ svg.lucide {
 }
 
 
+/* ── the intro chart ──────────────────────────────────────────────────────
+   OnboardingCurve plays one 7.8 s sequence: doses land, the curve draws
+   through them, then labs arrive and the curve drops onto them.
+
+   These are written the opposite way round from every other animation in this
+   file. Each element's *resting* CSS is its FINAL frame and the keyframe's
+   `from` is what hides it, so switching the animations off leaves the finished
+   argument standing rather than an empty plane. That is what makes the
+   reduced-motion rule at the bottom of this file a one-liner instead of a
+   second code path. */
+@keyframes oc-pop      { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+@keyframes oc-draw     { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes oc-in       { from { opacity: 0; } to { opacity: 1; } }
+@keyframes oc-out      { from { opacity: 1; } to { opacity: 0; } }
+@keyframes oc-ghost-in { from { opacity: 0; } to { opacity: 0.28; } }
+
+/* Dose rings and lab diamonds. Delay is set inline, per marker. */
+.oc-pop {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: oc-pop 300ms var(--ease-standard) both;
+}
+
+/* Axis, gridlines, ticks: they arrive under a line already three quarters
+   drawn, so the curve is what is watched and the furniture just appears. */
+.oc-frame {
+    opacity: 1;
+    animation: oc-in 800ms linear 3400ms both;
+}
+
+/* Two animations on one element: `pathLength=1` on the path makes a
+   dasharray of 1 exactly one line long, so the offset draws it on; the second
+   fades the same line out once the ghost has taken over. `both` on the fade is
+   what holds it visible in between, despite the resting opacity being 0. */
+.oc-model {
+    stroke-dasharray: 1;
+    opacity: 0;
+    animation: oc-draw 2600ms var(--ease-standard) 1800ms both,
+               oc-out 700ms linear 5800ms both;
+}
+
+/* The model, remembered. Same colour and weight as the line it replaces, so
+   it reads as the same series in an earlier state rather than a second one. */
+.oc-ghost {
+    opacity: 0.28;
+    animation: oc-ghost-in 700ms linear 5800ms both;
+}
+
+.oc-cal {
+    opacity: 1;
+    animation: oc-in 1000ms var(--ease-standard) 5900ms both;
+}
+
+/* Laid out from the first frame at zero opacity rather than mounted late, so
+   its arrival does not shove the rows below it down the page. */
+.oc-legend {
+    opacity: 1;
+    animation: oc-in 500ms linear 6900ms both;
+}
+
+/* Warms the mark well of whichever row the chart is currently illustrating.
+   Nothing moves and nothing resizes: the tint holds across the middle of the
+   window and eases at both ends, so it reads as a dwell rather than a blink. */
+@keyframes oc-lit      { 0%, 100% { background-color: var(--color-m3-surface-container); }      12%, 88% { background-color: var(--color-m3-primary-container); } }
+@keyframes oc-lit-dark { 0%, 100% { background-color: var(--color-m3-dark-surface-container); } 12%, 88% { background-color: var(--color-m3-dark-primary-container); } }
+.oc-lit      { animation-name: oc-lit; animation-timing-function: linear; animation-fill-mode: both; }
+.dark .oc-lit { animation-name: oc-lit-dark; }
+
+
 @media (prefers-reduced-motion: reduce) {
     .chart-sweep,
     .chart-appear,
     .chart-mark {
+        animation: none;
+    }
+    /* Every one of these rests on its final frame, so switching them off
+       shows the whole argument at once instead of losing it. */
+    .oc-pop,
+    .oc-frame,
+    .oc-model,
+    .oc-ghost,
+    .oc-cal,
+    .oc-legend,
+    .oc-lit {
         animation: none;
     }
 }

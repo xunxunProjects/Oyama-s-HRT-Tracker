@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, Cloud, Lock, Syringe } from 'lucide-react';
 import PixelCat from '../components/PixelCat';
 import LevelCurveIcon from '../components/LevelCurveIcon';
+import OnboardingCurve, { useOnboardingCurve } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
@@ -57,14 +58,24 @@ interface PointProps {
     mark: React.ReactNode;
     title: string;
     desc: string;
+    /**
+     * When the chart above is drawing the thing this row names, in ms from the
+     * step mounting. Warms the mark well for that window, which is what stops
+     * the chart reading as decoration floating over an unrelated list. Omitted
+     * on the rows of steps that have no chart.
+     */
+    lit?: { delay: number; duration: number };
 }
 
-const Point: React.FC<PointProps> = ({ mark, title, desc }) => (
+const Point: React.FC<PointProps> = ({ mark, title, desc, lit }) => (
     <div className={`flex items-start gap-3.5 py-4 ${divider} last:border-b-0`}>
         {/* Fixed 34px rather than padding around the content: an 18px glyph and
             two letters have different intrinsic sizes, and the wells have to
             line up down the column regardless. */}
-        <div className="mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+        <div
+            className={`mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ${lit ? 'oc-lit' : ''}`}
+            style={lit ? { animationDelay: `${lit.delay}ms`, animationDuration: `${lit.duration}ms` } : undefined}
+        >
             {mark}
         </div>
         <div>
@@ -93,6 +104,7 @@ interface OnboardingProps {
 const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     const { t, lang, setLang } = useTranslation();
     const { mode, setMode, isTransmasc } = useHRTMode();
+    const curve = useOnboardingCurve(isTransmasc);
 
     // The lettermark for the hormone this user actually tracks. Hard-coding E2
     // would be wrong for anyone who picked transmasc on the step before this
@@ -242,12 +254,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
         <div key="how" className="pt-8">
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.how_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
+            {/* The three rows below say what the app does; this says it. The
+                curve, the doses and the fit are the engine's own output, so
+                what is promised here is what the Overview will draw. */}
             <div className="mt-4">
-                <Point mark={<Syringe {...markProps} />} title={t('onboarding.how_log')} desc={t('onboarding.how_log_desc')} />
-                <Point mark={<LevelCurveIcon {...markProps} />} title={t('onboarding.how_chart')} desc={t('onboarding.how_chart_desc')} />
-                <Point mark={hormoneMark} title={t('onboarding.how_calibrate')} desc={t('onboarding.how_calibrate_desc')} />
+                <OnboardingCurve
+                    data={curve}
+                    caption={t('onboarding.how_chart_caption')}
+                    legend={{ model: t('onboarding.how_chart_legend_model'), labs: t('onboarding.how_chart_legend_labs') }}
+                />
             </div>
-            <p className="callout mt-5">{t('onboarding.how_note')}</p>
+            {/* Windows match OnboardingCurve's clock exactly: doses 0–1800,
+                curve 1800–5100, calibration 5100–7800. */}
+            <div className="mt-4">
+                <Point mark={<Syringe {...markProps} />} title={t('onboarding.how_log')} desc={t('onboarding.how_log_desc')} lit={{ delay: 0, duration: 1800 }} />
+                <Point mark={<LevelCurveIcon {...markProps} />} title={t('onboarding.how_chart')} desc={t('onboarding.how_chart_desc')} lit={{ delay: 1800, duration: 3300 }} />
+                <Point mark={hormoneMark} title={t('onboarding.how_calibrate')} desc={t('onboarding.how_calibrate_desc')} lit={{ delay: 5100, duration: 2700 }} />
+            </div>
+            <p className="mt-5 text-[0.8125rem] leading-relaxed text-muted">{t('onboarding.how_note')}</p>
         </div>,
 
         <div key="privacy" className="pt-8">
