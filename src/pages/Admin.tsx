@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Trash2, Loader2, AlertCircle, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash, Users, ArrowLeft, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Trash2, Loader2, AlertCircle, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash, Users, ArrowLeft, ShieldCheck, ShieldOff, Megaphone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
+import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
+import { Lang } from '../i18n/translations';
 
-type AdminCat = 'users' | 'system';
+type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
 type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser } | { type: '2fa'; user: AdminUser };
 
@@ -59,8 +61,23 @@ const Admin: React.FC = () => {
     const [twoFA, setTwoFA] = useState<AdminUser2FA | null>(null);
     const [twoFALoading, setTwoFALoading] = useState(false);
 
+    // --- Site notice ---
+    // `noticeLang` is which text the textarea is editing: the default body, or
+    // one per-locale override. The overrides are optional everywhere — a notice
+    // with only a default is shown in that wording to everyone.
+    const [notice, setNotice] = useState<SiteNotice | null>(null);
+    const [noticeLoading, setNoticeLoading] = useState(false);
+    const [noticeSaving, setNoticeSaving] = useState(false);
+    const [noticeBody, setNoticeBody] = useState('');
+    const [noticeI18n, setNoticeI18n] = useState<Partial<Record<Lang, string>>>({});
+    const [noticeLevel, setNoticeLevel] = useState<NoticeLevel>('info');
+    const [noticeStart, setNoticeStart] = useState('');
+    const [noticeEnd, setNoticeEnd] = useState('');
+    const [noticeLang, setNoticeLang] = useState<'default' | Lang>('default');
+
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts · Passwords · 2FA · Cloud backups' },
+        { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'Site-wide banner · Per-language text · Schedule' },
         { id: 'system', label: 'System', Icon: Server, hint: 'Status · Environment' },
     ];
 
@@ -555,6 +572,226 @@ const Admin: React.FC = () => {
         </div>
     );
 
+    // datetime-local <-> unix seconds. The input speaks the operator's local
+    // time; everything stored and compared server-side is UTC seconds.
+    const toLocalInput = (ts: number | null): string => {
+        if (!ts) return '';
+        const d = new Date(ts * 1000);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    const fromLocalInput = (value: string): number | null => {
+        if (!value) return null;
+        const ms = new Date(value).getTime();
+        return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+    };
+
+    const applyNotice = (n: SiteNotice | null) => {
+        setNotice(n);
+        setNoticeBody(n?.body ?? '');
+        setNoticeI18n(n?.i18n ?? {});
+        setNoticeLevel(n?.level ?? 'info');
+        setNoticeStart(toLocalInput(n?.startsAt ?? null));
+        setNoticeEnd(toLocalInput(n?.expiresAt ?? null));
+    };
+
+    const fetchNotice = useCallback(async () => {
+        if (!token) return;
+        setNoticeLoading(true);
+        try {
+            applyNotice(await noticeService.getStored(token));
+        } catch {
+            showDialog('alert', 'Failed to load the site notice.');
+        } finally {
+            setNoticeLoading(false);
+        }
+    }, [token, showDialog]);
+
+    // Loaded on entering the tab rather than on mount: the users list is what
+    // the page opens on, and this is one request nobody asked for until then.
+    useEffect(() => {
+        if (cat === 'notice' || mobileView === 'notice') void fetchNotice();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cat, mobileView]);
+
+    const noticeLangs: { id: 'default' | Lang; label: string }[] = [
+        { id: 'default', label: 'Default' },
+        { id: 'zh', label: '简体' },
+        { id: 'zh-TW', label: '繁體' },
+        { id: 'yue', label: '粵語' },
+        { id: 'en', label: 'EN' },
+        { id: 'ja', label: '日本語' },
+        { id: 'ko', label: '한국어' },
+        { id: 'tr', label: 'TR' },
+    ];
+
+    const noticeTextFor = (id: 'default' | Lang): string =>
+        id === 'default' ? noticeBody : (noticeI18n[id] ?? '');
+
+    const setNoticeTextFor = (id: 'default' | Lang, value: string) => {
+        if (id === 'default') setNoticeBody(value);
+        else setNoticeI18n(prev => ({ ...prev, [id]: value }));
+    };
+
+    const saveNotice = async () => {
+        if (!token) return;
+        const body = noticeBody.trim();
+        if (!body) {
+            showDialog('alert', 'The default text is what every locale without its own wording falls back to, so it cannot be empty.');
+            return;
+        }
+        const startsAt = fromLocalInput(noticeStart);
+        const expiresAt = fromLocalInput(noticeEnd);
+        if (startsAt != null && expiresAt != null && expiresAt <= startsAt) {
+            showDialog('alert', 'The end time has to be after the start time.');
+            return;
+        }
+        setNoticeSaving(true);
+        try {
+            applyNotice(await noticeService.save(token, { body, i18n: noticeI18n, level: noticeLevel, startsAt, expiresAt }));
+            showDialog('alert', 'Notice published. New visits see it right away; tabs already open pick it up within ten minutes.');
+        } catch (e: any) {
+            showDialog('alert', e?.message || 'Failed to save the notice.');
+        } finally {
+            setNoticeSaving(false);
+        }
+    };
+
+    const clearNotice = () => {
+        if (!token) return;
+        showDialog('confirm', 'Take the banner down for everyone?', async () => {
+            try {
+                await noticeService.clear(token);
+                applyNotice(null);
+                setNoticeLang('default');
+            } catch { showDialog('alert', 'Failed to clear the notice.'); }
+        });
+    };
+
+    // Same wording the banner uses: the locale's override when it has one, the
+    // default otherwise. Lets the operator see what a given locale will read.
+    const noticePreview = noticeLang === 'default'
+        ? noticeBody
+        : (noticeI18n[noticeLang]?.trim() || noticeBody);
+
+    const noticeWindowLabel = (): string => {
+        if (!notice) return 'Nothing is being shown.';
+        const now = Math.floor(Date.now() / 1000);
+        if (notice.startsAt != null && now < notice.startsAt) return `Scheduled for ${new Date(notice.startsAt * 1000).toLocaleString()}`;
+        if (notice.expiresAt != null && now >= notice.expiresAt) return `Expired ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
+        if (notice.expiresAt != null) return `Live until ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
+        return 'Live now, until you clear it';
+    };
+
+    const renderNotice = () => (
+        noticeLoading ? (
+            <div className="flex justify-center py-16"><Loader2 className={`animate-spin ${settingsMuted}`} size={20} /></div>
+        ) : (
+            <div className="space-y-5">
+                <p className={`text-xs ${settingsMuted} leading-relaxed`}>
+                    One banner, shown at the top of the app to everyone including signed-out visitors.
+                    Editing it brings it back for people who had already dismissed the previous wording.
+                </p>
+
+                {/* Language strip. A dot marks a locale that has its own wording. */}
+                <div className="flex flex-wrap gap-1">
+                    {noticeLangs.map(({ id, label }) => (
+                        <button
+                            key={id}
+                            onClick={() => setNoticeLang(id)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                                noticeLang === id
+                                    ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
+                                    : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                            }`}
+                        >
+                            {label}
+                            {id !== 'default' && noticeTextFor(id).trim() && (
+                                <span className="w-1 h-1 rounded-full bg-[var(--color-m3-primary)]" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="space-y-2">
+                    <label className={`block text-xs font-medium ${settingsMuted}`}>
+                        {noticeLang === 'default' ? 'Default text (required)' : `Override for ${noticeLangs.find(l => l.id === noticeLang)?.label}`}
+                    </label>
+                    <textarea
+                        value={noticeTextFor(noticeLang)}
+                        onChange={e => setNoticeTextFor(noticeLang, e.target.value)}
+                        rows={4}
+                        maxLength={2000}
+                        placeholder={noticeLang === 'default' ? 'What everyone should know…' : 'Leave empty to use the default text'}
+                        className="input-base resize-y"
+                    />
+                    <p className={`text-xs ${settingsMuted}`}>
+                        {noticeTextFor(noticeLang).length}/2000 · bare https:// links become clickable
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <label className={`block text-xs font-medium ${settingsMuted}`}>Tone</label>
+                    <div className="flex gap-1">
+                        {(['info', 'warn'] as NoticeLevel[]).map(level => (
+                            <button
+                                key={level}
+                                onClick={() => setNoticeLevel(level)}
+                                className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                                    noticeLevel === level
+                                        ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
+                                        : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                }`}
+                            >
+                                {level === 'info' ? 'Info' : 'Warning'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <label className={`block text-xs font-medium ${settingsMuted}`}>Show from (optional)</label>
+                        <input type="datetime-local" value={noticeStart} onChange={e => setNoticeStart(e.target.value)} className="input-base" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className={`block text-xs font-medium ${settingsMuted}`}>Hide after (optional)</label>
+                        <input type="datetime-local" value={noticeEnd} onChange={e => setNoticeEnd(e.target.value)} className="input-base" />
+                    </div>
+                </div>
+
+                {noticePreview.trim() && (
+                    <div className="space-y-2">
+                        <label className={`block text-xs font-medium ${settingsMuted}`}>Preview</label>
+                        <p className={`flex items-start gap-1.5 text-[0.8125rem] leading-snug whitespace-pre-wrap break-words ${
+                            noticeLevel === 'warn'
+                                ? 'text-amber-700/90 dark:text-amber-400/85'
+                                : 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
+                        }`}>
+                            {noticeLevel === 'warn'
+                                ? <AlertCircle size={14} strokeWidth={1.75} className="mt-[3px] shrink-0" />
+                                : <Megaphone size={14} strokeWidth={1.75} className="mt-[3px] shrink-0" />}
+                            <span>{noticePreview}</span>
+                        </p>
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                    <span className={`text-xs ${settingsMuted}`}>
+                        {noticeWindowLabel()}{notice ? ` · rev ${notice.revision}` : ''}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={clearNotice} disabled={!notice} className={dangerTextBtn}>Clear</button>
+                        <button onClick={saveNotice} disabled={noticeSaving || !noticeBody.trim()} className="btn-primary disabled:opacity-40 disabled:pointer-events-none">
+                            {noticeSaving ? <Loader2 size={15} className="animate-spin" /> : <Megaphone size={15} strokeWidth={1.5} />}
+                            {notice ? 'Update Notice' : 'Publish Notice'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    );
+
     const renderSystem = () => (
         <div>
             <div className={`${rowBase} cursor-default`}>
@@ -579,7 +816,7 @@ const Admin: React.FC = () => {
         </div>
     );
 
-    const catContent = (id: AdminCat) => (id === 'users' ? renderUsers() : renderSystem());
+    const catContent = (id: AdminCat) => (id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem());
 
     return (
         <div className="flex pt-8 pb-32 min-h-full">

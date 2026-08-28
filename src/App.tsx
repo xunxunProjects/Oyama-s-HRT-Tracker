@@ -49,6 +49,7 @@ import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
+import SiteNoticeBanner from './components/SiteNotice';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -398,6 +399,10 @@ const AppContent = () => {
                 <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none">
                     {window.location.hostname}
                 </div>
+
+                {/* Operator banner. Outside the scroller and keyed off nothing in
+                    this component, so it stays put across view changes. */}
+                <SiteNoticeBanner />
 
                 <div
                     ref={mainScrollRef}

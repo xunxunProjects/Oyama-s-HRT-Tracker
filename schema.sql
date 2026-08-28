@@ -92,3 +92,21 @@ CREATE TABLE dosage_shares (
 CREATE INDEX idx_dosage_shares_user_id ON dosage_shares(user_id);
 CREATE UNIQUE INDEX idx_dosage_shares_token_hash ON dosage_shares(token_hash);
 CREATE INDEX idx_dosage_shares_expires_at ON dosage_shares(expires_at);
+
+-- The operator's one site-wide banner. A single row, id 1.
+-- Taking a notice down blanks `body` rather than deleting the row: clients
+-- remember the `revision` they dismissed, so the counter has to stay monotonic
+-- for the life of the table or a fresh notice would inherit an old dismissal.
+-- `body_i18n` is an optional JSON map of locale -> text; clients fall back to
+-- `body` for any locale it does not cover.
+DROP TABLE IF EXISTS site_notice;
+CREATE TABLE site_notice (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    body TEXT NOT NULL,
+    body_i18n TEXT,
+    level TEXT NOT NULL DEFAULT 'info', -- 'info' | 'warn'
+    starts_at INTEGER,                  -- NULL = live as soon as it is saved
+    expires_at INTEGER,                 -- NULL = until an admin clears it
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
