@@ -1,3 +1,4 @@
+import { formatRelative } from '../utils/helpers';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -16,14 +17,6 @@ interface TransparencyStats {
 }
 
 const REFRESH_INTERVAL_MS = 30_000;
-
-function formatRelative(ts: number, now: number, t: (k: string) => string): string {
-    const diff = Math.max(0, now - ts);
-    if (diff < 60) return t('transparency.time.just_now');
-    if (diff < 3600) return t('transparency.time.minutes').replace('{n}', String(Math.floor(diff / 60)));
-    if (diff < 86400) return t('transparency.time.hours').replace('{n}', String(Math.floor(diff / 3600)));
-    return t('transparency.time.days').replace('{n}', String(Math.floor(diff / 86400)));
-}
 
 const rowBase = "flex items-baseline justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
 

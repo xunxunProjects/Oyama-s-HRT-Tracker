@@ -42,7 +42,7 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm, title, description, er
                         onKeyDown={e => { if (e.key === 'Enter') submit(); }}
                         className="input-base font-mono text-center mb-2"
                         style={{ fontSize: '16px' }}
-                        placeholder="Password"
+                        placeholder={t('auth.password')}
                         autoComplete="current-password"
                         autoFocus
                     />

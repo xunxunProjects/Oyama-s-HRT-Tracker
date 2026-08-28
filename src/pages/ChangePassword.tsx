@@ -19,8 +19,8 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     const handleSubmit = async () => {
         if (!current || !newPass || !confirm) return;
-        if (newPass !== confirm) { setError('New passwords do not match'); return; }
-        if (newPass.length < 8) { setError('Password must be at least 8 characters'); return; }
+        if (newPass !== confirm) { setError(t('pw.mismatch')); return; }
+        if (newPass.length < 8) { setError(t('pw.too_short')); return; }
 
         setIsLoading(true);
         setError('');

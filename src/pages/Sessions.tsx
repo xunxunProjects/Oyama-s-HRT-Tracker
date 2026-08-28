@@ -4,13 +4,19 @@ import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, maskIpAddress, settingsMuted, settingsOn } from '../components/SettingsListItem';
+import { formatRelative } from '../utils/helpers';
 
 interface SessionsPageProps {
     token: string;
     onBack: () => void;
 }
 
-function parseDevice(ua: string): { label: string; isMobile: boolean } {
+/**
+ * Browser and OS out of a user agent. Both halves are product names and stay
+ * as they are; only the "we couldn't tell" case is a word, so the caller
+ * translates that one rather than this taking a `t` for a single string.
+ */
+function parseDevice(ua: string): { browser: string | null; os: string; isMobile: boolean } {
     const lower = ua.toLowerCase();
     const isMobile =
         lower.includes('mobile') ||
@@ -18,7 +24,7 @@ function parseDevice(ua: string): { label: string; isMobile: boolean } {
         lower.includes('iphone') ||
         lower.includes('ipad');
 
-    let browser = 'Unknown Browser';
+    let browser: string | null = null;
     if (lower.includes('edg')) browser = 'Edge';
     else if (lower.includes('chrome') && !lower.includes('edg')) browser = 'Chrome';
     else if (lower.includes('firefox')) browser = 'Firefox';
@@ -32,20 +38,14 @@ function parseDevice(ua: string): { label: string; isMobile: boolean } {
     else if (lower.includes('mac os') || lower.includes('macos')) os = 'macOS';
     else if (lower.includes('linux')) os = 'Linux';
 
-    return { label: os ? `${browser} · ${os}` : browser, isMobile };
-}
-
-function relativeTime(unixTs: number): string {
-    const diff = Math.floor(Date.now() / 1000) - unixTs;
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+    return { browser, os, isMobile };
 }
 
 const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
+    // One instant for every row, rather than each call reading its own clock.
+    const nowSec = Math.floor(Date.now() / 1000);
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(false);
     const [terminating, setTerminating] = useState<string | null>(null);
@@ -117,7 +117,8 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                 ) : (
                     <div>
                         {sessions.map(s => {
-                            const { label, isMobile } = parseDevice(s.device_info || '');
+                            const { browser, os, isMobile } = parseDevice(s.device_info || '');
+                            const label = [browser ?? t('session.unknown_browser'), os].filter(Boolean).join(' · ');
                             const isTerminating = terminating === s.id;
                             const DeviceIcon = isMobile ? Smartphone : Monitor;
 
@@ -140,9 +141,9 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             {maskIpAddress(s.ip)}
                                         </p>
                                         <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                            {t('account.sessions_last_used')} {relativeTime(s.last_used_at)}
+                                            {t('account.sessions_last_used')} {formatRelative(s.last_used_at, nowSec, t)}
                                             {' · '}
-                                            {t('account.sessions_created')} {relativeTime(s.created_at)}
+                                            {t('account.sessions_created')} {formatRelative(s.created_at, nowSec, t)}
                                         </p>
                                     </div>
                                     {!s.is_current && (

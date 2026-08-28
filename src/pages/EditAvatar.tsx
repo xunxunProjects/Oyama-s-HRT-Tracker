@@ -49,7 +49,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
         setIsUploading(true);
         try {
             const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
-            if (!blob) throw new Error('Failed to crop image');
+            if (!blob) throw new Error(t('avatar.crop_failed'));
             const res = await apiFetch('/api/user/avatar', {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
@@ -58,7 +58,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
             if (!res.ok) throw new Error(await res.text());
             onBack();
         } catch (err: any) {
-            setError(err.message || 'Failed to upload avatar');
+            setError(err.message || t('avatar.upload_failed'));
             setIsUploading(false);
         }
     };

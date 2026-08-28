@@ -10,6 +10,7 @@ import {
     authService, Passkey,
     serializeAttestationCredential, b64url2ab,
 } from '../services/auth';
+import { formatRelative } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
@@ -34,7 +35,7 @@ function detectDeviceName(): string {
     if (ua.includes('Mac OS X')) return 'Mac';
     if (ua.includes('Windows')) return 'Windows';
     if (ua.includes('Linux')) return 'Linux';
-    return 'Unknown device';
+    return '';   // the caller substitutes a translated fallback
 }
 
 const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
@@ -386,14 +387,6 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         });
     };
 
-    const relativeTime = (ts: number) => {
-        const diff = Math.floor(Date.now() / 1000) - ts;
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return new Date(ts * 1000).toLocaleDateString();
-    };
-
     return (
         <div className="relative pb-32">
             {/* Header */}
@@ -430,7 +423,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             }`}
                         >
                             {tab === 'totp' ? <KeyRound size={14} strokeWidth={1.5} /> : <Fingerprint size={14} strokeWidth={1.5} />}
-                            {tab === 'totp' ? 'TOTP' : 'Passkey'}
+                            {tab === 'totp' ? 'TOTP' : t('account.passkey')}
                         </button>
                     ))}
                 </div>
@@ -603,8 +596,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     <div key={pk.id} className={`flex items-center gap-3 py-3.5 ${divider}`}>
                                         <SettingsIconBox icon={Fingerprint} />
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-sm font-medium ${on} truncate`}>{pk.device_name || 'Unknown device'}</p>
-                                            <p className={`text-xs ${muted}`}>{relativeTime(pk.created_at)}</p>
+                                            <p className={`text-sm font-medium ${on} truncate`}>{pk.device_name || t('session.unknown_device')}</p>
+                                            <p className={`text-xs ${muted}`}>{formatRelative(pk.created_at, Math.floor(Date.now() / 1000), t)}</p>
                                         </div>
                                         <button
                                             onClick={() => handleDeletePasskey(pk)}

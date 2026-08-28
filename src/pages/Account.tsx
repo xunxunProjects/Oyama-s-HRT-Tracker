@@ -257,7 +257,7 @@ const Account: React.FC<AccountProps> = ({
                     setTimeout(() => handlePasskeyLogin(), 100);
                 }
             } else {
-                setAuthError(err.message || 'An error occurred');
+                setAuthError(err.message || t('error.generic'));
             }
         } finally {
             setAuthLoading(false);
@@ -724,7 +724,7 @@ const Account: React.FC<AccountProps> = ({
                                                 {twoFAMethod !== 'passkey' && (
                                                     <div className="flex items-center gap-2">
                                                         <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
-                                                        <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">or</span>
+                                                        <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('common.or')}</span>
                                                         <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
                                                     </div>
                                                 )}
@@ -761,7 +761,7 @@ const Account: React.FC<AccountProps> = ({
                             <>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
-                                    <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">or</span>
+                                    <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('common.or')}</span>
                                     <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
                                 </div>
                                 <button

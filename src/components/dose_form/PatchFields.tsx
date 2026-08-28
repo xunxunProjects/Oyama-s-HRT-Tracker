@@ -85,7 +85,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         value={patchRate}
                         onChange={e => setPatchRate(e.target.value)}
                         className={inputCls}
-                        placeholder="e.g. 50, 100"
+                        placeholder={t('patch.rate_placeholder')}
                         style={{ fontSize: '16px' }}
                     />
                     {/* Quick presets for common patch strengths */}
