@@ -25,13 +25,19 @@ export function hasCloudKey(): boolean {
 }
 
 /**
- * Encrypt an export payload for cloud storage when a device key is present.
- * Without a key (a session predating E2EE, or a passwordless passkey login on a
- * fresh device) the payload is stored as-is.
+ * Encrypt an export payload for cloud storage. Throws when this device holds no
+ * key, rather than uploading the record in the clear.
+ *
+ * Returning the payload as-is was a silent downgrade: on a passwordless passkey
+ * login, or on a non-secure origin where `deriveCloudKey` cannot run at all, no
+ * key is ever cached — so the full dose/lab history went to the server as
+ * plaintext JSON while the UI reported a successful sync. The read path already
+ * refuses to act without a key (`locked`); the write path has to fail the same
+ * way. Callers gate on `hasCloudKey()` and surface `locked` instead.
  */
 export async function prepareCloudPayload(exportData: any): Promise<any> {
     const key = localStorage.getItem('enc_key');
-    if (!key) return exportData;
+    if (!key) throw new Error('CLOUD_KEY_MISSING');
     return await encryptCloudPayload(JSON.stringify(exportData), key);
 }
 

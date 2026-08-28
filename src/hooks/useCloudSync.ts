@@ -246,7 +246,14 @@ export const useCloudSync = ({
             const { read: remote, newestId } = await readRemote(authToken);
             if (!stillCurrent(account, authToken, force)) return false;
 
-            if (remote.kind === 'locked') {
+            // `locked` covers a cloud copy this device cannot read. The
+            // `!hasCloudKey()` half covers the mirror case the write path used to
+            // paper over: no key at all — a passwordless passkey login, or a
+            // non-secure origin where the key cannot be derived. Uploading then
+            // meant sending the record in the clear, and because an account with
+            // an empty cloud reports `empty` rather than `locked`, that path fell
+            // straight through to a push and still called itself 'synced'.
+            if (remote.kind === 'locked' || !hasCloudKey()) {
                 lockedRef.current = true;
                 setState(prev => ({ ...prev, status: 'locked' }));
                 return false;
@@ -313,7 +320,9 @@ export const useCloudSync = ({
     }, [readRemote, stillCurrent]);
 
     const runPush = useCallback(async (): Promise<void> => {
-        if (!activeRef.current || lockedRef.current) return;
+        // A debounced push can fire without a preceding reconcile, so it needs
+        // its own key check — see the fail-closed note in runSync.
+        if (!activeRef.current || lockedRef.current || !hasCloudKey()) return;
         const authToken = tokenRef.current;
         const account = userIdRef.current;
         if (!authToken || !account) return;

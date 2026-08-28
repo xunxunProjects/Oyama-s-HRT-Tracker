@@ -91,7 +91,8 @@ export const adminService = {
         if (!res.ok) throw new Error('Failed to purge backups');
     },
 
-    async changeUserPassword(token: string, userId: string, newPassword: string): Promise<void> {
+    /** Also signs the target out everywhere; the count comes back so the operator sees it. */
+    async changeUserPassword(token: string, userId: string, newPassword: string): Promise<{ sessionsRevoked: number }> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
             method: 'POST',
             headers: {
@@ -101,6 +102,8 @@ export const adminService = {
             body: JSON.stringify({ newPassword })
         });
         if (!res.ok) throw new Error(await res.text());
+        const data = await res.json().catch(() => ({})) as { sessionsRevoked?: number };
+        return { sessionsRevoked: data.sessionsRevoked ?? 0 };
     },
 
     async changeUsername(token: string, userId: string, username: string): Promise<void> {

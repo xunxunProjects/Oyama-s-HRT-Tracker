@@ -371,10 +371,15 @@ async function matchTOTPStep(secret: string, token: string, windowSize = 1): Pro
 async function consumeTOTP(env: Env, userId: string, secret: string, token: string): Promise<boolean> {
   const step = await matchTOTPStep(secret, token);
   if (step === null) return false;
-  const row = await env.DB.prepare('SELECT totp_last_step FROM users WHERE id = ?').bind(userId).first() as { totp_last_step: number | null } | null;
-  if (row?.totp_last_step != null && step <= row.totp_last_step) return false;
-  await env.DB.prepare('UPDATE users SET totp_last_step = ? WHERE id = ?').bind(step, userId).run();
-  return true;
+  // Claim the step in the same statement that tests it. As a SELECT, then a
+  // compare, then an UPDATE this was three round-trips with no transaction
+  // between them, so two requests presenting the same six digits both read the
+  // old totp_last_step and both succeeded — precisely the replay the function
+  // exists to prevent.
+  const res = await env.DB.prepare(
+    'UPDATE users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)'
+  ).bind(step, userId, step).run();
+  return (res.meta?.changes ?? 0) > 0;
 }
 
 // --- Content indexes lazy creation ---
@@ -535,13 +540,15 @@ async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string
   await ensureBackupCodes(env);
   const normalized = code.trim().replace(/[-\s]/g, '').toLowerCase();
   const hash = await hmacSha256Hex(jwtSecret, normalized);
-  const row = await env.DB.prepare(
-    'SELECT id FROM backup_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL'
-  ).bind(userId, hash).first() as any;
-  if (!row) return false;
-  await env.DB.prepare('UPDATE backup_codes SET used_at = ? WHERE id = ?')
-    .bind(Math.floor(Date.now() / 1000), row.id).run();
-  return true;
+  // Burn the code in the statement that finds it. Selecting `used_at IS NULL`
+  // and then updating in a second round-trip let two concurrent requests both
+  // see the same unused row and both spend it, so one single-use code was worth
+  // as many logins as an attacker could fire in parallel.
+  const res = await env.DB.prepare(
+    `UPDATE backup_codes SET used_at = ?
+     WHERE id = (SELECT id FROM backup_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL LIMIT 1)`
+  ).bind(Math.floor(Date.now() / 1000), userId, hash).run();
+  return (res.meta?.changes ?? 0) > 0;
 }
 
 // --- Dosage share snapshots ---
@@ -1254,15 +1261,16 @@ export default {
           return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
         }
 
-        // A second, token-specific bucket more tightly throttles guesses
-        // against a real password-protected share. Deliberately NOT keyed on the
-        // client IP: with the IP in the key this "per-token" limit rotated away
-        // along with the IP, which on a deployment without a trusted edge left
-        // the share password open to unlimited bcrypt guessing. Keyed on the
-        // token alone it holds however the caller presents themselves. Only
-        // reached for a token that resolves to a real share, so an attacker
-        // cannot use it to lock out arbitrary shares they haven't found.
-        if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 10, 60000))) {
+        // A loose per-share backstop against a runaway client. It has to stay
+        // loose: this bucket is shared by everyone holding the link and is spent
+        // by plain reads, so a tight cap here let any one recipient pin it at the
+        // limit from a single IP and serve every other viewer a 429 — which the
+        // share page renders as "this share no longer exists". Legitimate live
+        // polling is ~6/min per viewer (PublicShare polls every 10s), so 300/min
+        // bounds abuse while leaving room for a share with many readers.
+        // The tight per-token limit that actually guards the password now sits
+        // in the password branch below, charged only for a credential attempt.
+        if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 300, 60000))) {
           return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
         }
 
@@ -1297,6 +1305,17 @@ export default {
           }
           if (body.password.length > MAX_PASSWORD_LENGTH) {
             return shareJson({ code: 'INVALID_PASSWORD', message: 'Incorrect password' }, 403);
+          }
+          // Throttle guessing against a real password-protected share.
+          // Deliberately NOT keyed on the client IP: with the IP in the key this
+          // rotated away along with the IP, which on a deployment without a
+          // trusted edge left the password open to unlimited bcrypt guessing.
+          // Charged only for an actual credential attempt, so a link holder who
+          // does not know the password cannot spend the budget every other
+          // viewer of this share draws from. New key name so rows saturated
+          // under the old shared bucket do not carry over.
+          if (!(await checkRateLimit(env, `share-access-pw:${tokenHash.slice(0, 20)}`, 10, 60000))) {
+            return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
           }
           const passwordValid = await bcrypt.compare(body.password, share.password_hash);
           if (!passwordValid) {
@@ -1813,8 +1832,25 @@ export default {
             const passVal = validatePassword(newPassword);
             if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error!, { status: 400, headers: corsHeaders }));
             const hashedPassword = await bcrypt.hash(newPassword, 10);
-            await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashedPassword, targetId).run();
-            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Password updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            // An admin reset is the operator's answer to "someone is in my
+            // account", so it has to evict whoever currently holds a session on
+            // it. Without this the intruder's 7-day JWT kept passing the session
+            // lookup in the middleware, and every request it made refreshed
+            // last_used_at so the idle timeout never fired either — the one
+            // recovery path an operator has left the foothold in place. The
+            // self-service change already does this, and so does the 2FA reset
+            // below. Unqualified DELETE is right here: the caller is the admin,
+            // whose token carries no `sid` and skips the session lookup, so this
+            // cannot sign the operator out.
+            await ensureSessions(env);
+            // Counted before the batch — D1 exposes no portable per-statement
+            // row count, and the admin UI reports what was removed.
+            const sessRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').bind(targetId).first<{ n: number }>();
+            await env.DB.batch([
+              env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashedPassword, targetId),
+              env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
+            ]);
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Password updated', sessionsRevoked: sessRow?.n ?? 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // Admin reset username
@@ -2009,21 +2045,37 @@ export default {
             // Validate secret format (base32 chars, 16-32 chars)
             if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret)) return withSecurityHeaders(new Response('Invalid secret format', { status: 400, headers: corsHeaders }));
 
-            // Re-enrolment is a credential *replacement*, so it needs the same
-            // proof DELETE /api/user/2fa asks for. Without this, anyone holding
-            // a stolen bearer token could pick their own secret, verify it
-            // against itself, overwrite the victim's, and wipe every backup code
-            // in one request — locking the real owner out permanently, since
-            // both disabling 2FA and deleting the account then demand a code
-            // from the attacker's secret. First-time enrolment is unaffected.
             const existing = await env.DB.prepare('SELECT password_hash, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-            if (existing?.totp_secret) {
-              if (!password || !currentCode) {
+            if (!existing) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+
+            // Enrolling TOTP is not an additive convenience — it writes the
+            // secret that gates login, disabling 2FA, and account deletion. A
+            // bearer token alone used to be enough whenever no secret was set
+            // yet, which is most accounts: anyone holding a stolen token could
+            // pick a secret they control, verify it against itself (the check
+            // below proves nothing about the caller), and take the account for
+            // good. The victim's own password login then demands a code from
+            // the attacker's authenticator, and so does every route that would
+            // undo it. The same request also wipes every backup code, including
+            // the ones passkey registration issues, so a passkey-protected
+            // account lost its recovery path in the bargain. Require the
+            // password the strictly weaker operations already ask for — see
+            // DELETE /api/user/passkeys/:id and the backup-code regenerate.
+            if (!password) {
+              return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            }
+            if (!(await bcrypt.compare(password, existing.password_hash ?? dummyHash))) {
+              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            }
+
+            // Re-enrolment is additionally a credential *replacement*, so it
+            // also needs a code from the authenticator being replaced — the
+            // same proof DELETE /api/user/2fa asks for.
+            if (existing.totp_secret) {
+              if (!currentCode) {
                 return withSecurityHeaders(new Response('2FA is already enabled: current password and a code from the current authenticator are required', { status: 400, headers: corsHeaders }));
               }
-              const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-              const passValid = await bcrypt.compare(password, existing.password_hash ?? dummyHash);
-              if (!passValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
               const currentValid = await consumeTOTP(env, userId, existing.totp_secret, String(currentCode));
               if (!currentValid) return withSecurityHeaders(new Response('Invalid code from current authenticator', { status: 401, headers: corsHeaders }));
             }
@@ -2101,6 +2153,11 @@ export default {
             const challengeToken = await new SignJWT({ challenge, purpose: 'passkey-register', uid: userId, origin })
               .setProtectedHeader({ alg: 'HS256' }).setExpirationTime('5m').sign(secret);
             const userIdEncoded = b64urlEncode(new TextEncoder().encode(userId));
+            // The client reads this to fill `excludeCredentials`, which stops an
+            // authenticator silently replacing a credential it already holds for
+            // this account. It was reading a key the response never contained,
+            // so the list was always empty.
+            const enrolled = await env.DB.prepare('SELECT credential_id FROM passkeys WHERE user_id = ?').bind(userId).all();
             return withSecurityHeaders(new Response(JSON.stringify({
               challengeToken,
               challenge,
@@ -2110,12 +2167,13 @@ export default {
               timeout: 60000,
               authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
               attestation: 'none',
+              excludeCredentialIds: (enrolled.results || []).map((r: any) => r.credential_id),
             }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // POST /api/user/passkey/register — verify attestation and save passkey
           if (url.pathname === '/api/user/passkey/register' && request.method === 'POST') {
-            const { challengeToken, credential, deviceName } = await request.json() as any;
+            const { challengeToken, credential, deviceName, password: pkRegPassword } = await request.json() as any;
             if (!challengeToken || !credential?.response) {
               return withSecurityHeaders(new Response('Missing data', { status: 400, headers: corsHeaders }));
             }
@@ -2154,6 +2212,22 @@ export default {
             const credentialIdStr = b64urlEncode(credentialId);
             const existing = await env.DB.prepare('SELECT id FROM passkeys WHERE credential_id = ?').bind(credentialIdStr).first();
             if (existing) return withSecurityHeaders(new Response('Credential already registered', { status: 409, headers: corsHeaders }));
+
+            // Enrolling a passkey grants a standing, password-independent
+            // credential: /api/auth/passkey-verify is a full passwordless login
+            // that mints a fresh 7-day session from the key alone, and nothing
+            // else — not a password change, not a session purge — revokes it.
+            // So a bearer token borrowed once bought permanent access. That is
+            // strictly more damaging than *deleting* a passkey, which this file
+            // already gates on the password, so enrolment takes the same proof.
+            // Placed after the duplicate check so a replayed credential still
+            // 409s without paying for a bcrypt round.
+            if (!pkRegPassword) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            const pkOwner = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
+            const pkRegDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
+            if (!(await bcrypt.compare(pkRegPassword, pkOwner?.password_hash ?? pkRegDummy))) {
+              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            }
 
             // Check if this is the first passkey (to auto-generate backup codes)
             const pkCountRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(userId).first() as any;

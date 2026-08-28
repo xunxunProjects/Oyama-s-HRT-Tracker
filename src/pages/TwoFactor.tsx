@@ -123,10 +123,16 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const [backupCopied, setBackupCopied] = useState(false);
     const backupCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Removing a passkey and replacing the backup codes both destroy a recovery
-    // path, so the worker asks for the password on each. Nothing collected it,
-    // which is why both actions came back "Current password is required".
-    const [pwPrompt, setPwPrompt] = useState<null | { kind: 'passkey'; passkey: Passkey } | { kind: 'backup' }>(null);
+    // Every action here either destroys a recovery path or hands out a new
+    // credential, so the worker asks for the password on each. Nothing collected
+    // it, which is why these actions came back "Current password is required".
+    const [pwPrompt, setPwPrompt] = useState<
+        | null
+        | { kind: 'passkey'; passkey: Passkey }
+        | { kind: 'backup' }
+        | { kind: 'enable'; secret: string; code: string }
+        | { kind: 'register'; challengeToken: string; credential: object; deviceName: string }
+    >(null);
     const [pwError, setPwError] = useState<string | null>(null);
     const [pwLoading, setPwLoading] = useState(false);
 
@@ -175,23 +181,15 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         }
     };
 
-    const handleEnable = async (e: React.FormEvent) => {
+    // Turning TOTP on writes the secret that gates login and replaces every
+    // backup code, so the worker now demands the password. Collect it here
+    // rather than sending the request and bouncing off a 400.
+    const handleEnable = (e: React.FormEvent) => {
         e.preventDefault();
         if (!code || code.length !== 6) return;
-        setLoading(true);
         setError(null);
-        try {
-            const result = await authService.enable2FA(token, secret, code);
-            setBackupCodes(result.backupCodes ?? []);
-            setBackupRemaining(result.backupCodes?.length ?? 0);
-            setTotpEnabled(true);
-            setSuccess(true);
-        } catch (e: any) {
-            const msg = e.message || '';
-            setError(msg.includes('Invalid') ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
-        } finally {
-            setLoading(false);
-        }
+        setPwError(null);
+        setPwPrompt({ kind: 'enable', secret, code });
     };
 
     const fetchBackupRemaining = async () => {
@@ -217,6 +215,28 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 const codes = await authService.generateBackupCodes(token, password);
                 setBackupCodes(codes);
                 setBackupRemaining(codes.length);
+            } else if (pwPrompt.kind === 'enable') {
+                setLoading(true);
+                const result = await authService.enable2FA(token, pwPrompt.secret, pwPrompt.code, password);
+                setBackupCodes(result.backupCodes ?? []);
+                setBackupRemaining(result.backupCodes?.length ?? 0);
+                setTotpEnabled(true);
+                setSuccess(true);
+            } else if (pwPrompt.kind === 'register') {
+                setRegisterLoading(true);
+                const result = await authService.registerPasskey(
+                    token, pwPrompt.challengeToken, pwPrompt.credential, pwPrompt.deviceName, password,
+                );
+                // Registering the first passkey mints backup codes that exist
+                // only in this response. Dropping them left a passkey-only user
+                // with no recovery path at all if the authenticator was lost.
+                if (result.backupCodes?.length) {
+                    setBackupCodes(result.backupCodes);
+                    setBackupRemaining(result.backupCodes.length);
+                }
+                setPasskeySuccess(true);
+                await fetchPasskeys();
+                onStatusChange(true);
             } else {
                 const pk = pwPrompt.passkey;
                 setDeleteLoadingId(pk.id);
@@ -235,11 +255,14 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             } else {
                 setPwPrompt(null);
                 if (pwPrompt.kind === 'backup') setBackupError(msg || t('account.backup_codes_generate'));
+                else if (pwPrompt.kind === 'enable') setError(msg.includes('Invalid') ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
                 else setPasskeyError(msg || t('auth.passkey_failed'));
             }
         } finally {
             setPwLoading(false);
             setBackupLoading(false);
+            setLoading(false);
+            setRegisterLoading(false);
             setDeleteLoadingId(null);
         }
     };
@@ -309,26 +332,43 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             const opts = await authService.registerPasskeyOptions(token);
             const credential = await navigator.credentials.create({
                 publicKey: {
-                    rp: { name: 'HRT Tracker', id: window.location.hostname },
-                    user: { id: new Uint8Array(16), name: 'user', displayName: 'User' },
+                    // Use the server's values rather than locally invented ones.
+                    // `user.id` was a fixed 16 zero bytes for every account, and
+                    // an authenticator REPLACES a discoverable credential that
+                    // shares (rpId, userHandle) — so enrolling a second account
+                    // on the same device silently destroyed the first account's
+                    // passkey, while its row lived on server-side and kept
+                    // demanding a passkey the authenticator no longer held.
+                    rp: { id: opts.rp.id, name: opts.rp.name },
+                    user: {
+                        id: b64url2ab(opts.user.id),
+                        name: opts.user.name,
+                        displayName: opts.user.displayName,
+                    },
                     challenge: b64url2ab(opts.challenge),
-                    pubKeyCredParams: [
-                        { type: 'public-key', alg: -7 },
-                        { type: 'public-key', alg: -257 },
-                    ],
-                    authenticatorSelection: { userVerification: 'preferred', residentKey: 'preferred' },
-                    timeout: 60000,
-                    excludeCredentials: opts.excludeCredentialIds?.map(id => ({
+                    // Server-advertised only: the worker verifies ES256 (COSE -7)
+                    // and nothing else, so offering RS256 just yielded a 400 for
+                    // any authenticator that picked it.
+                    pubKeyCredParams: opts.pubKeyCredParams,
+                    authenticatorSelection: opts.authenticatorSelection,
+                    timeout: opts.timeout ?? 60000,
+                    excludeCredentials: (opts.excludeCredentialIds ?? []).map((id: string) => ({
                         type: 'public-key' as const,
                         id: b64url2ab(id),
-                    })) ?? [],
+                    })),
                 },
             }) as PublicKeyCredential | null;
             if (!credential) return;
-            const deviceName = detectDeviceName();
-            await authService.registerPasskey(token, opts.challengeToken, serializeAttestationCredential(credential), deviceName);
-            setPasskeySuccess(true);
-            await fetchPasskeys();
+            // The ceremony runs first so a mistyped password can be retried in
+            // the modal without touching the authenticator again; the challenge
+            // token stays valid for five minutes.
+            setPwError(null);
+            setPwPrompt({
+                kind: 'register',
+                challengeToken: opts.challengeToken,
+                credential: serializeAttestationCredential(credential),
+                deviceName: detectDeviceName(),
+            });
         } catch (e: any) {
             if (e.name !== 'NotAllowedError') {
                 setPasskeyError(e.message || t('auth.passkey_failed'));
@@ -402,7 +442,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             <div className="flex justify-center py-10"><Loader2 className={`animate-spin ${muted}`} size={20} /></div>
                         )}
 
-                        {totpEnabled === true && (
+                        {totpEnabled === true && !success && (
                             <>
                                 <div className="flex items-start gap-3 pb-4">
                                     <SettingsIconBox icon={ShieldIcon} />
@@ -436,7 +476,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             </>
                         )}
 
-                        {totpEnabled === false && (
+                        {(totpEnabled === false || success) && (
                             <>
                                 {/* Step indicator */}
                                 <div className="flex items-center gap-3 mb-2">
@@ -628,9 +668,12 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 onClose={() => { setPwPrompt(null); setPwError(null); }}
                 onConfirm={submitPasswordPrompt}
                 title={t('account.current_password')}
-                description={pwPrompt?.kind === 'passkey'
-                    ? t('account.passkey_delete_password_desc')
-                    : t('account.backup_codes_password_desc')}
+                description={
+                    pwPrompt?.kind === 'passkey' ? t('account.passkey_delete_password_desc')
+                        : pwPrompt?.kind === 'enable' ? t('account.2fa_enable_password_desc')
+                            : pwPrompt?.kind === 'register' ? t('account.passkey_add_password_desc')
+                                : t('account.backup_codes_password_desc')
+                }
                 error={pwError}
                 loading={pwLoading}
                 masked
