@@ -97,7 +97,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     setTimeout(() => handlePasskeyLogin(), 100);
                 }
             } else {
-                setError(err.message || 'An error occurred');
+                setError(err.message || t('error.generic'));
             }
         } finally {
             setLoading(false);
@@ -110,7 +110,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="modal-card overflow-hidden p-0">
                 <div className="flex items-center justify-between px-5 pt-5 pb-2">
                     <h2 className="modal-title mb-0">
-                        {isLogin ? 'Sign In' : 'Create Account'}
+                        {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
                     </h2>
                     <button onClick={onClose} className="p-1 text-muted hover:text-body">
                         <X size={18} />
@@ -125,25 +125,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="text-sm text-muted">Username</label>
+                        <label className="text-sm text-muted">{t('auth.username')}</label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="input-base"
-                            placeholder="Enter username"
+                            placeholder={t('auth.username_placeholder')}
                             required
                         />
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-sm text-muted">Password</label>
+                        <label className="text-sm text-muted">{t('auth.password')}</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="input-base"
-                            placeholder="Enter password"
+                            placeholder={t('auth.password_placeholder')}
                             required
                         />
                     </div>
@@ -200,7 +200,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                             {twoFAMethod !== 'passkey' && (
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
-                                                    <span className="text-xs text-muted">or</span>
+                                                    <span className="text-xs text-muted">{t('common.or')}</span>
                                                     <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
                                                 </div>
                                             )}
@@ -231,18 +231,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         className="btn-primary w-full mt-1"
                     >
                         {loading && <Loader2 size={16} className="animate-spin" />}
-                        {isLogin ? 'Sign In' : 'Sign Up'}
+                        {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
                     </button>
                     )}
 
                     <div className="pt-2 text-center text-sm text-muted">
-                        {isLogin ? "Don't have an account? " : "Already have an account? "}
+                        {isLogin ? t('auth.no_account') : t('auth.has_account')}{' '}
                         <button
                             type="button"
                             onClick={() => { setIsLogin(!isLogin); setError(null); }}
                             className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] hover:underline"
                         >
-                            {isLogin ? 'Sign up' : 'Sign in'}
+                            {isLogin ? t('auth.go_register') : t('auth.go_login')}
                         </button>
                     </div>
                 </form>

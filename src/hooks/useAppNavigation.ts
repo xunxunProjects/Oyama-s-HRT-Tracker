@@ -41,7 +41,7 @@ export const useAppNavigation = (user: any) => {
     ];
 
     if (user?.isAdmin) {
-        navItems.push({ id: 'admin', label: 'Admin', icon: ShieldCheck });
+        navItems.push({ id: 'admin', label: t('nav.admin'), icon: ShieldCheck });
     }
 
     return {

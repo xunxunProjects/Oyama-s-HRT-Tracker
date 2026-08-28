@@ -70,7 +70,7 @@ const ImportModal = ({ isOpen, onClose, onImportJson }: { isOpen: boolean; onClo
 
                             <div className="relative flex py-1 items-center">
                                 <div className="flex-grow border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]" />
-                <span className="flex-shrink-0 mx-3 text-xs text-muted">or</span>
+                <span className="flex-shrink-0 mx-3 text-xs text-muted">{t('common.or')}</span>
                                 <div className="flex-grow border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]" />
                             </div>
 

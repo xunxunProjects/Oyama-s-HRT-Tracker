@@ -479,6 +479,71 @@ async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: nu
   }
 }
 
+// --- Site notice table lazy creation ---
+// One row, id 1: there is only ever one banner. Taking a notice down blanks the
+// body rather than dropping the row, which keeps `revision` monotonic for the
+// life of the table — clients remember the revision they dismissed, and a
+// counter that restarted at 1 would let a fresh notice inherit an old dismissal.
+let siteNoticeEnsured = false;
+async function ensureSiteNotice(env: Env): Promise<void> {
+  if (siteNoticeEnsured) return;
+  try {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS site_notice (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        body TEXT NOT NULL,
+        body_i18n TEXT,
+        level TEXT NOT NULL DEFAULT 'info',
+        starts_at INTEGER,
+        expires_at INTEGER,
+        revision INTEGER NOT NULL DEFAULT 1,
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )`
+    ).run();
+    siteNoticeEnsured = true;
+  } catch (e) {
+    console.error('Failed to ensure site_notice table:', e);
+  }
+}
+
+// Locales the app ships (src/i18n/translations.ts). A per-language override for
+// anything else is dropped on write, so the column never accumulates keys no
+// client will ever read.
+const NOTICE_LANGS = ['zh', 'zh-TW', 'yue', 'en', 'ja', 'ko', 'tr'] as const;
+const MAX_NOTICE_BODY = 2000;
+
+interface SiteNoticeRow {
+  body: string;
+  body_i18n: string | null;
+  level: string;
+  starts_at: number | null;
+  expires_at: number | null;
+  revision: number;
+  updated_at: number;
+}
+
+const NOTICE_COLUMNS = 'body, body_i18n, level, starts_at, expires_at, revision, updated_at';
+
+/** Wire shape for both the public and the admin read. */
+function serializeNotice(row: SiteNoticeRow) {
+  let i18n: Record<string, string> | null = null;
+  try {
+    const parsed = row.body_i18n ? JSON.parse(row.body_i18n) : null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) i18n = parsed;
+  } catch {
+    // A body_i18n that will not parse costs the overrides, not the notice.
+  }
+  return {
+    body: row.body,
+    i18n,
+    level: row.level === 'warn' ? 'warn' : 'info',
+    revision: row.revision,
+    startsAt: row.starts_at,
+    expiresAt: row.expires_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 // --- Backup codes table lazy creation ---
 let backupCodesEnsured = false;
 async function ensureBackupCodes(env: Env): Promise<void> {
@@ -954,6 +1019,42 @@ export default {
             ...corsHeaders,
             'Content-Type': 'application/json',
             'Cache-Control': 'public, max-age=15',
+          },
+        }));
+      }
+      // Site notice: the operator's one banner. Public and unauthenticated on
+      // purpose — the case this exists for is telling people the domain is
+      // moving, and someone who never signs in has to see that too.
+      if (url.pathname === '/api/notice' && request.method === 'GET') {
+        // CF-Connecting-IP only, for the reason spelled out on /api/transparency.
+        const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!(await checkRateLimit(env, `notice:${clientIP}`, 60, 60000))) {
+          return withSecurityHeaders(new Response('Too many requests. Please try again later.', {
+            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' }
+          }));
+        }
+
+        await ensureSiteNotice(env);
+        const row = await env.DB.prepare(
+          `SELECT ${NOTICE_COLUMNS} FROM site_notice WHERE id = 1`
+        ).first<SiteNoticeRow>();
+
+        // Cleared, not yet due, or past its expiry all report "no notice"
+        // rather than 404 — the client treats them identically, and a 404 would
+        // read in the logs as though something were broken.
+        const nowTs = Math.floor(Date.now() / 1000);
+        const live = !!row && !!row.body
+          && (row.starts_at == null || nowTs >= row.starts_at)
+          && (row.expires_at == null || nowTs < row.expires_at);
+
+        return withSecurityHeaders(new Response(JSON.stringify({ notice: live ? serializeNotice(row!) : null }), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            // Short: an operator who posts or corrects a notice wants it out
+            // now, and the body is a few hundred bytes.
+            'Cache-Control': 'public, max-age=60',
           },
         }));
       }
@@ -1770,6 +1871,95 @@ export default {
           await ensureTotpColumn(env);
           await ensurePasskeys(env);
 
+          // --- Site notice ---
+          // Reads back what is stored regardless of the schedule, so the editor
+          // shows a notice that is queued or already expired instead of the
+          // empty state the public endpoint reports for one.
+          if (url.pathname === '/api/admin/notice' && request.method === 'GET') {
+            await ensureSiteNotice(env);
+            const row = await env.DB.prepare(
+              `SELECT ${NOTICE_COLUMNS} FROM site_notice WHERE id = 1`
+            ).first<SiteNoticeRow>();
+            const stored = row && row.body ? serializeNotice(row) : null;
+            return withSecurityHeaders(new Response(JSON.stringify({ notice: stored }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          if (url.pathname === '/api/admin/notice' && request.method === 'PUT') {
+            const body = await request.json().catch(() => null) as any;
+            if (!body || typeof body.body !== 'string') {
+              return withSecurityHeaders(new Response('Missing notice body', { status: 400, headers: corsHeaders }));
+            }
+            const text = body.body.trim();
+            if (!text) return withSecurityHeaders(new Response('Notice body cannot be empty', { status: 400, headers: corsHeaders }));
+            if (text.length > MAX_NOTICE_BODY) {
+              return withSecurityHeaders(new Response(`Notice body exceeds ${MAX_NOTICE_BODY} characters`, { status: 400, headers: corsHeaders }));
+            }
+            const level = body.level === 'warn' ? 'warn' : 'info';
+
+            // Per-locale overrides. Unknown locales and blank strings are
+            // dropped rather than rejected: the editor sends a field for every
+            // language it offers, and an untouched box is not an error.
+            let i18nJson: string | null = null;
+            if (body.i18n != null) {
+              if (typeof body.i18n !== 'object' || Array.isArray(body.i18n)) {
+                return withSecurityHeaders(new Response('i18n must be an object', { status: 400, headers: corsHeaders }));
+              }
+              const cleaned: Record<string, string> = {};
+              for (const [lang, value] of Object.entries(body.i18n as Record<string, unknown>)) {
+                if (!(NOTICE_LANGS as readonly string[]).includes(lang)) continue;
+                if (typeof value !== 'string') continue;
+                const trimmed = value.trim();
+                if (!trimmed) continue;
+                if (trimmed.length > MAX_NOTICE_BODY) {
+                  return withSecurityHeaders(new Response(`Notice body for ${lang} exceeds ${MAX_NOTICE_BODY} characters`, { status: 400, headers: corsHeaders }));
+                }
+                cleaned[lang] = trimmed;
+              }
+              if (Object.keys(cleaned).length > 0) i18nJson = JSON.stringify(cleaned);
+            }
+
+            // `undefined` distinguishes "not a timestamp" from the null that
+            // means "no bound", which is why this cannot just coerce to Number.
+            const parseTs = (value: unknown): number | null | undefined => {
+              if (value == null) return null;
+              const n = Number(value);
+              return Number.isFinite(n) ? Math.floor(n) : undefined;
+            };
+            const startsAt = parseTs(body.startsAt);
+            const expiresAt = parseTs(body.expiresAt);
+            if (startsAt === undefined || expiresAt === undefined) {
+              return withSecurityHeaders(new Response('startsAt and expiresAt must be unix timestamps or null', { status: 400, headers: corsHeaders }));
+            }
+            if (startsAt != null && expiresAt != null && expiresAt <= startsAt) {
+              return withSecurityHeaders(new Response('expiresAt must be after startsAt', { status: 400, headers: corsHeaders }));
+            }
+
+            await ensureSiteNotice(env);
+            // revision bumps on every save and never resets, because clients key
+            // their "dismissed" flag on it: correcting the wording should reach
+            // everyone who had already dismissed the previous revision.
+            const saved = await env.DB.prepare(
+              `INSERT INTO site_notice (id, body, body_i18n, level, starts_at, expires_at, revision, updated_at)
+               VALUES (1, ?1, ?2, ?3, ?4, ?5, 1, unixepoch())
+               ON CONFLICT(id) DO UPDATE SET
+                 body = ?1, body_i18n = ?2, level = ?3, starts_at = ?4, expires_at = ?5,
+                 revision = site_notice.revision + 1, updated_at = unixepoch()
+               RETURNING ${NOTICE_COLUMNS}`
+            ).bind(text, i18nJson, level, startsAt, expiresAt).first<SiteNoticeRow>();
+
+            return withSecurityHeaders(new Response(JSON.stringify({ notice: saved ? serializeNotice(saved) : null }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Take the banner down. Blanks the body instead of dropping the row so
+          // the revision counter keeps climbing — see ensureSiteNotice.
+          if (url.pathname === '/api/admin/notice' && request.method === 'DELETE') {
+            await ensureSiteNotice(env);
+            await env.DB.prepare(
+              `UPDATE site_notice SET body = '', body_i18n = NULL, starts_at = NULL, expires_at = NULL,
+                 revision = revision + 1, updated_at = unixepoch() WHERE id = 1`
+            ).run();
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Notice cleared' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
           // Search users (with backup stats, paginated)
           if (url.pathname === '/api/admin/users' && request.method === 'GET') {
             const query = url.searchParams.get('q')?.trim();

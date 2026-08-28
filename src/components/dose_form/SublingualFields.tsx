@@ -85,7 +85,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 className="w-16 h-9 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 style={{ fontSize: '16px' }}
                             />
-                            <span className="text-xs text-gray-500 dark:text-gray-400">min</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{t('unit.min_short')}</span>
                             <input
                                 type="range"
                                 min="1" max="60"

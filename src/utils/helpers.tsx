@@ -16,6 +16,25 @@ export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
     return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', timeZone });
 };
 
+/**
+ * "3h ago", in the reader's language.
+ *
+ * Three pages grew their own copy of this and two of them hardcoded English,
+ * so a translated label ended up sitting next to an untranslated time on the
+ * same line. `nowSec` is passed in rather than read here so a list of rows all
+ * measure against one instant.
+ */
+export const formatRelative = (unixSec: number, nowSec: number, t: (k: string) => string): string => {
+    const diff = Math.max(0, nowSec - unixSec);
+    if (diff < 60) return t('time.just_now');
+    if (diff < 3600) return t('time.minutes').replace('{n}', String(Math.floor(diff / 60)));
+    if (diff < 86400) return t('time.hours').replace('{n}', String(Math.floor(diff / 3600)));
+    return t('time.days').replace('{n}', String(Math.floor(diff / 86400)));
+};
+
+// No locale: `hour12: false` with two-digit fields renders "14:05" identically
+// in all seven of the app's locales, so threading `lang` through here would
+// change three call sites and no pixels.
 export const formatTime = (date: Date, timeZone?: string) => {
     return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 };
