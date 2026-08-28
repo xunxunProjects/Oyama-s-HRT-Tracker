@@ -940,7 +940,7 @@ export interface PKCustomParams {
     // E2 gel bioavailability per site
     e2_gel_arm: number;      // Arm (default: 0.05)
     e2_gel_thigh: number;    // Thigh (default: 0.05)
-    e2_gel_scrotal: number;  // Scrotal (default: 0.40)
+    e2_gel_scrotal: number;  // Scrotal (default: 0.25)
     // Testosterone elimination rates
     t_kClear: number;        // non-injection h⁻¹ (default: 0.5)
     t_kClearInj: number;     // injection h⁻¹ (default: 0.035)
@@ -968,9 +968,32 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_sl_casual: 0.04,
     e2_sl_standard: 0.11,
     e2_sl_strict: 0.18,
-    // Arm/thigh: ~5% absolute bioavailability (Järvinen et al. 1999, Maturitas —
-    // gel bioavailability vs. oral tablet/patch; Wikipedia "Pharmacokinetics of
-    // estradiol"). Scrotal/genital: ~5x arm/thigh, extrapolated from scrotal E2
+    // Arm/thigh: ~5% of the applied dose arriving as circulating estradiol.
+    // Back-calculated from the labels' own steady-state serum levels, because no
+    // US estradiol gel label states a percentage at all — Divigel (NDA 022038)
+    // and EstroGel (NDA 021166) both describe absorption only qualitatively.
+    // Divigel 0.25/0.5/1.0 mg/day gives Cavg 9.8/21/30.5 pg/mL and EstroGel
+    // 0.75 mg/day gives 28.3 pg/mL; this model reproduces those at F = 0.039–
+    // 0.058 across 65–70 kg (mean 0.050). Those label figures are uncorrected for
+    // baseline, so they are upper bounds and the true value likely sits nearer
+    // 0.04. Treat 0.05 as one significant figure: Divigel reports %CV of 81–149%.
+    //
+    // The widely quoted "10%" is a DIFFERENT QUANTITY and must not be pasted in
+    // here. It is the fraction crossing skin under the manufacturer's large-area
+    // technique (Oestrogel SmPC, 750 cm² whole arm; Wikipedia "Pharmacokinetics
+    // of estradiol" carries the same 10% via Sitruk-Ware 1989, for alcoholic
+    // estradiol solutions as a class). Besins states 5–6% "Bioverfügbarkeit" for
+    // the identical 0.06% gel in the German Gynokadin Fachinformation, off the
+    // same 60–80 pg/mL serum data. F enters linearly and exactly once, so 0.10
+    // doubles every predicted level — and because users titrate against the
+    // prediction, an F that is 2x high pushes real doses toward under-treatment.
+    //
+    // Järvinen et al. 1999 (Maturitas) cannot establish this number and should
+    // not be cited for it: "61% of tablet / 109% of patch" are RELATIVE
+    // bioavailabilities. The patch arm does corroborate the magnitude, though —
+    // 1.09 × 50 µg/day delivered from 1.5 mg applied works out to ~3.6%.
+    //
+    // Scrotal/genital: ~5x arm/thigh, extrapolated from scrotal E2
     // patch data (Premoli et al. 2005) and scrotal T gel data, since no direct
     // human study of scrotal E2 gel exists (see transfemscience.org/articles/genital-e2-application/).
     e2_gel_arm: 0.05,
@@ -1299,8 +1322,21 @@ function resolveParams(event: DoseEvent): PKParams {
             const F = getBioavailabilityMultiplier(Route.gel, event.ester, extras);
             // Under flip-flop kinetics (k1 << k3), the terminal decline is absorption-
             // limited, so k1 is set from the reported apparent elimination half-life of
-            // transdermal E2 gel (~36h — Divigel FDA label; Wikipedia "Pharmacokinetics
-            // of estradiol"): k1 = ln(2)/36 ≈ 0.0193 h⁻¹.
+            // transdermal E2 gel: k1 = ln(2)/36 ≈ 0.0193 h⁻¹.
+            //
+            // 36 h is EstroGel's, not Divigel's, which this comment previously
+            // misattributed: "The apparent terminal exponential half-life for estradiol
+            // was about 36 hours following administration of 1.25 g EstroGel"
+            // (NDA 021166) versus "about 10 hours following administration of Divigel"
+            // (NDA 022038). The two labels genuinely disagree, confounded by product,
+            // formulation and site (arm vs thigh), so 36 h is a choice between them
+            // rather than a consensus figure.
+            //
+            // k1 does not affect exposure either way: it cancels out of the kernel's
+            // time-integral, so AUC = F·D/k3 regardless, and k1 sets only Tmax and the
+            // peak-to-trough shape. Worth revisiting on its own evidence — the model's
+            // gel Cmax runs low against both labels (predicted ~31 vs EstroGel's 46.4,
+            // ~41 vs Divigel's 51.5) — but that is a k1 problem, not an F problem.
             const k1 = 0.0193;
             return { Frac_fast: 1.0, k1_fast: k1, k1_slow: 0, k2: 0, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
         }

@@ -132,8 +132,10 @@ const Admin: React.FC = () => {
     const submitPassword = async () => {
         if (!token || !panel || panel.type !== 'password') return;
         try {
-            await adminService.changeUserPassword(token, panel.user.id, newPassword);
-            showDialog('alert', 'Password updated.');
+            const { sessionsRevoked } = await adminService.changeUserPassword(token, panel.user.id, newPassword);
+            showDialog('alert', sessionsRevoked > 0
+                ? `Password updated. Signed out ${sessionsRevoked} active session${sessionsRevoked === 1 ? '' : 's'}.`
+                : 'Password updated.');
             setPanel(null);
         } catch (e: any) { showDialog('alert', e.message || 'Failed to update password.'); }
     };

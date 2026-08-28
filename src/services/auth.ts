@@ -56,6 +56,26 @@ function b64url2ab(s: string): ArrayBuffer {
     return bytes.buffer;
 }
 
+/**
+ * Read the `sid` claim out of a session token. Signing out has to name the
+ * session row it wants destroyed, and reading it from the token rather than
+ * from the login response means tokens minted before this shipped can be
+ * revoked too. Nothing here trusts the value — the worker still scopes the
+ * delete to the authenticated user.
+ */
+export function sessionIdFromToken(token: string | null): string | null {
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        if (!payload) return null;
+        const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const claims = JSON.parse(atob(b64 + '='.repeat((4 - b64.length % 4) % 4)));
+        return typeof claims?.sid === 'string' ? claims.sid : null;
+    } catch {
+        return null;
+    }
+}
+
 export function serializeAttestationCredential(credential: PublicKeyCredential): object {
     const r = credential.response as AuthenticatorAttestationResponse;
     return {
@@ -202,14 +222,21 @@ export const authService = {
         return await res.json() as TwoFASetup;
     },
 
-    async enable2FA(token: string, secret: string, code: string): Promise<{ backupCodes: string[] }> {
+    /**
+     * Writes the secret that gates login and replaces every backup code, so the
+     * worker requires the password — a bearer token on its own is not proof
+     * enough to hand someone a new second factor.
+     */
+    async enable2FA(token: string, secret: string, code: string, password: string, currentCode?: string): Promise<{ backupCodes: string[] }> {
+        const body: { secret: string; code: string; password: string; currentCode?: string } = { secret, code, password };
+        if (currentCode) body.currentCode = currentCode;
         const res = await apiFetch('/api/user/2fa/enable', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ secret, code })
+            body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error(await res.text());
         return await res.json() as { backupCodes: string[] };
@@ -264,11 +291,16 @@ export const authService = {
         return await res.json();
     },
 
-    async registerPasskey(token: string, challengeToken: string, credential: object, deviceName?: string): Promise<{ backupCodes?: string[] }> {
+    /**
+     * A passkey is a standing passwordless credential, so enrolling one is at
+     * least as sensitive as deleting one — the worker requires the password for
+     * both.
+     */
+    async registerPasskey(token: string, challengeToken: string, credential: object, deviceName: string | undefined, password: string): Promise<{ backupCodes?: string[] }> {
         const res = await apiFetch('/api/user/passkey/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ challengeToken, credential, deviceName }),
+            body: JSON.stringify({ challengeToken, credential, deviceName, password }),
         });
         if (!res.ok) throw new Error(await res.text());
         return await res.json() as { backupCodes?: string[] };

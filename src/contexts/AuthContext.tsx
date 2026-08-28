@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { authService, User, AuthResponse } from '../services/auth';
+import { authService, User, AuthResponse, sessionIdFromToken } from '../services/auth';
 import { deriveCloudKey } from '../../logic';
 import { cacheCloudKey } from '../utils/cloudBackup';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
@@ -25,7 +25,7 @@ interface AuthContextType {
     login: (username: string, password: string, totpCode?: string, backupCode?: string) => Promise<void>;
     loginWithToken: (data: AuthResponse) => void;
     register: (username: string, password: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     isLoading: boolean;
     updateProfile: (username: string) => Promise<void>;
     changePassword: (current: string, newPass: string) => Promise<void>;
@@ -66,7 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(JSON.parse(storedUser));
             } catch (e) {
                 console.error("Failed to parse user", e);
-                logout();
+                // The token itself is still live, so revoke it server-side.
+                void logout();
             }
         }
         setIsLoading(false);
@@ -115,7 +116,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('needs_setup_2fa');
     };
 
-    const logout = () => {
+    // Clear this device's copy of the session. Split out so the forced sign-out
+    // below can reuse it without trying to revoke a session the server has
+    // already destroyed.
+    const clearLocalSession = () => {
         setToken(null);
         setUser(null);
         setNeedsSetup2FA(false);
@@ -123,6 +127,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_user');
         localStorage.removeItem('needs_setup_2fa');
         cacheCloudKey(null);
+    };
+
+    const logout = async () => {
+        // Signing out is the one action a user takes precisely because they want
+        // the credential to stop working, and it used to be local-only: the
+        // session row survived, so the 7-day JWT kept passing the worker's
+        // middleware and every request refreshed last_used_at, meaning the idle
+        // timeout never fired either. Anyone who had copied the token out of
+        // localStorage kept the account for a week. Best effort — a failed
+        // request must never trap the user in a signed-in UI.
+        const currentToken = localStorage.getItem('auth_token');
+        const sid = sessionIdFromToken(currentToken);
+        if (currentToken && sid) {
+            try { await authService.terminateSession(currentToken, sid); } catch { /* revoke is best-effort */ }
+        }
+        clearLocalSession();
     };
 
     // When the server reports the session is no longer valid, drop the stale
@@ -135,7 +155,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Already signed out — ignore so several concurrent 401s don't stack
         // multiple prompts.
         if (!localStorage.getItem('auth_token')) return;
-        logout();
+        // The worker only sends X-Session-Invalid once the row is already gone,
+        // so there is nothing left to revoke — just drop the local copy.
+        clearLocalSession();
         showDialog('alert', t('auth.session_expired'));
     };
     useEffect(() => {
@@ -164,7 +186,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const deleteAccount = async (password: string, code?: string, backupCode?: string) => {
         if (!token) return;
         await authService.deleteAccount(token, password, code, backupCode);
-        logout();
+        // The account delete already dropped every sessions row for this user.
+        clearLocalSession();
     };
 
     return (
