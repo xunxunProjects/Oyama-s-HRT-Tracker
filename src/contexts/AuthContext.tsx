@@ -1,29 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService, User, AuthResponse, sessionIdFromToken } from '../services/auth';
-import { deriveCloudKey } from '../../logic';
-import { cacheCloudKey } from '../utils/cloudBackup';
+import { cacheCloudKey, deriveAndCacheCloudKey } from '../utils/cloudBackup';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
 import { useDialog } from './DialogContext';
 import { useTranslation } from './LanguageContext';
-
-// Derive and cache the cloud-backup encryption key for this device. The key
-// is derived from the password (which only the client ever sees) so the
-// server/admin can never decrypt backups. Cached as raw bytes — it can decrypt
-// data but cannot be used to authenticate.
-async function setCloudKey(password: string, userId: string): Promise<void> {
-    try {
-        cacheCloudKey(await deriveCloudKey(password, userId));
-    } catch {
-        // If derivation fails, fall back to no key (saves stay plaintext).
-        cacheCloudKey(null);
-    }
-}
 
 interface AuthContextType {
     user: User | null;
     token: string | null;
     login: (username: string, password: string, totpCode?: string, backupCode?: string) => Promise<void>;
-    loginWithToken: (data: AuthResponse) => void;
+    /**
+     * Adopt a session issued by something other than the password form — today
+     * that is a passkey assertion. `verifiedPassword` is the password the server
+     * has just accepted in the same sign-in, passed so the cloud key can be
+     * derived from it; omit it and this device gets no key.
+     */
+    loginWithToken: (data: AuthResponse, verifiedPassword?: string) => Promise<void>;
     register: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     isLoading: boolean;
@@ -79,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        await setCloudKey(password, data.user.id);
+        await deriveAndCacheCloudKey(password, data.user.id);
         if (data.needsSetup2FA) {
             setNeedsSetup2FA(true);
             localStorage.setItem('needs_setup_2fa', 'true');
@@ -89,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const loginWithToken = (data: AuthResponse) => {
+    const loginWithToken = async (data: AuthResponse, verifiedPassword?: string) => {
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
@@ -97,6 +89,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Passkey login always counts as completing 2FA
         setNeedsSetup2FA(false);
         localStorage.removeItem('needs_setup_2fa');
+        // A passkey proves who you are; it does not hand this device the
+        // password the cloud key is derived from. When the passkey was only the
+        // *second* factor the password is right here and the server has just
+        // accepted it, so derive from it — otherwise every such sign-in left the
+        // device keyless, sync stuck on `locked`, and the manual backup button
+        // failing with nothing to explain why. A genuinely passwordless sign-in
+        // has nothing to derive from and unlocks from the Account page instead.
+        if (verifiedPassword) await deriveAndCacheCloudKey(verifiedPassword, data.user.id);
     };
 
     const register = async (username: string, password: string) => {
@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        await setCloudKey(password, data.user.id);
+        await deriveAndCacheCloudKey(password, data.user.id);
         // 2FA setup is optional — do not force new users into setup flow.
         setNeedsSetup2FA(false);
         localStorage.removeItem('needs_setup_2fa');
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Re-derive the cloud key for the new password. Backups made under the
         // old password become unreadable (this is what also stops an admin who
         // resets the password from decrypting them).
-        if (user) await setCloudKey(newPass, user.id);
+        if (user) await deriveAndCacheCloudKey(newPass, user.id);
     };
 
     const deleteAccount = async (password: string, code?: string, backupCode?: string) => {

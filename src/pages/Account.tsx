@@ -5,9 +5,9 @@ import { SettingsListItem } from '../components/SettingsListItem';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
-import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload } from '../utils/cloudBackup';
+import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload, hasCloudKey, deriveAndCacheCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
-import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
+import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { SyncStatus } from '../hooks/useCloudSync';
 
@@ -39,6 +39,18 @@ const sectionLabel ="text-xs font-semibold text-[var(--color-m3-on-surface-varia
 const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
 const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
 const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+
+/**
+ * Why the password prompt is open.
+ *
+ * `expand` is one encrypted backup in the list the user asked to look inside.
+ * `sync` is the whole device having no key at all — the state that shows as
+ * "cloud archive is encrypted, unlock it first" and, until it is cleared, stops
+ * every backup this device would otherwise write.
+ */
+type UnlockTarget =
+    | { purpose: 'expand'; rawData: any; backupId: string }
+    | { purpose: 'sync' };
 
 const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
     switch (status) {
@@ -79,7 +91,7 @@ const Account: React.FC<AccountProps> = ({
     const [expandLoading, setExpandLoading] = useState<string | null>(null);
     const [mergeDiffId, setMergeDiffId] = useState<string | null>(null);
     // Unlock prompt for end-to-end-encrypted backups when this device lacks the key.
-    const [unlockTarget, setUnlockTarget] = useState<{ rawData: any; backupId: string } | null>(null);
+    const [unlockTarget, setUnlockTarget] = useState<UnlockTarget | null>(null);
     const [unlockError, setUnlockError] = useState<string | null>(null);
     const [unlockLoading, setUnlockLoading] = useState(false);
     const { showDialog } = useDialog();
@@ -165,7 +177,7 @@ const Account: React.FC<AccountProps> = ({
                 // Encrypted but no key on this device — ask for the password.
                 setExpandLoading(null);
                 setUnlockError(null);
-                setUnlockTarget({ rawData: backup.data, backupId: b.id });
+                setUnlockTarget({ purpose: 'expand', rawData: backup.data, backupId: b.id });
             } else {
                 showDialog('alert', t('account.load_backup_failed'));
                 setExpandedId(null);
@@ -176,11 +188,82 @@ const Account: React.FC<AccountProps> = ({
         } finally { setExpandLoading(null); }
     };
 
+    /**
+     * Ask the server whether this is really the account password.
+     *
+     * Only needed where there is no ciphertext to try a derived key against. The
+     * key derivation itself accepts anything — it is PBKDF2 over the password and
+     * the user id, with nothing to check the result against — so without this a
+     * typo would be cached as this device's key and every upload after it
+     * encrypted under something no other device can derive.
+     *
+     * `/api/login` compares the password before it looks at second factors, so a
+     * correct one comes back either as a 2FA challenge or as a session. The
+     * session is revoked immediately: the user asked to unlock, not to sign in
+     * again, and an extra row in their device list is not what they meant.
+     */
+    const passwordIsCurrent = async (password: string): Promise<boolean> => {
+        try {
+            const data = await authService.login(user.username, password);
+            const sid = sessionIdFromToken(data.token);
+            if (sid) {
+                try { await authService.terminateSession(data.token, sid); } catch { /* revoke is best-effort */ }
+            }
+            return true;
+        } catch (e: any) {
+            // The password cleared the bcrypt check and the server moved on to
+            // asking for a second factor — which is all this needed to know.
+            return !!e?.needs2FA;
+        }
+    };
+
+    /**
+     * Give this device the cloud key, so sync can stop reporting `locked`.
+     *
+     * Prove the password against a real backup wherever there is one: the key is
+     * only worth caching once it has actually decrypted something, and a wrong
+     * one cached here would go on to encrypt uploads no other device can read.
+     * An empty cloud, a plaintext backup from an older build, and a body that
+     * will not parse all leave nothing to decrypt, so those fall back to asking
+     * the server rather than trusting whatever was typed.
+     */
+    const unlockSync = async (password: string) => {
+        if (!token || !user) return;
+        const metas = backupList.length ? backupList : await cloudService.listMeta(token);
+        const newest = metas.length
+            ? metas.reduce((a, b) => (b.created_at > a.created_at ? b : a))
+            : null;
+
+        if (newest) {
+            const backup = await cloudService.loadOne(token, newest.id);
+            const res = await unlockCloudBackup(backup.data, password, user.id);
+            // `locked` here means ciphertext that stayed shut — a wrong password,
+            // or an origin where the key cannot be derived at all.
+            if (res.status === 'locked') { setUnlockError(t('account.unlock_failed')); return; }
+        }
+        // Nothing decrypted, so nothing has vouched for the password yet.
+        if (!hasCloudKey()) {
+            if (!(await passwordIsCurrent(password))) {
+                setUnlockError(t('account.unlock_failed'));
+                return;
+            }
+            if (!(await deriveAndCacheCloudKey(password, user.id))) {
+                setUnlockError(t('account.unlock_failed'));
+                return;
+            }
+        }
+        setUnlockTarget(null);
+    };
+
     const handleUnlockSubmit = async (password: string) => {
         if (!unlockTarget || !user) return;
         setUnlockLoading(true);
         setUnlockError(null);
         try {
+            if (unlockTarget.purpose === 'sync') {
+                await unlockSync(password);
+                return;
+            }
             const res = await unlockCloudBackup(unlockTarget.rawData, password, user.id);
             if (res.status === 'ok') {
                 setExpandedData(prev => ({ ...prev, [unlockTarget.backupId]: normalizeBackupPayload(res.data) }));
@@ -190,15 +273,19 @@ const Account: React.FC<AccountProps> = ({
                 // Wrong password, or the backup was encrypted under an old password.
                 setUnlockError(t('account.unlock_failed'));
             }
+        } catch {
+            setUnlockError(t('account.unlock_failed'));
         } finally {
             setUnlockLoading(false);
         }
     };
 
     const cancelUnlock = () => {
+        // Only the expand prompt owes the list a collapse — cancelling the sync
+        // one must not close a backup the user opened separately.
+        if (unlockTarget?.purpose === 'expand') setExpandedId(null);
         setUnlockTarget(null);
         setUnlockError(null);
-        setExpandedId(null);
     };
 
     const computeDiff = (backupData: any) => {
@@ -254,7 +341,7 @@ const Account: React.FC<AccountProps> = ({
                 setTwoFAMethod(method);
                 setAuthError(null);
                 if (method === 'passkey') {
-                    setTimeout(() => handlePasskeyLogin(), 100);
+                    setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
                 setAuthError(err.message || t('error.generic'));
@@ -264,7 +351,14 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
-    const handlePasskeyLogin = async () => {
+    // `verifiedPassword` is set only when the passkey is the second factor: the
+    // server has already accepted that password, and passing it on lets the
+    // cloud key be derived from it. A standalone passkey sign-in passes nothing.
+    const handlePasskeyLogin = async (verifiedPassword?: string) => {
+        // Never let anything but a real password through: wired straight to an
+        // onClick this would receive the click event, and a key derived from
+        // that stringified object encrypts uploads no other device can read.
+        const verified = typeof verifiedPassword === 'string' ? verifiedPassword : undefined;
         if (!window.PublicKeyCredential) {
             setAuthError(t('auth.passkey_unsupported'));
             return;
@@ -287,7 +381,7 @@ const Account: React.FC<AccountProps> = ({
             }) as PublicKeyCredential | null;
             if (!credential) return;
             const result = await authService.passkeyAuthVerify(opts.challengeToken, serializeAssertionCredential(credential));
-            loginWithToken(result);
+            await loginWithToken(result, verified);
         } catch (e: any) {
             if (e.name !== 'NotAllowedError') {
                 setAuthError(e.message || t('auth.passkey_failed'));
@@ -380,24 +474,52 @@ const Account: React.FC<AccountProps> = ({
                         {/* Sync runs on its own — no prompts, no buttons. This line
                             is the only place it reports for duty, so a failure
                             (or a backup this device can't decrypt) is visible
-                            somewhere rather than silently never happening. */}
-                        <div className={`flex items-center gap-2.5 py-3 ${divider}`}>
-                            <SyncIcon status={syncStatus} className={iconCls} />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                                    {t(`sync.status.${syncStatus}`)}
-                                </p>
-                                {lastSyncedAt !== null && syncStatus !== 'off' && (
-                                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                        {(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt).toLocaleTimeString())}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+                            somewhere rather than silently never happening.
 
+                            `locked` is the exception that needs a hand: nothing
+                            the app can do on its own gets the key back, and the
+                            only way in used to be opening a backup in the list
+                            below, which is not where anyone looks after reading
+                            "unlock it first". So this line becomes the button. */}
+                        {syncStatus === 'locked' ? (
+                            <button
+                                type="button"
+                                onClick={() => { setUnlockError(null); setUnlockTarget({ purpose: 'sync' }); }}
+                                className={`w-full flex items-center gap-2.5 py-3 ${divider} text-start hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
+                            >
+                                <SyncIcon status={syncStatus} className={iconCls} />
+                                <p className="flex-1 min-w-0 text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                                    {t('sync.status.locked')}
+                                </p>
+                                <span className="text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0">
+                                    {t('sync.unlock_action')}
+                                </span>
+                            </button>
+                        ) : (
+                            <div className={`flex items-center gap-2.5 py-3 ${divider}`}>
+                                <SyncIcon status={syncStatus} className={iconCls} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                                        {t(`sync.status.${syncStatus}`)}
+                                    </p>
+                                    {lastSyncedAt !== null && syncStatus !== 'off' && (
+                                        <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                            {(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt).toLocaleTimeString())}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Disabled while locked: with no key on this device the
+                            reconcile behind this button cannot read the cloud
+                            copy and refuses to overwrite it, so pressing it only
+                            ever produced "save failed". The row above is what
+                            fixes that, so leave this one out of reach until it
+                            has been. */}
                         <button
                             onClick={handleSave}
-                            disabled={savingCloud}
+                            disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
                             className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded disabled:opacity-50`}
                         >
                             {savingCloud
@@ -730,7 +852,7 @@ const Account: React.FC<AccountProps> = ({
                                                 )}
                                                 <button
                                                     type="button"
-                                                    onClick={handlePasskeyLogin}
+                                                    onClick={() => handlePasskeyLogin()}
                                                     disabled={passkeyLoading}
                                                     className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
                                                 >
@@ -766,7 +888,7 @@ const Account: React.FC<AccountProps> = ({
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={handlePasskeyLogin}
+                                    onClick={() => handlePasskeyLogin()}
                                     disabled={passkeyLoading}
                                     className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
                                 >

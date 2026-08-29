@@ -51,19 +51,34 @@ export type SyncStatus =
     /** Network or server error; the next trigger retries. */
     | 'error';
 
+/**
+ * What a manual reconcile ended up doing. A bare boolean used to collapse
+ * "the cloud copy is encrypted and this device has no key" into the same
+ * "failed" as a dead network, which is what left the backup button reporting a
+ * generic failure with no hint that the fix is to unlock.
+ */
+export type SyncOutcome =
+    /** Reconciled; the cloud holds this device's data. */
+    | 'synced'
+    /** Encrypted cloud copy, no key here. Unlock, don't retry. */
+    | 'locked'
+    /** Network or server trouble; retrying is worth it. */
+    | 'error'
+    /** Nothing ran — signed out, or another sync was already in flight. */
+    | 'skipped';
+
 export interface CloudSyncState {
     status: SyncStatus;
     /** Epoch ms of the last successful reconcile, or null if none yet this session. */
     lastSyncedAt: number | null;
     /**
-     * Reconcile right now, ignoring the auto-sync toggle. Resolves true when the
-     * cloud ends up holding this device's data.
+     * Reconcile right now, ignoring the auto-sync toggle.
      *
      * This is what the manual "back up to cloud" button runs. It cannot be a
      * plain upload: that would overwrite the newest revision without reading it,
      * which is how one device's press erases a deletion another device made.
      */
-    syncNow: () => Promise<boolean>;
+    syncNow: () => Promise<SyncOutcome>;
 }
 
 interface Options {
@@ -230,13 +245,13 @@ export const useCloudSync = ({
      * backup button, which is a deliberate act rather than a scheduled one.
      * It still refuses to write over a cloud copy it could not read.
      */
-    const runSync = useCallback(async (force = false): Promise<boolean> => {
-        if (!force && !activeRef.current) return false;
-        if (runningRef.current) { rerunRef.current = true; return false; }
+    const runSync = useCallback(async (force = false): Promise<SyncOutcome> => {
+        if (!force && !activeRef.current) return 'skipped';
+        if (runningRef.current) { rerunRef.current = true; return 'skipped'; }
 
         const authToken = tokenRef.current;
         const account = userIdRef.current;
-        if (!authToken || !account) return false;
+        if (!authToken || !account) return 'skipped';
 
         runningRef.current = true;
         lastSyncAttemptRef.current = Date.now();
@@ -244,7 +259,7 @@ export const useCloudSync = ({
 
         try {
             const { read: remote, newestId } = await readRemote(authToken);
-            if (!stillCurrent(account, authToken, force)) return false;
+            if (!stillCurrent(account, authToken, force)) return 'skipped';
 
             // `locked` covers a cloud copy this device cannot read. The
             // `!hasCloudKey()` half covers the mirror case the write path used to
@@ -256,11 +271,11 @@ export const useCloudSync = ({
             if (remote.kind === 'locked' || !hasCloudKey()) {
                 lockedRef.current = true;
                 setState(prev => ({ ...prev, status: 'locked' }));
-                return false;
+                return 'locked';
             }
             if (remote.kind === 'unreadable') {
                 setState(prev => ({ ...prev, status: 'error' }));
-                return false;
+                return 'error';
             }
             lockedRef.current = false;
 
@@ -277,13 +292,13 @@ export const useCloudSync = ({
                 lastSeenBackupRef.current = newestId;
                 if (hasContent(local) && fingerprint !== lastPushedRef.current) {
                     const savedId = await cloudService.save(authToken, await prepareCloudPayload(localPayload));
-                    if (!stillCurrent(account, authToken, force)) return false;
+                    if (!stillCurrent(account, authToken, force)) return 'skipped';
                     lastPushedRef.current = fingerprint;
                     lastSeenBackupRef.current = savedId;
                 }
                 bootstrappedForRef.current = account;
                 setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
-                return true;
+                return 'synced';
             }
 
             const result = mergeSyncStates(local, remote.kind === 'state' ? remote.state : null);
@@ -300,16 +315,16 @@ export const useCloudSync = ({
                     ? toPayload(localPayload, result.merged)
                     : localPayload;
                 const savedId = await cloudService.save(authToken, await prepareCloudPayload(outgoing));
-                if (!stillCurrent(account, authToken, force)) return false;
+                if (!stillCurrent(account, authToken, force)) return 'skipped';
                 lastSeenBackupRef.current = savedId;
             }
             lastPushedRef.current = mergedFingerprint;
             bootstrappedForRef.current = account;
             setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
-            return true;
+            return 'synced';
         } catch {
             setState(prev => ({ ...prev, status: 'error' }));
-            return false;
+            return 'error';
         } finally {
             runningRef.current = false;
             if (rerunRef.current && activeRef.current) {
@@ -402,23 +417,39 @@ export const useCloudSync = ({
             void runSync();
         };
         const onVisibility = () => { if (!document.hidden) syncIfDue(); };
-        // A reconnect or a freshly supplied key is worth acting on immediately —
-        // both mean the previous attempt failed for a reason that just went away.
+        // A reconnect means the previous attempt failed for a reason that has
+        // just gone away, so it is worth acting on immediately.
         const onOnline = () => { void runSync(); };
-        const onKeyChange = () => { void runSync(); };
         const poll = window.setInterval(() => { if (!document.hidden) syncIfDue(); }, POLL_INTERVAL_MS);
 
         document.addEventListener('visibilitychange', onVisibility);
         window.addEventListener('focus', onVisibility);
         window.addEventListener('online', onOnline);
-        window.addEventListener(CLOUD_KEY_CHANGED_EVENT, onKeyChange);
         return () => {
             window.clearInterval(poll);
             document.removeEventListener('visibilitychange', onVisibility);
             window.removeEventListener('focus', onVisibility);
             window.removeEventListener('online', onOnline);
-            window.removeEventListener(CLOUD_KEY_CHANGED_EVENT, onKeyChange);
         };
+    }, [token, userId, enabled, ready, runSync]);
+
+    // --- A key arriving on this device ---
+    // Separate from the effect above because it must run with auto-sync *off*
+    // too. The manual backup button reconciles regardless of the toggle, so it
+    // can leave the status on `locked`; unlocking then has to clear that, or the
+    // Account page keeps offering to unlock something already unlocked.
+    useEffect(() => {
+        if (!token || !userId || !ready) return;
+        const onKeyChange = () => {
+            // Sign-out clears the key through the same event — that is a lock,
+            // not an unlock, and the effect above it has already reset the state.
+            if (!hasCloudKey()) return;
+            lockedRef.current = false;
+            if (enabled) { void runSync(); return; }
+            setState(prev => (prev.status === 'locked' ? { ...prev, status: 'off' } : prev));
+        };
+        window.addEventListener(CLOUD_KEY_CHANGED_EVENT, onKeyChange);
+        return () => window.removeEventListener(CLOUD_KEY_CHANGED_EVENT, onKeyChange);
     }, [token, userId, enabled, ready, runSync]);
 
     // --- Local edits: debounced push ---
