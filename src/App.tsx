@@ -312,8 +312,14 @@ const AppContent = () => {
     // encrypted and unreadable here, rather than replacing it with plaintext.
     const handleCloudSave = async () => {
         if (!token) { setIsAuthModalOpen(true); return; }
-        const ok = await syncState.syncNow();
-        showDialog('alert', t(ok ? 'account.cloud_save_success' : 'account.cloud_save_failed'));
+        const outcome = await syncState.syncNow();
+        // A locked cloud copy is not a failure to retry — it is a password this
+        // device hasn't been given. Say so, rather than the flat "save failed"
+        // that sent people pressing the button again to no effect.
+        showDialog('alert', t(
+            outcome === 'synced' ? 'account.cloud_save_success'
+                : outcome === 'locked' ? 'account.cloud_save_locked'
+                    : 'account.cloud_save_failed'));
     };
 
     const handleCloudLoad = async (backupId?: string) => {

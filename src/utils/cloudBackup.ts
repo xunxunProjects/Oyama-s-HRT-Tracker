@@ -25,6 +25,28 @@ export function hasCloudKey(): boolean {
 }
 
 /**
+ * Derive this device's cloud key from the account password and cache it.
+ *
+ * The key comes from the password and the user id alone, so every device that
+ * knows the password arrives at the same bytes and reads the same backups —
+ * and the server, which never sees the password, reads none of them.
+ *
+ * A derivation that throws clears the cached key rather than leaving whatever
+ * was there: `crypto.subtle` is missing on a non-secure origin, and a key that
+ * could not be derived is not one to keep encrypting with. Every read path
+ * already knows how to report `locked`.
+ */
+export async function deriveAndCacheCloudKey(password: string, userId: string): Promise<boolean> {
+    try {
+        cacheCloudKey(await deriveCloudKey(password, userId));
+        return true;
+    } catch {
+        cacheCloudKey(null);
+        return false;
+    }
+}
+
+/**
  * Encrypt an export payload for cloud storage. Throws when this device holds no
  * key, rather than uploading the record in the clear.
  *

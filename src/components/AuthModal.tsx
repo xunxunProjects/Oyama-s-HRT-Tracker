@@ -28,7 +28,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    const handlePasskeyLogin = async () => {
+    // `verifiedPassword` is set only when the passkey is the second factor: the
+    // server has already accepted that password, and passing it on lets the
+    // cloud key be derived from it. A standalone passkey sign-in passes nothing.
+    const handlePasskeyLogin = async (verifiedPassword?: string) => {
+        // Never let anything but a real password through: wired straight to an
+        // onClick this would receive the click event, and a key derived from
+        // that stringified object encrypts uploads no other device can read.
+        const verified = typeof verifiedPassword === 'string' ? verifiedPassword : undefined;
         if (!window.PublicKeyCredential) {
             setError(t('auth.passkey_unsupported'));
             return;
@@ -51,7 +58,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             }) as PublicKeyCredential | null;
             if (!credential) return;
             const result = await authService.passkeyAuthVerify(opts.challengeToken, serializeAssertionCredential(credential));
-            loginWithToken(result);
+            await loginWithToken(result, verified);
             onClose();
         } catch (e: any) {
             if (e.name !== 'NotAllowedError') {
@@ -94,7 +101,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 setTwoFAMethod(method);
                 setError(null);
                 if (method === 'passkey') {
-                    setTimeout(() => handlePasskeyLogin(), 100);
+                    setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
                 setError(err.message || t('error.generic'));
@@ -206,7 +213,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={handlePasskeyLogin}
+                                                onClick={() => handlePasskeyLogin()}
                                                 disabled={passkeyLoading}
                                                 className="btn-secondary w-full"
                                             >
