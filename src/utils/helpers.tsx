@@ -17,6 +17,45 @@ export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
 };
 
 /**
+ * `formatDate` plus the year, for a date that has to stand on its own instead of
+ * borrowing context from its neighbours: a list section heading, a table cell.
+ * `formatDate` stays year-less because it also labels the chart's x-axis, where
+ * the surrounding ticks imply the year and twice-as-wide labels would overlap.
+ *
+ * A factory because `toLocaleDateString` rebuilds an ICU formatter every call:
+ * over a few thousand events, ~900ms against ~20ms for one reused formatter.
+ *
+ * The NaN check is what keeps this total. `toLocaleDateString` returns "Invalid
+ * Date" for an unrepresentable date; `Intl.DateTimeFormat` throws instead, and
+ * the caller runs inside a `useMemo` in the render body, so an unguarded throw
+ * is not one spoiled heading but the whole app replaced by the error boundary.
+ * Such a record needs no devtools: batch add multiplies an unbounded interval
+ * into `timeH`. Returning the old string leaves that case rendering as it did.
+ */
+export const createDayLabelFormatter = (lang: Lang) => {
+    const fmt = new Intl.DateTimeFormat(LOCALE_MAP[lang] || 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return (date: Date): string => Number.isNaN(date.getTime()) ? 'Invalid Date' : fmt.format(date);
+};
+
+/**
+ * Which local calendar day a moment falls on, as "YYYY-MM-DD": the identity
+ * behind a heading, never the heading itself.
+ *
+ * The dose history used to group by the rendered label, which carries no year,
+ * so a dose on 2025-08-27 and one on 2026-08-27 collapsed under a single
+ * "8月27日" (#69). With the key split off, shortening the heading can no longer
+ * merge records, and switching language no longer re-partitions the list.
+ *
+ * Local fields rather than `toISOString()`, which reports the UTC day and would
+ * file a 01:00 dose under the day before anywhere east of Greenwich. This and
+ * the label above must keep agreeing on the day, so neither takes a `timeZone`.
+ * An unrepresentable date yields one stable key instead of throwing, collecting
+ * those records into a single section as the old "Invalid Date" bucket did.
+ */
+export const toDayKey = (date: Date): string =>
+    `${String(date.getFullYear()).padStart(4, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+/**
  * "3h ago", in the reader's language.
  *
  * Three pages grew their own copy of this and two of them hardcoded English,
