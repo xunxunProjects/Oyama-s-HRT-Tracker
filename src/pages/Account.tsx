@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, RefreshCw, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem } from '../components/SettingsListItem';
 
@@ -54,7 +54,7 @@ type UnlockTarget =
 
 const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
     switch (status) {
-        case 'syncing': return <RefreshCw size={18} className={`${className} animate-spin`} />;
+        case 'syncing': return <Loader2 size={18} className={`${className} animate-spin`} />;
         case 'synced': return <CheckCircle2 size={18} className={className} />;
         case 'locked': return <Lock size={18} className={className} />;
         case 'error': return <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />;
