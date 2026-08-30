@@ -7,6 +7,7 @@ import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
 import PixelCat from '../components/PixelCat';
 import { DoseTemplate } from '../components/DoseFormModal';
+import { DoseDayGroup } from '../hooks/useAppData';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
 const formatWearDays = (days: number): string =>
@@ -30,7 +31,7 @@ interface HistoryProps {
     onDeleteEvents: (ids: string[]) => void;
     onSaveTemplate: (t: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
-    groupedEvents: Record<string, DoseEvent[]>;
+    groupedEvents: DoseDayGroup[];
 }
 
 const History: React.FC<HistoryProps> = ({
@@ -58,7 +59,7 @@ const History: React.FC<HistoryProps> = ({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-    const allEvents = Object.values(groupedEvents).flat() as DoseEvent[];
+    const allEvents = groupedEvents.flatMap(g => g.events);
     const totalRecords = allEvents.length;
     const nowH = Date.now() / 3600000;
 
@@ -234,22 +235,22 @@ const History: React.FC<HistoryProps> = ({
                 </div>
             </div>
 
-            {Object.keys(groupedEvents).length === 0 && (
+            {groupedEvents.length === 0 && (
                 <div className="px-6 md:px-8 flex flex-col items-center text-center py-20 max-w-2xl text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                     <PixelCat pose="donut" className="mb-4" />
                     <p className="text-sm">{t('timeline.empty')}</p>
                 </div>
             )}
 
-            {Object.keys(groupedEvents).length > 0 && (
+            {groupedEvents.length > 0 && (
             <div className="px-6 md:px-8 max-w-2xl">
-                {Object.entries(groupedEvents).map(([date, items]) => (
-                    <div key={date} className="mb-6 last:mb-0">
+                {groupedEvents.map(({ key, label, events: dayEvents }) => (
+                    <div key={key} className="mb-6 last:mb-0">
                         <div className="sticky top-[94px] z-10 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] py-2">
-              <span className="text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{date}</span>
+              <span className="text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{label}</span>
                         </div>
                         <div>
-                            {(items as DoseEvent[]).map(ev => {
+                            {dayEvents.map(ev => {
                                 const isEditing = editingId === ev.id;
                                 const isSelected = selectedIds.has(ev.id);
                                 const isFuture = ev.timeH > nowH;

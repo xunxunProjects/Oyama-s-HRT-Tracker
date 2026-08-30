@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
          BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
          EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
-import { formatDate } from '../utils/helpers';
+import { createDayLabelFormatter, toDayKey } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,6 +82,15 @@ export interface QuickDose {
     ester: Ester;
     value: number;
     createdAt: number;
+}
+
+/** One day's worth of dose records, as the history list renders them. */
+export interface DoseDayGroup {
+    /** Stable "YYYY-MM-DD" identity. For grouping and React keys, never for display. */
+    key: string;
+    /** What the section heading shows, in the reader's language. */
+    label: string;
+    events: DoseEvent[];
 }
 
 export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void) => {
@@ -352,14 +361,28 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         return interpolateConcentration_T(simulation, h) || 0;
     }, [simulation, currentTime]);
 
-    const groupedEvents = useMemo(() => {
+    // One section per local calendar day, newest first.
+    //
+    // #69: this used to accumulate into an object keyed by the day's *display*
+    // label, which carries no year, so a dose on 2025-08-27 and one on 2026-08-27
+    // hashed to the same bucket and rendered under a single "8月27日" heading.
+    // Key and heading are two separate values now.
+    //
+    // An array rather than a Record, because `sorted` is already newest-first and
+    // run-length grouping keeps that order structurally. Object key enumeration
+    // would not: it quietly re-sorts any key that looks like an array index, so a
+    // key such as "20260827" would have come back oldest-first.
+    const groupedEvents = useMemo<DoseDayGroup[]>(() => {
+        const formatLabel = createDayLabelFormatter(lang);
         const sorted = [...events].sort((a, b) => b.timeH - a.timeH);
-        const groups: Record<string, DoseEvent[]> = {};
-        sorted.forEach(e => {
-            const d = formatDate(new Date(e.timeH * 3600000), lang);
-            if (!groups[d]) groups[d] = [];
-            groups[d].push(e);
-        });
+        const groups: DoseDayGroup[] = [];
+        for (const e of sorted) {
+            const at = new Date(e.timeH * 3600000);
+            const key = toDayKey(at);
+            const last = groups[groups.length - 1];
+            if (last && last.key === key) last.events.push(e);
+            else groups.push({ key, label: formatLabel(at), events: [e] });
+        }
         return groups;
     }, [events, lang]);
 
