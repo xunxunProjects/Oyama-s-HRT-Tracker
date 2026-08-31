@@ -2,6 +2,7 @@ import React from 'react';
 import { Info, Share2 } from 'lucide-react';
 import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
+import DoseHeatmap from '../components/DoseHeatmap';
 import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
@@ -207,7 +208,12 @@ const Home: React.FC<HomeProps> = ({
                 </div>
             </header>
 
-            <main className="w-full max-w-2xl px-6 pt-5 pb-32 md:px-8">
+            {/* The chart column keeps its reading width; on a wide desktop the
+                dose heatmap takes the space left over beside it rather than
+                letting it sit empty, and drops underneath when there isn't any.
+                Only widened once there's data — the empty state centres itself
+                on this container and should stay in the narrow column. */}
+            <main className={`w-full max-w-2xl px-6 pt-5 pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
@@ -220,15 +226,24 @@ const Home: React.FC<HomeProps> = ({
                         </button>
                     </div>
                 ) : (
-                    <ResultChart
-                        sim={simulation}
-                        events={events}
-                        onPointClick={onEditEvent}
-                        labResults={labResults}
-                        calibrationFn={calibrationFn}
-                        isDarkMode={isDarkMode}
-                        isMono={isMono}
-                    />
+                    <div className="flex flex-col gap-8 2xl:flex-row 2xl:items-start 2xl:gap-10">
+                        <div className="min-w-0 2xl:flex-1 2xl:max-w-2xl">
+                            <ResultChart
+                                sim={simulation}
+                                events={events}
+                                onPointClick={onEditEvent}
+                                labResults={labResults}
+                                calibrationFn={calibrationFn}
+                                isDarkMode={isDarkMode}
+                                isMono={isMono}
+                            />
+                        </div>
+                        <DoseHeatmap
+                            events={events}
+                            isDarkMode={isDarkMode}
+                            className="min-w-0 2xl:flex-1 2xl:min-w-[16rem] 2xl:max-w-[26rem]"
+                        />
+                    </div>
                 )}
             </main>
         </>
