@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Cloud, Lock, Syringe } from 'lucide-react';
 import PixelCat from '../components/PixelCat';
-import LevelCurveIcon from '../components/LevelCurveIcon';
-import OnboardingCurve, { useOnboardingCurve } from '../components/OnboardingCurve';
+import PixelMark, { MarkName, MarkState } from '../components/PixelMark';
+import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
@@ -39,8 +38,74 @@ export const markOnboardingSeen = (): void => {
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 
-/** Every mark sits in the same 34px well, whether it's a glyph or a lettermark. */
-const markProps = { size: 18, strokeWidth: 1.75, className: 'text-muted' };
+/** The tick beside a chosen language or mode, in the primary colour. */
+const Tick: React.FC = () => (
+    <PixelMark name="check" size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+);
+
+/**
+ * The three slots of the "how it works" step, and the only step that splits in
+ * two on a wide window — because the chart is the only thing in the intro that
+ * gains anything from a column of its own. Drawn at the width of a phone it was
+ * a thumbnail beside 500px of empty ground; given half a wide window it draws
+ * at roughly the size the Overview will draw it.
+ *
+ * On a phone the three stack in the order they have always read in: heading,
+ * chart, rows. On a wide window the chart takes the left column and spans both
+ * rows, with the words beside it.
+ */
+const Head: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="min-w-0 lg:col-start-2 lg:row-start-1">{children}</div>
+);
+
+const Stage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="mt-4 flex items-center justify-center lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:mt-0">
+        {children}
+    </div>
+);
+
+const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="mt-4 min-w-0 lg:col-start-2 lg:row-start-2 lg:mt-0">{children}</div>
+);
+
+/**
+ * Progress, in the chart's own vocabulary: dose rings sitting on the zero rule,
+ * the same hollow circle and the same hairline OnboardingCurve draws. Filled
+ * behind you, hollow ahead — so the mark has already been read once by the time
+ * the chart uses it for real.
+ */
+const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
+    const GAP = 15, PAD = 7, MID = 9;
+    const width = PAD * 2 + GAP * (count - 1);
+    return (
+        <svg
+            viewBox={`0 0 ${width} 18`}
+            width={width}
+            height={18}
+            aria-hidden="true"
+            focusable="false"
+            className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
+        >
+            <line
+                x1={PAD} y1={MID} x2={width - PAD} y2={MID}
+                strokeWidth={1}
+                className="stroke-[var(--color-m3-outline-variant)] dark:stroke-[var(--color-m3-dark-outline-variant)]"
+            />
+            {Array.from({ length: count }, (_, i) => (
+                <circle
+                    key={i}
+                    className={`onb-ring ${i <= at
+                        ? 'fill-current stroke-current'
+                        : 'fill-[var(--color-m3-surface-dim)] stroke-[var(--color-m3-outline-variant)] dark:fill-[var(--color-m3-dark-surface)] dark:stroke-[var(--color-m3-dark-outline-variant)]'}`}
+                    cx={PAD + i * GAP}
+                    cy={MID}
+                    r={i === at ? 4.2 : 3}
+                    strokeWidth={1.5}
+                />
+            ))}
+        </svg>
+    );
+};
 
 /**
  * Softens the last rows of the language list while any are still below the
@@ -54,36 +119,148 @@ const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent
 const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
 
 interface PointProps {
-    /** A lucide glyph or a short lettermark — see `hormoneMark`. */
-    mark: React.ReactNode;
+    /** One of the pixel sprites in PixelMark. */
+    mark: MarkName;
     title: string;
     desc: string;
     /**
-     * When the chart above is drawing the thing this row names, in ms from the
-     * step mounting. Warms the mark well for that window, which is what stops
-     * the chart reading as decoration floating over an unrelated list. Omitted
-     * on the rows of steps that have no chart.
+     * Where the chart above is relative to this row's beat — see HowStep. The
+     * mark acts the beat out and the title dims while it is still to come,
+     * which is what stops the chart reading as decoration floating over an
+     * unrelated list. Omitted on the rows of steps that have no chart.
      */
-    lit?: { delay: number; duration: number };
+    state?: MarkState;
+    /** The beat's length in ms, for the mark to play across. */
+    duration?: number;
+    /** Restarts the mark's beat when it changes. */
+    playKey?: number;
+    /** Makes the row a button: the beat it names replays from the top. */
+    onClick?: () => void;
 }
 
-const Point: React.FC<PointProps> = ({ mark, title, desc, lit }) => (
-    <div className={`flex items-start gap-3.5 py-4 ${divider} last:border-b-0`}>
-        {/* Fixed 34px rather than padding around the content: an 18px glyph and
-            two letters have different intrinsic sizes, and the wells have to
-            line up down the column regardless. */}
-        <div
-            className={`mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ${lit ? 'oc-lit' : ''}`}
-            style={lit ? { animationDelay: `${lit.delay}ms`, animationDuration: `${lit.duration}ms` } : undefined}
-        >
-            {mark}
-        </div>
-        <div>
-            <p className="text-[0.9375rem] font-medium text-body">{title}</p>
-            <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
-        </div>
-    </div>
-);
+const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', duration, playKey, onClick }) => {
+    const className = `flex w-full items-start gap-3.5 py-4 text-start ${divider} last:border-b-0`;
+    const body = (
+        <>
+            {/* A fixed box, not a well: the sprites are different heights and
+                have to sit on one column, but they are drawings, and a drawing
+                in a tinted square is an icon again. */}
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
+                <PixelMark key={playKey} name={mark} size={28} state={state} duration={duration} />
+            </div>
+            <div>
+                <p className={`text-[0.9375rem] font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>{title}</p>
+                <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
+            </div>
+        </>
+    );
+    return onClick
+        ? <button type="button" onClick={onClick} aria-pressed={state === 'playing'} className={className}>{body}</button>
+        : <div className={className}>{body}</div>;
+};
+
+/** Index of the chart step, the only one that takes two columns when there's room. */
+const CHART_STEP = 2;
+
+/** Rows of the "how it works" step, in beat order — see BEATS. */
+const HOW_ROWS: { mark: MarkName; title: string; desc: string }[] = [
+    { mark: 'syringe', title: 'onboarding.how_log', desc: 'onboarding.how_log_desc' },
+    { mark: 'chart', title: 'onboarding.how_chart', desc: 'onboarding.how_chart_desc' },
+    { mark: 'vial', title: 'onboarding.how_calibrate', desc: 'onboarding.how_calibrate_desc' },
+];
+
+/**
+ * The "how it works" step: the chart is the argument and the three rows are
+ * its captions, one per beat. The sequence plays itself once on arrival, since
+ * most people will just watch — but a film that runs while the title is still
+ * being read is a film half missed, so every row is also a button that replays
+ * the chart from that beat, and a Replay appears once the whole thing has run.
+ *
+ * Owns its clock, and is mounted only while the step is showing, so leaving
+ * and coming back starts the story from the top.
+ */
+const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
+    const { t } = useTranslation();
+    const [beat, setBeat] = useState<Beat>(0);
+    // Bumped on every replay: a beat restarted from its own start is the same
+    // state twice, and the chart and marks need something to remount on.
+    const [playKey, setPlayKey] = useState(0);
+    const [finished, setFinished] = useState(false);
+    // Nothing plays until the engine has answered; the marks wait grey rather
+    // than acting out a chart that isn't there yet.
+    const live = !!curve;
+
+    useEffect(() => {
+        if (!live || finished) return;
+        const handle = window.setTimeout(() => {
+            if (beat < 2) setBeat((beat + 1) as Beat);
+            else setFinished(true);
+        }, BEATS[beat]);
+        return () => window.clearTimeout(handle);
+    }, [live, beat, playKey, finished]);
+
+    const play = (from: Beat) => {
+        setBeat(from);
+        setFinished(false);
+        setPlayKey(k => k + 1);
+    };
+
+    const stateOf = (i: number): MarkState => {
+        if (!live) return 'asleep';
+        if (finished || i < beat) return 'done';
+        return i === beat ? 'playing' : 'asleep';
+    };
+
+    return (
+        <>
+            <Head>
+                <h1 className="text-2xl font-semibold text-body">{t('onboarding.how_title')}</h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
+            </Head>
+            {/* The three rows below say what the app does; this says it. The
+                curve, the doses and the fit are the engine's own output, so
+                what is promised here is what the Overview will draw. Given a
+                column to itself it draws at something like the size it will be
+                on the Overview, instead of at thumbnail size beside 500px of
+                empty page. */}
+            <Stage>
+                <div className="w-full">
+                    <OnboardingCurve
+                        data={curve}
+                        beat={beat}
+                        playKey={playKey}
+                        caption={t('onboarding.how_chart_caption')}
+                        legend={{ model: t('onboarding.how_chart_legend_model'), labs: t('onboarding.how_chart_legend_labs') }}
+                        action={finished && (
+                            <button
+                                type="button"
+                                onClick={() => play(0)}
+                                className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--color-m3-primary)] hover:bg-[var(--color-m3-surface-container)] dark:text-[var(--color-m3-primary-light)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                            >
+                                {t('onboarding.how_replay')}
+                            </button>
+                        )}
+                    />
+                </div>
+            </Stage>
+            <Body>
+                {HOW_ROWS.map(({ mark, title, desc }, i) => (
+                    <Point
+                        key={mark}
+                        mark={mark}
+                        title={t(title)}
+                        desc={t(desc)}
+                        state={stateOf(i)}
+                        duration={BEATS[i]}
+                        playKey={playKey}
+                        onClick={() => play(i as Beat)}
+                    />
+                ))}
+                <p className="mt-5 text-[0.8125rem] leading-relaxed text-muted">{t('onboarding.how_note')}</p>
+            </Body>
+        </>
+    );
+};
 
 interface OnboardingProps {
     /** Same list Settings uses, rather than a second copy that can drift. */
@@ -105,15 +282,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     const { t, lang, setLang } = useTranslation();
     const { mode, setMode, isTransmasc } = useHRTMode();
     const curve = useOnboardingCurve(isTransmasc);
-
-    // The lettermark for the hormone this user actually tracks. Hard-coding E2
-    // would be wrong for anyone who picked transmasc on the step before this
-    // one — the mark names the thing they'll be getting measured.
-    const hormoneMark = (
-        <span className="text-[0.6875rem] font-semibold tracking-tight text-muted">
-            {isTransmasc ? 'T' : 'E2'}
-        </span>
-    );
 
     const [step, setStep] = useState(0);
     // Only so the step change slides the way the app's view changes do.
@@ -157,7 +325,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
         // isn't living out its day. It obeys the "show pixel cats" preference
         // like every other cat: someone replaying the intro with them switched
         // off asked not to see one.
-        <div key="welcome" className="flex h-full flex-col pt-6 text-center">
+        // `h-full` only where it earns its keep. On a phone it is what lets the
+        // greeting stay put while the languages scroll under it. On a wide
+        // window there is room for all seven, and filling the height there
+        // pinned this step to the top with a slab of empty page under the last
+        // language — while every other step sat centred, so stepping between
+        // them jumped the page. Sized to its content it centres like the rest.
+        <div key="welcome" className="flex h-full flex-col pt-6 text-center lg:h-auto">
             {/* The greeting holds its place; only the list below it travels.
                 Seven languages don't fit under the cat on a short screen, and
                 scrolling the whole step would carry away the one sentence
@@ -205,7 +379,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                 ref={langListRef}
                 onScroll={syncLangsBelow}
                 style={langsBelow ? { maskImage: FADE_OUT, WebkitMaskImage: FADE_OUT } : undefined}
-                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start"
+                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start lg:flex-none"
             >
                 {languageOptions.map(({ value, label }) => (
                     <button
@@ -217,9 +391,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                         <span className={`text-[0.9375rem] text-body ${lang === value ? 'font-semibold' : ''}`}>
                             {label}
                         </span>
-                        {lang === value && (
-                            <Check size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
-                        )}
+                        {lang === value && <Tick />}
                     </button>
                 ))}
             </div>
@@ -243,44 +415,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                                 {t(descKey)}
                             </span>
                         </span>
-                        {mode === value && (
-                            <Check size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
-                        )}
+                        {mode === value && <Tick />}
                     </button>
                 ))}
             </div>
         </div>,
 
-        <div key="how" className="pt-8">
-            <h1 className="text-2xl font-semibold text-body">{t('onboarding.how_title')}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
-            {/* The three rows below say what the app does; this says it. The
-                curve, the doses and the fit are the engine's own output, so
-                what is promised here is what the Overview will draw. */}
-            <div className="mt-4">
-                <OnboardingCurve
-                    data={curve}
-                    caption={t('onboarding.how_chart_caption')}
-                    legend={{ model: t('onboarding.how_chart_legend_model'), labs: t('onboarding.how_chart_legend_labs') }}
-                />
-            </div>
-            {/* Windows match OnboardingCurve's clock exactly: doses 0–1800,
-                curve 1800–5100, calibration 5100–7800. */}
-            <div className="mt-4">
-                <Point mark={<Syringe {...markProps} />} title={t('onboarding.how_log')} desc={t('onboarding.how_log_desc')} lit={{ delay: 0, duration: 1800 }} />
-                <Point mark={<LevelCurveIcon {...markProps} />} title={t('onboarding.how_chart')} desc={t('onboarding.how_chart_desc')} lit={{ delay: 1800, duration: 3300 }} />
-                <Point mark={hormoneMark} title={t('onboarding.how_calibrate')} desc={t('onboarding.how_calibrate_desc')} lit={{ delay: 5100, duration: 2700 }} />
-            </div>
-            <p className="mt-5 text-[0.8125rem] leading-relaxed text-muted">{t('onboarding.how_note')}</p>
-        </div>,
+        <HowStep key="how" curve={curve} />,
 
         <div key="privacy" className="pt-8">
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.privacy_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
             <div className="mt-4">
-                <Point mark={<Lock {...markProps} />} title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
-                <Point mark={<Cloud {...markProps} />} title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
-                <Point mark={<AlertTriangle {...markProps} />} title={t('onboarding.privacy_medical')} desc={t('onboarding.privacy_medical_desc')} />
+                <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
+                <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
+                <Point mark="caution" title={t('onboarding.privacy_medical')} desc={t('onboarding.privacy_medical_desc')} />
             </div>
         </div>,
     ];
@@ -304,13 +453,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                 </button>
             </div>
 
-            <div className="flex flex-1 items-start overflow-y-auto scrollbar-hide px-6">
+            {/* `safe center`, not `start`: on a phone the step is usually taller
+                than the space for it anyway, so this was invisible there. On a
+                wide, short-content window — mode, how-it-works, privacy — start
+                left the card glued to the top of the flex area with a slab of
+                empty page below it down to the footer. Centering fixes that
+                without touching step 0, whose `h-full` already exactly fills
+                the cross axis; `safe` is what keeps a step that overflows a
+                short window scrolling from the top instead of clipping. */}
+            <div className="onboarding-steps flex flex-1 overflow-y-auto scrollbar-hide px-6">
                 {/* The welcome step pins its greeting and scrolls its own list,
                     so it needs the scroller's height to divide up; the rest are
-                    read top to bottom and just grow. */}
+                    read top to bottom and just grow.
+
+                    Only the chart step widens on a wide window, into the two
+                    columns its Head / Stage / Body slots are placed in. The
+                    other three are a heading and a list of rows: given a second
+                    column there is nothing to put in it, and a column of empty
+                    ground beside a list is worse than a centred one. */}
                 <div
                     key={step}
-                    className={`mx-auto w-full max-w-md ${step === 0 ? 'h-full pb-6' : 'pb-8'} ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className={`mx-auto w-full max-w-md
+                        ${step === CHART_STEP ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5' : ''}
+                        ${step === 0 ? 'h-full pb-6 lg:h-auto' : 'pb-8'}
+                        ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     {steps[step]}
                 </div>
@@ -326,17 +492,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5" aria-hidden="true">
-                        {steps.map((_, i) => (
-                            <span
-                                key={i}
-                                className={`h-1.5 rounded-full transition-all duration-200 motion-reduce:transition-none ${i === step
-                                    ? 'w-4 bg-[var(--color-m3-primary)]'
-                                    : 'w-1.5 bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'
-                                }`}
-                            />
-                        ))}
-                    </div>
+                    <DoseRings count={steps.length} at={step} />
 
                     <div className="justify-self-end">
                         <button onClick={() => (isLast ? onDone() : go(step + 1))} className="btn-primary">

@@ -196,15 +196,30 @@ const TICKS: { day: number; anchor: 'start' | 'middle' | 'end' }[] = [
     { day: 56, anchor: 'end' },
 ];
 
+/**
+ * The sequence, as three beats the page can play one at a time: doses land on
+ * the timeline, the curve draws through them, the labs arrive and the curve
+ * comes down to meet them. Durations in ms; the page's own timer advances the
+ * beat and the marks beside the chart play for the same span.
+ */
+export const BEATS = [1800, 3300, 2700] as const;
+export type Beat = 0 | 1 | 2;
+
 interface OnboardingCurveProps {
     data: CurveData | null;
+    /** Which beat is playing. Everything from earlier beats stands still. */
+    beat: Beat;
+    /** Bump to replay the current beat from its start. */
+    playKey: number;
     /** What the axes are, and that this is not the reader's own data. */
     caption: string;
     /** Both legend labels, already translated. */
     legend: { model: string; labs: string };
+    /** Sits at the end of the legend row once there is one — the replay. */
+    action?: React.ReactNode;
 }
 
-const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, caption, legend }) => (
+const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, beat, playKey, caption, legend, action }) => (
     <>
         <svg
             viewBox="0 0 320 146"
@@ -213,48 +228,53 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, caption, legend
             focusable="false"
             className="block h-auto w-full text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
         >
-            {/* The spine of every later frame, so it is there from the first
-                paint with no animation of its own. */}
+            {/* The spine of every beat, so it is there from the first paint
+                with no animation of its own. */}
             <line x1={X0} y1={Y1} x2={X1} y2={Y1} strokeWidth={1} className={RULE} />
 
             {data && (
-                <>
-                    <g className="oc-frame">
-                        <line x1={X0} y1={Y0} x2={X0} y2={Y1} strokeWidth={1} className={RULE} />
-                        {[0.25, 0.5, 0.75].map(f => (
-                            <line
-                                key={f}
-                                x1={X0}
-                                y1={Y1 - (Y1 - Y0) * f}
-                                x2={X1}
-                                y2={Y1 - (Y1 - Y0) * f}
-                                strokeWidth={1}
-                                opacity={0.55}
-                                className={RULE}
-                            />
-                        ))}
-                        <g className="text-muted">
-                            {/* The only numerals on screen are days. A level on
-                                the y axis would be a number to aim at, and this
-                                is somebody else's body. */}
-                            {TICKS.map(({ day, anchor }) => (
-                                <text key={day} x={X(day)} y={131} fontSize={8.5} textAnchor={anchor} fill="currentColor">
-                                    {day}
-                                </text>
+                /* Keyed so a replay remounts the beat and its animations start
+                   over; React reuses nodes otherwise and a finished animation
+                   stays finished. */
+                <g key={playKey}>
+                    {beat >= 1 && (
+                        <g className={beat === 1 ? 'oc-frame-in' : undefined}>
+                            <line x1={X0} y1={Y0} x2={X0} y2={Y1} strokeWidth={1} className={RULE} />
+                            {[0.25, 0.5, 0.75].map(f => (
+                                <line
+                                    key={f}
+                                    x1={X0}
+                                    y1={Y1 - (Y1 - Y0) * f}
+                                    x2={X1}
+                                    y2={Y1 - (Y1 - Y0) * f}
+                                    strokeWidth={1}
+                                    opacity={0.55}
+                                    className={RULE}
+                                />
                             ))}
-                            <text x={X0} y={12} fontSize={8.5} textAnchor="start" fill="currentColor">
-                                {data.unit}
-                            </text>
+                            <g className="text-muted">
+                                {/* The only numerals on screen are days. A level
+                                    on the y axis would be a number to aim at, and
+                                    this is somebody else's body. */}
+                                {TICKS.map(({ day, anchor }) => (
+                                    <text key={day} x={X(day)} y={131} fontSize={8.5} textAnchor={anchor} fill="currentColor">
+                                        {day}
+                                    </text>
+                                ))}
+                                <text x={X0} y={12} fontSize={8.5} textAnchor="start" fill="currentColor">
+                                    {data.unit}
+                                </text>
+                            </g>
                         </g>
-                    </g>
+                    )}
 
                     {/* Doses, on the zero rule rather than on the curve: this
                         beat is only about when they were taken. */}
                     {data.doseX.map((cx, i) => (
                         <circle
                             key={cx}
-                            className={`oc-pop ${HOLLOW}`}
-                            style={{ animationDelay: `${i * 190}ms` }}
+                            className={`${beat === 0 ? 'oc-pop' : ''} ${HOLLOW}`}
+                            style={beat === 0 ? { animationDelay: `${i * 190}ms` } : undefined}
                             cx={cx}
                             cy={Y1}
                             r={3}
@@ -265,30 +285,36 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, caption, legend
 
                     {/* pathLength normalises the line to 1 unit long, which is
                         what lets the CSS draw it on with a dasharray it can
-                        write without knowing the geometry. */}
-                    <path className="oc-model" d={data.modelD} pathLength={1} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
-                    <path className="oc-ghost" d={data.modelD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
-                    <path className="oc-cal" d={data.calD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
-
-                    {data.labs.map(({ x, y }, i) => (
-                        <rect
-                            key={x}
-                            /* ResultChart's lab marker: an 8×8 square on its
-                               corner, in that chart's own lab colour. The first
-                               real result someone enters should look like the
-                               thing they were shown here. */
-                            className={`oc-pop ${HOLLOW} text-[#B5664C] dark:text-[#E0A38C]`}
-                            style={{ animationDelay: `${5100 + i * 180}ms` }}
-                            x={x - 4}
-                            y={y - 4}
-                            width={8}
-                            height={8}
-                            transform={`rotate(45 ${x} ${y})`}
-                            strokeWidth={1.75}
-                            stroke="currentColor"
-                        />
-                    ))}
-                </>
+                        write without knowing the geometry. In the last beat the
+                        same line fades out as the ghost takes over. */}
+                    {beat >= 1 && (
+                        <path className={beat === 1 ? 'oc-model-draw' : 'oc-model-out'} d={data.modelD} pathLength={1} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                    )}
+                    {beat === 2 && (
+                        <>
+                            <path className="oc-ghost-in" d={data.modelD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
+                            <path className="oc-cal-in" d={data.calD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                            {data.labs.map(({ x, y }, i) => (
+                                <rect
+                                    key={x}
+                                    /* ResultChart's lab marker: an 8×8 square on
+                                       its corner, in that chart's own lab colour.
+                                       The first real result someone enters should
+                                       look like the thing they were shown here. */
+                                    className={`oc-pop ${HOLLOW} text-[#B5664C] dark:text-[#E0A38C]`}
+                                    style={{ animationDelay: `${i * 180}ms` }}
+                                    x={x - 4}
+                                    y={y - 4}
+                                    width={8}
+                                    height={8}
+                                    transform={`rotate(45 ${x} ${y})`}
+                                    strokeWidth={1.75}
+                                    stroke="currentColor"
+                                />
+                            ))}
+                        </>
+                    )}
+                </g>
             )}
         </svg>
 
@@ -296,11 +322,17 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, caption, legend
             the legend then names the two lines on it. It is also the sentence
             that has to be read whether or not the sequence ever plays, so it
             sits directly under the chart rather than below a legend that only
-            arrives at seven seconds. */}
+            arrives with the last beat. */}
         <p className="mt-2 text-[0.75rem] leading-relaxed text-muted">{caption}</p>
 
+        {/* Laid out from the first frame and only made visible in the last
+            beat, so its arrival does not shove the rows below it down the
+            page. */}
         {data && (
-            <div className="oc-legend mt-1.5 flex items-center gap-4 text-[0.6875rem] text-muted">
+            <div
+                key={playKey}
+                className={`mt-1.5 flex items-center gap-4 text-[0.6875rem] text-muted ${beat === 2 ? 'oc-legend-in' : 'invisible'}`}
+            >
                 {/* One series in two states, so both swatches are the same
                     colour and only the dashes tell them apart. */}
                 <span className="flex items-center gap-1.5">
@@ -311,6 +343,7 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, caption, legend
                     <Swatch />
                     {legend.labs}
                 </span>
+                {action}
             </div>
         )}
     </>
