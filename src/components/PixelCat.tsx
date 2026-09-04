@@ -6,6 +6,7 @@ import { usePixelCats, CatStyle, CatState } from '../contexts/PixelCatContext';
 //
 // Legend: # fur   d ear inner   E eye   N nose   p paw
 //         T tail  t tail edge   . transparent
+//         B/b/o quilt   F fish   f fish fin   z sleep mark
 //
 // Tails and paws are painted one shade darker than the band they cross — that
 // contrast is what makes them read as lying *in front of* the body instead of
@@ -284,42 +285,36 @@ const DONUT_YARN = [
     '.ooo......................',
 ];
 
-// Bowl on the floor at the cat's left. y13 is the only row with space beside
-// the body, and y14 is free the whole way across.
-const DONUT_BOWL_EMPTY = [
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    'oBBBBBo...................',
-    '.ooooo....................',
+// Dinner is a whole fish, and the cat has it in its mouth: it hangs straight
+// under the nose, head one side and forked tail the other, the way a cartoon
+// cat carries one. A dish on the floor was tried three times — kibble in it,
+// this fish lying in it, then the empty dish alone — and the dish is the
+// problem, not what is in it: fifteen rows leave no floor under the cat, so
+// the thing lands against its belly, and a clay-coloured lump under a cat is
+// read as exactly one thing however it is drawn. Nothing sits on the floor
+// here now. At the mouth the fish can only be dinner.
+const DONUT_FISH = [
+    '', '', '', '', '', '', '', '',
+    '.....FFFF.f...............',
+    '....FEFFFff...............',
+    '.....FFFF.f...............',
 ];
 
-const DONUT_BOWL_FULL = [
+// Waiting for dinner: the same fish, up in the free corner where the z's go.
+// Off the floor it stops being an object in the room and becomes a thought,
+// which is the whole state — the cat is not eating, it is thinking about it.
+// It faces the cat, and bobs between these two rows so it drifts.
+const DONUT_FISH_MARK = [
+    '....................FFFF.f',
+    '...................FEFFFff',
+    '....................FFFF.f',
+];
+
+const DONUT_FISH_MARK_LOW = [
     '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '..FFF.....................',
-    'oFFFFFo...................',
-    '.ooooo....................',
+    '....................FFFF.f',
+    '...................FEFFFff',
+    '....................FFFF.f',
 ];
 
 const LOAF_EYES_DROOPY = [
@@ -366,42 +361,26 @@ const LOAF_YARN = [
     '......................ooo.',
 ];
 
-// Bowl to the cat's right: y13 leaves x23-25 clear and y14 is free, so the
-// bowl tucks against the body rather than floating.
-const LOAF_BOWL_EMPTY = [
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '...................oBBBBBo',
-    '....................ooooo.',
+const LOAF_FISH = [
+    '', '', '', '', '', '', '', '',
+    '............FFFF.f........',
+    '...........FEFFFff........',
+    '............FFFF.f........',
 ];
 
-const LOAF_BOWL_FULL = [
+// Mirrored, because the loaf's free corner is the other one: head to the
+// right, so the fish still faces the cat it belongs to.
+const LOAF_FISH_MARK = [
+    'f.FFFF....................',
+    'ffFFFEF...................',
+    'f.FFFF....................',
+];
+
+const LOAF_FISH_MARK_LOW = [
     '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '.....................FFF..',
-    '...................oFFFFFo',
-    '....................ooooo.',
+    'f.FFFF....................',
+    'ffFFFEF...................',
+    'f.FFFF....................',
 ];
 
 // Second grooming frame: the same paw a pixel higher. Alternating the two is
@@ -413,14 +392,16 @@ const DONUT_PAW_FACE_UP = [
     'Pp........................',
 ];
 
-// Head down into the bowl. Covers the resting face in fur and redraws it a row
-// lower, so only the head dips — shifting the whole cat would be the idle bob
-// that was deliberately removed. Drawn after the shut-eye layer, so toggling
-// this one layer is the whole chew.
+// The bite. Covers the resting face in fur and redraws it a row lower, so only
+// the head dips — shifting the whole cat would be the idle bob that was
+// deliberately removed. The eyes stay the single pixel they are in every other
+// state: widened into a slit over food they read as a glare, not as a cat
+// enjoying itself. Drawn before the fish, so the lowered nose lands behind it
+// and vanishes — the muzzle down in dinner is what sells the bite.
 const DONUT_EAT_FACE_LOW = [
     '', '', '', '', '', '',
-    '...###.....###............',
-    '...EEE.##..EEE............',
+    '....#.......#.............',
+    '....E..##...E.............',
     '.......NN.................',
 ];
 
@@ -443,8 +424,8 @@ const LOAF_PAW_FACE_UP = [
 
 const LOAF_EAT_FACE_LOW = [
     '', '', '', '', '',
-    '..........###....###......',
-    '..........EEE....EEE......',
+    '...........#......#.......',
+    '...........E......E.......',
     '..............##..........',
     '..............NN..........',
 ];
@@ -500,10 +481,14 @@ function donutStates(): Record<CatState, Layer[]> {
         grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
             { grid: DONUT_PAW_FACE, className: 'px-lick-a' },
             { grid: DONUT_PAW_FACE_UP, className: 'px-lick-b' }],
-        // Bowl first so the cat sits in front of it, then a hard stare at it.
-        waiting: [{ grid: DONUT_BOWL_EMPTY, className: '' }, ...tailIdle, ...pawsIdle, ...ears],
-        eating: [{ grid: DONUT_BOWL_FULL, className: '' }, ...tailStill, ...pawsIdle, ...ears, shut,
-            { grid: DONUT_EAT_FACE_LOW, className: 'px-chew' }],
+        // Dinner is still only an idea, bobbing over the cat's head.
+        waiting: [...tailIdle, ...pawsIdle, ...ears, blink,
+            { grid: DONUT_FISH_MARK, className: 'px-float-a' },
+            { grid: DONUT_FISH_MARK_LOW, className: 'px-float-b' }],
+        // The same fish, come down out of the air and into the mouth.
+        eating: [...tailStill, ...pawsIdle, ...ears,
+            { grid: DONUT_EAT_FACE_LOW, className: 'px-chew' },
+            { grid: DONUT_FISH, className: '' }],
         winding: [...tailStill, ...pawsIdle, ...ears, droopy],
         asleep: [...tailStill, { grid: DONUT_QUILT, className: '' }, ...ears, shut,
             { grid: DONUT_ZZZ, className: 'px-zzz' }],
@@ -537,9 +522,12 @@ function loafStates(): Record<CatState, Layer[]> {
         grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
             { grid: LOAF_PAW_FACE, className: 'px-lick-a' },
             { grid: LOAF_PAW_FACE_UP, className: 'px-lick-b' }],
-        waiting: [{ grid: LOAF_BOWL_EMPTY, className: '' }, ...tailIdle, ...pawsIdle, ...ears],
-        eating: [{ grid: LOAF_BOWL_FULL, className: '' }, ...tailStill, ...pawsIdle, ...ears, shut,
-            { grid: LOAF_EAT_FACE_LOW, className: 'px-chew' }],
+        waiting: [...tailIdle, ...pawsIdle, ...ears, blink,
+            { grid: LOAF_FISH_MARK, className: 'px-float-a' },
+            { grid: LOAF_FISH_MARK_LOW, className: 'px-float-b' }],
+        eating: [...tailStill, ...pawsIdle, ...ears,
+            { grid: LOAF_EAT_FACE_LOW, className: 'px-chew' },
+            { grid: LOAF_FISH, className: '' }],
         winding: [...tailStill, ...pawsIdle, ...ears, droopy],
         asleep: [...tailStill, { grid: LOAF_QUILT, className: '' }, ...ears, shut,
             { grid: LOAF_ZZZ, className: 'px-zzz' }],
@@ -634,8 +622,12 @@ function fillFor(ch: string, x: number, y: number, solid: Set<string>, style: Ca
             return 'var(--pixel-quilt-shade)';
         case 'o':
             return 'var(--pixel-quilt-edge)';
+        // The fish is off the palette too: neither cat colour nor bowl clay,
+        // so it can't be mistaken for either.
         case 'F':
-            return 'var(--pixel-food)';
+            return 'var(--pixel-fish)';
+        case 'f':
+            return 'var(--pixel-fish-fin)';
         case 'z':
             return 'var(--pixel-zzz)';
         default:
