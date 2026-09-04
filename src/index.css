@@ -707,8 +707,14 @@ select,
     --pixel-quilt: #E8C0AC;
     --pixel-quilt-shade: #D2A28C;
     --pixel-quilt-edge: #B27F68;
-    /* Kibble. Warmer and darker than the bowl so the food reads against it. */
-    --pixel-food: #C4785A;
+    /* Dinner: a salmon-orange fish, carried in the mouth. Brighter and more
+       saturated than the bowl's clay so nothing on the sprite is a second
+       brown; fins a step darker. */
+    --pixel-fish: #F2A868;
+    --pixel-fish-fin: #D4813F;
+    /* The blood sample in the intro's vial (PixelMark). Terracotta, not red:
+       it is blood and does not need to look like it. */
+    --pixel-sample: #C4785A;
     /* Sleep marks. Muted on purpose — they should read as a soft puff, not text. */
     --pixel-zzz: #B7ADB0;
     /* Outlines for the props on the intro (PixelMark). The eye colour would do
@@ -733,7 +739,11 @@ select,
     --pixel-quilt: #A9806B;
     --pixel-quilt-shade: #8C6857;
     --pixel-quilt-edge: #6B4E40;
-    --pixel-food: #9A5C43;
+    /* Knocked back less than the pastels: dimmed to match them it goes brown,
+       and brown in a clay bowl is the exact thing the fish replaced. */
+    --pixel-fish: #E39B5C;
+    --pixel-fish-fin: #B96F33;
+    --pixel-sample: #9A5C43;
     --pixel-zzz: #6E656A;
     --pixel-ink: #CFC6C9;
 }
@@ -822,6 +832,12 @@ select,
     44.01%, 100% { opacity: 1; }
 }
 
+/* The fish a waiting cat is thinking about: two frames a pixel apart, held
+   long enough that it drifts rather than twitches. Same trick as the tail,
+   slowed right down. */
+@keyframes px-float-a { 0%, 53.99% { opacity: 1; } 54%, 100% { opacity: 0; } }
+@keyframes px-float-b { 0%, 53.99% { opacity: 0; } 54%, 100% { opacity: 1; } }
+
 /* Sleep marks: a slow swell and fade, with a long gap so they punctuate the
    sleeping rather than blink at you. */
 @keyframes px-zzz {
@@ -845,6 +861,8 @@ select,
 .px-lick-a      { animation: px-lick-a .5s steps(1) infinite; }
 .px-lick-b      { animation: px-lick-b .5s steps(1) infinite; }
 .px-chew        { animation: px-chew .62s steps(1) infinite; }
+.px-float-a     { animation: px-float-a 2.9s steps(1) infinite; }
+.px-float-b     { animation: px-float-b 2.9s steps(1) infinite; }
 .px-zzz         { animation: px-zzz 4.6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -871,6 +889,8 @@ select,
     .px-lick-a,
     .px-lick-b,
     .px-chew,
+    .px-float-a,
+    .px-float-b,
     .px-zzz {
         animation: none;
     }
@@ -881,7 +901,8 @@ select,
     .px-paw-right,
     .px-paw-stretch,
     .px-lick-b,
-    .px-chew {
+    .px-chew,
+    .px-float-b {
         opacity: 0;
     }
     .btn-primary,

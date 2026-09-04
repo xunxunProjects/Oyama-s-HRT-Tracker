@@ -131,8 +131,8 @@ const CHART: Sprite = {
 };
 
 // ── A capped sample tube, empty until the labs come back. The sample is the
-// terracotta of the cat's food bowl rather than anything redder: it is blood,
-// and it does not need to look like it. ─────────────────────────────────────
+// terracotta of the cat's quilt rather than anything redder: it is blood, and
+// it does not need to look like it. ────────────────────────────────────────
 const VIAL: Sprite = {
     layers: [
         { grid: [
@@ -161,7 +161,7 @@ const VIAL: Sprite = {
         o: INK,
         C: 'var(--pixel-pink-shade)',
         G: 'var(--pixel-white-shade)',
-        S: 'var(--pixel-food)',
+        S: 'var(--pixel-sample)',
     },
 };
 
