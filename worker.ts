@@ -1745,8 +1745,13 @@ export default {
             }
             const id = crypto.randomUUID();
             await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
-            // Auto-prune: keep only the latest 10 backups per user
-            const MAX_BACKUPS = 10;
+            // Auto-prune: keep only the latest few backups per user. Every
+            // revision is a full copy, so this count is what decides the size of
+            // the `content` table — at ten it was ~95% of the database and drove
+            // it into D1's size cap, where inserts fail with "Exceeded maximum
+            // DB size". The client only ever probes the newest three
+            // (MAX_BACKUP_PROBES in useCloudSync), so five leaves headroom.
+            const MAX_BACKUPS = 5;
             const old = await env.DB.prepare(
               'SELECT id FROM content WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET ?'
             ).bind(userId, MAX_BACKUPS).all();
