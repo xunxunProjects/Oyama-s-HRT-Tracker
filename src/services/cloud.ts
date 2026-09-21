@@ -37,7 +37,7 @@ export const cloudService = {
     },
 
     // No `load()` that fetches every backup at once. Its endpoint is SELECT *,
-    // so it shipped all ten retained bodies (2 MiB cap each) to callers that
+    // so it shipped every retained body (2 MiB cap each) to callers that
     // only ever wanted the newest — which is what both callers did. Use
     // listMeta() to pick, then loadOne() to fetch that one.
 
