@@ -344,7 +344,7 @@ function mergeKind(
  * same reason. Two devices upgrading from a build that never stamped weight
  * both arrive with the floor stamp, so "keep local on a tie" has each of them
  * decide the other is wrong and upload — for as long as both stay open, against
- * an endpoint that keeps ten revisions.
+ * an endpoint that keeps five revisions.
  */
 function resolveScalar<T>(
     localValue: T | undefined, localAt: number,
@@ -433,7 +433,7 @@ export function hasContent(state: SyncState): boolean {
  * worth making. Ordering, `updatedAt`, and tombstone timestamps are excluded:
  * two devices legitimately disagree on all three while holding the same data,
  * and counting those as a difference would have them upload to each other in a
- * loop — against a backup endpoint that keeps ten revisions and rate-limits to
+ * loop — against a backup endpoint that keeps five revisions and rate-limits to
  * twenty writes a minute.
  */
 export function fingerprintState(state: SyncState): string {

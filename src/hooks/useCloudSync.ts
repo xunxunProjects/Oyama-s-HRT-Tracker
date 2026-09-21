@@ -27,7 +27,7 @@
  * the record returns. So the push path first checks the newest revision is
  * still the one it reconciled with, and hands off to a full sync when it isn't.
  *
- * Three more things keep this from hammering the endpoint, which keeps ten
+ * Three more things keep this from hammering the endpoint, which keeps five
  * revisions per account and rate-limits to twenty writes a minute: a push is
  * skipped when the payload's content fingerprint matches what was last
  * uploaded; a sync in flight absorbs any trigger that arrives while it runs;
