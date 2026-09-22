@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import { MAX_CLOUD_BACKUPS } from './backupPolicy';
+import { MAX_CLOUD_BACKUP_BYTES, selectBackupsToKeep } from './backupPolicy';
 
 export interface Env {
   DB: D1Database;
@@ -12,53 +12,58 @@ export interface Env {
   AVATAR_BUCKET: R2Bucket;
   /** Set to 'development' only in local config; anything else means production. */
   ENVIRONMENT?: string;
+  /**
+   * Rate Limiting bindings, one per requests-per-minute class (wrangler.toml).
+   * Keys are prefixed per endpoint, so endpoints with the same ceiling share a
+   * binding without sharing a bucket.
+   */
+  RL_PER_MINUTE_10?: RateLimit;
+  RL_PER_MINUTE_20?: RateLimit;
+  RL_PER_MINUTE_30?: RateLimit;
+  RL_PER_MINUTE_60?: RateLimit;
+  RL_PER_MINUTE_300?: RateLimit;
 }
 
-// Rate limiting backed by D1 so limits are enforced across Cloudflare's
-// distributed, ephemeral Worker isolates (an in-memory Map is per-isolate and
-// effectively unenforceable, leaving login brute-force unthrottled).
-let rateLimitEnsured = false;
-async function ensureRateLimitTable(env: Env): Promise<void> {
-  if (rateLimitEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS rate_limits (
-        key TEXT PRIMARY KEY,
-        count INTEGER NOT NULL,
-        reset_time INTEGER NOT NULL
-      )`
-    ).run();
-    rateLimitEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure rate_limits table:', e);
-  }
-}
+// Rate limiting through the Workers Rate Limiting binding: enforced at the
+// edge, in memory, with no storage behind it. This used to be a table in D1,
+// which meant an INSERT ... ON CONFLICT on every login, every public
+// /api/notice fetch and every backup write — writes being the one thing a
+// single-primary D1 cannot scale — and it failed open on any database error,
+// so the day the database was unhealthy was the day brute-force protection
+// switched itself off.
+//
+// Every caller asks for some requests-per-minute ceiling; the binding whose
+// class matches is used. A missing binding is a configuration hole, not a
+// runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
+// still serves — it is logged once per isolate so it can't stay quiet.
+const RATE_LIMIT_CLASSES: Record<number, keyof Env> = {
+  10: 'RL_PER_MINUTE_10',
+  20: 'RL_PER_MINUTE_20',
+  30: 'RL_PER_MINUTE_30',
+  60: 'RL_PER_MINUTE_60',
+  300: 'RL_PER_MINUTE_300',
+};
+const missingLimiterReported = new Set<string>();
 
-async function checkRateLimit(env: Env, key: string, maxRequests = 5, windowMs = 60000): Promise<boolean> {
-  await ensureRateLimitTable(env);
-  const now = Date.now();
-  try {
-    // One statement: read, expire-or-increment and write happen atomically inside
-    // SQLite. The previous SELECT -> compare -> UPDATE sequence was three separate
-    // round-trips across independent Worker invocations with no transaction, so
-    // concurrent requests all read the same stale count — a burst against a cold
-    // key every window slipped through together.
-    const row = await env.DB.prepare(
-      `INSERT INTO rate_limits (key, count, reset_time) VALUES (?1, 1, ?2)
-       ON CONFLICT(key) DO UPDATE SET
-         count = CASE WHEN rate_limits.reset_time < ?3 THEN 1 ELSE rate_limits.count + 1 END,
-         reset_time = CASE WHEN rate_limits.reset_time < ?3 THEN ?2 ELSE rate_limits.reset_time END
-       RETURNING count`
-    ).bind(key, now + windowMs, now).first() as { count: number } | null;
-
-    // Opportunistic cleanup of expired rows to keep the table small.
-    if (Math.random() < 0.05) {
-      await env.DB.prepare('DELETE FROM rate_limits WHERE reset_time < ?').bind(now).run();
+/** True when the caller is within `perMinute` requests a minute for `key`. */
+async function checkRateLimit(env: Env, key: string, perMinute: number): Promise<boolean> {
+  const bindingName = RATE_LIMIT_CLASSES[perMinute];
+  const limiter = bindingName ? (env[bindingName] as RateLimit | undefined) : undefined;
+  if (!limiter) {
+    const what = bindingName ?? `no class for ${perMinute}/min`;
+    if (!missingLimiterReported.has(what)) {
+      missingLimiterReported.add(what);
+      console.error(`Rate limiting binding missing (${what}); requests are NOT being limited.`);
     }
-
-    return (row?.count ?? 1) <= maxRequests;
+    return true;
+  }
+  try {
+    const { success } = await limiter.limit({ key });
+    return success;
   } catch (e) {
-    // Fail open on DB errors — never lock every user out due to an infra hiccup.
+    // The binding itself erroring is an infrastructure fault. Failing open
+    // here is a deliberate choice: the alternative locks every user out over
+    // an outage in a component that isn't the database.
     console.error('Rate limit check failed:', e);
     return true;
   }
@@ -107,6 +112,32 @@ function timingSafeEqual(a: string, b: string): boolean {
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
+
+/**
+ * Every API error is `{ code, message }`. The message is for a human; the code
+ * is for the client, which used to have nothing else to go on: a bare 500, a
+ * 413 and a 429 all reached the user as "save failed", and the day the database
+ * hit its size cap looked like one person's upload bug.
+ */
+type ApiErrorCode =
+  | 'INVALID_REQUEST'
+  | 'INVALID_CREDENTIALS'
+  | 'TWO_FACTOR_REQUIRED'
+  | 'TWO_FACTOR_INVALID'
+  | 'SESSION_INVALID'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'TOO_LARGE'
+  | 'UNSUPPORTED_MEDIA'
+  | 'RATE_LIMITED'
+  | 'STORAGE_FULL'
+  | 'SERVICE_UNAVAILABLE'
+  | 'INTERNAL';
+
+/** D1's wording when the database has hit its plan's size cap. */
+const isStorageFullError = (err: unknown): boolean =>
+  err instanceof Error && /Exceeded maximum DB size/i.test(err.message);
 
 // Dosage shares are deliberately minimal snapshots. Static shares are
 // immutable; live shares may replace this sanitized payload when the owner
@@ -383,96 +414,34 @@ async function consumeTOTP(env: Env, userId: string, secret: string, token: stri
   return (res.meta?.changes ?? 0) > 0;
 }
 
-// --- Content indexes lazy creation ---
-// `content` predates the ensure*() pattern every other table uses, so its index
-// only ever existed in schema.sql — a file that opens with DROP TABLE and is
-// therefore never run against a database that holds real data. The result was a
-// full table scan plus a temp B-tree sort on every per-user backup query. See
-// migrations/0003_add_content_user_index.sql; this mirror keeps a self-hosted
-// database that skips the numbered migrations from silently paying the same
-// cost, and is a no-op once the index is there.
-let contentIndexesEnsured = false;
-async function ensureContentIndexes(env: Env): Promise<void> {
-  if (contentIndexesEnsured) return;
-  try {
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_content_user_created ON content(user_id, created_at)').run();
-    // Superseded by the composite above, whose leftmost column is user_id.
-    await env.DB.prepare('DROP INDEX IF EXISTS idx_content_user_id').run();
-    contentIndexesEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure content indexes:', e);
-  }
-}
+// Schema lives in migrations/ and nowhere else. The worker used to carry a
+// CREATE TABLE IF NOT EXISTS / ALTER TABLE mirror of it that ran lazily on
+// every cold isolate, which left three sources of truth that had already
+// drifted from one another (rate_limits and users.totp_last_step existed only
+// here). `wrangler d1 migrations apply` is now the one thing that touches DDL;
+// the Docker entrypoint runs it on start.
 
-// --- Sessions table lazy creation ---
+// --- Sessions ---
 // Revoke sessions left idle beyond this window (seconds). Shorter than the
 // 7-day JWT lifetime so inactivity caps how long a stolen token survives.
 const SESSION_IDLE_TIMEOUT_SECONDS = 3 * 24 * 60 * 60; // 3 days
+/** Lifetime of the JWTs minted below (`setExpirationTime('7d')`), in seconds. */
+const SESSION_JWT_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
 
-let sessionsEnsured = false;
-async function ensureSessions(env: Env): Promise<void> {
-  if (sessionsEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        created_at INTEGER DEFAULT (unixepoch()),
-        last_used_at INTEGER DEFAULT (unixepoch()),
-        device_info TEXT,
-        ip TEXT
-      )`
-    ).run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)').run();
-    sessionsEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure sessions table:', e);
-  }
-}
+/**
+ * SQL for "this session can still be presented": its token has not expired
+ * and it has not gone idle. A row that fails either is dead whether or not a
+ * request has come along to notice — the middleware only deletes a session
+ * when its own token shows up, so a token that simply expires leaves its row
+ * behind. The Sessions page used to list those as devices still signed in,
+ * and the admin "sessions revoked" count included them. The cron below sweeps
+ * them; this predicate keeps the reads honest in between.
+ */
+const LIVE_SESSION_SQL = `created_at > ?1 - ${SESSION_JWT_LIFETIME_SECONDS} AND last_used_at > ?1 - ${SESSION_IDLE_TIMEOUT_SECONDS}`;
 
-// --- TOTP secret column lazy creation ---
-let totpColumnEnsured = false;
-async function ensureTotpColumn(env: Env): Promise<void> {
-  if (totpColumnEnsured) return;
-  try {
-    await env.DB.prepare('ALTER TABLE users ADD COLUMN totp_secret TEXT').run();
-  } catch (_) {
-    // Column likely already exists
-  }
-  try {
-    // Highest TOTP step already accepted for this user, so a code cannot be
-    // replayed inside its validity window. See consumeTOTP.
-    await env.DB.prepare('ALTER TABLE users ADD COLUMN totp_last_step INTEGER').run();
-  } catch (_) {
-    // Column likely already exists
-  }
-  totpColumnEnsured = true;
-}
-
-let deletionLogEnsured = false;
-async function ensureDeletionLog(env: Env): Promise<void> {
-  if (deletionLogEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS deletion_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reason TEXT NOT NULL,
-        user_created_at INTEGER,
-        deleted_at INTEGER DEFAULT (unixepoch())
-      )`
-    ).run();
-    // Best-effort indexes
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_deletion_log_deleted_at ON deletion_log(deleted_at)').run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_deletion_log_reason ON deletion_log(reason)').run();
-    deletionLogEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure deletion_log table:', e);
-  }
-}
 
 async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: number | null): Promise<void> {
   try {
-    await ensureDeletionLog(env);
     await env.DB.prepare('INSERT INTO deletion_log (reason, user_created_at) VALUES (?, ?)')
       .bind(reason, userCreatedAt).run();
   } catch (e) {
@@ -480,32 +449,11 @@ async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: nu
   }
 }
 
-// --- Site notice table lazy creation ---
+// --- Site notice ---
 // One row, id 1: there is only ever one banner. Taking a notice down blanks the
 // body rather than dropping the row, which keeps `revision` monotonic for the
 // life of the table — clients remember the revision they dismissed, and a
 // counter that restarted at 1 would let a fresh notice inherit an old dismissal.
-let siteNoticeEnsured = false;
-async function ensureSiteNotice(env: Env): Promise<void> {
-  if (siteNoticeEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS site_notice (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        body TEXT NOT NULL,
-        body_i18n TEXT,
-        level TEXT NOT NULL DEFAULT 'info',
-        starts_at INTEGER,
-        expires_at INTEGER,
-        revision INTEGER NOT NULL DEFAULT 1,
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
-      )`
-    ).run();
-    siteNoticeEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure site_notice table:', e);
-  }
-}
 
 // Locales the app ships (src/i18n/translations.ts). A per-language override for
 // anything else is dropped on write, so the column never accumulates keys no
@@ -545,26 +493,7 @@ function serializeNotice(row: SiteNoticeRow) {
   };
 }
 
-// --- Backup codes table lazy creation ---
-let backupCodesEnsured = false;
-async function ensureBackupCodes(env: Env): Promise<void> {
-  if (backupCodesEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS backup_codes (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        code_hash TEXT NOT NULL,
-        used_at INTEGER,
-        created_at INTEGER DEFAULT (unixepoch())
-      )`
-    ).run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_backup_codes_user_id ON backup_codes(user_id)').run();
-    backupCodesEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure backup_codes table:', e);
-  }
-}
+// --- Backup codes ---
 
 async function hmacSha256Hex(key: string, data: string): Promise<string> {
   const cryptoKey = await crypto.subtle.importKey(
@@ -587,7 +516,6 @@ function generateRawBackupCode(): string {
 }
 
 async function generateAndStoreBackupCodes(env: Env, userId: string, jwtSecret: string): Promise<string[]> {
-  await ensureBackupCodes(env);
   await env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId).run();
   const codes: string[] = [];
   for (let i = 0; i < 8; i++) {
@@ -603,7 +531,6 @@ async function generateAndStoreBackupCodes(env: Env, userId: string, jwtSecret: 
 }
 
 async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string, jwtSecret: string): Promise<boolean> {
-  await ensureBackupCodes(env);
   const normalized = code.trim().replace(/[-\s]/g, '').toLowerCase();
   const hash = await hmacSha256Hex(jwtSecret, normalized);
   // Burn the code in the statement that finds it. Selecting `used_at IS NULL`
@@ -618,63 +545,6 @@ async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string
 }
 
 // --- Dosage share snapshots ---
-let dosageSharesEnsured = false;
-async function ensureDosageShares(env: Env): Promise<void> {
-  if (dosageSharesEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS dosage_shares (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        token_hash TEXT NOT NULL UNIQUE,
-        snapshot_json TEXT NOT NULL,
-        password_hash TEXT,
-        expires_at INTEGER,
-        is_live INTEGER NOT NULL DEFAULT 0,
-        share_mode TEXT,
-        created_at INTEGER DEFAULT (unixepoch()),
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )`
-    ).run();
-
-    // Local/self-hosted databases may have been created before live sharing
-    // existed and might not have run the numbered D1 migration. Inspect first
-    // and tolerate a concurrent Worker isolate winning the ALTER race.
-    // Reports whether *this* call added the column, so the one-time backfill
-    // below runs only alongside the ALTER that makes it necessary.
-    const ensureColumn = async (name: string, ddl: string): Promise<boolean> => {
-      const columns = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
-      if ((columns.results || []).some(column => column.name === name)) return false;
-      try {
-        await env.DB.prepare(ddl).run();
-        return true;
-      } catch (error) {
-        const refreshed = await env.DB.prepare('PRAGMA table_info(dosage_shares)').all<{ name: string }>();
-        if (!(refreshed.results || []).some(column => column.name === name)) throw error;
-        return false;
-      }
-    };
-    await ensureColumn('is_live', 'ALTER TABLE dosage_shares ADD COLUMN is_live INTEGER NOT NULL DEFAULT 0');
-    await ensureColumn('share_mode', 'ALTER TABLE dosage_shares ADD COLUMN share_mode TEXT');
-    const addedUpdatedAt = await ensureColumn('updated_at', 'ALTER TABLE dosage_shares ADD COLUMN updated_at INTEGER');
-    // Backfill for the ALTER directly above, and only for it. Unconditionally it
-    // scanned the whole table on every cold isolate to update nothing — roughly
-    // 11,700 pointless scans a week. Rows that predate the column are already
-    // covered by migrations/0002, and every read site falls back to created_at.
-    if (addedUpdatedAt) {
-      await env.DB.prepare('UPDATE dosage_shares SET updated_at = created_at WHERE updated_at IS NULL').run();
-    }
-
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_dosage_shares_user_id ON dosage_shares(user_id)').run();
-    await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_dosage_shares_token_hash ON dosage_shares(token_hash)').run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_dosage_shares_expires_at ON dosage_shares(expires_at)').run();
-    dosageSharesEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure dosage_shares table:', e);
-    throw e;
-  }
-}
 
 /**
  * Discard the payload of every share that has passed its expiry, for all users.
@@ -708,31 +578,6 @@ async function sweepExpiredShares(env: Env): Promise<void> {
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-// --- Passkeys (WebAuthn) table lazy creation ---
-let passkeysEnsured = false;
-async function ensurePasskeys(env: Env): Promise<void> {
-  if (passkeysEnsured) return;
-  try {
-    await env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS passkeys (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        credential_id TEXT NOT NULL UNIQUE,
-        public_key_x TEXT NOT NULL,
-        public_key_y TEXT NOT NULL,
-        counter INTEGER DEFAULT 0,
-        device_name TEXT,
-        created_at INTEGER DEFAULT (unixepoch())
-      )`
-    ).run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_passkeys_user_id ON passkeys(user_id)').run();
-    await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_passkeys_cred_id ON passkeys(credential_id)').run();
-    passkeysEnsured = true;
-  } catch (e) {
-    console.error('Failed to ensure passkeys table:', e);
-  }
 }
 
 // --- WebAuthn / Passkey crypto helpers ---
@@ -914,6 +759,12 @@ export default {
         },
       }));
 
+    const jsonError = (code: ApiErrorCode, message: string, status: number, extraHeaders: Record<string, string> = {}) =>
+      withSecurityHeaders(new Response(JSON.stringify({ code, message }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
+      }));
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
@@ -923,10 +774,7 @@ export default {
     // as an incorrect password. The client only force-signs-out on tagged
     // responses, never on a wrong-password attempt.
     const sessionInvalid = (message: string) =>
-      withSecurityHeaders(new Response(message, {
-        status: 401,
-        headers: { ...corsHeaders, 'X-Session-Invalid': '1', 'Access-Control-Expose-Headers': 'X-Session-Invalid' },
-      }));
+      jsonError('SESSION_INVALID', message, 401, { 'X-Session-Invalid': '1', 'Access-Control-Expose-Headers': 'X-Session-Invalid' });
 
     try {
       // Validate JWT secret first — if misconfigured return 503 not 500
@@ -935,7 +783,7 @@ export default {
         jwtSecret = getValidatedJWTSecret(env);
       } catch (configErr: any) {
         console.error('Worker misconfiguration:', configErr);
-        return withSecurityHeaders(new Response('Service unavailable: server configuration error', { status: 503, headers: corsHeaders }));
+        return jsonError('SERVICE_UNAVAILABLE', 'Service unavailable: server configuration error', 503);
       }
 
       // Rate limiting for auth/sensitive endpoints
@@ -950,8 +798,8 @@ export default {
         // self-hosted build still serves; the per-account limiter in the login
         // handler is what actually bounds brute force there.
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!(await checkRateLimit(env, clientIP, 10, 60000))) { // Slightly relaxed but broader coverage
-          return withSecurityHeaders(new Response('Too many requests. Please try again later.', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
+        if (!(await checkRateLimit(env, clientIP, 10))) { // Slightly relaxed but broader coverage
+          return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, { 'Retry-After': '60' });
         }
       }
 
@@ -963,13 +811,10 @@ export default {
         // X-Forwarded-For / X-Real-IP can be spoofed by clients and would
         // allow trivial rate-limit evasion.
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!(await checkRateLimit(env, `transparency:${clientIP}`, 30, 60000))) {
-          return withSecurityHeaders(new Response('Too many requests. Please try again later.', {
-            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' }
-          }));
+        if (!(await checkRateLimit(env, `transparency:${clientIP}`, 30))) {
+          return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, { 'Retry-After': '60' });
         }
 
-        await ensureDeletionLog(env);
         const now = Math.floor(Date.now() / 1000);
         const day = 86400;
         const HOUR = 3600;
@@ -1029,13 +874,10 @@ export default {
       if (url.pathname === '/api/notice' && request.method === 'GET') {
         // CF-Connecting-IP only, for the reason spelled out on /api/transparency.
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!(await checkRateLimit(env, `notice:${clientIP}`, 60, 60000))) {
-          return withSecurityHeaders(new Response('Too many requests. Please try again later.', {
-            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' }
-          }));
+        if (!(await checkRateLimit(env, `notice:${clientIP}`, 60))) {
+          return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, { 'Retry-After': '60' });
         }
 
-        await ensureSiteNotice(env);
         const row = await env.DB.prepare(
           `SELECT ${NOTICE_COLUMNS} FROM site_notice WHERE id = 1`
         ).first<SiteNoticeRow>();
@@ -1064,22 +906,21 @@ export default {
       if (url.pathname === '/api/register' && request.method === 'POST') {
         const body = await request.json() as any;
         let { username, password } = body;
-        if (!username || !password) return withSecurityHeaders(new Response('Missing credentials', { status: 400, headers: corsHeaders }));
+        if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
 
         username = username.trim();
-        if (!validateUsername(username)) return withSecurityHeaders(new Response('Invalid username format', { status: 400, headers: corsHeaders }));
+        if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
         const passVal = validatePassword(password);
-        if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error, { status: 400, headers: corsHeaders }));
+        if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
 
         const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
-        if (existing) return withSecurityHeaders(new Response('Username already taken', { status: 409, headers: corsHeaders }));
+        if (existing) return jsonError('CONFLICT', 'Username already taken', 409);
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const id = crypto.randomUUID();
         await env.DB.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').bind(id, username, hashedPassword).run();
 
         // Issue a session immediately so the user can complete mandatory 2FA setup
-        await ensureSessions(env);
         const sessionId = crypto.randomUUID();
         const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
         const regIP = request.headers.get('CF-Connecting-IP') ||
@@ -1099,7 +940,7 @@ export default {
       if (url.pathname === '/api/login' && request.method === 'POST') {
         const body = await request.json() as any;
         let { username, password, totp_code, backup_code } = body;
-        if (!username || !password) return withSecurityHeaders(new Response('Missing credentials', { status: 400, headers: corsHeaders }));
+        if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
         username = username.trim();
 
         // Per-account throttle, keyed on nothing the caller can rotate. The IP
@@ -1107,10 +948,8 @@ export default {
         // against a single account no matter how many identities the caller
         // presents, which is the case that matters on a self-hosted deployment
         // with no trusted edge in front of it. Covers the admin branch too.
-        if (!(await checkRateLimit(env, `login-user:${username.toLowerCase()}`, 10, 60000))) {
-          return withSecurityHeaders(new Response('Too many attempts for this account. Please try again later.', {
-            status: 429, headers: { ...corsHeaders, 'Retry-After': '60' },
-          }));
+        if (!(await checkRateLimit(env, `login-user:${username.toLowerCase()}`, 10))) {
+          return jsonError('RATE_LIMITED', 'Too many attempts for this account. Please try again later.', 429, { 'Retry-After': '60' });
         }
 
         // Admin login check
@@ -1135,28 +974,26 @@ export default {
         const passwordValid = await bcrypt.compare(password, passwordHash);
 
         if (!user || !passwordValid) {
-          return withSecurityHeaders(new Response('Invalid credentials', { status: 401, headers: corsHeaders }));
+          return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
         }
 
         // 2FA check
-        await ensureTotpColumn(env);
-        await ensurePasskeys(env);
         const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
         let twoFAVerified = false;
         if (userWithTotp?.totp_secret) {
           // TOTP is enabled — accept totp_code or backup_code
           if (!totp_code && !backup_code) {
-            return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'totp' }), {
+            return withSecurityHeaders(new Response(JSON.stringify({ code: 'TWO_FACTOR_REQUIRED', message: 'A second factor is required', needs2FA: true, method: 'totp' }), {
               status: 401,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }));
           }
           if (backup_code) {
             const backupValid = await verifyAndConsumeBackupCode(env, user.id, String(backup_code), jwtSecret);
-            if (!backupValid) return withSecurityHeaders(new Response('Invalid or already-used backup code', { status: 401, headers: corsHeaders }));
+            if (!backupValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid or already-used backup code', 401);
           } else {
             const totpValid = await consumeTOTP(env, user.id, userWithTotp.totp_secret, String(totp_code));
-            if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 401, headers: corsHeaders }));
+            if (!totpValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 401);
           }
           twoFAVerified = true;
         } else {
@@ -1166,9 +1003,9 @@ export default {
             // Passkey-only 2FA — accept backup_code as fallback
             if (backup_code) {
               const backupValid = await verifyAndConsumeBackupCode(env, user.id, String(backup_code), jwtSecret);
-              if (!backupValid) return withSecurityHeaders(new Response('Invalid or already-used backup code', { status: 401, headers: corsHeaders }));
+              if (!backupValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid or already-used backup code', 401);
             } else {
-              return withSecurityHeaders(new Response(JSON.stringify({ needs2FA: true, method: 'passkey' }), {
+              return withSecurityHeaders(new Response(JSON.stringify({ code: 'TWO_FACTOR_REQUIRED', message: 'A second factor is required', needs2FA: true, method: 'passkey' }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               }));
@@ -1178,7 +1015,6 @@ export default {
         }
 
         // Create session
-        await ensureSessions(env);
         const sessionId = crypto.randomUUID();
         const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
         const loginIP = request.headers.get('CF-Connecting-IP') ||
@@ -1197,7 +1033,7 @@ export default {
       // Avatar GET (Public)
       if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET') {
         const username = url.pathname.split('/').pop();
-        const genericNotFound = () => withSecurityHeaders(new Response('Not found', { status: 404, headers: corsHeaders }));
+        const genericNotFound = () => jsonError('NOT_FOUND', 'Not found', 404);
 
         try {
           const user = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first() as any;
@@ -1220,10 +1056,9 @@ export default {
       // POST /api/auth/passkey-options — generate WebAuthn auth challenge (public, no JWT)
       if (url.pathname === '/api/auth/passkey-options' && request.method === 'POST') {
         const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        if (!(await checkRateLimit(env, `passkey-options:${clientIP}`, 10, 60000))) {
-          return withSecurityHeaders(new Response('Too many requests', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
+        if (!(await checkRateLimit(env, `passkey-options:${clientIP}`, 10))) {
+          return jsonError('RATE_LIMITED', 'Too many requests', 429, { 'Retry-After': '60' });
         }
-        await ensurePasskeys(env);
         const { username } = (await request.json().catch(() => ({}))) as any;
         const origin = request.headers.get('Origin') || `https://${url.hostname}`;
         const challenge = b64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
@@ -1248,13 +1083,12 @@ export default {
       // POST /api/auth/passkey-verify — verify WebAuthn assertion and issue session JWT (public)
       if (url.pathname === '/api/auth/passkey-verify' && request.method === 'POST') {
         const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'unknown';
-        if (!(await checkRateLimit(env, `passkey-verify:${clientIP}`, 10, 60000))) {
-          return withSecurityHeaders(new Response('Too many requests', { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } }));
+        if (!(await checkRateLimit(env, `passkey-verify:${clientIP}`, 10))) {
+          return jsonError('RATE_LIMITED', 'Too many requests', 429, { 'Retry-After': '60' });
         }
-        await ensurePasskeys(env);
         const { challengeToken, credential } = await request.json() as any;
         if (!challengeToken || !credential?.id || !credential?.response) {
-          return withSecurityHeaders(new Response('Missing data', { status: 400, headers: corsHeaders }));
+          return jsonError('INVALID_REQUEST', 'Missing data', 400);
         }
 
         const secret = new TextEncoder().encode(jwtSecret);
@@ -1263,17 +1097,17 @@ export default {
           const { payload } = await jwtVerify(challengeToken, secret);
           challengePayload = payload;
         } catch {
-          return withSecurityHeaders(new Response('Invalid or expired challenge', { status: 400, headers: corsHeaders }));
+          return jsonError('INVALID_REQUEST', 'Invalid or expired challenge', 400);
         }
         if (challengePayload.purpose !== 'passkey-auth') {
-          return withSecurityHeaders(new Response('Invalid challenge purpose', { status: 400, headers: corsHeaders }));
+          return jsonError('INVALID_REQUEST', 'Invalid challenge purpose', 400);
         }
 
         const passkeyRow = await env.DB.prepare('SELECT * FROM passkeys WHERE credential_id = ?').bind(credential.id as string).first() as any;
-        if (!passkeyRow) return withSecurityHeaders(new Response('Passkey not found', { status: 401, headers: corsHeaders }));
+        if (!passkeyRow) return jsonError('INVALID_CREDENTIALS', 'Passkey not found', 401);
 
         const userRow = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(passkeyRow.user_id).first() as any;
-        if (!userRow) return withSecurityHeaders(new Response('User not found', { status: 401, headers: corsHeaders }));
+        if (!userRow) return jsonError('INVALID_CREDENTIALS', 'User not found', 401);
 
         const expectedOrigin = challengePayload.origin as string;
         const expectedRpId = (() => { try { return new URL(expectedOrigin).hostname; } catch { return url.hostname; } })();
@@ -1292,10 +1126,9 @@ export default {
           );
           await env.DB.prepare('UPDATE passkeys SET counter = ? WHERE id = ?').bind(newCounter, passkeyRow.id).run();
         } catch {
-          return withSecurityHeaders(new Response('Passkey verification failed', { status: 401, headers: corsHeaders }));
+          return jsonError('INVALID_CREDENTIALS', 'Passkey verification failed', 401);
         }
 
-        await ensureSessions(env);
         const sessionId = crypto.randomUUID();
         const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
         const loginIP = clientIP;
@@ -1335,17 +1168,11 @@ export default {
         const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
         // The IP-only bucket cannot be evaded by rotating random tokens and is
         // checked before any deliberately expensive bcrypt comparison.
-        if (!(await checkRateLimit(env, `share-access-ip:${clientIP}`, 30, 60000))) {
+        if (!(await checkRateLimit(env, `share-access-ip:${clientIP}`, 30))) {
           return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
         }
 
         const tokenHash = await sha256Hex(body.token);
-        await ensureDosageShares(env);
-        // Opportunistic, request-count driven rather than scheduled — same shape
-        // as the rate_limits cleanup. This is the anonymous share-access path, so
-        // it is the one endpoint guaranteed to see traffic even when no owner
-        // signs in, which is exactly the case the other two scrubs miss.
-        if (Math.random() < 0.1) ctx.waitUntil(sweepExpiredShares(env));
         const share = await env.DB.prepare(
           'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE token_hash = ?'
         ).bind(tokenHash).first() as {
@@ -1372,7 +1199,7 @@ export default {
         // bounds abuse while leaving room for a share with many readers.
         // The tight per-token limit that actually guards the password now sits
         // in the password branch below, charged only for a credential attempt.
-        if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 300, 60000))) {
+        if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 300))) {
           return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
         }
 
@@ -1416,7 +1243,7 @@ export default {
           // does not know the password cannot spend the budget every other
           // viewer of this share draws from. New key name so rows saturated
           // under the old shared bucket do not carry over.
-          if (!(await checkRateLimit(env, `share-access-pw:${tokenHash.slice(0, 20)}`, 10, 60000))) {
+          if (!(await checkRateLimit(env, `share-access-pw:${tokenHash.slice(0, 20)}`, 10))) {
             return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': '60' });
           }
           const passwordValid = await bcrypt.compare(body.password, share.password_hash);
@@ -1475,7 +1302,6 @@ export default {
 
         // Session validation (only for user JWTs with a session ID)
         if (sessionId && payload.role !== 'admin') {
-          await ensureSessions(env);
           const session = await env.DB.prepare('SELECT last_used_at FROM sessions WHERE id = ? AND user_id = ?').bind(sessionId, userId).first() as any;
           if (!session) {
             return sessionInvalid('Session expired or revoked');
@@ -1497,7 +1323,7 @@ export default {
 
         // --- Dosage sharing (owner management) ---
         if (url.pathname === '/api/shares' && request.method === 'POST') {
-          if (!(await checkRateLimit(env, `share-create:${userId}`, 10, 60000))) {
+          if (!(await checkRateLimit(env, `share-create:${userId}`, 10))) {
             return shareJson({ code: 'RATE_LIMITED', message: 'Too many shares created. Please try again later.' }, 429, { 'Retry-After': '60' });
           }
 
@@ -1556,7 +1382,6 @@ export default {
             return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
           }
 
-          await ensureDosageShares(env);
           // Was scoped to this author's own shares, which left every other
           // user's expired snapshot sitting there until they happened to create
           // one themselves. The sweep is global; the per-user tombstone trim
@@ -1597,7 +1422,7 @@ export default {
         }
 
         if (url.pathname === '/api/shares/live' && request.method === 'PUT') {
-          if (!(await checkRateLimit(env, `share-live-update:${userId}`, 30, 60000))) {
+          if (!(await checkRateLimit(env, `share-live-update:${userId}`, 30))) {
             return shareJson({ code: 'RATE_LIMITED', message: 'Too many live share updates. Please try again later.' }, 429, { 'Retry-After': '60' });
           }
 
@@ -1631,7 +1456,6 @@ export default {
             return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
           }
 
-          await ensureDosageShares(env);
           const activeLiveShares = await env.DB.prepare(
             `SELECT id FROM dosage_shares
              WHERE user_id = ? AND is_live = 1
@@ -1668,7 +1492,6 @@ export default {
         }
 
         if (url.pathname === '/api/shares' && request.method === 'GET') {
-          await ensureDosageShares(env);
           const nowSeconds = Math.floor(Date.now() / 1000);
           await env.DB.prepare(
             "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (snapshot_json != 'null' OR password_hash IS NOT NULL)"
@@ -1697,7 +1520,6 @@ export default {
         }
 
         if (request.method === 'DELETE' && url.pathname.match(/^\/api\/shares\/[^/]+$/)) {
-          await ensureDosageShares(env);
           const shareId = url.pathname.split('/').pop()!;
           const existing = await env.DB.prepare('SELECT id FROM dosage_shares WHERE id = ? AND user_id = ?').bind(shareId, userId).first();
           if (!existing) return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
@@ -1707,55 +1529,53 @@ export default {
 
         // Content
         if (url.pathname.startsWith('/api/content')) {
-          await ensureContentIndexes(env);
+          // Metadata only. This used to also serve every retained body when
+          // `meta=1` was omitted — up to MAX_CLOUD_BACKUPS × 2 MiB — for a caller
+          // that no longer existed. Bodies come one at a time from /api/content/:id.
           if (url.pathname === '/api/content' && request.method === 'GET') {
-            const metaOnly = url.searchParams.get('meta') === '1';
-            if (metaOnly) {
-              const content = await env.DB.prepare('SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
-              return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
-            }
-            const content = await env.DB.prepare('SELECT * FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
+            const content = await env.DB.prepare('SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
             return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
           if (url.pathname === '/api/content' && request.method === 'POST') {
             // Same guard the share endpoints already apply. Without it this
             // buffered, parsed and re-serialised whatever was sent against the
             // isolate's memory ceiling, with no rate limit on the path either.
-            if (!(await checkRateLimit(env, `content-write:${userId}`, 20, 60000))) {
-              return withSecurityHeaders(new Response('Too many backups. Please try again later.', {
-                status: 429, headers: { ...corsHeaders, 'Retry-After': '60' },
-              }));
+            if (!(await checkRateLimit(env, `content-write:${userId}`, 20))) {
+              return jsonError('RATE_LIMITED', 'Too many backups. Please try again later.', 429, { 'Retry-After': '60' });
             }
             const declaredLength = Number(request.headers.get('Content-Length'));
-            if (Number.isFinite(declaredLength) && declaredLength > MAX_SHARE_REQUEST_BYTES) {
-              return withSecurityHeaders(new Response('Backup exceeds the 2 MiB limit', { status: 413, headers: corsHeaders }));
+            if (Number.isFinite(declaredLength) && declaredLength > MAX_CLOUD_BACKUP_BYTES) {
+              return jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
             }
             const rawBody = await request.text();
-            if (new TextEncoder().encode(rawBody).byteLength > MAX_SHARE_REQUEST_BYTES) {
-              return withSecurityHeaders(new Response('Backup exceeds the 2 MiB limit', { status: 413, headers: corsHeaders }));
+            if (new TextEncoder().encode(rawBody).byteLength > MAX_CLOUD_BACKUP_BYTES) {
+              return jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
             }
             let parsedBody: any;
             try { parsedBody = JSON.parse(rawBody); } catch {
-              return withSecurityHeaders(new Response('Invalid JSON body', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
             }
             const data = parsedBody?.data;
             // `JSON.stringify(undefined)` is undefined, which the D1 bind below
             // rejects with a 500 — reject it here as the 400 it actually is.
             if (data === undefined) {
-              return withSecurityHeaders(new Response('Missing data', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Missing data', 400);
             }
             const id = crypto.randomUUID();
             await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)').bind(id, userId, JSON.stringify(data)).run();
-            // Auto-prune: keep only the newest MAX_CLOUD_BACKUPS per user — see
-            // backupPolicy.ts for why the number is what it is.
-            const old = await env.DB.prepare(
-              'SELECT id FROM content WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET ?'
-            ).bind(userId, MAX_CLOUD_BACKUPS).all();
-            if (old.results.length > 0) {
-              const ids = old.results.map((r: any) => r.id);
+            // Prune to the retention policy. Which revisions survive is decided
+            // in backupPolicy.ts — one per generation, then the newest — rather
+            // than "the newest N", which the client's few-seconds-after-every-
+            // edit uploads turned into a log of the last minute.
+            const revisions = await env.DB.prepare(
+              'SELECT id, created_at FROM content WHERE user_id = ? ORDER BY created_at DESC'
+            ).bind(userId).all<{ id: string; created_at: number }>();
+            const keep = selectBackupsToKeep(revisions.results, id);
+            const stale = revisions.results.filter(r => !keep.has(r.id)).map(r => r.id);
+            if (stale.length > 0) {
               await env.DB.prepare(
-                `DELETE FROM content WHERE id IN (${ids.map(() => '?').join(',')})`
-              ).bind(...ids).run();
+                `DELETE FROM content WHERE user_id = ? AND id IN (${stale.map(() => '?').join(',')})`
+              ).bind(userId, ...stale).run();
             }
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Content saved', id }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
@@ -1769,7 +1589,7 @@ export default {
           if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
             const backupId = url.pathname.split('/').pop();
             const row = await env.DB.prepare('SELECT * FROM content WHERE id = ? AND user_id = ?').bind(backupId, userId).first();
-            if (!row) return withSecurityHeaders(new Response('Not found', { status: 404, headers: corsHeaders }));
+            if (!row) return jsonError('NOT_FOUND', 'Not found', 404);
             return withSecurityHeaders(new Response(JSON.stringify(row), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
         }
@@ -1779,9 +1599,9 @@ export default {
           if (url.pathname === '/api/user/profile' && request.method === 'PATCH') {
             let { username } = await request.json() as any;
             username = username.trim();
-            if (!validateUsername(username)) return withSecurityHeaders(new Response('Invalid username', { status: 400, headers: corsHeaders }));
+            if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username', 400);
             const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
-            if (existing && (existing as any).id !== userId) return withSecurityHeaders(new Response('Username taken', { status: 409, headers: corsHeaders }));
+            if (existing && (existing as any).id !== userId) return jsonError('CONFLICT', 'Username taken', 409);
             await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Profile updated', username }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
@@ -1794,10 +1614,10 @@ export default {
             const passwordHash = user ? user.password_hash : dummyHash;
             const passwordValid = await bcrypt.compare(currentPassword, passwordHash);
 
-            if (!user || !passwordValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            if (!user || !passwordValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
 
             const passVal = validatePassword(newPassword);
-            if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error, { status: 400, headers: corsHeaders }));
+            if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
             const hashed = await bcrypt.hash(newPassword, 10);
             await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashed, userId).run();
             // Changing the password is the standard response to "someone has my
@@ -1806,14 +1626,12 @@ export default {
             // request refreshed last_used_at, so the idle timeout never fired
             // either. The caller's own session is kept so they stay signed in.
             if (sessionId) {
-              await ensureSessions(env);
               await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?').bind(userId, sessionId).run();
             }
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Password updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
-            await ensureTotpColumn(env);
             const { password, code, backup_code } = await request.json() as any;
             const user = await env.DB.prepare('SELECT password_hash, created_at, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
 
@@ -1821,23 +1639,20 @@ export default {
             const passwordHash = user ? user.password_hash : dummyHash;
             const passwordValid = await bcrypt.compare(password, passwordHash);
 
-            if (!user || !passwordValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+            if (!user || !passwordValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
 
             // If TOTP-based 2FA is enabled, require a valid authenticator code
             // (or a single-use backup code) before destroying the account.
             if (user.totp_secret) {
               if (!code && !backup_code) {
-                return withSecurityHeaders(new Response('2FA code required', { status: 400, headers: corsHeaders }));
+                return jsonError('TWO_FACTOR_REQUIRED', '2FA code required', 400);
               }
               const twoFAValid = backup_code
                 ? await verifyAndConsumeBackupCode(env, userId, String(backup_code), jwtSecret)
                 : await consumeTOTP(env, userId, user.totp_secret, String(code));
-              if (!twoFAValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+              if (!twoFAValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
             }
 
-            await ensurePasskeys(env);
-            await ensureBackupCodes(env);
-            await ensureDosageShares(env);
             await env.DB.batch([
               env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(userId),
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
@@ -1855,29 +1670,26 @@ export default {
         // Avatar PUT
         if (url.pathname === '/api/user/avatar' && request.method === 'PUT') {
           const body = await request.arrayBuffer();
-          if (body.byteLength > 5 * 1024 * 1024) return withSecurityHeaders(new Response('File too large', { status: 413, headers: corsHeaders }));
+          if (body.byteLength > 5 * 1024 * 1024) return jsonError('TOO_LARGE', 'File too large', 413);
           const view = new Uint8Array(body);
           let contentType = (view[0] === 0xFF && view[1] === 0xD8) ? 'image/jpeg' : (view[0] === 0x89 && view[1] === 0x50 ? 'image/png' : null);
-          if (!contentType) return withSecurityHeaders(new Response('Invalid file type', { status: 415, headers: corsHeaders }));
+          if (!contentType) return jsonError('UNSUPPORTED_MEDIA', 'Invalid file type', 415);
           await env.AVATAR_BUCKET.put(`hrt-tracker-user-avatar/${userId}`, body, { httpMetadata: { contentType } });
           return withSecurityHeaders(new Response(JSON.stringify({ message: 'Avatar uploaded' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
         }
 
         // Admin
         if (url.pathname.startsWith('/api/admin/')) {
-          if (payload.role !== 'admin') return withSecurityHeaders(new Response('Forbidden', { status: 403, headers: corsHeaders }));
+          if (payload.role !== 'admin') return jsonError('FORBIDDEN', 'Forbidden', 403);
           // The user list reports each account's 2FA posture and the /2fa routes
           // below read and clear it, so the column and table both have to exist
           // before any of those queries name them. Cached per isolate.
-          await ensureTotpColumn(env);
-          await ensurePasskeys(env);
 
           // --- Site notice ---
           // Reads back what is stored regardless of the schedule, so the editor
           // shows a notice that is queued or already expired instead of the
           // empty state the public endpoint reports for one.
           if (url.pathname === '/api/admin/notice' && request.method === 'GET') {
-            await ensureSiteNotice(env);
             const row = await env.DB.prepare(
               `SELECT ${NOTICE_COLUMNS} FROM site_notice WHERE id = 1`
             ).first<SiteNoticeRow>();
@@ -1888,12 +1700,12 @@ export default {
           if (url.pathname === '/api/admin/notice' && request.method === 'PUT') {
             const body = await request.json().catch(() => null) as any;
             if (!body || typeof body.body !== 'string') {
-              return withSecurityHeaders(new Response('Missing notice body', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Missing notice body', 400);
             }
             const text = body.body.trim();
-            if (!text) return withSecurityHeaders(new Response('Notice body cannot be empty', { status: 400, headers: corsHeaders }));
+            if (!text) return jsonError('INVALID_REQUEST', 'Notice body cannot be empty', 400);
             if (text.length > MAX_NOTICE_BODY) {
-              return withSecurityHeaders(new Response(`Notice body exceeds ${MAX_NOTICE_BODY} characters`, { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', `Notice body exceeds ${MAX_NOTICE_BODY} characters`, 400);
             }
             const level = body.level === 'warn' ? 'warn' : 'info';
 
@@ -1903,7 +1715,7 @@ export default {
             let i18nJson: string | null = null;
             if (body.i18n != null) {
               if (typeof body.i18n !== 'object' || Array.isArray(body.i18n)) {
-                return withSecurityHeaders(new Response('i18n must be an object', { status: 400, headers: corsHeaders }));
+                return jsonError('INVALID_REQUEST', 'i18n must be an object', 400);
               }
               const cleaned: Record<string, string> = {};
               for (const [lang, value] of Object.entries(body.i18n as Record<string, unknown>)) {
@@ -1912,7 +1724,7 @@ export default {
                 const trimmed = value.trim();
                 if (!trimmed) continue;
                 if (trimmed.length > MAX_NOTICE_BODY) {
-                  return withSecurityHeaders(new Response(`Notice body for ${lang} exceeds ${MAX_NOTICE_BODY} characters`, { status: 400, headers: corsHeaders }));
+                  return jsonError('INVALID_REQUEST', `Notice body for ${lang} exceeds ${MAX_NOTICE_BODY} characters`, 400);
                 }
                 cleaned[lang] = trimmed;
               }
@@ -1929,13 +1741,12 @@ export default {
             const startsAt = parseTs(body.startsAt);
             const expiresAt = parseTs(body.expiresAt);
             if (startsAt === undefined || expiresAt === undefined) {
-              return withSecurityHeaders(new Response('startsAt and expiresAt must be unix timestamps or null', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'startsAt and expiresAt must be unix timestamps or null', 400);
             }
             if (startsAt != null && expiresAt != null && expiresAt <= startsAt) {
-              return withSecurityHeaders(new Response('expiresAt must be after startsAt', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'expiresAt must be after startsAt', 400);
             }
 
-            await ensureSiteNotice(env);
             // revision bumps on every save and never resets, because clients key
             // their "dismissed" flag on it: correcting the wording should reach
             // everyone who had already dismissed the previous revision.
@@ -1952,9 +1763,8 @@ export default {
           }
 
           // Take the banner down. Blanks the body instead of dropping the row so
-          // the revision counter keeps climbing — see ensureSiteNotice.
+          // the revision counter keeps climbing — see the site_notice note above.
           if (url.pathname === '/api/admin/notice' && request.method === 'DELETE') {
-            await ensureSiteNotice(env);
             await env.DB.prepare(
               `UPDATE site_notice SET body = '', body_i18n = NULL, starts_at = NULL, expires_at = NULL,
                  revision = revision + 1, updated_at = unixepoch() WHERE id = 1`
@@ -1967,28 +1777,73 @@ export default {
             const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
             const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
             const offset = (page - 1) * limit;
-            const whereClause = query ? 'WHERE u.username LIKE ?' : '';
-            const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u ${query ? 'WHERE u.username LIKE ?' : ''}`;
-            const countResult = query
-              ? await env.DB.prepare(countSql).bind(`%${query}%`).first<{ total: number }>()
-              : await env.DB.prepare(countSql).first<{ total: number }>();
+            const whereClause = query ? 'WHERE username LIKE ?' : '';
+            const filterArgs = query ? [`%${query}%`] : [];
+            const countResult = await env.DB.prepare(`SELECT COUNT(*) AS total FROM users ${whereClause}`)
+              .bind(...filterArgs).first<{ total: number }>();
             const total = countResult?.total ?? 0;
-            // Passkeys come from a correlated subquery rather than a second
-            // LEFT JOIN: joining both tables would multiply the rows and inflate
-            // every content aggregate above by the passkey count.
-            const sql = `SELECT u.id, u.username, u.created_at,
-              COUNT(c.id) AS backup_count,
-              MAX(c.created_at) AS last_backup_at,
-              COALESCE(SUM(LENGTH(c.data)), 0) AS total_backup_size,
-              CASE WHEN u.totp_secret IS NOT NULL AND u.totp_secret != '' THEN 1 ELSE 0 END AS has_totp,
-              (SELECT COUNT(*) FROM passkeys p WHERE p.user_id = u.id) AS passkey_count
-              FROM users u LEFT JOIN content c ON u.id = c.user_id
-              ${whereClause}
-              GROUP BY u.id ORDER BY u.username ASC LIMIT ? OFFSET ?`;
-            const users = query
-              ? await env.DB.prepare(sql).bind(`%${query}%`, limit, offset).all()
-              : await env.DB.prepare(sql).bind(limit, offset).all();
-            return withSecurityHeaders(new Response(JSON.stringify({ users: users.results, total, page, limit }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+
+            // Pick the page of users first, then aggregate only for those ids.
+            // Joining `content` before the LIMIT made SQLite finish grouping
+            // every user before it could sort by username and cut the page,
+            // and SUM(LENGTH(data)) reads each body in full — so one page of
+            // twenty users read every backup in the database.
+            const pageRows = await env.DB.prepare(`SELECT id, username, created_at,
+              CASE WHEN totp_secret IS NOT NULL AND totp_secret != '' THEN 1 ELSE 0 END AS has_totp
+              FROM users ${whereClause} ORDER BY username ASC LIMIT ? OFFSET ?`)
+              .bind(...filterArgs, limit, offset)
+              .all<{ id: string; username: string; created_at: number; has_totp: number }>();
+            const ids = pageRows.results.map(u => u.id);
+            const placeholders = ids.map(() => '?').join(',');
+            const [backupAgg, passkeyAgg] = ids.length === 0 ? [[], []] : await Promise.all([
+              env.DB.prepare(`SELECT user_id, COUNT(*) AS backup_count, MAX(created_at) AS last_backup_at, SUM(LENGTH(data)) AS total_backup_size
+                FROM content WHERE user_id IN (${placeholders}) GROUP BY user_id`)
+                .bind(...ids).all<{ user_id: string; backup_count: number; last_backup_at: number; total_backup_size: number }>()
+                .then(r => r.results),
+              env.DB.prepare(`SELECT user_id, COUNT(*) AS passkey_count FROM passkeys WHERE user_id IN (${placeholders}) GROUP BY user_id`)
+                .bind(...ids).all<{ user_id: string; passkey_count: number }>()
+                .then(r => r.results),
+            ]);
+            const backupsByUser = new Map(backupAgg.map(r => [r.user_id, r]));
+            const passkeysByUser = new Map(passkeyAgg.map(r => [r.user_id, r.passkey_count]));
+            const users = pageRows.results.map(u => {
+              const b = backupsByUser.get(u.id);
+              return {
+                ...u,
+                backup_count: b?.backup_count ?? 0,
+                last_backup_at: b?.last_backup_at ?? null,
+                total_backup_size: b?.total_backup_size ?? 0,
+                passkey_count: passkeysByUser.get(u.id) ?? 0,
+              };
+            });
+            return withSecurityHeaders(new Response(JSON.stringify({ users, total, page, limit }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+          }
+
+          // Storage: what the database is made of. The number that was never
+          // visible anywhere until the day it hit the plan's cap. On demand
+          // only — SUM(LENGTH()) over `content` reads every backup body.
+          if (url.pathname === '/api/admin/storage' && request.method === 'GET') {
+            const sizeOf = (table: string, column: string | null) =>
+              env.DB.prepare(`SELECT COUNT(*) AS rows_, ${column ? `COALESCE(SUM(LENGTH(${column})), 0)` : '0'} AS payload_bytes FROM ${table}`)
+                .first<{ rows_: number; payload_bytes: number }>();
+            const tables: [string, string | null][] = [
+              ['content', 'data'],
+              ['dosage_shares', 'snapshot_json'],
+              ['users', null],
+              ['sessions', null],
+              ['passkeys', null],
+              ['backup_codes', null],
+              ['deletion_log', null],
+            ];
+            const rows = await Promise.all(tables.map(async ([table, column]) => {
+              const r = await sizeOf(table, column);
+              return { table, rows: r?.rows_ ?? 0, payload_bytes: r?.payload_bytes ?? 0 };
+            }));
+            return withSecurityHeaders(new Response(JSON.stringify({
+              tables: rows,
+              payload_bytes: rows.reduce((sum, r) => sum + r.payload_bytes, 0),
+              measured_at: Math.floor(Date.now() / 1000),
+            }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // List user backups (metadata only)
@@ -2019,9 +1874,9 @@ export default {
             const targetId = url.pathname.split('/')[4];
             const body = await request.json() as any;
             const { newPassword } = body;
-            if (!newPassword) return withSecurityHeaders(new Response('Missing new password', { status: 400, headers: corsHeaders }));
+            if (!newPassword) return jsonError('INVALID_REQUEST', 'Missing new password', 400);
             const passVal = validatePassword(newPassword);
-            if (!passVal.valid) return withSecurityHeaders(new Response(passVal.error!, { status: 400, headers: corsHeaders }));
+            if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             // An admin reset is the operator's answer to "someone is in my
             // account", so it has to evict whoever currently holds a session on
@@ -2033,10 +1888,9 @@ export default {
             // below. Unqualified DELETE is right here: the caller is the admin,
             // whose token carries no `sid` and skips the session lookup, so this
             // cannot sign the operator out.
-            await ensureSessions(env);
             // Counted before the batch — D1 exposes no portable per-statement
             // row count, and the admin UI reports what was removed.
-            const sessRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').bind(targetId).first<{ n: number }>();
+            const sessRow = await env.DB.prepare(`SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?2 AND ${LIVE_SESSION_SQL}`).bind(Math.floor(Date.now() / 1000), targetId).first<{ n: number }>();
             await env.DB.batch([
               env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashedPassword, targetId),
               env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
@@ -2049,11 +1903,11 @@ export default {
             const targetId = url.pathname.split('/')[4];
             const body = await request.json() as any;
             const { username } = body;
-            if (!username) return withSecurityHeaders(new Response('Missing username', { status: 400, headers: corsHeaders }));
+            if (!username) return jsonError('INVALID_REQUEST', 'Missing username', 400);
             const trimmed = username.trim();
-            if (!validateUsername(trimmed)) return withSecurityHeaders(new Response('Invalid username format', { status: 400, headers: corsHeaders }));
+            if (!validateUsername(trimmed)) return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
             const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ? AND id != ?').bind(trimmed, targetId).first();
-            if (existing) return withSecurityHeaders(new Response('Username already taken', { status: 409, headers: corsHeaders }));
+            if (existing) return jsonError('CONFLICT', 'Username already taken', 409);
             await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(trimmed, targetId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Username updated' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
@@ -2068,9 +1922,8 @@ export default {
           // Admin read a user's 2FA posture
           if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/2fa$/) && request.method === 'GET') {
             const targetId = url.pathname.split('/')[4];
-            await ensureBackupCodes(env);
             const target = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(targetId).first() as any;
-            if (!target) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            if (!target) return jsonError('NOT_FOUND', 'User not found', 404);
             const pkRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?').bind(targetId).first<{ n: number }>();
             const bcRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM backup_codes WHERE user_id = ? AND used_at IS NULL').bind(targetId).first<{ n: number }>();
             const passkeys = pkRow?.n ?? 0;
@@ -2097,12 +1950,10 @@ export default {
             const { scope } = await request.json().catch(() => ({})) as any;
             const which = scope === undefined || scope === null ? 'all' : String(scope);
             if (!['all', 'totp', 'passkeys', 'backup_codes'].includes(which)) {
-              return withSecurityHeaders(new Response('Invalid scope', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Invalid scope', 400);
             }
             const target = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(targetId).first() as any;
-            if (!target) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
-            await ensureBackupCodes(env);
-            await ensureSessions(env);
+            if (!target) return jsonError('NOT_FOUND', 'User not found', 404);
 
             const clearTotp = which === 'all' || which === 'totp';
             const clearPasskeys = which === 'all' || which === 'passkeys';
@@ -2119,7 +1970,7 @@ export default {
             // row count, and the admin UI reports exactly what was removed.
             const pkRow = clearPasskeys ? await env.DB.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
             const bcRow = clearBackupCodes ? await env.DB.prepare('SELECT COUNT(*) AS n FROM backup_codes WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
-            const sessRow = revokeSessions ? await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').bind(targetId).first<{ n: number }>() : null;
+            const sessRow = revokeSessions ? await env.DB.prepare(`SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?2 AND ${LIVE_SESSION_SQL}`).bind(Math.floor(Date.now() / 1000), targetId).first<{ n: number }>() : null;
 
             const statements: D1PreparedStatement[] = [];
             // totp_last_step goes with the secret: a stale high-water mark left
@@ -2147,12 +1998,9 @@ export default {
           if (url.pathname.match(/^\/api\/admin\/users\/[^/]+$/) && request.method === 'DELETE') {
             const targetId = url.pathname.split('/').pop();
             if (targetId === 'admin') {
-              return withSecurityHeaders(new Response('Cannot delete admin account', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Cannot delete admin account', 400);
             }
             const target = await env.DB.prepare('SELECT created_at FROM users WHERE id = ?').bind(targetId).first() as any;
-            await ensurePasskeys(env);
-            await ensureBackupCodes(env);
-            await ensureDosageShares(env);
             await env.DB.batch([
               env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(targetId),
               env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),
@@ -2169,13 +2017,12 @@ export default {
 
         // --- Session Management ---
         if (url.pathname.startsWith('/api/user/sessions')) {
-          await ensureSessions(env);
 
           // GET /api/user/sessions — list all sessions for this user
           if (url.pathname === '/api/user/sessions' && request.method === 'GET') {
             const rows = await env.DB.prepare(
-              'SELECT id, created_at, last_used_at, device_info, ip FROM sessions WHERE user_id = ? ORDER BY last_used_at DESC'
-            ).bind(userId).all();
+              `SELECT id, created_at, last_used_at, device_info, ip FROM sessions WHERE user_id = ?2 AND ${LIVE_SESSION_SQL} ORDER BY last_used_at DESC`
+            ).bind(Math.floor(Date.now() / 1000), userId).all();
             const currentSid = sessionId ?? null;
             const sessions = (rows.results || []).map((s: any) => ({
               id: s.id,
@@ -2208,12 +2055,10 @@ export default {
 
         // --- Two-Factor Authentication (TOTP) ---
         if (url.pathname.startsWith('/api/user/2fa')) {
-          await ensureTotpColumn(env);
 
           // GET /api/user/2fa/status
           if (url.pathname === '/api/user/2fa/status' && request.method === 'GET') {
             const row = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-            await ensurePasskeys(env);
             const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(userId).first() as any;
             const passkeyCount = pkRow?.cnt ?? 0;
             return withSecurityHeaders(new Response(JSON.stringify({ enabled: !!(row?.totp_secret) || passkeyCount > 0, totp: !!row?.totp_secret, passkey: passkeyCount > 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
@@ -2232,12 +2077,12 @@ export default {
           // POST /api/user/2fa/enable — verify code and save secret to DB
           if (url.pathname === '/api/user/2fa/enable' && request.method === 'POST') {
             const { secret: totpSecret, code, password, currentCode } = await request.json() as any;
-            if (!totpSecret || !code) return withSecurityHeaders(new Response('Missing secret or code', { status: 400, headers: corsHeaders }));
+            if (!totpSecret || !code) return jsonError('INVALID_REQUEST', 'Missing secret or code', 400);
             // Validate secret format (base32 chars, 16-32 chars)
-            if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret)) return withSecurityHeaders(new Response('Invalid secret format', { status: 400, headers: corsHeaders }));
+            if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret)) return jsonError('INVALID_REQUEST', 'Invalid secret format', 400);
 
             const existing = await env.DB.prepare('SELECT password_hash, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-            if (!existing) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            if (!existing) return jsonError('NOT_FOUND', 'User not found', 404);
             const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
 
             // Enrolling TOTP is not an additive convenience — it writes the
@@ -2254,10 +2099,10 @@ export default {
             // password the strictly weaker operations already ask for — see
             // DELETE /api/user/passkeys/:id and the backup-code regenerate.
             if (!password) {
-              return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Current password is required', 400);
             }
             if (!(await bcrypt.compare(password, existing.password_hash ?? dummyHash))) {
-              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+              return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
             }
 
             // Re-enrolment is additionally a credential *replacement*, so it
@@ -2265,14 +2110,14 @@ export default {
             // same proof DELETE /api/user/2fa asks for.
             if (existing.totp_secret) {
               if (!currentCode) {
-                return withSecurityHeaders(new Response('2FA is already enabled: current password and a code from the current authenticator are required', { status: 400, headers: corsHeaders }));
+                return jsonError('INVALID_REQUEST', '2FA is already enabled: current password and a code from the current authenticator are required', 400);
               }
               const currentValid = await consumeTOTP(env, userId, existing.totp_secret, String(currentCode));
-              if (!currentValid) return withSecurityHeaders(new Response('Invalid code from current authenticator', { status: 401, headers: corsHeaders }));
+              if (!currentValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid code from current authenticator', 401);
             }
 
             const valid = await verifyTOTP(totpSecret, String(code));
-            if (!valid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+            if (!valid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
             await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').bind(totpSecret, userId).run();
             const backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
             return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA enabled', backupCodes }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
@@ -2281,22 +2126,21 @@ export default {
           // DELETE /api/user/2fa — disable 2FA (requires current password + TOTP code)
           if (url.pathname === '/api/user/2fa' && request.method === 'DELETE') {
             const { password, code } = await request.json() as any;
-            if (!password || !code) return withSecurityHeaders(new Response('Missing password or code', { status: 400, headers: corsHeaders }));
+            if (!password || !code) return jsonError('INVALID_REQUEST', 'Missing password or code', 400);
             const userRow = await env.DB.prepare('SELECT password_hash, totp_secret FROM users WHERE id = ?').bind(userId).first() as any;
-            if (!userRow) return withSecurityHeaders(new Response('User not found', { status: 404, headers: corsHeaders }));
+            if (!userRow) return jsonError('NOT_FOUND', 'User not found', 404);
             const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             const passValid = await bcrypt.compare(password, userRow.password_hash ?? dummyHash);
-            if (!passValid) return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
-            if (!userRow.totp_secret) return withSecurityHeaders(new Response('2FA is not enabled', { status: 400, headers: corsHeaders }));
+            if (!passValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
+            if (!userRow.totp_secret) return jsonError('INVALID_REQUEST', '2FA is not enabled', 400);
             const totpValid = await consumeTOTP(env, userId, userRow.totp_secret, String(code));
-            if (!totpValid) return withSecurityHeaders(new Response('Invalid 2FA code', { status: 400, headers: corsHeaders }));
+            if (!totpValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
             await env.DB.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').bind(userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: '2FA disabled' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
           }
 
           // GET /api/user/2fa/backup-codes — count of remaining unused codes
           if (url.pathname === '/api/user/2fa/backup-codes' && request.method === 'GET') {
-            await ensureBackupCodes(env);
             const row = await env.DB.prepare(
               'SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ? AND used_at IS NULL'
             ).bind(userId).first() as any;
@@ -2309,11 +2153,11 @@ export default {
             // opens with DELETE FROM backup_codes), so it destroys the recovery
             // path and needs the password — same reasoning as re-enrolment above.
             const { password } = await request.json().catch(() => ({})) as any;
-            if (!password) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            if (!password) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
             const row = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
             const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             if (!(await bcrypt.compare(password, row?.password_hash ?? dummyHash))) {
-              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+              return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
             }
             const codes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
             return withSecurityHeaders(new Response(JSON.stringify({ codes }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
@@ -2322,7 +2166,6 @@ export default {
 
         // --- Passkeys (WebAuthn) ---
         if (url.pathname.startsWith('/api/user/passkeys') || url.pathname.startsWith('/api/user/passkey')) {
-          await ensurePasskeys(env);
 
           // GET /api/user/passkeys — list user's registered passkeys
           if (url.pathname === '/api/user/passkeys' && request.method === 'GET') {
@@ -2366,7 +2209,7 @@ export default {
           if (url.pathname === '/api/user/passkey/register' && request.method === 'POST') {
             const { challengeToken, credential, deviceName, password: pkRegPassword } = await request.json() as any;
             if (!challengeToken || !credential?.response) {
-              return withSecurityHeaders(new Response('Missing data', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Missing data', 400);
             }
             const secret = new TextEncoder().encode(jwtSecret);
             let challengePayload: any;
@@ -2374,35 +2217,35 @@ export default {
               const { payload } = await jwtVerify(challengeToken, secret);
               challengePayload = payload;
             } catch {
-              return withSecurityHeaders(new Response('Invalid or expired challenge', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Invalid or expired challenge', 400);
             }
             if (challengePayload.purpose !== 'passkey-register' || challengePayload.uid !== userId) {
-              return withSecurityHeaders(new Response('Invalid challenge', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Invalid challenge', 400);
             }
             const expectedOrigin = challengePayload.origin as string;
             const expectedRpId = (() => { try { return new URL(expectedOrigin).hostname; } catch { return url.hostname; } })();
 
             // Verify clientDataJSON
             const clientData = JSON.parse(new TextDecoder().decode(b64urlDecode(credential.response.clientDataJSON)));
-            if (clientData.type !== 'webauthn.create') return withSecurityHeaders(new Response('Wrong type', { status: 400, headers: corsHeaders }));
+            if (clientData.type !== 'webauthn.create') return jsonError('INVALID_REQUEST', 'Wrong type', 400);
             const receivedChallenge = clientData.challenge.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
             if (receivedChallenge !== (challengePayload.challenge as string).replace(/=/g, '')) {
-              return withSecurityHeaders(new Response('Challenge mismatch', { status: 400, headers: corsHeaders }));
+              return jsonError('INVALID_REQUEST', 'Challenge mismatch', 400);
             }
-            if (clientData.origin !== expectedOrigin) return withSecurityHeaders(new Response('Origin mismatch', { status: 400, headers: corsHeaders }));
+            if (clientData.origin !== expectedOrigin) return jsonError('INVALID_REQUEST', 'Origin mismatch', 400);
 
             // Verify attestationObject (CBOR)
             const attObj = decodeCBOR(b64urlDecode(credential.response.attestationObject));
             const authData = attObj['authData'] as Uint8Array;
             const rpHash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(expectedRpId)));
             const { rpIdHash, flags, signCount, credentialId, publicKeyX, publicKeyY } = parseAuthData(authData);
-            if (!rpIdHash.every((v: number, i: number) => v === rpHash[i])) return withSecurityHeaders(new Response('RP ID mismatch', { status: 400, headers: corsHeaders }));
-            if (!(flags & 1)) return withSecurityHeaders(new Response('User presence not set', { status: 400, headers: corsHeaders }));
-            if (!credentialId || !publicKeyX || !publicKeyY) return withSecurityHeaders(new Response('No credential data in authData', { status: 400, headers: corsHeaders }));
+            if (!rpIdHash.every((v: number, i: number) => v === rpHash[i])) return jsonError('INVALID_REQUEST', 'RP ID mismatch', 400);
+            if (!(flags & 1)) return jsonError('INVALID_REQUEST', 'User presence not set', 400);
+            if (!credentialId || !publicKeyX || !publicKeyY) return jsonError('INVALID_REQUEST', 'No credential data in authData', 400);
 
             const credentialIdStr = b64urlEncode(credentialId);
             const existing = await env.DB.prepare('SELECT id FROM passkeys WHERE credential_id = ?').bind(credentialIdStr).first();
-            if (existing) return withSecurityHeaders(new Response('Credential already registered', { status: 409, headers: corsHeaders }));
+            if (existing) return jsonError('CONFLICT', 'Credential already registered', 409);
 
             // Enrolling a passkey grants a standing, password-independent
             // credential: /api/auth/passkey-verify is a full passwordless login
@@ -2413,11 +2256,11 @@ export default {
             // already gates on the password, so enrolment takes the same proof.
             // Placed after the duplicate check so a replayed credential still
             // 409s without paying for a bcrypt round.
-            if (!pkRegPassword) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            if (!pkRegPassword) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
             const pkOwner = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
             const pkRegDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             if (!(await bcrypt.compare(pkRegPassword, pkOwner?.password_hash ?? pkRegDummy))) {
-              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+              return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
             }
 
             // Check if this is the first passkey (to auto-generate backup codes)
@@ -2432,7 +2275,6 @@ export default {
             let backupCodes: string[] | undefined;
             if (isFirstPasskey) {
               // Check if user already has backup codes (e.g. from TOTP setup)
-              await ensureBackupCodes(env);
               const bcRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ?').bind(userId).first() as any;
               if ((bcRow?.cnt ?? 0) === 0) {
                 backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
@@ -2453,11 +2295,11 @@ export default {
             // authentication and needs the password — the same bar DELETE
             // /api/user/2fa sets for the equivalent TOTP action.
             const { password: pkPassword } = await request.json().catch(() => ({})) as any;
-            if (!pkPassword) return withSecurityHeaders(new Response('Current password is required', { status: 400, headers: corsHeaders }));
+            if (!pkPassword) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
             const pkUser = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(userId).first() as any;
             const pkDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
             if (!(await bcrypt.compare(pkPassword, pkUser?.password_hash ?? pkDummy))) {
-              return withSecurityHeaders(new Response('Incorrect password', { status: 401, headers: corsHeaders }));
+              return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
             }
             await env.DB.prepare('DELETE FROM passkeys WHERE id = ? AND user_id = ?').bind(passkeyId, userId).run();
             return withSecurityHeaders(new Response(JSON.stringify({ message: 'Passkey deleted' }), {
@@ -2466,7 +2308,7 @@ export default {
           }
         }
 
-        return withSecurityHeaders(new Response('Not Found', { status: 404, headers: corsHeaders }));
+        return jsonError('NOT_FOUND', 'Not Found', 404);
 
       } catch (e: any) {
         if (e.name === 'JWTExpired' || e.name === 'JWSSignatureVerificationFailed' || e.name === 'JWTInvalid' || e.name === 'JWSInvalid' || e.message?.includes('token')) {
@@ -2477,13 +2319,44 @@ export default {
 
     } catch (err: any) {
       console.error('API Error:', err);
+      // The one infrastructure failure worth naming to the client: a database
+      // at its size cap fails every insert that needs the file to grow, while
+      // writes that fit into freed pages still succeed — so from the outside it
+      // looks like a per-user bug unless the code says otherwise.
+      if (isStorageFullError(err)) {
+        return jsonError('STORAGE_FULL', 'The server is out of storage space. Your data is safe on this device.', 507);
+      }
       // Sanitize internal error messages for production
       // `url` is reconstructed from the request's Host header, which the caller
       // sets. Gating error verbosity on it meant `Host: localhost` turned raw
       // exception text back on for anyone who asked. Deployment config decides.
       const isProd = (env.ENVIRONMENT ?? 'production') !== 'development';
       const message = isProd ? 'Internal Server Error' : (err.message || 'Internal Server Error');
-      return withSecurityHeaders(new Response(message, { status: 500, headers: corsHeaders }));
+      return jsonError('INTERNAL', message, 500);
     }
+  },
+
+  /**
+   * Housekeeping on a clock (wrangler.toml `[triggers]`). Everything here used
+   * to piggyback on user requests — a 5% or 10% dice roll inside some handler
+   * — which meant it ran only when traffic happened to land on that handler,
+   * and did a write on somebody's read.
+   */
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil((async () => {
+      const now = Math.floor(Date.now() / 1000);
+      // Sessions whose token has expired or that have gone idle. The request
+      // middleware only removes a session when its own token is presented, so
+      // the ones that are simply never used again would otherwise stay forever.
+      try {
+        const res = await env.DB.prepare(
+          `DELETE FROM sessions WHERE NOT (${LIVE_SESSION_SQL})`
+        ).bind(now).run();
+        if ((res.meta?.changes ?? 0) > 0) console.log(`Swept ${res.meta.changes} dead sessions`);
+      } catch (e) {
+        console.error('Failed to sweep sessions:', e);
+      }
+      await sweepExpiredShares(env);
+    })());
   },
 };

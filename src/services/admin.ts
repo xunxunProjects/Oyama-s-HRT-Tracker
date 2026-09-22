@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient';
+import { apiFetch, apiErrorFrom } from './apiClient';
 
 export interface AdminUser {
     id: string;
@@ -38,6 +38,19 @@ export interface BackupMeta {
     data_size: number;
 }
 
+export interface StorageTable {
+    table: string;
+    rows: number;
+    /** Bytes of the table's payload column (backup bodies, share snapshots); 0 for tables that are all small columns. */
+    payload_bytes: number;
+}
+
+export interface StorageReport {
+    tables: StorageTable[];
+    payload_bytes: number;
+    measured_at: number;
+}
+
 export interface PaginatedUsers {
     users: AdminUser[];
     total: number;
@@ -55,8 +68,17 @@ export const adminService = {
         const res = await apiFetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to fetch users');
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as PaginatedUsers;
+    },
+
+    /** What the database is made of. Reads every backup body to size them, so it is on demand only. */
+    async getStorage(token: string): Promise<StorageReport> {
+        const res = await apiFetch('/api/admin/storage', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw await apiErrorFrom(res);
+        return await res.json() as StorageReport;
     },
 
     async deleteUser(token: string, userId: string): Promise<void> {
@@ -64,14 +86,14 @@ export const adminService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to delete user');
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async getUserBackups(token: string, userId: string): Promise<BackupMeta[]> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to fetch backups');
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as BackupMeta[];
     },
 
@@ -80,7 +102,7 @@ export const adminService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to delete backup');
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async purgeBackups(token: string, userId: string): Promise<void> {
@@ -88,7 +110,7 @@ export const adminService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to purge backups');
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     /** Also signs the target out everywhere; the count comes back so the operator sees it. */
@@ -101,7 +123,7 @@ export const adminService = {
             },
             body: JSON.stringify({ newPassword })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         const data = await res.json().catch(() => ({})) as { sessionsRevoked?: number };
         return { sessionsRevoked: data.sessionsRevoked ?? 0 };
     },
@@ -115,7 +137,7 @@ export const adminService = {
             },
             body: JSON.stringify({ username })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async resetAvatar(token: string, userId: string): Promise<void> {
@@ -123,14 +145,14 @@ export const adminService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to reset avatar');
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async getUser2FA(token: string, userId: string): Promise<AdminUser2FA> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as AdminUser2FA;
     },
 
@@ -144,7 +166,7 @@ export const adminService = {
             },
             body: JSON.stringify({ scope })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         const body = await res.json() as { cleared: Cleared2FA };
         return body.cleared;
     }

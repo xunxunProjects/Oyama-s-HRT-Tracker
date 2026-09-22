@@ -9,7 +9,8 @@ import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload, hasCloudKey
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import PasswordInputModal from '../components/PasswordInputModal';
-import { SyncStatus } from '../hooks/useCloudSync';
+import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
+import { formatBytes } from '../utils/helpers';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 
 interface LocalData {
@@ -32,6 +33,8 @@ interface AccountProps {
     twoFAEnabled: boolean;
     onTwoFAStatusChange: (enabled: boolean) => void;
     syncStatus: SyncStatus;
+    /** Why `syncStatus` is `error`, when it is — see CloudSyncState.errorCode. */
+    syncErrorCode: string | null;
     lastSyncedAt: number | null;
 }
 
@@ -77,6 +80,7 @@ const Account: React.FC<AccountProps> = ({
     twoFAEnabled,
     onTwoFAStatusChange,
     syncStatus,
+    syncErrorCode,
     lastSyncedAt,
 }) => {
     const [avatarError, setAvatarError] = useState(false);
@@ -156,12 +160,6 @@ const Account: React.FC<AccountProps> = ({
                 setExpandedData(prev => { const n = { ...prev }; delete n[id]; return n; });
             } catch { showDialog('alert', t('account.delete_backup_failed')); }
         });
-    };
-
-    const formatBytes = (bytes: number): string => {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
     const toggleExpand = async (b: BackupMeta) => {
@@ -503,6 +501,14 @@ const Account: React.FC<AccountProps> = ({
                                     <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                                         {t(`sync.status.${syncStatus}`)}
                                     </p>
+                                    {/* The reason, not just the fact. Without this line a full
+                                        database, an oversized payload and a dead network were
+                                        all the same word. */}
+                                    {syncStatus === 'error' && (
+                                        <p className="text-xs text-red-600 dark:text-red-400">
+                                            {describeSyncError(syncErrorCode, t)}
+                                        </p>
+                                    )}
                                     {lastSyncedAt !== null && syncStatus !== 'off' && (
                                         <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                                             {(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt).toLocaleTimeString())}

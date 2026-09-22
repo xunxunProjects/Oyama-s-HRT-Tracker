@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { apiErrorCode } from '../services/apiClient';
 import {
     ArrowLeft, Loader2, Check,
     AlertCircle, Eye, EyeOff, Copy, Fingerprint, X, Plus,
@@ -251,12 +252,15 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setPwPrompt(null);
         } catch (e: any) {
             const msg = e.message || '';
-            if (msg.includes('Incorrect password') || msg.includes('password is required')) {
+            const code = apiErrorCode(e);
+            // The password prompt stays up for a wrong (or missing) password;
+            // anything else closes it and reports on the section it came from.
+            if (code === 'INVALID_CREDENTIALS' || (code === 'INVALID_REQUEST' && msg.includes('password is required'))) {
                 setPwError(t('account.2fa_verify_failed'));
             } else {
                 setPwPrompt(null);
                 if (pwPrompt.kind === 'backup') setBackupError(msg || t('account.backup_codes_generate'));
-                else if (pwPrompt.kind === 'enable') setError(msg.includes('Invalid') ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
+                else if (pwPrompt.kind === 'enable') setError(code === 'TWO_FACTOR_INVALID' ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'));
                 else setPasskeyError(msg || t('auth.passkey_failed'));
             }
         } finally {
@@ -300,8 +304,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             showDialog('alert', t('account.2fa_disabled_success'));
             onBack();
         } catch (e: any) {
-            const msg = e.message || '';
-            if (msg.includes('Incorrect password') || msg.includes('Invalid 2FA')) {
+            const code = apiErrorCode(e);
+            if (code === 'INVALID_CREDENTIALS' || code === 'TWO_FACTOR_INVALID') {
                 setDisableError(t('account.2fa_verify_failed'));
             } else {
                 setDisableError(t('account.2fa_disable_failed'));

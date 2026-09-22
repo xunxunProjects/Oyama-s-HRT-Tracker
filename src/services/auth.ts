@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient';
+import { ApiError, apiFetch, apiErrorFrom } from './apiClient';
 
 export interface User {
     id: string;
@@ -126,7 +126,8 @@ export const authService = {
                 err.method = data.method ?? 'totp';
                 throw err;
             }
-            throw new Error(text);
+            throw new ApiError(res.status, typeof data?.code === 'string' ? data.code : `HTTP_${res.status}`,
+                typeof data?.message === 'string' ? data.message : text);
         }
         return await res.json() as AuthResponse;
     },
@@ -137,7 +138,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as AuthResponse;
     },
 
@@ -150,7 +151,7 @@ export const authService = {
             },
             body: JSON.stringify({ username })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json();
     },
 
@@ -163,7 +164,7 @@ export const authService = {
             },
             body: JSON.stringify({ currentPassword: current, newPassword: newPass })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async deleteAccount(token: string, password: string, code?: string, backupCode?: string): Promise<void> {
@@ -178,14 +179,14 @@ export const authService = {
             },
             body: JSON.stringify(body)
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async listSessions(token: string): Promise<Session[]> {
         const res = await apiFetch('/api/user/sessions', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as Session[];
     },
 
@@ -194,7 +195,7 @@ export const authService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async terminateOtherSessions(token: string): Promise<void> {
@@ -202,14 +203,14 @@ export const authService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async get2FAStatus(token: string): Promise<TwoFAStatus> {
         const res = await apiFetch('/api/user/2fa/status', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as TwoFAStatus;
     },
 
@@ -218,7 +219,7 @@ export const authService = {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as TwoFASetup;
     },
 
@@ -238,7 +239,7 @@ export const authService = {
             },
             body: JSON.stringify(body)
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as { backupCodes: string[] };
     },
 
@@ -249,7 +250,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ password }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         const data = await res.json() as { codes: string[] };
         return data.codes;
     },
@@ -258,7 +259,7 @@ export const authService = {
         const res = await apiFetch('/api/user/2fa/backup-codes', {
             headers: { 'Authorization': `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as { remaining: number };
     },
 
@@ -271,14 +272,14 @@ export const authService = {
             },
             body: JSON.stringify({ password, code })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async listPasskeys(token: string): Promise<Passkey[]> {
         const res = await apiFetch('/api/user/passkeys', {
             headers: { 'Authorization': `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as Passkey[];
     },
 
@@ -287,7 +288,7 @@ export const authService = {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json();
     },
 
@@ -302,7 +303,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ challengeToken, credential, deviceName, password }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as { backupCodes?: string[] };
     },
 
@@ -313,7 +314,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ password }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async passkeyAuthOptions(username?: string): Promise<{ challengeToken: string; challenge: string; credentialIds: string[] }> {
@@ -322,7 +323,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(username ? { username } : {}),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json();
     },
 
@@ -332,7 +333,7 @@ export const authService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ challengeToken, credential }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as AuthResponse;
     },
 };

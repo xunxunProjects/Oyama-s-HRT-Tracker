@@ -35,6 +35,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiErrorCode } from '../services/apiClient';
 import { cloudService } from '../services/cloud';
 import { CLOUD_KEY_CHANGED_EVENT, hasCloudKey, prepareCloudPayload, readCloudBackup } from '../utils/cloudBackup';
 import { fingerprintState, hasContent, mergeSyncStates, normalizeSyncState, SyncState } from '../utils/syncMerge';
@@ -72,13 +73,20 @@ export interface CloudSyncState {
     /** Epoch ms of the last successful reconcile, or null if none yet this session. */
     lastSyncedAt: number | null;
     /**
+     * Why the last attempt failed, while `status` is `error`: the worker's
+     * error code (`TOO_LARGE`, `RATE_LIMITED`, `STORAGE_FULL`, ...) or
+     * `NETWORK`. Every one of these used to collapse into the same "sync
+     * failed", which is how a whole-service outage read as one user's bug.
+     */
+    errorCode: string | null;
+    /**
      * Reconcile right now, ignoring the auto-sync toggle.
      *
      * This is what the manual "back up to cloud" button runs. It cannot be a
      * plain upload: that would overwrite the newest revision without reading it,
      * which is how one device's press erases a deletion another device made.
      */
-    syncNow: () => Promise<SyncOutcome>;
+    syncNow: () => Promise<{ outcome: SyncOutcome; errorCode: string | null }>;
 }
 
 interface Options {
@@ -151,7 +159,7 @@ export const useCloudSync = ({
     // The reported half of the state. `syncNow` is grafted on at the end so
     // the setters below stay plain data.
     const [state, setState] = useState<Omit<CloudSyncState, 'syncNow'>>(
-        { status: 'off', lastSyncedAt: null });
+        { status: 'off', lastSyncedAt: null, errorCode: null });
 
     // Callbacks and auth are read at fire time, not captured when a timer is
     // armed: a sync started before a render can otherwise upload a payload
@@ -169,6 +177,8 @@ export const useCloudSync = ({
 
     const runningRef = useRef(false);
     const rerunRef = useRef(false);
+    /** Mirror of `state.errorCode` that `syncNow` can read before React re-renders. */
+    const lastErrorCodeRef = useRef<string | null>(null);
     const lastSyncAttemptRef = useRef(0);
     const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     /**
@@ -274,7 +284,8 @@ export const useCloudSync = ({
                 return 'locked';
             }
             if (remote.kind === 'unreadable') {
-                setState(prev => ({ ...prev, status: 'error' }));
+                lastErrorCodeRef.current = 'UNREADABLE';
+                setState(prev => ({ ...prev, status: 'error', errorCode: 'UNREADABLE' }));
                 return 'error';
             }
             lockedRef.current = false;
@@ -297,7 +308,7 @@ export const useCloudSync = ({
                     lastSeenBackupRef.current = savedId;
                 }
                 bootstrappedForRef.current = account;
-                setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
+                setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now(), errorCode: null }));
                 return 'synced';
             }
 
@@ -320,10 +331,11 @@ export const useCloudSync = ({
             }
             lastPushedRef.current = mergedFingerprint;
             bootstrappedForRef.current = account;
-            setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now() }));
+            setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now(), errorCode: null }));
             return 'synced';
-        } catch {
-            setState(prev => ({ ...prev, status: 'error' }));
+        } catch (e) {
+            lastErrorCodeRef.current = apiErrorCode(e);
+            setState(prev => ({ ...prev, status: 'error', errorCode: lastErrorCodeRef.current }));
             return 'error';
         } finally {
             runningRef.current = false;
@@ -375,9 +387,10 @@ export const useCloudSync = ({
             if (!stillCurrent(account, authToken)) return;
             lastPushedRef.current = fingerprint;
             lastSeenBackupRef.current = savedId;
-            setState({ status: 'synced', lastSyncedAt: Date.now() });
-        } catch {
-            setState(prev => ({ ...prev, status: 'error' }));
+            setState({ status: 'synced', lastSyncedAt: Date.now(), errorCode: null });
+        } catch (e) {
+            lastErrorCodeRef.current = apiErrorCode(e);
+            setState(prev => ({ ...prev, status: 'error', errorCode: lastErrorCodeRef.current }));
         } finally {
             runningRef.current = false;
             if (rerunRef.current && activeRef.current) {
@@ -395,10 +408,11 @@ export const useCloudSync = ({
         lockedRef.current = false;
         lastSyncAttemptRef.current = 0;
         rerunRef.current = false;
+        lastErrorCodeRef.current = null;
         if (!token || !userId) {
-            setState({ status: 'off', lastSyncedAt: null });
+            setState({ status: 'off', lastSyncedAt: null, errorCode: null });
         } else {
-            setState({ status: enabled ? 'idle' : 'off', lastSyncedAt: null });
+            setState({ status: enabled ? 'idle' : 'off', lastSyncedAt: null, errorCode: null });
         }
     }, [token, userId, enabled]);
 
@@ -470,7 +484,10 @@ export const useCloudSync = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, labResults, doseTemplates, weight, pkParams]);
 
-    const syncNow = useCallback(() => runSync(true), [runSync]);
+    const syncNow = useCallback(async () => {
+        const outcome = await runSync(true);
+        return { outcome, errorCode: outcome === 'error' ? lastErrorCodeRef.current : null };
+    }, [runSync]);
 
     return { ...state, syncNow };
 };
@@ -494,4 +511,18 @@ function toPayload(localPayload: any, merged: SyncState): any {
         pkParams: merged.pkParams ?? null,
         pkParamsUpdatedAt: merged.pkParamsUpdatedAt || undefined,
     };
+}
+
+/**
+ * Error codes that have their own line in the translations. Anything else —
+ * an INTERNAL, an HTTP_5xx from something in front of the worker — falls back
+ * to the generic one.
+ */
+const DESCRIBED_SYNC_ERRORS: ReadonlySet<string> = new Set([
+    'TOO_LARGE', 'RATE_LIMITED', 'STORAGE_FULL', 'NETWORK', 'UNREADABLE',
+]);
+
+/** The one-line reason for a sync failure, in the reader's language. */
+export function describeSyncError(code: string | null, t: (key: string) => string): string {
+    return t(`sync.error.${code && DESCRIBED_SYNC_ERRORS.has(code) ? code : 'generic'}`);
 }
