@@ -17,13 +17,19 @@ port="${PORT:-8787}"
 
 mkdir -p "$persist_dir"
 
-# This schema is intentionally idempotent. Unlike the development schema at
-# the repository root, it never drops existing data when the container restarts.
+# The schema comes from migrations/ and nowhere else. A volume created by an
+# older image got its tables from docker/schema.sql plus DDL the worker ran on
+# demand, so wrangler's migration ledger is empty although the effects are all
+# there; the first statement file records those as applied, and only then are
+# the migrations that are genuinely missing run. Both steps are idempotent.
 ./node_modules/.bin/wrangler d1 execute "$database_name" \
     --local \
     --persist-to "$persist_dir" \
-    --file ./docker/schema.sql \
+    --file ./docker/mark-applied-migrations.sql \
     --yes
+./node_modules/.bin/wrangler d1 migrations apply "$database_name" \
+    --local \
+    --persist-to "$persist_dir"
 
 set -- ./node_modules/.bin/wrangler dev \
     --ip 0.0.0.0 \

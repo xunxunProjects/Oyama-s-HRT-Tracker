@@ -99,6 +99,25 @@ docker compose up -d
 
 Then open <http://localhost:8787>. / 然后访问 <http://localhost:8787>。
 
+### Database schema 数据库结构
+
+The schema is defined only by the files in `migrations/`. The container applies
+them on every start, and a volume created by an older image is reconciled first
+(`docker/mark-applied-migrations.sql`), so upgrading needs nothing from you.
+
+数据库结构只由 `migrations/` 目录定义。容器每次启动都会自动应用迁移；旧版镜像创建的
+数据卷会先经过 `docker/mark-applied-migrations.sql` 对账，升级无需手动操作。
+
+For a Cloudflare deployment, run the same two steps once before deploying a
+build that includes migration `0000`:
+
+在 Cloudflare 上部署时，第一次部署包含 `0000` 迁移的版本之前，先执行一次这两步：
+
+```bash
+npm run wrangler:migrate:reconcile
+npm run wrangler:migrate:remote
+```
+
 Web and Docker builds use same-origin `/api` requests by default. Desktop and
 other custom-protocol builds should set `VITE_API_ORIGIN` to their Worker/API
 origin at build time; the official Tauri workflow supplies the hosted origin.

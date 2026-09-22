@@ -1,5 +1,5 @@
 import { Lang } from '../i18n/translations';
-import { apiEndpoint, apiFetch } from './apiClient';
+import { apiEndpoint, apiFetch, apiErrorFrom } from './apiClient';
 
 export type NoticeLevel = 'info' | 'warn';
 
@@ -42,7 +42,7 @@ export const noticeService = {
      */
     async get(): Promise<SiteNotice | null> {
         const res = await fetch(apiEndpoint('/api/notice'));
-        if (!res.ok) throw new Error('Failed to fetch notice');
+        if (!res.ok) throw await apiErrorFrom(res);
         const body = await res.json() as { notice: SiteNotice | null };
         return body.notice;
     },
@@ -52,7 +52,7 @@ export const noticeService = {
         const res = await apiFetch(apiEndpoint('/api/admin/notice'), {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         const body = await res.json() as { notice: SiteNotice | null };
         return body.notice;
     },
@@ -66,7 +66,7 @@ export const noticeService = {
             },
             body: JSON.stringify(draft)
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
         const body = await res.json() as { notice: SiteNotice | null };
         return body.notice;
     },
@@ -76,6 +76,6 @@ export const noticeService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw await apiErrorFrom(res);
     },
 };

@@ -10,7 +10,7 @@ import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
-import { useCloudSync } from './hooks/useCloudSync';
+import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
 import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
@@ -312,10 +312,15 @@ const AppContent = () => {
     // encrypted and unreadable here, rather than replacing it with plaintext.
     const handleCloudSave = async () => {
         if (!token) { setIsAuthModalOpen(true); return; }
-        const outcome = await syncState.syncNow();
+        const { outcome, errorCode } = await syncState.syncNow();
         // A locked cloud copy is not a failure to retry — it is a password this
         // device hasn't been given. Say so, rather than the flat "save failed"
-        // that sent people pressing the button again to no effect.
+        // that sent people pressing the button again to no effect. A failure
+        // likewise names its cause: the worker's error code picks the line.
+        if (outcome === 'error') {
+            showDialog('alert', `${t('account.cloud_save_failed')} ${describeSyncError(errorCode, t)}`);
+            return;
+        }
         showDialog('alert', t(
             outcome === 'synced' ? 'account.cloud_save_success'
                 : outcome === 'locked' ? 'account.cloud_save_locked'
@@ -600,6 +605,7 @@ const AppContent = () => {
                             twoFAEnabled={twoFAEnabled}
                             onTwoFAStatusChange={setTwoFAEnabled}
                             syncStatus={syncState.status}
+                            syncErrorCode={syncState.errorCode}
                             lastSyncedAt={syncState.lastSyncedAt}
                         />
                     )}
