@@ -10,6 +10,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { SyncStatus } from '../hooks/useCloudSync';
+import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 
 interface LocalData {
     events: any[];
@@ -531,7 +532,7 @@ const Account: React.FC<AccountProps> = ({
                                 <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.backup_cloud_desc')}</p>
                             </div>
                             {backupList.length > 0 && (
-                                <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] tabular-nums shrink-0">{backupList.length}/10</span>
+                                <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] tabular-nums shrink-0">{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
                             )}
                         </button>
 
