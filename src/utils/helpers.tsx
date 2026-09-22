@@ -71,6 +71,13 @@ export const formatRelative = (unixSec: number, nowSec: number, t: (k: string) =
     return t('time.days').replace('{n}', String(Math.floor(diff / 86400)));
 };
 
+/** "38.9 KB" style size, as the Account and Admin pages show it. */
+export const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
 // No locale: `hour12: false` with two-digit fields renders "14:05" identically
 // in all seven of the app's locales, so threading `lang` through here would
 // change three call sites and no pixels.

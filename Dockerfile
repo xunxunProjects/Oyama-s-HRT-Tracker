@@ -22,8 +22,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/wrangler.toml ./wrangler.toml
 COPY --from=build /app/worker.ts ./worker.ts
+COPY --from=build /app/backupPolicy.ts ./backupPolicy.ts
+COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/dist ./dist
-COPY docker/schema.sql ./docker/schema.sql
+COPY docker/mark-applied-migrations.sql ./docker/mark-applied-migrations.sql
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN mkdir -p /data \

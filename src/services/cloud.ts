@@ -1,4 +1,5 @@
-import { apiFetch } from './apiClient';
+import { ApiError, apiFetch, apiErrorFrom } from './apiClient';
+import { MAX_CLOUD_BACKUP_BYTES } from '../../backupPolicy';
 
 export interface CloudBackup {
     id: string;
@@ -21,31 +22,36 @@ export const cloudService = {
      * as "the cloud may have moved" rather than as their own revision.
      */
     async save(token: string, data: any): Promise<string | null> {
+        const body = JSON.stringify({ data });
+        // The endpoint refuses anything over MAX_CLOUD_BACKUP_BYTES with a 413.
+        // Checked here first so an account that has outgrown the cap gets told
+        // that, rather than retrying the same rejected upload on every edit.
+        if (new TextEncoder().encode(body).byteLength > MAX_CLOUD_BACKUP_BYTES) {
+            throw new ApiError(413, 'TOO_LARGE', 'Backup exceeds the 2 MiB limit');
+        }
         const res = await apiFetch('/api/content', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ data })
+            body
         });
-        if (!res.ok) throw new Error('Failed to save');
+        if (!res.ok) throw await apiErrorFrom(res);
         try {
             const body = await res.json() as { id?: string };
             return typeof body?.id === 'string' ? body.id : null;
         } catch { return null; }
     },
 
-    // No `load()` that fetches every backup at once. Its endpoint is SELECT *,
-    // so it shipped every retained body (2 MiB cap each) to callers that
-    // only ever wanted the newest — which is what both callers did. Use
-    // listMeta() to pick, then loadOne() to fetch that one.
+    // No `load()` that fetches every backup at once: the list is metadata only,
+    // and bodies come one at a time from loadOne(). Pick from listMeta() first.
 
     async listMeta(token: string): Promise<BackupMeta[]> {
-        const res = await apiFetch('/api/content?meta=1', {
+        const res = await apiFetch('/api/content', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to list backups');
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as BackupMeta[];
     },
 
@@ -53,7 +59,7 @@ export const cloudService = {
         const res = await apiFetch(`/api/content/${encodeURIComponent(backupId)}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to load backup');
+        if (!res.ok) throw await apiErrorFrom(res);
         return await res.json() as CloudBackup;
     },
 
@@ -62,6 +68,6 @@ export const cloudService = {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to delete backup');
+        if (!res.ok) throw await apiErrorFrom(res);
     }
 };
