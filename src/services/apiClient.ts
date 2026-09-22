@@ -5,6 +5,47 @@
 // state.
 export const UNAUTHORIZED_EVENT = 'auth:unauthorized';
 
+/**
+ * A failed API call. `code` is what the worker put in its `{ code, message }`
+ * body, so callers can tell a 2 MiB overflow from a rate limit from a full
+ * database without matching on English text; `message` is that body's
+ * human-readable line, or the raw text of a non-JSON error.
+ *
+ * `NETWORK` is minted client-side for a fetch that never got a response.
+ */
+export class ApiError extends Error {
+    constructor(
+        public readonly status: number,
+        public readonly code: string,
+        message: string,
+        public readonly retryAfterMs: number | null = null,
+    ) {
+        super(message);
+        this.name = 'ApiError';
+    }
+}
+
+/** Read a non-2xx response into an ApiError, whatever shape the body has. */
+export async function apiErrorFrom(res: Response): Promise<ApiError> {
+    const text = await res.text().catch(() => '');
+    let code = `HTTP_${res.status}`;
+    let message = text || res.statusText || `Request failed (${res.status})`;
+    try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object') {
+            if (typeof parsed.code === 'string') code = parsed.code;
+            if (typeof parsed.message === 'string') message = parsed.message;
+        }
+    } catch { /* plain-text body */ }
+    const retryAfter = Number(res.headers.get('Retry-After'));
+    return new ApiError(res.status, code, message, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null);
+}
+
+/** The code on an ApiError, or `NETWORK` for anything that never reached the server. */
+export function apiErrorCode(err: unknown): string {
+    return err instanceof ApiError ? err.code : 'NETWORK';
+}
+
 const configuredApiOrigin = (() => {
     const value = import.meta.env.VITE_API_ORIGIN?.trim();
     if (!value) return '';

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Trash2, Loader2, AlertCircle, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash, Users, ArrowLeft, ShieldCheck, ShieldOff, Megaphone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope } from '../services/admin';
+import { formatBytes } from '../utils/helpers';
+import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope, StorageReport } from '../services/admin';
 import { useDialog } from '../contexts/DialogContext';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
@@ -17,16 +18,11 @@ const rowLabel = 'text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[
 const rowValue = `flex items-center gap-1 text-[0.9375rem] ${settingsMuted}`;
 const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
 const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
+const textBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
 const dangerTextBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
 
 let _savedCat: AdminCat = 'users';
 let _savedMobileView: MobileView = 'list';
-
-function formatBytes(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
 
 function timeAgo(ts: number | null | undefined): string {
     if (!ts) return '—';
@@ -78,7 +74,7 @@ const Admin: React.FC = () => {
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts · Passwords · 2FA · Cloud backups' },
         { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'Site-wide banner · Per-language text · Schedule' },
-        { id: 'system', label: 'System', Icon: Server, hint: 'Status · Environment' },
+        { id: 'system', label: 'System', Icon: Server, hint: 'Storage · Status · Environment' },
     ];
 
     const selectCat = (c: AdminCat) => {
@@ -96,6 +92,18 @@ const Admin: React.FC = () => {
     const exitMobileCat = () => {
         _savedMobileView = 'list';
         setMobileView('list');
+    };
+
+    const [storage, setStorage] = useState<StorageReport | null>(null);
+    const [storageLoading, setStorageLoading] = useState(false);
+    const [storageError, setStorageError] = useState<string | null>(null);
+    const loadStorage = async () => {
+        if (!token) return;
+        setStorageLoading(true);
+        setStorageError(null);
+        try { setStorage(await adminService.getStorage(token)); }
+        catch (e: any) { setStorageError(e?.message || 'Failed to measure storage.'); }
+        finally { setStorageLoading(false); }
     };
 
     // Debounced search
@@ -794,6 +802,35 @@ const Admin: React.FC = () => {
 
     const renderSystem = () => (
         <div>
+            {/* Storage. The one number nobody could see until the database hit
+                its plan's cap — the worker reads every backup body to produce
+                it, so it is fetched on demand rather than on every visit. */}
+            <div className={`${rowBase} cursor-default`}>
+                <div className="min-w-0">
+                    <p className={rowLabel}>Storage</p>
+                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>
+                        {storage
+                            ? `${formatBytes(storage.payload_bytes)} of payload across ${storage.tables.reduce((n, t) => n + t.rows, 0).toLocaleString()} rows · measured ${timeAgo(storage.measured_at)}`
+                            : 'How much of the database each table is. Compare against the D1 plan limit.'}
+                    </p>
+                    {storage && (
+                        <ul className={`text-xs ${settingsMuted} mt-2 space-y-0.5 font-mono`}>
+                            {storage.tables.map(t => (
+                                <li key={t.table} className="flex gap-3">
+                                    <span className="w-28 shrink-0">{t.table}</span>
+                                    <span className="w-16 text-right tabular-nums">{t.rows.toLocaleString()}</span>
+                                    <span className="tabular-nums">{t.payload_bytes > 0 ? formatBytes(t.payload_bytes) : ''}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {storageError && <p className="text-xs text-red-500 mt-1">{storageError}</p>}
+                </div>
+                <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
+                    {storageLoading ? <Loader2 size={14} className="animate-spin" /> : storage ? 'Refresh' : 'Measure'}
+                </button>
+            </div>
+
             <div className={`${rowBase} cursor-default`}>
                 <div>
                     <p className={rowLabel}>Status</p>

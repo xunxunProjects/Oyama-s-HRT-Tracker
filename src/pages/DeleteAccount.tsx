@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiErrorCode } from '../services/apiClient';
 import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -42,13 +43,13 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             // we don't linger on a delete page for a now-signed-out user.
             onBack();
         } catch (e: any) {
-            const msg = e?.message || '';
-            if (msg.includes('2FA')) {
+            const code = apiErrorCode(e);
+            if (code === 'TWO_FACTOR_REQUIRED' || code === 'TWO_FACTOR_INVALID') {
                 // Surface the 2FA field even if the status probe failed earlier.
                 setTotpEnabled(true);
                 setError(t('account.2fa_verify_failed'));
             } else {
-                setError(msg);
+                setError(e?.message || t('error.generic'));
             }
             setIsLoading(false);
         }

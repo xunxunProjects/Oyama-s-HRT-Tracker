@@ -3,7 +3,7 @@ import Cropper from 'react-easy-crop';
 import { ArrowLeft, ImagePlus, Check } from 'lucide-react';
 import getCroppedImg from '../utils/cropImage';
 import { useTranslation } from '../contexts/LanguageContext';
-import { apiFetch } from '../services/apiClient';
+import { apiErrorFrom, apiFetch } from '../services/apiClient';
 
 const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void }> = ({ username, token, onBack }) => {
     const { t } = useTranslation();
@@ -55,7 +55,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
                 body: blob,
             });
-            if (!res.ok) throw new Error(await res.text());
+            if (!res.ok) throw await apiErrorFrom(res);
             onBack();
         } catch (err: any) {
             setError(err.message || t('avatar.upload_failed'));
