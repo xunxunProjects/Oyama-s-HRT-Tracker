@@ -39,6 +39,8 @@ interface SettingsProps {
     isLoggedIn: boolean;
     devMode: boolean;
     setDevMode: (v: boolean) => void;
+    hideSiteLabel: boolean;
+    setHideSiteLabel: (v: boolean) => void;
     onNavigateToMilkTea: () => void;
     onNavigateToCatStates: () => void;
     isAdmin: boolean;
@@ -75,7 +77,7 @@ const Settings: React.FC<SettingsProps> = ({
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
-    devMode, setDevMode, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
+    devMode, setDevMode, hideSiteLabel, setHideSiteLabel, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -307,6 +309,23 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
+
+            {devMode && (
+                <div className={`${rowBase} cursor-default`}>
+                    <div>
+                        <p className={rowLabel}>{t('settings.hide_site_label')}</p>
+                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.hide_site_label_desc')}</p>
+                    </div>
+                    <button
+                        onClick={() => setHideSiteLabel(!hideSiteLabel)}
+                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${hideSiteLabel ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
+                        role="switch"
+                        aria-checked={hideSiteLabel}
+                    >
+                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${hideSiteLabel ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+            )}
 
             {devMode && (
                 <button onClick={() => navTo(onNavigateToCatStates, 'about')} className={rowBase}>

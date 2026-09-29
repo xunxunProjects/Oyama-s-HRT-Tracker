@@ -135,6 +135,15 @@ const AppContent = () => {
         localStorage.setItem('app-dev-mode', String(devMode));
     }, [devMode]);
 
+    // --- Site label: the host name strip above the mobile view. Switched off
+    // from Settings while developer mode is on, and kept off after that. ---
+    const [hideSiteLabel, setHideSiteLabel] = useState<boolean>(() =>
+        localStorage.getItem('app-hide-site-label') === 'true'
+    );
+    useEffect(() => {
+        localStorage.setItem('app-hide-site-label', String(hideSiteLabel));
+    }, [hideSiteLabel]);
+
     const [theme, setTheme] = useState<AppTheme>(() => {
         const saved = localStorage.getItem('app-theme');
         return (saved as AppTheme) || 'system';
@@ -406,9 +415,11 @@ const AppContent = () => {
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
 
-                {/* Mobile site label — reflects the current deployment host */}
-                <div className="md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none">
-                    {window.location.hostname}
+                {/* Mobile site label — reflects the current deployment host. Hidden,
+                    it still keeps its top padding, which is what holds the content
+                    clear of a notch or status bar. */}
+                <div className={`md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${hideSiteLabel ? '' : 'pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none'}`}>
+                    {!hideSiteLabel && window.location.hostname}
                 </div>
 
                 {/* Operator banner. Outside the scroller and keyed off nothing in
@@ -535,6 +546,8 @@ const AppContent = () => {
                             isLoggedIn={!!user}
                             devMode={devMode}
                             setDevMode={setDevMode}
+                            hideSiteLabel={hideSiteLabel}
+                            setHideSiteLabel={setHideSiteLabel}
                             onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
                             onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
                             isAdmin={!!user?.isAdmin}

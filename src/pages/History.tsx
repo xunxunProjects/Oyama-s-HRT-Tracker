@@ -5,7 +5,7 @@ import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster }
 import { formatTime } from '../utils/helpers';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
-import PixelCat from '../components/PixelCat';
+import LogDoodle from '../components/LogDoodle';
 import { DoseTemplate } from '../components/DoseFormModal';
 import { DoseDayGroup } from '../hooks/useAppData';
 
@@ -237,7 +237,7 @@ const History: React.FC<HistoryProps> = ({
 
             {groupedEvents.length === 0 && (
                 <div className="px-6 md:px-8 flex flex-col items-center text-center py-20 max-w-2xl text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                    <PixelCat pose="donut" className="mb-4" />
+                    <LogDoodle className="w-24 h-auto mb-6" />
                     <p className="text-sm">{t('timeline.empty')}</p>
                 </div>
             )}
@@ -264,9 +264,7 @@ const History: React.FC<HistoryProps> = ({
                                             <span className={`mt-[3px] w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-[var(--color-m3-primary)] border-[var(--color-m3-primary)]' : 'border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]'}`}>
                                                 {isSelected && <Check size={11} strokeWidth={2.5} className="text-white" />}
                                             </span>
-                                        ) : (
-                                            <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-outline)] dark:bg-[var(--color-m3-dark-outline)]" />
-                                        )}
+                                        ) : null}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2 min-w-0">
@@ -283,16 +281,14 @@ const History: React.FC<HistoryProps> = ({
                                                     {formatTime(new Date(ev.timeH * 3600000))}
                                                 </span>
                                             </div>
-                                            <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
                                                 <span className="truncate">{t(`route.${ev.route}`)}</span>
                                                 {ev.extras[ExtraKey.releaseRateUGPerDay] ? (
                                                     <>
-                                                        <span className="opacity-40">·</span>
                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{`${ev.extras[ExtraKey.releaseRateUGPerDay]} µg/d`}</span>
                                                     </>
                                                 ) : ev.route !== Route.patchRemove && (
                                                     <>
-                                                        <span className="opacity-40">·</span>
                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium">{`${ev.doseMG.toFixed(2)} mg`}</span>
                                                         {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && !isTestosteroneEster(ev.ester) && (
                                                             <span className="opacity-70">
@@ -308,7 +304,6 @@ const History: React.FC<HistoryProps> = ({
                                                 )}
                                                 {ev.route === Route.patchApply && typeof ev.extras[ExtraKey.patchWearH] === 'number' && ev.extras[ExtraKey.patchWearH]! > 0 && (
                                                     <>
-                                                        <span className="opacity-40">·</span>
                                                         <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
                                                     </>
                                                 )}

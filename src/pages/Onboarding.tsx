@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import PixelCat from '../components/PixelCat';
 import PixelMark, { MarkName, MarkState } from '../components/PixelMark';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
@@ -38,9 +39,19 @@ export const markOnboardingSeen = (): void => {
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 
-/** The tick beside a chosen language or mode, in the primary colour. */
-const Tick: React.FC = () => (
-    <PixelMark name="check" size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+/**
+ * The tick beside a chosen language or mode, in the primary colour. It stays
+ * mounted and is drawn on when its row is chosen and drawn off again when
+ * another is, so it can animate in both directions (see .tick-draw).
+ */
+const Tick: React.FC<{ on: boolean }> = ({ on }) => (
+    <Check
+        size={16}
+        strokeWidth={2}
+        aria-hidden="true"
+        data-on={on}
+        className="tick-draw shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
+    />
 );
 
 /**
@@ -69,10 +80,10 @@ const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 /**
- * Progress, in the chart's own vocabulary: dose rings sitting on the zero rule,
- * the same hollow circle and the same hairline OnboardingCurve draws. Filled
- * behind you, hollow ahead — so the mark has already been read once by the time
- * the chart uses it for real.
+ * Progress, in the chart's own vocabulary: the same hollow dose ring
+ * OnboardingCurve draws, each one standing alone. Filled behind you, hollow
+ * ahead — so the mark has already been read once by the time the chart uses it
+ * for real.
  */
 const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
     const GAP = 15, PAD = 7, MID = 9;
@@ -86,11 +97,6 @@ const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
             focusable="false"
             className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
         >
-            <line
-                x1={PAD} y1={MID} x2={width - PAD} y2={MID}
-                strokeWidth={1}
-                className="stroke-[var(--color-m3-outline-variant)] dark:stroke-[var(--color-m3-dark-outline-variant)]"
-            />
             {Array.from({ length: count }, (_, i) => (
                 <circle
                     key={i}
@@ -391,7 +397,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                         <span className={`text-[0.9375rem] text-body ${lang === value ? 'font-semibold' : ''}`}>
                             {label}
                         </span>
-                        {lang === value && <Tick />}
+                        <Tick on={lang === value} />
                     </button>
                 ))}
             </div>
@@ -415,7 +421,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                                 {t(descKey)}
                             </span>
                         </span>
-                        {mode === value && <Tick />}
+                        <Tick on={mode === value} />
                     </button>
                 ))}
             </div>

@@ -90,10 +90,6 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                 )}
 
                 {/* Stats */}
-                <h2 className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-6">
-                    {t('transparency.title')}
-                </h2>
-
                 <div>
                     <div className={rowBase}>
                         <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
