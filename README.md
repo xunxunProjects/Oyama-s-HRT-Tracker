@@ -181,7 +181,6 @@ If you deploy this app publicly, please: / 如果你将该应用公开部署，�
 
 Wishing steady progress and good health to everyone who uses this tool.
 
-祝每一位使用这个工具的朋友一切顺利、身体健康。
 
 ---
 
