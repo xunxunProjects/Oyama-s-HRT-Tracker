@@ -3,8 +3,8 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
-    --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
 
     /* Primary — Claude terracotta/orange */
     --color-m3-primary: #CC785C;
@@ -657,6 +657,39 @@ select,
                 transform var(--duration-base) var(--ease-standard);
 }
 
+/* The tick beside a chosen option (Onboarding's language and mode lists). Four
+   things move when a row is chosen, all off the one data-on attribute: the mark
+   fades up, grows from a little under full size, and its stroke draws itself
+   from the short leg to the long one. Choosing another row runs it backwards, so
+   the old tick rubs out as the new one is written. Nothing overshoots. */
+.tick-draw {
+    opacity: 0;
+    scale: 0.7;
+    transition: opacity 160ms linear,
+                scale var(--duration-base) var(--ease-standard);
+}
+.tick-draw path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    transition: stroke-dashoffset var(--duration-base) var(--ease-standard);
+}
+.tick-draw[data-on="true"] {
+    opacity: 1;
+    scale: 1;
+}
+.tick-draw[data-on="true"] path {
+    stroke-dashoffset: 0;
+    transition-delay: 60ms;
+}
+
+/* The outline that follows the selected chart range. It slides between chips
+   by position and width, so it stretches a little as it crosses chips of
+   different widths, which is what makes it read as one thing moving. */
+.chip-slide {
+    transition: left var(--duration-base) var(--ease-standard),
+                width var(--duration-base) var(--ease-standard);
+}
+
 /* Disclosure chevrons. `rotate-180` compiles to the standalone `rotate`
    property in Tailwind v4, so that is what has to be transitioned — see the
    note on .switch-knob. */
@@ -930,6 +963,9 @@ select,
     .switch-track,
     .switch-knob,
     .chev,
+    .chip-slide,
+    .tick-draw,
+    .tick-draw path,
     .disclosure {
         transition: none;
     }

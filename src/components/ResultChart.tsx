@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
@@ -168,6 +168,29 @@ const ResultChart = ({
     const dragRef = useRef<{ startX: number; startY: number; startOffset: number; moved: boolean; pointerId: number } | null>(null);
 
     const selectRange = (r: RangeKey) => { setRange(r); setPanOffset(0); };
+
+    // The outline around the selected range chip is one element that slides to
+    // whichever chip is picked, rather than a border that is drawn on one button
+    // and then on another. It is measured from the chips themselves so it follows
+    // their widths in every language, and re-measured when the row resizes.
+    const hasData = !!sim && sim.timeH.length > 0;
+    const chipsRef = useRef<HTMLDivElement | null>(null);
+    const chipRefs = useRef<Partial<Record<RangeKey, HTMLButtonElement | null>>>({});
+    const [chipBox, setChipBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+    useLayoutEffect(() => {
+        const measure = () => {
+            const el = chipRefs.current[range];
+            if (!el) return;
+            const next = { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight };
+            setChipBox(prev => (prev && prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height ? prev : next));
+        };
+        measure();
+        const row = chipsRef.current;
+        if (!row || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(measure);
+        ro.observe(row);
+        return () => ro.disconnect();
+    }, [range, lang, hasData]);
 
     // Warm, on-brand palette — terracotta primary against a muted neutral grid.
     const c = isDarkMode
@@ -541,8 +564,8 @@ const ResultChart = ({
         );
     }
 
-    const chipBase = 'px-2 py-0.5 text-[0.6875rem] rounded-md transition-colors';
-    const chipOn = 'text-body font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+    const chipBase = 'relative px-2 py-0.5 text-[0.6875rem] rounded-md border border-transparent transition-colors';
+    const chipOn = 'text-body font-medium';
     const chipOff = 'text-muted hover:text-body';
 
     return (
@@ -558,10 +581,18 @@ const ResultChart = ({
                             ×{calFactor.toFixed(2)}
                         </span>
                     )}
-                    <div className="flex items-center gap-0.5">
+                    <div ref={chipsRef} className="relative flex items-center gap-0.5">
+                        {chipBox && (
+                            <span
+                                aria-hidden="true"
+                                className="chip-slide pointer-events-none absolute rounded-md border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                                style={{ left: chipBox.left, top: chipBox.top, width: chipBox.width, height: chipBox.height }}
+                            />
+                        )}
                         {rangeOpts.map(o => (
                             <button
                                 key={o.key}
+                                ref={el => { chipRefs.current[o.key] = el; }}
                                 onClick={() => selectRange(o.key)}
                                 className={`${chipBase} ${range === o.key ? chipOn : chipOff}`}
                             >

@@ -4,7 +4,7 @@ import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getH
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
-import PixelCat from '../components/PixelCat';
+import VialDoodle from '../components/VialDoodle';
 import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 
 interface LabProps {
@@ -116,7 +116,7 @@ const Lab: React.FC<LabProps> = ({
                 {/* Lab results list */}
                 {labResults.length === 0 ? (
                     <div className={`flex flex-col items-center py-20 text-center ${muted}`}>
-                        <PixelCat pose="loaf" size={132} className="mb-4" />
+                        <VialDoodle className="w-24 h-auto mb-6" />
                         <p className="text-sm">{t('lab.empty')}</p>
                     </div>
                 ) : (

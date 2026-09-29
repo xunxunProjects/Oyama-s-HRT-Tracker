@@ -7,6 +7,7 @@ import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
 import PixelCat from '../components/PixelCat';
+import DoseDoodle from '../components/DoseDoodle';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats } from '../contexts/PixelCatContext';
 import { AppTheme } from '../constants';
@@ -216,6 +217,7 @@ const Home: React.FC<HomeProps> = ({
             <main className={`w-full max-w-2xl px-6 pt-5 pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+                        <DoseDoodle className="w-24 h-auto mb-6" />
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
                         <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
                         <button
