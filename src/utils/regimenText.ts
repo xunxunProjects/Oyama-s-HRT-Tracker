@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ester, ExtraKey, Route } from '../../logic';
+import { Ester, ExtraKey, GEL_SITE_ORDER, Route } from '../../logic';
 import { Pack, Supply, packUnitMG } from './regimen';
 import { Lang } from '../i18n/translations';
 import { LOCALE_MAP } from './helpers';
@@ -17,22 +17,44 @@ export const fillNodes = (template: string, vars: Record<string, React.ReactNode
         return m && m[1] in vars ? React.createElement(React.Fragment, { key: i }, vars[m[1]]) : part;
     });
 
-/** "5 mg", or "100 µg/天" for a patch. */
-export const doseText = (r: { route: Route; doseMG: number; extras: Partial<Record<ExtraKey, number>> }, t: T) => {
-    const rate = r.extras[ExtraKey.releaseRateUGPerDay];
-    return r.route === Route.patchApply && rate ? `${trimNum(rate)} µg${t('regimen.per_day')}` : `${trimNum(r.doseMG)} mg`;
-};
-
 const trimNum = (n: number, maxDecimals = 2) => String(Number(n.toFixed(maxDecimals)));
 
 /** "戊酸雌二醇": the ester's name without the code the settings lists carry ("戊酸雌二醇 (EV)"). */
 export const esterName = (ester: Ester, t: T) => t(`ester.${ester}`).replace(/\s*\(.*$/, '').trim();
 
+const CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;
+/** Join two words the way the language does: nothing between CJK characters, a space otherwise. */
+const glue = (a: string, b: string) => (CJK.test(a.slice(-1)) && CJK.test(b.slice(0, 1)) ? a + b : `${a} ${b}`);
+
+/** "雌二醇凝胶", "雌二醇贴片"; a pill or an injection is just the drug's name. */
+const drugForm = (i: { route: Route; ester: Ester }, t: T) =>
+    (i.route === Route.gel || i.route === Route.patchApply ? glue(esterName(i.ester, t), t(`regimen.route.${i.route}`)) : esterName(i.ester, t));
+
+/** How a plan item is named in a sentence. Two items that would read the same get their route in front: "口服雌二醇". */
+export function planItemLabel(item: { id: string; route: Route; ester: Ester }, plan: readonly { id: string; route: Route; ester: Ester }[], t: T): string {
+    const base = drugForm(item, t);
+    const clash = plan.some(o => o.id !== item.id && drugForm(o, t) === base);
+    return clash ? glue(t(`regimen.route.${item.route}`), esterName(item.ester, t)) : base;
+}
+
+/** "手臂": where a gel goes, without the English the settings list carries ("手臂 (Arm)"). */
+export const gelSiteName = (idx: number, t: T) =>
+    t(`gel.site.${GEL_SITE_ORDER[Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(idx)))]}`).replace(/\s*\(.*$/, '').trim();
+
+/** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天". */
+export function frequencyLabel(f: { everyDays: number; timesPerDay: number }, t: T): string {
+    if (f.everyDays <= 1) return f.timesPerDay > 1 ? fill(t('plan.times_per_day'), { n: f.timesPerDay }) : t('regimen.daily');
+    if (f.everyDays === 2) return t('plan.alternate');
+    if (f.everyDays === 7) return t('regimen.weekly');
+    if (f.everyDays === 14) return t('plan.biweekly');
+    return fill(t('regimen.every_days'), { n: trimNum(f.everyDays, 1) });
+}
+
 /** "戊酸雌二醇 5 mg 肌注", "雌二醇贴片 100 µg/天": the way a prescription line reads. */
 export function regimenLabel(r: { route: Route; ester: Ester; doseMG: number; extras: Partial<Record<ExtraKey, number>> }, t: T): string {
     const route = t(`regimen.route.${r.route}`);
     const rate = r.extras[ExtraKey.releaseRateUGPerDay];
-    if (r.route === Route.patchApply && rate) return `${esterName(r.ester, t)}${route} ${trimNum(rate)} µg${t('regimen.per_day')}`;
+    if (r.route === Route.patchApply && rate) return `${glue(esterName(r.ester, t), route)} ${trimNum(rate)} µg${t('regimen.per_day')}`;
     return `${esterName(r.ester, t)} ${trimNum(r.doseMG)} mg ${route}`;
 }
 
@@ -45,19 +67,6 @@ export function intervalLabel(h: number, t: T): string {
     if (Math.abs(h - 24) < 0.5) return t('regimen.daily');
     if (h > 24 && Math.abs(h / 12 - Math.round(h / 12)) < 0.05) return fill(t('regimen.every_days'), { n: trimNum(h / 24, 1) });
     return fill(t('regimen.every_hours'), { n: trimNum(h, 1) });
-}
-
-/** "还有 4 天", "还有 5 小时", or "逾期 3 小时" once the moment has passed. Whole units only. */
-export function relativeLabel(atH: number, nowH: number, t: T): string {
-    const d = atH - nowH;
-    const a = Math.abs(d);
-    if (d >= 0) {
-        if (a < 1) return fill(t('rel.in_minutes'), { n: Math.max(1, Math.round(a * 60)) });
-        if (a < 24) return fill(t('rel.in_hours'), { n: Math.round(a) });
-        return fill(t('rel.in_days'), { n: Math.round(a / 24) });
-    }
-    if (a < 24) return fill(t('rel.overdue_hours'), { n: Math.max(1, Math.round(a)) });
-    return fill(t('rel.overdue_days'), { n: Math.round(a / 24) });
 }
 
 /**

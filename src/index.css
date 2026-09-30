@@ -115,9 +115,10 @@
 
 /* Prevent auto-zoom on iOS/Android when focusing small inputs.
    Excludes datetime-local/date/time/month/week which open native pickers
-   and do not trigger viewport zoom on iOS. */
+   and do not trigger viewport zoom on iOS. `.figure-input` is a number set
+   as a display figure, already well over 16px. */
 @media screen and (max-width: 768px) {
-    input:not([type="datetime-local"]):not([type="date"]):not([type="time"]):not([type="month"]):not([type="week"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+    input:not([type="datetime-local"]):not([type="date"]):not([type="time"]):not([type="month"]):not([type="week"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.figure-input),
     select,
     textarea {
         font-size: 16px !important;
@@ -138,8 +139,7 @@
    else they do not follow the root font size. Zoom scales the whole glyph,
    stroke included, keeping them in proportion with the type beside them.
    Excludes the chart, which lays itself out in measured pixels. */
-svg.lucide,
-.pm {
+svg.lucide {
     zoom: var(--ui-scale);
 }
 
@@ -248,38 +248,8 @@ svg.lucide,
     animation: oc-in 500ms linear 1800ms both;
 }
 
-/* The pixel marks beside the chart (PixelMark). A mark is asleep — grey — until
-   the chart reaches its beat, plays the beat over --pm-dur (set inline, the
-   beat's own length), and then rests in colour on its final frame — the story
-   accumulates, it does not blink through. The overlays flip at fixed fractions
-   of the beat and hold, with steps(1) so a sprite frame never half-shows. */
-.pm-asleep { filter: grayscale(1) opacity(0.45); }
-
-.pm-play,
-.pm-play .pm-on-33,
-.pm-play .pm-on-50,
-.pm-play .pm-on-66,
-.pm-play .pm-off-50 {
-    animation-duration: var(--pm-dur);
-    animation-fill-mode: both;
-}
-.pm-play { animation-name: pm-wake; animation-timing-function: linear; }
-.pm-play .pm-on-33  { animation-name: pm-on-33;  animation-timing-function: steps(1); }
-.pm-play .pm-on-50  { animation-name: pm-on-50;  animation-timing-function: steps(1); }
-.pm-play .pm-on-66  { animation-name: pm-on-66;  animation-timing-function: steps(1); }
-.pm-play .pm-off-50 { animation-name: pm-off-50; animation-timing-function: steps(1); }
-
-/* Resting states are the final frame, which is what shows when the animation
-   is off (reduced motion), has finished, or was never asked for (the rows
-   without a chart). */
-.pm-on-33, .pm-on-50, .pm-on-66 { opacity: 1; }
-.pm-off-50 { opacity: 0; }
-
-@keyframes pm-wake   { 0% { filter: grayscale(1) opacity(0.45); } 12%, 100% { filter: grayscale(0) opacity(1); } }
-@keyframes pm-on-33  { 0% { opacity: 0; } 33%  { opacity: 1; } }
-@keyframes pm-on-50  { 0% { opacity: 0; } 50%  { opacity: 1; } }
-@keyframes pm-on-66  { 0% { opacity: 0; } 66%  { opacity: 1; } }
-@keyframes pm-off-50 { 0% { opacity: 1; } 50%  { opacity: 0; } }
+/* A doodle (Doodle) whose turn has not come, or that can't be chosen. */
+.dd-asleep { filter: grayscale(1) opacity(0.45); }
 
 
 @media (prefers-reduced-motion: reduce) {
@@ -300,12 +270,7 @@ svg.lucide,
     .oc-model-out,
     .oc-ghost-in,
     .oc-cal-in,
-    .oc-legend-in,
-    .pm-play,
-    .pm-play .pm-on-33,
-    .pm-play .pm-on-50,
-    .pm-play .pm-on-66,
-    .pm-play .pm-off-50 {
+    .oc-legend-in {
         animation: none;
     }
 }
@@ -856,15 +821,8 @@ select,
        brown; fins a step darker. */
     --pixel-fish: #F2A868;
     --pixel-fish-fin: #D4813F;
-    /* The blood sample in the intro's vial (PixelMark). Terracotta, not red:
-       it is blood and does not need to look like it. */
-    --pixel-sample: #C4785A;
     /* Sleep marks. Muted on purpose — they should read as a soft puff, not text. */
     --pixel-zzz: #B7ADB0;
-    /* Outlines for the props on the intro (PixelMark). The eye colour would do
-       in light mode, but on a dark surface it vanishes and a padlock becomes a
-       brown square, so this one flips with the theme. */
-    --pixel-ink: #4A3E44;
 }
 
 /* Pastels this light glare against a dark surface, so knock them back. */
@@ -887,9 +845,7 @@ select,
        and brown in a clay bowl is the exact thing the fish replaced. */
     --pixel-fish: #E39B5C;
     --pixel-fish-fin: #B96F33;
-    --pixel-sample: #9A5C43;
     --pixel-zzz: #6E656A;
-    --pixel-ink: #CFC6C9;
 }
 
 /* Steps, not tweens — the point is that it moves a whole pixel at a time. The

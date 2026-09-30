@@ -8,8 +8,7 @@
     "beforeDevCommand": "npm run dev -- --host",
     "devPath": "http://localhost:3000",
     "beforeBuildCommand": "npm run build",
-    "distDir": "../dist",
-    "withGlobalTauri": true
+    "distDir": "../dist"
   },
   "tauri": {
     "windows": [
@@ -48,9 +47,6 @@
       "shell": {
         "all": false,
         "open": true
-      },
-      "notification": {
-        "all": true
       }
     },
     "updater": {
