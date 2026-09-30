@@ -142,7 +142,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
             <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
                 <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <AlertTriangle size={13} className="text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <span className="icon-line text-sm"><AlertTriangle size={13} className="text-amber-500 dark:text-amber-400" /></span>
                     <p className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('pk.warn')}</p>
                 </div>
 
@@ -204,7 +204,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
                 {/* Info note */}
                 <div className="flex items-start gap-2 pt-4 pb-2">
-                    <Info size={13} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5 flex-shrink-0" />
+                    <span className="icon-line text-xs"><Info size={13} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" /></span>
                     <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('pk.note')}</p>
                 </div>
 
