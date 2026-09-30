@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
-import { Lock, Copy, Check } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 
 interface ExportSectionProps {
@@ -91,10 +92,8 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                         <p className={rowDesc}>{t('export.copy_desc')}</p>
                     </div>
                     <button onClick={handleCopyJson} className={`${actionBtn} flex items-center gap-1`}>
-                        {jsonCopied
-                            ? <><Check size={13} />{t('export.copied')}</>
-                            : <><Copy size={13} />{t('btn.copy')}</>
-                        }
+                        <CopyTick copied={jsonCopied} size={13} />
+                        {jsonCopied ? t('export.copied') : t('btn.copy')}
                     </button>
                 </div>
             )}
@@ -154,10 +153,8 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                         <span className="font-mono text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] flex-1 select-all break-all">
                                             {generatedPassword}
                                         </span>
-                                        <button onClick={handleCopyPassword} className="shrink-0 p-1">
-                                            {copied
-                                                ? <Check size={14} className="text-emerald-500" />
-                                                : <Copy size={14} className="text-[var(--color-m3-on-surface-variant)]" />}
+                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="shrink-0 p-1 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                            <CopyTick copied={copied} size={14} />
                                         </button>
                                     </div>
                                     <button

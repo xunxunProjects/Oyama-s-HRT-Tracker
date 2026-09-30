@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Check, Minus, CircleOff, Gauge, Radar, Wind, Rewind, FastForward, LucideIcon } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { Check, Minus, CircleOff, Gauge, Radar, Wind, Rewind, FastForward, LucideIcon } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
 
@@ -113,17 +114,9 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
-                    <span className={`text-xl font-semibold ${on}`}>{t('cal.settings')}</span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={t('cal.settings')} />
 
-            <div className="px-6 md:px-8 mt-4 max-w-2xl">
+            <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Method cards */}
                 <div className="space-y-2.5">
                     {METHODS.map(({ value, icon, recommended, pros, cons }) => (

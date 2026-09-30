@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import type { ShowDialog } from '../contexts/DialogContext';
 import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
          BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
@@ -93,7 +94,7 @@ export interface DoseDayGroup {
     events: DoseEvent[];
 }
 
-export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void) => {
+export const useAppData = (showDialog: ShowDialog) => {
     const { t, lang } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
     const { user } = useAuth();
@@ -447,7 +448,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         showDialog('confirm', t('drawer.clear_confirm'), () => {
             recordDeletions('events', events.map(e => e.id));
             setEvents([]);
-        });
+        }, { danger: true });
     }
 
     const addLabResult = (res: LabResult) => {
@@ -467,7 +468,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
         showDialog('confirm', t('lab.clear_confirm'), () => {
             recordDeletions('labResults', labResults.map(r => r.id));
             setLabResults([]);
-        });
+        }, { danger: true });
     }
 
     const addTemplate = (template: DoseTemplate) => {
@@ -490,7 +491,7 @@ export const useAppData = (showDialog: (type: 'alert' | 'confirm', message: stri
     const resetPkParams = () => {
         showDialog('confirm', t('pk.reset_confirm'), () => {
             clearPkParams();
-        });
+        }, { danger: true });
     };
 
     // A backup with hundreds of thousands of same-day events makes the

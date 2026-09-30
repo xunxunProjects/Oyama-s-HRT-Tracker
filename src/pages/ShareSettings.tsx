@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, Copy, Eye, EyeOff, Link2, Loader2, LockKeyhole, Trash2 } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { Check, ChevronDown, Eye, EyeOff, Link2, Loader2, LockKeyhole, Trash2 } from 'lucide-react';
+import { CopyTick } from '../components/Tick';
+import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
@@ -160,25 +163,14 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
             } finally {
                 setRevokingId(null);
             }
-        });
+        }, { danger: true });
     };
 
     return (
         <div className="relative space-y-4 pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] px-6 pb-3 pt-8 dark:bg-[var(--color-m3-dark-surface)] md:px-8">
-                <button
-                    type="button"
-                    onClick={onBack}
-                    className="-ml-2 flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className="shrink-0 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" />
-                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {copy.modalTitle}
-                    </span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={copy.modalTitle} />
 
-            <div className="max-w-2xl px-6 md:px-8">
+            <div className={PAGE_COLUMN}>
                 <p className="pb-5 text-sm leading-relaxed text-muted">{copy.modalDescription}</p>
                     {createdShare ? (
                         <div className="pb-0 pt-5">
@@ -217,13 +209,13 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     onClick={handleCopy}
                                     className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--color-m3-primary)] transition-colors hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] sm:self-auto"
                                 >
-                                    <span className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 ${copied ? 'invisible' : ''}`}>
-                                        <Copy size={14} />
-                                        {copy.copy}
-                                    </span>
-                                    <span className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 ${copied ? '' : 'invisible'}`}>
-                                        <Check size={14} />
-                                        {copy.copied}
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CopyTick copied={copied} size={14} />
+                                        {/* Both labels share one cell so the button keeps the wider one's width. */}
+                                        <span className="grid">
+                                            <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>{copy.copy}</span>
+                                            <span className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>{copy.copied}</span>
+                                        </span>
                                     </span>
                                 </button>
                             </div>
@@ -242,16 +234,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 <label htmlFor="share-live-toggle" className="cursor-pointer text-[0.9375rem] font-medium text-body">
                                     {copy.liveToggle}
                                 </label>
-                                <button
-                                    id="share-live-toggle"
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={liveEnabled}
-                                    onClick={() => setLiveEnabled(value => !value)}
-                                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${liveEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                                >
-                                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow-sm ${liveEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </button>
+                                <Switch id="share-live-toggle" checked={liveEnabled} onChange={setLiveEnabled} />
                             </div>
 
                             <div className="mb-5">
@@ -261,19 +244,11 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {copy.passwordToggle}
                                         </label>
                                     </div>
-                                    <button
+                                    <Switch
                                         id="share-password-toggle"
-                                        type="button"
-                                        role="switch"
-                                        aria-checked={passwordEnabled}
-                                        onClick={() => {
-                                            setPasswordEnabled(value => !value);
-                                            setError(null);
-                                        }}
-                                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${passwordEnabled ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                                    >
-                                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow-sm ${passwordEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                    </button>
+                                        checked={passwordEnabled}
+                                        onChange={next => { setPasswordEnabled(next); setError(null); }}
+                                    />
                                 </div>
 
                                 {passwordEnabled && (

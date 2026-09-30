@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useDialog } from '../contexts/DialogContext';
 import { LabResult, isT_LabUnit } from '../../logic';
-import { Check, Trash2, X, ChevronDown } from 'lucide-react';
+import { Check, Trash2, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
+import Tabs from './Tabs';
 import { LOCALE_MAP } from '../utils/helpers';
 
 interface LabResultFormProps {
@@ -42,20 +44,7 @@ const HormoneValueField: React.FC<{
             <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
                 {label}
             </span>
-            <div className="flex gap-4">
-                {units.map(u => (
-                    <button
-                        key={u}
-                        onClick={() => onUnitChange(u)}
-                        className={`text-sm pb-0.5 border-b-2 ${unit === u
-                            ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
-                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
-                        }`}
-                    >
-                        {UNIT_LABELS[u]}
-                    </button>
-                ))}
-            </div>
+            <Tabs compact tabs={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} />
         </div>
         <input
             type="number"
@@ -71,8 +60,8 @@ const HormoneValueField: React.FC<{
 
 const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete }) => {
     const { t, lang } = useTranslation();
+    const { showDialog } = useDialog();
     const [dateStr, setDateStr] = useState("");
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     // Editing an existing record: single value tied to that record's hormone.
@@ -205,32 +194,17 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
             <div className="pt-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                     {resultToEdit && onDelete && (
-                        <>
-                            {showDeleteConfirm ? (
-                                <div className="flex items-center gap-1 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded px-2 py-1">
-                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap">{t('dialog.confirm_title')}?</span>
-                                    <button
-                                        onClick={() => { onDelete(resultToEdit.id); onCancel(); }}
-                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
-                                    >
-                                        <Check size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(false)}
-                                        className="p-1 text-[var(--color-m3-on-surface-variant)] hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 text-[var(--color-m3-on-surface-variant)] hover:text-red-500 rounded"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            )}
-                        </>
+                        <button
+                            onClick={() => showDialog('confirm', t('lab.delete_confirm'), () => {
+                                onDelete(resultToEdit.id);
+                                onCancel();
+                            }, { danger: true })}
+                            className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded"
+                            title={t('btn.delete')}
+                            aria-label={t('btn.delete')}
+                        >
+                            <Trash2 size={16} />
+                        </button>
                     )}
                 </div>
 

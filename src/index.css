@@ -502,6 +502,33 @@ body {
     background-color: var(--color-m3-dark-surface-container);
 }
 
+/* The confirm button of a dialog that deletes, clears or revokes something.
+   Same shape and timing as .btn-primary; only the colour says "this can't be
+   taken back". Red 600/700, the same red as destructive text elsewhere. */
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #dc2626;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-standard),
+                opacity var(--duration-quick) var(--ease-standard),
+                transform var(--duration-quick) var(--ease-standard);
+}
+.btn-danger:active:not(:disabled) {
+    transform: scale(0.98);
+}
+.btn-danger:hover:not(:disabled) {
+    background-color: #b91c1c;
+}
+
 .input-base {
     width: 100%;
     padding: 0.625rem 0.75rem;
@@ -657,11 +684,12 @@ select,
                 transform var(--duration-base) var(--ease-standard);
 }
 
-/* The tick beside a chosen option (Onboarding's language and mode lists). Four
-   things move when a row is chosen, all off the one data-on attribute: the mark
+/* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
+   selected checkbox, and in place of Copy once something is copied. Four
+   things move when it turns on, all off the one data-on attribute: the mark
    fades up, grows from a little under full size, and its stroke draws itself
-   from the short leg to the long one. Choosing another row runs it backwards, so
-   the old tick rubs out as the new one is written. Nothing overshoots. */
+   from the short leg to the long one. Turning off runs it backwards, so the old
+   tick rubs out as the new one is written. Nothing overshoots. */
 .tick-draw {
     opacity: 0;
     scale: 0.7;
@@ -682,9 +710,26 @@ select,
     transition-delay: 60ms;
 }
 
-/* The outline that follows the selected chart range. It slides between chips
-   by position and width, so it stretches a little as it crosses chips of
-   different widths, which is what makes it read as one thing moving. */
+/* The Copy glyph that gives way to the tick above (CopyTick). A plain fade on
+   the tick's own opacity timing, so the two cross over as one change. */
+.copy-glyph {
+    transition: opacity 160ms linear;
+}
+.copy-glyph[data-hidden="true"] {
+    opacity: 0;
+}
+
+/* A round checkbox (History's batch select). The fill eases in on the switch
+   track's timing while the tick draws on top of it. */
+.check-dot {
+    transition: background-color var(--duration-base) var(--ease-standard),
+                border-color var(--duration-base) var(--ease-standard);
+}
+
+/* The outline that follows the selected chart range, and the underline that
+   follows the chosen tab (components/Tabs.tsx). It slides by position and
+   width, so it stretches a little as it crosses items of different widths,
+   which is what makes it read as one thing moving. */
 .chip-slide {
     transition: left var(--duration-base) var(--ease-standard),
                 width var(--duration-base) var(--ease-standard);
@@ -966,6 +1011,8 @@ select,
     .chip-slide,
     .tick-draw,
     .tick-draw path,
+    .copy-glyph,
+    .check-dot,
     .disclosure {
         transition: none;
     }

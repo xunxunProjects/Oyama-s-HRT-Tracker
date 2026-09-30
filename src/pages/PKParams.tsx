@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, RotateCcw, ChevronDown, AlertTriangle, Info } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { RotateCcw, ChevronDown, AlertTriangle, Info } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { PKCustomParams, DEFAULT_PK_PARAMS } from '../../logic';
@@ -121,31 +122,24 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
         showDialog('confirm', t('pk.reset_confirm'), () => {
             setDraft({ ...DEFAULT_PK_PARAMS });
             onReset();
-        });
+        }, { danger: true });
     };
 
     const isCustomized = (key: keyof PKCustomParams) => draft[key] !== DEFAULT_PK_PARAMS[key];
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {t('pk.title')}
-                    </span>
-                </button>
-                {pkParams && (
-                    <span className="ml-auto text-xs font-medium text-amber-600 dark:text-amber-400 shrink-0">
+            <PageHeader
+                onBack={onBack}
+                title={t('pk.title')}
+                actions={pkParams && (
+                    <span className="mr-2 text-xs font-medium text-amber-600 dark:text-amber-400">
                         {t('pk.customized')}
                     </span>
                 )}
-            </div>
+            />
 
-            <div className="px-6 md:px-8 mt-4 max-w-2xl">
+            <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
                 <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                     <AlertTriangle size={13} className="text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />

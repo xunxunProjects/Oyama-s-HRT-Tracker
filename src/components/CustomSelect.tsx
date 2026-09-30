@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import Tick from './Tick';
 
 interface Option {
     value: string;
@@ -166,9 +167,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                         {opt.description}
                                     </span>
                                 )}
-                                {opt.value === value && (
-                                    <Check size={16} className="text-[var(--color-m3-primary)]" strokeWidth={2.5} />
-                                )}
+                                <Tick on={opt.value === value} />
                             </button>
                         ))}
                     </div>,

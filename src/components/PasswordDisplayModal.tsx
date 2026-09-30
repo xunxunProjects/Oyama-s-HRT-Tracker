@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Copy } from 'lucide-react';
+import { CopyTick } from './Tick';
 import { useEscape } from '../hooks/useEscape';
 
 const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, onClose: () => void, password: string }) => {
@@ -26,8 +26,8 @@ const PasswordDisplayModal = ({ isOpen, onClose, password }: { isOpen: boolean, 
 
                     <div className="callout mb-4 flex items-center justify-between">
                         <span className="font-mono text-sm font-medium tracking-widest select-all text-body">{password}</span>
-                        <button onClick={handleCopy} className="p-1.5 text-muted hover:text-body">
-                            {copied ? <span className="text-xs">{t('qr.copied')}</span> : <Copy size={18} />}
+                        <button onClick={handleCopy} aria-label={copied ? t('qr.copied') : t('btn.copy')} className="p-1.5 text-muted hover:text-body">
+                            <CopyTick copied={copied} size={18} />
                         </button>
                     </div>
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check } from 'lucide-react';
+import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
 import PixelMark, { MarkName, MarkState } from '../components/PixelMark';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
@@ -38,21 +38,6 @@ export const markOnboardingSeen = (): void => {
 };
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
-
-/**
- * The tick beside a chosen language or mode, in the primary colour. It stays
- * mounted and is drawn on when its row is chosen and drawn off again when
- * another is, so it can animate in both directions (see .tick-draw).
- */
-const Tick: React.FC<{ on: boolean }> = ({ on }) => (
-    <Check
-        size={16}
-        strokeWidth={2}
-        aria-hidden="true"
-        data-on={on}
-        className="tick-draw shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
-    />
-);
 
 /**
  * The three slots of the "how it works" step, and the only step that splits in

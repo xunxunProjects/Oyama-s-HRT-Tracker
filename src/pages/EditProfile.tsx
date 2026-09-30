@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -29,17 +30,9 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className={`${muted} shrink-0`} />
-                    <span className={`text-xl font-semibold ${on}`}>{t('account.edit_profile')}</span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={t('account.edit_profile')} />
 
-            <div className="px-6 md:px-8 mt-4 max-w-md space-y-5">
+            <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <p className={`text-sm leading-relaxed ${muted}`}>{t('account.edit_profile_desc')}</p>
 
                 {error && (

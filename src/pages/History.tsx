@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Check, Trash2, ListChecks } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
+import { Plus, Trash2, ListChecks } from 'lucide-react';
+import Tick from '../components/Tick';
+import Switch from '../components/Switch';
 import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster } from '../../logic';
 import { formatTime } from '../utils/helpers';
@@ -17,7 +20,7 @@ const MAX_BATCH_COUNT = 365;
 
 const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
 const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const headerBtn = 'flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]';
+const headerBtn = headerAction;
 const numInput = 'w-16 h-8 px-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md text-center text-sm font-medium focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 interface HistoryProps {
@@ -116,7 +119,7 @@ const History: React.FC<HistoryProps> = ({
         showDialog('confirm', msg, () => {
             onDeleteEvents([...selectedIds]);
             exitSelectMode();
-        });
+        }, { danger: true });
     };
 
     const batchHint = t('timeline.batch_hint')
@@ -125,17 +128,11 @@ const History: React.FC<HistoryProps> = ({
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center justify-between max-w-2xl">
-                <div>
-                    <h1 className={`text-xl font-semibold ${on}`}>
-                        {t('timeline.title')}
-                    </h1>
-                    <p className={`text-sm ${muted} mt-0.5`}>
-                        {totalRecords} {t('timeline.records')}
-                    </p>
-                </div>
-                {selectMode ? (
-                    <div className="flex items-center gap-1 -mr-2">
+            <PageHeader
+                title={t('timeline.title')}
+                subtitle={`${totalRecords} ${t('timeline.records')}`}
+                actions={selectMode ? (
+                    <>
                         <button onClick={toggleSelectAll} className={`${headerBtn} ${muted}`}>
                             <ListChecks size={15} strokeWidth={1.5} />
                             <span>{t('timeline.select_all')}</span>
@@ -151,9 +148,9 @@ const History: React.FC<HistoryProps> = ({
                         <button onClick={exitSelectMode} className={`${headerBtn} ${muted}`}>
                             <span>{t('btn.cancel')}</span>
                         </button>
-                    </div>
+                    </>
                 ) : (
-                    <div className="flex items-center gap-1 -mr-2">
+                    <>
                         {totalRecords > 0 && (
                             <button onClick={enterSelectMode} className={`${headerBtn} ${muted}`}>
                                 <ListChecks size={15} strokeWidth={1.5} />
@@ -167,26 +164,19 @@ const History: React.FC<HistoryProps> = ({
                             <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
                             <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
                         </button>
-                    </div>
+                    </>
                 )}
-            </div>
+            />
 
             <div className={`mt-4 grid ${isQuickAddOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="px-4 md:px-8 mb-6 max-w-2xl">
+                    <div className={`${PAGE_COLUMN} mb-6`}>
                         <div className="flex items-center justify-between py-3">
                             <div>
                                 <p className={`text-sm font-medium ${on}`}>{t('timeline.batch')}</p>
                                 <p className={`text-xs ${muted} mt-0.5`}>{t('timeline.batch_desc')}</p>
                             </div>
-                            <button
-                                onClick={() => setBatchOn(!batchOn)}
-                                className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${batchOn ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                                role="switch"
-                                aria-checked={batchOn}
-                            >
-                                <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${batchOn ? 'translate-x-6' : 'translate-x-1'}`} />
-                            </button>
+                            <Switch checked={batchOn} onChange={setBatchOn} label={t('timeline.batch')} />
                         </div>
                         {batchOn && (
                             <div className="pb-3">
@@ -236,14 +226,14 @@ const History: React.FC<HistoryProps> = ({
             </div>
 
             {groupedEvents.length === 0 && (
-                <div className="px-6 md:px-8 flex flex-col items-center text-center py-20 max-w-2xl text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                <div className={`${PAGE_COLUMN} flex flex-col items-center text-center py-20 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]`}>
                     <LogDoodle className="w-24 h-auto mb-6" />
                     <p className="text-sm">{t('timeline.empty')}</p>
                 </div>
             )}
 
             {groupedEvents.length > 0 && (
-            <div className="px-6 md:px-8 max-w-2xl">
+            <div className={PAGE_COLUMN}>
                 {groupedEvents.map(({ key, label, events: dayEvents }) => (
                     <div key={key} className="mb-6 last:mb-0">
                         <div className="sticky top-[94px] z-10 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] py-2">
@@ -261,8 +251,8 @@ const History: React.FC<HistoryProps> = ({
                                         className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}`}
                                     >
                                         {selectMode ? (
-                                            <span className={`mt-[3px] w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-[var(--color-m3-primary)] border-[var(--color-m3-primary)]' : 'border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]'}`}>
-                                                {isSelected && <Check size={11} strokeWidth={2.5} className="text-white" />}
+                                            <span className={`check-dot mt-[3px] w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-[var(--color-m3-primary)] border-[var(--color-m3-primary)]' : 'border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]'}`}>
+                                                <Tick on={isSelected} size={11} strokeWidth={2.5} tone="current" className="text-white" />
                                             </span>
                                         ) : null}
                                         <div className="flex-1 min-w-0">

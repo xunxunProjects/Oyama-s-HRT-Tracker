@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+
 import PixelCat, { CatPose } from '../components/PixelCat';
 import { useTranslation } from '../contexts/LanguageContext';
 import { CAT_STATE_WINDOWS, usePixelCats, CatState } from '../contexts/PixelCatContext';
@@ -26,19 +27,9 @@ const CatStates: React.FC<CatStatesProps> = ({ onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3 flex items-center">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {t('settings.cat_states')}
-                    </span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={t('settings.cat_states')} />
 
-            <div className="px-6 md:px-8 max-w-2xl">
+            <div className={PAGE_COLUMN}>
                 <p className="mb-6 text-xs text-muted leading-relaxed">
                     {t('settings.cat_states_desc')}
                 </p>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Monitor, Smartphone, Loader2, LogOut, X } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { Monitor, Smartphone, Loader2, LogOut, X } from 'lucide-react';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -74,7 +75,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
             } finally {
                 setTerminating(null);
             }
-        });
+        }, { danger: true });
     };
 
     const handleTerminateOthers = () => {
@@ -88,7 +89,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
             } finally {
                 setTerminating(null);
             }
-        });
+        }, { danger: true });
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
@@ -96,18 +97,9 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)] transition-colors"
-                >
-                    <ArrowLeft size={18} strokeWidth={1.5} className={`${settingsMuted} shrink-0`} />
-                    <span className={`text-xl font-semibold ${settingsOn}`}>{t('account.sessions')}</span>
-                </button>
-                <p className={`text-sm ${settingsMuted} mt-1 ml-0.5 leading-relaxed`}>{t('account.sessions_desc')}</p>
-            </div>
+            <PageHeader onBack={onBack} title={t('account.sessions')} subtitle={t('account.sessions_desc')} />
 
-            <div className="px-6 md:px-10 mt-2 max-w-2xl">
+            <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (
                     <div className="flex justify-center py-16">
                         <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />

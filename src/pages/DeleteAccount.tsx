@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
-import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { authService } from '../services/auth';
@@ -57,17 +58,9 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)] transition-colors"
-                >
-                    <ArrowLeft size={18} strokeWidth={1.5} className={`${muted} shrink-0`} />
-                    <span className={`text-xl font-semibold ${on}`}>{t('account.delete_account')}</span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={t('account.delete_account')} />
 
-            <div className="px-6 md:px-10 mt-2 max-w-md space-y-5">
+            <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <div className="flex items-start gap-3">
                     <AlertTriangle size={18} className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
                     <div className="space-y-1">
