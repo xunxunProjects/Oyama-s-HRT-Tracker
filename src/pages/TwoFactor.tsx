@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
-import {
-    ArrowLeft, Loader2, Check,
-    AlertCircle, Eye, EyeOff, Copy, Fingerprint, X, Plus,
-    KeyRound, Download, RefreshCw,
-} from 'lucide-react';
+import { Loader2, Check, AlertCircle, Eye, EyeOff, Fingerprint, X, Plus, KeyRound, Download, RefreshCw } from 'lucide-react';
+import { CopyTick } from '../components/Tick';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import ShieldIcon from '../components/ShieldIcon';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -27,6 +26,7 @@ interface TwoFactorPageProps {
 
 type SetupStep = 'scan' | 'verify';
 type ActiveTab = 'totp' | 'passkey';
+const TAB_ORDER: readonly ActiveTab[] = ['totp', 'passkey'];
 
 function detectDeviceName(): string {
     const ua = navigator.userAgent;
@@ -69,7 +69,7 @@ const BackupCodesBlock: React.FC<{
         </div>
         <div className="flex gap-3">
             <button onClick={onCopy} className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}>
-                {copied ? <Check size={12} strokeWidth={1.5} /> : <Copy size={12} strokeWidth={1.5} />}
+                <CopyTick copied={copied} size={12} strokeWidth={1.5} />
                 {copied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
             </button>
             <button onClick={onDownload} className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}>
@@ -84,6 +84,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const { showDialog } = useDialog();
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('totp');
+    const tabAnim = useSwitchAnimation(activeTab, TAB_ORDER);
 
     // TOTP
     const [step, setStep] = useState<SetupStep>('scan');
@@ -388,22 +389,13 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setPasskeyError(null);
             setPwError(null);
             setPwPrompt({ kind: 'passkey', passkey: pk });
-        });
+        }, { danger: true });
     };
 
     return (
         <div className="relative pb-32">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-10 pt-8 pb-3">
-                <button
-                    onClick={setupRequired ? undefined : onBack}
-                    disabled={setupRequired}
-                    className={`flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-md transition-colors ${setupRequired ? 'opacity-30 cursor-default' : 'hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-low)]'}`}
-                >
-                    <ArrowLeft size={18} strokeWidth={1.5} className={`${muted} shrink-0`} />
-                    <span className={`text-xl font-semibold ${on}`}>{t('account.2fa')}</span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} backDisabled={setupRequired} title={t('account.2fa')} />
 
             {/* Mandatory setup notice */}
             {setupRequired && (
@@ -413,25 +405,18 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 </div>
             )}
 
-            <div className="px-6 md:px-10 max-w-2xl">
-                {/* Tab switcher — underline style */}
-                <div className="flex gap-6 mb-6 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    {(['totp', 'passkey'] as ActiveTab[]).map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                                activeTab === tab
-                                    ? `${on} border-[var(--color-m3-on-surface)] dark:border-[var(--color-m3-dark-on-surface)]`
-                                    : `${muted} border-transparent hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`
-                            }`}
-                        >
-                            {tab === 'totp' ? <KeyRound size={14} strokeWidth={1.5} /> : <Fingerprint size={14} strokeWidth={1.5} />}
-                            {tab === 'totp' ? 'TOTP' : t('account.passkey')}
-                        </button>
-                    ))}
-                </div>
+            <div className={PAGE_COLUMN}>
+                <Tabs<ActiveTab>
+                    tabs={[
+                        { id: 'totp', label: 'TOTP', icon: <KeyRound size={14} strokeWidth={1.5} /> },
+                        { id: 'passkey', label: t('account.passkey'), icon: <Fingerprint size={14} strokeWidth={1.5} /> },
+                    ]}
+                    value={activeTab}
+                    onChange={setActiveTab}
+                    className="mb-6"
+                />
 
+                <div key={activeTab} className={tabAnim}>
                 {/* ===== TOTP TAB ===== */}
                 {activeTab === 'totp' && (
                     <div className="space-y-5">
@@ -512,7 +497,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <div className={`flex items-center gap-2 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md px-3 py-2`}>
                                                     <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
                                                     <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}</button>
-                                                    <button onClick={handleCopySecret} className={secretCopied ? on : muted}>{secretCopied ? <Check size={14} strokeWidth={1.5} /> : <Copy size={14} strokeWidth={1.5} />}</button>
+                                                    <button onClick={handleCopySecret} className={secretCopied ? on : muted}><CopyTick copied={secretCopied} size={14} strokeWidth={1.5} /></button>
                                                 </div>
                                             </div>
                                         )}
@@ -625,6 +610,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         )}
                     </div>
                 )}
+                </div>
 
                 {/* ===== BACKUP CODES SECTION (enabled) ===== */}
                 {enabled && (

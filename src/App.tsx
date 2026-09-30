@@ -4,7 +4,7 @@ import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
 import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import { APP_VERSION, AppTheme } from './constants';
+import { AppTheme } from './constants';
 import { DoseEvent, decompressData, encryptData, decryptData } from '../logic';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
@@ -365,7 +365,7 @@ const AppContent = () => {
             }
             showDialog('confirm', (t('account.load_confirm') as string).replace('{time}', new Date(timestamp * 1000).toLocaleString()), () => {
                 processImportedData(parsed);
-            });
+            }, { danger: true });
         } catch (e) {
             showDialog('alert', t('account.cloud_load_failed'));
         }
@@ -530,7 +530,6 @@ const AppContent = () => {
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
-                            appVersion={APP_VERSION}
                             weight={weight}
                             setIsWeightModalOpen={setIsWeightModalOpen}
                             pkParams={pkParams}

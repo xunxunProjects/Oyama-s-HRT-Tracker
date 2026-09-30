@@ -88,8 +88,14 @@ const Home: React.FC<HomeProps> = ({
         <>
             <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
 
+            {/* Header and body share one column, centred in the pane. Pinned
+                to the left, the readings and chart filled a phone's width of a
+                desktop window while the header rule ran the full width under
+                them, and the page leaned left. The column widens with the body
+                once the heatmap sits beside the chart, so the two readings
+                stay over the content they describe. */}
             <header className="pt-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                <div className="px-6 md:px-8 max-w-2xl">
+                <div className={`mx-auto px-6 md:px-8 max-w-2xl ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                 {/* Title row */}
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-1.5">
@@ -214,7 +220,7 @@ const Home: React.FC<HomeProps> = ({
                 letting it sit empty, and drops underneath when there isn't any.
                 Only widened once there's data — the empty state centres itself
                 on this container and should stay in the narrow column. */}
-            <main className={`w-full max-w-2xl px-6 pt-5 pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
+            <main className={`w-full mx-auto max-w-2xl px-6 pt-5 pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
 import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory } from '../../logic';
 import { Lang } from '../i18n/translations';
@@ -64,23 +65,23 @@ const Lab: React.FC<LabProps> = ({
     return (
         <div className="relative pb-32">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-4 flex items-center justify-between max-w-2xl">
-                <h1 className={`text-xl font-semibold ${on}`}>
-                    {t('lab.title')}
-                </h1>
-                <button
-                    onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] px-2 py-1 -mr-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <Plus size={15} className={`transition-transform ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
-                    <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
-                </button>
-            </div>
+            <PageHeader
+                title={t('lab.title')}
+                actions={
+                    <button
+                        onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
+                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                    >
+                        <Plus size={15} className={isQuickAddLabOpen ? 'rotate-45' : ''} />
+                        <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
+                    </button>
+                }
+            />
 
             {/* Expandable add form */}
             <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="px-6 md:px-8 mb-6 max-w-2xl">
+                    <div className={`${PAGE_COLUMN} mb-6`}>
                         <LabResultForm
                             resultToEdit={null}
                             onSave={(res) => {
@@ -94,7 +95,7 @@ const Lab: React.FC<LabProps> = ({
                 </div>
             </div>
 
-            <div className="px-6 md:px-8 max-w-2xl">
+            <div className={PAGE_COLUMN}>
                 {hormoneAdvisory && (
                     <div className="pb-4">
                         <HormoneLevelAdvisoryLine advisory={hormoneAdvisory} t={t} />

@@ -1,6 +1,9 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route } from '../../../logic';
+import Tabs, { useSwitchAnimation } from '../Tabs';
+
+const MODE_ORDER = ['rate', 'dose'] as const;
 
 interface PatchFieldsProps {
     patchMode: "dose" | "rate";
@@ -49,31 +52,22 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
         { key: "rate", label: t('field.patch_rate') },
         { key: "dose", label: t('field.patch_total') },
     ];
+    const modeAnim = useSwitchAnimation(patchMode, MODE_ORDER);
 
     const currentRate = parseFloat(patchRate);
     const currentWear = parseFloat(patchWearDays);
 
     return (
         <div className="space-y-4">
-            {/* Mode underline tabs */}
-            <div className="flex gap-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                {modes.map(m => (
-                    <button
-                        key={m.key}
-                        type="button"
-                        onClick={() => setPatchMode(m.key)}
-                        className={`text-sm pb-2 -mb-px border-b-2 ${patchMode === m.key
-                            ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
-                            : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
-                        }`}
-                    >
-                        {m.label}
-                    </button>
-                ))}
-            </div>
+            <Tabs
+                tabs={modes.map(m => ({ id: m.key, label: m.label }))}
+                value={patchMode}
+                onChange={setPatchMode}
+            />
 
             <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('patch.setup_hint')}</p>
 
+            <div key={patchMode} className={modeAnim}>
             {patchMode === "rate" ? (
                 <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.patch_rate')}</label>
@@ -121,6 +115,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                     />
                 </div>
             )}
+            </div>
 
             {/* Wear duration — applies to both input modes. Empty means the patch
                 stays on until a separate "remove" event is logged. */}

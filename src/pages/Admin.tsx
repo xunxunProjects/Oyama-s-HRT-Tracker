@@ -141,7 +141,7 @@ const Admin: React.FC = () => {
                 if (panel && 'user' in panel && panel.user.id === user.id) setPanel(null);
                 showDialog('alert', 'User deleted.');
             } catch { showDialog('alert', 'Failed to delete user.'); }
-        });
+        }, { danger: true });
     };
 
     const openPasswordPanel = (user: AdminUser) => {
@@ -182,7 +182,7 @@ const Admin: React.FC = () => {
                 await adminService.resetAvatar(token, user.id);
                 showDialog('alert', 'Avatar reset.');
             } catch { showDialog('alert', 'Failed to reset avatar.'); }
-        });
+        }, { danger: true });
     };
 
     const openTwoFAPanel = async (user: AdminUser) => {
@@ -219,7 +219,7 @@ const Admin: React.FC = () => {
                     ? `Removed ${parts.join(', ')}.${sessions}`
                     : `Nothing to remove — ${user.username} had no 2FA enrolled.`);
             } catch (e: any) { showDialog('alert', e.message || 'Failed to reset 2FA.'); }
-        });
+        }, { danger: true });
     };
 
     const openBackupsPanel = async (user: AdminUser) => {
@@ -251,7 +251,7 @@ const Admin: React.FC = () => {
                 setUsers(prev => prev.map(u => u.id === panel.user.id ? { ...u, backup_count: 0, last_backup_at: null, total_backup_size: 0 } : u));
                 showDialog('alert', 'All backups purged.');
             } catch { showDialog('alert', 'Failed to purge backups.'); }
-        });
+        }, { danger: true });
     };
 
     const renderPanel = () => {
@@ -673,7 +673,7 @@ const Admin: React.FC = () => {
                 applyNotice(null);
                 setNoticeLang('default');
             } catch { showDialog('alert', 'Failed to clear the notice.'); }
-        });
+        }, { danger: true });
     };
 
     // Same wording the banner uses: the locale's override when it has one, the

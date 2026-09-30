@@ -66,7 +66,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
     const handleDelete = (id: string) => {
         showDialog('confirm', t('quickdose.delete_confirm'), () => {
             onDeleteQuickDose(id);
-        });
+        }, { danger: true });
     };
 
     const formatValue = (val: number): string => {

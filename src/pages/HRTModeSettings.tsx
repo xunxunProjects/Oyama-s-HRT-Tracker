@@ -1,5 +1,7 @@
 import React from 'react';
-import { ArrowLeft, Check } from 'lucide-react';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+
+import Tick from '../components/Tick';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
@@ -18,19 +20,9 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
 
     return (
         <div className="relative pb-32">
-            <div className="sticky top-0 z-20 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] px-6 md:px-8 pt-8 pb-3">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                >
-                    <ArrowLeft size={18} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                    <span className="text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {t('settings.hrt_mode')}
-                    </span>
-                </button>
-            </div>
+            <PageHeader onBack={onBack} title={t('settings.hrt_mode')} />
 
-            <div className="px-6 md:px-8 mt-4 max-w-2xl">
+            <div className={`${PAGE_COLUMN} mt-4`}>
                 {options.map(({ value, labelKey }) => (
                     <button
                         key={value}
@@ -43,9 +35,7 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
                         }`}>
                             {t(labelKey)}
                         </span>
-                        {mode === value && (
-                            <Check size={16} className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0" />
-                        )}
+                        <Tick on={mode === value} />
                     </button>
                 ))}
             </div>

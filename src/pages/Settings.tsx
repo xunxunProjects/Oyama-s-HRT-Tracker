@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { ChevronRight, Settings2, Database, Info, ArrowLeft, Globe, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Settings2, Database, Info } from 'lucide-react';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
+import Switch from '../components/Switch';
+import { settingsSection } from '../components/SettingsListItem';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -23,7 +27,6 @@ interface SettingsProps {
     setIsDisclaimerOpen: (isOpen: boolean) => void;
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
-    appVersion: string;
     weight: number;
     setIsWeightModalOpen: (isOpen: boolean) => void;
     pkParams: PKCustomParams | null;
@@ -50,11 +53,33 @@ interface SettingsProps {
 type SettingsCat = 'general' | 'data' | 'about';
 type MobileView = 'list' | SettingsCat;
 
-const rowBase = "w-full flex items-center justify-between py-[18px] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-start";
+const rowBase = "w-full flex items-center justify-between gap-4 py-[18px] text-start";
 const rowLabel = "text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
 const rowValue = "flex items-center gap-1 text-[0.9375rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
 const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
 const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+
+const section = settingsSection;
+
+const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({ label, value, onClick }) => (
+    <button onClick={onClick} className={rowBase}>
+        <span className={rowLabel}>{label}</span>
+        <span className={rowValue}>
+            {value}
+            <ChevronRight size={15} />
+        </span>
+    </button>
+);
+
+const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => (
+    <div className={`${rowBase} cursor-default`}>
+        <div>
+            <p className={rowLabel}>{label}</p>
+            <p className={`text-xs ${muted} mt-0.5`}>{desc}</p>
+        </div>
+        <Switch checked={checked} onChange={onChange} label={label} />
+    </div>
+);
 
 // Hard stops rather than a smooth blend, in equal fifths — the flag's stripes
 // are even, and anything else reads as a lopsided swatch.
@@ -68,12 +93,15 @@ const CAT_STYLE_SWATCHES: { id: CatStyle; background: string }[] = [
     { id: 'pink', background: 'var(--pixel-pink)' },
 ];
 
+const CAT_ORDER: readonly SettingsCat[] = ['general', 'data', 'about'];
+const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
+
 let _savedCat: SettingsCat = 'general';
 let _savedMobileView: MobileView = 'list';
 
 const Settings: React.FC<SettingsProps> = ({
     t, lang, theme, languageOptions, onClearAllEvents, events,
-    showDialog, setIsDisclaimerOpen, onShowIntro, onNavigateToTransparency, appVersion,
+    showDialog, setIsDisclaimerOpen, onShowIntro, onNavigateToTransparency,
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
@@ -107,324 +135,235 @@ const Settings: React.FC<SettingsProps> = ({
         fn();
     };
 
+    const catAnim = useSwitchAnimation(cat, CAT_ORDER);
+    const mobileAnim = useSwitchAnimation(mobileView, MOBILE_ORDER);
+
     const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('settings.hrt_mode'), t('drawer.lang'), t('settings.theme')].join(' · ') },
         { id: 'data',    label: t('settings.group.data'),    Icon: Database,  hint: [t('export.title'), t('import.title')].join(' · ') },
         { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
     ];
 
-    const GeneralContent = () => (
-        <div>
-            <button onClick={() => navTo(onNavigateToHRTMode, 'general')} className={rowBase}>
-                <span className={rowLabel}>{t('settings.hrt_mode')}</span>
-                <span className={rowValue}>
-                    {t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}
-                    <ChevronRight size={15} />
-                </span>
-            </button>
-
-            <button onClick={() => navTo(onNavigateToLanguage, 'general')} className={rowBase}>
-                <span className={rowLabel}>{t('drawer.lang')}</span>
-                <span className={rowValue}>
-                    <Globe size={14} className="opacity-50" />
-                    {languageOptions.find(o => o.value === lang)?.label ?? lang}
-                    <ChevronRight size={15} />
-                </span>
-            </button>
-
-            <button onClick={() => navTo(onNavigateToAppearance, 'general')} className={rowBase}>
-                <span className={rowLabel}>{t('settings.theme')}</span>
-                <span className={rowValue}>
-                    {t(`theme.${theme}`)}
-                    <ChevronRight size={15} />
-                </span>
-            </button>
-
-            <button onClick={() => navTo(onNavigateToWeight, 'general')} className={rowBase}>
-                <span className={rowLabel}>{t('status.weight')}</span>
-                <span className={rowValue}>
-                    {weight} kg
-                    <ChevronRight size={15} />
-                </span>
-            </button>
-
-            {isLoggedIn && (
-                <div className={`${rowBase} cursor-default`}>
-                    <div>
-                        <p className={rowLabel}>{t('settings.auto_sync')}</p>
-                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.auto_sync_desc')}</p>
-                    </div>
-                    <button
-                        onClick={() => setAutoSync(!autoSync)}
-                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${autoSync ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                        role="switch"
-                        aria-checked={autoSync}
-                    >
-                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${autoSync ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-            )}
-
-            <div className={`${rowBase} cursor-default`}>
-                <div>
-                    <p className={rowLabel}>{t('settings.pixel_cats')}</p>
-                    <p className={`text-xs ${muted} mt-0.5`}>{t('settings.pixel_cats_desc')}</p>
-                </div>
-                <button
-                    onClick={() => setShowCats(!showCats)}
-                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${showCats ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                    role="switch"
-                    aria-checked={showCats}
-                >
-                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${showCats ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-            </div>
-
-            {/* Only worth showing once the cats themselves are on. */}
-            {showCats && (
-                <div className={`${rowBase} cursor-default`}>
-                    <span className={rowLabel}>{t('settings.cat_style')}</span>
-                    <div className="flex items-center gap-2.5">
-                        {CAT_STYLE_SWATCHES.map(({ id, background }) => (
-                            <button
-                                key={id}
-                                onClick={() => setCatStyle(id)}
-                                aria-label={t(`settings.cat_style.${id}`)}
-                                title={t(`settings.cat_style.${id}`)}
-                                aria-pressed={catStyle === id}
-                                className={`h-6 w-6 shrink-0 rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${
-                                    catStyle === id
-                                        ? 'ring-2 ring-[var(--color-m3-primary)] ring-offset-2 ring-offset-[var(--color-m3-surface-dim)] dark:ring-offset-[var(--color-m3-dark-surface)]'
-                                        : ''
-                                }`}
-                                style={{ background }}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            <button
-                onClick={() => navTo(onNavigateToPKParams, 'general')}
-                className={`${rowBase} ${isAdmin ? 'md:border-b-0' : 'border-b-0'}`}
-            >
-                <span className={rowLabel}>{t('settings.pk_params')}</span>
-                <span className={rowValue}>
-                    {pkParams && (
+    // Each category is a stack of sections: like rows sit together, and the
+    // space between sections is the only grouping, so no extra headings to
+    // translate.
+    const renderGeneral = () => (
+        <div className="space-y-8">
+            {/* What the model is fed. */}
+            <div className={section}>
+                <NavRow
+                    label={t('settings.hrt_mode')}
+                    value={t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}
+                    onClick={() => navTo(onNavigateToHRTMode, 'general')}
+                />
+                <NavRow
+                    label={t('status.weight')}
+                    value={`${weight} kg`}
+                    onClick={() => navTo(onNavigateToWeight, 'general')}
+                />
+                <NavRow
+                    label={t('settings.pk_params')}
+                    value={pkParams && (
                         <span className="text-xs text-amber-600 dark:text-amber-400 font-medium mr-1">
                             {t('pk.customized')}
                         </span>
                     )}
-                    <ChevronRight size={15} />
-                </span>
-            </button>
+                    onClick={() => navTo(onNavigateToPKParams, 'general')}
+                />
+            </div>
+
+            {/* How the app looks and speaks. */}
+            <div className={section}>
+                <NavRow
+                    label={t('drawer.lang')}
+                    value={languageOptions.find(o => o.value === lang)?.label ?? lang}
+                    onClick={() => navTo(onNavigateToLanguage, 'general')}
+                />
+                <NavRow
+                    label={t('settings.theme')}
+                    value={t(`theme.${theme}`)}
+                    onClick={() => navTo(onNavigateToAppearance, 'general')}
+                />
+                <SwitchRow
+                    label={t('settings.pixel_cats')}
+                    desc={t('settings.pixel_cats_desc')}
+                    checked={showCats}
+                    onChange={setShowCats}
+                />
+                {/* Only worth showing once the cats themselves are on. */}
+                {showCats && (
+                    <div className={`${rowBase} cursor-default`}>
+                        <span className={rowLabel}>{t('settings.cat_style')}</span>
+                        <div className="flex items-center gap-2.5">
+                            {CAT_STYLE_SWATCHES.map(({ id, background }) => (
+                                <button
+                                    key={id}
+                                    onClick={() => setCatStyle(id)}
+                                    aria-label={t(`settings.cat_style.${id}`)}
+                                    title={t(`settings.cat_style.${id}`)}
+                                    aria-pressed={catStyle === id}
+                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${
+                                        catStyle === id
+                                            ? 'ring-2 ring-[var(--color-m3-primary)] ring-offset-2 ring-offset-[var(--color-m3-surface-dim)] dark:ring-offset-[var(--color-m3-dark-surface)]'
+                                            : ''
+                                    }`}
+                                    style={{ background }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Desktop reaches the admin area from the left nav rail; on mobile that
                 rail doesn't exist, so this is the only way in. */}
             {isAdmin && (
-                <button
-                    onClick={() => navTo(onNavigateToAdmin, 'general')}
-                    className={`${rowBase} border-b-0 md:hidden`}
-                >
-                    <span className={rowLabel}>{t('admin.dashboard')}</span>
-                    <span className={rowValue}>
-                        <ShieldCheck size={14} className="opacity-50" />
-                        <ChevronRight size={15} />
-                    </span>
-                </button>
+                <div className={`${section} md:hidden`}>
+                    <NavRow label={t('admin.dashboard')} onClick={() => navTo(onNavigateToAdmin, 'general')} />
+                </div>
             )}
         </div>
     );
 
-    const DataContent = () => (
-        <div>
-            <button onClick={() => navTo(onNavigateToExport, 'data')} className={rowBase}>
-                <span className={rowLabel}>{t('export.title')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <button onClick={() => navTo(onNavigateToImport, 'data')} className={rowBase}>
-                <span className={rowLabel}>{t('import.title')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <button
-                onClick={onClearAllEvents}
-                disabled={!events.length}
-                className={`${rowBase} border-b-0 ${!events.length ? 'opacity-40 cursor-not-allowed' : ''}`}
-            >
-                <span className={`text-[0.9375rem] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
-                    {t('drawer.clear')}
-                </span>
-            </button>
-        </div>
-    );
-
-    const AboutContent = () => (
-        <div>
-            <button
-                onClick={() => showDialog('confirm', t('drawer.model_confirm'), () => window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'))}
-                className={rowBase}
-            >
-                <span className={rowLabel}>{t('drawer.model_title')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <button
-                onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank'))}
-                className={rowBase}
-            >
-                <span className={rowLabel}>{t('drawer.github')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <button onClick={() => navTo(onNavigateToTransparency, 'about')} className={rowBase}>
-                <span className={rowLabel}>{t('transparency.title')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <button onClick={() => setIsDisclaimerOpen(true)} className={rowBase}>
-                <span className={rowLabel}>{t('drawer.disclaimer')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            {/* The intro only ever shows itself once, so this is the only way back
-                to it — and the only way anyone who skipped it can read it. */}
-            <button onClick={onShowIntro} className={rowBase}>
-                <span className={rowLabel}>{t('settings.show_intro')}</span>
-                <ChevronRight size={15} className={muted} />
-            </button>
-
-            <div className={`${rowBase} cursor-default`}>
-                <div>
-                    <p className={rowLabel}>{t('settings.developer_mode')}</p>
-                    <p className={`text-xs ${muted} mt-0.5`}>{t('settings.developer_mode_desc')}</p>
+    const renderData = () => (
+        <div className="space-y-8">
+            {isLoggedIn && (
+                <div className={section}>
+                    <SwitchRow
+                        label={t('settings.auto_sync')}
+                        desc={t('settings.auto_sync_desc')}
+                        checked={autoSync}
+                        onChange={setAutoSync}
+                    />
                 </div>
-                <button
-                    onClick={() => setDevMode(!devMode)}
-                    className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${devMode ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                    role="switch"
-                    aria-checked={devMode}
-                >
-                    <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${devMode ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+            )}
+
+            <div className={section}>
+                <NavRow label={t('export.title')} onClick={() => navTo(onNavigateToExport, 'data')} />
+                <NavRow label={t('import.title')} onClick={() => navTo(onNavigateToImport, 'data')} />
             </div>
 
-            {devMode && (
-                <div className={`${rowBase} cursor-default`}>
-                    <div>
-                        <p className={rowLabel}>{t('settings.hide_site_label')}</p>
-                        <p className={`text-xs ${muted} mt-0.5`}>{t('settings.hide_site_label_desc')}</p>
-                    </div>
-                    <button
-                        onClick={() => setHideSiteLabel(!hideSiteLabel)}
-                        className={`relative inline-flex switch-track h-6 w-11 shrink-0 items-center rounded-full ${hideSiteLabel ? 'bg-[var(--color-m3-primary)]' : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`}
-                        role="switch"
-                        aria-checked={hideSiteLabel}
-                    >
-                        <span className={`inline-block switch-knob h-4 w-4 rounded-full bg-white shadow ${hideSiteLabel ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-            )}
-
-            {devMode && (
-                <button onClick={() => navTo(onNavigateToCatStates, 'about')} className={rowBase}>
-                    <span className={rowLabel}>{t('settings.cat_states')}</span>
-                    <ChevronRight size={15} className={muted} />
+            {/* Destructive, so it sits apart from Export and Import rather than one row under them. */}
+            <div className={section}>
+                <button
+                    onClick={onClearAllEvents}
+                    disabled={!events.length}
+                    className={`${rowBase} ${!events.length ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                    <span className={`text-[0.9375rem] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
+                        {t('drawer.clear')}
+                    </span>
                 </button>
-            )}
-
-            {devMode && (
-                <button onClick={() => navTo(onNavigateToMilkTea, 'about')} className={`${rowBase} border-b-0`}>
-                    <span className={rowLabel}>{t('settings.milk_tea_egg')}</span>
-                    <ChevronRight size={15} className={muted} />
-                </button>
-            )}
-
-            <p className={`mt-10 text-xs ${muted}`}>{appVersion}</p>
+            </div>
         </div>
     );
 
+    const renderAbout = () => (
+        <div className="space-y-8">
+            <div className={section}>
+                <NavRow
+                    label={t('drawer.model_title')}
+                    onClick={() => showDialog('confirm', t('drawer.model_confirm'), () => window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'))}
+                />
+                <NavRow
+                    label={t('drawer.github')}
+                    onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank'))}
+                />
+                <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
+                <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
+                {/* The intro only ever shows itself once, so this is the only way back
+                    to it — and the only way anyone who skipped it can read it. */}
+                <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
+            </div>
+
+            <div className={section}>
+                <SwitchRow
+                    label={t('settings.developer_mode')}
+                    desc={t('settings.developer_mode_desc')}
+                    checked={devMode}
+                    onChange={setDevMode}
+                />
+                {devMode && (
+                    <SwitchRow
+                        label={t('settings.hide_site_label')}
+                        desc={t('settings.hide_site_label_desc')}
+                        checked={hideSiteLabel}
+                        onChange={setHideSiteLabel}
+                    />
+                )}
+                {devMode && <NavRow label={t('settings.cat_states')} onClick={() => navTo(onNavigateToCatStates, 'about')} />}
+                {devMode && <NavRow label={t('settings.milk_tea_egg')} onClick={() => navTo(onNavigateToMilkTea, 'about')} />}
+            </div>
+
+        </div>
+    );
+
+    // Called, not mounted as <Component />: a component declared inside render is
+    // a new type every render, so React would tear the rows down on each toggle
+    // and a keyboard user's focus would drop off the switch they just pressed.
     const catContent = (id: SettingsCat) => {
-        if (id === 'general') return <GeneralContent />;
-        if (id === 'data') return <DataContent />;
-        return <AboutContent />;
+        if (id === 'general') return renderGeneral();
+        if (id === 'data') return renderData();
+        return renderAbout();
     };
 
     return (
-        <div className="flex pt-8 pb-32 min-h-full">
-
-            {/* ── Left category nav (desktop) ─────────────────────────── */}
-            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${on}`}>
-                    {t('nav.settings')}
-                </p>
-                {cats.map(({ id, label, Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => selectCat(id)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
-                            ${cat === id
-                                ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${on} font-medium`
-                                : `${muted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] hover:${on}`
-                            }`}
-                    >
-                        <Icon size={16} strokeWidth={1.75} />
-                        {label}
-                    </button>
-                ))}
-            </nav>
-
-            {/* ── Desktop content ─────────────────────────────────────── */}
-            <div className="hidden md:block flex-1 px-10 max-w-2xl">
-                <h2 className={`text-xl font-semibold ${on} mb-6`}>
-                    {cats.find(c => c.id === cat)?.label}
-                </h2>
-                {catContent(cat)}
-            </div>
-
-            {/* ── Mobile ──────────────────────────────────────────────── */}
-            {/* See Admin.tsx: a stretched `flex-1` child under the shell's `min-h-full`
-                hides its own overflow from the scroller. */}
-            <div className="md:hidden flex-1 self-start px-6 pb-32">
+        <div className="relative pb-32">
+            {/* ── Mobile: the category list, then one category ─────────── */}
+            <div className="md:hidden">
+                {/* Keyed so drilling in slides forward and backing out slides back. */}
+                <div key={mobileView} className={mobileAnim}>
                 {mobileView === 'list' ? (
                     <>
-                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${on}`}>{t('nav.settings')}</h1>
-                        {cats.map(({ id, label, Icon, hint }) => (
-                            <button
-                                key={id}
-                                onClick={() => enterMobileCat(id)}
-                                className={`${rowBase} items-center`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
-                                        <Icon size={18} strokeWidth={1.75} className={muted} />
+                        <PageHeader title={t('nav.settings')} />
+                        <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
+                            {cats.map(({ id, label, Icon, hint }) => (
+                                <button
+                                    key={id}
+                                    onClick={() => enterMobileCat(id)}
+                                    className={rowBase}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                            <Icon size={18} strokeWidth={1.75} className={muted} />
+                                        </div>
+                                        <div className="text-start">
+                                            <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
+                                            <p className={`text-xs ${muted} mt-0.5 leading-relaxed`}>{hint}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-start">
-                                        <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
-                                        <p className={`text-xs ${muted} mt-0.5 leading-relaxed`}>{hint}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight size={15} className={muted} />
-                            </button>
-                        ))}
+                                    <ChevronRight size={15} className={`${muted} shrink-0`} />
+                                </button>
+                            ))}
+                        </div>
                     </>
                 ) : (
                     <>
-                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)]">
-                            <button
-                                onClick={exitMobileCat}
-                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
-                            >
-                                <ArrowLeft size={18} className={`${muted} shrink-0`} />
-                                <h1 className={`text-xl font-semibold ${on}`}>
-                                    {cats.find(c => c.id === mobileView)?.label}
-                                </h1>
-                            </button>
+                        <PageHeader onBack={exitMobileCat} title={cats.find(c => c.id === mobileView)?.label} />
+                        <div className={`${PAGE_COLUMN} mt-3`}>
+                            {catContent(mobileView as SettingsCat)}
                         </div>
-                        {catContent(mobileView as SettingsCat)}
                     </>
                 )}
+                </div>
+            </div>
+
+            {/* ── Desktop: the same header and column as every other page,
+                with the categories as tabs under the title. A second nav rail
+                beside the app's own sidebar pushed the whole page left. ── */}
+            <div className="hidden md:block">
+                <PageHeader title={t('nav.settings')} />
+                <div className={`${PAGE_COLUMN} mt-3`}>
+                    <Tabs
+                        tabs={cats}
+                        value={cat}
+                        onChange={selectCat}
+                        className="mb-4"
+                    />
+                    <div key={cat} className={catAnim}>
+                        {catContent(cat)}
+                    </div>
+                </div>
             </div>
         </div>
     );

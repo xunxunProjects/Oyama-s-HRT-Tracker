@@ -135,8 +135,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
     const [templateName, setTemplateName] = useState('');
 
     // Form State
@@ -629,27 +627,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                             {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
                                         </div>
                                     </button>
-                                    {templateToDelete === template.id ? (
-                                        <div className="flex items-center gap-0.5 pl-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                            <button onClick={() => { setTemplateToDelete(null); setShowTemplateMenu(false); onDeleteTemplate(template.id); }} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title={t('btn.confirm')}>
-                                                <Check size={13} />
-                                            </button>
-                                            <button onClick={() => setTemplateToDelete(null)} className="p-1 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)] rounded" title={t('btn.cancel')}>
-                                                <X size={13} />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setTemplateToDelete(template.id);
-                                            }}
-                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
-                                            title={t('btn.delete')}
-                                        >
-                                            <Trash2 size={13} />
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            showDialog('confirm', t('template.delete_confirm'), () => {
+                                                setShowTemplateMenu(false);
+                                                onDeleteTemplate(template.id);
+                                            }, { danger: true });
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
+                                        title={t('btn.delete')}
+                                        aria-label={t('btn.delete')}
+                                    >
+                                        <Trash2 size={13} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -998,7 +989,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <button
                                 onClick={() => {
                                     setShowSaveTemplateInput(true);
-                                    setShowDeleteConfirm(false);
                                     setShowTemplateMenu(false);
                                 }}
                                 className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-primary)] rounded flex items-center justify-center"
@@ -1009,49 +999,23 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         </div>
                     </div>
 
-                    {/* Delete Event Section (Only when editing) */}
+                    {/* Delete Event (only when editing) */}
                     {eventToEdit && (
-                        <div className="flex items-center">
-                            <div className={`overflow-hidden flex items-center ${
-                                showDeleteConfirm ? 'w-[8.75rem] sm:w-40 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded opacity-100 pl-3 pr-1 py-1' : 'w-0 opacity-0 border border-transparent'
-                            }`}>
-                                <span className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap grow">{t('dialog.confirm_title')}?</span>
-                                <div className="flex items-center shrink-0 ml-2">
-                                    <button
-                                        onClick={() => {
-                                            onDelete(eventToEdit.id);
-                                            onCancel();
-                                        }}
-                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
-                                        title={t('btn.ok')}
-                                    >
-                                        <Check size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(false)}
-                                        className="p-1 text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
-                                        title={t('btn.cancel')}
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className={`overflow-hidden ${
-                                showDeleteConfirm ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
-                            }`}>
-                                <button
-                                    onClick={() => {
-                                        setShowDeleteConfirm(true);
-                                        setShowSaveTemplateInput(false);
-                                        setShowTemplateMenu(false);
-                                    }}
-                                    className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded flex items-center justify-center"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        </div>
+                        <button
+                            onClick={() => {
+                                setShowSaveTemplateInput(false);
+                                setShowTemplateMenu(false);
+                                showDialog('confirm', t('modal.dose.delete_confirm'), () => {
+                                    onDelete(eventToEdit.id);
+                                    onCancel();
+                                }, { danger: true });
+                            }}
+                            className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded flex items-center justify-center"
+                            title={t('btn.delete')}
+                            aria-label={t('btn.delete')}
+                        >
+                            <Trash2 size={18} />
+                        </button>
                     )}
                 </div>
 

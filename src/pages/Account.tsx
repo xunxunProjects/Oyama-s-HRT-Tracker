@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
-import { SettingsListItem } from '../components/SettingsListItem';
+import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -39,10 +41,12 @@ interface AccountProps {
 }
 
 const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
-const sectionLabel ="text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-2 block";
-const rowBase = `w-full flex items-center gap-3 py-4 ${divider} text-start`;
+const sectionLabelBase = "text-xs font-semibold mb-2 block";
+const sectionLabel = `${sectionLabelBase} text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]`;
 const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
 const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+
+const AUTH_TABS = ['sign-in', 'sign-up'] as const;
 
 /**
  * Why the password prompt is open.
@@ -159,7 +163,7 @@ const Account: React.FC<AccountProps> = ({
                 setBackupList(prev => prev.filter(b => b.id !== id));
                 setExpandedData(prev => { const n = { ...prev }; delete n[id]; return n; });
             } catch { showDialog('alert', t('account.delete_backup_failed')); }
-        });
+        }, { danger: true });
     };
 
     const toggleExpand = async (b: BackupMeta) => {
@@ -392,20 +396,23 @@ const Account: React.FC<AccountProps> = ({
 
     const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
 
+    const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
+    const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
+
     return (
-        <div className="relative pb-32 px-6 md:px-10">
-            <h1 className="sticky top-0 z-20 -mx-6 md:-mx-10 px-6 md:px-10 pt-8 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                {t('account.title')}
-            </h1>
+        <div className="relative pb-32">
+            <PageHeader title={t('account.title')} />
 
             {user ? (
-                <div className="max-w-2xl">
-                    {/* Profile */}
-                    <div className={`flex flex-col items-center py-6 gap-2 ${divider} mb-6`}>
+                <div className={`${PAGE_COLUMN} mt-3 space-y-8`}>
+                    {/* Profile. A row on the same left edge as every section
+                        below it, rather than a centred block above a
+                        left-aligned list. */}
+                    <div className="flex items-center gap-4 pt-2">
                         <button
                             type="button"
                             onClick={() => onNavigate('edit-avatar')}
-                            className="relative group w-28 h-28 rounded-full overflow-hidden cursor-pointer bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary)]/40 focus:ring-offset-2 focus:ring-offset-[var(--color-m3-surface)] dark:focus:ring-offset-[var(--color-m3-dark-surface)]"
+                            className="relative group w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary)]/40 focus:ring-offset-2 focus:ring-offset-[var(--color-m3-surface)] dark:focus:ring-offset-[var(--color-m3-dark-surface)]"
                             aria-label={t('avatar.change')}
                         >
                             <img
@@ -414,33 +421,36 @@ const Account: React.FC<AccountProps> = ({
                                 className={`w-full h-full object-cover absolute inset-0 z-10 ${avatarError ? 'hidden' : 'block'}`}
                                 onError={() => setAvatarError(true)}
                             />
-                            <div className="w-full h-full flex items-center justify-center text-4xl font-light text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] absolute inset-0">
+                            <div className="w-full h-full flex items-center justify-center text-2xl font-light text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] absolute inset-0">
                                 {user.username.charAt(0).toUpperCase()}
                             </div>
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center z-20">
-                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-xs">
+                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-[0.625rem] text-center leading-tight px-1">
                                     {t('avatar.change')}
                                 </span>
                             </div>
                         </button>
-                        <div className="flex items-center gap-1.5 mt-1">
-                            <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-lg">{user.username}</span>
-                            {user.isAdmin && (
-                                <BadgeCheck className="w-5 h-5 text-[var(--color-m3-primary)]" strokeWidth={2.5} />
-                            )}
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-lg truncate">{user.username}</span>
+                                {user.isAdmin && (
+                                    <BadgeCheck className="w-5 h-5 shrink-0 text-[var(--color-m3-primary)]" strokeWidth={2.5} />
+                                )}
+                            </div>
+                            <button
+                                onClick={() => onNavigate('edit-profile')}
+                                className="mt-0.5 text-xs text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] flex items-center gap-1"
+                            >
+                                <Edit2 size={12} />
+                                {t('account.edit_profile')}
+                            </button>
                         </div>
-                        <button
-                            onClick={() => onNavigate('edit-profile')}
-                            className="text-xs text-[var(--color-m3-primary)] flex items-center gap-1"
-                        >
-                            <Edit2 size={12} />
-                            {t('account.edit_profile')}
-                        </button>
                     </div>
 
                     {/* Security */}
-                    <div className="mb-6">
+                    <section>
                         <span className={sectionLabel}>{t('account.security')}</span>
+                        <div className={settingsSection}>
                         <SettingsListItem
                             icon={Lock}
                             title={t('account.change_password')}
@@ -464,11 +474,13 @@ const Account: React.FC<AccountProps> = ({
                             description={t('account.sessions_desc')}
                             onClick={() => onNavigate('sessions')}
                         />
-                    </div>
+                        </div>
+                    </section>
 
                     {/* Data / Cloud */}
-                    <div className="mb-6">
+                    <section>
                         <span className={sectionLabel}>{t('settings.group.data')}</span>
+                        <div className={settingsSection}>
 
                         {/* Sync runs on its own — no prompts, no buttons. This line
                             is the only place it reports for duty, so a failure
@@ -481,41 +493,35 @@ const Account: React.FC<AccountProps> = ({
                             below, which is not where anyone looks after reading
                             "unlock it first". So this line becomes the button. */}
                         {syncStatus === 'locked' ? (
-                            <button
-                                type="button"
+                            <SettingsListItem
+                                icon={<SyncIcon status={syncStatus} className={iconCls} />}
+                                title={t('sync.status.locked')}
                                 onClick={() => { setUnlockError(null); setUnlockTarget({ purpose: 'sync' }); }}
-                                className={`w-full flex items-center gap-2.5 py-3 ${divider} text-start hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
-                            >
-                                <SyncIcon status={syncStatus} className={iconCls} />
-                                <p className="flex-1 min-w-0 text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                                    {t('sync.status.locked')}
-                                </p>
-                                <span className="text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0">
-                                    {t('sync.unlock_action')}
-                                </span>
-                            </button>
+                                showChevron={false}
+                                trailing={
+                                    <span className="text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0">
+                                        {t('sync.unlock_action')}
+                                    </span>
+                                }
+                            />
                         ) : (
-                            <div className={`flex items-center gap-2.5 py-3 ${divider}`}>
-                                <SyncIcon status={syncStatus} className={iconCls} />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                                        {t(`sync.status.${syncStatus}`)}
-                                    </p>
-                                    {/* The reason, not just the fact. Without this line a full
-                                        database, an oversized payload and a dead network were
-                                        all the same word. */}
-                                    {syncStatus === 'error' && (
-                                        <p className="text-xs text-red-600 dark:text-red-400">
-                                            {describeSyncError(syncErrorCode, t)}
-                                        </p>
-                                    )}
-                                    {lastSyncedAt !== null && syncStatus !== 'off' && (
-                                        <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                                            {(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt).toLocaleTimeString())}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
+                            <SettingsListItem
+                                icon={<SyncIcon status={syncStatus} className={iconCls} />}
+                                title={t(`sync.status.${syncStatus}`)}
+                                description={(syncStatus === 'error' || showLastSynced) ? (
+                                    <>
+                                        {/* The reason, not just the fact. Without this line a full
+                                            database, an oversized payload and a dead network were
+                                            all the same word. */}
+                                        {syncStatus === 'error' && (
+                                            <p className="text-red-600 dark:text-red-400">{describeSyncError(syncErrorCode, t)}</p>
+                                        )}
+                                        {showLastSynced && (
+                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString())}</p>
+                                        )}
+                                    </>
+                                ) : undefined}
+                            />
                         )}
 
                         {/* Disabled while locked: with no key on this device the
@@ -524,23 +530,19 @@ const Account: React.FC<AccountProps> = ({
                             ever produced "save failed". The row above is what
                             fixes that, so leave this one out of reach until it
                             has been. */}
-                        <button
+                        <SettingsListItem
+                            icon={savingCloud
+                                ? <Loader2 className={`${iconCls} animate-spin`} size={18} />
+                                : UploadCloud}
+                            title={t('account.backup_cloud')}
+                            description={t('account.backup_cloud_desc')}
                             onClick={handleSave}
                             disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
-                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded disabled:opacity-50`}
-                        >
-                            {savingCloud
-                                ? <Loader2 className={`${iconCls} animate-spin`} size={18} />
-                                : <UploadCloud className={iconCls} size={18} />
-                            }
-                            <div className="flex-1 text-start">
-                                <p className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-sm">{t('account.backup_cloud')}</p>
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.backup_cloud_desc')}</p>
-                            </div>
-                            {backupList.length > 0 && (
-                                <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] tabular-nums shrink-0">{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
+                            showChevron={false}
+                            trailing={backupList.length > 0 && (
+                                <span className={`${statusMuted} tabular-nums`}>{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
                             )}
-                        </button>
+                        />
 
                         {/* Backup list */}
                         {backupsLoading ? (
@@ -554,25 +556,38 @@ const Account: React.FC<AccountProps> = ({
                             </div>
                         ) : (
                             backupList.map(b => (
-                                <div key={b.id} className={divider}>
+                                <div key={b.id}>
+                                    {/* Laid out as a SettingsListItem (18px icon, gap-3,
+                                        py-4) so its text starts on the same line as every
+                                        row above; not one, because it holds its own
+                                        delete button. */}
                                     <div
-                                        className="flex items-center py-3 cursor-pointer hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded"
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-expanded={expandedId === b.id}
+                                        className="flex items-center gap-3 py-4 cursor-pointer"
                                         onClick={() => toggleExpand(b)}
+                                        onKeyDown={(e) => {
+                                            if (e.target !== e.currentTarget) return;
+                                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(b); }
+                                        }}
                                     >
-                                        <HardDrive size={14} className={`${iconCls} mr-3`} />
+                                        <HardDrive size={18} className={iconCls} />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">
+                                            <p className="text-sm font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">
                                                 {new Date(b.created_at * 1000).toLocaleString()}
                                             </p>
-                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{formatBytes(b.data_size)}</p>
+                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5 leading-relaxed">{formatBytes(b.data_size)}</p>
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
-                                            className="p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
+                                            aria-label={t('btn.delete')}
+                                            title={t('btn.delete')}
+                                            className="-my-1.5 p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
                                         >
-                                            <Trash2 size={14} />
+                                            <Trash2 size={16} />
                                         </button>
-                                        <ChevronDown size={14} className={`chev ${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
+                                        <ChevronDown size={16} className={`chev ${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
                                     </div>
                                     <div className="disclosure" data-open={expandedId === b.id}>
                                         <div className="disclosure-inner">
@@ -718,55 +733,49 @@ const Account: React.FC<AccountProps> = ({
                                 </div>
                             ))
                         )}
+                        </div>
+                    </section>
+
+                    {/* Sign out: a row like the rest, not a centred link, and
+                        above the danger zone so deleting the account is the
+                        last thing on the page. */}
+                    <div className={settingsSection}>
+                        <SettingsListItem
+                            icon={LogOut}
+                            title={t('account.sign_out')}
+                            onClick={onLogout}
+                            showChevron={false}
+                        />
                     </div>
 
                     {/* Danger Zone */}
-                    <div className="mb-6">
-                        <span className={`${sectionLabel} text-red-500`}>{t('account.danger_zone')}</span>
-                        <button
-                            onClick={() => onNavigate('delete-account')}
-                            className={`${rowBase} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] -mx-2 px-2 rounded`}
-                        >
-                            <Trash2 className="text-red-500 shrink-0" size={18} />
-                            <div className="text-start">
-                                <p className="font-medium text-red-600 dark:text-red-400 text-sm">{t('account.delete_account')}</p>
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.delete_account_desc')}</p>
-                            </div>
-                        </button>
-                    </div>
-
-                    {/* Sign out */}
-                    <div className="flex justify-center pt-2">
-                        <button
-                            onClick={onLogout}
-                            className="flex items-center gap-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] px-6 py-2 rounded-md text-sm"
-                        >
-                            <LogOut size={16} />
-                            {t('account.sign_out')}
-                        </button>
-                    </div>
+                    <section>
+                        <span className={`${sectionLabelBase} text-red-600 dark:text-red-400`}>{t('account.danger_zone')}</span>
+                        <div className={settingsSection}>
+                            <SettingsListItem
+                                icon={Trash2}
+                                title={t('account.delete_account')}
+                                description={t('account.delete_account_desc')}
+                                onClick={() => onNavigate('delete-account')}
+                                danger
+                            />
+                        </div>
+                    </section>
                 </div>
             ) : (
-                <div className="max-w-sm">
+                <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm`}>
                     {/* Login / Register tabs */}
-                    <div className={`flex gap-5 ${divider} mb-5`}>
-                        {[
-                            { key: true, label: t('auth.sign_in') },
-                            { key: false, label: t('auth.sign_up') },
-                        ].map(({ key, label }) => (
-                            <button
-                                key={String(key)}
-                                onClick={() => { setIsLogin(key); setAuthError(null); setNeedsTOTP(false); }}
-                                className={`text-sm pb-2 -mb-px border-b-2 ${isLogin === key
-                                    ? 'font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] border-[var(--color-m3-primary)]'
-                                    : 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] border-transparent'
-                                }`}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                    </div>
+                    <Tabs
+                        tabs={[
+                            { id: 'sign-in', label: t('auth.sign_in') },
+                            { id: 'sign-up', label: t('auth.sign_up') },
+                        ]}
+                        value={isLogin ? 'sign-in' : 'sign-up'}
+                        onChange={id => { setIsLogin(id === 'sign-in'); setAuthError(null); setNeedsTOTP(false); }}
+                        className="mb-5"
+                    />
 
+                    <div key={isLogin ? 'sign-in' : 'sign-up'} className={authAnim}>
                     <form onSubmit={handleAuthSubmit} className="space-y-4">
                         {authError && (
                             <p className="text-sm text-red-500 dark:text-red-400">
@@ -905,6 +914,7 @@ const Account: React.FC<AccountProps> = ({
                             </>
                         )}
                     </form>
+                    </div>
                 </div>
             )}
 

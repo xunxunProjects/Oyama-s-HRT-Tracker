@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Clock3, ChevronDown, Check } from 'lucide-react';
+import { CalendarDays, Clock3, ChevronDown } from 'lucide-react';
+import Tick from './Tick';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -132,7 +133,7 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                                     : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'}`}
                         >
                             <span>{option.label}</span>
-                            {option.value === value && <Check size={14} className="text-[var(--color-m3-primary)]" strokeWidth={2.5} />}
+                            <Tick on={option.value === value} />
                         </button>
                     ))}
                 </div>,
