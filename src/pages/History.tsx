@@ -251,7 +251,7 @@ const History: React.FC<HistoryProps> = ({
                                         className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}`}
                                     >
                                         {selectMode ? (
-                                            <span className={`check-dot mt-[3px] w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-[var(--color-m3-primary)] border-[var(--color-m3-primary)]' : 'border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]'}`}>
+                                            <span className={`icon-line text-sm check-dot w-4 h-4 rounded-full border justify-center ${isSelected ? 'bg-[var(--color-m3-primary)] border-[var(--color-m3-primary)]' : 'border-[var(--color-m3-outline)] dark:border-[var(--color-m3-dark-outline)]'}`}>
                                                 <Tick on={isSelected} size={11} strokeWidth={2.5} tone="current" className="text-white" />
                                             </span>
                                         ) : null}

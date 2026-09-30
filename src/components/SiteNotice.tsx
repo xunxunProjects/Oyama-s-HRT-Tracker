@@ -97,7 +97,7 @@ const SiteNoticeBanner: React.FC = () => {
 
     return (
         <div className={`shrink-0 flex items-start gap-1.5 px-6 md:px-10 pt-2 pb-1 text-[0.8125rem] leading-snug ${tone}`}>
-            <Icon size={14} strokeWidth={1.75} className="mt-[3px] shrink-0" />
+            <span className="icon-line"><Icon size={14} strokeWidth={1.75} /></span>
             <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">{linkify(noticeText(notice, lang))}</p>
             <button
                 onClick={dismiss}

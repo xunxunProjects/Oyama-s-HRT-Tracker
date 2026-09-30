@@ -400,7 +400,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             {/* Mandatory setup notice */}
             {setupRequired && (
                 <div className={`px-6 md:px-10 mb-4 flex items-start gap-2 text-sm ${muted}`}>
-                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span className="icon-line"><AlertCircle size={14} /></span>
                     <span>{t('auth.setup_2fa_required')}</span>
                 </div>
             )}

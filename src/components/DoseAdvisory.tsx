@@ -10,7 +10,7 @@ const splitLead = (text: string): [string, string] => {
     return m ? [m[1], m[2]] : [text, ''];
 };
 
-const alertIcon = <AlertCircle size={14} strokeWidth={1.75} className="mt-[3px] shrink-0 text-amber-700/90 dark:text-amber-400/85" />;
+const alertIcon = <span className="icon-line"><AlertCircle size={14} strokeWidth={1.75} className="text-amber-700/90 dark:text-amber-400/85" /></span>;
 const leadTone = 'font-medium text-amber-700 dark:text-amber-400';
 
 // Plain text — no card, no fill, no border. This app never wraps a warning in a
@@ -100,7 +100,7 @@ const DoseAdvisoryNotice: React.FC<{
                     onClick={onCalibrate}
                     className="group flex items-start gap-2 text-left text-xs leading-relaxed text-muted"
                 >
-                    <CalibrationCurveIcon size={14} strokeWidth={1.75} className="lucide mt-[1px] shrink-0 opacity-70" />
+                    <span className="icon-line"><CalibrationCurveIcon size={14} strokeWidth={1.75} className="lucide opacity-70" /></span>
                     <span>
                         {t('advisory.calibrate.text')}{' '}
                         <span className="font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">

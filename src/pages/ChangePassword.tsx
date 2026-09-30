@@ -41,7 +41,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <div className="flex items-start gap-3">
-                    <Lock size={18} className={`${muted} shrink-0 mt-0.5`} />
+                    <span className="icon-line text-sm leading-relaxed"><Lock size={18} className={muted} /></span>
                     <p className={`text-sm leading-relaxed ${muted}`}>{t('account.change_password_desc')}</p>
                 </div>
 

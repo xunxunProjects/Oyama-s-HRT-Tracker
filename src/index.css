@@ -378,6 +378,18 @@ body {
 }
 
 /* Shared UI utilities */
+
+/* An icon beside text. The box is exactly one line of the surrounding text
+   tall, so the icon sits centred on the first line whether that text is
+   text-xs or text-sm, snug or relaxed, one line or four. Replaces the
+   per-site mt-0.5 / mt-[3px] nudges, which were tuned by eye and drifted. */
+.icon-line {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 1.5em;
+    height: 1lh;
+}
 .text-muted {
     color: var(--color-m3-on-surface-variant);
 }

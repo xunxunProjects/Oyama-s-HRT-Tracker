@@ -777,8 +777,8 @@ const Admin: React.FC = () => {
                                 : 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
                         }`}>
                             {noticeLevel === 'warn'
-                                ? <AlertCircle size={14} strokeWidth={1.75} className="mt-[3px] shrink-0" />
-                                : <Megaphone size={14} strokeWidth={1.75} className="mt-[3px] shrink-0" />}
+                                ? <span className="icon-line"><AlertCircle size={14} strokeWidth={1.75} /></span>
+                                : <span className="icon-line"><Megaphone size={14} strokeWidth={1.75} /></span>}
                             <span>{noticePreview}</span>
                         </p>
                     </div>
