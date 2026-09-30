@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
-import PixelMark, { MarkName, MarkState } from '../components/PixelMark';
+import Doodle, { DoodleName } from '../components/Doodle';
+import DoseRings from '../components/DoseRings';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -39,6 +40,9 @@ export const markOnboardingSeen = (): void => {
 
 const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
 
+/** A row of the chart step relative to the chart: its beat still to come, playing, or played. */
+type MarkState = 'asleep' | 'playing' | 'done';
+
 /**
  * The three slots of the "how it works" step, and the only step that splits in
  * two on a wide window — because the chart is the only thing in the intro that
@@ -65,40 +69,6 @@ const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 /**
- * Progress, in the chart's own vocabulary: the same hollow dose ring
- * OnboardingCurve draws, each one standing alone. Filled behind you, hollow
- * ahead — so the mark has already been read once by the time the chart uses it
- * for real.
- */
-const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
-    const GAP = 15, PAD = 7, MID = 9;
-    const width = PAD * 2 + GAP * (count - 1);
-    return (
-        <svg
-            viewBox={`0 0 ${width} 18`}
-            width={width}
-            height={18}
-            aria-hidden="true"
-            focusable="false"
-            className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
-        >
-            {Array.from({ length: count }, (_, i) => (
-                <circle
-                    key={i}
-                    className={`onb-ring ${i <= at
-                        ? 'fill-current stroke-current'
-                        : 'fill-[var(--color-m3-surface-dim)] stroke-[var(--color-m3-outline-variant)] dark:fill-[var(--color-m3-dark-surface)] dark:stroke-[var(--color-m3-dark-outline-variant)]'}`}
-                    cx={PAD + i * GAP}
-                    cy={MID}
-                    r={i === at ? 4.2 : 3}
-                    strokeWidth={1.5}
-                />
-            ))}
-        </svg>
-    );
-};
-
-/**
  * Softens the last rows of the language list while any are still below the
  * fold. The list's scrollbar is hidden like every other scroller in the app, so
  * without this a row can end flush against the footer and read as the end of
@@ -110,35 +80,26 @@ const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent
 const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
 
 interface PointProps {
-    /** One of the pixel sprites in PixelMark. */
-    mark: MarkName;
+    /** One of the drawings in Doodle. */
+    mark: DoodleName;
     title: string;
     desc: string;
     /**
      * Where the chart above is relative to this row's beat — see HowStep. The
-     * mark acts the beat out and the title dims while it is still to come,
-     * which is what stops the chart reading as decoration floating over an
+     * drawing and the title stay grey while the beat is still to come, which
+     * is what stops the chart reading as decoration floating over an
      * unrelated list. Omitted on the rows of steps that have no chart.
      */
     state?: MarkState;
-    /** The beat's length in ms, for the mark to play across. */
-    duration?: number;
-    /** Restarts the mark's beat when it changes. */
-    playKey?: number;
     /** Makes the row a button: the beat it names replays from the top. */
     onClick?: () => void;
 }
 
-const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', duration, playKey, onClick }) => {
+const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', onClick }) => {
     const className = `flex w-full items-start gap-3.5 py-4 text-start ${divider} last:border-b-0`;
     const body = (
         <>
-            {/* A fixed box, not a well: the sprites are different heights and
-                have to sit on one column, but they are drawings, and a drawing
-                in a tinted square is an icon again. */}
-            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
-                <PixelMark key={playKey} name={mark} size={28} state={state} duration={duration} />
-            </div>
+            <Doodle name={mark} asleep={state === 'asleep'} className="-mt-0.5" />
             <div>
                 <p className={`text-[0.9375rem] font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>{title}</p>
                 <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
@@ -154,7 +115,7 @@ const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', durati
 const CHART_STEP = 2;
 
 /** Rows of the "how it works" step, in beat order — see BEATS. */
-const HOW_ROWS: { mark: MarkName; title: string; desc: string }[] = [
+const HOW_ROWS: { mark: DoodleName; title: string; desc: string }[] = [
     { mark: 'syringe', title: 'onboarding.how_log', desc: 'onboarding.how_log_desc' },
     { mark: 'chart', title: 'onboarding.how_chart', desc: 'onboarding.how_chart_desc' },
     { mark: 'vial', title: 'onboarding.how_calibrate', desc: 'onboarding.how_calibrate_desc' },
@@ -242,8 +203,6 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
                         title={t(title)}
                         desc={t(desc)}
                         state={stateOf(i)}
-                        duration={BEATS[i]}
-                        playKey={playKey}
                         onClick={() => play(i as Beat)}
                     />
                 ))}

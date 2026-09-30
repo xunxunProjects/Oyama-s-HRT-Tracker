@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info, Share2, ChevronRight } from 'lucide-react';
-import { DoseEvent, Ester, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
+import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import EstimateInfoModal from '../components/EstimateInfoModal';
@@ -14,13 +14,10 @@ import { usePixelCats } from '../contexts/PixelCatContext';
 import { AppTheme } from '../constants';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
-import { Regimen, Supply, graceH, supplyStatus } from '../utils/regimen';
-import { CpaStatus, CpaPlan } from '../utils/cpa';
-import InlineChoice from '../components/InlineChoice';
-import { esterName, doseText, supplyLabel, dueLabel, relativeLabel, fill, fillNodes } from '../utils/regimenText';
+import { Regimen, Supply, supplyStatus } from '../utils/regimen';
+import { PlanItem, planStatus } from '../utils/plan';
+import { planItemLabel, supplyLabel, dueLabel, fill, fillNodes } from '../utils/regimenText';
 import { headerAction } from '../components/PageHeader';
-// The two ways it's taken, then the way out.
-const CPA_MENU: readonly CpaPlan[] = ['daily', 'alternate', 'off'];
 
 interface HomeProps {
     t: (key: string) => string;
@@ -41,16 +38,16 @@ interface HomeProps {
     regimens: Regimen[];
     supplies: Supply[];
     nowH: number;
-    onLogRegimen: (r: Regimen) => void;
     onNavigateToForecast: () => void;
     supplyLeadDays: number;
-    /** Today's cyproterone: taken, still to take, a day off, or null when it isn't part of the regimen. */
-    cpa: CpaStatus | null;
-    cpaPlan: CpaPlan;
-    onCpaPlanChange: (p: CpaPlan) => void;
-    onTakeCpa: () => void;
-    /** Present only while the dose just logged from here can still be taken back. */
-    onUndoCpa?: () => void;
+    /** The medication plan; each item gets a line saying where today stands, and a button that logs its dose. */
+    plan: PlanItem[];
+    onLogPlanItem: (item: PlanItem) => void;
+    /** The item whose dose was just logged from here and can still be taken back. */
+    /** Plan items with a dose tapped in from here that can still be taken back. */
+    undoableIds: string[];
+    onUndoPlanLog: (itemId: string) => void;
+    onNavigateToPlan: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -72,14 +69,13 @@ const Home: React.FC<HomeProps> = ({
     regimens,
     supplies,
     nowH,
-    onLogRegimen,
     onNavigateToForecast,
     supplyLeadDays,
-    cpa,
-    cpaPlan,
-    onCpaPlanChange,
-    onTakeCpa,
-    onUndoCpa,
+    plan,
+    onLogPlanItem,
+    undoableIds,
+    onUndoPlanLog,
+    onNavigateToPlan,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
@@ -92,8 +88,6 @@ const Home: React.FC<HomeProps> = ({
     // toward calibration when there's no lab yet to anchor the estimate.
     const doseAdvisory = React.useMemo(() => getDoseAdvisory(events), [events]);
 
-    // At most two, soonest first: the hormone and, if there is one, the blocker.
-    const nextUp = regimens.slice(0, 2);
     // A supply nothing current uses never runs low.
     const lowSupplies = React.useMemo(() => supplies
         .map(s => supplyStatus(s, events, regimens, nowH))
@@ -137,8 +131,8 @@ const Home: React.FC<HomeProps> = ({
 
     // The second reading, flush right at the same size as the first: for
     // transmasc, the same total T in nmol/L. Transfem has none. Cyproterone
-    // used to sit here as an estimated level; it is now a line below saying
-    // whether today's was taken.
+    // used to sit here as an estimated level; it is now an item of the plan,
+    // with a line below saying whether today's was taken.
     const companion = isTransmasc && currentT > 0
         ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/l' }
         : null;
@@ -243,65 +237,51 @@ const Home: React.FC<HomeProps> = ({
                     <DoseAdvisoryNotice advisory={doseAdvisory} hormoneAdvisory={hormoneAdvisory} showCalibrate={showCalibrate} onCalibrate={onNavigateToLab} t={t} />
                 </div>
 
-                {/* What's due next, one line per current regimen, and any medicine
-                    about to run out. Plain text: amber only when it needs acting on. */}
-                {(nextUp.length > 0 || cpa || lowSupplies.length > 0) && (
+                {/* Where today stands for each item of the plan, and any medicine
+                    about to run out. By calendar day: no clock times, and a dose
+                    that is late is simply still due. Plain text throughout. */}
+                {(plan.length > 0 || lowSupplies.length > 0) && (
                     <div className="mt-4 space-y-1.5">
-                        {nextUp.map(r => {
-                            const overdue = nowH > r.nextH + graceH(r);
-                            const close = nowH >= r.nextH - Math.min(12, r.intervalH / 2);
+                        {plan.map(item => {
+                            // The real moment, not the minute clock: a dose tapped just now must count at once.
+                            const st = planStatus(item, events, Date.now() / 3600000);
+                            const sentence = st.kind === 'taken' ? 'plan.taken'
+                                : st.kind === 'rest' ? (st.yesterday && item.everyDays === 2 ? 'plan.rest_yesterday' : 'plan.rest')
+                                : item.everyDays > 1 ? 'plan.due_interval'
+                                : st.done > 0 ? 'plan.due_partial' : 'plan.due';
                             return (
-                                <div key={r.key} className="flex items-center justify-between gap-3 min-h-7">
-                                    {/* One sentence, in the reader's language; the drug and the countdown carry the weight. */}
-                                    <p className={`min-w-0 text-sm leading-relaxed ${muted}`}>
-                                        {fillNodes(t('next.sentence'), {
-                                            drug: <span className={on}>{esterName(r.ester, t)}</span>,
-                                            dose: doseText(r, t),
-                                            route: <span className="whitespace-nowrap">{t(`regimen.route.${r.route}`)}</span>,
-                                            when: <span className="whitespace-nowrap">{dueLabel(r.nextH, lang, true, nowH)}</span>,
-                                            countdown: <span className={`whitespace-nowrap ${overdue ? 'text-amber-600 dark:text-amber-400 font-medium' : on}`}>{relativeLabel(r.nextH, nowH, t)}</span>,
+                                <div key={item.id} className="flex items-center justify-between gap-3 min-h-7">
+                                    <p className={`min-w-0 text-sm leading-relaxed ${st.kind === 'due' ? on : muted}`}>
+                                        {fillNodes(t(sentence), {
+                                            drug: <span className={on}>{planItemLabel(item, plan, t)}</span>,
+                                            verb: t(`plan.verb.${item.route}`),
+                                            done: st.kind === 'due' ? st.done : 0,
+                                            total: st.kind === 'due' ? st.total : 0,
+                                            left: st.kind === 'due' ? st.total - st.done : 0,
+                                            day: st.kind === 'rest' ? <span className="whitespace-nowrap">{dueLabel(st.nextH, lang, false, nowH)}</span> : null,
                                         })}
                                     </p>
-                                    {close && (
-                                        <button
-                                            type="button"
-                                            onClick={() => onLogRegimen(r)}
-                                            className={`${headerAction} -mr-2 shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
-                                        >
-                                            {t('next.log')}
-                                        </button>
-                                    )}
+                                    {/* Undo stays as long as a tap is on record, beside the next tap
+                                        while more doses are due today and alone once they are all in. */}
+                                    <div className="-mr-2 flex shrink-0 items-center">
+                                        {undoableIds.includes(item.id) && (
+                                            <button type="button" onClick={() => onUndoPlanLog(item.id)} className={`${headerAction} ${muted}`}>
+                                                {t('plan.undo')}
+                                            </button>
+                                        )}
+                                        {st.kind !== 'taken' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onLogPlanItem(item)}
+                                                className={`${headerAction} ${st.kind === 'due' ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted}`}
+                                            >
+                                                {t(`plan.done.${item.route}`)}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
-                        {cpa && (
-                            <div className="flex items-center justify-between gap-3 min-h-7">
-                                <p className={`min-w-0 text-sm leading-relaxed ${cpa === 'due' ? on : muted}`}>
-                                    {/* How often is chosen right here, on the word that says it. */}
-                                    {fillNodes(t(`cpa.${cpa}`), {
-                                        drug: <span className={on}>{esterName(Ester.CPA, t)}</span>,
-                                        plan: (
-                                            <InlineChoice
-                                                value={cpaPlan}
-                                                onChange={onCpaPlanChange}
-                                                label={t('cpa.plan')}
-                                                options={CPA_MENU.map(p => ({ value: p, label: p === 'off' ? '' : t(`cpa.every.${p}`), menuLabel: t(`cpa.menu.${p}`) }))}
-                                            />
-                                        ),
-                                    })}
-                                </p>
-                                {cpa === 'due' && (
-                                    <button type="button" onClick={onTakeCpa} className={`${headerAction} -mr-2 shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}>
-                                        {t('cpa.log')}
-                                    </button>
-                                )}
-                                {cpa === 'taken' && onUndoCpa && (
-                                    <button type="button" onClick={onUndoCpa} className={`${headerAction} -mr-2 shrink-0 ${muted}`}>
-                                        {t('cpa.undo')}
-                                    </button>
-                                )}
-                            </div>
-                        )}
                         {lowSupplies.map(({ supply, remaining, runOutH }) => {
                             const name = supplyLabel(supply, t);
                             return (
@@ -354,18 +334,26 @@ const Home: React.FC<HomeProps> = ({
                         />
                     </div>
                 )}
-                {events.length > 0 && (
-                    <div className="mt-6 flex justify-end">
+                <div className="mt-6 -mr-2 flex justify-end gap-1">
+                    <button
+                        type="button"
+                        onClick={onNavigateToPlan}
+                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                    >
+                        {t('plan.title')}
+                        <ChevronRight size={15} />
+                    </button>
+                    {events.length > 0 && (
                         <button
                             type="button"
                             onClick={onNavigateToForecast}
-                            className={`${headerAction} -mr-2 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                            className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
                         >
                             {t('forecast.entry')}
                             <ChevronRight size={15} />
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </main>
         </>
     );
