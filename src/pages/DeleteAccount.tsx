@@ -62,7 +62,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <div className="flex items-start gap-3">
-                    <AlertTriangle size={18} className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+                    <span className="icon-line text-sm leading-relaxed"><AlertTriangle size={18} className="text-red-500 dark:text-red-400" /></span>
                     <div className="space-y-1">
                         <p className={`text-sm leading-relaxed ${muted}`}>{t('account.delete_account_desc')}</p>
                         <p className="text-sm font-medium text-red-600 dark:text-red-400 leading-relaxed">{t('account.delete_warning')}</p>

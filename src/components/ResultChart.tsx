@@ -3,10 +3,9 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
     SimulationResult, DoseEvent, LabResult, HRTMode,
-    interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T,
+    interpolateConcentration_E2, interpolateConcentration_T,
     convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS,
 } from '../../logic';
-import { Activity } from 'lucide-react';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useElementSize } from '../hooks/useElementSize';
 
@@ -137,7 +136,6 @@ const ResultChart = ({
     calibrationFn = (_t: number) => 1,
     onPointClick,
     isDarkMode = false,
-    isMono = false,
     mode,
     title,
     timeZone,
@@ -148,7 +146,6 @@ const ResultChart = ({
     calibrationFn?: (timeH: number) => number;
     onPointClick?: (e: DoseEvent) => void;
     isDarkMode?: boolean;
-    isMono?: boolean;
     mode?: HRTMode;
     title?: string;
     timeZone?: string;
@@ -197,39 +194,29 @@ const ResultChart = ({
         ? { primary: '#D8927C', second: '#7A776F', grid: '#2E2C28', axis: '#7A776F', faint: '#5C5953', dot: '#1C1B18', lab: '#E0A38C' }
         : { primary: '#CC785C', second: '#C2BDB3', grid: '#E7E4DD', axis: '#A8A59E', faint: '#C2BDB3', dot: '#FAF9F7', lab: '#B5664C' };
 
-    // Which series are relevant for the current mode / logged doses.
-    const hasE2 = isTransmasc ? false : events.some(e => e.ester !== 'CPA' && !T_ESTERS.has(e.ester));
-    const hasCPA = !isTransmasc && events.some(e => e.ester === 'CPA');
-    const primaryIsCPA = !isTransmasc && !hasE2 && hasCPA;
-    const hasSecondary = hasE2 && hasCPA; // CPA shown on its own right-hand axis
-
+    // One series per mode: total T for transmasc, E2 for transfem. Cyproterone
+    // is not drawn. Its level isn't modelled; the Overview only tracks whether
+    // each dose was taken.
     const primaryMeta = isTransmasc
         ? { label: t('label.total_t'), unit: 'ng/dl', decimals: 0 }
-        : primaryIsCPA
-            ? { label: t('label.cpa_chart'), unit: 'ng/ml', decimals: 2 }
-            : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
+        : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
 
-    // Typical target band for the primary series, matching the reference ranges the
-    // app uses for its status labels (see useAppData currentStatus): transmasc total-T
-    // sits in the ~300–1000 ng/dL male range; transfem E2 in the ~100–200 pg/mL band.
-    // CPA has no target range, so it gets none. Shown as a quiet shaded region only.
-    const primaryTarget = useMemo<{ low: number; high: number } | null>(() => {
-        if (isTransmasc) return { low: 300, high: 1000 };
-        if (primaryIsCPA) return null;
-        return { low: 100, high: 200 };
-    }, [isTransmasc, primaryIsCPA]);
+    // Typical target band, matching the reference ranges the app uses for its
+    // status labels (see useAppData currentStatus): transmasc total-T sits in
+    // the ~300–1000 ng/dL male range; transfem E2 in the ~100–200 pg/mL band.
+    const primaryTarget = useMemo<{ low: number; high: number }>(
+        () => (isTransmasc ? { low: 300, high: 1000 } : { low: 100, high: 200 }),
+        [isTransmasc],
+    );
 
-    // Resample the simulation into the (time, primary, secondary) shape we plot.
+    // Resample the simulation into the (time, value) shape we plot.
     const data = useMemo(() => {
-        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number; s: number | null }[];
-        return sim.timeH.map((h, i) => {
-            const time = h * HOUR;
-            if (isTransmasc) return { t: time, p: sim.concNGdL_T?.[i] ?? 0, s: null };
-            const e2 = sim.concPGmL_E2[i] * calibrationFn(h);
-            const cpa = sim.concPGmL_CPA[i];
-            return { t: time, p: primaryIsCPA ? cpa : e2, s: hasSecondary ? cpa : null };
-        });
-    }, [sim, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
+        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number }[];
+        return sim.timeH.map((h, i) => ({
+            t: h * HOUR,
+            p: isTransmasc ? (sim.concNGdL_T?.[i] ?? 0) : sim.concPGmL_E2[i] * calibrationFn(h),
+        }));
+    }, [sim, calibrationFn, isTransmasc]);
 
     // A clock that ticks, not one that is read on every render. `now` anchors the
     // visible window, the "now" marker and the calibration read-off; taking it
@@ -302,41 +289,32 @@ const ResultChart = ({
             .filter(l => l.t >= t0 && l.t <= t1);
     }, [labResults, isTransmasc, t0, t1]);
 
-    // Dose markers sit on whichever axis their compound belongs to.
+    // Dose markers sit on the curve at the moment of each dose. Cyproterone
+    // doses have no curve to sit on, so they get no marker.
     const markers = useMemo(() => {
         if (!sim) return [];
         return events.map(e => {
             const isT = T_ESTERS.has(e.ester);
-            const isCPA = e.ester === 'CPA';
-            if (isTransmasc ? !isT : isT) return null;
-            let value: number | null, axis: 'p' | 's';
-            if (isTransmasc) { value = interpolateConcentration_T(sim, e.timeH); axis = 'p'; }
-            else if (isCPA) { value = interpolateConcentration_CPA(sim, e.timeH); axis = hasSecondary ? 's' : 'p'; }
-            else { const v = interpolateConcentration_E2(sim, e.timeH); value = v == null ? null : v * calibrationFn(e.timeH); axis = 'p'; }
+            if (e.ester === 'CPA' || (isTransmasc ? !isT : isT)) return null;
+            const value = isTransmasc
+                ? interpolateConcentration_T(sim, e.timeH)
+                : (() => { const v = interpolateConcentration_E2(sim, e.timeH); return v == null ? null : v * calibrationFn(e.timeH); })();
             const v = value != null && Number.isFinite(value) ? value : 0;
-            return { t: e.timeH * HOUR, v, axis, event: e };
-        }).filter((m): m is { t: number; v: number; axis: 'p' | 's'; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
-    }, [sim, events, isTransmasc, hasSecondary, calibrationFn, t0, t1]);
+            return { t: e.timeH * HOUR, v, event: e };
+        }).filter((m): m is { t: number; v: number; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
+    }, [sim, events, isTransmasc, calibrationFn, t0, t1]);
 
     // Y domains scale to what's visible in the current window.
     const yPrimary = useMemo(() => {
         let mx = -Infinity;
         for (const d of slice) if (d.p > mx) mx = d.p;
         for (const l of labPoints) if (l.v > mx) mx = l.v;
-        for (const m of markers) if (m.axis === 'p' && m.v > mx) mx = m.v;
+        for (const m of markers) if (m.v > mx) mx = m.v;
         // Keep the target band's lower edge on-screen so "below target" reads clearly,
         // without forcing the whole (often much higher) band into view.
-        if (primaryTarget) mx = Math.max(mx, primaryTarget.low * 1.05);
+        mx = Math.max(mx, primaryTarget.low * 1.05);
         return buildYDomain(0, mx);
     }, [slice, labPoints, markers, primaryTarget]);
-
-    const ySecondary = useMemo(() => {
-        if (!hasSecondary) return [0, 1] as [number, number];
-        let mx = -Infinity;
-        for (const d of slice) if (d.s != null && d.s > mx) mx = d.s;
-        for (const m of markers) if (m.axis === 's' && m.v > mx) mx = m.v;
-        return buildYDomain(0, mx);
-    }, [slice, markers, hasSecondary]);
 
     // Layout. The plot is drawn in raw SVG units, so unlike the rest of the UI
     // it does not follow the root font size. Reading that size back keeps the
@@ -351,7 +329,9 @@ const ResultChart = ({
     const axisFont = 10 * ui;
 
     const mL = 32 * ui;
-    const mR = (hasSecondary ? 32 : 10) * ui;
+    // Mirrors the left gutter: the plot stays centred in the column, and the
+    // last date label, centred on the plot's right edge, has room to finish.
+    const mR = mL;
     const mT = 14 * ui;
     const mB = 26 * ui;
     const plotW = Math.max(0, width - mL - mR);
@@ -363,14 +343,12 @@ const ResultChart = ({
     const sweepDelay = (x: number) =>
         plotW > 0 ? `${Math.round(Math.max(0, Math.min(1, (x - mL) / plotW)) * SWEEP_MS)}ms` : '0ms';
 
-    // The vertical axes ease too. Targets stay exact, so hit-testing and the
+    // The vertical axis eases too. Targets stay exact, so hit-testing and the
     // window maths are unaffected; only what is drawn glides.
     const [vy0, vy1] = useEasedPair(yPrimary, false);
-    const [vs0, vs1] = useEasedPair(ySecondary, false);
 
     const X = (time: number) => mL + (vt1 === vt0 ? 0 : ((time - vt0) / (vt1 - vt0)) * plotW);
     const YP = (v: number) => mT + plotH - ((v - vy0) / (vy1 - vy0)) * plotH;
-    const YS = (v: number) => mT + plotH - ((v - vs0) / (vs1 - vs0)) * plotH;
 
     // Monotone cubic Hermite interpolation (Fritsch–Carlson), the same curve
     // family as d3's curveMonotoneX: smoothly connects the sample points
@@ -421,7 +399,7 @@ const ResultChart = ({
         return out;
     };
 
-    const linePath = (key: 'p' | 's') => {
+    const linePath = () => {
         let d = '';
         let xs: number[] = [];
         let ys: number[] = [];
@@ -431,10 +409,9 @@ const ResultChart = ({
             ys = [];
         };
         for (const pt of slice) {
-            const val = key === 'p' ? pt.p : pt.s;
-            if (val == null || !Number.isFinite(val)) { flush(); continue; }
+            if (!Number.isFinite(pt.p)) { flush(); continue; }
             xs.push(X(pt.t));
-            ys.push(key === 'p' ? YP(val) : YS(val));
+            ys.push(YP(pt.p));
         }
         flush();
         return d;
@@ -458,9 +435,7 @@ const ResultChart = ({
 
     // Label sets for both axes, each carrying whatever it is replacing.
     const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
-    const ysTickVals = useMemo(() => ticksFor(ySecondary), [ySecondary]);
     const yFade = useFadingSet(yTickVals, yTickVals.join(','));
-    const ysFade = useFadingSet(ysTickVals, ysTickVals.join(','));
     const xFade = useFadingSet(xTicks, xTicks.map(t => t.label).join('|'), dragging);
 
     // Mid-rescale an incoming set can be crushed together. Its rules still
@@ -474,18 +449,9 @@ const ResultChart = ({
         const h = now / HOUR;
         const v = isTransmasc
             ? interpolateConcentration_T(sim, h)
-            : primaryIsCPA
-                ? interpolateConcentration_CPA(sim, h)
-                : (() => { const e = interpolateConcentration_E2(sim, h); return e == null ? null : e * calibrationFn(h); })();
+            : (() => { const e = interpolateConcentration_E2(sim, h); return e == null ? null : e * calibrationFn(h); })();
         return v != null && Number.isFinite(v) ? v : null;
-    }, [sim, now, isTransmasc, primaryIsCPA, calibrationFn]);
-
-    // "Now" position on the secondary (CPA) curve.
-    const nowValS = useMemo(() => {
-        if (!sim || !hasSecondary) return null;
-        const v = interpolateConcentration_CPA(sim, now / HOUR);
-        return v != null && Number.isFinite(v) ? v : null;
-    }, [sim, now, hasSecondary]);
+    }, [sim, now, isTransmasc, calibrationFn]);
 
     // Hover lookup — nearest sample to the pointer.
     const updateHover = (clientX: number) => {
@@ -555,13 +521,11 @@ const ResultChart = ({
         { key: 'all', label: t('chart.range_all') },
     ];
 
+    // Pages only draw the chart once there are doses, and say "no records"
+    // themselves (with their own illustration) when there aren't. So this is
+    // just a held space of the chart's height, never a second empty state.
     if (!sim || sim.timeH.length === 0) {
-        return (
-            <div className="h-72 md:h-96 flex flex-col items-center justify-center text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
-                <Activity className="w-10 h-10 mb-3 opacity-25" strokeWidth={1.25} />
-                <p className="text-sm">{t('timeline.empty')}</p>
-            </div>
-        );
+        return <div className="h-72 md:h-96" aria-hidden="true" />;
     }
 
     const chipBase = 'relative px-2 py-0.5 text-[0.6875rem] rounded-md border border-transparent transition-colors';
@@ -578,7 +542,7 @@ const ResultChart = ({
                 <div className="flex items-center gap-2 shrink-0">
                     {Math.abs(calFactor - 1) > 0.001 && (
                         <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-70 tabular-nums">
-                            ×{calFactor.toFixed(2)}
+                            {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
                         </span>
                     )}
                     <div ref={chipsRef} className="relative flex items-center gap-0.5">
@@ -609,19 +573,6 @@ const ResultChart = ({
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
                 </span>
-                {hasSecondary && (
-                    <span className="flex items-center gap-1.5">
-                        <span
-                            className="w-3.5 h-[2px] rounded-full"
-                            style={{
-                                background: isMono
-                                    ? `repeating-linear-gradient(90deg, ${c.second} 0, ${c.second} 2px, transparent 2px, transparent 5px)`
-                                    : c.second,
-                            }}
-                        />
-                        {t('label.cpa_chart')}
-                    </span>
-                )}
             </div>
 
             {/* Plot */}
@@ -692,25 +643,6 @@ const ResultChart = ({
                             )
                         )}
 
-                        {/* Secondary (CPA) axis labels */}
-                        {hasSecondary && ([['out', ysFade.prev, 1 - ysFade.u], ['in', ysFade.next, ysFade.u]] as const).map(([tag, set, o]) =>
-                            o <= 0.002 ? null : (
-                                <g key={`ysg-${tag}`} opacity={o}>
-                                    {set.map((v, i) => {
-                                        const y = YS(v);
-                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
-                                        return (
-                                            <text key={`ys-${i}`}
-                                                  className={tag === 'in' ? 'chart-appear' : undefined}
-                                                  style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
-                                                  x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start"
-                                                  fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
-                                        );
-                                    })}
-                                </g>
-                            )
-                        )}
-
                         {/* X axis labels, on the same treatment */}
                         {([['out', xFade.prev, 1 - xFade.u], ['in', xFade.next, xFade.u]] as const).map(([tag, set, o]) =>
                             o <= 0.002 ? null : (
@@ -732,21 +664,12 @@ const ResultChart = ({
 
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
-                                {/* Primary curve — dotted in mono when it's the CPA series */}
-                                <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
-
-                                {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
-                                {hasSecondary && (
-                                    <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
-                                )}
+                                <path d={linePath()} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
                             </g>
 
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
                                 <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
-                            )}
-                            {nowValS != null && now >= t0 && now <= t1 && (
-                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YS(nowValS)} r={4} fill={c.second} stroke={c.dot} strokeWidth={2} />
                             )}
                             {nowVal != null && now >= t0 && now <= t1 && (
                                 <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
@@ -755,8 +678,7 @@ const ResultChart = ({
                             {/* Dose markers (clickable) */}
                             {markers.map((m, i) => {
                                 const cx = X(m.t);
-                                const cy = m.axis === 'p' ? YP(m.v) : YS(m.v);
-                                const col = m.axis === 's' ? c.second : c.primary;
+                                const cy = YP(m.v);
                                 return (
                                     <g
                                         key={`m-${i}`}
@@ -765,7 +687,7 @@ const ResultChart = ({
                                         onClick={() => onPointClick?.(m.event)}
                                     >
                                         <circle cx={cx} cy={cy} r={9} fill="transparent" />
-                                        <circle cx={cx} cy={cy} r={3} fill={c.dot} stroke={col} strokeWidth={1.5} />
+                                        <circle cx={cx} cy={cy} r={3} fill={c.dot} stroke={c.primary} strokeWidth={1.5} />
                                     </g>
                                 );
                             })}
@@ -790,9 +712,6 @@ const ResultChart = ({
                                 <>
                                     <line x1={X(hoverPt!.t)} y1={mT} x2={X(hoverPt!.t)} y2={mT + plotH} stroke={c.faint} strokeWidth={1} />
                                     <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
-                                    {hasSecondary && hoverPt!.s != null && (
-                                        <circle cx={X(hoverPt!.t)} cy={YS(hoverPt!.s)} r={3} fill={c.second} stroke={c.dot} strokeWidth={1.5} />
-                                    )}
                                 </>
                             )}
                         </g>
@@ -818,14 +737,6 @@ const ResultChart = ({
                             </span>
                             <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{primaryMeta.unit}</span>
                         </div>
-                        {hasSecondary && hoverPt!.s != null && (
-                            <div className="flex items-baseline gap-1 whitespace-nowrap">
-                                <span className="text-xs font-medium tabular-nums" style={{ color: c.second }}>
-                                    {hoverPt!.s.toFixed(2)}
-                                </span>
-                                <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">ng/ml</span>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>

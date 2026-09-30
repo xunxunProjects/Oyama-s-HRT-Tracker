@@ -3,6 +3,14 @@ main = "worker.ts"
 compatibility_date = "2025-12-04"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers Builds uploads a preview version for every non-production branch
+# with `wrangler versions upload`, on a clean checkout where ./dist was never
+# built, and that stops before it starts ("assets.directory does not exist").
+# Build the assets when they are missing. An existing ./dist is left alone, so
+# local `wrangler dev` and a deploy that already ran the build pay nothing.
+[build]
+command = "test -d dist || npm run build"
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"

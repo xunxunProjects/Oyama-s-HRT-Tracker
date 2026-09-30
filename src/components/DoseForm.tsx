@@ -113,6 +113,8 @@ const holdFromTheta = (thetaVal: number): number => {
 
 interface DoseFormProps {
     eventToEdit: DoseEvent | null;
+    /** Fill the form from `eventToEdit` but save it as a new record (the Overview's "log the next dose"). */
+    asNew?: boolean;
     onSave: (event: DoseEvent) => void;
     onCancel: () => void;
     onDelete: (id: string) => void;
@@ -128,9 +130,10 @@ interface DoseFormProps {
     events?: DoseEvent[];
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
+    const isEditing = !!eventToEdit && !asNew;
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
@@ -477,7 +480,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }
 
         const newEvent: DoseEvent = {
-            id: eventToEdit?.id || uuidv4(),
+            id: isEditing ? eventToEdit!.id : uuidv4(),
             route,
             ester: (route === Route.patchRemove || route === Route.patchApply || route === Route.gel)
                 ? (isTransmasc ? Ester.T : Ester.E2)
@@ -593,7 +596,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         });
     };
     const renderLoadTemplateControl = () => {
-        if (eventToEdit) return null;
+        if (isEditing) return null;
 
         return (
             <div className="relative">
@@ -660,7 +663,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             {!isInline && !hideHeader && (
                 <div className="px-6 py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center shrink-0">
                     <h3 className="text-base font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
+                        {isEditing ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2 items-center">
                         {renderLoadTemplateControl()}
@@ -830,7 +833,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <div className="mt-3 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] pt-3 space-y-3">
                                 {/* Safety Warning */}
                                 <div className="flex gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                    <span className="icon-line text-sm"><AlertTriangle className="w-4 h-4 text-amber-500" /></span>
                                     <div>
                                         <span className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('inj.guide.title')}</span>
                                         <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">{t('inj.guide.safety')}</p>
@@ -897,7 +900,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {/* CPA dosage hint */}
                         {ester === Ester.CPA && (
                             <div className="mt-3 p-3 rounded-[var(--radius-lg)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container-low)] dark:bg-[var(--color-m3-dark-surface-container)] flex gap-3">
-                                <Info className="w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0 mt-0.5" />
+                                <span className="icon-line text-sm"><Info className="w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" /></span>
                                 <div className="space-y-1.5">
                                     <span className="text-sm font-bold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('dose.guide.title')}</span>
                                     <ul className="space-y-1 mt-1">
@@ -915,7 +918,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {/* Dose guide for non-injection routes */}
                         {doseGuide && (
                             <div className="mt-2 pt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex gap-2">
-                                <Info className="w-3.5 h-3.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0 mt-0.5" />
+                                <span className="icon-line text-xs"><Info className="w-3.5 h-3.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" /></span>
                                 <div className="space-y-0.5 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('dose.guide.title')}</span>
@@ -1000,7 +1003,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     </div>
 
                     {/* Delete Event (only when editing) */}
-                    {eventToEdit && (
+                    {isEditing && eventToEdit && (
                         <button
                             onClick={() => {
                                 setShowSaveTemplateInput(false);

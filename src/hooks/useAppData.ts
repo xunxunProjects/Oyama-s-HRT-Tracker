@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShowDialog } from '../contexts/DialogContext';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
          BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
          EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
 import { createDayLabelFormatter, toDayKey } from '../utils/helpers';
+import { detectRegimens, normalizeSupply, Supply } from '../utils/regimen';
+import { CpaPlan, CpaChoice, parseCpaChoice, effectiveCpaPlan } from '../utils/cpa';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -203,6 +205,11 @@ export const useAppData = (showDialog: ShowDialog) => {
     };
     const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
     const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
+    // What's left of each medicine on hand. Kept on this device only, like quick
+    // doses: it is a count of the drawer, not part of the medical record, so it
+    // stays out of exports and cloud sync.
+    const loadSupplies = (m: 'transfem' | 'transmasc') => loadJSON<unknown[]>(keyFor(m, 'supplies'), []).map(normalizeSupply).filter((x): x is Supply => x !== null);
+    const [supplies, setSupplies] = useState<Supply[]>(() => loadSupplies(mode));
     const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
         const saved = localStorage.getItem(sharedKey('pk-params'));
         if (!saved) return null;
@@ -213,7 +220,14 @@ export const useAppData = (showDialog: ShowDialog) => {
         } catch { return null; }
     });
 
-    const [simulation, setSimulation] = useState<SimulationResult | null>(null);
+    const readCpaChoice = () => parseCpaChoice(localStorage.getItem(sharedKey('cpa-plan')));
+    const [cpaChoice, setCpaChoice] = useState<CpaChoice | null>(readCpaChoice);
+    const setCpaPlan = (plan: CpaPlan) => {
+        const choice = { plan, at: Date.now() };
+        setCpaChoice(choice);
+        localStorage.setItem(sharedKey('cpa-plan'), JSON.stringify(choice));
+    };
+
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // --- Effects ---
@@ -247,12 +261,14 @@ export const useAppData = (showDialog: ShowDialog) => {
         setLabResults(loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
         setDoseTemplates(loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
         setQuickDoses(loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
+        setSupplies(loadSupplies(mode));
         // Mode-independent, but still per-account, so they reload on the same beat.
         const savedWeight = localStorage.getItem(sharedKey('weight'));
         setWeightState(savedWeight ? parseFloat(savedWeight) : 70.0);
         setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
         setCalibrationHistoryModeState(localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective');
         setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
+        setCpaChoice(readCpaChoice());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope]);
 
@@ -280,7 +296,7 @@ export const useAppData = (showDialog: ShowDialog) => {
         loadedScopeRef.current = scope;
         setReadyScope(prev => (prev === scope ? prev : scope));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, quickDoses]);
+    }, [events, labResults, doseTemplates, quickDoses, supplies]);
 
 
     useEffect(() => {
@@ -316,20 +332,33 @@ export const useAppData = (showDialog: ShowDialog) => {
         if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'quick-doses'), JSON.stringify(quickDoses));
     }, [quickDoses, scope]);
+    useEffect(() => {
+        if (loadedScopeRef.current !== scope) return;
+        localStorage.setItem(keyFor(mode, 'supplies'), JSON.stringify(supplies));
+    }, [supplies, scope]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
         return () => clearInterval(timer);
     }, []);
+    // The clock only ticks once a minute, so a dose logged "now" is later than
+    // it and reads as scheduled for the future until the next tick. Catch the
+    // clock up whenever the log changes.
+    useEffect(() => { setCurrentTime(new Date()); }, [events]);
 
-    useEffect(() => {
-        if (events.length > 0) {
-            const res = runSimulation(events, weight);
-            setSimulation(res);
-        } else {
-            setSimulation(null);
-        }
-    }, [events, weight]);
+    // Derived in the same render as the events it comes from. As an effect it
+    // landed one render late, so every open of the Overview with data (and
+    // every import) first drew the chart with doses but no curve, which fell
+    // through to the chart's "no records" state for as long as the simulation
+    // took to run.
+    const simulation = useMemo<SimulationResult | null>(
+        () => (events.length > 0 ? runSimulation(events, weight) : null),
+        [events, weight],
+    );
+
+    // What the person is taking now, read off the log's recurring doses. Moves
+    // with the minute clock so "next dose" and "overdue" stay current.
+    const regimens = useMemo(() => detectRegimens(events, currentTime.getTime() / 3600000), [events, currentTime]);
 
     // --- Derived State ---
     // Self-learning calibration: fits a personal amplitude (+ clearance, for the
@@ -348,12 +377,9 @@ export const useAppData = (showDialog: ShowDialog) => {
         return baseE2 * calibrationFn(h);
     }, [simulation, currentTime, calibrationFn]);
 
-    const currentCPA = useMemo(() => {
-        if (!simulation) return 0;
-        const h = currentTime.getTime() / 3600000;
-        const concCPA = interpolateConcentration_CPA(simulation, h) || 0;
-        return concCPA;
-    }, [simulation, currentTime]);
+    // Cyproterone: no level is estimated, only whether each dose was taken.
+    // Until the person picks a plan on the Overview, the log's own rhythm stands in.
+    const cpaPlan: CpaPlan = isTransmasc ? 'off' : effectiveCpaPlan(cpaChoice, events, currentTime.getTime() / 3600000);
 
     // Total testosterone (ng/dL) at the current time — only meaningful in transmasc mode.
     const currentT = useMemo(() => {
@@ -483,6 +509,8 @@ export const useAppData = (showDialog: ShowDialog) => {
     // Quick doses are a per-device shortcut list, not part of the record — they
     // are neither exported nor synced, so no tombstone is needed.
     const addQuickDose = (dose: QuickDose) => setQuickDoses(prev => [...prev, dose]);
+    const saveSupply = (supply: Supply) => setSupplies(prev => prev.some(s => s.id === supply.id) ? prev.map(s => (s.id === supply.id ? supply : s)) : [...prev, supply]);
+    const deleteSupply = (id: string) => setSupplies(prev => prev.filter(s => s.id !== id));
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
     const touchPkParams = () => localStorage.setItem(sharedKey('pk-params-at'), String(Date.now()));
@@ -496,9 +524,8 @@ export const useAppData = (showDialog: ShowDialog) => {
 
     // A backup with hundreds of thousands of same-day events makes the
     // simulation's peri-event sampling explode into a synchronous loop that
-    // never finishes — and because state is persisted before the simulation
-    // runs, the wedged data is reloaded on every subsequent open. Reject the
-    // file outright so nothing is written.
+    // never finishes, and a file like that would wedge every later open too.
+    // Reject it outright so nothing is written.
     const MAX_IMPORT_ENTRIES = 20000;
 
     /** Carry a record's edit stamp through sanitising; absent or junk becomes undefined. */
@@ -969,7 +996,7 @@ export const useAppData = (showDialog: ShowDialog) => {
         calibrationHistoryMode, setCalibrationHistoryMode,
         calibration,
         currentLevel,
-        currentCPA,
+        cpaPlan, setCpaPlan,
         currentT,
         currentStatus,
         groupedEvents,
@@ -977,6 +1004,8 @@ export const useAppData = (showDialog: ShowDialog) => {
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
         addTemplate, deleteTemplate,
         addQuickDose, deleteQuickDose,
+        regimens,
+        supplies, saveSupply, deleteSupply,
         processImportedData,
         mergeImportedData,
         buildExportPayload,

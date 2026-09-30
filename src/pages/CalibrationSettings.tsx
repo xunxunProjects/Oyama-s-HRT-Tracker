@@ -1,5 +1,6 @@
 import React from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Tick from '../components/Tick';
 import { Check, Minus, CircleOff, Gauge, Radar, Wind, Rewind, FastForward, LucideIcon } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
@@ -82,12 +83,9 @@ const OptionCard: React.FC<{
                 {children}
             </div>
 
-            {/* Radio */}
-            <span
-                className="shrink-0 mt-0.5 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center"
-                style={{ borderColor: selected ? 'var(--color-m3-primary)' : 'var(--color-m3-outline)' }}
-            >
-                {selected && <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-m3-primary)]" />}
+            {/* The chosen card gets the same drawn tick as every other option list, level with its title. */}
+            <span className="icon-line text-[0.9375rem]">
+                <Tick on={selected} size={18} />
             </span>
         </div>
     </button>
@@ -135,13 +133,13 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                             <ul className="mt-3 space-y-1.5">
                                 {pros.map(k => (
                                     <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
-                                        <Check size={13} className="mt-[3px] shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
+                                        <span className="icon-line"><Check size={13} className="text-emerald-600/80 dark:text-emerald-400/80" /></span>
                                         <span className={muted}>{t(k)}</span>
                                     </li>
                                 ))}
                                 {cons.map(k => (
                                     <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
-                                        <Minus size={13} className={`mt-[3px] shrink-0 ${muted}`} />
+                                        <span className="icon-line"><Minus size={13} className={muted} /></span>
                                         <span className={muted}>{t(k)}</span>
                                     </li>
                                 ))}

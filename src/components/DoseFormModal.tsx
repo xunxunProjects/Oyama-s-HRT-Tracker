@@ -10,6 +10,7 @@ interface DoseFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     eventToEdit?: any;
+    asNew?: boolean;
     onSave?: any;
     onDelete?: any;
     templates?: DoseTemplate[];
@@ -25,6 +26,7 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
     isOpen,
     onClose,
     eventToEdit,
+    asNew = false,
     onSave,
     onDelete,
     templates = [],
@@ -68,6 +70,7 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
 
                 <DoseForm
                     eventToEdit={eventToEdit}
+                    asNew={asNew}
                     onSave={handleSave}
                     onDelete={onDelete}
                     onCancel={handleClose}
