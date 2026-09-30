@@ -9,8 +9,8 @@ import { useLayoutEffect, useState } from 'react';
  * Measures on layout and on resize; ResizeObserver is a bonus (some embedded
  * browsers never fire it).
  *
- * Shared by the two components that lay themselves out in measured pixels
- * rather than in rem: the concentration chart and the dose heatmap.
+ * Shared by the components that lay themselves out in measured pixels rather
+ * than in rem: the concentration chart, the dose heatmap and the home tick scale.
  */
 export const useElementSize = (el: HTMLElement | null) => {
     const [size, setSize] = useState({ width: 0, height: 0 });
