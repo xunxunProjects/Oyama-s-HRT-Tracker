@@ -1,5 +1,6 @@
 import React from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Tick from '../components/Tick';
 import { Check, Minus, CircleOff, Gauge, Radar, Wind, Rewind, FastForward, LucideIcon } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
@@ -82,12 +83,9 @@ const OptionCard: React.FC<{
                 {children}
             </div>
 
-            {/* Radio */}
-            <span
-                className="shrink-0 mt-0.5 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center"
-                style={{ borderColor: selected ? 'var(--color-m3-primary)' : 'var(--color-m3-outline)' }}
-            >
-                {selected && <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-m3-primary)]" />}
+            {/* The chosen card gets the same drawn tick as every other option list, level with its title. */}
+            <span className="icon-line text-[0.9375rem]">
+                <Tick on={selected} size={18} />
             </span>
         </div>
     </button>
