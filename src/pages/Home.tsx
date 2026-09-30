@@ -1,11 +1,12 @@
 import React from 'react';
 import { Info, Share2 } from 'lucide-react';
-import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
+import { DoseEvent, Ester, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
+import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
 import DoseDoodle from '../components/DoseDoodle';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -75,14 +76,36 @@ const Home: React.FC<HomeProps> = ({
     // number rather than shoving the second reading off the edge.
     const cats = showCats && (events.length > 0 || labResults.length > 0) ? (
         <span className="flex shrink-0 items-end gap-1 self-end pb-1">
-            {events.length > 0 && <PixelCat pose="donut" size={44} />}
-            {labResults.length > 0 && <PixelCat pose="loaf" size={44} />}
+            {events.length > 0 && <PixelCat pose="donut" size={32} />}
+            {labResults.length > 0 && <PixelCat pose="loaf" size={32} />}
         </span>
     ) : null;
 
     const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
     const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
     const dim = "text-[var(--color-m3-outline-variant)] dark:text-[var(--color-m3-dark-outline-variant)]";
+
+    // A reading's number and unit. The slot carries the number's type size, so
+    // `ch` in its min-width is one tabular digit at whatever size the breakpoint
+    // picked; the rem part covers the gap and the unit after it.
+    const readingSlot = "inline-flex items-baseline gap-x-2 text-4xl sm:text-5xl md:text-6xl font-light leading-none tracking-tight tabular-nums";
+    const slotWidth = (intDigits: number, decimals: number) =>
+        `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
+
+    // The reading the page is about, with the band the chart shades for it.
+    // Rail ends sit a decade either side of the band, which is where readings
+    // actually land; anything past them pins to the end.
+    const primary = isTransmasc
+        ? { label: t('label.total_t'), value: currentT, decimals: 0, unit: 'ng/dl', band: { low: 300, high: 1000 }, domain: [30, 3000] as [number, number] }
+        : { label: t('label.e2'), value: currentLevel, decimals: 1, unit: 'pg/ml', band: { low: 100, high: 200 }, domain: [10, 1000] as [number, number] };
+
+    // The second reading, flush right at the same size as the first. Only shown
+    // once there is something to show: a permanent "CPA --" for anyone not
+    // taking it was just noise. For transmasc it's the same total T, in nmol/L.
+    const hasCPA = !isTransmasc && events.some(e => e.ester === Ester.CPA);
+    const companion = isTransmasc
+        ? (currentT > 0 ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/l' } : null)
+        : (hasCPA ? { label: t('label.cpa_chart'), value: currentCPA, decimals: 1, unit: 'ng/ml' } : null);
 
     return (
         <>
@@ -94,122 +117,93 @@ const Home: React.FC<HomeProps> = ({
                 them, and the page leaned left. The column widens with the body
                 once the heatmap sits beside the chart, so the two readings
                 stay over the content they describe. */}
-            <header className="pt-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <header className="pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
                 <div className={`mx-auto px-6 md:px-8 max-w-2xl ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
-                {/* Title row */}
-                <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-1.5">
-                        <span className={`text-sm ${muted}`}>{t('status.estimate')}</span>
-                        <button
-                            onClick={() => setIsEstimateInfoOpen(true)}
-                            className={`${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}
-                            title={t('status.read_me')}
-                        >
-                            <Info size={13} />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {currentStatus && (
-                            <span className={`hidden sm:inline text-xs font-medium ${currentStatus.color}`}>
-                                {t(currentStatus.label)}
-                            </span>
-                        )}
-                        <button
-                            type="button"
-                            disabled={!events.length}
-                            onClick={() => {
-                                if (!authToken) {
-                                    onAuthRequired();
-                                    return;
-                                }
-                                onNavigateToShare();
-                            }}
-                            className={`${muted} inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium hover:text-[var(--color-m3-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:text-[var(--color-m3-dark-on-surface)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:cursor-not-allowed disabled:opacity-40`}
-                            title={events.length ? shareCopy.modalDescription : shareCopy.noData}
-                        >
-                            <Share2 size={14} strokeWidth={1.75} />
-                            {shareCopy.action}
-                        </button>
-                    </div>
+                {/* Title row. The whole title opens the explainer, not just
+                    the 13px icon after it. */}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsEstimateInfoOpen(true)}
+                        className={`group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}
+                        title={t('status.read_me')}
+                    >
+                        <span className="truncate">{t('status.estimate')}</span>
+                        <Info size={13} className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
+                    </button>
+                    <button
+                        type="button"
+                        disabled={!events.length}
+                        onClick={() => {
+                            if (!authToken) {
+                                onAuthRequired();
+                                return;
+                            }
+                            onNavigateToShare();
+                        }}
+                        className={`${muted} inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 -mr-2 text-xs font-medium hover:text-[var(--color-m3-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:text-[var(--color-m3-dark-on-surface)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:cursor-not-allowed disabled:opacity-40`}
+                        title={events.length ? shareCopy.modalDescription : shareCopy.noData}
+                    >
+                        <Share2 size={14} strokeWidth={1.75} />
+                        {shareCopy.action}
+                    </button>
                 </div>
 
-                {/* Blood level grid — first reading left, second flush right.
-                    On a 375px screen two cats plus two four-digit readings don't
-                    fit across, and the second column was being pushed clean off
-                    the right edge. The left column is the one that gives: min-w-0
-                    lets it shrink and its number line wraps, so the cats drop
-                    under the reading. The right column is shrink-0 so it keeps its
-                    number and unit together on one line instead of both sides
-                    wrapping at once. */}
-                <div className="flex items-start justify-between gap-4 sm:gap-8 md:gap-12">
-                    {isTransmasc ? (
-                        <>
-                            <div className="min-w-0">
-                <p className={`text-xs font-semibold ${muted} mb-2`}>
-                                    {t('label.total_t')} <span className="opacity-60">(ng/dL)</span>
-                                </p>
-                                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-                                    {currentT > 0 ? (
-                                        <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT} decimals={0} /></span>
-                                            <span className={`text-xs lowercase ${muted}`}>ng/dl</span>
-                                        </>
-                                    ) : (
-                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
-                                    )}
-                                    {cats}
-                                </div>
-                            </div>
-                            <div className="shrink-0 text-right">
-                <p className={`text-xs font-semibold ${muted} mb-2`}>
-                                    {t('label.total_t')} <span className="opacity-60">(nmol/L)</span>
-                                </p>
-                                <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
-                                    {currentT > 0 ? (
-                                        <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentT / 28.842} decimals={1} /></span>
-                                            <span className={`text-xs lowercase ${muted}`}>nmol/l</span>
-                                        </>
-                                    ) : (
-                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="min-w-0">
-                <p className={`text-xs font-semibold ${muted} mb-2`}>{t('label.e2')}</p>
-                                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-                                    {currentLevel > 0 ? (
-                                        <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentLevel} decimals={1} /></span>
-                                            <span className={`text-xs lowercase ${muted}`}>pg/ml</span>
-                                        </>
-                                    ) : (
-                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
-                                    )}
-                                    {cats}
-                                </div>
-                            </div>
-                            <div className="shrink-0 text-right">
-                <p className={`text-xs font-semibold ${muted} mb-2`}>{t('label.cpa_chart')}</p>
-                                <div className="flex flex-wrap items-baseline justify-end gap-x-1.5 gap-y-1">
-                                    {currentCPA > 0 ? (
-                                        <>
-                                            <span className={`text-4xl md:text-5xl font-light tabular-nums ${on}`}><AnimatedNumber value={currentCPA} decimals={1} /></span>
-                                            <span className={`text-xs lowercase ${muted}`}>ng/ml</span>
-                                        </>
-                                    ) : (
-                                        <span className={`text-4xl md:text-5xl font-light ${dim}`}>--</span>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
+                {/* Readings. A grid rather than two flex columns so each row
+                    lines up on its own: the labels share a baseline, and so do
+                    the two numbers. On a 375px screen the first column is the
+                    one that gives — minmax(0,…) lets it shrink and its number
+                    line wraps, so the cats drop under the reading instead of
+                    shoving the second reading off the edge. */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1.5">
+                    <p className={`text-[0.8125rem] font-medium ${muted}`}>{primary.label}</p>
+                    <p className={`text-right text-[0.8125rem] font-medium ${muted}`}>{companion?.label}</p>
+
+                    {/* Number and unit sit in a slot wide enough for a
+                        four-digit reading (two for the second column), so a
+                        reading gaining a digit, or counting up from zero on
+                        load, doesn't shove the cats or the other column about. */}
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
+                            {primary.value > 0 ? (
+                                <>
+                                    <span className={on}><AnimatedNumber value={primary.value} decimals={primary.decimals} /></span>
+                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
+                                </>
+                            ) : (
+                                <span className={dim}>--</span>
+                            )}
+                        </span>
+                        {cats}
+                    </div>
+
+                    {companion ? (
+                        <span className={`${readingSlot} justify-end whitespace-nowrap`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
+                            {companion.value > 0 ? (
+                                <>
+                                    <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
+                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
+                                </>
+                            ) : (
+                                <span className={dim}>--</span>
+                            )}
+                        </span>
+                    ) : <span />}
                 </div>
 
-                <div className="mt-2">
+                {primary.value > 0 && (
+                    <div className="mt-2">
+                        <LevelRail
+                            value={primary.value}
+                            band={primary.band}
+                            domain={primary.domain}
+                            label={currentStatus ? t(currentStatus.label) : undefined}
+                            tone={currentStatus?.color}
+                        />
+                    </div>
+                )}
+
+                <div className="mt-3 empty:hidden">
                     <DoseAdvisoryNotice advisory={doseAdvisory} hormoneAdvisory={hormoneAdvisory} showCalibrate={showCalibrate} onCalibrate={onNavigateToLab} t={t} />
                 </div>
                 </div>
