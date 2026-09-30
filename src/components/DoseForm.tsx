@@ -113,8 +113,6 @@ const holdFromTheta = (thetaVal: number): number => {
 
 interface DoseFormProps {
     eventToEdit: DoseEvent | null;
-    /** Fill the form from `eventToEdit` but save it as a new record (the Overview's "log the next dose"). */
-    asNew?: boolean;
     onSave: (event: DoseEvent) => void;
     onCancel: () => void;
     onDelete: (id: string) => void;
@@ -130,10 +128,9 @@ interface DoseFormProps {
     events?: DoseEvent[];
 }
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
+const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
-    const isEditing = !!eventToEdit && !asNew;
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
@@ -480,7 +477,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave,
         }
 
         const newEvent: DoseEvent = {
-            id: isEditing ? eventToEdit!.id : uuidv4(),
+            id: eventToEdit?.id || uuidv4(),
             route,
             ester: (route === Route.patchRemove || route === Route.patchApply || route === Route.gel)
                 ? (isTransmasc ? Ester.T : Ester.E2)
@@ -596,7 +593,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave,
         });
     };
     const renderLoadTemplateControl = () => {
-        if (isEditing) return null;
+        if (eventToEdit) return null;
 
         return (
             <div className="relative">
@@ -663,7 +660,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave,
             {!isInline && !hideHeader && (
                 <div className="px-6 py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] flex justify-between items-center shrink-0">
                     <h3 className="text-base font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
-                        {isEditing ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
+                        {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2 items-center">
                         {renderLoadTemplateControl()}
@@ -1003,7 +1000,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, asNew = false, onSave,
                     </div>
 
                     {/* Delete Event (only when editing) */}
-                    {isEditing && eventToEdit && (
+                    {eventToEdit && (
                         <button
                             onClick={() => {
                                 setShowSaveTemplateInput(false);

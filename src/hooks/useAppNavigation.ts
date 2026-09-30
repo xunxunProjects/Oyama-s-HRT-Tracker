@@ -3,7 +3,7 @@ import { Home, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } fro
 import CalibrationCurveIcon from '../components/CalibrationCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
 
-export type ViewKey = 'home' | 'share' | 'history' | 'lab' | 'lab-calibration' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'change-password' | 'delete-account' | 'edit-profile' | 'edit-avatar' | 'pk-params' | 'settings-hrt-mode' | 'settings-language' | 'settings-appearance' | 'settings-weight' | 'settings-export' | 'settings-import' | 'settings-transparency' | 'settings-milk-tea' | 'settings-cat-states' | 'forecast' | 'supplies';
+export type ViewKey = 'home' | 'share' | 'history' | 'lab' | 'lab-calibration' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'change-password' | 'delete-account' | 'edit-profile' | 'edit-avatar' | 'pk-params' | 'settings-hrt-mode' | 'settings-language' | 'settings-appearance' | 'settings-weight' | 'settings-export' | 'settings-import' | 'settings-transparency' | 'settings-milk-tea' | 'settings-cat-states' | 'forecast' | 'supplies' | 'plan';
 
 /**
  * Which top-level tab a view belongs to, so the sidebar and the bottom bar
@@ -11,6 +11,7 @@ export type ViewKey = 'home' | 'share' | 'history' | 'lab' | 'lab-calibration' |
  */
 const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'forecast': 'home',
+    'plan': 'home',
     'share': 'home',
     'lab-calibration': 'lab',
     'settings-hrt-mode': 'settings',
@@ -41,7 +42,7 @@ export const useAppNavigation = (user: any) => {
     const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
     const mainScrollRef = useRef<HTMLDivElement>(null);
 
-    const viewOrder: ViewKey[] = ['home', 'forecast', 'share', 'history', 'lab', 'lab-calibration', 'settings', 'account', 'sessions', 'two-factor', 'change-password', 'delete-account', 'edit-profile', 'edit-avatar', 'pk-params', 'supplies', 'settings-hrt-mode', 'settings-language', 'settings-appearance', 'settings-weight', 'settings-export', 'settings-import', 'settings-transparency', 'settings-milk-tea', 'settings-cat-states', 'admin'];
+    const viewOrder: ViewKey[] = ['home', 'plan', 'forecast', 'share', 'history', 'lab', 'lab-calibration', 'settings', 'account', 'sessions', 'two-factor', 'change-password', 'delete-account', 'edit-profile', 'edit-avatar', 'pk-params', 'supplies', 'settings-hrt-mode', 'settings-language', 'settings-appearance', 'settings-weight', 'settings-export', 'settings-import', 'settings-transparency', 'settings-milk-tea', 'settings-cat-states', 'admin'];
 
     // --- Actions ---
     const handleViewChange = (view: ViewKey) => {
