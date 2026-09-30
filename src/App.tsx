@@ -5,10 +5,16 @@ import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
 import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AppTheme } from './constants';
-import { DoseEvent, decompressData, encryptData, decryptData } from '../logic';
+import { DoseEvent, Route, Ester, decompressData, encryptData, decryptData } from '../logic';
+import { v4 as uuidv4 } from 'uuid';
+import { cpaStatus, CPA_DOSE_MG } from './utils/cpa';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
-import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
+import { useAppNavigation, ViewKey, tabForView } from './hooks/useAppNavigation';
+import { useDoseReminders } from './hooks/useDoseReminders';
+import Forecast from './pages/Forecast';
+import Supplies from './pages/Supplies';
+import { Regimen } from './utils/regimen';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
@@ -70,7 +76,7 @@ const AppContent = () => {
         calibrationHistoryMode, setCalibrationHistoryMode,
         calibration,
         currentLevel,
-        currentCPA,
+        cpaPlan, setCpaPlan,
         currentT,
         currentStatus,
         groupedEvents,
@@ -86,7 +92,18 @@ const AppContent = () => {
         applySyncedState,
         scope,
         readyScope,
+        currentTime,
+        regimens,
+        supplies, saveSupply, deleteSupply,
     } = useAppData(showDialog);
+    const nowH = currentTime.getTime() / 3600000;
+    // Cyproterone is tracked by the day (taken or not), so it has no due time:
+    // it stays out of the next-dose line and the reminders.
+    const doseRegimens = useMemo(() => regimens.filter(r => r.hormone !== 'AA'), [regimens]);
+    const reminders = useDoseReminders(doseRegimens, t);
+    // How far ahead a supply counts as running low. A preference, so device-local like the reminders.
+    const [supplyLeadDays, setSupplyLeadDaysState] = useState(() => Number(localStorage.getItem('hrt-supply-lead-days')) || 14);
+    const setSupplyLeadDays = (d: number) => { setSupplyLeadDaysState(d); localStorage.setItem('hrt-supply-lead-days', String(d)); };
 
     useLiveShareSync({
         authToken: token,
@@ -109,6 +126,8 @@ const AppContent = () => {
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
+    // The form is filled from `editingEvent` but saves a new record: "log the next dose".
+    const [logAsNew, setLogAsNew] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -148,6 +167,8 @@ const AppContent = () => {
         const saved = localStorage.getItem('app-theme');
         return (saved as AppTheme) || 'system';
     });
+    // Same reading as the Overview's: an explicit dark theme, or the system's under "system".
+    const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
     useEffect(() => {
         localStorage.setItem('app-auto-backup', String(autoSync));
@@ -272,7 +293,24 @@ const AppContent = () => {
         }
     };
 
-    const handleEditEvent = (e: DoseEvent) => { setEditingEvent(e); setIsFormOpen(true); };
+    const handleEditEvent = (e: DoseEvent) => { setEditingEvent(e); setLogAsNew(false); setIsFormOpen(true); };
+    // One tap logs today's cyproterone; the id is kept so the same tap can be taken back.
+    const [lastCpaId, setLastCpaId] = useState<string | null>(null);
+    const handleTakeCpa = () => {
+        const id = uuidv4();
+        addEvent({ id, route: Route.oral, ester: Ester.CPA, doseMG: CPA_DOSE_MG, extras: {}, timeH: Date.now() / 3600000 });
+        setLastCpaId(id);
+    };
+    const handleUndoCpa = () => {
+        if (!lastCpaId) return;
+        deleteEvent(lastCpaId);
+        setLastCpaId(null);
+    };
+    const handleLogRegimen = (r: Regimen) => {
+        setEditingEvent({ id: '', route: r.route, ester: r.ester, doseMG: r.doseMG, extras: { ...r.extras }, timeH: Date.now() / 3600000 });
+        setLogAsNew(true);
+        setIsFormOpen(true);
+    };
 
     const handleQuickExport = () => {
         if (events.length === 0 && labResults.length === 0) {
@@ -410,7 +448,7 @@ const AppContent = () => {
         <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden">
             <Sidebar
                 navItems={navItems}
-                currentView={currentView}
+                currentView={tabForView(currentView)}
                 onViewChange={(v) => !needsSetup2FA && handleViewChange(v)}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
@@ -435,7 +473,6 @@ const AppContent = () => {
                         <Home
                             t={t}
                             currentLevel={currentLevel}
-                            currentCPA={currentCPA}
                             currentT={currentT}
                             currentStatus={currentStatus}
                             events={events}
@@ -449,6 +486,34 @@ const AppContent = () => {
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
                             onAuthRequired={() => setIsAuthModalOpen(true)}
+                            regimens={doseRegimens}
+                            // The real moment, not the minute clock: a dose tapped just now must count at once.
+                            cpa={cpaStatus(events, cpaPlan, Date.now() / 3600000)}
+                            cpaPlan={cpaPlan}
+                            onCpaPlanChange={setCpaPlan}
+                            onTakeCpa={handleTakeCpa}
+                            onUndoCpa={lastCpaId && events.some(e => e.id === lastCpaId) ? handleUndoCpa : undefined}
+                            supplies={supplies}
+                            nowH={nowH}
+                            onLogRegimen={handleLogRegimen}
+                            onNavigateToForecast={() => handleViewChange('forecast')}
+                            supplyLeadDays={supplyLeadDays}
+                        />
+                    )}
+
+                    {currentView === 'forecast' && (
+                        <Forecast
+                            onBack={() => handleViewChange('home')}
+                            events={events}
+                            weight={weight}
+                            labResults={labResults}
+                            calibration={calibration}
+                            calibrationMethod={calibrationMethod}
+                            calibrationHistoryMode={calibrationHistoryMode}
+                            regimens={regimens}
+                            nowH={nowH}
+                            isDarkMode={isDarkMode}
+                            onSaveTemplate={addTemplate}
                         />
                     )}
 
@@ -498,6 +563,10 @@ const AppContent = () => {
                             calibration={calibration}
                             onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
                             lang={lang}
+                            events={events}
+                            regimens={regimens}
+                            weight={weight}
+                            nowH={nowH}
                         />
                     )}
 
@@ -551,6 +620,18 @@ const AppContent = () => {
                             onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
                             isAdmin={!!user?.isAdmin}
                             onNavigateToAdmin={() => handleViewChange('admin')}
+                            onNavigateToSupplies={() => handleViewChange('supplies')}
+                            supplyCount={supplies.length}
+                            remindersSupported={reminders.supported}
+                            remindersEnabled={reminders.enabled}
+                            onToggleReminders={async next => {
+                                if (await reminders.setEnabled(next) === 'denied') showDialog('alert', t('reminders.denied'));
+                            }}
+                            reminderLeadMin={reminders.leadMin}
+                            onReminderLeadChange={reminders.setLeadMin}
+                            regimens={doseRegimens}
+                            mutedRegimens={reminders.muted}
+                            onMuteRegimen={reminders.setMuted}
                         />
                     )}
 
@@ -681,6 +762,20 @@ const AppContent = () => {
                         <CatStates onBack={() => handleViewChange('settings')} />
                     )}
 
+                    {currentView === 'supplies' && (
+                        <Supplies
+                            onBack={() => handleViewChange('settings')}
+                            supplies={supplies}
+                            onSave={saveSupply}
+                            onDelete={deleteSupply}
+                            leadDays={supplyLeadDays}
+                            onLeadDaysChange={setSupplyLeadDays}
+                            events={events}
+                            regimens={regimens}
+                            nowH={nowH}
+                        />
+                    )}
+
                     {currentView === 'pk-params' && (
                         <PKParamsPage
                             pkParams={pkParams}
@@ -699,29 +794,9 @@ const AppContent = () => {
                 <nav className="fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-2xl bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-3)]">
                     <div className="flex items-stretch p-1.5 gap-1">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
-                            const activeTab = ({
-                                'home': 'home',
-                                'history': 'history',
-                                'lab': 'lab',
-                                'lab-calibration': 'lab',
-                                'settings': 'settings',
-                                'settings-hrt-mode': 'settings',
-                                'settings-language': 'settings',
-                                'settings-appearance': 'settings',
-                                'settings-weight': 'settings',
-                                'settings-export': 'settings',
-                                'settings-import': 'settings',
-                                'settings-transparency': 'settings',
-                                'settings-milk-tea': 'settings',
-                                'settings-cat-states': 'settings',
-                                'pk-params': 'settings',
-                                'account': 'account',
-                                'sessions': 'account',
-                                'two-factor': 'account',
-                                // Mobile reaches admin from Settings → General, so the
-                                // settings tab is the one that should read as active.
-                                'admin': 'settings',
-                            } as Record<string, string>)[currentView] ?? currentView;
+                            // Mobile reaches admin from Settings → General, so the
+                            // settings tab is the one that should read as active.
+                            const activeTab = currentView === 'admin' ? 'settings' : tabForView(currentView);
                             const isActive = activeTab === id;
                             const isDisabled = needsSetup2FA && id !== 'two-factor';
                             return (
@@ -765,6 +840,7 @@ const AppContent = () => {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 eventToEdit={editingEvent}
+                asNew={logAsNew}
                 onSave={(e: DoseEvent) => {
                     if (events.find(p => p.id === e.id)) updateEvent(e);
                     else addEvent(e);
