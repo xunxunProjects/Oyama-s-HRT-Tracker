@@ -702,9 +702,15 @@ select,
 /* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
    selected checkbox, and in place of Copy once something is copied. Four
    things move when it turns on, all off the one data-on attribute: the mark
-   fades up, grows from a little under full size, and its stroke draws itself
-   from the short leg to the long one. Turning off runs it backwards, so the old
-   tick rubs out as the new one is written. Nothing overshoots. */
+   fades up, grows from a little under full size, and its stroke is written
+   left to right, short leg first, the way a tick is drawn by hand. Turning
+   off runs it backwards, so the old tick rubs out as the new one is written.
+   Nothing overshoots.
+
+   The icon's path runs the other way (it starts at the top right and ends at
+   the left tip), so the dash is slid in from the path's end: a negative
+   offset of one full dash hides the stroke, and easing it to zero uncovers
+   the path from its last point back to its first. */
 .tick-draw {
     opacity: 0;
     scale: 0.7;
@@ -713,7 +719,7 @@ select,
 }
 .tick-draw path {
     stroke-dasharray: 24;
-    stroke-dashoffset: 24;
+    stroke-dashoffset: -24;
     transition: stroke-dashoffset var(--duration-base) var(--ease-standard);
 }
 .tick-draw[data-on="true"] {
