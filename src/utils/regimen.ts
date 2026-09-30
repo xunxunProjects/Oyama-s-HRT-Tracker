@@ -5,11 +5,12 @@ import {
 } from '../../logic';
 
 /**
- * The forward-looking half of the app reads the log for what the person is
- * doing *now*: the doses that recur at a steady interval (a weekly injection,
- * a pill morning and night, a patch changed twice a week). Everything below
- * (next-dose reminders, the regimen what-if, blood test timing, supply
- * run-out) starts from these.
+ * A regimen: one drug by one route at a steady interval. The forward-looking
+ * features (the what-if, blood test timing, supply run-out) start from these.
+ *
+ * They come from the person's own medication plan when there is one (see
+ * plan.ts). Only with no plan at all are they read off the log instead, from
+ * the doses that recur at a steady interval.
  */
 
 export type Hormone = 'E2' | 'T' | 'AA';
@@ -32,6 +33,8 @@ export interface Regimen {
     scheduledH: number[];
     /** First dose of the current unbroken run of this regimen. */
     sinceH: number;
+    /** From the plan: its doses are matched by drug and route alone, since a logged amount can drift from the planned one. */
+    loose?: boolean;
 }
 
 const DETECT_WINDOW_H = 42 * 24;
@@ -53,7 +56,11 @@ const median = (xs: number[]) => {
 };
 
 /** A run counts as stopped once it has gone this long without a dose. */
-const lapseH = (intervalH: number) => intervalH * 2.5 + 12;
+export const lapseH = (intervalH: number) => intervalH * 2.5 + 12;
+
+/** Whether a logged dose belongs to a regimen. */
+export const regimenMatches = (r: Regimen, e: DoseEvent) =>
+    (r.loose ? e.route === r.route && e.ester === r.ester : signature(e) === r.key);
 
 export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
     const groups = new Map<string, DoseEvent[]>();
@@ -75,7 +82,7 @@ export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
         for (let i = 1; i < recent.length; i++) gaps.push(recent[i].timeH - recent[i - 1].timeH);
         // Logged times wobble by minutes; the schedule behind them is in whole
         // hours (half hours for anything more often than daily). Unrounded, a
-        // 168.1 h median walks a weekly reminder half an hour later per quarter.
+        // 168.1 h median walks a weekly schedule half an hour later per quarter.
         const rawInterval = median(gaps);
         const intervalH = rawInterval >= 24 ? Math.round(rawInterval) : Math.round(rawInterval * 2) / 2;
         if (!(intervalH > 1)) continue;
@@ -113,10 +120,12 @@ export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
     return current.sort((a, b) => a.nextH - b.nextH);
 }
 
-/** How late a dose can be before it reads as missed rather than just not yet logged. */
-export const graceH = (r: Regimen) => Math.max(1, Math.min(12, r.intervalH * 0.1));
-
-/** Doses of `r` carried on from after its last logged one (taken or scheduled) up to `untilH`. */
+/**
+ * Doses of `r` carried on from after its last logged one (taken or scheduled)
+ * up to `untilH`, keeping its rhythm but never landing before `fromH`: a
+ * planned regimen can be weeks behind its last logged dose, and those missed
+ * slots did not happen.
+ */
 function continuation(r: Regimen, untilH: number, fromH = -Infinity): DoseEvent[] {
     const out: DoseEvent[] = [];
     const lastLogged = Math.max(r.lastH, ...r.scheduledH);
@@ -196,7 +205,7 @@ export interface Adherence {
  * from its slot is the timing spread.
  */
 export function adherenceOf(r: Regimen, events: DoseEvent[]): Adherence {
-    const times = events.filter(e => signature(e) === r.key && e.timeH >= r.sinceH && e.timeH <= r.lastH).map(e => e.timeH).sort((a, b) => a - b);
+    const times = events.filter(e => regimenMatches(r, e) && e.timeH >= r.sinceH && e.timeH <= r.lastH).map(e => e.timeH).sort((a, b) => a - b);
     if (times.length < 2) return { missRate: 0, jitterSdH: 0 };
     let slots = 0;
     const offsets: number[] = [];
@@ -372,7 +381,7 @@ export function forecastCurrent(input: ForecastInput, regimens: Regimen[]): Scen
     const target: Hormone = isTransmasc ? 'T' : 'E2';
     const main = mainOf(regimens, target);
     const habits = main ? adherenceOf(main, events) : { missRate: 0, jitterSdH: 0 };
-    const projected = regimens.flatMap(r => continuation(r, nowH + horizonH));
+    const projected = regimens.flatMap(r => continuation(r, nowH + horizonH, nowH));
     // Measured from the regimen's own start, so "steady" reflects how long it has been running.
     return simulateScenario(input, events, projected, main ? Math.max(24, main.intervalH) : 24, habits, `current|${regimens.map(r => r.key).join(',')}|${Math.floor(nowH)}`, main?.sinceH ?? nowH);
 }
@@ -388,14 +397,14 @@ export function forecastPlan(input: ForecastInput, regimens: Regimen[], plan: Pl
 
     const replaced = (e: { ester: Ester }) => plan.replace && hormoneOf(e.ester) === target;
     const kept = events.filter(e => !(e.timeH >= plan.startH && replaced(e)));
-    const carried = regimens.flatMap(r => continuation(r, endH).filter(e => !(replaced(r) && e.timeH >= plan.startH)));
+    const carried = regimens.flatMap(r => continuation(r, endH, nowH).filter(e => !(replaced(r) && e.timeH >= plan.startH)));
     const planDoses: DoseEvent[] = [];
     for (let t = plan.startH; t <= endH; t += plan.intervalH) {
         planDoses.push({ id: `plan-${t}`, route: plan.route, ester: plan.ester, timeH: t, doseMG: plan.doseMG, extras: plan.extras });
     }
     const seed = `plan|${signature({ ...plan, doseMG: plan.doseMG })}|${plan.intervalH}|${plan.startH}|${plan.replace}|${Math.floor(nowH)}`;
     // A plan that only carries on the current regimen has been running since that regimen began.
-    const continues = main && plan.replace && signature(plan) === main.key && Math.abs(plan.intervalH - main.intervalH) < 0.5;
+    const continues = main && plan.replace && signature(plan) === signature(main) && Math.abs(plan.intervalH - main.intervalH) < 0.5;
     return simulateScenario(input, kept, [...carried, ...planDoses], Math.max(24, plan.intervalH), habits, seed, continues ? main.sinceH : plan.startH);
 }
 
@@ -406,7 +415,7 @@ export function forecastPlan(input: ForecastInput, regimens: Regimen[], plan: Pl
  */
 export function shapeAhead(events: DoseEvent[], regimens: Regimen[], weight: number, nowH: number, isTransmasc: boolean): Series | null {
     const untilH = nowH + 3 * Math.max(24, ...regimens.map(r => r.intervalH));
-    const evs = [...events.filter(e => e.timeH >= nowH - MC_HISTORY_H), ...regimens.flatMap(r => continuation(r, untilH))].sort((a, b) => a.timeH - b.timeH);
+    const evs = [...events.filter(e => e.timeH >= nowH - MC_HISTORY_H), ...regimens.flatMap(r => continuation(r, untilH, nowH))].sort((a, b) => a.timeH - b.timeH);
     const sim = runSimulation(evs, weight);
     if (!sim || !sim.timeH.length) return null;
     return { timeH: sim.timeH, value: isTransmasc ? sim.timeH.map((_, i) => sim.concNGdL_T?.[i] ?? 0) : sim.concPGmL_E2 };
@@ -457,7 +466,7 @@ export function adviseBloodDraw(
     const steadyH = main.sinceH + Math.max(21 * 24, main.intervalH * 3);
     if (nowH < steadyH) return { kind: 'wait_steady', atH: dueAt(steadyH) - 1, regimen: main };
 
-    const doseTimes = events.filter(e => signature(e) === main.key && e.timeH <= nowH).map(e => e.timeH).sort((a, b) => a - b);
+    const doseTimes = events.filter(e => regimenMatches(main, e) && e.timeH <= nowH).map(e => e.timeH).sort((a, b) => a - b);
     const labsSince = labResults.filter(l => l.timeH >= steadyH - main.intervalH && l.timeH <= nowH);
     const phases = labsSince.map(l => cyclePhase(main, doseTimes, l.timeH)).filter((p): p is number => p !== null);
 

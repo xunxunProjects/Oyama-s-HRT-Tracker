@@ -9,9 +9,7 @@ import Switch from '../components/Switch';
 import { settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
-import { fill, regimenLabel, intervalLabel } from '../utils/regimenText';
-import { Regimen } from '../utils/regimen';
-import { REMINDER_LEADS } from '../hooks/useDoseReminders';
+import { fill } from '../utils/regimenText';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -53,14 +51,6 @@ interface SettingsProps {
     onNavigateToAdmin: () => void;
     onNavigateToSupplies: () => void;
     supplyCount: number;
-    remindersSupported: boolean;
-    remindersEnabled: boolean;
-    onToggleReminders: (next: boolean) => void;
-    reminderLeadMin: number;
-    onReminderLeadChange: (m: number) => void;
-    regimens: Regimen[];
-    mutedRegimens: string[];
-    onMuteRegimen: (key: string, muted: boolean) => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -119,8 +109,7 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
     devMode, setDevMode, hideSiteLabel, setHideSiteLabel, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
-    onNavigateToSupplies, supplyCount, remindersSupported, remindersEnabled, onToggleReminders,
-    reminderLeadMin, onReminderLeadChange, regimens, mutedRegimens, onMuteRegimen,
+    onNavigateToSupplies, supplyCount,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -187,48 +176,13 @@ const Settings: React.FC<SettingsProps> = ({
                 />
             </div>
 
-            {/* Keeping to the regimen: what's left on hand, and a nudge when a dose is due. */}
+            {/* What's left on hand. */}
             <div className={section}>
                 <NavRow
                     label={t('supplies.title')}
                     value={supplyCount > 0 ? fill(t('supplies.count'), { n: supplyCount }) : undefined}
                     onClick={() => navTo(onNavigateToSupplies, 'general')}
                 />
-                {remindersSupported && (
-                    <SwitchRow
-                        label={t('reminders.title')}
-                        desc={t('reminders.desc')}
-                        checked={remindersEnabled}
-                        onChange={onToggleReminders}
-                    />
-                )}
-                {remindersSupported && remindersEnabled && (
-                    <div className={`${rowBase} cursor-default`}>
-                        <span className={rowLabel}>{t('reminders.lead')}</span>
-                        <Tabs
-                            compact
-                            tabs={REMINDER_LEADS.map(m => ({ id: String(m), label: m === 0 ? t('reminders.on_time') : fill(t('reminders.minutes'), { n: m }) }))}
-                            value={String(REMINDER_LEADS.includes(reminderLeadMin as typeof REMINDER_LEADS[number]) ? reminderLeadMin : 0)}
-                            onChange={v => onReminderLeadChange(Number(v))}
-                        />
-                    </div>
-                )}
-                {remindersSupported && remindersEnabled && (regimens.length === 0 ? (
-                    <div className={`${rowBase} cursor-default`}>
-                        <div>
-                            <p className={rowLabel}>{t('reminders.scope')}</p>
-                            <p className={`text-xs ${muted} mt-0.5`}>{t('forecast.none')}</p>
-                        </div>
-                    </div>
-                ) : regimens.map(r => (
-                    <SwitchRow
-                        key={r.key}
-                        label={regimenLabel(r, t)}
-                        desc={intervalLabel(r.intervalH, t)}
-                        checked={!mutedRegimens.includes(r.key)}
-                        onChange={onValue => onMuteRegimen(r.key, !onValue)}
-                    />
-                )))}
             </div>
 
             {/* How the app looks and speaks. */}

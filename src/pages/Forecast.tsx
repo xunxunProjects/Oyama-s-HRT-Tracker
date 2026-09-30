@@ -222,7 +222,8 @@ const Forecast: React.FC<ForecastProps> = ({
         return (
             <span className={`${cell} tabular-nums`}>
                 <span className={on}>{Math.round(sc.stats[key])}</span>
-                {r && <span className={`block text-[0.625rem] ${muted}`}>{Math.round(r[0])}–{Math.round(r[1])}</span>}
+                {/* With no history to measure habits from, every run is the same and the range is a point: say nothing. */}
+                {r && Math.round(r[0]) !== Math.round(r[1]) && <span className={`block text-[0.625rem] ${muted}`}>{Math.round(r[0])}–{Math.round(r[1])}</span>}
             </span>
         );
     };
