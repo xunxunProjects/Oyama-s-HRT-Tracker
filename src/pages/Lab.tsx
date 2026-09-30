@@ -6,6 +6,7 @@ import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
 import VialDoodle from '../components/VialDoodle';
+import CalibrationPlot from '../components/CalibrationPlot';
 import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 
 interface LabProps {
@@ -113,6 +114,9 @@ const Lab: React.FC<LabProps> = ({
                     </div>
                     <ChevronRight size={16} className={`${muted} shrink-0`} />
                 </button>
+
+                {/* How the labs sit against the model, before and after calibration */}
+                {hasCal && <CalibrationPlot calibration={calibration} t={t} lang={lang} />}
 
                 {/* Lab results list */}
                 {labResults.length === 0 ? (

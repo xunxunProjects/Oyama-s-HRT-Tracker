@@ -286,7 +286,10 @@ svg.lucide,
     .onb-ring { transition: none; }
     .chart-sweep,
     .chart-appear,
-    .chart-mark {
+    .chart-mark,
+    .rail-tick,
+    .rail-label,
+    .advisory-unfold {
         animation: none;
     }
     /* Every one of these rests on its final frame, so switching them off
@@ -735,6 +738,51 @@ select,
                 width var(--duration-base) var(--ease-standard);
 }
 
+/* The home reading's tick scale (components/LevelRail.tsx). The ticks rise
+   off the baseline in a quick left-to-right wave, staggered by an inline
+   animation-delay, the same direction the chart below draws its line on. The
+   status and the band's figures fade up as the wave reaches them. After that
+   a new reading just re-inks the ticks and moves the tall one; nothing slides. */
+@keyframes rail-tick-in {
+    from { transform: scaleY(0); }
+    to { transform: none; }
+}
+.rail-tick {
+    transform-origin: bottom;
+    animation: rail-tick-in 420ms var(--ease-standard) both;
+    transition: height var(--duration-base) var(--ease-standard),
+                background-color var(--duration-base) var(--ease-standard);
+}
+.rail-label {
+    animation: fade-in 320ms var(--ease-standard) both;
+    transition: left var(--duration-base) var(--ease-standard),
+                transform var(--duration-base) var(--ease-standard),
+                color var(--duration-base) var(--ease-standard);
+}
+
+/* The calibration plot (components/CalibrationPlot.tsx). Each calibrated lab
+   mark starts on its raw-model twin and glides across to where calibration
+   put it, staggered per lab; the dotted trail between the two fades up once
+   it has landed. Both rest on their final state, so without the transition
+   they simply appear there. */
+.cal-mark {
+    transition: transform 720ms var(--ease-standard);
+}
+.cal-trail {
+    transition: opacity 320ms var(--ease-standard);
+}
+
+/* A warning's explanation, as it's unfolded (components/DoseAdvisory.tsx).
+   Rides on top of the .disclosure height tween: the text settles down into
+   the space as it opens rather than just being uncovered. Rests visible. */
+@keyframes advisory-unfold {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+.advisory-unfold {
+    animation: advisory-unfold 300ms var(--ease-standard) 40ms both;
+}
+
 /* Disclosure chevrons. `rotate-180` compiles to the standalone `rotate`
    property in Tailwind v4, so that is what has to be transitioned — see the
    note on .switch-knob. */
@@ -1009,6 +1057,10 @@ select,
     .switch-knob,
     .chev,
     .chip-slide,
+    .rail-tick,
+    .rail-label,
+    .cal-mark,
+    .cal-trail,
     .tick-draw,
     .tick-draw path,
     .copy-glyph,
