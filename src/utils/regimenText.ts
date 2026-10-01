@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ester, ExtraKey, GEL_SITE_ORDER, Route } from '../../logic';
+import { Ester, ExtraKey, GEL_SITE_ORDER, Route, isKnownEster } from '../../logic';
 import { Pack, Supply, packUnitMG } from './regimen';
 import { Lang } from '../i18n/translations';
 import { LOCALE_MAP } from './helpers';
@@ -19,6 +19,9 @@ export const fillNodes = (template: string, vars: Record<string, React.ReactNode
 
 const trimNum = (n: number, maxDecimals = 2) => String(Number(n.toFixed(maxDecimals)));
 
+/** "戊酸雌二醇 (EV)". A code this build doesn't know (a newer version's drug) reads as itself, not as a missing key. */
+export const drugLabel = (ester: Ester, t: T) => (isKnownEster(ester) ? t(`ester.${ester}`) : ester);
+
 /**
  * The bracketed tail a settings list carries: " (EV)", " (Arm)". Full-width too,
  * since the Traditional Chinese pack writes "戊酸雌二醇（EV）".
@@ -26,7 +29,7 @@ const trimNum = (n: number, maxDecimals = 2) => String(Number(n.toFixed(maxDecim
 const BRACKETED_TAIL = /\s*[(（].*$/;
 
 /** "戊酸雌二醇": the ester's name without the code the settings lists carry ("戊酸雌二醇 (EV)"). */
-export const esterName = (ester: Ester, t: T) => t(`ester.${ester}`).replace(BRACKETED_TAIL, '').trim();
+export const esterName = (ester: Ester, t: T) => drugLabel(ester, t).replace(BRACKETED_TAIL, '').trim();
 
 // Kana and Han only: Korean writes Hangul with spaces between words ("경구 에스트라디올").
 const CJK = /[\u3040-\u30ff\u3400-\u9fff]/;
@@ -48,13 +51,25 @@ export function planItemLabel(item: { id: string; route: Route; ester: Ester }, 
 export const gelSiteName = (idx: number, t: T) =>
     t(`gel.site.${GEL_SITE_ORDER[Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(idx)))]}`).replace(BRACKETED_TAIL, '').trim();
 
-/** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天". */
+/** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天", "每 4 周". */
 export function frequencyLabel(f: { everyDays: number; timesPerDay: number }, t: T): string {
     if (f.everyDays <= 1) return f.timesPerDay > 1 ? fill(t('plan.times_per_day'), { n: f.timesPerDay }) : t('regimen.daily');
     if (f.everyDays === 2) return t('plan.alternate');
     if (f.everyDays === 7) return t('regimen.weekly');
     if (f.everyDays === 14) return t('plan.biweekly');
+    // A depot is spoken of in weeks: "every 4 weeks", not "every 28 days".
+    if (f.everyDays > 14 && f.everyDays % 7 === 0) return fill(t('plan.every_weeks'), { n: f.everyDays / 7 });
     return fill(t('regimen.every_days'), { n: trimNum(f.everyDays, 1) });
+}
+
+/**
+ * "补佳乐 Progynova、克龄蒙 Climen": what the drug is sold as, so the box on
+ * the shelf can be matched to a row. Empty when nothing is listed for it.
+ * A sublingual tablet is the same tablet as an oral one.
+ */
+export function productNames(route: Route, ester: Ester, t: T): string {
+    const look = (r: Route) => { const k = `products.${r}.${ester}`; const v = t(k); return v === k ? '' : v; };
+    return look(route) || (route === Route.sublingual ? look(Route.oral) : '');
 }
 
 /** "戊酸雌二醇 5 mg 肌注", "雌二醇贴片 100 µg/天": the way a prescription line reads. */
@@ -87,7 +102,7 @@ export function dueLabel(atH: number, lang: Lang, withTime = true, nowH = Date.n
     const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     const dayDiff = Math.round((dayStart(at) - dayStart(now)) / 86400000);
     const time = withTime ? ' ' + at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-    const weekday = at.toLocaleDateString(locale, { weekday: 'short' });
+    const weekday = at.toLocaleDateString(locale, { weekday: LONG_WEEKDAY.has(lang) ? 'long' : 'short' });
     if (dayDiff === 0) return `${T_TODAY[lang] ?? T_TODAY.en}${time}`;
     if (dayDiff === 1) return `${T_TOMORROW[lang] ?? T_TOMORROW.en}${time}`;
     if (dayDiff > 1 && dayDiff < 7) return `${weekday}${time}`;
@@ -95,6 +110,13 @@ export function dueLabel(atH: number, lang: Lang, withTime = true, nowH = Date.n
     const date = at.toLocaleDateString(locale, Math.abs(dayDiff) > 300 ? { year: 'numeric', month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric' });
     return `${date} ${weekday}${time}`;
 }
+
+/**
+ * Languages whose short weekday doesn't read as a day on its own: Japanese and
+ * Korean cut it to one character ("火", "화"), which is just a noun outside a
+ * calendar, and Turkish to "Sal". "周二" and "Tue" stand alone fine.
+ */
+const LONG_WEEKDAY: ReadonlySet<Lang> = new Set<Lang>(['ja', 'ko', 'tr']);
 
 // Two words every language needs here and nowhere else.
 const T_TODAY: Partial<Record<Lang, string>> & { en: string } = { zh: '今天', 'zh-TW': '今天', yue: '今日', en: 'Today', ja: '今日', ko: '오늘', tr: 'Bugün' };

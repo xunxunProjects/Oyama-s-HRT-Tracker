@@ -17,6 +17,14 @@ export enum Ester {
     EN = "EN",
     EU = "EU",
     CPA = "CPA",
+    // Anti-androgens and a SERM, as listed on mtf.wiki. None has a level model:
+    // see UNMODELLED_DRUGS.
+    SPIRO = "SPIRO", // Spironolactone
+    BICA = "BICA",   // Bicalutamide
+    MPA = "MPA",     // Medroxyprogesterone acetate
+    LEUP = "LEUP",   // Leuprorelin (GnRH agonist)
+    TRIP = "TRIP",   // Triptorelin (GnRH agonist)
+    RLX = "RLX",     // Raloxifene (SERM)
     // Transmasculine HRT (testosterone) esters
     T = "T",    // Unesterified testosterone (gel / patch base)
     TC = "TC",  // Testosterone Cypionate
@@ -29,6 +37,39 @@ export const T_ESTERS: ReadonlySet<Ester> = new Set<Ester>([Ester.T, Ester.TC, E
 
 export function isTestosteroneEster(e: Ester): boolean {
     return T_ESTERS.has(e);
+}
+
+/**
+ * Drugs the plan and the log carry with no level model behind them. Their
+ * doses are tracked as taken or not and nothing more: the simulation leaves
+ * them out, so they draw no curve and add nothing to any estimate.
+ */
+export const UNMODELLED_DRUGS: ReadonlySet<Ester> = new Set<Ester>([
+    Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX,
+]);
+
+/** GnRH agonists: a depot injection every few weeks rather than a daily pill. */
+export const GNRH_AGONISTS: ReadonlySet<Ester> = new Set<Ester>([Ester.LEUP, Ester.TRIP]);
+
+const KNOWN_ESTERS: ReadonlySet<string> = new Set<string>(Object.values(Ester));
+
+/**
+ * Whether this build knows the drug code. A newer version can log a drug this
+ * one has never heard of; the import sanitiser keeps such a dose exactly as
+ * stored, so the code reaching here is typed `Ester` but may be none of them.
+ */
+export function isKnownEster(e: unknown): e is Ester {
+    return typeof e === 'string' && KNOWN_ESTERS.has(e);
+}
+
+/** No level model behind it: one of UNMODELLED_DRUGS, or a code this build doesn't know. */
+export function isUnmodelledDrug(e: Ester): boolean {
+    return !KNOWN_ESTERS.has(e) || UNMODELLED_DRUGS.has(e);
+}
+
+/** An estradiol form, i.e. what feeds the E2 curve: not testosterone, not cyproterone, not an unmodelled drug. */
+export function isEstradiolEster(e: Ester): boolean {
+    return !T_ESTERS.has(e) && e !== Ester.CPA && !isUnmodelledDrug(e);
 }
 
 // HRT mode used by the UI/storage layer. Not persisted inside DoseEvent.
@@ -188,7 +229,7 @@ function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseE
 export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() / (1000 * 60 * 60)): DoseAdvisory | null {
     if (!events.length) return null;
 
-    const isE2 = (e: DoseEvent) => !isTestosteroneEster(e.ester) && e.ester !== Ester.CPA;
+    const isE2 = (e: DoseEvent) => isEstradiolEster(e.ester);
     const isT = (e: DoseEvent) => isTestosteroneEster(e.ester);
 
     // Daily-dosed families: heaviest single-day total in the trailing 14 days.
@@ -826,6 +867,12 @@ const EsterInfo = {
     [Ester.EN]: { name: "Estradiol Enanthate", mw: 384.56 },
     [Ester.EU]: { name: "Estradiol Undecylate", mw: 440.66 },
     [Ester.CPA]: { name: "Cyproterone Acetate", mw: 416.94 },
+    [Ester.SPIRO]: { name: "Spironolactone", mw: 416.57 },
+    [Ester.BICA]: { name: "Bicalutamide", mw: 430.37 },
+    [Ester.MPA]: { name: "Medroxyprogesterone Acetate", mw: 386.52 },
+    [Ester.LEUP]: { name: "Leuprorelin", mw: 1209.42 },
+    [Ester.TRIP]: { name: "Triptorelin", mw: 1311.45 },
+    [Ester.RLX]: { name: "Raloxifene", mw: 473.58 },
     // Testosterone esters (MW = parent + ester group)
     [Ester.T]:  { name: "Testosterone",           mw: 288.42 },
     [Ester.TC]: { name: "Testosterone Cypionate", mw: 412.60 },
@@ -833,8 +880,18 @@ const EsterInfo = {
     [Ester.TU]: { name: "Testosterone Undecanoate", mw: 456.70 }
 };
 
+/** What a dose delivers, in English: the hormone for an estradiol or testosterone ester, otherwise the drug itself. */
+export function activeCompoundName(ester: Ester): string {
+    if (!isKnownEster(ester)) return ester; // a newer version's drug: its code is all there is to go on
+    if (isTestosteroneEster(ester)) return "Testosterone";
+    if (isEstradiolEster(ester)) return "Estradiol";
+    return EsterInfo[ester].name;
+}
+
 export function getToE2Factor(ester: Ester): number {
     if (ester === Ester.E2) return 1.0;
+    // No estradiol in these (or nothing known about them): a dose stays the number it was typed as.
+    if (isUnmodelledDrug(ester)) return 1.0;
     if (isTestosteroneEster(ester)) {
         // "to‑T" factor: mg of ester → mg of free testosterone
         return EsterInfo[Ester.T].mw / EsterInfo[ester].mw;
@@ -1618,6 +1675,10 @@ function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEven
 }
 
 export function runSimulation(events: DoseEvent[], bodyWeightKG: number): SimulationResult | null {
+    // Unmodelled drugs, and codes this build doesn't know, have no parameters
+    // of their own: let through, they would fall into the estradiol branches
+    // below and be counted as estradiol.
+    events = events.filter(e => !isUnmodelledDrug(e.ester));
     if (events.length === 0 || bodyWeightKG <= 0) return null;
 
     const sortedEvents = [...events].sort((a, b) => a.timeH - b.timeH);
@@ -1801,6 +1862,13 @@ export function interpolateConcentration_E2(sim: SimulationResult, hour: number)
     const ratio = (hour - t0) / (t1 - t0);
     return c0 + (c1 - c0) * ratio;
 }
+
+/**
+ * The lowest cyproterone estimate (ng/mL) worth showing. Below it is the
+ * washed-out tail of past doses, which never quite reaches zero: readings show
+ * "--" for it and the chart leaves the curve out.
+ */
+export const CPA_MIN_NGML = 0.1;
 
 export function interpolateConcentration_CPA(sim: SimulationResult, hour: number): number | null {
     if (!sim.timeH.length) return null;

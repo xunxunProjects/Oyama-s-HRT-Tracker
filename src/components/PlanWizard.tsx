@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Ester, GEL_SITE_ORDER, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
+import { Ester, GEL_SITE_ORDER, GNRH_AGONISTS, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
 import Tick from './Tick';
 import Doodle from './Doodle';
 import DoseRings from './DoseRings';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, freshDraft } from '../utils/plan';
-import { frequencyLabel, gelSiteName, regimenLabel, supplyLabel } from '../utils/regimenText';
+import { frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
 
 const divider = 'border-b border-[var(--border)]';
 
@@ -22,6 +22,9 @@ const COMMON_FREQ: Partial<Record<Route, string[]>> = {
     [Route.gel]: ['d1', 'd2'],
     [Route.patchApply]: ['e3', 'e3.5', 'e7'],
 };
+/** A GnRH agonist is injected too, but as a monthly or three-monthly depot. */
+const commonFreq = (route: Route, ester: Ester): string[] =>
+    (GNRH_AGONISTS.has(ester) ? ['e28', 'e84'] : COMMON_FREQ[route] ?? []);
 
 interface RowProps {
     on: boolean;
@@ -127,7 +130,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
         : step === 'dose' || !item ? supplyLabel(draft, t)
         : regimenLabel(item, t);
 
-    const common = (draft && COMMON_FREQ[draft.route]) || [];
+    const common = draft ? commonFreq(draft.route, draft.ester) : [];
     const showAllFreq = allFreq || !draft || !common.includes(draft.freq);
     const isPatch = draft?.route === Route.patchApply;
 
@@ -170,12 +173,15 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                             {routes.map(r => {
                                 const on = draft?.route === r;
                                 const full = free(r).length === 0;
+                                // A route with one drug skips the drug question, so what it is sold as goes here.
+                                const only = PLAN_DRUGS[mode][r] ?? [];
                                 return (
                                     <Row
                                         key={r}
                                         on={on}
                                         onClick={() => pickRoute(r)}
                                         title={t(`regimen.route.${r}`)}
+                                        desc={only.length === 1 ? productNames(r, only[0], t) || undefined : undefined}
                                         note={full ? t('plan.in_plan') : undefined}
                                         mark={<Doodle name={r} asleep={full} />}
                                     />
@@ -192,6 +198,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                                     on={draft.ester === e}
                                     onClick={() => pickDrug(e)}
                                     title={t(`ester.${e}`)}
+                                    desc={productNames(draft.route, e, t) || undefined}
                                     note={free(draft.route).includes(e) ? undefined : t('plan.in_plan')}
                                 />
                             ))}

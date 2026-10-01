@@ -1,4 +1,4 @@
-import { DoseEvent, Ester, ExtraKey, Route } from '../../logic';
+import { DoseEvent, Ester, ExtraKey, GNRH_AGONISTS, Route } from '../../logic';
 import { Regimen, hormoneOf, lapseH } from './regimen';
 
 /**
@@ -36,16 +36,22 @@ export const FREQUENCIES: readonly Frequency[] = [
     { key: 'e7', everyDays: 7, timesPerDay: 1 },
     { key: 'e10', everyDays: 10, timesPerDay: 1 },
     { key: 'e14', everyDays: 14, timesPerDay: 1 },
+    // GnRH agonist depots: the one-month and the three-month forms.
+    { key: 'e28', everyDays: 28, timesPerDay: 1 },
+    { key: 'e84', everyDays: 84, timesPerDay: 1 },
 ];
 
 export const frequencyKey = (i: Pick<PlanItem, 'everyDays' | 'timesPerDay'>) =>
     (i.everyDays <= 1 ? `d${i.timesPerDay}` : `e${i.everyDays}`);
 
-/** What each route can carry, per mode: the same drugs the dose form logs. */
+/**
+ * What each route can carry, per mode: the same drugs the dose form logs.
+ * Estrogens first, then the anti-androgens and raloxifene mtf.wiki lists.
+ */
 export const PLAN_DRUGS: Record<'transfem' | 'transmasc', Partial<Record<Route, Ester[]>>> = {
     transfem: {
-        [Route.injection]: [Ester.EV, Ester.EB, Ester.EC, Ester.EN, Ester.EU],
-        [Route.oral]: [Ester.EV, Ester.E2, Ester.CPA],
+        [Route.injection]: [Ester.EV, Ester.EB, Ester.EC, Ester.EN, Ester.EU, Ester.LEUP, Ester.TRIP],
+        [Route.oral]: [Ester.EV, Ester.E2, Ester.CPA, Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.RLX],
         [Route.sublingual]: [Ester.E2, Ester.EV],
         [Route.gel]: [Ester.E2],
         [Route.patchApply]: [Ester.E2],
@@ -57,9 +63,20 @@ export const PLAN_DRUGS: Record<'transfem' | 'transmasc', Partial<Record<Route, 
     },
 };
 
-/** Where a new item starts: the usual amount and rhythm for that drug by that route. */
+/**
+ * Where a new item starts: the usual amount and rhythm for that drug by that
+ * route. The anti-androgens and raloxifene follow mtf.wiki: spironolactone
+ * 100 mg a day split in two (of 100–400), bicalutamide 25 mg (of 25–50),
+ * medroxyprogesterone 10 mg, a GnRH agonist's 3.75 mg monthly depot,
+ * raloxifene 60 mg.
+ */
 export const usualFor = (route: Route, ester: Ester): { dose: string; freq: string } => {
     if (ester === Ester.CPA) return { dose: '12.5', freq: 'd1' };
+    if (ester === Ester.SPIRO) return { dose: '50', freq: 'd2' };
+    if (ester === Ester.BICA) return { dose: '25', freq: 'd1' };
+    if (ester === Ester.MPA) return { dose: '10', freq: 'd1' };
+    if (GNRH_AGONISTS.has(ester)) return { dose: '3.75', freq: 'e28' };
+    if (ester === Ester.RLX) return { dose: '60', freq: 'd1' };
     if (route === Route.patchApply) return { dose: '100', freq: 'e3.5' };
     if (route === Route.injection) return { dose: ester === Ester.TU ? '1000' : [Ester.TC, Ester.TE].includes(ester) ? '50' : '5', freq: 'e7' };
     if (route === Route.gel) return { dose: ester === Ester.T ? '50' : '1.5', freq: 'd1' };

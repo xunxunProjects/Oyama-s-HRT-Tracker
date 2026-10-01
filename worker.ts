@@ -152,8 +152,8 @@ const MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER = 20;
 const MAX_SHARE_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/; // 32 random bytes, base64url
 const SHARE_ROUTES = new Set(['sublingual', 'injection', 'patchApply', 'patchRemove', 'gel', 'oral']);
-const SHARE_ESTERS = new Set(['E2', 'EB', 'EV', 'EC', 'EN', 'EU', 'CPA', 'T', 'TC', 'TE', 'TU']);
-const TRANSFEM_ESTERS = new Set(['E2', 'EB', 'EV', 'EC', 'EN', 'EU', 'CPA']);
+const SHARE_ESTERS = new Set(['E2', 'EB', 'EV', 'EC', 'EN', 'EU', 'CPA', 'SPIRO', 'BICA', 'MPA', 'LEUP', 'TRIP', 'RLX', 'T', 'TC', 'TE', 'TU']);
+const TRANSFEM_ESTERS = new Set(['E2', 'EB', 'EV', 'EC', 'EN', 'EU', 'CPA', 'SPIRO', 'BICA', 'MPA', 'LEUP', 'TRIP', 'RLX']);
 const TRANSMASC_ESTERS = new Set(['T', 'TC', 'TE', 'TU']);
 const SHARE_EXTRA_KEYS = new Set([
   'concentrationMGmL', 'areaCM2', 'releaseRateUGPerDay', 'sublingualTheta',

@@ -4,10 +4,11 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
-import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory } from '../../logic';
+import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory, isEstradiolEster, isKnownEster } from '../../logic';
 import { Save, Trash2, Info, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
+import { drugLabel, productNames } from '../utils/regimenText';
 import InjectionFields from './dose_form/InjectionFields';
 import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
@@ -142,6 +143,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const { isTransmasc } = useHRTMode();
     const [route, setRoute] = useState<Route>(Route.injection);
     const [ester, setEster] = useState<Ester>(isTransmasc ? Ester.TC : Ester.EV);
+    // A drug code a newer version logged and this one doesn't know, from the
+    // dose being edited or a template being loaded. It is offered on its own
+    // route next to the known drugs, so changing the time or amount keeps it
+    // rather than swapping in the route's first drug on save.
+    const [foreignDrug, setForeignDrug] = useState<{ route: Route; ester: Ester } | null>(null);
 
     const [rawDose, setRawDose] = useState("");
     const [e2Dose, setE2Dose] = useState("");
@@ -183,6 +189,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             setDateStr(iso);
             setRoute(eventToEdit.route);
             setEster(eventToEdit.ester);
+            setForeignDrug(isKnownEster(eventToEdit.ester) ? null : { route: eventToEdit.route, ester: eventToEdit.ester });
 
             if (eventToEdit.route === Route.patchApply && eventToEdit.extras[ExtraKey.releaseRateUGPerDay]) {
                 setPatchMode("rate");
@@ -249,6 +256,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             setDateStr(iso);
             setRoute(isTransmasc ? Route.injection : Route.sublingual);
             setEster(isTransmasc ? Ester.TC : Ester.EV);
+            setForeignDrug(null);
             setRawDose("");
             setE2Dose("");
             setPatchMode("rate");
@@ -352,6 +360,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const handleLoadTemplate = (template: DoseTemplate) => {
         setRoute(template.route);
         setEster(template.ester);
+        if (!isKnownEster(template.ester)) setForeignDrug({ route: template.route, ester: template.ester });
         setRawDose(template.doseMG.toFixed(3));
         // Templates store the raw-ester dose, so mark the raw field as the
         // source of truth — otherwise handleSave would re-derive the dose from
@@ -497,7 +506,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }, 800);
     };
 
-    const availableEsters = useMemo(() => {
+    const knownEsters = useMemo(() => {
         if (isTransmasc) {
             switch (route) {
                 case Route.injection:
@@ -510,15 +519,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }
         switch (route) {
             case Route.injection:
-                return [Ester.EB, Ester.EV, Ester.EC, Ester.EN, Ester.EU];
+                return [Ester.EB, Ester.EV, Ester.EC, Ester.EN, Ester.EU, Ester.LEUP, Ester.TRIP];
             case Route.oral:
-                return [Ester.E2, Ester.EV, Ester.CPA];
+                return [Ester.E2, Ester.EV, Ester.CPA, Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.RLX];
             case Route.sublingual:
                 return [Ester.E2, Ester.EV];
             default:
                 return [Ester.E2];
         }
     }, [route, isTransmasc]);
+    const availableEsters = useMemo(
+        () => (foreignDrug && foreignDrug.route === route ? [...knownEsters, foreignDrug.ester] : knownEsters),
+        [knownEsters, foreignDrug, route],
+    );
 
     const availableRoutes = useMemo(() => {
         if (isTransmasc) {
@@ -545,7 +558,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     }, [availableEsters, ester]);
 
     const doseGuide = useMemo(() => {
-        if (ester === Ester.CPA) return null;
+        // The thresholds are estradiol's; they say nothing about anything else.
+        if (!isEstradiolEster(ester)) return null;
         // The built-in dose thresholds (DOSE_GUIDE_CONFIG) are calibrated for
         // feminizing HRT (E2). They would be misleading for testosterone dosing,
         // so skip the guide entirely in transmasc mode.
@@ -738,7 +752,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 onChange={(val) => setEster(val as Ester)}
                                 options={availableEsters.map(e => ({
                                     value: e,
-                                    label: t(`ester.${e}`)
+                                    label: drugLabel(e, t),
+                                    description: productNames(route, e, t) || undefined,
                                 }))}
                             />
                         )}
@@ -826,7 +841,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         </div>
 
                         {/* Injection-specific guide from mtf.wiki */}
-                        {route === Route.injection && !isTransmasc && (
+                        {route === Route.injection && !isTransmasc && isEstradiolEster(ester) && (
                             <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
                                 {/* Safety Warning */}
                                 <div className="flex gap-2">

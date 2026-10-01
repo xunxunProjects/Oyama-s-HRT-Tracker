@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShowDialog } from '../contexts/DialogContext';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
+import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
          BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
          EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
 import { createDayLabelFormatter, toDayKey } from '../utils/helpers';
@@ -389,6 +389,12 @@ export const useAppData = (showDialog: ShowDialog) => {
         return baseE2 * calibrationFn(h);
     }, [simulation, currentTime, calibrationFn]);
 
+    // Cyproterone (ng/mL) at the current time. Uncalibrated: labs measure E2 only.
+    const currentCPA = useMemo(() => {
+        if (!simulation) return 0;
+        const h = currentTime.getTime() / 3600000;
+        return interpolateConcentration_CPA(simulation, h) || 0;
+    }, [simulation, currentTime]);
 
     // Total testosterone (ng/dL) at the current time — only meaningful in transmasc mode.
     const currentT = useMemo(() => {
@@ -545,6 +551,14 @@ export const useAppData = (showDialog: ShowDialog) => {
         return Number.isFinite(n) && n > 0 ? n : undefined;
     };
 
+    // What a drug code looks like. One this build doesn't know is most likely a
+    // drug a newer version added, and is kept exactly as stored: rewriting it
+    // as estradiol, as this used to, put the newer device's doses on this one's
+    // estradiol curve, and the next sync carried the rewrite back to the cloud.
+    // (isKnownEster in logic.ts keeps such a code out of every estimate.)
+    const DRUG_CODE = /^[A-Za-z0-9_]{1,24}$/;
+    const isDrugCode = (v: unknown): v is Ester => typeof v === 'string' && DRUG_CODE.test(v);
+
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
         if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
@@ -558,7 +572,8 @@ export const useAppData = (showDialog: ShowDialog) => {
             // a stray one stretches the simulation grid over the whole span.
             if (!Number.isFinite(timeNum) || timeNum < EVENT_TIME_H_MIN || timeNum > EVENT_TIME_H_MAX) return null;
             const doseNum = Number(doseMG);
-            const validEster = Object.values(Ester).includes(ester) ? ester : Ester.E2;
+            // A dose with no usable code at all predates the field and is estradiol.
+            const validEster = isDrugCode(ester) ? ester : Ester.E2;
             const sanitizedExtras = (extras && typeof extras === 'object') ? extras : {};
             return {
                 id: typeof item.id === 'string' ? item.id : uuidv4(),
@@ -599,7 +614,7 @@ export const useAppData = (showDialog: ShowDialog) => {
             if (!item || typeof item !== 'object') return null;
             const { name, route, ester, doseMG, extras, createdAt } = item;
             if (!Object.values(Route).includes(route)) return null;
-            if (!Object.values(Ester).includes(ester)) return null;
+            if (!isDrugCode(ester)) return null;
             const doseNum = Number(doseMG);
             if (!Number.isFinite(doseNum) || doseNum < 0) return null;
             return {
@@ -1007,6 +1022,7 @@ export const useAppData = (showDialog: ShowDialog) => {
         calibrationHistoryMode, setCalibrationHistoryMode,
         calibration,
         currentLevel,
+        currentCPA,
         plan, savePlanItem, deletePlanItem,
         currentT,
         currentStatus,

@@ -3,8 +3,8 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
     SimulationResult, DoseEvent, LabResult, HRTMode,
-    interpolateConcentration_E2, interpolateConcentration_T,
-    convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS,
+    interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T,
+    convertToPgMl, convertToNgDl, isT_LabUnit, T_ESTERS, CPA_MIN_NGML, isEstradiolEster, isUnmodelledDrug,
 } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useElementSize } from '../hooks/useElementSize';
@@ -130,6 +130,13 @@ function useFadingSet<T>(items: T[], sig: string, instant = false): { prev: T[];
 
 const fmtAxis = (v: number) => (v >= 100 || v % 1 === 0 ? String(Math.round(v)) : v < 1 ? v.toFixed(2) : v.toFixed(1));
 
+// A cyproterone estimate, or null where it is too low to show (see CPA_MIN_NGML).
+const cpaShown = (v: number | null | undefined) => (v != null && v >= CPA_MIN_NGML ? v : null);
+
+// The cyproterone axis never tops out below this (ng/mL). Autoscaled to the
+// tail of a dose washing out, the curve would otherwise fill the plot.
+const CPA_AXIS_MIN = 1;
+
 const ResultChart = ({
     sim,
     events,
@@ -137,6 +144,7 @@ const ResultChart = ({
     calibrationFn = (_t: number) => 1,
     onPointClick,
     isDarkMode = false,
+    isMono = false,
     mode,
     title,
     timeZone,
@@ -147,6 +155,7 @@ const ResultChart = ({
     calibrationFn?: (timeH: number) => number;
     onPointClick?: (e: DoseEvent) => void;
     isDarkMode?: boolean;
+    isMono?: boolean;
     mode?: HRTMode;
     title?: string;
     timeZone?: string;
@@ -174,29 +183,42 @@ const ResultChart = ({
         ? { primary: '#df8f74', second: '#838078', grid: '#2c2a26', axis: '#a7a49e', faint: '#6b6860', dot: '#181714', lab: '#facebd' }
         : { primary: '#cc785c', second: '#a7a49e', grid: '#eeedea', axis: '#6b6860', faint: '#a7a49e', dot: '#ffffff', lab: '#924833' };
 
-    // One series per mode: total T for transmasc, E2 for transfem. Cyproterone
-    // is not drawn. Its level isn't modelled; the Overview only tracks whether
-    // each dose was taken.
+    // Which series are relevant for the current mode / logged doses: total T
+    // for transmasc; E2 for transfem, with cyproterone on its own right-hand
+    // axis, or cyproterone alone when it is all that has been logged.
+    const hasE2 = !isTransmasc && events.some(e => isEstradiolEster(e.ester));
+    const hasCPA = !isTransmasc && events.some(e => e.ester === 'CPA');
+    const primaryIsCPA = hasCPA && !hasE2;
+    const hasSecondary = hasE2 && hasCPA;
+
     const primaryMeta = isTransmasc
         ? { label: t('label.total_t'), unit: 'ng/dl', decimals: 0 }
-        : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
+        : primaryIsCPA
+            ? { label: t('label.cpa_chart'), unit: 'ng/ml', decimals: 2 }
+            : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
 
     // Typical target band, matching the reference ranges the app uses for its
     // status labels (see useAppData currentStatus): transmasc total-T sits in
     // the ~300–1000 ng/dL male range; transfem E2 in the ~100–200 pg/mL band.
-    const primaryTarget = useMemo<{ low: number; high: number }>(
-        () => (isTransmasc ? { low: 300, high: 1000 } : { low: 100, high: 200 }),
-        [isTransmasc],
-    );
+    // Cyproterone has no target range, so it gets none.
+    const primaryTarget = useMemo<{ low: number; high: number } | null>(() => {
+        if (isTransmasc) return { low: 300, high: 1000 };
+        if (primaryIsCPA) return null;
+        return { low: 100, high: 200 };
+    }, [isTransmasc, primaryIsCPA]);
 
-    // Resample the simulation into the (time, value) shape we plot.
+    // Resample the simulation into the (time, primary, secondary) shape we
+    // plot. Cyproterone too low to show is null, which breaks the line there.
     const data = useMemo(() => {
-        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number }[];
-        return sim.timeH.map((h, i) => ({
-            t: h * HOUR,
-            p: isTransmasc ? (sim.concNGdL_T?.[i] ?? 0) : sim.concPGmL_E2[i] * calibrationFn(h),
-        }));
-    }, [sim, calibrationFn, isTransmasc]);
+        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number | null; s: number | null }[];
+        return sim.timeH.map((h, i) => {
+            const time = h * HOUR;
+            if (isTransmasc) return { t: time, p: sim.concNGdL_T?.[i] ?? 0, s: null };
+            const cpa = cpaShown(sim.concPGmL_CPA[i]);
+            if (primaryIsCPA) return { t: time, p: cpa, s: null };
+            return { t: time, p: sim.concPGmL_E2[i] * calibrationFn(h), s: hasSecondary ? cpa : null };
+        });
+    }, [sim, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
 
     // A clock that ticks, not one that is read on every render. `now` anchors the
     // visible window, the "now" marker and the calibration read-off; taking it
@@ -269,32 +291,44 @@ const ResultChart = ({
             .filter(l => l.t >= t0 && l.t <= t1);
     }, [labResults, isTransmasc, t0, t1]);
 
-    // Dose markers sit on the curve at the moment of each dose. Cyproterone
-    // doses have no curve to sit on, so they get no marker.
+    // Dose markers sit on whichever axis their compound belongs to. A drug
+    // with no level model has no curve to sit on, so it gets no marker.
     const markers = useMemo(() => {
         if (!sim) return [];
         return events.map(e => {
             const isT = T_ESTERS.has(e.ester);
-            if (e.ester === 'CPA' || (isTransmasc ? !isT : isT)) return null;
-            const value = isTransmasc
-                ? interpolateConcentration_T(sim, e.timeH)
-                : (() => { const v = interpolateConcentration_E2(sim, e.timeH); return v == null ? null : v * calibrationFn(e.timeH); })();
+            const isCPA = e.ester === 'CPA';
+            if ((isTransmasc ? !isT : isT) || isUnmodelledDrug(e.ester)) return null;
+            let value: number | null, axis: 'p' | 's';
+            if (isTransmasc) { value = interpolateConcentration_T(sim, e.timeH); axis = 'p'; }
+            else if (isCPA) { value = interpolateConcentration_CPA(sim, e.timeH); axis = hasSecondary ? 's' : 'p'; }
+            else { const v = interpolateConcentration_E2(sim, e.timeH); value = v == null ? null : v * calibrationFn(e.timeH); axis = 'p'; }
             const v = value != null && Number.isFinite(value) ? value : 0;
-            return { t: e.timeH * HOUR, v, event: e };
-        }).filter((m): m is { t: number; v: number; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
-    }, [sim, events, isTransmasc, calibrationFn, t0, t1]);
+            return { t: e.timeH * HOUR, v, axis, event: e };
+        }).filter((m): m is { t: number; v: number; axis: 'p' | 's'; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
+    }, [sim, events, isTransmasc, hasSecondary, calibrationFn, t0, t1]);
 
     // Y domains scale to what's visible in the current window.
     const yPrimary = useMemo(() => {
         let mx = -Infinity;
-        for (const d of slice) if (d.p > mx) mx = d.p;
+        for (const d of slice) if (d.p != null && d.p > mx) mx = d.p;
         for (const l of labPoints) if (l.v > mx) mx = l.v;
-        for (const m of markers) if (m.v > mx) mx = m.v;
+        for (const m of markers) if (m.axis === 'p' && m.v > mx) mx = m.v;
         // Keep the target band's lower edge on-screen so "below target" reads clearly,
         // without forcing the whole (often much higher) band into view.
-        mx = Math.max(mx, primaryTarget.low * 1.05);
+        mx = Math.max(mx, primaryTarget ? primaryTarget.low * 1.05 : CPA_AXIS_MIN);
         return buildYDomain(0, mx);
     }, [slice, labPoints, markers, primaryTarget]);
+
+    const ySecondary = useMemo(() => {
+        if (!hasSecondary) return [0, 1] as [number, number];
+        let mx = CPA_AXIS_MIN;
+        for (const d of slice) if (d.s != null && d.s > mx) mx = d.s;
+        for (const m of markers) if (m.axis === 's' && m.v > mx) mx = m.v;
+        return buildYDomain(0, mx);
+    }, [slice, markers, hasSecondary]);
+    // The right-hand axis is only labelled while some of its curve is in view.
+    const cpaInView = hasSecondary && slice.some(d => d.s != null);
 
     // Layout. The plot is drawn in raw SVG units, so unlike the rest of the UI
     // it does not follow the root font size. Reading that size back keeps the
@@ -309,8 +343,9 @@ const ResultChart = ({
     const axisFont = 11 * ui;
 
     const mL = 32 * ui;
-    // Mirrors the left gutter: the plot stays centred in the column, and the
-    // last date label, centred on the plot's right edge, has room to finish.
+    // Mirrors the left gutter: the plot stays centred in the column, the last
+    // date label, centred on the plot's right edge, has room to finish, and
+    // the cyproterone axis has room for its labels.
     const mR = mL;
     const mT = 14 * ui;
     const mB = 26 * ui;
@@ -323,12 +358,14 @@ const ResultChart = ({
     const sweepDelay = (x: number) =>
         plotW > 0 ? `${Math.round(Math.max(0, Math.min(1, (x - mL) / plotW)) * SWEEP_MS)}ms` : '0ms';
 
-    // The vertical axis eases too. Targets stay exact, so hit-testing and the
+    // The vertical axes ease too. Targets stay exact, so hit-testing and the
     // window maths are unaffected; only what is drawn glides.
     const [vy0, vy1] = useEasedPair(yPrimary, false);
+    const [vs0, vs1] = useEasedPair(ySecondary, false);
 
     const X = (time: number) => mL + (vt1 === vt0 ? 0 : ((time - vt0) / (vt1 - vt0)) * plotW);
     const YP = (v: number) => mT + plotH - ((v - vy0) / (vy1 - vy0)) * plotH;
+    const YS = (v: number) => mT + plotH - ((v - vs0) / (vs1 - vs0)) * plotH;
 
     // Monotone cubic Hermite interpolation (Fritsch–Carlson), the same curve
     // family as d3's curveMonotoneX: smoothly connects the sample points
@@ -379,7 +416,7 @@ const ResultChart = ({
         return out;
     };
 
-    const linePath = () => {
+    const linePath = (key: 'p' | 's') => {
         let d = '';
         let xs: number[] = [];
         let ys: number[] = [];
@@ -389,9 +426,10 @@ const ResultChart = ({
             ys = [];
         };
         for (const pt of slice) {
-            if (!Number.isFinite(pt.p)) { flush(); continue; }
+            const val = pt[key];
+            if (val == null || !Number.isFinite(val)) { flush(); continue; }
             xs.push(X(pt.t));
-            ys.push(YP(pt.p));
+            ys.push(key === 'p' ? YP(val) : YS(val));
         }
         flush();
         return d;
@@ -415,7 +453,9 @@ const ResultChart = ({
 
     // Label sets for both axes, each carrying whatever it is replacing.
     const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
+    const ysTickVals = useMemo(() => (cpaInView ? ticksFor(ySecondary) : []), [cpaInView, ySecondary]);
     const yFade = useFadingSet(yTickVals, yTickVals.join(','));
+    const ysFade = useFadingSet(ysTickVals, ysTickVals.join(','));
     const xFade = useFadingSet(xTicks, xTicks.map(t => t.label).join('|'), dragging);
 
     // Mid-rescale an incoming set can be crushed together. Its rules still
@@ -427,11 +467,18 @@ const ResultChart = ({
     const nowVal = useMemo(() => {
         if (!sim) return null;
         const h = now / HOUR;
+        if (primaryIsCPA) return cpaShown(interpolateConcentration_CPA(sim, h));
         const v = isTransmasc
             ? interpolateConcentration_T(sim, h)
             : (() => { const e = interpolateConcentration_E2(sim, h); return e == null ? null : e * calibrationFn(h); })();
         return v != null && Number.isFinite(v) ? v : null;
-    }, [sim, now, isTransmasc, calibrationFn]);
+    }, [sim, now, isTransmasc, primaryIsCPA, calibrationFn]);
+
+    // "Now" position on the secondary (CPA) curve.
+    const nowValS = useMemo(
+        () => (sim && hasSecondary ? cpaShown(interpolateConcentration_CPA(sim, now / HOUR)) : null),
+        [sim, now, hasSecondary],
+    );
 
     // Hover lookup — nearest sample to the pointer.
     const updateHover = (clientX: number) => {
@@ -536,6 +583,19 @@ const ResultChart = ({
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
                 </span>
+                {hasSecondary && (
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            className="w-3.5 h-[2px] rounded-full"
+                            style={{
+                                background: isMono
+                                    ? `repeating-linear-gradient(90deg, ${c.second} 0, ${c.second} 2px, transparent 2px, transparent 5px)`
+                                    : c.second,
+                            }}
+                        />
+                        {t('label.cpa_chart')}
+                    </span>
+                )}
             </div>
 
             {/* Plot */}
@@ -606,6 +666,25 @@ const ResultChart = ({
                             )
                         )}
 
+                        {/* Secondary (CPA) axis labels */}
+                        {([['out', ysFade.prev, 1 - ysFade.u], ['in', ysFade.next, ysFade.u]] as const).map(([tag, set, o]) =>
+                            o <= 0.002 ? null : (
+                                <g key={`ysg-${tag}`} opacity={o}>
+                                    {set.map((v, i) => {
+                                        const y = YS(v);
+                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                                        return (
+                                            <text key={`ys-${i}`}
+                                                  className={tag === 'in' ? 'chart-appear' : undefined}
+                                                  style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
+                                                  x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start"
+                                                  fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
+                                        );
+                                    })}
+                                </g>
+                            )
+                        )}
+
                         {/* X axis labels, on the same treatment */}
                         {([['out', xFade.prev, 1 - xFade.u], ['in', xFade.next, xFade.u]] as const).map(([tag, set, o]) =>
                             o <= 0.002 ? null : (
@@ -627,12 +706,21 @@ const ResultChart = ({
 
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
-                                <path d={linePath()} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                                {/* Primary curve — dotted in mono when it's the CPA series */}
+                                <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
+
+                                {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
+                                {hasSecondary && (
+                                    <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
+                                )}
                             </g>
 
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
                                 <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.axis} strokeWidth={1} strokeDasharray="2 4" />
+                            )}
+                            {nowValS != null && now >= t0 && now <= t1 && (
+                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YS(nowValS)} r={4} fill={c.second} stroke={c.dot} strokeWidth={2} />
                             )}
                             {nowVal != null && now >= t0 && now <= t1 && (
                                 <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YP(nowVal)} r={5} fill={c.primary} stroke={c.dot} strokeWidth={2.5} />
@@ -641,7 +729,8 @@ const ResultChart = ({
                             {/* Dose markers (clickable) */}
                             {markers.map((m, i) => {
                                 const cx = X(m.t);
-                                const cy = YP(m.v);
+                                const cy = m.axis === 'p' ? YP(m.v) : YS(m.v);
+                                const col = m.axis === 's' ? c.second : c.primary;
                                 return (
                                     <g
                                         key={`m-${i}`}
@@ -650,7 +739,7 @@ const ResultChart = ({
                                         onClick={() => onPointClick?.(m.event)}
                                     >
                                         <circle cx={cx} cy={cy} r={9} fill="transparent" />
-                                        <circle cx={cx} cy={cy} r={3.5} fill={c.dot} stroke={c.primary} strokeWidth={2} />
+                                        <circle cx={cx} cy={cy} r={3.5} fill={c.dot} stroke={col} strokeWidth={2} />
                                     </g>
                                 );
                             })}
@@ -674,7 +763,12 @@ const ResultChart = ({
                             {showHover && (
                                 <>
                                     <line x1={X(hoverPt!.t)} y1={mT} x2={X(hoverPt!.t)} y2={mT + plotH} stroke={c.faint} strokeWidth={1} />
-                                    <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={5} fill={c.primary} stroke={c.dot} strokeWidth={2.5} />
+                                    {hoverPt!.p != null && (
+                                        <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={5} fill={c.primary} stroke={c.dot} strokeWidth={2.5} />
+                                    )}
+                                    {hoverPt!.s != null && (
+                                        <circle cx={X(hoverPt!.t)} cy={YS(hoverPt!.s)} r={3.5} fill={c.second} stroke={c.dot} strokeWidth={2} />
+                                    )}
                                 </>
                             )}
                         </g>
@@ -687,19 +781,32 @@ const ResultChart = ({
                         className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{
                             left: Math.min(Math.max(X(hoverPt!.t), mL + 4), mL + plotW - 4),
-                            top: Math.max(YP(hoverPt!.p) - 12, 8),
+                            top: Math.max(YP(hoverPt!.p ?? 0) - 12, 8),
                             transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
                         <div className="text-[0.6875rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
                             {formatDate(new Date(hoverPt!.t), lang, timeZone)} · {formatTime(new Date(hoverPt!.t), timeZone)}
                         </div>
+                        {/* A curve too low to show reads "--", and has no unit. */}
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className="text-sm font-medium tabular-nums" style={{ color: c.primary }}>
-                                {hoverPt!.p.toFixed(primaryMeta.decimals)}
+                                {hoverPt!.p != null ? hoverPt!.p.toFixed(primaryMeta.decimals) : '--'}
                             </span>
-                            <span className="text-[0.6875rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
+                            {hoverPt!.p != null && (
+                                <span className="text-[0.6875rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
+                            )}
                         </div>
+                        {hasSecondary && (
+                            <div className="flex items-baseline gap-1 whitespace-nowrap">
+                                <span className="text-xs font-medium tabular-nums" style={{ color: c.second }}>
+                                    {hoverPt!.s != null ? hoverPt!.s.toFixed(2) : '--'}
+                                </span>
+                                {hoverPt!.s != null && (
+                                    <span className="text-[0.6875rem] text-[var(--text-muted)]">ng/ml</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

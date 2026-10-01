@@ -25,7 +25,9 @@ const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string
 const STOCKABLE: Record<'transfem' | 'transmasc', [Route, Ester][]> = {
     transfem: [
         [Route.injection, Ester.EV], [Route.injection, Ester.EB], [Route.injection, Ester.EC], [Route.injection, Ester.EN], [Route.injection, Ester.EU],
+        [Route.injection, Ester.LEUP], [Route.injection, Ester.TRIP],
         [Route.oral, Ester.EV], [Route.oral, Ester.E2], [Route.oral, Ester.CPA],
+        [Route.oral, Ester.SPIRO], [Route.oral, Ester.BICA], [Route.oral, Ester.MPA], [Route.oral, Ester.RLX],
         [Route.sublingual, Ester.E2], [Route.gel, Ester.E2], [Route.patchApply, Ester.E2],
     ],
     transmasc: [
