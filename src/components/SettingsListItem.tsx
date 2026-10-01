@@ -18,10 +18,10 @@ export const settingsSection = 'settings-section';
 
 /**
  * A clickable row bleeds 12px into the gutter on each side so its hover fill
- * has room around the content, and tells the section divider to follow.
+ * has room around the content, and tells the section divider to follow
+ * (.row-bleed in index.css).
  */
-export const rowBleed = '-mx-3 w-[calc(100%+1.5rem)] px-3 rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)]';
-export const rowBleedStyle = { '--row-bleed': '0.75rem' } as React.CSSProperties;
+export const rowBleed = 'row-bleed rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)]';
 
 // Accepts lucide icons as well as custom icon components with the same props.
 export type SettingsIcon = React.ComponentType<{ size?: number | string; className?: string }>;
@@ -59,7 +59,7 @@ export const SettingsListItem: React.FC<SettingsListItemProps> = ({
 }) => {
     const Tag = onClick ? 'button' : 'div';
     // The rule above this row starts after the 20px icon and its 12px gap.
-    const style = { '--divider-inset': '2rem', ...(onClick ? rowBleedStyle : null) } as React.CSSProperties;
+    const style = { '--divider-inset': '2rem' } as React.CSSProperties;
     return (
         <Tag
             type={onClick ? 'button' : undefined}
