@@ -178,10 +178,10 @@ const Home: React.FC<HomeProps> = ({
                             }
                             onNavigateToShare();
                         }}
-                        className={`${muted} inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 -mr-2 text-xs font-medium hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-40`}
+                        className={`${headerAction} ${muted} -mr-2.5 shrink-0 hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40`}
                         title={events.length ? shareCopy.modalDescription : shareCopy.noData}
                     >
-                        <Share2 size={14} strokeWidth={1.75} />
+                        <Share2 size={16} strokeWidth={1.75} />
                         {shareCopy.action}
                     </button>
                 </div>
