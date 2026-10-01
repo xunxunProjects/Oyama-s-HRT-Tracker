@@ -82,7 +82,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 min="1" max="60"
                                 value={customHoldInput}
                                 onChange={e => handleCustomHoldChange(e.target.value)}
-                                className="w-16 h-9 px-2 bg-[var(--field)] border border-[var(--border-strong)] rounded-md text-center text-sm font-medium focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-16 h-9 px-2 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md text-center text-sm font-medium focus:border-[var(--accent-ink)] outline-none text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 style={{ fontSize: '16px' }}
                             />
                             <span className="text-xs text-[var(--text-muted)]">{t('unit.min_short')}</span>
@@ -112,7 +112,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={rawDose} onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
                         />
@@ -129,7 +129,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             min="0"
                             step="0.001"
                             value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                            className="w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
                         />

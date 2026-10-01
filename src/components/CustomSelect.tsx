@@ -119,8 +119,8 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     aria-expanded={isOpen}
                     className={`group w-full min-h-[44px] ps-3.5 pe-3 py-2 bg-[var(--field)] border rounded-[var(--radius-md)] outline-none flex items-center justify-between overflow-hidden
                         ${isOpen
-                            ? 'border-[var(--accent-ink)] shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_22%,transparent)]'
-                            : 'border-[var(--border-strong)] hover:border-[var(--text-muted)]'}`}
+                            ? 'border-[var(--accent-ink)]'
+                            : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}
                 >
                     {icon ? (
                         <>
