@@ -85,7 +85,7 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
     },
 ];
 
-const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const divider = "border-b border-[var(--border)]";
 
 const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, onBack }) => {
     const { t } = useTranslation();
@@ -133,7 +133,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                 onBack={onBack}
                 title={t('pk.title')}
                 actions={pkParams && (
-                    <span className="mr-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    <span className="mr-2 text-xs font-medium text-[var(--warning)]">
                         {t('pk.customized')}
                     </span>
                 )}
@@ -141,9 +141,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
             <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
-                <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                    <span className="icon-line text-sm"><AlertTriangle size={13} className="text-amber-500 dark:text-amber-400" /></span>
-                    <p className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('pk.warn')}</p>
+                <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--border)]">
+                    <span className="icon-line text-sm"><AlertTriangle size={13} className="text-[var(--warning)]" /></span>
+                    <p className="text-sm text-[var(--text-muted)]">{t('pk.warn')}</p>
                 </div>
 
                 {/* Sections — flat, no cards */}
@@ -153,12 +153,12 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             onClick={() => toggleSection(section.key)}
                             className={`w-full flex items-center justify-between py-4 ${divider} text-start`}
                         >
-              <span className="text-[0.8125rem] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+              <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
                                 {t(section.titleKey)}
                             </span>
                             <ChevronDown
                                 size={14}
-                                className={`chev text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ${openSections.has(section.key) ? 'rotate-180' : ''}`}
+                                className={`chev text-[var(--text-muted)] ${openSections.has(section.key) ? 'rotate-180' : ''}`}
                             />
                         </button>
 
@@ -172,14 +172,14 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                         <div key={field.key} className={`flex items-center gap-3 py-3 ${divider}`}>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5">
-                                                    <span className="text-sm text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                                                    <span className="text-sm text-[var(--text)]">
                                                         {t(field.labelKey)}
                                                     </span>
                                                     {changed && (
-                                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-m3-primary)] flex-shrink-0" title={t('pk.modified')} />
+                                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0" title={t('pk.modified')} />
                                                     )}
                                                 </div>
-                                                <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                                                <span className="text-xs text-[var(--text-muted)]">
                                                     {t('pk.default')}: {defVal.toFixed(field.precision)}
                                                 </span>
                                             </div>
@@ -191,7 +191,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                 step={field.step}
                                                 value={curVal}
                                                 onChange={e => updateField(field.key, e.target.value, field.min, field.max)}
-                                                className="w-28 px-2.5 py-1.5 bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-primary)] tabular-nums"
+                                                className="w-28 px-2.5 py-1.5 bg-[var(--field)] border border-[var(--border)] rounded-md text-[var(--text)] outline-none focus:border-[var(--accent-ink)] tabular-nums"
                                                 style={{ fontSize: '16px' }}
                                             />
                                         </div>
@@ -204,8 +204,8 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
                 {/* Info note */}
                 <div className="flex items-start gap-2 pt-4 pb-2">
-                    <span className="icon-line text-xs"><Info size={13} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]" /></span>
-                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('pk.note')}</p>
+                    <span className="icon-line text-xs"><Info size={13} className="text-[var(--text-muted)]" /></span>
+                    <p className="text-xs text-[var(--text-muted)]">{t('pk.note')}</p>
                 </div>
 
                 {/* Save */}
@@ -213,9 +213,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     onClick={handleSave}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[0.9375rem] font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('btn.save')}</span>
+                    <span className="text-[0.9375rem] font-medium text-[var(--text)]">{t('btn.save')}</span>
                     {saved && (
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t('pk.saved')}</span>
+                        <span className="text-xs text-[var(--status-positive)] font-medium">{t('pk.saved')}</span>
                     )}
                 </button>
 
@@ -224,8 +224,8 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     onClick={handleReset}
                     className="w-full flex items-center gap-2 py-[18px] text-start"
                 >
-                    <RotateCcw size={14} className="text-red-500 dark:text-red-400" />
-                    <span className="text-[0.9375rem] text-red-600 dark:text-red-400">{t('pk.reset')}</span>
+                    <RotateCcw size={14} className="text-[var(--danger)]" />
+                    <span className="text-[0.9375rem] text-[var(--danger)]">{t('pk.reset')}</span>
                 </button>
             </div>
         </div>

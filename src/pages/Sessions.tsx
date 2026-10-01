@@ -93,7 +93,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
-    const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+    const divider = 'border-b border-[var(--border)]';
 
     return (
         <div className="relative pb-32">
@@ -124,7 +124,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <p className={`text-sm font-medium ${settingsOn} truncate`}>{label}</p>
                                             {s.is_current && (
-                                                <span className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
+                                                <span className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
                                                     {t('account.sessions_current')}
                                                 </span>
                                             )}
@@ -143,7 +143,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             onClick={() => handleTerminate(s.id)}
                                             disabled={isTerminating || terminating === 'others'}
                                             aria-label={t('account.sessions_terminate_confirm')}
-                                            className={`shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40 transition-colors`}
+                                            className={`shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {isTerminating ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <X size={15} strokeWidth={1.5} />}
                                         </button>
@@ -158,7 +158,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                     <button
                         onClick={handleTerminateOthers}
                         disabled={terminating === 'others'}
-                        className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 transition-colors`}
+                        className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
                     >
                         {terminating === 'others' ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <LogOut size={15} strokeWidth={1.5} />}
                         {t('account.sessions_terminate_others')}

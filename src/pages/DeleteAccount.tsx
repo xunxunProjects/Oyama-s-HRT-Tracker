@@ -17,9 +17,9 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-    const inputCls = `w-full px-4 py-3 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:border-red-500 dark:focus:border-red-500 outline-none ${on} placeholder:text-[var(--color-m3-outline)] dark:placeholder:text-[var(--color-m3-dark-outline)]`;
+    const on = 'text-[var(--text)]';
+    const muted = 'text-[var(--text-muted)]';
+    const inputCls = `w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:border-[var(--danger)] outline-none ${on} placeholder:text-[var(--text-muted)]`;
 
     useEffect(() => {
         if (!token) return;
@@ -62,15 +62,15 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <div className="flex items-start gap-3">
-                    <span className="icon-line text-sm leading-relaxed"><AlertTriangle size={18} className="text-red-500 dark:text-red-400" /></span>
+                    <span className="icon-line text-sm leading-relaxed"><AlertTriangle size={18} className="text-[var(--danger)]" /></span>
                     <div className="space-y-1">
                         <p className={`text-sm leading-relaxed ${muted}`}>{t('account.delete_account_desc')}</p>
-                        <p className="text-sm font-medium text-red-600 dark:text-red-400 leading-relaxed">{t('account.delete_warning')}</p>
+                        <p className="text-sm font-medium text-[var(--danger)] leading-relaxed">{t('account.delete_warning')}</p>
                     </div>
                 </div>
 
                 {error && (
-                    <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                    <p className="text-sm text-[var(--danger)]">{error}</p>
                 )}
 
                 <div>
@@ -99,7 +99,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 style={{ fontSize: '16px' }}
                             />
                             <button type="button" onClick={() => { setUseBackup(false); setBackupCode(''); }}
-                                className={`mt-2 text-xs ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] transition-colors`}>
+                                className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}>
                                 ← {t('account.2fa_code')}
                             </button>
                         </div>
@@ -119,7 +119,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 style={{ fontSize: '16px' }}
                             />
                             <button type="button" onClick={() => { setUseBackup(true); setCode(''); }}
-                                className={`mt-2 text-xs ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] transition-colors`}>
+                                className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}>
                                 {t('auth.use_backup_code')}
                             </button>
                         </div>
@@ -129,7 +129,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <button
                     onClick={handleSubmit}
                     disabled={!password || !twoFAReady || isLoading}
-                    className="w-full py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="btn-danger w-full"
                 >
                     {isLoading && <Loader2 size={15} className="animate-spin" />}
                     {t('account.delete_account')}

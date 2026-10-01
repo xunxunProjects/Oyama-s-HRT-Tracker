@@ -16,7 +16,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     const on = settingsOn;
     const muted = settingsMuted;
-    const inputCls = `w-full px-4 py-3 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:border-[var(--color-m3-on-surface)] dark:focus:border-[var(--color-m3-dark-on-surface)] outline-none ${on} placeholder:text-[var(--color-m3-outline)] dark:placeholder:text-[var(--color-m3-dark-outline)]`;
+    const inputCls = `w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:border-[var(--text)] outline-none ${on} placeholder:text-[var(--text-muted)]`;
 
     const handleSubmit = async () => {
         if (!current || !newPass || !confirm) return;
@@ -46,7 +46,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </div>
 
                 {error && (
-                    <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                    <p className="text-sm text-[var(--danger)]">{error}</p>
                 )}
 
                 <div className="space-y-4">
@@ -67,7 +67,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <button
                     onClick={handleSubmit}
                     disabled={!current || !newPass || !confirm || isLoading}
-                    className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="btn-primary w-full"
                 >
                     {isLoading ? '...' : t('btn.save')}
                 </button>

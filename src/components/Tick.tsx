@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Copy } from 'lucide-react';
 
-const PRIMARY = 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]';
+const PRIMARY = 'text-[var(--accent-ink)]';
 
 /**
  * The one tick in the app. It stays mounted and is drawn on when `on` turns

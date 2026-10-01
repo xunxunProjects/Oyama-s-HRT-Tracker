@@ -84,9 +84,9 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                         type="button"
                         onClick={() => onSelectDose(dose.value)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border
-                            border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
+ border-[var(--border)]
                             text-body
-                            hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+ hover:bg-[var(--surface-hover)]"
                     >
                         {formatValue(dose.value)} {unit}
                     </button>
@@ -94,8 +94,8 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleDelete(dose.id); }}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-md flex items-center justify-center
-                            bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]
-                            text-muted border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
+ bg-[var(--surface-hover)]
+ text-muted border border-[var(--border)]
                             opacity-0 group-hover:opacity-100"
                     >
                         <X size={10} strokeWidth={3} />
@@ -106,9 +106,9 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                 type="button"
                 onClick={handleAdd}
                 className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-dashed
-                    border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]
+ border-[var(--border)]
                     text-muted
-                    hover:border-[var(--color-m3-outline)] dark:hover:border-[var(--color-m3-dark-outline)]
+ hover:border-[var(--border-strong)]
                     hover:text-body"
                 title={t('quickdose.add')}
             >

@@ -6,7 +6,7 @@ import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 import Switch from '../components/Switch';
-import { settingsSection } from '../components/SettingsListItem';
+import { settingsSection, rowBleed, rowBleedStyle } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
@@ -56,20 +56,20 @@ interface SettingsProps {
 type SettingsCat = 'general' | 'data' | 'about';
 type MobileView = 'list' | SettingsCat;
 
-const rowBase = "w-full flex items-center justify-between gap-4 py-[18px] text-start";
-const rowLabel = "text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
-const rowValue = "flex items-center gap-1 text-[0.9375rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
-const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
-const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const rowBase = "w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start";
+const rowLabel = "text-[0.9375rem] text-[var(--text)]";
+const rowValue = "flex items-center gap-1 text-[0.9375rem] text-[var(--text-muted)]";
+const muted = "text-[var(--text-muted)]";
+const on = "text-[var(--text)]";
 
 const section = settingsSection;
 
 const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({ label, value, onClick }) => (
-    <button onClick={onClick} className={rowBase}>
+    <button onClick={onClick} className={`${rowBase} ${rowBleed}`} style={rowBleedStyle}>
         <span className={rowLabel}>{label}</span>
         <span className={rowValue}>
             {value}
-            <ChevronRight size={15} />
+            <ChevronRight size={18} className="opacity-70 rtl:-scale-x-100" />
         </span>
     </button>
 );
@@ -168,7 +168,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow
                     label={t('settings.pk_params')}
                     value={pkParams && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium mr-1">
+                        <span className="text-xs text-[var(--warning)] font-medium mr-1">
                             {t('pk.customized')}
                         </span>
                     )}
@@ -215,9 +215,9 @@ const Settings: React.FC<SettingsProps> = ({
                                     aria-label={t(`settings.cat_style.${id}`)}
                                     title={t(`settings.cat_style.${id}`)}
                                     aria-pressed={catStyle === id}
-                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${
+                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--border)] ${
                                         catStyle === id
-                                            ? 'ring-2 ring-[var(--color-m3-primary)] ring-offset-2 ring-offset-[var(--color-m3-surface-dim)] dark:ring-offset-[var(--color-m3-dark-surface)]'
+                                            ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
                                             : ''
                                     }`}
                                     style={{ background }}
@@ -261,9 +261,10 @@ const Settings: React.FC<SettingsProps> = ({
                 <button
                     onClick={onClearAllEvents}
                     disabled={!events.length}
-                    className={`${rowBase} ${!events.length ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    style={rowBleedStyle}
+                    className={`${rowBase} ${events.length ? rowBleed : '-mx-3 w-[calc(100%+1.5rem)] px-3 opacity-45 cursor-not-allowed'}`}
                 >
-                    <span className={`text-[0.9375rem] ${events.length ? 'text-red-600 dark:text-red-400' : rowLabel}`}>
+                    <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
                         {t('drawer.clear')}
                     </span>
                 </button>
@@ -334,18 +335,20 @@ const Settings: React.FC<SettingsProps> = ({
                                 <button
                                     key={id}
                                     onClick={() => enterMobileCat(id)}
-                                    className={rowBase}
+                                    // The rule starts after the 36px tile and its 12px gap.
+                                    style={{ ...rowBleedStyle, '--divider-inset': '3rem' } as React.CSSProperties}
+                                    className={`${rowBase} ${rowBleed}`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`}>
-                                            <Icon size={18} strokeWidth={1.75} className={muted} />
+                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
+                                            <Icon size={20} strokeWidth={1.75} className={muted} />
                                         </div>
                                         <div className="text-start">
                                             <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
-                                            <p className={`text-xs ${muted} mt-0.5 leading-relaxed`}>{hint}</p>
+                                            <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
                                         </div>
                                     </div>
-                                    <ChevronRight size={15} className={`${muted} shrink-0`} />
+                                    <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
                                 </button>
                             ))}
                         </div>

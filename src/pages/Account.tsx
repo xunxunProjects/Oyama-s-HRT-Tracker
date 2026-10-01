@@ -40,11 +40,11 @@ interface AccountProps {
     lastSyncedAt: number | null;
 }
 
-const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const divider = "border-b border-[var(--border)]";
 const sectionLabelBase = "text-xs font-semibold mb-2 block";
-const sectionLabel = `${sectionLabelBase} text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]`;
-const iconCls = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
-const statusMuted = "text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0";
+const sectionLabel = `${sectionLabelBase} text-[var(--text-muted)]`;
+const iconCls = "text-[var(--text-muted)] shrink-0";
+const statusMuted = "text-xs text-[var(--text-muted)] shrink-0";
 
 const AUTH_TABS = ['sign-in', 'sign-up'] as const;
 
@@ -65,7 +65,7 @@ const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status
         case 'syncing': return <Loader2 size={18} className={`${className} animate-spin`} />;
         case 'synced': return <CheckCircle2 size={18} className={className} />;
         case 'locked': return <Lock size={18} className={className} />;
-        case 'error': return <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />;
+        case 'error': return <AlertCircle size={18} className="text-[var(--warning)] shrink-0" />;
         case 'off': return <CloudOff size={18} className={className} />;
         default: return <Cloud size={18} className={className} />;
     }
@@ -394,7 +394,7 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
-    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] text-[var(--text)]";
 
     const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
@@ -412,7 +412,7 @@ const Account: React.FC<AccountProps> = ({
                         <button
                             type="button"
                             onClick={() => onNavigate('edit-avatar')}
-                            className="relative group w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] focus:outline-none focus:ring-2 focus:ring-[var(--color-m3-primary)]/40 focus:ring-offset-2 focus:ring-offset-[var(--color-m3-surface)] dark:focus:ring-offset-[var(--color-m3-dark-surface)]"
+                            className="relative group w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer bg-[var(--surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:ring-offset-2 focus:ring-offset-[var(--bg)]"
                             aria-label={t('avatar.change')}
                         >
                             <img
@@ -421,25 +421,25 @@ const Account: React.FC<AccountProps> = ({
                                 className={`w-full h-full object-cover absolute inset-0 z-10 ${avatarError ? 'hidden' : 'block'}`}
                                 onError={() => setAvatarError(true)}
                             />
-                            <div className="w-full h-full flex items-center justify-center text-2xl font-light text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] absolute inset-0">
+                            <div className="w-full h-full flex items-center justify-center text-2xl font-light text-[var(--text-muted)] absolute inset-0">
                                 {user.username.charAt(0).toUpperCase()}
                             </div>
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center z-20">
-                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-[0.625rem] text-center leading-tight px-1">
+                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-[0.6875rem] text-center leading-tight px-1">
                                     {t('avatar.change')}
                                 </span>
                             </div>
                         </button>
                         <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] text-lg truncate">{user.username}</span>
+                                <span className="font-semibold text-[var(--text)] text-lg truncate">{user.username}</span>
                                 {user.isAdmin && (
-                                    <BadgeCheck className="w-5 h-5 shrink-0 text-[var(--color-m3-primary)]" strokeWidth={2.5} />
+                                    <BadgeCheck className="w-5 h-5 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} />
                                 )}
                             </div>
                             <button
                                 onClick={() => onNavigate('edit-profile')}
-                                className="mt-0.5 text-xs text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] flex items-center gap-1"
+                                className="mt-0.5 text-xs text-[var(--accent-ink)] flex items-center gap-1"
                             >
                                 <Edit2 size={12} />
                                 {t('account.edit_profile')}
@@ -499,7 +499,7 @@ const Account: React.FC<AccountProps> = ({
                                 onClick={() => { setUnlockError(null); setUnlockTarget({ purpose: 'sync' }); }}
                                 showChevron={false}
                                 trailing={
-                                    <span className="text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0">
+                                    <span className="text-xs font-medium text-[var(--accent-ink)] shrink-0">
                                         {t('sync.unlock_action')}
                                     </span>
                                 }
@@ -514,7 +514,7 @@ const Account: React.FC<AccountProps> = ({
                                             database, an oversized payload and a dead network were
                                             all the same word. */}
                                         {syncStatus === 'error' && (
-                                            <p className="text-red-600 dark:text-red-400">{describeSyncError(syncErrorCode, t)}</p>
+                                            <p className="text-[var(--danger)]">{describeSyncError(syncErrorCode, t)}</p>
                                         )}
                                         {showLastSynced && (
                                             <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString())}</p>
@@ -547,12 +547,12 @@ const Account: React.FC<AccountProps> = ({
                         {/* Backup list */}
                         {backupsLoading ? (
                             <div className="flex justify-center py-6">
-                                <Loader2 className="animate-spin text-[var(--color-m3-on-surface-variant)]" size={20} />
+                                <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
                             </div>
                         ) : backupList.length === 0 ? (
                             <div className="py-6 flex flex-col items-center gap-2">
-                                <Cloud size={28} className="text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)]" />
-                                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.no_backups')}</p>
+                                <Cloud size={28} className="text-[var(--text-disabled)]" />
+                                <p className="text-xs text-[var(--text-muted)]">{t('account.no_backups')}</p>
                             </div>
                         ) : (
                             backupList.map(b => (
@@ -574,16 +574,16 @@ const Account: React.FC<AccountProps> = ({
                                     >
                                         <HardDrive size={18} className={iconCls} />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] truncate">
+                                            <p className="text-sm font-medium text-[var(--text)] truncate">
                                                 {new Date(b.created_at * 1000).toLocaleString()}
                                             </p>
-                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mt-0.5 leading-relaxed">{formatBytes(b.data_size)}</p>
+                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">{formatBytes(b.data_size)}</p>
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
                                             aria-label={t('btn.delete')}
                                             title={t('btn.delete')}
-                                            className="-my-1.5 p-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded shrink-0"
+                                            className="-my-1.5 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -594,7 +594,7 @@ const Account: React.FC<AccountProps> = ({
                                             <div className="pb-4 pt-1 space-y-3">
                                                 {expandLoading === b.id ? (
                                                     <div className="flex justify-center py-6">
-                                                        <Loader2 className="animate-spin text-[var(--color-m3-on-surface-variant)]" size={20} />
+                                                        <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
                                                     </div>
                                                 ) : expandedData[b.id] ? (() => {
                                                     const data = expandedData[b.id];
@@ -611,8 +611,8 @@ const Account: React.FC<AccountProps> = ({
                                                                     { label: t('account.backup_templates'), val: (data.doseTemplates || []).length },
                                                                 ].map(({ label, val }) => (
                                                                     <div key={label} className="text-center">
-                                    <p className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">{label}</p>
-                                                                        <p className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mt-0.5 tabular-nums">{val}</p>
+                                    <p className="text-[0.6875rem] text-[var(--text-muted)] font-medium">{label}</p>
+                                                                        <p className="text-sm font-semibold text-[var(--text)] mt-0.5 tabular-nums">{val}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -623,14 +623,14 @@ const Account: React.FC<AccountProps> = ({
                                                                     {(data.events as any[]).slice(0, 3).map((ev: any, i: number) => (
                                                                         <div key={i} className={`flex items-center justify-between py-2 text-xs ${divider} last:border-b-0`}>
                                                                             <div className="flex items-center gap-2">
-                                                                                <span className="font-medium text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{ev.ester}</span>
-                                                                                <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{ev.route}</span>
+                                                                                <span className="font-medium text-[var(--text)]">{ev.ester}</span>
+                                                                                <span className="text-[var(--text-muted)]">{ev.route}</span>
                                                                             </div>
-                                                                            <span className="font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] tabular-nums">{ev.doseMG} mg</span>
+                                                                            <span className="font-semibold text-[var(--text)] tabular-nums">{ev.doseMG} mg</span>
                                                                         </div>
                                                                     ))}
                                                                     {(data.events || []).length > 3 && (
-                                                                        <p className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] text-center py-1.5">
+                                                                        <p className="text-[0.6875rem] text-[var(--text-muted)] text-center py-1.5">
                                                                             +{(data.events || []).length - 3} …
                                                                         </p>
                                                                     )}
@@ -641,51 +641,51 @@ const Account: React.FC<AccountProps> = ({
                                                             <div className={`grid ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                                                                 <div className="overflow-hidden">
                                                                     <div className="space-y-2 pt-2">
-                                    <p className="text-[0.625rem] font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.merge_preview')}</p>
+                                    <p className="text-[0.6875rem] font-semibold text-[var(--text-muted)]">{t('account.merge_preview')}</p>
                                                                         {diff.totalDiff === 0 ? (
-                                                                            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] py-2 text-center">{t('account.nothing_to_merge')}</p>
+                                                                            <p className="text-xs text-[var(--text-muted)] py-2 text-center">{t('account.nothing_to_merge')}</p>
                                                                         ) : (
                                                                             <div className="space-y-1.5">
                                                                                 {diff.newEvents.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_doses')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newEvents.length}</span>
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text)]">{t('account.new_doses')}</span>
+                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newEvents.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.newLabs.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_labs')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newLabs.length}</span>
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text)]">{t('account.new_labs')}</span>
+                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newLabs.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.newTemplates.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">{t('account.new_templates')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] font-medium tabular-nums">+{diff.newTemplates.length}</span>
+                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text)]">{t('account.new_templates')}</span>
+                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newTemplates.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyEvents.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_doses')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyEvents.length}</span>
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_doses')}</span>
+                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyEvents.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyLabs.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_labs')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyLabs.length}</span>
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_labs')}</span>
+                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyLabs.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {diff.localOnlyTemplates.length > 0 && (
                                                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] shrink-0" />
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('account.local_only_templates')}</span>
-                                                                                        <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium tabular-nums">{diff.localOnlyTemplates.length}</span>
+                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_templates')}</span>
+                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyTemplates.length}</span>
                                                                                     </div>
                                                                                 )}
                                                                             </div>
@@ -693,7 +693,7 @@ const Account: React.FC<AccountProps> = ({
                                                                         {diff.total > 0 && (
                                                                             <button
                                                                                 onClick={() => { onCloudMerge(b.id); setExpandedId(null); setMergeDiffId(null); }}
-                                                                                className="w-full py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-medium rounded-md flex items-center justify-center gap-1.5 mt-1 transition-colors"
+                                                                                className="btn-primary w-full mt-1"
                                                                             >
                                                                                 <Merge size={13} strokeWidth={1.5} />
                                                                                 {t('account.confirm_merge')} (+{diff.total})
@@ -708,17 +708,17 @@ const Account: React.FC<AccountProps> = ({
                                                                 <button
                                                                     onClick={() => setMergeDiffId(showingDiff ? null : b.id)}
                                                                     className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border transition-colors ${showingDiff
-                                                                        ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
-                                                                        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container-low)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'
+                                                                        ? 'bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text)]'
+                                                                        : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-muted)]'
                                                                     }`}
                                                                 >
                                                                     <Merge size={13} strokeWidth={1.5} />
                                                                     {t('account.merge')}
-                                                                    {diff.total > 0 && <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] font-medium">+{diff.total}</span>}
+                                                                    {diff.total > 0 && <span className="text-[0.6875rem] text-[var(--text-muted)] font-medium">+{diff.total}</span>}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
-                                                                    className="flex-1 py-2 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors"
+                                                                    className="btn-primary flex-1"
                                                                 >
                                                                     <DownloadCloud size={13} strokeWidth={1.5} />
                                                                     {t('account.restore')}
@@ -750,7 +750,7 @@ const Account: React.FC<AccountProps> = ({
 
                     {/* Danger Zone */}
                     <section>
-                        <span className={`${sectionLabelBase} text-red-600 dark:text-red-400`}>{t('account.danger_zone')}</span>
+                        <span className={`${sectionLabelBase} text-[var(--danger)]`}>{t('account.danger_zone')}</span>
                         <div className={settingsSection}>
                             <SettingsListItem
                                 icon={Trash2}
@@ -778,12 +778,12 @@ const Account: React.FC<AccountProps> = ({
                     <div key={isLogin ? 'sign-in' : 'sign-up'} className={authAnim}>
                     <form onSubmit={handleAuthSubmit} className="space-y-4">
                         {authError && (
-                            <p className="text-sm text-red-500 dark:text-red-400">
+                            <p className="text-sm text-[var(--danger)]">
                                 {authError}
                             </p>
                         )}
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.username')}</label>
+              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
                             <input
                                 type="text"
                                 value={username}
@@ -796,7 +796,7 @@ const Account: React.FC<AccountProps> = ({
                             />
                         </div>
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.password')}</label>
+              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
                             <input
                                 type="password"
                                 value={password}
@@ -810,13 +810,13 @@ const Account: React.FC<AccountProps> = ({
                         </div>
                         {needsTOTP && isLogin && (
                             <div className="space-y-3">
-                                <div className="p-2.5 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md flex items-center gap-2">
-                                    <ShieldIcon size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+                                <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
+                                    <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
                                     {t('auth.needs_2fa')}
                                 </div>
                                 {useBackupCode ? (
                                     <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.backup_code_label')}</label>
+                    <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
                                         <input
                                             type="text"
                                             value={backupCode}
@@ -829,7 +829,7 @@ const Account: React.FC<AccountProps> = ({
                                             required={useBackupCode}
                                         />
                                         <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                            className="text-xs text-[var(--color-m3-primary)] hover:underline">
+                                            className="text-xs text-[var(--accent-ink)] hover:underline">
                                             ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
                                         </button>
                                     </div>
@@ -837,7 +837,7 @@ const Account: React.FC<AccountProps> = ({
                                     <>
                                         {twoFAMethod !== 'passkey' && (
                                             <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('auth.totp_code')}</label>
+                        <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
                                                 <input
                                                     type="text"
                                                     inputMode="numeric"
@@ -855,22 +855,22 @@ const Account: React.FC<AccountProps> = ({
                                             </div>
                                         )}
                                         {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
-                                            <p className="text-xs text-red-500 text-center">{t('auth.passkey_unsupported')}</p>
+                                            <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
                                         )}
                                         {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
                                             <>
                                                 {twoFAMethod !== 'passkey' && (
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
-                                                        <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('common.or')}</span>
-                                                        <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                        <div className="flex-1 h-px bg-[var(--border)]" />
+                                                        <span className="text-xs text-[var(--text-muted)]">{t('common.or')}</span>
+                                                        <div className="flex-1 h-px bg-[var(--border)]" />
                                                     </div>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handlePasskeyLogin()}
                                                     disabled={passkeyLoading}
-                                                    className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                                 >
                                                     {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
                                                     {t('auth.passkey_as_2fa')}
@@ -878,7 +878,7 @@ const Account: React.FC<AccountProps> = ({
                                             </>
                                         )}
                                         <button type="button" onClick={() => setUseBackupCode(true)}
-                                            className="w-full text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] text-center py-1">
+                                            className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1">
                                             {t('auth.use_backup_code')}
                                         </button>
                                     </>
@@ -889,7 +889,7 @@ const Account: React.FC<AccountProps> = ({
                             <button
                                 type="submit"
                                 disabled={authLoading}
-                                className="w-full py-2.5 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="btn-primary w-full"
                             >
                                 {authLoading && <Loader2 size={16} className="animate-spin" />}
                                 {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
@@ -898,15 +898,15 @@ const Account: React.FC<AccountProps> = ({
                         {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
                             <>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
-                                    <span className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('common.or')}</span>
-                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                    <div className="flex-1 h-px bg-[var(--border)]" />
+                                    <span className="text-xs text-[var(--text-muted)]">{t('common.or')}</span>
+                                    <div className="flex-1 h-px bg-[var(--border)]" />
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => handlePasskeyLogin()}
                                     disabled={passkeyLoading}
-                                    className="w-full py-2.5 text-sm font-medium border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
                                     {t('auth.passkey_login')}

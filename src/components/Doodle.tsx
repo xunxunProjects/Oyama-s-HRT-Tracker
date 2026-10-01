@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route } from '../../logic';
 
-const WASH = 'fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]';
+const WASH = 'fill-[var(--illustration-wash)]';
 
 /** One pen stroke. */
 const Line: React.FC<{ d: string; w?: number }> = ({ d, w }) => <path d={d} strokeWidth={w} />;
@@ -171,7 +171,7 @@ const Doodle: React.FC<DoodleProps> = ({ name, size = 2.25, asleep = false, clas
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ width: `${size}rem`, height: `${size}rem` }}
-        className={`shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] ${asleep ? 'dd-asleep' : ''} ${className}`}
+        className={`shrink-0 text-[var(--illustration-line)] ${asleep ? 'dd-asleep' : ''} ${className}`}
     >
         {DRAWINGS[name]}
     </svg>

@@ -17,7 +17,7 @@ import { getShareCopy } from '../i18n/share';
 import { Regimen, Supply, supplyStatus } from '../utils/regimen';
 import { PlanItem, planStatus } from '../utils/plan';
 import { planItemLabel, supplyLabel, dueLabel, fill, fillNodes } from '../utils/regimenText';
-import { headerAction } from '../components/PageHeader';
+import { headerAction, headerActionAccent } from '../components/PageHeader';
 
 interface HomeProps {
     t: (key: string) => string;
@@ -111,14 +111,14 @@ const Home: React.FC<HomeProps> = ({
         </span>
     ) : null;
 
-    const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
-    const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
-    const dim = "text-[var(--color-m3-outline-variant)] dark:text-[var(--color-m3-dark-outline-variant)]";
+    const on = "text-[var(--text)]";
+    const muted = "text-[var(--text-muted)]";
+    const dim = "text-[var(--text-disabled)]";
 
     // A reading's number and unit. The slot carries the number's type size, so
     // `ch` in its min-width is one tabular digit at whatever size the breakpoint
     // picked; the rem part covers the gap and the unit after it.
-    const readingSlot = "inline-flex items-baseline gap-x-2 text-4xl sm:text-5xl md:text-6xl font-light leading-none tracking-tight tabular-nums";
+    const readingSlot = "inline-flex items-baseline gap-x-2 text-[2.5rem] sm:text-[3.25rem] md:text-[4rem] font-light leading-none tracking-[-0.035em] tabular-nums";
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
@@ -147,7 +147,7 @@ const Home: React.FC<HomeProps> = ({
                 them, and the page leaned left. The column widens with the body
                 once the heatmap sits beside the chart, so the two readings
                 stay over the content they describe. */}
-            <header className="pt-6 pb-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <header className="pt-6 pb-5 border-b border-[var(--border)]">
                 <div className={`mx-auto px-6 md:px-8 max-w-2xl ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                 {/* Title row. The whole title opens the explainer, not just
                     the 13px icon after it. */}
@@ -155,7 +155,7 @@ const Home: React.FC<HomeProps> = ({
                     <button
                         type="button"
                         onClick={() => setIsEstimateInfoOpen(true)}
-                        className={`group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}
+                        className={`group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${muted} hover:text-[var(--text)]`}
                         title={t('status.read_me')}
                     >
                         <span className="truncate">{t('status.estimate')}</span>
@@ -171,7 +171,7 @@ const Home: React.FC<HomeProps> = ({
                             }
                             onNavigateToShare();
                         }}
-                        className={`${muted} inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 -mr-2 text-xs font-medium hover:text-[var(--color-m3-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:text-[var(--color-m3-dark-on-surface)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:cursor-not-allowed disabled:opacity-40`}
+                        className={`${muted} inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 -mr-2 text-xs font-medium hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-40`}
                         title={events.length ? shareCopy.modalDescription : shareCopy.noData}
                     >
                         <Share2 size={14} strokeWidth={1.75} />
@@ -273,7 +273,7 @@ const Home: React.FC<HomeProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={() => onLogPlanItem(item)}
-                                                className={`${headerAction} ${st.kind === 'due' ? 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]' : muted}`}
+                                                className={`${st.kind === 'due' ? headerActionAccent : `${headerAction} ${muted}`}`}
                                             >
                                                 {t(`plan.done.${item.route}`)}
                                             </button>
@@ -285,7 +285,7 @@ const Home: React.FC<HomeProps> = ({
                         {lowSupplies.map(({ supply, remaining, runOutH }) => {
                             const name = supplyLabel(supply, t);
                             return (
-                                <p key={supply.id} className="text-sm leading-relaxed text-amber-600 dark:text-amber-400">
+                                <p key={supply.id} className="text-sm leading-relaxed text-[var(--warning)]">
                                     {remaining <= 0 || runOutH === null
                                         ? fill(t('supplies.used_up'), { name })
                                         : fillNodes(t('supplies.running_low'), { name, n: Math.max(0, Math.round((runOutH - nowH) / 24)), date: <span className="whitespace-nowrap">{dueLabel(runOutH, lang, false, nowH)}</span> })}
@@ -338,7 +338,7 @@ const Home: React.FC<HomeProps> = ({
                     <button
                         type="button"
                         onClick={onNavigateToPlan}
-                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                        className={`${headerActionAccent}`}
                     >
                         {t('plan.title')}
                         <ChevronRight size={15} />
@@ -347,7 +347,7 @@ const Home: React.FC<HomeProps> = ({
                         <button
                             type="button"
                             onClick={onNavigateToForecast}
-                            className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                            className={`${headerActionAccent}`}
                         >
                             {t('forecast.entry')}
                             <ChevronRight size={15} />

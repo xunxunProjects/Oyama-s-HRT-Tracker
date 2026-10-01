@@ -68,8 +68,9 @@ const DoseHeatmap = ({
     // Same terracotta family as the chart. Empty is the chart's grid neutral;
     // the four filled steps climb from a light tint to a deep burnt shade.
     const c = isDarkMode
-        ? { empty: '#2E2C28', axis: '#7A776F', ring: '#D8927C', levels: ['#4E3428', '#7B4C37', '#AC6A4C', '#D8927C'] }
-        : { empty: '#E7E4DD', axis: '#A8A59E', ring: '#CC785C', levels: ['#F0CDB8', '#DFA184', '#CC785C', '#9E4F2E'] };
+        // heatmap-0…4 and chart-axis from the design tokens, as hex for SVG.
+        ? { empty: '#2c2a26', axis: '#a7a49e', ring: '#df8f74', levels: ['#4d271a', '#924833', '#cc785c', '#f0ad96'] }
+        : { empty: '#eeedea', axis: '#6b6860', ring: '#cc785c', levels: ['#fee7de', '#f0ad96', '#cc785c', '#924833'] };
 
     // The plot is laid out in raw SVG units, so unlike the rest of the UI it
     // does not follow the root font size. Reading that size back keeps the
@@ -295,7 +296,7 @@ const DoseHeatmap = ({
                                 key={`mo-${m.col}`}
                                 className="chart-appear"
                                 x={x(m.col)} y={header - 5 * ui}
-                                fontSize={9 * ui} fill={c.axis}
+                                fontSize={11 * ui} fill={c.axis}
                             >
                                 {m.label}
                             </text>
@@ -306,7 +307,7 @@ const DoseHeatmap = ({
                                 key={`wd-${w.row}`}
                                 className="chart-appear"
                                 x={gutter - 6 * ui} y={y(w.row) + cell / 2 + 3 * ui}
-                                textAnchor="end" fontSize={9 * ui} fill={c.axis}
+                                textAnchor="end" fontSize={11 * ui} fill={c.axis}
                             >
                                 {w.label}
                             </text>
@@ -349,17 +350,17 @@ const DoseHeatmap = ({
                 {hover && (
                     <div
                         ref={setTipEl}
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{ left: tipLeft, top: tipTop }}
                     >
-                        <div className="text-[0.625rem] whitespace-nowrap text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                        <div className="text-[0.6875rem] whitespace-nowrap text-[var(--text-muted)]">
                             {dayLabel(hover.date)}
                         </div>
-                        <div className="text-xs font-medium whitespace-nowrap text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                        <div className="text-xs font-medium whitespace-nowrap text-[var(--text)]">
                             {hover.count > 0 ? doseLabel(hover.count) : t('heatmap.none')}
                         </div>
                         {hoverMg.map(([ester, mg]) => (
-                            <div key={ester} className="text-[0.625rem] whitespace-nowrap tabular-nums text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                            <div key={ester} className="text-[0.6875rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]">
                                 {ester} · {mg.toFixed(2)} mg
                             </div>
                         ))}

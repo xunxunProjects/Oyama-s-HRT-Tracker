@@ -46,7 +46,7 @@ const CatStates: React.FC<CatStatesProps> = ({ onBack }) => {
                                     <div
                                         key={state}
                                         className={`rounded-md px-2 py-2 ${isNow
-                                            ? 'bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)]'
+                                            ? 'bg-[var(--accent-subtle)]'
                                             : ''}`}
                                     >
                                         <PixelCat pose={pose} state={state} size={128} force />
@@ -55,7 +55,7 @@ const CatStates: React.FC<CatStatesProps> = ({ onBack }) => {
                                             {pad(from)}:00 – {pad(to)}:00
                                         </p>
                                         {isNow && (
-                                            <p className="text-[0.6875rem] text-[var(--color-m3-primary)]">
+                                            <p className="text-[0.6875rem] text-[var(--accent-ink)]">
                                                 {t('settings.cat_states_now')}
                                             </p>
                                         )}

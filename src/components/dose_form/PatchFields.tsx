@@ -17,7 +17,7 @@ interface PatchFieldsProps {
     route: Route;
 }
 
-const inputCls = "w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
 // Common transdermal E2 patch nominal release rates (µg/day).
 const RATE_PRESETS = [25, 37.5, 50, 75, 100];
@@ -32,8 +32,8 @@ const formatNum = (val: number) => String(val);
 
 const chipCls = (active: boolean) =>
     `inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors ${active
-        ? 'border-[var(--color-m3-primary)] bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-primary-container)]/30 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]'
-        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]'
+        ? 'border-[var(--accent-ink)] bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]/30 text-[var(--text)]'
+        : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'
     }`;
 
 const PatchFields: React.FC<PatchFieldsProps> = ({
@@ -65,12 +65,12 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                 onChange={setPatchMode}
             />
 
-            <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{t('patch.setup_hint')}</p>
+            <p className="text-xs text-[var(--text-muted)]">{t('patch.setup_hint')}</p>
 
             <div key={patchMode} className={modeAnim}>
             {patchMode === "rate" ? (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.patch_rate')}</label>
+                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
                     <input
                         type="number"
                         inputMode="decimal"
@@ -95,13 +95,13 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pl-1">
+                    <p className="text-xs text-[var(--text-muted)] pl-1">
                         {t('field.patch_rate_hint')}
                     </p>
                 </div>
             ) : (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
+                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_raw')}
                     </label>
                     <input
@@ -120,7 +120,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             {/* Wear duration — applies to both input modes. Empty means the patch
                 stays on until a separate "remove" event is logged. */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.patch_wear')}</label>
+                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_wear')}</label>
                 <input
                     type="number"
                     inputMode="decimal"
@@ -151,7 +151,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         {t('field.patch_until_removed')}
                     </button>
                 </div>
-                <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pl-1">
+                <p className="text-xs text-[var(--text-muted)] pl-1">
                     {t('field.patch_wear_hint')}
                 </p>
             </div>

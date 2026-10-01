@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useElementSize } from '../hooks/useElementSize';
+import Segmented from './Segmented';
 
 const HOUR = 3600000;
 const DAY = 24 * HOUR;
@@ -166,33 +167,12 @@ const ResultChart = ({
 
     const selectRange = (r: RangeKey) => { setRange(r); setPanOffset(0); };
 
-    // The outline around the selected range chip is one element that slides to
-    // whichever chip is picked, rather than a border that is drawn on one button
-    // and then on another. It is measured from the chips themselves so it follows
-    // their widths in every language, and re-measured when the row resizes.
-    const hasData = !!sim && sim.timeH.length > 0;
-    const chipsRef = useRef<HTMLDivElement | null>(null);
-    const chipRefs = useRef<Partial<Record<RangeKey, HTMLButtonElement | null>>>({});
-    const [chipBox, setChipBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-    useLayoutEffect(() => {
-        const measure = () => {
-            const el = chipRefs.current[range];
-            if (!el) return;
-            const next = { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight };
-            setChipBox(prev => (prev && prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height ? prev : next));
-        };
-        measure();
-        const row = chipsRef.current;
-        if (!row || typeof ResizeObserver === 'undefined') return;
-        const ro = new ResizeObserver(measure);
-        ro.observe(row);
-        return () => ro.disconnect();
-    }, [range, lang, hasData]);
-
-    // Warm, on-brand palette — terracotta primary against a muted neutral grid.
+    // The chart tokens (chart-line, chart-second, chart-grid, chart-axis,
+    // chart-dot, chart-lab) as hex, because SVG attributes are set from here:
+    // terracotta on a warm neutral grid, axis figures at text-muted strength.
     const c = isDarkMode
-        ? { primary: '#D8927C', second: '#7A776F', grid: '#2E2C28', axis: '#7A776F', faint: '#5C5953', dot: '#1C1B18', lab: '#E0A38C' }
-        : { primary: '#CC785C', second: '#C2BDB3', grid: '#E7E4DD', axis: '#A8A59E', faint: '#C2BDB3', dot: '#FAF9F7', lab: '#B5664C' };
+        ? { primary: '#df8f74', second: '#838078', grid: '#2c2a26', axis: '#a7a49e', faint: '#6b6860', dot: '#181714', lab: '#facebd' }
+        : { primary: '#cc785c', second: '#a7a49e', grid: '#eeedea', axis: '#6b6860', faint: '#a7a49e', dot: '#ffffff', lab: '#924833' };
 
     // One series per mode: total T for transmasc, E2 for transfem. Cyproterone
     // is not drawn. Its level isn't modelled; the Overview only tracks whether
@@ -326,7 +306,7 @@ const ResultChart = ({
         const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width, height]);
-    const axisFont = 10 * ui;
+    const axisFont = 11 * ui;
 
     const mL = 32 * ui;
     // Mirrors the left gutter: the plot stays centred in the column, and the
@@ -528,47 +508,30 @@ const ResultChart = ({
         return <div className="h-72 md:h-96" aria-hidden="true" />;
     }
 
-    const chipBase = 'relative px-2 py-0.5 text-[0.6875rem] rounded-md border border-transparent transition-colors';
-    const chipOn = 'text-body font-medium';
-    const chipOff = 'text-muted hover:text-body';
-
     return (
         <div className="w-full">
             {/* Header: title + range chips — flat, matching the page */}
             <div className="flex items-center justify-between gap-3 mb-2">
-                <h2 className="text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] truncate">
+                <h2 className="text-sm font-medium text-[var(--text)] truncate">
                     {title ?? t('chart.title')}
                 </h2>
                 <div className="flex items-center gap-2 shrink-0">
                     {Math.abs(calFactor - 1) > 0.001 && (
-                        <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] opacity-70 tabular-nums">
+                        <span className="text-[0.6875rem] text-[var(--text-muted)] opacity-70 tabular-nums">
                             {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
                         </span>
                     )}
-                    <div ref={chipsRef} className="relative flex items-center gap-0.5">
-                        {chipBox && (
-                            <span
-                                aria-hidden="true"
-                                className="chip-slide pointer-events-none absolute rounded-md border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
-                                style={{ left: chipBox.left, top: chipBox.top, width: chipBox.width, height: chipBox.height }}
-                            />
-                        )}
-                        {rangeOpts.map(o => (
-                            <button
-                                key={o.key}
-                                ref={el => { chipRefs.current[o.key] = el; }}
-                                onClick={() => selectRange(o.key)}
-                                className={`${chipBase} ${range === o.key ? chipOn : chipOff}`}
-                            >
-                                {o.label}
-                            </button>
-                        ))}
-                    </div>
+                    <Segmented
+                        options={rangeOpts.map(o => ({ id: o.key, label: o.label }))}
+                        value={range}
+                        onChange={selectRange}
+                        aria-label={title ?? t('chart.title')}
+                    />
                 </div>
             </div>
 
             {/* Legend — always visible so each line is labelled, on mobile too */}
-            <div className="flex items-center gap-4 mb-1 text-[0.6875rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+            <div className="flex items-center gap-4 mb-1 text-[0.6875rem] text-[var(--text-muted)]">
                 <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
@@ -664,15 +627,15 @@ const ResultChart = ({
 
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
-                                <path d={linePath()} fill="none" stroke={c.primary} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                                <path d={linePath()} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
                             </g>
 
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
-                                <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.primary} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+                                <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.axis} strokeWidth={1} strokeDasharray="2 4" />
                             )}
                             {nowVal != null && now >= t0 && now <= t1 && (
-                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YP(nowVal)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
+                                <circle className="chart-mark" style={{ animationDelay: sweepDelay(X(now)) }} cx={X(now)} cy={YP(nowVal)} r={5} fill={c.primary} stroke={c.dot} strokeWidth={2.5} />
                             )}
 
                             {/* Dose markers (clickable) */}
@@ -687,7 +650,7 @@ const ResultChart = ({
                                         onClick={() => onPointClick?.(m.event)}
                                     >
                                         <circle cx={cx} cy={cy} r={9} fill="transparent" />
-                                        <circle cx={cx} cy={cy} r={3} fill={c.dot} stroke={c.primary} strokeWidth={1.5} />
+                                        <circle cx={cx} cy={cy} r={3.5} fill={c.dot} stroke={c.primary} strokeWidth={2} />
                                     </g>
                                 );
                             })}
@@ -701,7 +664,7 @@ const ResultChart = ({
                                         <rect
                                             x={cx - 4} y={cy - 4} width={8} height={8}
                                             transform={`rotate(45 ${cx} ${cy})`}
-                                            fill={c.dot} stroke={c.lab} strokeWidth={1.75}
+                                            fill={c.dot} stroke={c.lab} strokeWidth={2} strokeLinejoin="round"
                                         />
                                     </g>
                                 );
@@ -711,7 +674,7 @@ const ResultChart = ({
                             {showHover && (
                                 <>
                                     <line x1={X(hoverPt!.t)} y1={mT} x2={X(hoverPt!.t)} y2={mT + plotH} stroke={c.faint} strokeWidth={1} />
-                                    <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={4} fill={c.primary} stroke={c.dot} strokeWidth={2} />
+                                    <circle cx={X(hoverPt!.t)} cy={YP(hoverPt!.p)} r={5} fill={c.primary} stroke={c.dot} strokeWidth={2.5} />
                                 </>
                             )}
                         </g>
@@ -721,21 +684,21 @@ const ResultChart = ({
                 {/* Hover tooltip */}
                 {showHover && (
                     <div
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{
                             left: Math.min(Math.max(X(hoverPt!.t), mL + 4), mL + plotW - 4),
                             top: Math.max(YP(hoverPt!.p) - 12, 8),
                             transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
+                        <div className="text-[0.6875rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
                             {formatDate(new Date(hoverPt!.t), lang, timeZone)} · {formatTime(new Date(hoverPt!.t), timeZone)}
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className="text-sm font-medium tabular-nums" style={{ color: c.primary }}>
                                 {hoverPt!.p.toFixed(primaryMeta.decimals)}
                             </span>
-                            <span className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{primaryMeta.unit}</span>
+                            <span className="text-[0.6875rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
                         </div>
                     </div>
                 )}

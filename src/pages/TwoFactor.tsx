@@ -39,16 +39,16 @@ function detectDeviceName(): string {
     return '';   // the caller substitutes a translated fallback
 }
 
-const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const divider = "border-b border-[var(--border)]";
 const muted = settingsMuted;
 const on = settingsOn;
-const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md focus:outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
+const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]";
 const labelCls = `block text-xs font-semibold ${muted} mb-1`;
-const primaryBtn = "w-full py-2.5 bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white text-sm font-medium rounded-md disabled:opacity-40 flex items-center justify-center gap-2 transition-colors";
+const primaryBtn = "btn-primary w-full";
 
 const ErrLine: React.FC<{ msg: string | null }> = ({ msg }) =>
     msg ? (
-        <p className="flex items-center gap-1.5 text-sm text-red-500 dark:text-red-400">
+        <p className="flex items-center gap-1.5 text-sm text-[var(--danger)]">
             <AlertCircle size={13} className="shrink-0" />{msg}
         </p>
     ) : null;
@@ -64,7 +64,7 @@ const BackupCodesBlock: React.FC<{
         <p className={`text-xs font-semibold ${muted} mb-3`}>{t('account.backup_codes_warning')}</p>
         <div className="grid grid-cols-2 gap-1.5 mb-3">
             {codes.map((c, i) => (
-                <code key={i} className={`text-center text-xs font-mono tabular-nums py-1.5 px-2 rounded-md bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] ${on}`}>{c}</code>
+                <code key={i} className={`text-center text-xs font-mono tabular-nums py-1.5 px-2 rounded-md bg-[var(--surface-hover)] ${on}`}>{c}</code>
             ))}
         </div>
         <div className="flex gap-3">
@@ -450,7 +450,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             style={{ fontSize: '16px' }} />
                                     </div>
                                     <button type="submit" disabled={disableLoading || !disablePassword || disableCode.length !== 6}
-                                        className={`text-sm font-medium ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] flex items-center gap-1.5 disabled:opacity-40 transition-colors`}>
+                                        className={`text-sm font-medium ${muted} hover:text-[var(--text)] flex items-center gap-1.5 disabled:opacity-40 transition-colors`}>
                                         {disableLoading && <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />}
                                         {t('account.2fa_disable')}
                                     </button>
@@ -465,14 +465,14 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     {(['scan', 'verify'] as SetupStep[]).map((s, i) => (
                                         <React.Fragment key={s}>
                                             <div className="flex items-center gap-1.5">
-                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--color-m3-on-surface)] dark:border-[var(--color-m3-dark-on-surface)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]` : `border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${muted}`}`}>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--text)] bg-[var(--surface-hover)]` : `border-[var(--border)] ${muted}`}`}>
                                                     {success && s === 'verify' ? <Check size={10} strokeWidth={2} /> : i + 1}
                                                 </div>
                                                 <span className={`text-xs font-medium ${step === s ? on : muted}`}>
                                                     {s === 'scan' ? t('account.2fa_step_scan') : t('account.2fa_step_verify')}
                                                 </span>
                                             </div>
-                                            {i < 1 && <div className={`flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]`} />}
+                                            {i < 1 && <div className={`flex-1 h-px bg-[var(--border)]`} />}
                                         </React.Fragment>
                                     ))}
                                 </div>
@@ -494,7 +494,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         {secret && (
                                             <div>
                                                 <p className={`text-xs ${muted} mb-1.5`}>{t('account.2fa_secret')}</p>
-                                                <div className={`flex items-center gap-2 bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] rounded-md px-3 py-2`}>
+                                                <div className={`flex items-center gap-2 bg-[var(--surface-hover)] rounded-md px-3 py-2`}>
                                                     <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
                                                     <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}</button>
                                                     <button onClick={handleCopySecret} className={secretCopied ? on : muted}><CopyTick copied={secretCopied} size={14} strokeWidth={1.5} /></button>
@@ -521,7 +521,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         </div>
                                         <div className="flex gap-3">
                                             <button type="button" onClick={() => setStep('scan')}
-                                                className={`flex-1 py-2.5 text-sm font-medium ${muted} border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md`}>
+                                                className={`flex-1 py-2.5 text-sm font-medium ${muted} border border-[var(--border)] rounded-md`}>
                                                 ← {t('account.2fa_step_scan')}
                                             </button>
                                             <button type="submit" disabled={loading || code.length !== 6} className={`flex-1 py-2.5 ${primaryBtn}`}>
@@ -534,7 +534,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                                 {success && (
                                     <div className="flex flex-col items-center gap-3 py-4 text-center">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-hover)]">
                                             <Check size={18} strokeWidth={1.5} className={on} />
                                         </div>
                                         <p className={`font-medium ${on}`}>{t('account.2fa_enabled_success')}</p>
@@ -591,7 +591,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         <button
                                             onClick={() => handleDeletePasskey(pk)}
                                             disabled={deleteLoadingId === pk.id}
-                                            className={`shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] disabled:opacity-40 transition-colors`}
+                                            className={`shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {deleteLoadingId === pk.id ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" /> : <X size={14} strokeWidth={1.5} />}
                                         </button>

@@ -69,14 +69,14 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
 
                     if (shouldFlip) {
                         setPositionStyle({
-                            bottom: window.innerHeight - rect.top + 4,
+                            bottom: window.innerHeight - rect.top + 6,
                             left: rect.left,
                             width: rect.width,
                             maxHeight: maxHeight
                         });
                     } else {
                         setPositionStyle({
-                            top: rect.bottom + 4,
+                            top: rect.bottom + 6,
                             left: rect.left,
                             width: rect.width,
                             maxHeight: maxHeight
@@ -101,10 +101,13 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
         setIsOpen(false);
     };
 
+    // The trigger matches .input-base: a field-coloured box with a findable
+    // border that turns terracotta, with the focus glow, while open. The list
+    // floats beneath as its own rounded panel, rows inset so their corners nest.
     return (
         <div className="space-y-1.5 flex flex-col" ref={containerRef}>
             {label && !icon && (
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
+                <label className="block text-xs font-medium text-[var(--text)]">
                     {label}
                 </label>
             )}
@@ -113,33 +116,34 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`group w-full min-h-[44px] px-3 py-2 bg-white dark:bg-neutral-900 border outline-none flex items-center justify-between overflow-hidden
+                    aria-expanded={isOpen}
+                    className={`group w-full min-h-[44px] ps-3.5 pe-3 py-2 bg-[var(--field)] border rounded-[var(--radius-md)] outline-none flex items-center justify-between overflow-hidden
                         ${isOpen
-                            ? 'border-[var(--color-m3-primary)] ring-1 ring-[var(--color-m3-primary)]/20 rounded-t-md'
-                            : 'border-gray-200 dark:border-neutral-800 hover:border-gray-300 dark:hover:border-neutral-700 rounded-md'}`}
+                            ? 'border-[var(--accent-ink)] shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_22%,transparent)]'
+                            : 'border-[var(--border-strong)] hover:border-[var(--text-muted)]'}`}
                 >
                     {icon ? (
                         <>
                             <div className="flex items-center gap-2">
                                 {icon}
-                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{label}</span>
+                                <span className="font-medium text-[var(--text)] text-sm">{label}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-sm text-gray-500">{selectedOption?.label}</span>
-                                <ChevronDown size={16} className={`chev text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
+                                <span className="text-sm text-[var(--text-muted)]">{selectedOption?.label}</span>
+                                <ChevronDown size={18} className={`chev text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     ) : (
                         <>
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                {selectedOption?.icon && <div className="text-gray-500 dark:text-gray-400">{selectedOption.icon}</div>}
-                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{selectedOption?.label || value}</span>
+                                {selectedOption?.icon && <div className="text-[var(--text-muted)]">{selectedOption.icon}</div>}
+                                <span className="text-[var(--text)] text-sm truncate">{selectedOption?.label || value}</span>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                                 {selectedOption?.description && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedOption.description}</span>
+                                    <span className="text-xs text-[var(--text-muted)]">{selectedOption.description}</span>
                                 )}
-                                <ChevronDown size={16} className={`chev text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={18} className={`chev text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
                             </div>
                         </>
                     )}
@@ -149,25 +153,25 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     <div
                         ref={dropdownRef}
                         style={positionStyle}
-                        className="dropdown-in fixed z-[999] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 border-t-0 rounded-b-md shadow-sm overflow-y-auto py-1"
+                        role="listbox"
+                        className="dropdown-in menu-surface fixed z-[999] overflow-y-auto"
                     >
                         {options.map(opt => (
                             <button
                                 key={opt.value}
+                                role="option"
+                                aria-selected={opt.value === value}
                                 onClick={() => handleSelect(opt.value)}
-                                className={`w-full px-3 py-2 text-start flex items-center gap-2 relative overflow-hidden
-                                    ${opt.value === value
-                                        ? 'bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-surface)] font-medium'
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'}`}
+                                className="menu-item"
                             >
-                                {opt.icon && <div className="text-gray-400 dark:text-gray-500">{opt.icon}</div>}
-                                <span className="flex-1 text-sm">{opt.label}</span>
+                                {opt.icon && <div className="text-[var(--text-muted)]">{opt.icon}</div>}
+                                <span className="flex-1">{opt.label}</span>
                                 {opt.description && (
-                                    <span className={`text-xs ${opt.value === value ? 'text-[var(--color-m3-on-surface-variant)]' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    <span className="text-xs font-normal text-[var(--text-muted)]">
                                         {opt.description}
                                     </span>
                                 )}
-                                <Tick on={opt.value === value} />
+                                <Tick on={opt.value === value} size={18} />
                             </button>
                         ))}
                     </div>,

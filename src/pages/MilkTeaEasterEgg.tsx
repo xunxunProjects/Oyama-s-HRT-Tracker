@@ -55,8 +55,8 @@ function defaultIndex(cat: Category): number {
     return i >= 0 ? i : 0;
 }
 
-const on = "text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]";
-const muted = "text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const on = "text-[var(--text)]";
+const muted = "text-[var(--text-muted)]";
 
 const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -81,17 +81,17 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                                     <button
                                         key={opt.raw}
                                         onClick={() => choose(catIdx, optIdx)}
-                                        className="w-full flex items-center justify-between py-3 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0 text-start"
+                                        className="w-full flex items-center justify-between py-3 border-b border-[var(--border)] last:border-b-0 text-start"
                                     >
                                         <span className="flex items-center gap-2 text-[0.9375rem]">
                                             <span className={isSelected ? `font-semibold ${on}` : on}>{opt.label}</span>
                                             {opt.tag === 'recommended' && (
-                                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                <span className="text-xs text-[var(--status-positive)] font-medium">
                                                     {t('milktea.recommended')}
                                                 </span>
                                             )}
                                             {opt.tag === 'not_recommended' && (
-                                                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                                <span className="text-xs text-[var(--warning)] font-medium">
                                                     {t('milktea.not_recommended')}
                                                 </span>
                                             )}
@@ -104,7 +104,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                     </div>
                 ))}
 
-                <div className="rounded-xl border border-dashed border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] p-5">
+                <div className="rounded-xl border border-dashed border-[var(--border)] p-5">
                     <p className={`text-sm font-semibold ${on} mb-3`}>{t('milktea.receipt_title')}</p>
                     <div className="font-mono text-xs leading-relaxed">
                         <p className={on}>{t('milktea.title')}</p>

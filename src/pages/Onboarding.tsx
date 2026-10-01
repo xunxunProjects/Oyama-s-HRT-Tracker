@@ -44,7 +44,7 @@ export const markOnboardingSeen = (): void => {
     localStorage.setItem(ONBOARDING_KEY, 'true');
 };
 
-const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const divider = 'border-b border-[var(--border)]';
 
 /** A row of the chart step relative to the chart: its beat still to come, playing, or played. */
 type MarkState = 'asleep' | 'playing' | 'done';
@@ -190,7 +190,7 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
                             <button
                                 type="button"
                                 onClick={() => play(0)}
-                                className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--color-m3-primary)] hover:bg-[var(--color-m3-surface-container)] dark:text-[var(--color-m3-primary-light)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                                className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
                             >
                                 {t('onboarding.how_replay')}
                             </button>
@@ -436,7 +436,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 vanishing as a figure passes through "6" on its way to "65"
                 would bob the centred step. An empty field says nothing; Next
                 is just off. */}
-            <p className={`mt-3 text-[0.8125rem] leading-relaxed text-red-600 dark:text-red-400 ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}>
+            <p className={`mt-3 text-[0.8125rem] leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}>
                 {t('error.weightRange')}
             </p>
         </div>,
@@ -463,7 +463,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                             type="button"
                             onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), { danger: true })}
                             aria-label={t('btn.delete')}
-                            className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                            className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
                         >
                             <X size={16} />
                         </button>
@@ -476,10 +476,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                         className={`flex w-full items-center gap-3.5 py-4 text-start ${divider} last:border-b-0`}
                     >
                         {/* In a Doodle-sized box, so the label lines up with the drug names above it. */}
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--accent-ink)]">
                             <Plus size={20} />
                         </span>
-                        <span className="text-[0.9375rem] font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                        <span className="text-[0.9375rem] font-medium text-[var(--accent-ink)]">
                             {t('plan.add')}
                         </span>
                     </button>
@@ -517,11 +517,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
     };
 
     return (
-        <div className="flex h-[100dvh] w-full select-none flex-col bg-[var(--color-m3-surface-dim)] font-sans text-[var(--color-m3-on-surface)] dark:bg-[var(--color-m3-dark-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+        <div className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]">
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
-                    className={`rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isLast ? 'invisible' : ''}`}
+                    className={`rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
                     tabIndex={isLast ? -1 : 0}
                 >
                     {t('onboarding.skip')}
@@ -558,7 +558,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 </div>
             </div>
 
-            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]`}>
+            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)]`}>
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">
                         {step > 0 && (

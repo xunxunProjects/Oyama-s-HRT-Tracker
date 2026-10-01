@@ -48,7 +48,7 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm, title, description, er
                     />
 
                     {error && (
-                        <p className="text-xs text-red-500 dark:text-red-400 mb-2 text-center">{error}</p>
+                        <p className="text-xs text-[var(--danger)] mb-2 text-center">{error}</p>
                     )}
 
                     <div className="flex gap-2 mt-2">

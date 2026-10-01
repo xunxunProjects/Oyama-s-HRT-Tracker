@@ -158,7 +158,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         return (
             <PublicShell>
                 <div className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center" aria-live="polite">
-                    <Loader2 size={24} strokeWidth={1.5} className="mb-4 animate-spin text-[var(--color-m3-primary)]" aria-hidden="true" />
+                    <Loader2 size={24} strokeWidth={1.5} className="mb-4 animate-spin text-[var(--accent-ink)]" aria-hidden="true" />
                     <p className="text-sm text-muted">{copy.loading}</p>
                 </div>
             </PublicShell>
@@ -169,8 +169,8 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         return (
             <PublicShell>
                 <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16">
-                    <div className="w-full rounded-xl border border-[var(--color-m3-outline-variant)] bg-[var(--color-m3-surface-bright)] p-6 shadow-[var(--shadow-m3-1)]">
-                        <div className="mb-5 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)]">
+                    <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-xs)]">
+                        <div className="mb-5 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]">
                             <LockKeyhole size={18} strokeWidth={1.75} />
                         </div>
                         <h1 className="text-xl font-semibold text-body">{copy.unlockTitle}</h1>
@@ -207,7 +207,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                                 </button>
                             </div>
                             {passwordError && (
-                                <p id="share-password-error" className="mt-2 text-sm text-red-600" role="alert">{passwordError}</p>
+                                <p id="share-password-error" className="mt-2 text-sm text-[var(--danger)]" role="alert">{passwordError}</p>
                             )}
                             <button type="submit" className="btn-primary mt-4 w-full" disabled={unlocking || password.length < 8}>
                                 {unlocking ? copy.unlocking : copy.unlock}
@@ -242,7 +242,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
 };
 
 const PublicShell = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-[100dvh] bg-[var(--color-m3-surface)] text-[var(--color-m3-on-surface)] selection:bg-[var(--color-m3-primary-container)]">
+    <div className="min-h-[100dvh] bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent-subtle)]">
         {children}
     </div>
 );
@@ -287,7 +287,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
     return (
         <PublicShell>
             <main className="mx-auto max-w-5xl px-6 pb-20 pt-10 md:px-8 md:pt-14">
-                <section className="border-b border-[var(--color-m3-outline-variant)] pb-8">
+                <section className="border-b border-[var(--border)] pb-8">
                     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-medium tracking-tight text-body md:text-4xl">{copy.publicTitle}</h1>
@@ -295,7 +295,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         </div>
                         {details.passwordRequired && (
                             <div className="flex shrink-0 flex-wrap gap-2 text-xs text-muted">
-                                <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-m3-outline-variant)] px-2.5 py-1.5">
+                                <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 py-1.5">
                                     <LockKeyhole size={12} /> {copy.protected}
                                 </span>
                             </div>
@@ -308,7 +308,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                             <dd className="text-body">{formatDateTime(details.createdAt)}</dd>
                         </div>
                         {details.live && (
-                            <div className="flex items-center gap-1.5 text-[var(--color-m3-primary)]">
+                            <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
                                 <dt>{copy.liveBadge}</dt>
                                 <dd>{copy.updatedOn} {formatDateTime(details.updatedAt)}</dd>
                             </div>
@@ -342,7 +342,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         <div className="grid gap-x-12 lg:grid-cols-2">
                             {groups.map(group => (
                                 <div key={group.label} className="mb-7 break-inside-avoid">
-                  <h3 className="mb-1 border-b border-[var(--color-m3-outline-variant)] pb-2 text-xs font-semibold text-muted">
+                  <h3 className="mb-1 border-b border-[var(--border)] pb-2 text-xs font-semibold text-muted">
                                         {group.label}
                                     </h3>
                                     {group.events.map(event => (
@@ -370,8 +370,8 @@ const DoseHistoryRow = ({ event, time }: { event: DoseEvent; time: string }) => 
     const wearHours = event.extras[ExtraKey.patchWearH];
 
     return (
-        <div className="flex items-start gap-3 border-b border-[var(--color-m3-outline-variant)] py-3.5 last:border-b-0">
-            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-m3-primary)]" aria-hidden="true" />
+        <div className="flex items-start gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
+            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
             <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                     <p className="truncate text-sm font-medium text-body">

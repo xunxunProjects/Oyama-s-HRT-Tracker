@@ -5,7 +5,7 @@ import { LabResult, isT_LabUnit } from '../../logic';
 import { Check, Trash2, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
-import Tabs from './Tabs';
+import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
 
 interface LabResultFormProps {
@@ -17,7 +17,7 @@ interface LabResultFormProps {
 
 type LabUnit = 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
 
-const divider = "border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]";
+const divider = "border-b border-[var(--border)]";
 
 const E2_UNITS: LabUnit[] = ['pmol/l', 'pg/ml'];
 const T_UNITS: LabUnit[] = ['ng/dl', 'nmol/l'];
@@ -41,10 +41,10 @@ const HormoneValueField: React.FC<{
 }> = ({ label, units, unit, onUnitChange, value, onValueChange }) => (
     <div>
         <div className="flex items-center justify-between mb-3">
-            <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+            <span className="text-[0.9375rem] text-[var(--text)]">
                 {label}
             </span>
-            <Tabs compact tabs={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} />
+            <Segmented options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} />
         </div>
         <input
             type="number"
@@ -52,7 +52,7 @@ const HormoneValueField: React.FC<{
             placeholder="0.0"
             value={value}
             onChange={e => onValueChange(e.target.value)}
-            className="w-full bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-md px-3 py-2 outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)] tabular-nums"
+            className="w-full bg-[var(--field)] border border-[var(--border)] rounded-md px-3 py-2 outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)] tabular-nums"
             style={{ fontSize: '16px' }}
         />
     </div>
@@ -127,10 +127,10 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     onClick={() => setIsDatePickerOpen(v => !v)}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                    <span className="text-[0.9375rem] text-[var(--text)]">
                         {t('lab.date')}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                    <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">
                             {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </span>
@@ -183,7 +183,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 onValueChange={setTValue}
                             />
                         </div>
-                        <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pt-2">
+                        <p className="text-xs text-[var(--text-muted)] pt-2">
                             {t('lab.dual_hint')}
                         </p>
                     </>
@@ -199,7 +199,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 onDelete(resultToEdit.id);
                                 onCancel();
                             }, { danger: true })}
-                            className="p-2 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:text-red-500 rounded"
+                            className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded"
                             title={t('btn.delete')}
                             aria-label={t('btn.delete')}
                         >
@@ -211,14 +211,14 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                 <div className="flex gap-2 ml-auto">
                     <button
                         onClick={onCancel}
-                        className="min-w-[88px] px-4 py-2 text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] rounded-md flex items-center justify-center"
+                        className="min-w-[88px] px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded-md flex items-center justify-center"
                     >
                         {t('btn.cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!canSave || !dateStr}
-                        className="min-w-[88px] px-4 py-2 text-sm font-medium bg-[var(--color-m3-primary)] text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                        className="btn-primary min-w-[88px]"
                     >
                         <Check size={14} />
                         {t('btn.save')}

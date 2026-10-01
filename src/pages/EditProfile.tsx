@@ -11,8 +11,8 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+    const on = 'text-[var(--text)]';
+    const muted = 'text-[var(--text-muted)]';
 
     const handleSubmit = async () => {
         if (!username.trim()) return;
@@ -36,7 +36,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <p className={`text-sm leading-relaxed ${muted}`}>{t('account.edit_profile_desc')}</p>
 
                 {error && (
-                    <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
+                    <div className="p-3 text-[var(--danger)] text-sm rounded-lg">
                         {error}
                     </div>
                 )}
@@ -47,7 +47,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         type="text"
                         value={username}
                         onChange={e => setUsername(e.target.value)}
-                        className={`w-full px-4 py-3 text-sm bg-white dark:bg-neutral-900 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg focus:border-[var(--color-m3-primary)] focus:ring-1 focus:ring-[var(--color-m3-primary)] outline-none transition-colors ${on} placeholder-[var(--color-m3-outline)] dark:placeholder-[var(--color-m3-dark-outline)]`}
+                        className={`w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg focus:border-[var(--accent-ink)] focus:ring-[3px] focus:ring-[var(--accent)]/20 outline-none transition-colors ${on} placeholder-[var(--text-muted)]`}
                         placeholder={t('account.new_username')}
                         autoFocus
                     />
@@ -56,7 +56,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <button
                     onClick={handleSubmit}
                     disabled={!username.trim() || isLoading || username === user?.username}
-                    className="w-full py-3 text-sm font-medium bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-primary w-full"
                 >
                     {isLoading ? '...' : t('btn.save')}
                 </button>

@@ -20,13 +20,13 @@ const DoseDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
         strokeWidth={2.4}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] ${className}`}
+        className={`text-[var(--illustration-line)] ${className}`}
     >
         <g transform="rotate(-28 48 38)">
             {/* Colour on the left half only, laid in a hair inside the line. */}
             <path
                 d="M34.6 27.2 C 29 26.6, 23.6 30.6, 23 37.6 C 22.6 43.4, 27 47, 34 46.6 C 39 46.4, 43.6 46.8, 46 46.4 C 46.8 40, 45.6 33.4, 46.2 27.6 C 42 27.4, 38.4 27.6, 34.6 27.2 Z"
-                className="fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]"
+                className="fill-[var(--illustration-wash)]"
                 stroke="none"
             />
             {/* Outline */}

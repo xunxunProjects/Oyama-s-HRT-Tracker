@@ -15,12 +15,12 @@ const VialDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
         strokeWidth={2.4}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] ${className}`}
+        className={`text-[var(--illustration-line)] ${className}`}
     >
         {/* What is in the vial, laid in just inside the glass. */}
         <path
             d="M33.4 38.6 C 39 37.6, 46 39.8, 55.2 38.4 C 55.4 44, 55.2 49, 55.2 52 C 55 59.4, 50.4 62.4, 44.4 62.2 C 38.4 62.4, 33.8 59.4, 33.4 52 C 33.2 47, 33.4 42, 33.4 38.6 Z"
-            className="fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]"
+            className="fill-[var(--illustration-wash)]"
             stroke="none"
         />
         {/* Glass, open at the top where the stopper goes */}
@@ -40,7 +40,7 @@ const VialDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
         {/* A drop */}
         <path
             d="M73 25.6 C 71.4 28, 65.8 34.4, 65.8 39.6 C 65.8 43.6, 68.8 46.4, 72.8 46.4 C 76.8 46.4, 79.6 43.6, 79.4 39.4 C 79.2 34.2, 74.6 28.4, 73 25.6 Z"
-            className="fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]"
+            className="fill-[var(--illustration-wash)]"
         />
         <path d="M70.4 40.6 C 70.4 42.4, 71.2 43.6, 72.6 44" strokeWidth={1.6} />
 

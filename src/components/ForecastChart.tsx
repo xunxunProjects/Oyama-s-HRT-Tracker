@@ -46,8 +46,9 @@ const ForecastChart: React.FC<{
     const pad = { l: 40, r: 8, t: 22, b: 24 };
 
     const c = isDarkMode
-        ? { primary: '#D8927C', second: '#7A776F', grid: '#2E2C28', axis: '#7A776F', faint: '#5C5953', band: 'rgba(216,146,124,0.16)', target: 'rgba(122,119,111,0.12)' }
-        : { primary: '#CC785C', second: '#A8A59E', grid: '#E7E4DD', axis: '#A8A59E', faint: '#C2BDB3', band: 'rgba(204,120,92,0.14)', target: 'rgba(168,165,158,0.12)' };
+        // The chart-* design tokens as hex for SVG; band is chart-band.
+        ? { primary: '#df8f74', second: '#838078', grid: '#2c2a26', axis: '#a7a49e', faint: '#6b6860', band: 'rgba(223,143,116,0.12)', target: 'rgba(167,164,158,0.12)' }
+        : { primary: '#cc785c', second: '#a7a49e', grid: '#eeedea', axis: '#6b6860', faint: '#a7a49e', band: 'rgba(204,120,92,0.1)', target: 'rgba(131,128,120,0.1)' };
     const tone = (t: ChartLine['tone']) => (t === 'primary' ? c.primary : c.second);
 
     const x0 = nowH - 14 * DAY_H;
@@ -141,7 +142,7 @@ const ForecastChart: React.FC<{
 
     return (
         <div className="w-full">
-            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1.5">{swatch(c.primary, '')}{labels.history}</span>
                 {lines.map(l => <span key={l.key} className="flex items-center gap-1.5">{swatch(tone(l.tone), l.dash)}{l.label}</span>)}
                 {band && <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm" style={{ background: c.band }} />{bandLabel}</span>}
@@ -159,51 +160,51 @@ const ForecastChart: React.FC<{
                         {target && (
                             <g>
                                 <rect x={pad.l} y={Y(target.high)} width={plotW} height={Y(target.low) - Y(target.high)} fill={c.target} />
-                                <text x={pad.l + 4} y={Y(target.high) + 11} fontSize="9" fill={c.axis}>{labels.target}</text>
+                                <text x={pad.l + 4} y={Y(target.high) + 11} fontSize="10" fill={c.axis}>{labels.target}</text>
                             </g>
                         )}
                         {yTicks.map(v => (
                             <g key={v}>
                                 <line x1={pad.l} x2={pad.l + plotW} y1={Y(v)} y2={Y(v)} stroke={c.grid} strokeWidth="1" />
-                                <text x={pad.l - 6} y={Y(v) + 3} fontSize="10" textAnchor="end" fill={c.axis} className="tabular-nums">{v}</text>
+                                <text x={pad.l - 6} y={Y(v) + 3} fontSize="11" textAnchor="end" fill={c.axis} className="tabular-nums">{v}</text>
                             </g>
                         ))}
-                        <text x={pad.l - 6} y={9} fontSize="9" textAnchor="end" fill={c.axis}>{unit}</text>
+                        <text x={pad.l - 6} y={9} fontSize="10" textAnchor="end" fill={c.axis}>{unit}</text>
                         {shownTicks.map(h => (
-                            <text key={h} x={X(h)} y={height - 6} fontSize="10" textAnchor="middle" fill={c.axis} className="tabular-nums">
+                            <text key={h} x={X(h)} y={height - 6} fontSize="11" textAnchor="middle" fill={c.axis} className="tabular-nums">
                                 {dayFmt.format(new Date(h * 3600000))}
                             </text>
                         ))}
                         {bandPath && <path d={bandPath} fill={c.band} stroke="none" />}
                         <line x1={X(nowH)} x2={X(nowH)} y1={pad.t} y2={pad.t + plotH} stroke={c.axis} strokeWidth="1" strokeDasharray="2 3" />
-                        <path d={path(historyPts)} fill="none" stroke={c.primary} strokeWidth="1.75" strokeLinejoin="round" />
+                        <path d={path(historyPts)} fill="none" stroke={c.primary} strokeWidth="2" strokeLinejoin="round" />
                         {linePts.map(l => (
-                            <path key={l.key} d={path(l.pts)} fill="none" stroke={tone(l.tone)} strokeWidth={l.tone === 'primary' ? 1.75 : 1.5} strokeDasharray={l.dash || undefined} strokeLinejoin="round" />
+                            <path key={l.key} d={path(l.pts)} fill="none" stroke={tone(l.tone)} strokeWidth={l.tone === 'primary' ? 2 : 1.5} strokeDasharray={l.dash || undefined} strokeLinejoin="round" />
                         ))}
                         {hoverH !== null && readout && readout.length > 0 && (
                             <g>
                                 <line x1={X(hoverH)} x2={X(hoverH)} y1={pad.t} y2={pad.t + plotH} stroke={c.faint} strokeWidth="1" />
-                                {readout.map(r => <circle key={r.key} cx={X(hoverH)} cy={Y(r.value!)} r="3.5" fill={r.color} stroke={isDarkMode ? '#1C1B18' : '#FAF9F7'} strokeWidth="1.5" />)}
+                                {readout.map(r => <circle key={r.key} cx={X(hoverH)} cy={Y(r.value!)} r="3.5" fill={r.color} stroke={isDarkMode ? '#181714' : '#ffffff'} strokeWidth="2" />)}
                             </g>
                         )}
                     </svg>
                 )}
                 {hoverH !== null && readout && readout.length > 0 && (
                     <div
-                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{
                             left: Math.min(Math.max(X(hoverH), pad.l + 4), pad.l + plotW - 4),
                             top: 8,
                             transform: `translate(${X(hoverH) > pad.l + plotW * 0.6 ? 'calc(-100% - 8px)' : '8px'}, 0)`,
                         }}
                     >
-                        <div className="text-[0.625rem] text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] mb-0.5 whitespace-nowrap">
+                        <div className="text-[0.6875rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
                             {whenFmt.format(new Date(hoverH * 3600000))}
                         </div>
                         {readout.map(r => (
                             <div key={r.key} className="flex items-center gap-1.5 whitespace-nowrap text-xs">
                                 {swatch(r.color, r.dash)}
-                                <span className="text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">{r.label}</span>
+                                <span className="text-[var(--text-muted)]">{r.label}</span>
                                 <span className="ml-auto pl-2 font-medium tabular-nums" style={{ color: r.color }}>{Math.round(r.value!)}</span>
                             </div>
                         ))}
