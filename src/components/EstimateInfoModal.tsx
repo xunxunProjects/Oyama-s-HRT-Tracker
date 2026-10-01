@@ -27,7 +27,7 @@ const EstimateInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                                 href="https://transfemscience.org"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] underline underline-offset-2"
+                                className="text-[var(--accent-ink)] underline underline-offset-2"
                             >
                                 transfemscience.org
                             </a>

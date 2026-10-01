@@ -15,13 +15,13 @@ const LogDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
         strokeWidth={2.4}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] ${className}`}
+        className={`text-[var(--illustration-line)] ${className}`}
     >
         <g transform="rotate(-4 36 34)">
             {/* The cloth spine, colour laid in just inside the line. */}
             <path
                 d="M19.6 11.6 C 22.4 11.2, 26 11.4, 29 11 C 28.4 24, 29.6 42, 28.8 55.4 C 26 55.8, 22.6 55.6, 19.8 56 C 19.2 42, 20.2 24, 19.6 11.6 Z"
-                className="fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]"
+                className="fill-[var(--illustration-wash)]"
                 stroke="none"
             />
             {/* Cover */}
@@ -37,7 +37,7 @@ const LogDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
         <g transform="translate(74 38) rotate(-58)">
             <path
                 d="M10.6 -3.7 C 14 -4.2, 18.6 -3.4, 20.6 -2.6 C 22 -1.6, 22 1.6, 20.6 2.6 C 18.4 3.4, 14 4, 10.8 3.7 Z"
-                className="fill-[var(--color-m3-primary-container)] dark:fill-[var(--color-m3-dark-primary-container)]"
+                className="fill-[var(--illustration-wash)]"
                 stroke="none"
             />
             {/* Body */}

@@ -38,8 +38,8 @@ const formatStamp = (timestamp: number, lang: string): string =>
     });
 
 const badgeBase = 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium leading-none';
-const liveBadgeClass = `${badgeBase} bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)] dark:text-[var(--color-m3-dark-on-primary-container)]`;
-const metaBadgeClass = `${badgeBase} bg-[var(--color-m3-surface-container)] text-muted dark:bg-[var(--color-m3-dark-surface-container)]`;
+const liveBadgeClass = `${badgeBase} bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]`;
+const metaBadgeClass = `${badgeBase} bg-[var(--surface-hover)] text-muted`;
 
 const ShareSettings: React.FC<ShareSettingsProps> = ({
     onBack,
@@ -175,7 +175,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                     {createdShare ? (
                         <div className="pb-0 pt-5">
                             <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-body">
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-m3-primary-container)] text-[var(--color-m3-on-primary-container)]">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]">
                                     <Check size={14} strokeWidth={2.25} />
                                 </span>
                                 <p className="text-[0.9375rem] font-medium">{copy.created}</p>
@@ -193,7 +193,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             <label className="sr-only" htmlFor="created-share-link">
                                 {copy.copy}
                             </label>
-                            <div className="flex flex-col gap-1 border-b border-[var(--color-m3-outline-variant)] py-1 dark:border-[var(--color-m3-dark-outline-variant)] sm:flex-row sm:items-center sm:gap-3">
+                            <div className="flex flex-col gap-1 border-b border-[var(--border)] py-1 sm:flex-row sm:items-center sm:gap-3">
                                 <input
                                     ref={linkInputRef}
                                     id="created-share-link"
@@ -207,7 +207,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleCopy}
-                                    className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--color-m3-primary)] transition-colors hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] sm:self-auto"
+                                    className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--accent-ink)] transition-colors hover:bg-[var(--surface-hover)] sm:self-auto"
                                 >
                                     <span className="inline-flex items-center gap-1.5">
                                         <CopyTick copied={copied} size={14} />
@@ -225,12 +225,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             )}
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="border-b border-[var(--color-m3-outline-variant)] pb-6 dark:border-[var(--color-m3-dark-outline-variant)]">
+                        <form onSubmit={handleSubmit} className="border-b border-[var(--border)] pb-6">
                             <div className="callout mb-5">
                                 {liveEnabled ? copy.liveSnapshotNote : copy.snapshotNote}
                             </div>
 
-                            <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--color-m3-outline-variant)] py-[18px] dark:border-[var(--color-m3-dark-outline-variant)]">
+                            <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--border)] py-[18px]">
                                 <label htmlFor="share-live-toggle" className="cursor-pointer text-[0.9375rem] font-medium text-body">
                                     {copy.liveToggle}
                                 </label>
@@ -288,7 +288,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     type="button"
                                     onClick={() => setIsExpiryPickerOpen(value => !value)}
                                     aria-expanded={isExpiryPickerOpen}
-                                    className="flex w-full items-center justify-between border-b border-[var(--color-m3-outline-variant)] py-[18px] text-start dark:border-[var(--color-m3-dark-outline-variant)]"
+                                    className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
                                 >
                                     <span className="text-[0.9375rem] text-body">{copy.expiryLabel}</span>
                                     <span className="flex items-center gap-1.5 text-muted">
@@ -311,7 +311,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             </div>
 
                             {error && (
-                                <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+                                <p className="mb-4 text-sm text-[var(--danger)]" role="alert">{error}</p>
                             )}
 
                             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -340,9 +340,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                         ) : shares.length === 0 ? (
                             <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
                         ) : (
-                            <div className="mt-3 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                            <div className="mt-3 border-t border-[var(--border)]">
                                 {shares.map(share => (
-                                    <div key={share.id} className="flex items-center gap-3 border-b border-[var(--color-m3-outline-variant)] py-3.5 last:border-b-0 dark:border-[var(--color-m3-dark-outline-variant)]">
+                                    <div key={share.id} className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                                                 <p className="text-sm font-medium text-body">
@@ -366,7 +366,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             type="button"
                                             onClick={() => handleRevoke(share)}
                                             disabled={revokingId === share.id}
-                                            className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/20"
+                                            className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50 "
                                         >
                                             {revokingId === share.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                                             {copy.revoke}

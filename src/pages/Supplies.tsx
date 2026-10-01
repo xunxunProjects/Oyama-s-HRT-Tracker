@@ -2,9 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ChevronDown, Plus } from 'lucide-react';
 import { DoseEvent, Ester, Route } from '../../logic';
-import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
+import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
-import Tabs from '../components/Tabs';
+import Segmented from '../components/Segmented';
 import { settingsSection } from '../components/SettingsListItem';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -12,13 +12,13 @@ import { useDialog } from '../contexts/DialogContext';
 import { Regimen, Supply, Pack, PackKind, supplyStatus, packKindsFor, defaultPack, packUnitMG } from '../utils/regimen';
 import { supplyLabel, intervalLabel, dueLabel, fill, fillNodes, remainingLabel, packUnit } from '../utils/regimenText';
 
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-const inputCls = 'rounded-md border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-outline)] dark:focus:border-[var(--color-m3-dark-outline)]';
+const on = 'text-[var(--text)]';
+const muted = 'text-[var(--text-muted)]';
+const inputCls = 'rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--text)] outline-none focus:border-[var(--border-strong)]';
 const labelCls = `block text-xs font-semibold mb-1.5 pl-1 ${muted}`;
 // The same pair the lab form closes with.
-const cancelBtn = 'min-w-[88px] px-4 py-2 text-sm text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] rounded-md';
-const confirmBtn = 'min-w-[88px] px-4 py-2 text-sm font-medium bg-[var(--color-m3-primary)] text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed';
+const cancelBtn = 'min-w-[88px] px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded-md';
+const confirmBtn = 'btn-primary min-w-[88px]';
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Everything that can be stocked, per mode: the forms the dose form can log. */
@@ -148,7 +148,7 @@ const Supplies: React.FC<SuppliesProps> = ({ onBack, supplies, onSave, onDelete,
                     <button
                         type="button"
                         onClick={() => setAdding(v => !v)}
-                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                        className={`${headerActionAccent}`}
                     >
                         <Plus size={15} className={adding ? 'rotate-45' : ''} />
                         <span>{adding ? t('btn.cancel') : t('supplies.add')}</span>
@@ -203,7 +203,7 @@ const Supplies: React.FC<SuppliesProps> = ({ onBack, supplies, onSave, onDelete,
                                     >
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm font-medium ${on}`}>{supplyLabel(supply, t)}</p>
-                                            <p className={`text-xs mt-0.5 leading-relaxed ${low ? 'text-amber-600 dark:text-amber-400' : muted}`}>
+                                            <p className={`text-xs mt-0.5 leading-relaxed ${low ? 'text-[var(--warning)]' : muted}`}>
                                                 {dailyUse === null || runOutH === null
                                                     ? t('supplies.not_in_use')
                                                     : fillNodes(t('supplies.runs_out'), { n: Math.max(0, Math.round((runOutH - nowH) / 24)), date: <span className="whitespace-nowrap">{dueLabel(runOutH, lang, false, nowH)}</span> })}
@@ -233,7 +233,7 @@ const Supplies: React.FC<SuppliesProps> = ({ onBack, supplies, onSave, onDelete,
                                                     <button
                                                         type="button"
                                                         onClick={() => showDialog('confirm', t('supplies.delete_confirm'), () => onDelete(supply.id), { danger: true })}
-                                                        className={`${headerAction} text-red-600 dark:text-red-400`}
+                                                        className={`${headerAction} text-[var(--danger)]`}
                                                     >
                                                         {t('btn.delete')}
                                                     </button>
@@ -241,7 +241,7 @@ const Supplies: React.FC<SuppliesProps> = ({ onBack, supplies, onSave, onDelete,
                                                         type="button"
                                                         disabled={!(num(recount) >= 0)}
                                                         onClick={() => applyRecount(supply)}
-                                                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] disabled:opacity-40`}
+                                                        className={`${headerActionAccent} disabled:opacity-40`}
                                                     >
                                                         {t('btn.save')}
                                                     </button>
@@ -257,9 +257,8 @@ const Supplies: React.FC<SuppliesProps> = ({ onBack, supplies, onSave, onDelete,
 
                 <section className="flex items-center justify-between gap-4">
                     <p className={`text-[0.9375rem] ${on}`}>{t('supplies.lead')}</p>
-                    <Tabs
-                        compact
-                        tabs={LEAD_DAYS.map(d => ({ id: String(d), label: fill(t('supplies.days'), { n: d }) }))}
+                    <Segmented
+                        options={LEAD_DAYS.map(d => ({ id: String(d), label: fill(t('supplies.days'), { n: d }) }))}
                         value={String(LEAD_DAYS.includes(leadDays as typeof LEAD_DAYS[number]) ? leadDays : 14)}
                         onChange={v => onLeadDaysChange(Number(v))}
                     />

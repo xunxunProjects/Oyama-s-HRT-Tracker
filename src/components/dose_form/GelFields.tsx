@@ -32,7 +32,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
         <div className="space-y-4">
             {/* Application site */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">{t('field.gel_site')}</label>
+                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.gel_site')}</label>
                 <CustomSelect
                     value={String(gelSite)}
                     onChange={(val) => setGelSite(parseInt(val, 10))}
@@ -45,7 +45,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
 
             {/* Applied dose */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 pl-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                     {t(equivLabelKey)}
                 </label>
                 <input
@@ -53,13 +53,13 @@ const GelFields: React.FC<GelFieldsProps> = ({
                     min="0"
                     step="0.001"
                     value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-md focus:ring-1 focus:ring-[var(--color-m3-primary)]/30 focus:border-[var(--color-m3-primary)] outline-none text-gray-900 dark:text-gray-100 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0.0"
                     style={{ fontSize: '16px' }}
                 />
                 {/* Absorbed estimate from site bioavailability */}
                 {bioPct !== null && (
-                    <p className="text-xs text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] pl-1">
+                    <p className="text-xs text-[var(--text-muted)] pl-1">
                         {t('gel.bioavailability')}: {bioPct.toFixed(0)}%
                         {absorbed !== null && (
                             <> · {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg</>

@@ -10,8 +10,8 @@ const splitLead = (text: string): [string, string] => {
     return m ? [m[1], m[2]] : [text, ''];
 };
 
-const alertIcon = <span className="icon-line"><AlertCircle size={14} strokeWidth={1.75} className="text-amber-700/90 dark:text-amber-400/85" /></span>;
-const leadTone = 'font-medium text-amber-700 dark:text-amber-400';
+const alertIcon = <span className="icon-line"><AlertCircle size={16} strokeWidth={1.75} className="text-[var(--warning)]" /></span>;
+const leadTone = 'font-medium text-[var(--warning)]';
 
 // Plain text — no card, no fill, no border. This app never wraps a warning in a
 // colored box anywhere else, so these shouldn't either. Only the opening
@@ -26,7 +26,7 @@ const AdvisoryText: React.FC<{ text: string }> = ({ text }) => {
 
     if (!rest) {
         return (
-            <p className="flex items-start gap-2 text-[0.8125rem] leading-relaxed">
+            <p className="flex items-start gap-2 text-sm">
                 {alertIcon}
                 <span className={`min-w-0 ${leadTone}`}>{lead}</span>
             </p>
@@ -34,7 +34,7 @@ const AdvisoryText: React.FC<{ text: string }> = ({ text }) => {
     }
 
     return (
-        <div className="text-[0.8125rem] leading-relaxed">
+        <div className="text-sm">
             {/* type="button": this also renders inside the dose form. */}
             <button
                 type="button"
@@ -49,16 +49,16 @@ const AdvisoryText: React.FC<{ text: string }> = ({ text }) => {
                 <span className={`min-w-0 ${leadTone}`}>
                     {lead}
                     <ChevronDown
-                        size={14}
+                        size={16}
                         strokeWidth={1.75}
-                        className={`chev ms-1 inline-block align-[-2px] text-amber-700/60 group-hover:text-amber-700 dark:text-amber-400/60 dark:group-hover:text-amber-400 ${open ? 'rotate-180' : ''}`}
+                        className={`chev ms-1 inline-block align-[-3px] text-[var(--warning)] opacity-60 group-hover:opacity-100 ${open ? 'rotate-180' : ''}`}
                     />
                 </span>
             </button>
             <div id={bodyId} className="disclosure" data-open={open}>
                 <div className="disclosure-inner">
-                    {/* Hangs under the lead, clear of the icon (14px + the 8px gap). */}
-                    <p className={`ps-[1.375rem] pt-0.5 text-muted ${open ? 'advisory-unfold' : ''}`}>{rest}</p>
+                    {/* Hangs under the lead, clear of the icon (16px + the 8px gap). */}
+                    <p className={`ps-6 pt-1 text-[var(--text-muted)] ${open ? 'advisory-unfold' : ''}`}>{rest}</p>
                 </div>
             </div>
         </div>
@@ -90,7 +90,7 @@ const DoseAdvisoryNotice: React.FC<{
     if (!advisory && !hormoneAdvisory && !showCalibrate) return null;
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
             {advisory && <DoseAdvisoryLine advisory={advisory} t={t} />}
             {hormoneAdvisory && <HormoneLevelAdvisoryLine advisory={hormoneAdvisory} t={t} />}
             {showCalibrate && (
@@ -98,16 +98,16 @@ const DoseAdvisoryNotice: React.FC<{
                 // nudge points at the place it takes you.
                 <button
                     onClick={onCalibrate}
-                    className="group flex items-start gap-2 text-left text-xs leading-relaxed text-muted"
+                    className="group flex items-start gap-2 text-start text-xs text-[var(--text-muted)]"
                 >
-                    <span className="icon-line"><CalibrationCurveIcon size={14} strokeWidth={1.75} className="lucide opacity-70" /></span>
+                    <span className="icon-line"><CalibrationCurveIcon size={16} strokeWidth={1.75} className="lucide opacity-80" /></span>
                     <span>
                         {t('advisory.calibrate.text')}{' '}
-                        <span className="font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                        <span className="font-medium text-[var(--accent-ink)]">
                             <span className="underline decoration-transparent underline-offset-2 transition-colors group-hover:decoration-current">
                                 {t('advisory.calibrate.cta')}
                             </span>
-                            <ArrowRight size={12} strokeWidth={2} className="ml-0.5 inline-block align-[-1px] transition-transform group-hover:translate-x-0.5" />
+                            <ArrowRight size={14} strokeWidth={2} className="ms-0.5 inline-block align-[-2px] transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
                         </span>
                     </span>
                 </button>

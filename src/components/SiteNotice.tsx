@@ -35,7 +35,7 @@ const linkify = (text: string): React.ReactNode[] =>
                 href={part}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-2 hover:opacity-80"
+                className="underline decoration-current/35 underline-offset-[3px] hover:decoration-current"
             >
                 {part}
             </a>
@@ -91,21 +91,21 @@ const SiteNoticeBanner: React.FC = () => {
 
     const warn = notice.level === 'warn';
     const tone = warn
-        ? 'text-amber-700/90 dark:text-amber-400/85'
-        : 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]';
+        ? 'text-[var(--warning)]'
+        : 'text-[var(--accent-ink)]';
     const Icon = warn ? AlertCircle : Megaphone;
 
     return (
-        <div className={`shrink-0 flex items-start gap-1.5 px-6 md:px-10 pt-2 pb-1 text-[0.8125rem] leading-snug ${tone}`}>
-            <span className="icon-line"><Icon size={14} strokeWidth={1.75} /></span>
+        <div className={`shrink-0 flex items-start gap-2 px-6 md:px-10 pt-2.5 pb-1.5 text-xs ${tone}`}>
+            <span className="icon-line"><Icon size={16} strokeWidth={1.75} /></span>
             <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">{linkify(noticeText(notice, lang))}</p>
             <button
                 onClick={dismiss}
                 aria-label={t('notice.dismiss')}
                 title={t('notice.dismiss')}
-                className="mt-[1px] p-1 -m-1 shrink-0 rounded hover:opacity-70 transition-opacity"
+                className="-mt-[3px] -me-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
             >
-                <X size={14} strokeWidth={1.75} />
+                <X size={16} strokeWidth={1.75} />
             </button>
         </div>
     );

@@ -6,8 +6,8 @@ export interface TabItem<K extends string> {
     icon?: React.ReactNode;
 }
 
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+const on = 'text-[var(--text)]';
+const muted = 'text-[var(--text-muted)]';
 
 /**
  * The one underline tab strip. The underline is a single bar that slides to
@@ -18,14 +18,13 @@ const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-
  * Every label reserves its bold width up front, so choosing a tab (which sets
  * it semibold) never nudges the tabs beside it.
  *
- * `compact` is the small inline form used for a unit picker: tighter, and
- * without the rule running under the whole strip.
+ * This is for switching whole panels of a page. A compact choice of a few
+ * short options inside a form or toolbar is a Segmented control.
  */
-function Tabs<K extends string>({ tabs, value, onChange, compact = false, className = '' }: {
+function Tabs<K extends string>({ tabs, value, onChange, className = '' }: {
     tabs: readonly TabItem<K>[];
     value: K;
     onChange: (id: K) => void;
-    compact?: boolean;
     className?: string;
 }) {
     const rowRef = useRef<HTMLDivElement>(null);
@@ -51,7 +50,7 @@ function Tabs<K extends string>({ tabs, value, onChange, compact = false, classN
         <div
             ref={rowRef}
             role="tablist"
-            className={`relative flex ${compact ? 'gap-4' : 'gap-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]'} ${className}`}
+            className={`relative flex gap-6 border-b border-[var(--border)] ${className}`}
         >
             {tabs.map(({ id, label, icon }) => {
                 const selected = id === value;
@@ -63,7 +62,7 @@ function Tabs<K extends string>({ tabs, value, onChange, compact = false, classN
                         role="tab"
                         aria-selected={selected}
                         onClick={() => onChange(id)}
-                        className={`flex items-center gap-2 text-sm ${compact ? 'pb-0.5' : 'pb-2'} ${selected ? on : `${muted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)]`}`}
+                        className={`flex items-center gap-2 text-sm pt-1 pb-3 ${selected ? on : `${muted} hover:text-[var(--text)]`}`}
                     >
                         {icon}
                         <span className="grid">
@@ -76,7 +75,7 @@ function Tabs<K extends string>({ tabs, value, onChange, compact = false, classN
             {bar && (
                 <span
                     aria-hidden="true"
-                    className={`chip-slide pointer-events-none absolute h-0.5 bg-[var(--color-m3-primary)] ${compact ? 'bottom-0' : '-bottom-px'}`}
+                    className={`chip-slide pointer-events-none absolute h-0.5 bg-[var(--accent)] -bottom-px rounded-t-[2px]`}
                     style={{ left: bar.left, width: bar.width }}
                 />
             )}

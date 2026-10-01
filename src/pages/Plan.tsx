@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
 import { ExtraKey, GEL_SITE_ORDER, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
-import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
+import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
 import Doodle from '../components/Doodle';
 import PlanWizard from '../components/PlanWizard';
@@ -12,9 +12,9 @@ import { useDialog } from '../contexts/DialogContext';
 import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, itemToDraft } from '../utils/plan';
 import { regimenLabel, frequencyLabel, gelSiteName } from '../utils/regimenText';
 
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-const inputCls = 'w-full rounded-md border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-outline)] dark:focus:border-[var(--color-m3-dark-outline)]';
+const on = 'text-[var(--text)]';
+const muted = 'text-[var(--text-muted)]';
+const inputCls = 'w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--text)] outline-none focus:border-[var(--border-strong)]';
 const labelCls = `block text-xs font-semibold mb-1.5 pl-1 ${muted}`;
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
@@ -97,7 +97,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                     <button
                         type="button"
                         onClick={() => setAdding(true)}
-                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                        className={`${headerActionAccent}`}
                     >
                         <Plus size={15} />
                         <span>{t('plan.add')}</span>
@@ -146,7 +146,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                                                     <button
                                                         type="button"
                                                         onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDelete(item.id), { danger: true })}
-                                                        className={`${headerAction} text-red-600 dark:text-red-400`}
+                                                        className={`${headerAction} text-[var(--danger)]`}
                                                     >
                                                         {t('btn.delete')}
                                                     </button>
@@ -154,7 +154,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                                                         type="button"
                                                         disabled={!edit || !draftToItem(edit, item.id)}
                                                         onClick={() => saveEdit(item)}
-                                                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] disabled:opacity-40`}
+                                                        className={`${headerActionAccent} disabled:opacity-40`}
                                                     >
                                                         {t('btn.save')}
                                                     </button>

@@ -185,8 +185,8 @@ export const useOnboardingCurve = (isTransmasc: boolean): CurveData | null => {
 };
 
 /** Matches the onboarding page's own background, so a marker reads as hollow. */
-const HOLLOW = 'fill-[var(--color-m3-surface-dim)] dark:fill-[var(--color-m3-dark-surface)]';
-const RULE = 'stroke-[var(--color-m3-outline-variant)] dark:stroke-[var(--color-m3-dark-outline-variant)]';
+const HOLLOW = 'fill-[var(--bg)]';
+const RULE = 'stroke-[var(--border)]';
 
 const TICKS: { day: number; anchor: 'start' | 'middle' | 'end' }[] = [
     { day: 0, anchor: 'start' },
@@ -226,7 +226,7 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, beat, playKey, 
             preserveAspectRatio="xMidYMid meet"
             aria-hidden="true"
             focusable="false"
-            className="block h-auto w-full text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
+            className="block h-auto w-full text-[var(--accent-ink)]"
         >
             {/* The spine of every beat, so it is there from the first paint
                 with no animation of its own. */}
@@ -355,7 +355,7 @@ const Swatch: React.FC<{ dashed?: boolean }> = ({ dashed }) => (
         width={14}
         height={4}
         aria-hidden="true"
-        className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
+        className="shrink-0 text-[var(--accent-ink)]"
     >
         <line
             x1={0}

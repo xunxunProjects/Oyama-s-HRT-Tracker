@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { CalibrationHistoryMode, CalibrationMethod, CalibrationResult, DoseEvent, Ester, ExtraKey, LabResult, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
-import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
+import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
 import Switch from '../components/Switch';
 import Tabs from '../components/Tabs';
+import Segmented from '../components/Segmented';
 import DateTimePicker from '../components/DateTimePicker';
 import ForecastChart, { ChartLine } from '../components/ForecastChart';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -14,11 +15,11 @@ import { DoseTemplate } from '../hooks/useAppData';
 import { Regimen, PlanSpec, Scenario, ForecastInput, forecastCurrent, forecastPlan, adherenceOf } from '../utils/regimen';
 import { regimenLabel, intervalLabel, dueLabel, fill } from '../utils/regimenText';
 
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-const inputCls = 'w-full rounded-md border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] outline-none focus:border-[var(--color-m3-outline)] dark:focus:border-[var(--color-m3-dark-outline)]';
+const on = 'text-[var(--text)]';
+const muted = 'text-[var(--text-muted)]';
+const inputCls = 'w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--text)] outline-none focus:border-[var(--border-strong)]';
 const labelCls = `block text-xs font-semibold mb-1.5 pl-1 ${muted}`;
-const cell = 'py-2.5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const cell = 'py-2.5 border-b border-[var(--border)]';
 
 /** Which drugs each route can carry, per mode: what the dose form offers, minus the antiandrogen. */
 const DRUGS: Record<'transfem' | 'transmasc', Partial<Record<Route, Ester[]>>> = {
@@ -223,7 +224,7 @@ const Forecast: React.FC<ForecastProps> = ({
             <span className={`${cell} tabular-nums`}>
                 <span className={on}>{Math.round(sc.stats[key])}</span>
                 {/* With no history to measure habits from, every run is the same and the range is a point: say nothing. */}
-                {r && Math.round(r[0]) !== Math.round(r[1]) && <span className={`block text-[0.625rem] ${muted}`}>{Math.round(r[0])}–{Math.round(r[1])}</span>}
+                {r && Math.round(r[0]) !== Math.round(r[1]) && <span className={`block text-[0.6875rem] ${muted}`}>{Math.round(r[0])}–{Math.round(r[1])}</span>}
             </span>
         );
     };
@@ -260,7 +261,7 @@ const Forecast: React.FC<ForecastProps> = ({
                     <div className="flex items-end justify-between gap-4">
                         <Tabs tabs={planTabs} value={active.id} onChange={setActiveId} className="flex-1 min-w-0" />
                         {plans.length < MAX_PLANS && (
-                            <button type="button" onClick={addPlan} className="pb-2 text-sm font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] shrink-0">
+                            <button type="button" onClick={addPlan} className="pb-2 text-sm font-medium text-[var(--accent-ink)] shrink-0">
                                 {t('forecast.add_plan')}
                             </button>
                         )}
@@ -315,15 +316,15 @@ const Forecast: React.FC<ForecastProps> = ({
                     )}
                     <div className="flex items-center justify-end gap-1 -mr-2">
                         {plans.length > 1 && (
-                            <button type="button" onClick={removePlan} className={`${headerAction} text-red-600 dark:text-red-400`}>{t('forecast.remove_plan')}</button>
+                            <button type="button"onClick={removePlan} className={`${headerAction} text-[var(--danger)]`}>{t('forecast.remove_plan')}</button>
                         )}
-                        <button type="button" onClick={saveTemplate} disabled={!toSpec(active)} className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] disabled:opacity-40`}>{t('forecast.save_template')}</button>
+                        <button type="button"onClick={saveTemplate} disabled={!toSpec(active)} className={`${headerActionAccent} disabled:opacity-40`}>{t('forecast.save_template')}</button>
                     </div>
                 </section>
 
                 <section aria-busy={busy}>
                     <div className="mb-3 flex items-center justify-end">
-                        <Tabs compact tabs={HORIZONS.map(w => ({ id: String(w), label: fill(t('forecast.weeks'), { n: w }) }))} value={String(horizonWeeks)} onChange={v => setHorizonWeeks(Number(v))} />
+                        <Segmented options={HORIZONS.map(w => ({ id: String(w), label: fill(t('forecast.weeks'), { n: w }) }))} value={String(horizonWeeks)} onChange={v => setHorizonWeeks(Number(v))} />
                     </div>
                     <ForecastChart
                         history={current?.series ?? null}
@@ -352,7 +353,7 @@ const Forecast: React.FC<ForecastProps> = ({
                         {plans.map((p, i) => statRow(planName(i), steadyText(results[p.id] ?? null), results[p.id] ?? null, true))}
                     </div>
                     {plans.some(p => (results[p.id]?.stats.trough ?? Infinity) < target.low) && (
-                        <p className="mt-3 text-sm text-amber-600 dark:text-amber-400">{fill(t('forecast.below'), { low: `${target.low} ${unit}` })}</p>
+                        <p className="mt-3 text-sm text-[var(--warning)]">{fill(t('forecast.below'), { low: `${target.low} ${unit}` })}</p>
                     )}
                     <p className={`mt-4 text-xs leading-relaxed ${muted}`}>{methodText}</p>
                 </section>

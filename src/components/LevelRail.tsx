@@ -47,13 +47,13 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
 
     return (
         // A scale reads left to right whatever the page direction.
-        <div dir="ltr" className="relative select-none pt-4 pb-4" aria-hidden="true">
+        <div dir="ltr" className="relative select-none pt-5 pb-[18px]" aria-hidden="true">
             {/* The label's own anchor slides from its left edge to its right edge
                 along the scale, so it always sits over the current tick and never
                 runs off either end. Lands once the wave has reached its tick. */}
             {label && (
                 <span
-                    className={`rail-label absolute top-0 whitespace-nowrap text-xs font-medium leading-none ${tone}`}
+                    className={`rail-label absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
                     style={{
                         left: x(cur),
                         transform: `translateX(-${((cur / last) * 100).toFixed(2)}%)`,
@@ -64,18 +64,18 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
                 </span>
             )}
 
-            <div ref={setRow} className="flex h-4 items-end justify-between">
+            <div ref={setRow} className="flex h-[18px] items-end justify-between">
                 {Array.from({ length: count }, (_, i) => {
                     const reached = i <= cur;
                     const look = i === cur
-                        ? `h-4 w-0.5 bg-current ${tone}`
+                        ? `h-[18px] w-[3px] bg-current ${tone}`
                         : i >= bandL && i <= bandR
-                            ? `h-2.5 w-px ${reached
-                                ? 'bg-[var(--color-m3-primary)] dark:bg-[var(--color-m3-primary-light)]'
-                                : 'bg-[var(--color-m3-primary)]/40 dark:bg-[var(--color-m3-primary-light)]/40'}`
-                            : `h-2 w-px ${reached
-                                ? 'bg-[var(--color-m3-outline)] dark:bg-[var(--color-m3-dark-outline)]'
-                                : 'bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]'}`;
+                            ? `h-[11px] w-[1.5px] ${reached
+                                ? 'bg-[var(--accent-ink)]'
+                                : 'bg-[var(--accent-ink)]/40'}`
+                            : `h-2 w-[1.5px] ${reached
+                                ? 'bg-[var(--text-muted)]'
+                                : 'bg-[var(--border)]'}`;
                     return (
                         <span key={i} className="flex w-0.5 justify-center">
                             <span className={`rail-tick rounded-full ${look}`} style={{ animationDelay: `${i * WAVE_MS}ms` }} />
@@ -87,7 +87,7 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
             {([[bandL, band.low], [bandR, band.high]] as const).map(([i, v]) => (
                 <span
                     key={v}
-                    className="rail-label absolute bottom-0 -translate-x-1/2 text-[0.625rem] leading-none tabular-nums text-muted"
+                    className="rail-label absolute bottom-0 -translate-x-1/2 text-[0.6875rem] font-medium leading-none tabular-nums text-[var(--text-muted)]"
                     style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
                 >
                     {v}

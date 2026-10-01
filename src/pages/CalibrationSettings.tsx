@@ -14,9 +14,9 @@ interface CalibrationSettingsProps {
     onBack: () => void;
 }
 
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
-const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const muted = 'text-[var(--text-muted)]';
+const on = 'text-[var(--text)]';
+const divider = 'border-b border-[var(--border)]';
 
 interface MethodDef {
     value: CalibrationMethod;
@@ -57,25 +57,25 @@ const OptionCard: React.FC<{
 }> = ({ selected, icon: Icon, title, badge, onClick, children }) => (
     <button
         onClick={onClick}
-        className="w-full text-start rounded-2xl border p-4 outline-none focus:outline-none focus-visible:outline-none transition-colors"
+        className="w-full text-start rounded-lg border p-4 outline-none focus:outline-none focus-visible:outline-none transition-colors"
         style={{
-            borderColor: selected ? 'var(--color-m3-primary)' : 'var(--color-m3-outline-variant)',
-            background: selected ? 'color-mix(in srgb, var(--color-m3-primary) 6%, transparent)' : 'transparent',
+            borderColor: selected ? 'var(--accent-ink)' : 'var(--border)',
+            background: selected ? 'color-mix(in srgb, var(--accent) 6%, transparent)' : 'transparent',
         }}
     >
         <div className="flex items-start gap-3">
             <div
                 className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: 'color-mix(in srgb, var(--color-m3-primary) 10%, transparent)' }}
+                style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
             >
-                <Icon size={17} className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+                <Icon size={17} className="text-[var(--accent-ink)]" />
             </div>
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className={`text-[0.9375rem] ${selected ? `font-semibold ${on}` : on}`}>{title}</span>
                     {badge && (
-                        <span className="text-[0.625rem] font-medium px-1.5 py-0.5 rounded-full text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] border border-[var(--color-m3-primary)]/30">
+                        <span className="text-[0.6875rem] font-medium px-1.5 py-0.5 rounded-full text-[var(--accent-ink)] border border-[var(--accent-ink)]/30">
                             {badge}
                         </span>
                     )}
@@ -133,7 +133,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                             <ul className="mt-3 space-y-1.5">
                                 {pros.map(k => (
                                     <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
-                                        <span className="icon-line"><Check size={13} className="text-emerald-600/80 dark:text-emerald-400/80" /></span>
+                                        <span className="icon-line"><Check size={13} className="text-[var(--status-positive)]/80" /></span>
                                         <span className={muted}>{t(k)}</span>
                                     </li>
                                 ))}

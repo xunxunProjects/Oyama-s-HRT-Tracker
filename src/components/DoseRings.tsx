@@ -17,14 +17,14 @@ const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
             height={18}
             aria-hidden="true"
             focusable="false"
-            className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]"
+            className="text-[var(--accent)]"
         >
             {Array.from({ length: count }, (_, i) => (
                 <circle
                     key={i}
                     className={`onb-ring ${i <= at
                         ? 'fill-current stroke-current'
-                        : 'fill-[var(--color-m3-surface-dim)] stroke-[var(--color-m3-outline-variant)] dark:fill-[var(--color-m3-dark-surface)] dark:stroke-[var(--color-m3-dark-outline-variant)]'}`}
+                        : 'fill-[var(--bg)] stroke-[var(--border-strong)]'}`}
                     cx={PAD + i * GAP}
                     cy={MID}
                     r={i === at ? 4.2 : 3}

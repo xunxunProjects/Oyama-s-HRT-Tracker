@@ -12,14 +12,14 @@ type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
 type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser } | { type: '2fa'; user: AdminUser };
 
-const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const divider = 'border-b border-[var(--border)]';
 const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
-const rowLabel = 'text-[0.9375rem] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
 const rowValue = `flex items-center gap-1 text-[0.9375rem] ${settingsMuted}`;
-const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
-const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-red-500 dark:hover:text-red-400 hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors`;
-const textBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
-const dangerTextBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors`;
+const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--danger)] hover:bg-[var(--surface-hover)] transition-colors`;
+const textBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+const dangerTextBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--danger)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
 
 let _savedCat: AdminCat = 'users';
 let _savedMobileView: MobileView = 'list';
@@ -317,11 +317,11 @@ const Admin: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className={`border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] pt-4 space-y-2`}>
+                                <div className={`border-t border-[var(--border)] pt-4 space-y-2`}>
                                     <label className={`block text-xs font-medium ${settingsMuted}`}>Avatar</label>
                                     <button
                                         onClick={() => handleResetAvatar(panel.user)}
-                                        className="btn-secondary text-red-500 dark:text-red-400"
+                                        className="btn-secondary text-[var(--danger)]"
                                     >
                                         <ImageOff size={15} strokeWidth={1.5} /> Reset Avatar
                                     </button>
@@ -378,14 +378,14 @@ const Admin: React.FC = () => {
                                         </button>
                                     </div>
 
-                                    <div className="flex items-end justify-between gap-4 pt-4 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
-                                        <p className="text-xs text-red-500 dark:text-red-400 leading-relaxed">
+                                    <div className="flex items-end justify-between gap-4 pt-4 border-t border-[var(--border)]">
+                                        <p className="text-xs text-[var(--danger)] leading-relaxed">
                                             Erasing a factor drops this account back to its password alone. Confirm who is asking before you do it.
                                         </p>
                                         <button
                                             onClick={() => clearTwoFA(panel.user, 'all', `Erase ALL two-factor authentication for "${panel.user.username}"? This removes the authenticator secret, every passkey and every backup code, and signs out all of their sessions.`)}
                                             disabled={!twoFA.enabled && twoFA.backupCodes === 0}
-                                            className="btn-secondary text-red-500 dark:text-red-400 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+                                            className="btn-secondary text-[var(--danger)] shrink-0 disabled:opacity-40 disabled:pointer-events-none"
                                         >
                                             <ShieldOff size={15} strokeWidth={1.5} /> Erase All
                                         </button>
@@ -405,7 +405,7 @@ const Admin: React.FC = () => {
                                         <span className={`text-xs ${settingsMuted}`}>{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                                         >
                                             <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>
@@ -447,7 +447,7 @@ const Admin: React.FC = () => {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full py-2.5 pr-3 pl-9 text-[0.9375rem] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container-low)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] rounded-lg outline-none focus:border-[var(--color-m3-primary)] text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] placeholder:text-[var(--color-m3-on-surface-variant)]"
+                    className="w-full py-2.5 pr-3 pl-9 text-[0.9375rem] bg-[var(--field)] border border-[var(--border)] rounded-lg outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)]"
                 />
             </div>
 
@@ -456,7 +456,7 @@ const Admin: React.FC = () => {
                     <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
                 </div>
             ) : error ? (
-                <p className="flex items-center gap-2 text-sm text-red-500 dark:text-red-400 py-4">
+                <p className="flex items-center gap-2 text-sm text-[var(--danger)] py-4">
                     <AlertCircle size={16} strokeWidth={1.5} /> {error}
                 </p>
             ) : users.length === 0 ? (
@@ -469,7 +469,7 @@ const Admin: React.FC = () => {
                             className={`flex items-center justify-between gap-3 py-4 ${divider}`}
                         >
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-full bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)] flex items-center justify-center overflow-hidden shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-[var(--surface-hover)] flex items-center justify-center overflow-hidden shrink-0">
                                     <img
                                         src={`/api/user/avatar/${u.username}`}
                                         alt={u.username}
@@ -555,8 +555,8 @@ const Admin: React.FC = () => {
                                     onClick={() => setPage(item as number)}
                                     className={`min-w-[32px] h-8 rounded-lg text-sm transition-colors ${
                                         page === item
-                                            ? `font-medium ${settingsOn} bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]`
-                                            : `${settingsMuted} hover:text-[var(--color-m3-on-surface)] dark:hover:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                            ? `font-medium ${settingsOn} bg-[var(--surface-hover)]`
+                                            : `${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)]`
                                     }`}
                                 >
                                     {item}
@@ -709,13 +709,13 @@ const Admin: React.FC = () => {
                             onClick={() => setNoticeLang(id)}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                                 noticeLang === id
-                                    ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
-                                    : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                    ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
+                                    : `${settingsMuted} hover:bg-[var(--surface-hover)]`
                             }`}
                         >
                             {label}
                             {id !== 'default' && noticeTextFor(id).trim() && (
-                                <span className="w-1 h-1 rounded-full bg-[var(--color-m3-primary)]" />
+                                <span className="w-1 h-1 rounded-full bg-[var(--accent)]" />
                             )}
                         </button>
                     ))}
@@ -747,8 +747,8 @@ const Admin: React.FC = () => {
                                 onClick={() => setNoticeLevel(level)}
                                 className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                                     noticeLevel === level
-                                        ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
-                                        : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                        ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
+                                        : `${settingsMuted} hover:bg-[var(--surface-hover)]`
                                 }`}
                             >
                                 {level === 'info' ? 'Info' : 'Warning'}
@@ -773,8 +773,8 @@ const Admin: React.FC = () => {
                         <label className={`block text-xs font-medium ${settingsMuted}`}>Preview</label>
                         <p className={`flex items-start gap-1.5 text-[0.8125rem] leading-snug whitespace-pre-wrap break-words ${
                             noticeLevel === 'warn'
-                                ? 'text-amber-700/90 dark:text-amber-400/85'
-                                : 'text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]'
+                                ? 'text-[var(--warning)]'
+                                : 'text-[var(--accent-ink)]'
                         }`}>
                             {noticeLevel === 'warn'
                                 ? <span className="icon-line"><AlertCircle size={14} strokeWidth={1.75} /></span>
@@ -784,7 +784,7 @@ const Admin: React.FC = () => {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--border)]">
                     <span className={`text-xs ${settingsMuted}`}>
                         {noticeWindowLabel()}{notice ? ` · rev ${notice.revision}` : ''}
                     </span>
@@ -824,7 +824,7 @@ const Admin: React.FC = () => {
                             ))}
                         </ul>
                     )}
-                    {storageError && <p className="text-xs text-red-500 mt-1">{storageError}</p>}
+                    {storageError && <p className="text-xs text-[var(--danger)] mt-1">{storageError}</p>}
                 </div>
                 <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
                     {storageLoading ? <Loader2 size={14} className="animate-spin" /> : storage ? 'Refresh' : 'Measure'}
@@ -845,7 +845,7 @@ const Admin: React.FC = () => {
                     <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>Where the backend is connected.</p>
                 </div>
                 <span className={rowValue}>
-                    <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                    <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--surface-hover)]">
                         {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
                     </span>
                 </span>
@@ -859,7 +859,7 @@ const Admin: React.FC = () => {
         <div className="flex pt-8 pb-32 min-h-full">
 
             {/* ── Left category nav (desktop) ─────────────────────────── */}
-            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--border)]">
                 <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>
                     Admin
                 </p>
@@ -869,8 +869,8 @@ const Admin: React.FC = () => {
                         onClick={() => selectCat(id)}
                         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
                             ${cat === id
-                                ? `bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container-high)] ${settingsOn} font-medium`
-                                : `${settingsMuted} hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]`
+                                ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
+                                : `${settingsMuted} hover:bg-[var(--surface-hover)]`
                             }`}
                     >
                         <Icon size={16} strokeWidth={1.75} />
@@ -894,7 +894,7 @@ const Admin: React.FC = () => {
             <div className="md:hidden flex-1 self-start px-6 pb-32">
                 {mobileView === 'list' ? (
                     <>
-                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] text-xl font-semibold ${settingsOn}`}>Admin</h1>
+                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)] text-xl font-semibold ${settingsOn}`}>Admin</h1>
                         {cats.map(({ id, label, Icon, hint }) => (
                             <button
                                 key={id}
@@ -902,7 +902,7 @@ const Admin: React.FC = () => {
                                 className={`${rowBase} items-center`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]">
+                                    <div className="p-2 rounded-lg bg-[var(--surface-hover)]">
                                         <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
                                     </div>
                                     <div className="text-start">
@@ -916,10 +916,10 @@ const Admin: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)]">
+                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)]">
                             <button
                                 onClick={exitMobileCat}
-                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                             >
                                 <ArrowLeft size={18} className={`${settingsMuted} shrink-0`} />
                                 <h1 className={`text-xl font-semibold ${settingsOn}`}>

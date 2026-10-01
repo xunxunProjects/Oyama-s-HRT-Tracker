@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
+import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
 import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, DoseEvent, getHormoneLevelAdvisory } from '../../logic';
 import { Regimen, adviseBloodDraw, shapeAhead } from '../utils/regimen';
@@ -56,8 +56,8 @@ const Lab: React.FC<LabProps> = ({
     }, [events, regimens, weight, hourNow, labResults, isTransmasc]);
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
 
-    const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-    const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+    const muted = 'text-[var(--text-muted)]';
+    const on = 'text-[var(--text)]';
 
     const pointById = useMemo(() => {
         const m = new Map<string, CalibrationPoint>();
@@ -89,7 +89,7 @@ const Lab: React.FC<LabProps> = ({
                 actions={
                     <button
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
-                        className={`${headerAction} text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]`}
+                        className={`${headerActionAccent}`}
                     >
                         <Plus size={15} className={isQuickAddLabOpen ? 'rotate-45' : ''} />
                         <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
@@ -124,7 +124,7 @@ const Lab: React.FC<LabProps> = ({
                 {/* Calibration settings entry — always available; how labs feed the estimate */}
                 <button
                     onClick={onOpenCalibrationSettings}
-                    className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                    className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--surface-hover)] border-b border-[var(--border)]"
                 >
                     <div className="min-w-0">
                         <p className={`text-[0.9375rem] ${on}`}>{t('cal.settings')}</p>
@@ -135,7 +135,7 @@ const Lab: React.FC<LabProps> = ({
 
                 {/* When to draw next, and why that draw: what it would teach the calibration. */}
                 {drawAdvice && (
-                    <div className="py-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+                    <div className="py-4 border-b border-[var(--border)]">
                         <p className={`text-[0.9375rem] ${on}`}>
                             {t('draw.title')}
                             <span className={`text-xs ${muted}`}> · {regimenLabel(drawAdvice.regimen, t)} · {intervalLabel(drawAdvice.regimen.intervalH, t)}</span>
@@ -168,12 +168,12 @@ const Lab: React.FC<LabProps> = ({
                                 const isEditing = editingLabId === res.id;
                                 const pt = pointById.get(res.id);
                                 return (
-                                    <div key={res.id} className="border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] last:border-b-0">
+                                    <div key={res.id} className="border-b border-[var(--border)] last:border-b-0">
                                         <div
-                                            className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)] ${isEditing ? 'bg-[var(--color-m3-surface-container)] dark:bg-[var(--color-m3-dark-surface-container)]' : ''}`}
+                                            className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${isEditing ? 'bg-[var(--surface-hover)]' : ''}`}
                                             onClick={() => setEditingLabId(isEditing ? null : res.id)}
                                         >
-                                            <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-m3-primary)]" />
+                                            <div className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--accent)]" />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className={`font-medium ${on} text-sm`}>
@@ -191,8 +191,8 @@ const Lab: React.FC<LabProps> = ({
                                                             <span
                                                                 className="px-1.5 py-0.5 rounded font-medium"
                                                                 style={{
-                                                                    color: 'var(--color-m3-primary)',
-                                                                    background: 'var(--color-m3-primary-container)',
+                                                                    color: 'var(--accent-ink)',
+                                                                    background: 'var(--accent-subtle)',
                                                                 }}
                                                             >
                                                                 ×{pt.ratio.toFixed(2)}
@@ -228,7 +228,7 @@ const Lab: React.FC<LabProps> = ({
                         <div className="flex items-center justify-end py-4">
                             <button
                                 onClick={onClearLabResults}
-                                className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                                className="text-sm font-medium text-[var(--danger)] hover:text-[var(--danger)]"
                             >
                                 {t('lab.clear_all')}
                             </button>

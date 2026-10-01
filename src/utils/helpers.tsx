@@ -85,7 +85,7 @@ export const formatTime = (date: Date, timeZone?: string) => {
     return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 };
 
-const iconMuted = "w-5 h-5 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]";
+const iconMuted = "w-5 h-5 text-[var(--text-muted)]";
 
 export const getRouteIcon = (route: Route) => {
     switch (route) {

@@ -21,6 +21,7 @@ import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
 import Sidebar from './components/Sidebar';
+import { PageBackLabelContext } from './components/PageHeader';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import AuthModal from './components/AuthModal';
@@ -442,14 +443,18 @@ const AppContent = () => {
         );
     }
 
+    // The page a back link returns to is the section the view sits in.
+    const parentTab = tabForView(currentView);
+    const backLabel = parentTab !== currentView ? navItems.find(item => item.id === parentTab)?.label ?? null : null;
+
     return (
-        <div className="h-[100dvh] w-full bg-[var(--color-m3-surface)] dark:bg-[var(--color-m3-dark-surface)] flex flex-col md:flex-row font-sans text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] select-none overflow-hidden">
+        <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
             <Sidebar
                 navItems={navItems}
                 currentView={tabForView(currentView)}
                 onViewChange={(v) => !needsSetup2FA && handleViewChange(v)}
             />
-            <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--color-m3-surface-dim)] dark:bg-[var(--color-m3-dark-surface)] relative">
+            <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
 
                 {/* Mobile site label — reflects the current deployment host. Hidden,
                     it still keeps its top padding, which is what holds the content
@@ -462,6 +467,7 @@ const AppContent = () => {
                     this component, so it stays put across view changes. */}
                 <SiteNoticeBanner />
 
+                <PageBackLabelContext.Provider value={backLabel}>
                 <div
                     ref={mainScrollRef}
                     key={currentView}
@@ -784,10 +790,13 @@ const AppContent = () => {
                         <Admin />
                     )}
                 </div>
+                </PageBackLabelContext.Provider>
 
-                {/* Bottom Navigation — floating island */}
-                <nav className="fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-2xl bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] shadow-[var(--shadow-m3-3)]">
-                    <div className="flex items-stretch p-1.5 gap-1">
+                {/* Bottom Navigation — a frosted floating island. Content scrolls
+                    visibly beneath it; the current tab's icon sits in a tonal
+                    terracotta pill. */}
+                <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
+                    <div className="flex items-stretch p-1.5 gap-0.5">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             // Mobile reaches admin from Settings → General, so the
                             // settings tab is the one that should read as active.
@@ -799,16 +808,19 @@ const AppContent = () => {
                                     key={id}
                                     onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
                                     disabled={isDisabled}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 transition-colors duration-150 motion-reduce:transition-none
+                                    aria-current={isActive ? 'page' : undefined}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors duration-150 motion-reduce:transition-none
                                         ${isDisabled
-                                            ? 'text-[var(--color-m3-outline)] dark:text-[var(--color-m3-dark-outline)] cursor-not-allowed'
+                                            ? 'text-[var(--text-disabled)] cursor-not-allowed'
                                             : isActive
-                                            ? 'text-body'
-                                            : 'text-muted'
+                                            ? 'text-[var(--text)]'
+                                            : 'text-[var(--text-muted)]'
                                         }`}
                                 >
-                                    <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
-                                    <span className="text-[0.625rem] font-medium">
+                                    <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive && !isDisabled ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
+                                        <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                                    </span>
+                                    <span className="text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em]">
                                         {label}
                                     </span>
                                 </button>

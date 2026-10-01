@@ -98,16 +98,16 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                 aria-label={label}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
-                className={`w-full min-h-11 flex items-center justify-between gap-1 rounded-lg border px-2.5 py-2 text-sm tabular-nums outline-none transition-colors motion-reduce:transition-none
-                    bg-white dark:bg-neutral-900 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]
+                className={`w-full min-h-11 flex items-center justify-between gap-1 rounded-[var(--radius-md)] border ps-3 pe-2.5 py-2 text-sm tabular-nums outline-none transition-colors motion-reduce:transition-none
+                    bg-[var(--field)] text-[var(--text)]
                     ${isOpen
-                        ? 'border-[var(--color-m3-primary)] ring-1 ring-[var(--color-m3-primary)]/20'
-                        : 'border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] hover:border-[var(--color-m3-outline)] dark:hover:border-[var(--color-m3-dark-outline)]'}`}
+                        ? 'border-[var(--accent-ink)] shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_22%,transparent)]'
+                        : 'border-[var(--border-strong)] hover:border-[var(--text-muted)]'}`}
             >
                 <span className="truncate">{selected?.label ?? value}</span>
                 <ChevronDown
-                    size={14}
-                    className={`chev shrink-0 text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] ${isOpen ? 'rotate-180' : ''}`}
+                    size={16}
+                    className={`chev shrink-0 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -117,7 +117,7 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                     role="listbox"
                     aria-label={label}
                     style={positionStyle}
-                    className="dropdown-in fixed z-[80] overflow-y-auto rounded-lg border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-white dark:bg-neutral-900 shadow-[var(--shadow-m3-3)] py-1"
+                    className="dropdown-in menu-surface fixed z-[80] overflow-y-auto"
                 >
                     {options.map(option => (
                         <button
@@ -127,13 +127,10 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                             aria-selected={option.value === value}
                             data-selected={option.value === value}
                             onClick={() => { onChange(option.value); setIsOpen(false); }}
-                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-start tabular-nums
-                                ${option.value === value
-                                    ? 'bg-[var(--color-m3-primary-container)] dark:bg-[var(--color-m3-dark-primary-container)] text-[var(--color-m3-on-primary-container)] dark:text-[var(--color-m3-dark-on-primary-container)] font-medium'
-                                    : 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]'}`}
+                            className="menu-item justify-between tabular-nums"
                         >
                             <span>{option.label}</span>
-                            <Tick on={option.value === value} />
+                            <Tick on={option.value === value} size={18} />
                         </button>
                     ))}
                 </div>,
@@ -242,7 +239,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         if (inline) onConfirm(next);
     };
 
-    const labelClass = 'block mb-1.5 text-xs font-medium text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
+    const labelClass = 'block mb-1.5 text-xs font-medium text-[var(--text-muted)]';
 
     const renderPart = (
         label: string,
@@ -281,7 +278,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         <div className={inline ? 'pt-3 pb-1 space-y-5' : 'px-5 py-5 space-y-5'}>
             {showDate && (
                 <section>
-                    <div className="flex items-center gap-2 mb-3 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                    <div className="flex items-center gap-2 mb-3 text-[var(--text)]">
                         <CalendarDays size={16} />
                         <span className="text-sm font-medium">{t('date.select')}</span>
                     </div>
@@ -305,7 +302,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
             {showTime && (
                 <section>
-                    <div className="flex items-center gap-2 mb-3 text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]">
+                    <div className="flex items-center gap-2 mb-3 text-[var(--text)]">
                         <Clock3 size={16} />
                         <span className="text-sm font-medium">{t('time.select')}</span>
                     </div>
@@ -331,32 +328,32 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     if (inline) return <div className="mb-3">{body}</div>;
 
     const inner = (
-        <div className="rounded-xl border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)]">
-            <div className="px-5 pt-5 pb-4 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)]">
+            <div className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
                 {title && (
-                    <p className="text-sm font-semibold text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)] mb-1">
+                    <p className="text-sm font-semibold text-[var(--text)] mb-1">
                         {title}
                     </p>
                 )}
-                <p className="text-sm tabular-nums text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]">
+                <p className="text-sm tabular-nums text-[var(--text-muted)]">
                     {[showDate ? dateSummary : null, showTime ? timeSummary : null].filter(Boolean).join(' · ')}
                 </p>
             </div>
 
             {body}
 
-            <div className="px-5 pb-5 pt-3 flex justify-end gap-2 border-t border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <div className="px-5 pb-5 pt-3 flex justify-end gap-2 border-t border-[var(--border)]">
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2.5 text-sm font-medium rounded-md text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)] hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container-high)]"
+                    className="btn-secondary"
                 >
                     {t('btn.cancel')}
                 </button>
                 <button
                     type="button"
                     onClick={() => onConfirm(selectedDate)}
-                    className="px-5 py-2.5 text-sm font-medium rounded-md bg-[var(--color-m3-primary)] hover:bg-[var(--color-m3-primary-light)] text-white"
+                    className="btn-primary"
                 >
                     {t('btn.ok')}
                 </button>
@@ -373,12 +370,12 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                         type="button"
                         aria-label={t('btn.cancel')}
                         onClick={onClose}
-                        className="fixed inset-0 z-[60] bg-black/30 dark:bg-black/50"
+                        className="fixed inset-0 z-[60] bg-[var(--scrim)] backdrop-blur-[var(--blur-scrim)]"
                     />
                     <div
                         ref={containerRef}
                         style={positionStyle}
-                        className={`fixed z-[70] bg-[var(--color-m3-surface-container-lowest)] dark:bg-[var(--color-m3-dark-surface-container)] overflow-hidden shadow-[var(--shadow-m3-3)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)] ${Object.keys(positionStyle).length > 0 ? 'rounded-[var(--radius-xl)]' : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-b-0'}`}
+                        className={`fixed z-[70] bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-lg)] border border-[var(--border)] ${Object.keys(positionStyle).length > 0 ? 'rounded-[var(--radius-xl)]' : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-b-0'}`}
                     >
                         {inner}
                     </div>

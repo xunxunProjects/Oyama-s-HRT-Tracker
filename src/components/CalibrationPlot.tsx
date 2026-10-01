@@ -40,14 +40,14 @@ const logTicks = (lo: number, hi: number): number[] => {
 // A lab, as the main chart draws it: a diamond.
 const diamond = (r: number) => `M0 ${-r}L${r} 0L0 ${r}L${-r} 0Z`;
 
-const primaryFill = 'fill-[var(--color-m3-primary)] dark:fill-[var(--color-m3-primary-light)]';
-const primaryStroke = 'stroke-[var(--color-m3-primary)] dark:stroke-[var(--color-m3-primary-light)]';
-const surfaceFill = 'fill-[var(--color-m3-surface)] dark:fill-[var(--color-m3-dark-surface)]';
-const surfaceStroke = 'stroke-[var(--color-m3-surface)] dark:stroke-[var(--color-m3-dark-surface)]';
-const gridStroke = 'stroke-[var(--color-m3-outline-variant)] dark:stroke-[var(--color-m3-dark-outline-variant)]';
-const mutedFill = 'fill-[var(--color-m3-on-surface-variant)] dark:fill-[var(--color-m3-dark-on-surface-variant)]';
-const muted = 'text-[var(--color-m3-on-surface-variant)] dark:text-[var(--color-m3-dark-on-surface-variant)]';
-const on = 'text-[var(--color-m3-on-surface)] dark:text-[var(--color-m3-dark-on-surface)]';
+const primaryFill = 'fill-[var(--accent)]';
+const primaryStroke = 'stroke-[var(--accent)]';
+const surfaceFill = 'fill-[var(--bg)]';
+const surfaceStroke = 'stroke-[var(--bg)]';
+const gridStroke = 'stroke-[var(--border)]';
+const mutedFill = 'fill-[var(--text-muted)]';
+const muted = 'text-[var(--text-muted)]';
+const on = 'text-[var(--text)]';
 
 /**
  * Predicted-vs-observed calibration plot: each E2 lab against what the model
@@ -122,7 +122,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
     const r = 4.5 * ui;
 
     return (
-        <section className="py-5 border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]">
+        <section className="py-5 border-b border-[var(--border)]">
             <h2 className={`text-sm ${muted}`}>{t('cal.plot.title')}</h2>
 
             {/* Legend — every mark on the plot, named */}
@@ -143,13 +143,13 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                 </span>
                 <span className="flex items-center gap-1.5">
                     <svg width={14} height={2} className="overflow-visible">
-                        <line x1={0} y1={1} x2={14} y2={1} className="stroke-[var(--color-m3-on-surface-variant)] dark:stroke-[var(--color-m3-dark-on-surface-variant)]" strokeWidth={1} strokeDasharray="3 2.5" />
+                        <line x1={0} y1={1} x2={14} y2={1} className="stroke-[var(--text-muted)]" strokeWidth={1} strokeDasharray="3 2.5" />
                     </svg>
                     {t('cal.plot.identity')}
                 </span>
                 {err !== null && (
                     <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-3.5 rounded-[2px] bg-[var(--color-m3-primary)]/15 dark:bg-[var(--color-m3-primary-light)]/15" />
+                        <span className="h-2 w-3.5 rounded-[2px] bg-[var(--accent)]/15" />
                         {t('cal.plot.band')} ±{err.toFixed(0)}%
                     </span>
                 )}
@@ -183,14 +183,14 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                             {band && (
                                 <polygon
                                     points={band}
-                                    className="chart-appear fill-[var(--color-m3-primary)]/12 dark:fill-[var(--color-m3-primary-light)]/12"
+                                    className="chart-appear fill-[var(--accent)]/12"
                                     style={{ animationDelay: '120ms' }}
                                 />
                             )}
                             <line
                                 x1={X(lo)} y1={Y(lo)} x2={X(hi)} y2={Y(hi)}
                                 strokeDasharray="3 3"
-                                className="chart-appear stroke-[var(--color-m3-on-surface-variant)] dark:stroke-[var(--color-m3-dark-on-surface-variant)]"
+                                className="chart-appear stroke-[var(--text-muted)]"
                                 strokeWidth={1}
                                 opacity={0.55}
                             />
@@ -248,26 +248,26 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
                 {hp && (
                     <div
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--color-m3-surface-bright)] dark:bg-[var(--color-m3-dark-surface-container)] border border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{
                             left: X(hp.cal),
                             top: Y(hp.obs) - 12 * ui,
                             transform: `translate(${X(hp.cal) > mL + pw * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className={`text-[0.625rem] ${muted} mb-0.5 whitespace-nowrap tabular-nums`}>
+                        <div className={`text-[0.6875rem] ${muted} mb-0.5 whitespace-nowrap tabular-nums`}>
                             {formatDate(new Date(hp.timeH * 3600000), lang)} {formatTime(new Date(hp.timeH * 3600000))}
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className={`text-sm font-medium tabular-nums ${on}`}>{Math.round(hp.obs)}</span>
-                            <span className={`text-[0.625rem] ${muted}`}>{t('cal.plot.lab')} pg/ml</span>
+                            <span className={`text-[0.6875rem] ${muted}`}>{t('cal.plot.lab')} pg/ml</span>
                         </div>
                         <div className={`text-[0.6875rem] tabular-nums whitespace-nowrap ${muted}`}>
                             {t('cal.model')} {Math.round(hp.pred)}
                             {calibrated && (
                                 <>
                                     {' → '}
-                                    <span className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">{Math.round(hp.cal)}</span>
+                                    <span className="text-[var(--accent-ink)]">{Math.round(hp.cal)}</span>
                                 </>
                             )}
                         </div>

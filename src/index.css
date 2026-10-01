@@ -6,72 +6,178 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
     --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
 
-    /* Primary — Claude terracotta/orange */
-    --color-m3-primary: #CC785C;
-    --color-m3-primary-light: #D8927C;
-    --color-m3-primary-container: #FCEEE8;
-    --color-m3-on-primary: #FFFFFF;
-    --color-m3-on-primary-container: #7A3920;
+    /* Type scale. The base is 15px (text-sm, body) with 13px captions
+       (text-xs); 12px is the smallest readable size, used deliberately. */
+    --text-xs: 0.8125rem;
+    --text-xs--line-height: 1.125rem;
+    --text-sm: 0.9375rem;
+    --text-sm--line-height: 1.375rem;
 
-    /* Accent */
-    --color-m3-accent: #CC785C;
-    --color-m3-accent-light: #D8927C;
-    --color-m3-accent-container: #FCEEE8;
-    --color-m3-on-accent: #FFFFFF;
-    --color-m3-on-accent-container: #7A3920;
-
-    /* Surfaces — white page, warm neutrals for everything raised off it */
-    --color-m3-surface: #FFFFFF;
-    --color-m3-surface-dim: #FFFFFF;
-    --color-m3-surface-bright: #FFFFFF;
-    --color-m3-surface-container-lowest: #FFFFFF;
-    --color-m3-surface-container-low: #F7F6F3;
-    --color-m3-surface-container: #EDECEA;
-    --color-m3-surface-container-high: #E5E4E0;
-    --color-m3-surface-container-highest: #DDDBD7;
-    --color-m3-on-surface: #1A1916;
-    --color-m3-on-surface-variant: #6B6860;
-    --color-m3-outline: #9E9B94;
-    --color-m3-outline-variant: #E3E1DC;
-
-    /* Dark primary container — warm terracotta on dark */
-    --color-m3-dark-primary-container: #452B1F;
-    --color-m3-dark-on-primary-container: #F2D3C2;
-
-    /* Dark surfaces — warm dark */
-    --color-m3-dark-surface: #1C1B18;
-    --color-m3-dark-surface-dim: #141311;
-    --color-m3-dark-surface-bright: #2A2925;
-    --color-m3-dark-surface-container-lowest: #0D0C0A;
-    --color-m3-dark-surface-container-low: #1C1B18;
-    --color-m3-dark-surface-container: #272521;
-    --color-m3-dark-surface-container-high: #3A3835;
-    --color-m3-dark-surface-container-highest: #4D4B47;
-    --color-m3-dark-on-surface: #E8E6E1;
-    --color-m3-dark-on-surface-variant: #A8A59E;
-    --color-m3-dark-outline: #767370;
-    --color-m3-dark-outline-variant: #3A3835;
-
-    /* M3 Shape Scale */
-    --radius-xs: 4px;
-    --radius-sm: 8px;
+    /* Shape scale: controls 12px, floating panels 16px, modals and the nav
+       island 24px, anything pill-like full. */
+    --radius-xs: 6px;
+    --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --radius-xl: 28px;
+    --radius-xl: 24px;
+    --radius-2xl: 32px;
     --radius-full: 9999px;
 
-    /* Elevation — kept minimal */
-    --shadow-m3-1: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-m3-2: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-m3-3: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    /* Motion — subtle and quick */
+    /* Motion. ease-standard for colour; ease-out for anything that moves, so
+       it settles rather than stops. Nothing overshoots. */
     --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --duration-quick: 150ms;
     --duration-base: 220ms;
+    --duration-slow: 320ms;
     /* How long the chart line takes to draw itself on. Markers and the "now"
        read-off are delayed along this same span so they land as it passes. */
     --duration-sweep: 900ms;
+}
+
+/* ── Design tokens (Oyama Tracker design system v2) ───────────────────────
+   Components read the semantic layer; the clay and neutral OKLCH scales sit
+   underneath it and are only for building new semantics. Every semantic token
+   switches with the theme under `.dark`, so a class names one token and never
+   pairs it with a `dark:` twin. */
+:root {
+    /* Terracotta scale. clay-500 is the original brand #cc785c. */
+    --clay-50: oklch(97.5% 0.012 45);
+    --clay-100: oklch(94.5% 0.028 44);
+    --clay-200: oklch(88.5% 0.055 42);
+    --clay-300: oklch(80.5% 0.085 40);
+    --clay-400: oklch(72.5% 0.105 39);
+    --clay-500: oklch(65.8% 0.1131 39.15);
+    --clay-600: oklch(55.5% 0.118 38);
+    --clay-700: oklch(49% 0.105 37);
+    --clay-800: oklch(40.5% 0.085 37);
+    --clay-900: oklch(32% 0.062 38);
+    --clay-950: oklch(24.5% 0.04 40);
+    /* Warm grey scale. */
+    --neutral-0: oklch(100% 0 0);
+    --neutral-25: oklch(98.7% 0.002 89);
+    --neutral-50: oklch(97.3% 0.004 90);
+    --neutral-100: oklch(94.5% 0.004 88);
+    --neutral-200: oklch(91% 0.007 89);
+    --neutral-300: oklch(85% 0.008 89);
+    --neutral-400: oklch(72% 0.01 88);
+    --neutral-500: oklch(60% 0.012 89);
+    --neutral-600: oklch(51.7% 0.013 90);
+    --neutral-700: oklch(42% 0.011 90);
+    --neutral-800: oklch(33% 0.009 88);
+    --neutral-850: oklch(28.5% 0.008 87);
+    --neutral-900: oklch(25% 0.007 88);
+    --neutral-950: oklch(20.5% 0.006 90);
+    --neutral-1000: oklch(16.5% 0.005 90);
+
+    /* Semantic layer. */
+    --bg: var(--neutral-0);
+    --bg-subtle: var(--neutral-25);
+    --surface: var(--neutral-0);
+    --surface-muted: var(--neutral-50);
+    --surface-hover: var(--neutral-100);
+    --surface-pressed: var(--neutral-200);
+    --surface-glass: rgba(255, 255, 255, 0.72);
+    --control-thumb: var(--neutral-0);
+    --field: var(--neutral-0);
+    --text: var(--neutral-950);
+    --text-muted: var(--neutral-600);
+    --text-disabled: var(--neutral-400);
+    --border: var(--neutral-200);
+    --border-strong: var(--neutral-500);
+    --accent: var(--clay-600);
+    --accent-hover: var(--clay-700);
+    --on-accent: var(--neutral-0);
+    --accent-ink: var(--clay-600);
+    --accent-subtle: var(--clay-50);
+    --accent-subtle-hover: var(--clay-100);
+    --on-accent-subtle: var(--clay-700);
+    --focus-ring: var(--clay-600);
+    --brand: var(--clay-500);
+    --scrim: rgba(24, 23, 20, 0.32);
+
+    /* Status. Every one clears 4.5:1 on bg in both themes, and always comes with a word. */
+    --status-positive: oklch(52% 0.11 162);
+    --status-info: oklch(52% 0.17 255);
+    --status-violet: oklch(50% 0.2 285);
+    --status-neutral: var(--text-muted);
+    --warning: oklch(53% 0.13 55);
+    --danger: oklch(53% 0.19 27);
+    --danger-fill: oklch(55% 0.2 27);
+    --danger-fill-hover: oklch(49% 0.18 27);
+    --on-danger: var(--neutral-0);
+
+    /* Charts and illustration. */
+    --chart-line: var(--brand);
+    --chart-second: var(--neutral-400);
+    --chart-grid: var(--neutral-100);
+    --chart-axis: var(--text-muted);
+    --chart-band: rgba(204, 120, 92, 0.1);
+    --chart-lab: var(--clay-700);
+    --chart-dot: var(--bg);
+    --heatmap-0: var(--neutral-100);
+    --heatmap-1: var(--clay-100);
+    --heatmap-2: var(--clay-300);
+    --heatmap-3: var(--clay-500);
+    --heatmap-4: var(--clay-700);
+    --illustration-line: var(--brand);
+    --illustration-wash: var(--clay-50);
+
+    /* Elevation: two-layer and warm-tinted. Only what floats gets a shadow. */
+    --shadow-xs: 0 1px 2px rgba(24, 23, 20, 0.06);
+    --shadow-sm: 0 1px 2px rgba(24, 23, 20, 0.04), 0 2px 8px rgba(24, 23, 20, 0.06);
+    --shadow-md: 0 2px 4px rgba(24, 23, 20, 0.04), 0 8px 24px rgba(24, 23, 20, 0.08);
+    --shadow-lg: 0 4px 8px rgba(24, 23, 20, 0.04), 0 24px 56px rgba(24, 23, 20, 0.14);
+
+    /* Glass: chrome that content scrolls under, and the modal scrim. */
+    --blur-glass: 20px;
+    --blur-scrim: 6px;
+}
+
+.dark {
+    --bg: var(--neutral-950);
+    --bg-subtle: var(--neutral-1000);
+    --surface: var(--neutral-900);
+    --surface-muted: var(--neutral-850);
+    --surface-hover: var(--neutral-850);
+    --surface-pressed: var(--neutral-800);
+    --surface-glass: rgba(35, 33, 30, 0.72);
+    --control-thumb: var(--neutral-800);
+    --field: var(--neutral-900);
+    --text: var(--neutral-25);
+    --text-muted: var(--neutral-400);
+    --text-disabled: var(--neutral-600);
+    --border: var(--neutral-800);
+    --border-strong: var(--neutral-500);
+    --accent: var(--clay-400);
+    --accent-hover: var(--clay-300);
+    --on-accent: var(--neutral-1000);
+    --accent-ink: var(--clay-300);
+    --accent-subtle: var(--clay-950);
+    --accent-subtle-hover: var(--clay-900);
+    --on-accent-subtle: var(--clay-200);
+    --focus-ring: var(--clay-300);
+    --brand: var(--clay-400);
+    --scrim: rgba(0, 0, 0, 0.6);
+    --status-positive: oklch(80% 0.13 162);
+    --status-info: oklch(78% 0.11 250);
+    --status-violet: oklch(78% 0.11 285);
+    --warning: oklch(82% 0.13 75);
+    --danger: oklch(74% 0.15 22);
+    --chart-second: var(--neutral-500);
+    --chart-grid: var(--neutral-850);
+    --chart-band: rgba(223, 143, 116, 0.12);
+    --chart-lab: var(--clay-200);
+    --heatmap-0: var(--neutral-850);
+    --heatmap-1: var(--clay-900);
+    --heatmap-2: var(--clay-700);
+    --heatmap-3: var(--clay-500);
+    --heatmap-4: var(--clay-300);
+    --illustration-wash: var(--clay-950);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 24px 56px rgba(0, 0, 0, 0.6);
 }
 
 /* Chart entrance, following the product film: the line draws on from the left,
@@ -98,18 +204,23 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes sheet-in {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: none; }
+}
+
 @keyframes menu-in {
-    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to { opacity: 1; transform: none; }
 }
 
 @keyframes view-in-forward {
-    from { opacity: 0; transform: translateX(10px); }
+    from { opacity: 0; transform: translateX(12px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes view-in-backward {
-    from { opacity: 0; transform: translateX(-10px); }
+    from { opacity: 0; transform: translateX(-12px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
@@ -295,13 +406,10 @@ html.mono {
     filter: grayscale(1);
 }
 
-html.dark body {
-    background: var(--color-m3-dark-surface);
-}
-
 body {
     font-family: var(--font-sans);
-    background: var(--color-m3-surface);
+    color: var(--text);
+    background: var(--bg);
     height: 100%;
     margin: 0;
     overscroll-behavior-y: contain;
@@ -325,7 +433,7 @@ body {
 
 .scroll-pb-nav {
     /* floating nav: bar height + bottom gap + breathing room */
-    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 }
 @media (min-width: 768px) {
     .scroll-pb-nav {
@@ -356,17 +464,39 @@ body {
     height: 1lh;
 }
 .text-muted {
-    color: var(--color-m3-on-surface-variant);
-}
-.dark .text-muted {
-    color: var(--color-m3-dark-on-surface-variant);
+    color: var(--text-muted);
 }
 
 .text-body {
-    color: var(--color-m3-on-surface);
+    color: var(--text);
 }
-.dark .text-body {
-    color: var(--color-m3-dark-on-surface);
+
+/* Section header above a group of rows. Uppercasing is a no-op in CJK. */
+.overline {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* One focus treatment everywhere: a solid ring, offset off the element. */
+:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* Chrome that content scrolls under: the floating nav, the sticky header. */
+.glass {
+    background-color: var(--surface-glass);
+    -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(1.4);
+    backdrop-filter: blur(var(--blur-glass)) saturate(1.4);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+        background-color: var(--surface);
+    }
 }
 
 .modal-overlay {
@@ -377,248 +507,262 @@ body {
     align-items: flex-end;
     justify-content: center;
     padding: 0;
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: var(--scrim);
+    -webkit-backdrop-filter: blur(var(--blur-scrim));
+    backdrop-filter: blur(var(--blur-scrim));
     animation: fade-in var(--duration-base) var(--ease-standard);
 }
 @media (min-width: 768px) {
     .modal-overlay {
         align-items: center;
-        padding: 1rem;
+        padding: 1.5rem;
     }
 }
 
-.modal-shell {
+.modal-shell,
+.modal-shell-wide {
     width: 100%;
-    max-width: 24rem;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: rise-in var(--duration-base) var(--ease-standard);
+    animation: sheet-in var(--duration-slow) var(--ease-out);
+}
+.modal-shell {
+    max-width: 26rem;
+}
+.modal-shell-wide {
+    max-width: 36rem;
 }
 
+/* A bottom sheet on phones (top corners round, a grabber drawn above the
+   content), a floating card from 768px. */
 .modal-card {
-    background-color: var(--color-m3-surface-bright);
-    border: 1px solid var(--color-m3-outline-variant);
-    border-radius: var(--radius-md);
-    padding: 1.25rem;
+    position: relative;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: var(--shadow-lg);
+    padding: 1.75rem 1.5rem 1.5rem;
     max-height: 88vh;
     overflow-y: auto;
 }
-.dark .modal-card {
-    background-color: var(--color-m3-dark-surface-container);
-    border-color: var(--color-m3-dark-outline-variant);
+.modal-card::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    width: 2.25rem;
+    height: 0.25rem;
+    margin-left: -1.125rem;
+    border-radius: var(--radius-full);
+    background-color: var(--border);
 }
 @media (min-width: 768px) {
     .modal-card {
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+    }
+    .modal-card::before {
+        display: none;
     }
 }
 
 .modal-title {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
+    line-height: 1.625rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--color-m3-on-surface);
-    margin-bottom: 0.75rem;
-}
-.dark .modal-title {
-    color: var(--color-m3-dark-on-surface);
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
 }
 
-.btn-primary {
+/* Buttons: one 40px, 12px-radius shape. Primary is the one action a view
+   exists for; tonal a strong second; secondary the neutral way out; danger
+   only confirms a delete; ghost is the 32px pill for headers and toolbars. */
+.btn-primary,
+.btn-tonal,
+.btn-secondary,
+.btn-danger,
+.btn-ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
     font-weight: 500;
-    color: var(--color-m3-on-primary);
-    background-color: var(--color-m3-primary);
+    letter-spacing: -0.005em;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: background-color var(--duration-quick) var(--ease-standard),
+                color var(--duration-quick) var(--ease-standard),
                 opacity var(--duration-quick) var(--ease-standard),
                 transform var(--duration-quick) var(--ease-standard);
 }
-.btn-primary:active:not(:disabled) {
-    transform: scale(0.98);
+.btn-primary {
+    color: var(--on-accent);
+    background-color: var(--accent);
 }
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--color-m3-primary-light);
+    background-color: var(--accent-hover);
 }
-.btn-primary:disabled {
-    opacity: 0.5;
+.btn-tonal {
+    color: var(--on-accent-subtle);
+    background-color: var(--accent-subtle);
+}
+.btn-tonal:hover:not(:disabled) {
+    background-color: var(--accent-subtle-hover);
+}
+.btn-secondary {
+    color: var(--text);
+    background-color: var(--surface-muted);
+}
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--surface-pressed);
+}
+/* The confirm button of a dialog that deletes, clears or revokes something.
+   Same shape and timing as .btn-primary; only the colour says "this can't be
+   taken back". */
+.btn-danger {
+    color: var(--on-danger);
+    background-color: var(--danger-fill);
+}
+.btn-danger:hover:not(:disabled) {
+    background-color: var(--danger-fill-hover);
+}
+.btn-ghost {
+    height: 2rem;
+    padding: 0 0.625rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    background-color: transparent;
+    border-radius: var(--radius-full);
+}
+.btn-ghost:hover:not(:disabled) {
+    color: var(--text);
+    background-color: var(--surface-hover);
+}
+.btn-ghost-accent,
+.btn-ghost-accent:hover:not(:disabled) {
+    color: var(--accent-ink);
+}
+.btn-ghost-accent:hover:not(:disabled) {
+    background-color: var(--accent-subtle);
+}
+.btn-primary:active:not(:disabled),
+.btn-tonal:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-ghost:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.btn-primary:disabled,
+.btn-tonal:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled {
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
-.btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-m3-on-surface);
-    background-color: transparent;
-    border: 1px solid var(--color-m3-outline-variant);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--duration-quick) var(--ease-standard),
-                border-color var(--duration-quick) var(--ease-standard),
-                transform var(--duration-quick) var(--ease-standard);
-}
-.btn-secondary:active:not(:disabled) {
-    transform: scale(0.98);
-}
-.dark .btn-secondary {
-    color: var(--color-m3-dark-on-surface);
-    border-color: var(--color-m3-dark-outline-variant);
-}
-.btn-secondary:hover:not(:disabled) {
-    background-color: var(--color-m3-surface-container);
-}
-.dark .btn-secondary:hover:not(:disabled) {
-    background-color: var(--color-m3-dark-surface-container);
-}
-
-/* The confirm button of a dialog that deletes, clears or revokes something.
-   Same shape and timing as .btn-primary; only the colour says "this can't be
-   taken back". Red 600/700, the same red as destructive text elsewhere. */
-.btn-danger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #fff;
-    background-color: #dc2626;
-    border: none;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--duration-quick) var(--ease-standard),
-                opacity var(--duration-quick) var(--ease-standard),
-                transform var(--duration-quick) var(--ease-standard);
-}
-.btn-danger:active:not(:disabled) {
-    transform: scale(0.98);
-}
-.btn-danger:hover:not(:disabled) {
-    background-color: #b91c1c;
-}
-
+/* Fields: 44px, a control-strength border (findable at 3:1), terracotta
+   with a soft glow on focus. */
 .input-base {
     width: 100%;
-    padding: 0.625rem 0.75rem;
-    font-size: 0.875rem;
-    color: var(--color-m3-on-surface);
-    background-color: var(--color-m3-surface);
-    border: 1px solid var(--color-m3-outline-variant);
-    border-radius: var(--radius-sm);
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--text);
+    background-color: var(--field);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
     outline: none;
-    transition: border-color var(--duration-quick) var(--ease-standard);
+    transition: border-color var(--duration-quick) var(--ease-standard),
+                box-shadow var(--duration-quick) var(--ease-standard);
 }
-.dark .input-base {
-    color: var(--color-m3-dark-on-surface);
-    background-color: var(--color-m3-dark-surface-container-low);
-    border-color: var(--color-m3-dark-outline-variant);
+.input-base::placeholder {
+    color: var(--text-muted);
+}
+.input-base:hover {
+    border-color: var(--text-muted);
 }
 .input-base:focus {
-    border-color: var(--color-m3-primary);
-}
-.dark .input-base:focus {
-    border-color: var(--color-m3-primary-light);
+    border-color: var(--accent-ink);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 22%, transparent);
 }
 
-.modal-shell-wide {
-    width: 100%;
-    max-width: 36rem;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: rise-in var(--duration-base) var(--ease-standard);
-}
-
+/* A quiet filled note for something to read or copy; never a warning. */
 .callout {
-    padding: 0.625rem 0.75rem;
+    padding: 0.75rem 0.875rem;
     font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--color-m3-on-surface-variant);
-    background-color: var(--color-m3-surface-container-low);
-    border: 1px solid var(--color-m3-outline-variant);
-    border-radius: var(--radius-sm);
-}
-.dark .callout {
-    color: var(--color-m3-dark-on-surface-variant);
-    background-color: var(--color-m3-dark-surface-container);
-    border-color: var(--color-m3-dark-outline-variant);
-}
-
-/* M3 Menu Styles */
-.m3-menu {
-    background-color: var(--color-m3-surface-container-low);
+    line-height: 1.125rem;
+    color: var(--text-muted);
+    background-color: var(--surface-muted);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-m3-2);
-    padding: 8px 0;
-    min-width: 112px;
-    max-width: 280px;
-    z-index: 100;
-    animation: menu-in var(--duration-quick) var(--ease-standard);
 }
 
-.dark .m3-menu {
-    background-color: var(--color-m3-dark-surface-container-high);
-    border-color: var(--color-m3-dark-outline-variant);
+/* A floating list: menus and dropdowns. Rows are inset, so their 10px corners
+   nest inside the panel's 16px. */
+.menu-surface {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 0.375rem;
 }
-
-.m3-menu-item {
+.menu-item {
     display: flex;
     align-items: center;
+    gap: 0.625rem;
     width: 100%;
-    padding: 12px 16px;
-    gap: 12px;
+    min-height: 2.5rem;
+    padding: 0 0.625rem 0 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--text);
+    text-align: start;
     cursor: pointer;
-    font-size: 14px;
+}
+.menu-item:hover {
+    background-color: var(--surface-hover);
+}
+.menu-item[aria-selected="true"] {
     font-weight: 500;
-    color: var(--color-m3-on-surface);
-    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* A run of rows divided by hairlines between each pair, never above the
+   first or below the last. A row with a leading icon sets --divider-inset so
+   the rule starts where its text does; a row that bleeds into the gutter for
+   its hover fill sets --row-bleed so the rule still lines up. */
+.settings-section > * {
     position: relative;
-    overflow: hidden;
 }
-
-.dark .m3-menu-item {
-    color: var(--color-m3-dark-on-surface);
-}
-
-.m3-menu-item:hover {
-    background-color: var(--color-m3-surface-container-high);
-}
-
-.dark .m3-menu-item:hover {
-    background-color: var(--color-m3-dark-surface-container-highest);
-}
-
-.m3-menu-item.selected {
-    background-color: var(--color-m3-secondary-container);
-    color: var(--color-m3-on-secondary-container);
-}
-
-.dark .m3-menu-item.selected {
-    background-color: var(--color-m3-dark-secondary-container);
-    color: var(--color-m3-dark-on-secondary-container);
+.settings-section > * + *::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline-start: calc(var(--row-bleed, 0px) + var(--divider-inset, 0px));
+    inset-inline-end: var(--row-bleed, 0px);
+    height: 1px;
+    background-color: var(--border);
+    pointer-events: none;
 }
 
 .dropdown-in {
-    animation: menu-in var(--duration-quick) var(--ease-standard);
+    animation: menu-in var(--duration-base) var(--ease-out);
+    transform-origin: top;
 }
 
 /* Page transitions — applied to the main view container, keyed by view */
 .view-enter-forward {
-    animation: view-in-forward var(--duration-base) var(--ease-standard);
+    animation: view-in-forward var(--duration-slow) var(--ease-out);
 }
 
 .view-enter-backward {
-    animation: view-in-backward var(--duration-base) var(--ease-standard);
+    animation: view-in-backward var(--duration-slow) var(--ease-out);
 }
 
 /* ── Ambient motion ───────────────────────────────────────────────
@@ -646,6 +790,7 @@ select,
     transition: background-color var(--duration-quick) var(--ease-standard),
                 border-color var(--duration-quick) var(--ease-standard),
                 color var(--duration-quick) var(--ease-standard),
+                box-shadow var(--duration-quick) var(--ease-standard),
                 opacity var(--duration-quick) var(--ease-standard);
 }
 
@@ -660,8 +805,8 @@ select,
    `transform` animates nothing. Keeping `transform` too means this still works
    if a knob is ever positioned the older way. */
 .switch-knob {
-    transition: translate var(--duration-base) var(--ease-standard),
-                transform var(--duration-base) var(--ease-standard);
+    transition: translate var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
 }
 
 /* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
@@ -717,8 +862,8 @@ select,
    width, so it stretches a little as it crosses items of different widths,
    which is what makes it read as one thing moving. */
 .chip-slide {
-    transition: left var(--duration-base) var(--ease-standard),
-                width var(--duration-base) var(--ease-standard);
+    transition: left var(--duration-base) var(--ease-out),
+                width var(--duration-base) var(--ease-out);
 }
 
 /* The home reading's tick scale (components/LevelRail.tsx). The ticks rise
@@ -732,7 +877,7 @@ select,
 }
 .rail-tick {
     transform-origin: bottom;
-    animation: rail-tick-in 420ms var(--ease-standard) both;
+    animation: rail-tick-in 420ms var(--ease-out) both;
     transition: height var(--duration-base) var(--ease-standard),
                 background-color var(--duration-base) var(--ease-standard);
 }
@@ -770,8 +915,8 @@ select,
    property in Tailwind v4, so that is what has to be transitioned — see the
    note on .switch-knob. */
 .chev {
-    transition: rotate var(--duration-base) var(--ease-standard),
-                transform var(--duration-base) var(--ease-standard);
+    transition: rotate var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
 }
 
 /* Collapsible sections. grid-template-rows 0fr -> 1fr is the one way to
@@ -969,7 +1114,6 @@ select,
     .modal-overlay,
     .modal-shell,
     .modal-shell-wide,
-    .m3-menu,
     .dropdown-in,
     .view-enter-forward,
     .view-enter-backward {
@@ -1006,13 +1150,19 @@ select,
         opacity: 0;
     }
     .btn-primary,
+    .btn-tonal,
     .btn-secondary,
+    .btn-danger,
+    .btn-ghost,
     .input-base,
-    .m3-menu-item {
+    .menu-item {
         transition: none;
     }
     .btn-primary:active:not(:disabled),
-    .btn-secondary:active:not(:disabled) {
+    .btn-tonal:active:not(:disabled),
+    .btn-secondary:active:not(:disabled),
+    .btn-danger:active:not(:disabled),
+    .btn-ghost:active:not(:disabled) {
         transform: none;
     }
     /* Ambient motion: everything still lands in the same end state, it just

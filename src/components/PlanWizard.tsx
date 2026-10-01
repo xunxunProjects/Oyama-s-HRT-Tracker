@@ -10,7 +10,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, freshDraft } from '../utils/plan';
 import { frequencyLabel, gelSiteName, regimenLabel, supplyLabel } from '../utils/regimenText';
 
-const divider = 'border-b border-[var(--color-m3-outline-variant)] dark:border-[var(--color-m3-dark-outline-variant)]';
+const divider = 'border-b border-[var(--border)]';
 
 type StepKey = 'route' | 'drug' | 'dose' | 'site' | 'hold' | 'freq';
 
@@ -138,13 +138,13 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
             role="dialog"
             aria-modal="true"
             aria-label={t('plan.add')}
-            className="fixed inset-0 z-50 flex select-none flex-col bg-[var(--color-m3-surface-dim)] font-sans text-[var(--color-m3-on-surface)] dark:bg-[var(--color-m3-dark-surface)] dark:text-[var(--color-m3-dark-on-surface)]"
+            className="fixed inset-0 z-50 flex select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                    className="rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--surface-hover)]"
                 >
                     {t('btn.cancel')}
                 </button>
@@ -263,7 +263,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                 </div>
             </div>
 
-            <div className="shrink-0 border-t border-[var(--color-m3-outline-variant)] px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] dark:border-[var(--color-m3-dark-outline-variant)]">
+            <div className="shrink-0 border-t border-[var(--border)] px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">
                         {at > 0 && (

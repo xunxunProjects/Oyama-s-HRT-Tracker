@@ -126,7 +126,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                 <form onSubmit={handleSubmit} className="px-5 pb-5 pt-1 space-y-3">
                     {error && (
-                        <div className="p-2.5 text-xs text-red-600 dark:text-red-400 callout border-red-200 dark:border-red-900/30">
+                        <div className="p-2.5 text-xs text-[var(--danger)] callout ">
                             {error}
                         </div>
                     )}
@@ -158,7 +158,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     {needsTOTP && isLogin && (
                         <div className="space-y-3">
                             <div className="callout flex items-center gap-2 text-xs">
-                                <ShieldIcon size={16} className="shrink-0 text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]" />
+                                <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
                                 {t('auth.needs_2fa')}
                             </div>
                             {useBackupCode ? (
@@ -175,7 +175,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                         required={useBackupCode}
                                     />
                                     <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                        className="text-xs text-[var(--color-m3-primary)] hover:underline">
+                                        className="text-xs text-[var(--accent-ink)] hover:underline">
                                         ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
                                     </button>
                                 </div>
@@ -200,15 +200,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                         </div>
                                     )}
                                     {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
-                                        <p className="text-xs text-red-500 text-center">{t('auth.passkey_unsupported')}</p>
+                                        <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
                                     )}
                                     {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
                                         <>
                                             {twoFAMethod !== 'passkey' && (
                                                 <div className="flex items-center gap-2">
-                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                    <div className="flex-1 h-px bg-[var(--border)]" />
                                                     <span className="text-xs text-muted">{t('common.or')}</span>
-                                                    <div className="flex-1 h-px bg-[var(--color-m3-outline-variant)] dark:bg-[var(--color-m3-dark-outline-variant)]" />
+                                                    <div className="flex-1 h-px bg-[var(--border)]" />
                                                 </div>
                                             )}
                                             <button
@@ -247,7 +247,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         <button
                             type="button"
                             onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                            className="text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)] hover:underline"
+                            className="text-[var(--accent-ink)] hover:underline"
                         >
                             {isLogin ? t('auth.go_register') : t('auth.go_login')}
                         </button>
