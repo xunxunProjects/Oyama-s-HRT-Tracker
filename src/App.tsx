@@ -432,6 +432,11 @@ const AppContent = () => {
         return (
             <Onboarding
                 languageOptions={languageOptions}
+                weight={weight}
+                onWeightChange={setWeight}
+                plan={plan}
+                onAddPlanItem={savePlanItem}
+                onDeletePlanItem={deletePlanItem}
                 onDone={() => { markOnboardingSeen(); setShowOnboarding(false); }}
             />
         );
