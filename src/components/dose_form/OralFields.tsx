@@ -33,7 +33,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={rawDose} onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
                     />
@@ -50,7 +50,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         min="0"
                         step="0.001"
                         value={e2Dose} onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
                     />

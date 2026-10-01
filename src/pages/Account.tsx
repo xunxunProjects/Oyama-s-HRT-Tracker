@@ -394,7 +394,7 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
-    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] text-[var(--text)]";
+    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]";
 
     const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);

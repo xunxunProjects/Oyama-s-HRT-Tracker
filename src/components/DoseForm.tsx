@@ -981,7 +981,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 value={templateName}
                                 onChange={(e) => setTemplateName(e.target.value)}
                                 placeholder={t('template.name_placeholder')}
-                                className="flex-1 min-w-0 px-2.5 py-1.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)]"
+                                className="flex-1 min-w-0 px-2.5 py-1.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)]"
                                 style={{ fontSize: '16px' }}
                             />
                             <button

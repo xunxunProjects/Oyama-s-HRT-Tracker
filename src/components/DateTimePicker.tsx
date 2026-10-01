@@ -101,8 +101,8 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                 className={`w-full min-h-11 flex items-center justify-between gap-1 rounded-[var(--radius-md)] border ps-3 pe-2.5 py-2 text-sm tabular-nums outline-none transition-colors motion-reduce:transition-none
                     bg-[var(--field)] text-[var(--text)]
                     ${isOpen
-                        ? 'border-[var(--accent-ink)] shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_22%,transparent)]'
-                        : 'border-[var(--border-strong)] hover:border-[var(--text-muted)]'}`}
+                        ? 'border-[var(--accent-ink)]'
+                        : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}
             >
                 <span className="truncate">{selected?.label ?? value}</span>
                 <ChevronDown

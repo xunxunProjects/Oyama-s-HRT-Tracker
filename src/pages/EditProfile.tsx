@@ -47,7 +47,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         type="text"
                         value={username}
                         onChange={e => setUsername(e.target.value)}
-                        className={`w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg focus:border-[var(--accent-ink)] focus:ring-[3px] focus:ring-[var(--accent)]/20 outline-none transition-colors ${on} placeholder-[var(--text-muted)]`}
+                        className={`w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg focus:border-[var(--accent-ink)] outline-none transition-colors ${on} placeholder-[var(--text-muted)]`}
                         placeholder={t('account.new_username')}
                         autoFocus
                     />

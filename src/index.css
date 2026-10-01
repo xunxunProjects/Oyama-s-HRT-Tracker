@@ -649,8 +649,8 @@ body {
     cursor: not-allowed;
 }
 
-/* Fields: 44px, a control-strength border (findable at 3:1), terracotta
-   with a soft glow on focus. */
+/* Fields: 44px, a hairline border that darkens on hover and turns terracotta
+   on focus. No glow: the border change is the whole signal. */
 .input-base {
     width: 100%;
     min-height: 2.75rem;
@@ -659,7 +659,7 @@ body {
     line-height: 1.375rem;
     color: var(--text);
     background-color: var(--field);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     outline: none;
     transition: border-color var(--duration-quick) var(--ease-standard),
@@ -669,11 +669,10 @@ body {
     color: var(--text-muted);
 }
 .input-base:hover {
-    border-color: var(--text-muted);
+    border-color: var(--border-strong);
 }
 .input-base:focus {
     border-color: var(--accent-ink);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 22%, transparent);
 }
 
 /* A quiet filled note for something to read or copy; never a warning. */

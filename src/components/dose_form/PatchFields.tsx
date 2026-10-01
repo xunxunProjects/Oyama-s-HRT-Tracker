@@ -17,7 +17,7 @@ interface PatchFieldsProps {
     route: Route;
 }
 
-const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border-strong)] rounded-md focus:ring-[3px] focus:ring-[var(--accent)]/20 focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
 // Common transdermal E2 patch nominal release rates (µg/day).
 const RATE_PRESETS = [25, 37.5, 50, 75, 100];
