@@ -1,10 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
-import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, DoseEvent, getHormoneLevelAdvisory } from '../../logic';
-import { Regimen, adviseBloodDraw, shapeAhead } from '../utils/regimen';
-import { regimenLabel, intervalLabel, dueLabel, fill } from '../utils/regimenText';
-import { useHRTMode } from '../contexts/HRTModeContext';
+import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
@@ -24,10 +21,6 @@ interface LabProps {
     calibration: CalibrationResult;
     onOpenCalibrationSettings: () => void;
     lang: Lang;
-    events: DoseEvent[];
-    regimens: Regimen[];
-    weight: number;
-    nowH: number;
 }
 
 const Lab: React.FC<LabProps> = ({
@@ -42,18 +35,7 @@ const Lab: React.FC<LabProps> = ({
     calibration,
     onOpenCalibrationSettings,
     lang,
-    events,
-    regimens,
-    weight,
-    nowH,
 }) => {
-    const { isTransmasc } = useHRTMode();
-    // Hour resolution is plenty for a blood test, and keeps this from re-running every minute.
-    const hourNow = Math.floor(nowH);
-    const drawAdvice = useMemo(() => {
-        const shape = shapeAhead(events, regimens, weight, hourNow, isTransmasc);
-        return adviseBloodDraw(regimens, events, labResults, shape, hourNow, isTransmasc);
-    }, [events, regimens, weight, hourNow, labResults, isTransmasc]);
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
 
     const muted = 'text-[var(--text-muted)]';
@@ -132,22 +114,6 @@ const Lab: React.FC<LabProps> = ({
                     </div>
                     <ChevronRight size={16} className={`${muted} shrink-0`} />
                 </button>
-
-                {/* When to draw next, and why that draw: what it would teach the calibration. */}
-                {drawAdvice && (
-                    <div className="py-4 border-b border-[var(--border)]">
-                        <p className={`text-[0.9375rem] ${on}`}>
-                            {t('draw.title')}
-                            <span className={`text-xs ${muted}`}> · {regimenLabel(drawAdvice.regimen, t)} · {intervalLabel(drawAdvice.regimen.intervalH, t)}</span>
-                        </p>
-                        <p className={`text-sm ${on} mt-1.5`}>
-                            {fill(t(`draw.${drawAdvice.kind}`), { date: dueLabel(drawAdvice.atH, lang, true, hourNow), h: Math.round(drawAdvice.peakAfterH ?? 0) })}
-                        </p>
-                        <p className={`text-xs ${muted} mt-1 leading-relaxed`}>
-                            {fill(t(`draw.${drawAdvice.kind}_why`), { since: dueLabel(drawAdvice.regimen.sinceH, lang, false, hourNow) })}
-                        </p>
-                    </div>
-                )}
 
                 {/* How the labs sit against the model, before and after calibration */}
                 {hasCal && <CalibrationPlot calibration={calibration} t={t} lang={lang} />}
