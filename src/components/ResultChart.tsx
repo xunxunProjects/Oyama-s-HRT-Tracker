@@ -578,7 +578,7 @@ const ResultChart = ({
             </div>
 
             {/* Legend — always visible so each line is labelled, on mobile too */}
-            <div className="flex items-center gap-4 mb-1 text-[0.6875rem] text-[var(--text-muted)]">
+            <div className="flex items-center gap-4 mb-1 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
