@@ -121,7 +121,7 @@ const Home: React.FC<HomeProps> = ({
     // A reading's number and unit. The slot carries the number's type size, so
     // `ch` in its min-width is one tabular digit at whatever size the breakpoint
     // picked; the rem part covers the gap and the unit after it.
-    const readingSlot = "inline-flex items-baseline gap-x-2 text-[2.5rem] sm:text-[3.25rem] md:text-[4rem] font-light leading-none tracking-[-0.035em] tabular-nums";
+    const readingSlot = "inline-flex items-baseline gap-x-2 text-[3rem] sm:text-[3.75rem] md:text-[4.5rem] font-light leading-none tracking-[-0.035em] tabular-nums";
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
