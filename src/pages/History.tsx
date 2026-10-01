@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
-import { Plus, Trash2, ListChecks } from 'lucide-react';
+import { Plus, Minus, Trash2, ListChecks, Repeat } from 'lucide-react';
 import Tick from '../components/Tick';
 import Switch from '../components/Switch';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,7 +22,59 @@ const MAX_BATCH_COUNT = 365;
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const headerBtn = headerAction;
-const numInput = 'w-16 h-8 px-2 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md text-center text-sm font-medium focus:border-[var(--accent-ink)] outline-none text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+
+/**
+ * A number field with − and + on either side, so the batch values can be
+ * nudged with a thumb instead of summoning the number pad. Typing still works;
+ * the buttons step from whatever is typed and stop at the limits.
+ */
+const Stepper: React.FC<{
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    min: number;
+    max?: number;
+    /** Size of one step for a given value and direction. */
+    step: (current: number, dir: 1 | -1) => number;
+    inputStep: string;
+}> = ({ label, value, onChange, min, max = Infinity, step, inputStep }) => {
+    const id = React.useId();
+    const n = parseFloat(value);
+    const current = Number.isFinite(n) ? n : min;
+    const nudge = (dir: 1 | -1) => {
+        const next = Math.min(max, Math.max(min, current + dir * step(current, dir)));
+        onChange(String(Math.round(next * 100) / 100));
+    };
+    const btn = 'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)] disabled:opacity-35 disabled:hover:bg-transparent';
+    return (
+        <div className="space-y-1.5">
+            <label htmlFor={id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{label}</label>
+            <span className="flex h-11 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--field)] px-1 hover:border-[var(--border-strong)] focus-within:border-[var(--accent-ink)]">
+                <button type="button" onClick={() => nudge(-1)} disabled={current <= min} aria-label={`${label} −`} className={btn}>
+                    <Minus size={16} />
+                </button>
+                <input
+                    id={id}
+                    type="number"
+                    inputMode="decimal"
+                    min={min}
+                    max={Number.isFinite(max) ? max : undefined}
+                    step={inputStep}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-center text-sm font-medium tabular-nums text-[var(--text)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button type="button" onClick={() => nudge(1)} disabled={current >= max} aria-label={`${label} +`} className={btn}>
+                    <Plus size={16} />
+                </button>
+            </span>
+        </div>
+    );
+};
+
+// Whole days, but quarter days below one so a twice-daily or every-6-hours
+// schedule can still be reached from the buttons.
+const intervalStep = (v: number, dir: 1 | -1) => (dir > 0 ? v >= 1 : v > 1) ? 1 : 0.25;
 
 interface HistoryProps {
     t: (key: string) => string;
@@ -180,33 +232,30 @@ const History: React.FC<HistoryProps> = ({
                             <Switch checked={batchOn} onChange={setBatchOn} label={t('timeline.batch')} />
                         </div>
                         {batchOn && (
-                            <div className="pb-3">
-                                <div className="flex items-center gap-5 flex-wrap">
-                                    <label className={`flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]`}>
-                                        {t('timeline.batch_interval')}
-                                        <input
-                                            type="number"
-                                            min="0.25"
-                                            step="0.25"
-                                            value={batchIntervalDays}
-                                            onChange={e => setBatchIntervalDays(e.target.value)}
-                                            className={numInput}
-                                        />
-                                    </label>
-                                    <label className={`flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]`}>
-                                        {t('timeline.batch_count')}
-                                        <input
-                                            type="number"
-                                            min="2"
-                                            max={MAX_BATCH_COUNT}
-                                            step="1"
-                                            value={batchCount}
-                                            onChange={e => setBatchCount(e.target.value)}
-                                            className={numInput}
-                                        />
-                                    </label>
+                            <div className="pb-4 pt-1 animate-[fade-in_var(--duration-base)_var(--ease-standard)] motion-reduce:animate-none">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Stepper
+                                        label={t('timeline.batch_interval')}
+                                        value={batchIntervalDays}
+                                        onChange={setBatchIntervalDays}
+                                        min={0.25}
+                                        step={intervalStep}
+                                        inputStep="0.25"
+                                    />
+                                    <Stepper
+                                        label={t('timeline.batch_count')}
+                                        value={batchCount}
+                                        onChange={setBatchCount}
+                                        min={2}
+                                        max={MAX_BATCH_COUNT}
+                                        step={() => 1}
+                                        inputStep="1"
+                                    />
                                 </div>
-                                <p className={`text-xs ${muted} mt-2`}>{batchHint}</p>
+                                <p className={`mt-3 flex items-start gap-2 text-xs ${muted}`}>
+                                    <span className="icon-line"><Repeat size={14} /></span>
+                                    <span>{batchHint}</span>
+                                </p>
                             </div>
                         )}
                         <DoseForm
