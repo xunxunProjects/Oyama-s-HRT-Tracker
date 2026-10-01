@@ -21,7 +21,6 @@ import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
 import ImportModal from './components/ImportModal';
 import Sidebar from './components/Sidebar';
-import { PageBackLabelContext } from './components/PageHeader';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
 import AuthModal from './components/AuthModal';
@@ -443,10 +442,6 @@ const AppContent = () => {
         );
     }
 
-    // The page a back link returns to is the section the view sits in.
-    const parentTab = tabForView(currentView);
-    const backLabel = parentTab !== currentView ? navItems.find(item => item.id === parentTab)?.label ?? null : null;
-
     return (
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
             <Sidebar
@@ -467,7 +462,6 @@ const AppContent = () => {
                     this component, so it stays put across view changes. */}
                 <SiteNoticeBanner />
 
-                <PageBackLabelContext.Provider value={backLabel}>
                 <div
                     ref={mainScrollRef}
                     key={currentView}
@@ -790,7 +784,6 @@ const AppContent = () => {
                         <Admin />
                     )}
                 </div>
-                </PageBackLabelContext.Provider>
 
                 {/* Bottom Navigation — a frosted floating island. Content scrolls
                     visibly beneath it; the current tab's icon sits in a tonal

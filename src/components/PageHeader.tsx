@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * The reading column every page sits in: one width, one side padding, centred
@@ -14,12 +14,6 @@ export const headerAction = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0
 /** The same pill for the action that does the page's job (Add, Log…): terracotta, with a tonal hover. */
 export const headerActionAccent = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
 
-/**
- * The name of the page the back link returns to. App provides it from the
- * section the current view sits in, so pages don't each have to pass it.
- */
-export const PageBackLabelContext = React.createContext<string | null>(null);
-
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
 
@@ -31,22 +25,16 @@ const muted = 'text-[var(--text-muted)]';
  *
  * A top-level page (Overview aside) has a plain title, an optional count
  * under it and optional actions on the right. A page reached from another one
- * gets `onBack`: a terracotta link above the title naming the page it returns
- * to.
+ * gets `onBack`, and the title becomes the way back.
  */
 const PageHeader: React.FC<{
     title: React.ReactNode;
     subtitle?: React.ReactNode;
     onBack?: () => void;
-    /** Overrides the parent page's name in the back link. */
-    backLabel?: React.ReactNode;
     /** Shows the way back but won't take it (2FA setup that must finish first). */
     backDisabled?: boolean;
     actions?: React.ReactNode;
-}> = ({ title, subtitle, onBack, backLabel, backDisabled = false, actions }) => {
-    const parent = React.useContext(PageBackLabelContext);
-    const label = backLabel ?? parent;
-
+}> = ({ title, subtitle, onBack, backDisabled = false, actions }) => {
     // A zero-height marker just above the sticky bar: once it has scrolled out
     // of view, content is passing under the bar and the hairline shows.
     const [marker, setMarker] = React.useState<HTMLDivElement | null>(null);
@@ -64,18 +52,18 @@ const PageHeader: React.FC<{
             <div className={`glass sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_-1px_0_var(--border)]' : ''}`}>
                 <div className={`${PAGE_COLUMN} pt-7 pb-3.5 flex items-end justify-between gap-4`}>
                     <div className="min-w-0">
-                        {onBack && (
+                        {onBack ? (
                             <button
                                 onClick={backDisabled ? undefined : onBack}
                                 disabled={backDisabled}
-                                aria-label={typeof label === 'string' ? undefined : 'Back'}
-                                className="-ml-2 mb-1.5 inline-flex h-8 max-w-full items-center gap-1 rounded-full pl-1.5 pr-3 text-sm text-[var(--accent-ink)] enabled:hover:bg-[var(--accent-subtle)] disabled:cursor-default disabled:opacity-40"
+                                className="flex min-w-0 items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg enabled:hover:bg-[var(--surface-hover)] disabled:cursor-default"
                             >
-                                <ChevronLeft size={20} className="shrink-0 rtl:-scale-x-100" />
-                                {label && <span className="truncate">{label}</span>}
+                                <ArrowLeft size={18} className={`${muted} shrink-0 ${backDisabled ? 'opacity-30' : ''}`} />
+                                <span className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</span>
                             </button>
+                        ) : (
+                            <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</h1>
                         )}
-                        <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</h1>
                         {/* History pins its day labels at exactly this header's
                             height (top-[94px]): 28 + 32 + 2 + 18 + 14. */}
                         {subtitle && <p className={`text-xs ${muted} mt-0.5`}>{subtitle}</p>}
