@@ -481,10 +481,17 @@ body {
     color: var(--text-muted);
 }
 
-/* One focus treatment everywhere: a solid ring, offset off the element. */
+/* One focus treatment everywhere: a solid ring, offset off the element.
+   Text fields are the exception: their border turns terracotta on focus,
+   and a ring around that as well reads as a doubled outline. */
 :focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: none;
 }
 
 /* Chrome that content scrolls under: the floating nav, the sticky header. */
