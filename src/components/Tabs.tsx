@@ -75,7 +75,7 @@ function Tabs<K extends string>({ tabs, value, onChange, className = '' }: {
             {bar && (
                 <span
                     aria-hidden="true"
-                    className={`chip-slide pointer-events-none absolute h-0.5 bg-[var(--accent)] -bottom-px rounded-t-[2px]`}
+                    className={`chip-slide pointer-events-none absolute h-0.5 bg-[var(--accent)] -bottom-px`}
                     style={{ left: bar.left, width: bar.width }}
                 />
             )}

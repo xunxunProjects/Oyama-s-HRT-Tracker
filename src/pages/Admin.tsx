@@ -921,7 +921,7 @@ const Admin: React.FC = () => {
                                 onClick={exitMobileCat}
                                 className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                             >
-                                <ArrowLeft size={18} className={`${settingsMuted} shrink-0`} />
+                                <ArrowLeft size={22} className={`${settingsMuted} shrink-0`} />
                                 <h1 className={`text-xl font-semibold ${settingsOn}`}>
                                     {cats.find(c => c.id === mobileView)?.label}
                                 </h1>

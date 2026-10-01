@@ -763,7 +763,7 @@ const Account: React.FC<AccountProps> = ({
                     </section>
                 </div>
             ) : (
-                <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm`}>
+                <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm [&>*]:mx-auto`}>
                     {/* Login / Register tabs */}
                     <Tabs
                         tabs={[

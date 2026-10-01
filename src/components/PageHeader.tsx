@@ -58,7 +58,7 @@ const PageHeader: React.FC<{
                                 disabled={backDisabled}
                                 className="flex min-w-0 items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg enabled:hover:bg-[var(--surface-hover)] disabled:cursor-default"
                             >
-                                <ArrowLeft size={18} className={`${muted} shrink-0 ${backDisabled ? 'opacity-30' : ''}`} />
+                                <ArrowLeft size={22} className={`${muted} shrink-0 ${backDisabled ? 'opacity-30' : ''}`} />
                                 <span className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</span>
                             </button>
                         ) : (
