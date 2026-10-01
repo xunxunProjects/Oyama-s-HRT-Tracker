@@ -9,10 +9,10 @@ import { ArrowLeft } from 'lucide-react';
 export const PAGE_COLUMN = 'mx-auto w-full max-w-2xl px-6 md:px-8';
 
 /** A small pill text button for the right side of a PageHeader (Select, Edit…). */
-export const headerAction = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-sm font-medium rounded-full hover:bg-[var(--surface-hover)]';
+export const headerAction = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-full hover:bg-[var(--surface-hover)]';
 
 /** The same pill for the action that does the page's job (Add, Log…): terracotta, with a tonal hover. */
-export const headerActionAccent = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-sm font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
+export const headerActionAccent = 'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
