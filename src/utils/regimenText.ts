@@ -19,11 +19,18 @@ export const fillNodes = (template: string, vars: Record<string, React.ReactNode
 
 const trimNum = (n: number, maxDecimals = 2) => String(Number(n.toFixed(maxDecimals)));
 
-/** "戊酸雌二醇": the ester's name without the code the settings lists carry ("戊酸雌二醇 (EV)"). */
-export const esterName = (ester: Ester, t: T) => t(`ester.${ester}`).replace(/\s*\(.*$/, '').trim();
+/**
+ * The bracketed tail a settings list carries: " (EV)", " (Arm)". Full-width too,
+ * since the Traditional Chinese pack writes "戊酸雌二醇（EV）".
+ */
+const BRACKETED_TAIL = /\s*[(（].*$/;
 
-const CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;
-/** Join two words the way the language does: nothing between CJK characters, a space otherwise. */
+/** "戊酸雌二醇": the ester's name without the code the settings lists carry ("戊酸雌二醇 (EV)"). */
+export const esterName = (ester: Ester, t: T) => t(`ester.${ester}`).replace(BRACKETED_TAIL, '').trim();
+
+// Kana and Han only: Korean writes Hangul with spaces between words ("경구 에스트라디올").
+const CJK = /[\u3040-\u30ff\u3400-\u9fff]/;
+/** Join two words the way the language does: nothing between Chinese or Japanese characters, a space otherwise. */
 const glue = (a: string, b: string) => (CJK.test(a.slice(-1)) && CJK.test(b.slice(0, 1)) ? a + b : `${a} ${b}`);
 
 /** "雌二醇凝胶", "雌二醇贴片"; a pill or an injection is just the drug's name. */
@@ -39,7 +46,7 @@ export function planItemLabel(item: { id: string; route: Route; ester: Ester }, 
 
 /** "手臂": where a gel goes, without the English the settings list carries ("手臂 (Arm)"). */
 export const gelSiteName = (idx: number, t: T) =>
-    t(`gel.site.${GEL_SITE_ORDER[Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(idx)))]}`).replace(/\s*\(.*$/, '').trim();
+    t(`gel.site.${GEL_SITE_ORDER[Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(idx)))]}`).replace(BRACKETED_TAIL, '').trim();
 
 /** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天". */
 export function frequencyLabel(f: { everyDays: number; timesPerDay: number }, t: T): string {
