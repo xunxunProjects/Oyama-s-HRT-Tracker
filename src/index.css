@@ -723,6 +723,15 @@ body {
 .settings-section > * {
     position: relative;
 }
+/* A clickable row bleeds 12px into the gutter on each side so its hover fill
+   has room around the content. Written here rather than as utilities so it
+   always beats a row's own w-full. */
+.row-bleed {
+    --row-bleed: 0.75rem;
+    width: calc(100% + 1.5rem);
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+}
 .settings-section > * + *::before {
     content: "";
     position: absolute;

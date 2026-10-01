@@ -6,7 +6,7 @@ import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 import Switch from '../components/Switch';
-import { settingsSection, rowBleed, rowBleedStyle } from '../components/SettingsListItem';
+import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
@@ -65,7 +65,7 @@ const on = "text-[var(--text)]";
 const section = settingsSection;
 
 const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({ label, value, onClick }) => (
-    <button onClick={onClick} className={`${rowBase} ${rowBleed}`} style={rowBleedStyle}>
+    <button onClick={onClick} className={`${rowBase} ${rowBleed}`}>
         <span className={rowLabel}>{label}</span>
         <span className={rowValue}>
             {value}
@@ -261,8 +261,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <button
                     onClick={onClearAllEvents}
                     disabled={!events.length}
-                    style={rowBleedStyle}
-                    className={`${rowBase} ${events.length ? rowBleed : '-mx-3 w-[calc(100%+1.5rem)] px-3 opacity-45 cursor-not-allowed'}`}
+                    className={`${rowBase} ${events.length ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}
                 >
                     <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
                         {t('drawer.clear')}
@@ -336,7 +335,7 @@ const Settings: React.FC<SettingsProps> = ({
                                     key={id}
                                     onClick={() => enterMobileCat(id)}
                                     // The rule starts after the 36px tile and its 12px gap.
-                                    style={{ ...rowBleedStyle, '--divider-inset': '3rem' } as React.CSSProperties}
+                                    style={{ '--divider-inset': '3rem' } as React.CSSProperties}
                                     className={`${rowBase} ${rowBleed}`}
                                 >
                                     <div className="flex items-center gap-3">
