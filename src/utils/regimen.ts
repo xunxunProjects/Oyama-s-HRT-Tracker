@@ -6,7 +6,7 @@ import {
 
 /**
  * A regimen: one drug by one route at a steady interval. The forward-looking
- * features (the what-if, blood test timing, supply run-out) start from these.
+ * features (the what-if, supply run-out) start from these.
  *
  * They come from the person's own medication plan when there is one (see
  * plan.ts). Only with no plan at all are they read off the log instead, from
@@ -414,92 +414,6 @@ export function forecastPlan(input: ForecastInput, regimens: Regimen[], plan: Pl
     // A plan that only carries on the current regimen has been running since that regimen began.
     const continues = main && plan.replace && signature(plan) === signature(main) && Math.abs(plan.intervalH - main.intervalH) < 0.5;
     return simulateScenario(input, kept, [...carried, ...planDoses], Math.max(24, plan.intervalH), habits, seed, continues ? main.sinceH : plan.startH);
-}
-
-/**
- * A light look a few cycles ahead, uncalibrated: enough to time a peak.
- * Calibration mostly scales the curve rather than moving where it peaks, so
- * this skips the ~200 ms refit the full forecast pays for.
- */
-export function shapeAhead(events: DoseEvent[], regimens: Regimen[], weight: number, nowH: number, isTransmasc: boolean): Series | null {
-    const untilH = nowH + 3 * Math.max(24, ...regimens.map(r => r.intervalH));
-    const evs = [...events.filter(e => e.timeH >= nowH - MC_HISTORY_H), ...regimens.flatMap(r => continuation(r, untilH, nowH))].sort((a, b) => a.timeH - b.timeH);
-    const sim = runSimulation(evs, weight);
-    if (!sim || !sim.timeH.length) return null;
-    return { timeH: sim.timeH, value: isTransmasc ? sim.timeH.map((_, i) => sim.concNGdL_T?.[i] ?? 0) : sim.concPGmL_E2 };
-}
-
-/** Where a moment falls in its regimen's cycle: 0 right at a dose, approaching 1 just before the next. */
-export function cyclePhase(r: Regimen, doseTimesH: number[], atH: number): number | null {
-    let prev = -Infinity;
-    for (const t of doseTimesH) { if (t <= atH) prev = t; else break; }
-    if (!Number.isFinite(prev) || atH - prev > r.intervalH * 1.5) return null;
-    return (atH - prev) / r.intervalH;
-}
-
-export interface DrawAdvice {
-    kind: 'wait_steady' | 'trough' | 'peak' | 'routine';
-    /** Suggested draw time. For a trough it is the latest good moment: just before the dose. */
-    atH: number;
-    regimen: Regimen;
-    /** Hours after a dose the model puts the peak, for kind 'peak'. */
-    peakAfterH?: number;
-}
-
-/**
- * The next blood test that would teach the calibration the most. A trough pins
- * the level the person spends most time near; a peak, once a trough is in
- * hand, is what separates "absorbs more" from "clears slower" (the amplitude
- * and half-life the fit reports). Before steady state any draw measures the
- * switch, not the regimen, so that comes first.
- */
-export function adviseBloodDraw(
-    regimens: Regimen[],
-    events: DoseEvent[],
-    labResults: LabResult[],
-    currentSeries: Series | null,
-    nowH: number,
-    isTransmasc: boolean,
-): DrawAdvice | null {
-    const target: Hormone = isTransmasc ? 'T' : 'E2';
-    const main = regimens.filter(r => r.hormone === target).sort((a, b) => b.intervalH - a.intervalH)[0];
-    if (!main) return null;
-
-    const dueAt = (fromH: number) => {
-        let t = main.nextH;
-        while (t < fromH) t += main.intervalH;
-        return t;
-    };
-
-    const steadyH = main.sinceH + Math.max(21 * 24, main.intervalH * 3);
-    if (nowH < steadyH) return { kind: 'wait_steady', atH: dueAt(steadyH) - 1, regimen: main };
-
-    const doseTimes = events.filter(e => regimenMatches(main, e) && e.timeH <= nowH).map(e => e.timeH).sort((a, b) => a - b);
-    const labsSince = labResults.filter(l => l.timeH >= steadyH - main.intervalH && l.timeH <= nowH);
-    const phases = labsSince.map(l => cyclePhase(main, doseTimes, l.timeH)).filter((p): p is number => p !== null);
-
-    // Where in the cycle the model peaks, read off the continued-regimen curve over one upcoming cycle.
-    let peakAfterH: number | undefined;
-    if (currentSeries && main.intervalH >= 24) {
-        const from = dueAt(nowH), to = from + main.intervalH;
-        let best = -Infinity;
-        currentSeries.timeH.forEach((h, i) => {
-            if (h >= from && h <= to && currentSeries.value[i] > best) { best = currentSeries.value[i]; peakAfterH = h - from; }
-        });
-    }
-
-    const hasTrough = phases.some(p => p >= 0.75);
-    if (!hasTrough) return { kind: 'trough', atH: dueAt(nowH + 1) - 1, regimen: main };
-
-    const peakPhase = peakAfterH !== undefined ? peakAfterH / main.intervalH : null;
-    const hasPeak = peakPhase === null || phases.some(p => Math.abs(p - peakPhase) <= 0.2);
-    if (!hasPeak && peakAfterH !== undefined) {
-        // To the hour: the model's peak is broad, and "23:58" reads as more precise than it is.
-        return { kind: 'peak', atH: Math.round(dueAt(nowH) + peakAfterH), regimen: main, peakAfterH };
-    }
-
-    const lastLab = Math.max(...labsSince.map(l => l.timeH));
-    return { kind: 'routine', atH: dueAt(lastLab + 12 * 7 * 24) - 1, regimen: main };
 }
 
 /** How a medicine comes: what one unit is, so a count on the shelf converts to mg (or patches). */

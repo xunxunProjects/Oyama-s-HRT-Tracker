@@ -570,10 +570,6 @@ const AppContent = () => {
                             calibration={calibration}
                             onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
                             lang={lang}
-                            events={events}
-                            regimens={regimens}
-                            weight={weight}
-                            nowH={nowH}
                         />
                     )}
 
