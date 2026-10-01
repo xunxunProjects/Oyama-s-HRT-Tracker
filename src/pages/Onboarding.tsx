@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { BODY_WEIGHT_KG_MAX, BODY_WEIGHT_KG_MIN, ExtraKey, Route, isPlausibleBodyWeightKG } from '../../logic';
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
 import Doodle, { DoodleName } from '../components/Doodle';
 import DoseRings from '../components/DoseRings';
+import PlanWizard from '../components/PlanWizard';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { useDialog } from '../contexts/DialogContext';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
+import { PlanItem, PLAN_DRUGS } from '../utils/plan';
+import { frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
 
 const ONBOARDING_KEY = 'app-onboarded';
 
@@ -111,9 +117,6 @@ const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', onClic
         : <div className={className}>{body}</div>;
 };
 
-/** Index of the chart step, the only one that takes two columns when there's room. */
-const CHART_STEP = 2;
-
 /** Rows of the "how it works" step, in beat order — see BEATS. */
 const HOW_ROWS: { mark: DoodleName; title: string; desc: string }[] = [
     { mark: 'syringe', title: 'onboarding.how_log', desc: 'onboarding.how_log_desc' },
@@ -215,23 +218,57 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
 interface OnboardingProps {
     /** Same list Settings uses, rather than a second copy that can drift. */
     languageOptions: { value: string; label: string }[];
+    /**
+     * The live values, not blanks: replaying the intro shows what is already
+     * set, so walking through it again changes nothing that isn't touched.
+     */
+    weight: number;
+    onWeightChange: (kg: number) => void;
+    plan: PlanItem[];
+    onAddPlanItem: (item: PlanItem) => void;
+    onDeletePlanItem: (id: string) => void;
     onDone: () => void;
 }
 
 /**
- * First run. Four screens, in the order a new user needs them: language before
+ * First run. Six screens, in the order a new user needs them: language before
  * anything else (the app defaults to Chinese, so every other word is unreadable
- * until it's set), then HRT mode, then what the app actually does, then what it
- * does with your data and what it can't do for you.
+ * until it's set), then HRT mode, then what the app actually does, then the two
+ * things the estimate and the Overview are built on — body weight and the
+ * medication plan — then what it does with your data and what it can't do for
+ * you.
+ *
+ * Weight and plan come after "how it works" rather than before it: by then the
+ * model they feed has been shown, so being asked for them reads as part of the
+ * same story instead of a form at the door.
  *
  * Rendered instead of the app shell, not as a tab inside it — the nav would
  * invite tabbing away halfway through, leaving language and mode on defaults
  * that the flow exists to ask about.
  */
-const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeightChange, plan, onAddPlanItem, onDeletePlanItem, onDone }) => {
     const { t, lang, setLang } = useTranslation();
     const { mode, setMode, isTransmasc } = useHRTMode();
+    const { showDialog } = useDialog();
     const curve = useOnboardingCurve(isTransmasc);
+
+    // Kept as typed, so a half-typed figure ("6" on the way to "65") isn't
+    // snapped back. Each plausible value is applied as it lands, like the
+    // language and mode rows: leaving by Skip keeps it too.
+    const [weightStr, setWeightStr] = useState(() => String(weight));
+    const weightOk = isPlausibleBodyWeightKG(parseFloat(weightStr));
+    const typeWeight = (s: string) => {
+        setWeightStr(s);
+        const kg = parseFloat(s);
+        // Unchanged is left alone: setWeight stamps the value for sync, and
+        // passing through the intro again is not an edit.
+        if (isPlausibleBodyWeightKG(kg) && kg !== weight) onWeightChange(kg);
+    };
+
+    // The plan's own questions, opened over the intro the same way the Plan page opens them.
+    const [addingPlan, setAddingPlan] = useState(false);
+    const canAddPlan = (Object.keys(PLAN_DRUGS[mode]) as Route[]).some(r =>
+        (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)));
 
     const [step, setStep] = useState(0);
     // Only so the step change slides the way the app's view changes do.
@@ -373,6 +410,83 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
 
         <HowStep key="how" curve={curve} />,
 
+        // Prefilled with what the model is using right now — 70 kg on a fresh
+        // install — so Next on its own is an answer, and it is the answer the
+        // chart would have used anyway.
+        <div key="weight" className="pt-8">
+            <h1 className="text-2xl font-semibold text-body">{t('onboarding.weight_title')}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
+            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider}`}>
+                <input
+                    type="number"
+                    inputMode="decimal"
+                    min={BODY_WEIGHT_KG_MIN}
+                    max={BODY_WEIGHT_KG_MAX}
+                    step="any"
+                    value={weightStr}
+                    onChange={e => typeWeight(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') forward(); }}
+                    onFocus={e => e.currentTarget.select()}
+                    aria-label={t('status.weight')}
+                    className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
+                />
+                <span className="shrink-0 text-base text-muted">kg</span>
+            </label>
+            {/* Always laid out, only shown when wrong: a line appearing and
+                vanishing as a figure passes through "6" on its way to "65"
+                would bob the centred step. An empty field says nothing; Next
+                is just off. */}
+            <p className={`mt-3 text-[0.8125rem] leading-relaxed text-red-600 dark:text-red-400 ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}>
+                {t('error.weightRange')}
+            </p>
+        </div>,
+
+        // Optional, and says so: someone who doesn't know their dose yet, or
+        // only wants the log, walks past with Next.
+        <div key="plan" className="pt-8">
+            <h1 className="text-2xl font-semibold text-body">{t('onboarding.plan_title')}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.plan_subtitle')}</p>
+            <div className="mt-4">
+                {plan.map(item => (
+                    <div key={item.id} className={`flex items-center gap-3.5 py-4 ${divider}`}>
+                        <Doodle name={item.route} />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[0.9375rem] font-medium text-body">{regimenLabel(item, t)}</p>
+                            <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">
+                                {frequencyLabel(item, t)}
+                                {item.route === Route.gel && ` · ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
+                            </p>
+                        </div>
+                        {/* Confirmed like on the Plan page: on a replayed intro
+                            these are rows someone has been living with. */}
+                        <button
+                            type="button"
+                            onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), { danger: true })}
+                            aria-label={t('btn.delete')}
+                            className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--color-m3-surface-container)] dark:hover:bg-[var(--color-m3-dark-surface-container)]"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                ))}
+                {canAddPlan && (
+                    <button
+                        type="button"
+                        onClick={() => setAddingPlan(true)}
+                        className={`flex w-full items-center gap-3.5 py-4 text-start ${divider} last:border-b-0`}
+                    >
+                        {/* In a Doodle-sized box, so the label lines up with the drug names above it. */}
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                            <Plus size={20} />
+                        </span>
+                        <span className="text-[0.9375rem] font-medium text-[var(--color-m3-primary)] dark:text-[var(--color-m3-primary-light)]">
+                            {t('plan.add')}
+                        </span>
+                    </button>
+                )}
+            </div>
+        </div>,
+
         <div key="privacy" className="pt-8">
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.privacy_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
@@ -385,10 +499,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
     ];
 
     const isLast = step === steps.length - 1;
+    // Steps are named by their keys, not their places, so adding one doesn't
+    // quietly hand another step's layout to whatever slid into its index.
+    const current = steps[step].key;
+    // Only the weight can be left in a state the app can't use. Skip still
+    // leaves, keeping the last plausible figure.
+    const ready = current !== 'weight' || weightOk;
 
     const go = (next: number) => {
         setDirection(next > step ? 'forward' : 'backward');
         setStep(next);
+    };
+    const forward = () => {
+        if (!ready) return;
+        if (isLast) onDone();
+        else go(step + 1);
     };
 
     return (
@@ -418,14 +543,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
 
                     Only the chart step widens on a wide window, into the two
                     columns its Head / Stage / Body slots are placed in. The
-                    other three are a heading and a list of rows: given a second
-                    column there is nothing to put in it, and a column of empty
-                    ground beside a list is worse than a centred one. */}
+                    others are a heading and a list of rows or a single field:
+                    given a second column there is nothing to put in it, and a
+                    column of empty ground beside a list is worse than a centred
+                    one. */}
                 <div
                     key={step}
                     className={`mx-auto w-full max-w-md
-                        ${step === CHART_STEP ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5' : ''}
-                        ${step === 0 ? 'h-full pb-6 lg:h-auto' : 'pb-8'}
+                        ${current === 'how' ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5' : ''}
+                        ${current === 'welcome' ? 'h-full pb-6 lg:h-auto' : 'pb-8'}
                         ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     {steps[step]}
@@ -445,12 +571,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, onDone }) => {
                     <DoseRings count={steps.length} at={step} />
 
                     <div className="justify-self-end">
-                        <button onClick={() => (isLast ? onDone() : go(step + 1))} className="btn-primary">
+                        <button onClick={forward} disabled={!ready} className="btn-primary">
                             {t(isLast ? 'onboarding.start' : 'onboarding.next')}
                         </button>
                     </div>
                 </div>
             </div>
+
+            {addingPlan && (
+                <PlanWizard
+                    plan={plan}
+                    onAdd={item => { onAddPlanItem(item); setAddingPlan(false); }}
+                    onCancel={() => setAddingPlan(false)}
+                />
+            )}
         </div>
     );
 };
