@@ -130,8 +130,23 @@ function useFadingSet<T>(items: T[], sig: string, instant = false): { prev: T[];
 
 const fmtAxis = (v: number) => (v >= 100 || v % 1 === 0 ? String(Math.round(v)) : v < 1 ? v.toFixed(2) : v.toFixed(1));
 
-// A cyproterone estimate, or null where it is too low to show (see CPA_MIN_NGML).
-const cpaShown = (v: number | null | undefined) => (v != null && v >= CPA_MIN_NGML ? v : null);
+// Whether a cyproterone level is high enough to be worth an axis of its own
+// (see CPA_MIN_NGML). The curve itself is always drawn in full, down to zero.
+const cpaMeaningful = (v: number | null | undefined) => v != null && v >= CPA_MIN_NGML;
+
+// Linear read-off of a sampled series at an arbitrary time, so the edges of a
+// window can be valued exactly rather than by the nearest sample outside it.
+const valueAt = (data: { t: number; p: number | null; s: number | null }[], key: 'p' | 's', time: number): number | null => {
+    if (!data.length) return null;
+    let lo = 0, hi = data.length - 1;
+    if (time <= data[0].t) return data[0][key];
+    if (time >= data[hi].t) return data[hi][key];
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (data[mid].t <= time) lo = mid; else hi = mid; }
+    const a = data[lo][key], b = data[hi][key];
+    if (a == null || b == null) return a ?? b;
+    const f = (time - data[lo].t) / (data[hi].t - data[lo].t || 1);
+    return a + (b - a) * f;
+};
 
 // The cyproterone axis never tops out below this (ng/mL). Autoscaled to the
 // tail of a dose washing out, the curve would otherwise fill the plot.
@@ -208,13 +223,14 @@ const ResultChart = ({
     }, [isTransmasc, primaryIsCPA]);
 
     // Resample the simulation into the (time, primary, secondary) shape we
-    // plot. Cyproterone too low to show is null, which breaks the line there.
+    // plot. Cyproterone is drawn as modelled, all the way down, so its curve
+    // never breaks off as a dose washes out.
     const data = useMemo(() => {
         if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number | null; s: number | null }[];
         return sim.timeH.map((h, i) => {
             const time = h * HOUR;
             if (isTransmasc) return { t: time, p: sim.concNGdL_T?.[i] ?? 0, s: null };
-            const cpa = cpaShown(sim.concPGmL_CPA[i]);
+            const cpa = sim.concPGmL_CPA[i] ?? 0;
             if (primaryIsCPA) return { t: time, p: cpa, s: null };
             return { t: time, p: sim.concPGmL_E2[i] * calibrationFn(h), s: hasSecondary ? cpa : null };
         });
@@ -279,7 +295,10 @@ const ResultChart = ({
         return data.slice(Math.max(0, lo), Math.min(data.length, hi + 1));
     }, [data, t0, t1, vt0, vt1]);
 
-    const labPoints = useMemo(() => {
+    // Labs and dose markers are worked out once, then drawn wherever they fall
+    // in what is on screen: mid-stretch that is wider than the window being
+    // headed for, and filtering them to the target made them vanish early.
+    const allLabPoints = useMemo(() => {
         if (!labResults.length) return [];
         return labResults
             .filter(l => (isTransmasc ? isT_LabUnit(l.unit) : !isT_LabUnit(l.unit)))
@@ -287,13 +306,12 @@ const ResultChart = ({
                 t: l.timeH * HOUR,
                 v: isTransmasc ? convertToNgDl(l.concValue, l.unit) : convertToPgMl(l.concValue, l.unit),
                 raw: l.concValue, unit: l.unit, id: l.id,
-            }))
-            .filter(l => l.t >= t0 && l.t <= t1);
-    }, [labResults, isTransmasc, t0, t1]);
+            }));
+    }, [labResults, isTransmasc]);
 
     // Dose markers sit on whichever axis their compound belongs to. A drug
     // with no level model has no curve to sit on, so it gets no marker.
-    const markers = useMemo(() => {
+    const allMarkers = useMemo(() => {
         if (!sim) return [];
         return events.map(e => {
             const isT = T_ESTERS.has(e.ester);
@@ -305,30 +323,51 @@ const ResultChart = ({
             else { const v = interpolateConcentration_E2(sim, e.timeH); value = v == null ? null : v * calibrationFn(e.timeH); axis = 'p'; }
             const v = value != null && Number.isFinite(value) ? value : 0;
             return { t: e.timeH * HOUR, v, axis, event: e };
-        }).filter((m): m is { t: number; v: number; axis: 'p' | 's'; event: DoseEvent } => !!m && m.t >= t0 && m.t <= t1);
-    }, [sim, events, isTransmasc, hasSecondary, calibrationFn, t0, t1]);
+        }).filter((m): m is { t: number; v: number; axis: 'p' | 's'; event: DoseEvent } => !!m);
+    }, [sim, events, isTransmasc, hasSecondary, calibrationFn]);
 
-    // Y domains scale to what's visible in the current window.
+    const onScreen = (time: number) => time >= Math.min(t0, vt0) && time <= Math.max(t1, vt1);
+    const labPoints = allLabPoints.filter(l => onScreen(l.t));
+    const markers = allMarkers.filter(m => onScreen(m.t));
+
+    // Y domains scale to the window being shown, and only that: the samples
+    // inside it, its two edges read off exactly, and the labs and doses in it.
+    // Not to whatever is mid-stretch on screen, which kept re-aiming the axis
+    // every frame of a range change, and not to the neighbouring sample just
+    // outside the window, which could stretch the axis to a peak off-screen.
+    const windowMax = useMemo(() => {
+        let p = -Infinity, s = -Infinity;
+        const take = (d: { p: number | null; s: number | null } | null) => {
+            if (!d) return;
+            if (d.p != null && d.p > p) p = d.p;
+            if (d.s != null && d.s > s) s = d.s;
+        };
+        take({ p: valueAt(data, 'p', t0), s: valueAt(data, 's', t0) });
+        take({ p: valueAt(data, 'p', t1), s: valueAt(data, 's', t1) });
+        for (const d of data) if (d.t >= t0 && d.t <= t1) take(d);
+        for (const l of allLabPoints) if (l.t >= t0 && l.t <= t1 && l.v > p) p = l.v;
+        for (const m of allMarkers) {
+            if (m.t < t0 || m.t > t1) continue;
+            if (m.axis === 'p' && m.v > p) p = m.v;
+            if (m.axis === 's' && m.v > s) s = m.v;
+        }
+        return { p, s };
+    }, [data, allLabPoints, allMarkers, t0, t1]);
+
     const yPrimary = useMemo(() => {
-        let mx = -Infinity;
-        for (const d of slice) if (d.p != null && d.p > mx) mx = d.p;
-        for (const l of labPoints) if (l.v > mx) mx = l.v;
-        for (const m of markers) if (m.axis === 'p' && m.v > mx) mx = m.v;
         // Keep the target band's lower edge on-screen so "below target" reads clearly,
         // without forcing the whole (often much higher) band into view.
-        mx = Math.max(mx, primaryTarget ? primaryTarget.low * 1.05 : CPA_AXIS_MIN);
+        const mx = Math.max(windowMax.p, primaryTarget ? primaryTarget.low * 1.05 : CPA_AXIS_MIN);
         return buildYDomain(0, mx);
-    }, [slice, labPoints, markers, primaryTarget]);
+    }, [windowMax, primaryTarget]);
 
     const ySecondary = useMemo(() => {
         if (!hasSecondary) return [0, 1] as [number, number];
-        let mx = CPA_AXIS_MIN;
-        for (const d of slice) if (d.s != null && d.s > mx) mx = d.s;
-        for (const m of markers) if (m.axis === 's' && m.v > mx) mx = m.v;
-        return buildYDomain(0, mx);
-    }, [slice, markers, hasSecondary]);
-    // The right-hand axis is only labelled while some of its curve is in view.
-    const cpaInView = hasSecondary && slice.some(d => d.s != null);
+        return buildYDomain(0, Math.max(CPA_AXIS_MIN, windowMax.s));
+    }, [windowMax, hasSecondary]);
+    // The right-hand axis is only labelled while the window holds a level of
+    // cyproterone worth reading; the curve itself is drawn either way.
+    const cpaInView = hasSecondary && cpaMeaningful(windowMax.s);
 
     // Layout. The plot is drawn in raw SVG units, so unlike the rest of the UI
     // it does not follow the root font size. Reading that size back keeps the
@@ -342,11 +381,19 @@ const ResultChart = ({
     }, [width, height]);
     const axisFont = 11 * ui;
 
-    const mL = 32 * ui;
-    // Mirrors the left gutter: the plot stays centred in the column, the last
-    // date label, centred on the plot's right edge, has room to finish, and
-    // the cyproterone axis has room for its labels.
-    const mR = mL;
+    // Gutters wide enough for the longest label they hold, so "5000" or
+    // "0.50" is never clipped by the edge of the plot. Digits run about 0.6em.
+    const labelW = (vals: number[]) => Math.max(0, ...vals.map(v => fmtAxis(v).length)) * axisFont * 0.6;
+    const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
+    const ysTickVals = useMemo(() => (cpaInView ? ticksFor(ySecondary) : []), [cpaInView, ySecondary]);
+    const mLTarget = Math.max(32 * ui, labelW(yTickVals) + 12 * ui);
+    // At least the left gutter, so the plot stays centred in the column and
+    // the last date label, centred on the plot's right edge, has room to
+    // finish; wider when the cyproterone axis needs it.
+    const mRTarget = Math.max(mLTarget, labelW(ysTickVals) + 12 * ui);
+    // A gutter that widens for "1000" eases with the axes rather than jumping
+    // the whole plot sideways at the start of a range change.
+    const [mL, mR] = useEasedPair([mLTarget, mRTarget], false);
     const mT = 14 * ui;
     const mB = 26 * ui;
     const plotW = Math.max(0, width - mL - mR);
@@ -452,8 +499,6 @@ const ResultChart = ({
     }, [t0, t1, plotW, lang, timeZone, mL, ui]);
 
     // Label sets for both axes, each carrying whatever it is replacing.
-    const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
-    const ysTickVals = useMemo(() => (cpaInView ? ticksFor(ySecondary) : []), [cpaInView, ySecondary]);
     const yFade = useFadingSet(yTickVals, yTickVals.join(','));
     const ysFade = useFadingSet(ysTickVals, ysTickVals.join(','));
     const xFade = useFadingSet(xTicks, xTicks.map(t => t.label).join('|'), dragging);
@@ -467,7 +512,7 @@ const ResultChart = ({
     const nowVal = useMemo(() => {
         if (!sim) return null;
         const h = now / HOUR;
-        if (primaryIsCPA) return cpaShown(interpolateConcentration_CPA(sim, h));
+        if (primaryIsCPA) return interpolateConcentration_CPA(sim, h);
         const v = isTransmasc
             ? interpolateConcentration_T(sim, h)
             : (() => { const e = interpolateConcentration_E2(sim, h); return e == null ? null : e * calibrationFn(h); })();
@@ -476,7 +521,7 @@ const ResultChart = ({
 
     // "Now" position on the secondary (CPA) curve.
     const nowValS = useMemo(
-        () => (sim && hasSecondary ? cpaShown(interpolateConcentration_CPA(sim, now / HOUR)) : null),
+        () => (sim && hasSecondary ? interpolateConcentration_CPA(sim, now / HOUR) : null),
         [sim, now, hasSecondary],
     );
 
@@ -486,7 +531,8 @@ const ResultChart = ({
         const rect = plotEl.getBoundingClientRect();
         const px = clientX - rect.left;
         if (px < mL || px > mL + plotW) { setHover(null); return; }
-        const time = t0 + ((px - mL) / plotW) * (t1 - t0);
+        // The window as drawn, which mid-stretch is not yet the target.
+        const time = vt0 + ((px - mL) / plotW) * (vt1 - vt0);
         let best = 0, bestDiff = Infinity;
         for (let i = 0; i < data.length; i++) {
             const diff = Math.abs(data[i].t - time);
