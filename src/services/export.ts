@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
-import { DoseEvent, LabResult, Ester, isTestosteroneEster, isT_LabUnit } from '../../logic';
+import { DoseEvent, LabResult, activeCompoundName, isT_LabUnit } from '../../logic';
 import { formatDate } from '../utils/helpers';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
 
@@ -33,7 +33,7 @@ export const exportToCSV = (data: ExportData): string => {
         rows.push([
             t('export.val.dose'),
             date,
-            isTestosteroneEster(e.ester) ? 'Testosterone' : e.ester === Ester.CPA ? 'Cyproterone Acetate' : 'Estradiol',
+            activeCompoundName(e.ester),
             e.doseMG,
             'mg',
             `${e.route} - ${e.ester}`

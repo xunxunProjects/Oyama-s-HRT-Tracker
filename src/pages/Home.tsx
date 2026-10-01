@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info, Share2, ChevronRight } from 'lucide-react';
-import { DoseEvent, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
+import { DoseEvent, Ester, SimulationResult, LabResult, getDoseAdvisory, getHormoneLevelAdvisory, isT_LabUnit, CPA_MIN_NGML } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import EstimateInfoModal from '../components/EstimateInfoModal';
@@ -22,6 +22,7 @@ import { headerAction, headerActionAccent } from '../components/PageHeader';
 interface HomeProps {
     t: (key: string) => string;
     currentLevel: number;
+    currentCPA: number;
     currentT: number;
     currentStatus: { label: string, color: string, bg: string, border: string } | null;
     events: DoseEvent[];
@@ -53,6 +54,7 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({
     t,
     currentLevel,
+    currentCPA,
     currentT,
     currentStatus,
     events,
@@ -78,6 +80,7 @@ const Home: React.FC<HomeProps> = ({
     onNavigateToPlan,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isMono = theme === 'mono';
     const [isEstimateInfoOpen, setIsEstimateInfoOpen] = React.useState(false);
     const { isTransmasc } = useHRTMode();
     const { showCats } = usePixelCats();
@@ -130,12 +133,16 @@ const Home: React.FC<HomeProps> = ({
         : { label: t('label.e2'), value: currentLevel, decimals: 1, unit: 'pg/ml', band: { low: 100, high: 200 }, domain: [10, 1000] as [number, number] };
 
     // The second reading, flush right at the same size as the first: for
-    // transmasc, the same total T in nmol/L. Transfem has none. Cyproterone
-    // used to sit here as an estimated level; it is now an item of the plan,
-    // with a line below saying whether today's was taken.
-    const companion = isTransmasc && currentT > 0
-        ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/l' }
-        : null;
+    // transmasc, the same total T in nmol/L; for transfem, cyproterone. Only
+    // shown once there is something to show: a permanent "CPA --" for anyone
+    // not taking it was just noise. An estimate under CPA_MIN_NGML goes in as
+    // 0, which reads "--", rather than a washed-out tail that never hits zero.
+    const hasCPA = !isTransmasc && events.some(e => e.ester === Ester.CPA);
+    const companion = isTransmasc
+        ? (currentT > 0 ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/l' } : null)
+        : hasCPA
+            ? { label: t('label.cpa_chart'), value: currentCPA >= CPA_MIN_NGML ? currentCPA : 0, decimals: 1, unit: 'ng/ml' }
+            : null;
 
     return (
         <>
@@ -325,6 +332,7 @@ const Home: React.FC<HomeProps> = ({
                                 labResults={labResults}
                                 calibrationFn={calibrationFn}
                                 isDarkMode={isDarkMode}
+                                isMono={isMono}
                             />
                         </div>
                         <DoseHeatmap

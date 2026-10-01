@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester } from '../../../logic';
+import { Route, Ester, isUnmodelledDrug } from '../../../logic';
 
 interface OralFieldsProps {
     ester: Ester;
@@ -20,11 +20,13 @@ const OralFields: React.FC<OralFieldsProps> = ({
     route
 }) => {
     const { t } = useTranslation();
+    // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
+    const rawOnly = ester === Ester.CPA || isUnmodelledDrug(ester);
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(ester !== Ester.E2) && (
-                <div className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || ester === Ester.CPA ? 'col-span-2' : ''}`}>
+                <div className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || rawOnly ? 'col-span-2' : ''}`}>
                     <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
                         type="number" inputMode="decimal"
@@ -38,7 +40,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                 </div>
             )}
 
-            {!(ester === Ester.EV && route === Route.oral) && ester !== Ester.CPA && (
+            {!(ester === Ester.EV && route === Route.oral) && !rawOnly && (
                 <div className={`space-y-1.5 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
                     <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_e2')}

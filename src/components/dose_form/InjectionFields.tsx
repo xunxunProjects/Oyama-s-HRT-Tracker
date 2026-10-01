@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route, Ester, isTestosteroneEster } from '../../../logic';
+import { Route, Ester, isTestosteroneEster, isUnmodelledDrug } from '../../../logic';
 
 interface InjectionFieldsProps {
     ester: Ester;
@@ -22,11 +22,13 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
     const { t } = useTranslation();
     const isT = isTestosteroneEster(ester);
     const equivLabelKey = isT ? 'field.dose_t' : 'field.dose_e2';
+    // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
+    const rawOnly = ester === Ester.CPA || isUnmodelledDrug(ester);
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(ester !== Ester.E2) && (
-                <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) ? 'col-span-2' : ''}`}>
+                <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) || rawOnly ? 'col-span-2' : ''}`}>
                     <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
                         type="number" inputMode="decimal"
@@ -39,7 +41,7 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
                     />
                 </div>
             )}
-            {!(ester === Ester.EV && route === Route.injection) && ester !== Ester.CPA && (
+            {!(ester === Ester.EV && route === Route.injection) && !rawOnly && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
                     <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t(equivLabelKey)}

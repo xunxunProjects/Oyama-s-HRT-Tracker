@@ -75,6 +75,7 @@ const AppContent = () => {
         calibrationHistoryMode, setCalibrationHistoryMode,
         calibration,
         currentLevel,
+        currentCPA,
         plan, savePlanItem, deletePlanItem,
         currentT,
         currentStatus,
@@ -471,6 +472,7 @@ const AppContent = () => {
                         <Home
                             t={t}
                             currentLevel={currentLevel}
+                            currentCPA={currentCPA}
                             currentT={currentT}
                             currentStatus={currentStatus}
                             events={events}

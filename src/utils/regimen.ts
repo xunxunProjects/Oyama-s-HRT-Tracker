@@ -1,7 +1,7 @@
 import {
     DoseEvent, Route, Ester, ExtraKey, LabResult, SimulationResult,
     CalibrationMethod, CalibrationHistoryMode,
-    runSimulation, computeCalibration, isTestosteroneEster,
+    runSimulation, computeCalibration, isTestosteroneEster, isKnownEster, UNMODELLED_DRUGS,
 } from '../../logic';
 
 /**
@@ -13,7 +13,12 @@ import {
  * the doses that recur at a steady interval.
  */
 
-export type Hormone = 'E2' | 'T' | 'AA';
+/**
+ * What a regimen works on. Raloxifene stands apart: it is neither estradiol nor
+ * an anti-androgen. 'other' is a drug code this build doesn't know, logged by
+ * a newer version: it must never be taken for the estradiol regimen.
+ */
+export type Hormone = 'E2' | 'T' | 'AA' | 'SERM' | 'other';
 
 export interface Regimen {
     /** route | ester | dose | the extras that change what the dose does */
@@ -41,7 +46,10 @@ const DETECT_WINDOW_H = 42 * 24;
 const MIN_DOSES = 3;
 
 export const hormoneOf = (ester: Ester): Hormone =>
-    ester === Ester.CPA ? 'AA' : isTestosteroneEster(ester) ? 'T' : 'E2';
+    !isKnownEster(ester) ? 'other'
+    : ester === Ester.RLX ? 'SERM'
+    : ester === Ester.CPA || UNMODELLED_DRUGS.has(ester) ? 'AA'
+    : isTestosteroneEster(ester) ? 'T' : 'E2';
 
 const signature = (e: Pick<DoseEvent, 'route' | 'ester' | 'doseMG' | 'extras'>) => [
     e.route, e.ester, e.doseMG.toFixed(3),

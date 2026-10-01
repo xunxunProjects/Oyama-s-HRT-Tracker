@@ -4,8 +4,9 @@ import { Plus, Trash2, ListChecks } from 'lucide-react';
 import Tick from '../components/Tick';
 import Switch from '../components/Switch';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isTestosteroneEster } from '../../logic';
+import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster } from '../../logic';
 import { formatTime } from '../utils/helpers';
+import { drugLabel } from '../utils/regimenText';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
 import LogDoodle from '../components/LogDoodle';
@@ -259,7 +260,7 @@ const History: React.FC<HistoryProps> = ({
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     <span className="font-medium text-[var(--text)] truncate text-sm">
-                                                        {ev.route === Route.patchRemove ? t('route.patchRemove') : t(`ester.${ev.ester}`)}
+                                                        {ev.route === Route.patchRemove ? t('route.patchRemove') : drugLabel(ev.ester, t)}
                                                     </span>
                                                     {isFuture && (
                                                         <span className={`shrink-0 text-[0.6875rem] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
@@ -280,7 +281,7 @@ const History: React.FC<HistoryProps> = ({
                                                 ) : ev.route !== Route.patchRemove && (
                                                     <>
                                                         <span className="text-[var(--text)] font-medium">{`${ev.doseMG.toFixed(2)} mg`}</span>
-                                                        {ev.ester !== Ester.E2 && ev.ester !== Ester.CPA && !isTestosteroneEster(ev.ester) && (
+                                                        {ev.ester !== Ester.E2 && isEstradiolEster(ev.ester) && (
                                                             <span className="opacity-70">
                                                                 {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
                                                             </span>

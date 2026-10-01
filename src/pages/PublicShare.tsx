@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Clock3, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
-import { DoseEvent, Ester, ExtraKey, getToE2Factor, isTestosteroneEster, Route } from '../../logic';
+import { DoseEvent, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster, Route } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
 import { LOCALE_MAP } from '../utils/helpers';
+import { drugLabel } from '../utils/regimenText';
 import { LockedShare, ShareApiError, ShareDetails, sharingService } from '../services/sharing';
 
 interface PublicShareProps {
@@ -375,7 +376,7 @@ const DoseHistoryRow = ({ event, time }: { event: DoseEvent; time: string }) => 
             <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                     <p className="truncate text-sm font-medium text-body">
-                        {isRemoval ? t('route.patchRemove') : t(`ester.${event.ester}`)}
+                        {isRemoval ? t('route.patchRemove') : drugLabel(event.ester, t)}
                     </p>
                     <time className="shrink-0 text-xs tabular-nums text-muted">{time}</time>
                 </div>
@@ -390,7 +391,7 @@ const DoseHistoryRow = ({ event, time }: { event: DoseEvent; time: string }) => 
                         <>
                             <span aria-hidden="true">·</span>
                             <span className="font-medium text-body">{event.doseMG.toFixed(2)} mg</span>
-                            {event.ester !== Ester.E2 && event.ester !== Ester.CPA && !isTestosteroneEster(event.ester) && (
+                            {event.ester !== Ester.E2 && isEstradiolEster(event.ester) && (
                                 <span>({t('label.e2')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)} mg)</span>
                             )}
                             {isTestosteroneEster(event.ester) && event.ester !== Ester.T && (

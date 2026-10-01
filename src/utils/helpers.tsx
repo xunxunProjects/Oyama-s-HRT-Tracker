@@ -101,7 +101,12 @@ export const getRouteIcon = (route: Route) => {
 export const getEsterIcon = (ester: Ester) => {
     switch (ester) {
         case Ester.E2: return <Atom className={iconMuted} />;
-        case Ester.CPA: return <Shield className={iconMuted} />;
+        case Ester.CPA:
+        case Ester.SPIRO:
+        case Ester.BICA:
+        case Ester.MPA:
+        case Ester.LEUP:
+        case Ester.TRIP: return <Shield className={iconMuted} />;
         case Ester.EV: return <Shell className={iconMuted} />;
         case Ester.EB: return <Hexagon className={iconMuted} />;
         case Ester.EC: return <Orbit className={iconMuted} />;
