@@ -50,7 +50,7 @@ const PageHeader: React.FC<{
         <>
             <div ref={setMarker} aria-hidden="true" className="h-0" />
             <div className={`glass sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_-1px_0_var(--border)]' : ''}`}>
-                <div className={`${PAGE_COLUMN} pt-7 pb-3.5 flex items-end justify-between gap-4`}>
+                <div className={`${PAGE_COLUMN} pt-4 pb-3 flex items-end justify-between gap-4`}>
                     <div className="min-w-0">
                         {onBack ? (
                             <button
@@ -65,7 +65,7 @@ const PageHeader: React.FC<{
                             <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</h1>
                         )}
                         {/* History pins its day labels at exactly this header's
-                            height (top-[94px]): 28 + 32 + 2 + 18 + 14. */}
+                            height (top-[80px]): 16 + 32 + 2 + 18 + 12. */}
                         {subtitle && <p className={`text-xs ${muted} mt-0.5`}>{subtitle}</p>}
                     </div>
                     {actions && <div className="flex items-center gap-1 -mr-2 shrink-0">{actions}</div>}

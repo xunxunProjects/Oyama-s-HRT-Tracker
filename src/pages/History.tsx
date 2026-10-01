@@ -236,7 +236,7 @@ const History: React.FC<HistoryProps> = ({
             <div className={PAGE_COLUMN}>
                 {groupedEvents.map(({ key, label, events: dayEvents }) => (
                     <div key={key} className="mb-6 last:mb-0">
-                        <div className="sticky top-[94px] z-10 bg-[var(--bg)] py-2">
+                        <div className="sticky top-[80px] z-10 bg-[var(--bg)] py-2">
               <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
                         </div>
                         <div>
