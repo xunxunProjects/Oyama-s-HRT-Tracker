@@ -5,7 +5,7 @@ import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateCo
          BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
          EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
 import { createDayLabelFormatter, toDayKey } from '../utils/helpers';
-import { detectRegimens, normalizeSupply, Supply } from '../utils/regimen';
+import { detectRegimens, dosesAhead, normalizeSupply, Supply } from '../utils/regimen';
 import { PlanItem, normalizePlanItem, legacyCpaItem, regimensFromPlan } from '../utils/plan';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -371,6 +371,26 @@ export const useAppData = (showDialog: ShowDialog) => {
         const nowH = currentTime.getTime() / 3600000;
         return plan.length ? regimensFromPlan(plan, events, nowH) : detectRegimens(events, nowH);
     }, [plan, events, currentTime]);
+
+    // The chart's future. The simulation above runs on the log alone, so past
+    // "now" it only ever drew the last dose washing out: a crash to zero on
+    // every visit, plan or no plan. This is the same model with each current
+    // regimen's next doses added, up to where that simulation ends. Keyed on
+    // those doses, not the clock, so it reruns when one is logged or a slot
+    // passes rather than every minute; and run on the last 120 days of the log,
+    // since older doses move the future by less than 0.01% (see MC_HISTORY_H).
+    const doses = useMemo(() => {
+        if (!simulation || !simulation.timeH.length) return [];
+        const nowH = currentTime.getTime() / 3600000;
+        return dosesAhead(regimens, nowH, simulation.timeH[simulation.timeH.length - 1]);
+    }, [simulation, regimens, currentTime]);
+    const dosesKey = doses.map(e => `${e.route}|${e.ester}|${e.doseMG}|${e.timeH}`).join(',');
+    const simulationAhead = useMemo<SimulationResult | null>(() => {
+        if (!doses.length) return null;
+        const fromH = Math.min(...doses.map(e => e.timeH)) - 120 * 24;
+        return runSimulation([...events.filter(e => e.timeH >= fromH), ...doses], weight);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dosesKey, events, weight]);
 
     // --- Derived State ---
     // Self-learning calibration: fits a personal amplitude (+ clearance, for the
@@ -1026,6 +1046,7 @@ export const useAppData = (showDialog: ShowDialog) => {
         plan, savePlanItem, deletePlanItem,
         currentT,
         currentStatus,
+        simulationAhead,
         groupedEvents,
         addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,

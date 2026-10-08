@@ -463,6 +463,24 @@ body {
     height: 1.5em;
     height: 1lh;
 }
+/* A control drawn smaller than a fingertip: the 32px header pills, a 26px
+   segment. On a touch screen its hit area grows to 44px tall around it, and
+   nothing moves: the pill keeps the size the design gives it. Whatever sits
+   above or below has to keep clear of that 44px, or one tap lands on two. */
+@media (pointer: coarse) {
+    .tap-target {
+        position: relative;
+    }
+    .tap-target::after {
+        content: '';
+        position: absolute;
+        inset-inline: 0;
+        top: 50%;
+        height: max(100%, 44px);
+        transform: translateY(-50%);
+    }
+}
+
 .text-muted {
     color: var(--text-muted);
 }
