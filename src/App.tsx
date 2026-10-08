@@ -79,6 +79,7 @@ const AppContent = () => {
         plan, savePlanItem, deletePlanItem,
         currentT,
         currentStatus,
+        simulationAhead,
         groupedEvents,
         addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
         addLabResult, updateLabResult, deleteLabResult, clearLabResults,
@@ -477,6 +478,7 @@ const AppContent = () => {
                             currentStatus={currentStatus}
                             events={events}
                             simulation={simulation}
+                            simulationAhead={simulationAhead}
                             labResults={labResults}
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}

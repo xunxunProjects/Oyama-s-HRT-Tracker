@@ -82,7 +82,7 @@ const DoseHeatmap = ({
     }, [width]);
 
     const gutter = 20 * ui;   // weekday labels down the left
-    const header = 14 * ui;   // month labels across the top
+    const header = 15 * ui;   // month labels across the top
     const gap = 3 * ui;
 
     // How many weeks fit, then the square size that divides that span exactly —
@@ -192,8 +192,8 @@ const DoseHeatmap = ({
     const dayLabel = useMemo(() => createDayLabelFormatter(lang), [lang]);
     const doseLabel = (n: number) =>
         n === 1 ? t('heatmap.dose_one') : t('heatmap.doses').replace('{n}', String(n));
-    // The grid shows no heading or tally of its own; this is the whole of what a
-    // screen reader gets before the per-day detail in the tooltip.
+    // Shown under the heading, and the grid's name for a screen reader ahead of
+    // the per-day detail in the tooltip.
     const summary = (total === 1 ? t('heatmap.summary_one') : t('heatmap.summary').replace('{n}', String(total)))
         .replace('{d}', String(days));
 
@@ -275,6 +275,16 @@ const DoseHeatmap = ({
 
     return (
         <div className={`w-full ${className}`}>
+            {/* Named on screen, like the chart. Untitled, its row of month
+                names was the first thing under a phone's nav bar and read as
+                the chart's own date axis: a 7-day chart that seemed to run
+                from June to October. The same 32px row as the chart's header
+                (its range switch is sized in px, so this is too, not in rem),
+                so side by side on a wide screen the two headings line up. */}
+            <div className="flex h-[32px] items-center justify-between gap-3 mb-2">
+                <h2 className="text-sm font-medium text-[var(--text)] truncate">{t('heatmap.title')}</h2>
+                <p className="shrink-0 text-xs text-[var(--text-muted)] tabular-nums">{summary}</p>
+            </div>
             <div ref={setWrapEl} className="relative select-none touch-pan-y">
                 {weeks > 0 && (
                     <svg
@@ -296,7 +306,7 @@ const DoseHeatmap = ({
                                 key={`mo-${m.col}`}
                                 className="chart-appear"
                                 x={x(m.col)} y={header - 5 * ui}
-                                fontSize={11 * ui} fill={c.axis}
+                                fontSize={12 * ui} fill={c.axis}
                             >
                                 {m.label}
                             </text>
@@ -306,8 +316,8 @@ const DoseHeatmap = ({
                             <text
                                 key={`wd-${w.row}`}
                                 className="chart-appear"
-                                x={gutter - 6 * ui} y={y(w.row) + cell / 2 + 3 * ui}
-                                textAnchor="end" fontSize={11 * ui} fill={c.axis}
+                                x={gutter - 6 * ui} y={y(w.row) + cell / 2 + 4 * ui}
+                                textAnchor="end" fontSize={12 * ui} fill={c.axis}
                             >
                                 {w.label}
                             </text>
@@ -353,14 +363,14 @@ const DoseHeatmap = ({
                         className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{ left: tipLeft, top: tipTop }}
                     >
-                        <div className="text-[0.6875rem] whitespace-nowrap text-[var(--text-muted)]">
+                        <div className="text-[0.75rem] whitespace-nowrap text-[var(--text-muted)]">
                             {dayLabel(hover.date)}
                         </div>
                         <div className="text-xs font-medium whitespace-nowrap text-[var(--text)]">
                             {hover.count > 0 ? doseLabel(hover.count) : t('heatmap.none')}
                         </div>
                         {hoverMg.map(([ester, mg]) => (
-                            <div key={ester} className="text-[0.6875rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]">
+                            <div key={ester} className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]">
                                 {ester} · {mg.toFixed(2)} mg
                             </div>
                         ))}

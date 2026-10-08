@@ -144,6 +144,27 @@ function continuation(r: Regimen, untilH: number, fromH = -Infinity): DoseEvent[
     return out;
 }
 
+/**
+ * Every current regimen's doses from now up to `untilH`, on its own rhythm:
+ * the future the Overview chart draws, dashed, past its "now" line.
+ *
+ * Unlike the what-if, a dose already due and not yet in is not skipped: the
+ * plan rows above the chart call it still due, so here it goes in on the next
+ * whole hour (whole, so the projection reruns hourly rather than every minute
+ * it waits). Not when the next one on the rhythm is under half an interval
+ * away; that one stands in for it.
+ */
+export const dosesAhead = (regimens: Regimen[], nowH: number, untilH: number): DoseEvent[] =>
+    regimens.flatMap(r => {
+        const out = continuation(r, untilH, nowH);
+        const dueH = Math.max(r.lastH, ...r.scheduledH) + r.intervalH;
+        const atH = Math.ceil(nowH);
+        if (dueH < nowH && atH <= untilH && !(out.length && out[0].timeH - atH < r.intervalH / 2)) {
+            out.unshift({ id: `due-${r.key}`, route: r.route, ester: r.ester, timeH: atH, doseMG: r.doseMG, extras: r.extras });
+        }
+        return out;
+    });
+
 export interface PlanSpec {
     route: Route;
     ester: Ester;

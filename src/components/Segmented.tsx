@@ -67,7 +67,7 @@ function Segmented<K extends string>({ options, value, onChange, className = '',
                         role="tab"
                         aria-selected={selected}
                         onClick={() => onChange(id)}
-                        className={`relative z-[1] grid h-[26px] items-center rounded-full px-3 text-[0.8125rem] leading-[1.125rem] whitespace-nowrap ${selected ? 'text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                        className={`tap-target relative z-[1] grid h-[26px] items-center rounded-full px-3 text-[0.8125rem] leading-[1.125rem] whitespace-nowrap ${selected ? 'text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
                         <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">{label}</span>
                         <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : 'font-medium'}`}>{label}</span>

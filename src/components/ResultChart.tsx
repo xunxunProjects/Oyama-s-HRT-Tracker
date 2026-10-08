@@ -152,8 +152,19 @@ const valueAt = (data: { t: number; p: number | null; s: number | null }[], key:
 // tail of a dose washing out, the curve would otherwise fill the plot.
 const CPA_AXIS_MIN = 1;
 
+// Past "now" every curve is an assumption rather than a record, and is drawn
+// dashed. Where a curve is already dotted (mono, to tell CPA apart) it keeps
+// its dots and the ahead part just steps back.
+const AHEAD_DASH = '5 4';
+const AHEAD_OPACITY = 0.7;
+
+/** What the curve past "now" assumes: the plan's doses, the rhythm read off the log, or none at all. */
+export type AheadBasis = 'plan' | 'rhythm' | 'none';
+
 const ResultChart = ({
     sim,
+    ahead = null,
+    aheadBasis = 'none',
     events,
     labResults = [],
     calibrationFn = (_t: number) => 1,
@@ -165,6 +176,9 @@ const ResultChart = ({
     timeZone,
 }: {
     sim: SimulationResult | null;
+    /** `sim` run on with the doses `aheadBasis` expects; drawn in its place after "now". */
+    ahead?: SimulationResult | null;
+    aheadBasis?: AheadBasis;
     events: DoseEvent[];
     labResults?: LabResult[];
     calibrationFn?: (timeH: number) => number;
@@ -222,20 +236,6 @@ const ResultChart = ({
         return { low: 100, high: 200 };
     }, [isTransmasc, primaryIsCPA]);
 
-    // Resample the simulation into the (time, primary, secondary) shape we
-    // plot. Cyproterone is drawn as modelled, all the way down, so its curve
-    // never breaks off as a dose washes out.
-    const data = useMemo(() => {
-        if (!sim || sim.timeH.length === 0) return [] as { t: number; p: number | null; s: number | null }[];
-        return sim.timeH.map((h, i) => {
-            const time = h * HOUR;
-            if (isTransmasc) return { t: time, p: sim.concNGdL_T?.[i] ?? 0, s: null };
-            const cpa = sim.concPGmL_CPA[i] ?? 0;
-            if (primaryIsCPA) return { t: time, p: cpa, s: null };
-            return { t: time, p: sim.concPGmL_E2[i] * calibrationFn(h), s: hasSecondary ? cpa : null };
-        });
-    }, [sim, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
-
     // A clock that ticks, not one that is read on every render. `now` anchors the
     // visible window, the "now" marker and the calibration read-off; taking it
     // from Date.now() inline made every one of those a fresh value on each of the
@@ -247,6 +247,38 @@ const ResultChart = ({
         const id = setInterval(() => setNow(Date.now()), 60000);
         return () => clearInterval(id);
     }, []);
+
+    // Resample the simulation into the (time, primary, secondary) shape we
+    // plot, `f` marking samples after "now". Those come from `ahead` when
+    // there is one, up to where `sim` itself ends, so the window spans the
+    // same dates either way. Cyproterone is drawn as modelled, all the way
+    // down, so its curve never breaks off as a dose washes out.
+    const data = useMemo(() => {
+        type Pt = { t: number; p: number | null; s: number | null; f: boolean };
+        if (!sim || sim.timeH.length === 0) return [] as Pt[];
+        const nowH = now / HOUR;
+        const point = (src: SimulationResult, i: number): Pt => {
+            const h = src.timeH[i];
+            const time = h * HOUR;
+            const f = h > nowH;
+            if (isTransmasc) return { t: time, p: src.concNGdL_T?.[i] ?? 0, s: null, f };
+            const cpa = src.concPGmL_CPA[i] ?? 0;
+            if (primaryIsCPA) return { t: time, p: cpa, s: null, f };
+            return { t: time, p: src.concPGmL_E2[i] * calibrationFn(h), s: hasSecondary ? cpa : null, f };
+        };
+        const out: Pt[] = [];
+        for (let i = 0; i < sim.timeH.length; i++) {
+            if (ahead && sim.timeH[i] > nowH) break;
+            out.push(point(sim, i));
+        }
+        if (ahead) {
+            const endH = sim.timeH[sim.timeH.length - 1];
+            for (let i = 0; i < ahead.timeH.length && ahead.timeH[i] <= endH; i++) {
+                if (ahead.timeH[i] > nowH) out.push(point(ahead, i));
+            }
+        }
+        return out;
+    }, [sim, ahead, now, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
 
     const fullMin = data.length ? data[0].t : now;
     const fullMax = data.length ? data[data.length - 1].t : now;
@@ -379,7 +411,8 @@ const ResultChart = ({
         const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width, height]);
-    const axisFont = 11 * ui;
+    // 12px, the design system's floor for anything meant to be read.
+    const axisFont = 12 * ui;
 
     // Gutters wide enough for the longest label they hold, so "5000" or
     // "0.50" is never clipped by the edge of the plot. Digits run about 0.6em.
@@ -463,7 +496,9 @@ const ResultChart = ({
         return out;
     };
 
-    const linePath = (key: 'p' | 's') => {
+    // One series, either the run up to "now" or the run after it. The run
+    // after starts from the last sample before, so the two meet at the line.
+    const linePath = (key: 'p' | 's', after: boolean) => {
         let d = '';
         let xs: number[] = [];
         let ys: number[] = [];
@@ -472,9 +507,11 @@ const ResultChart = ({
             xs = [];
             ys = [];
         };
-        for (const pt of slice) {
+        for (let i = 0; i < slice.length; i++) {
+            const pt = slice[i];
+            const inRun = after ? pt.f || !!slice[i + 1]?.f : !pt.f;
             const val = pt[key];
-            if (val == null || !Number.isFinite(val)) { flush(); continue; }
+            if (!inRun || val == null || !Number.isFinite(val)) { flush(); continue; }
             xs.push(X(pt.t));
             ys.push(key === 'p' ? YP(val) : YS(val));
         }
@@ -608,23 +645,18 @@ const ResultChart = ({
                 <h2 className="text-sm font-medium text-[var(--text)] truncate">
                     {title ?? t('chart.title')}
                 </h2>
-                <div className="flex items-center gap-2 shrink-0">
-                    {Math.abs(calFactor - 1) > 0.001 && (
-                        <span className="text-[0.6875rem] text-[var(--text-muted)] opacity-70 tabular-nums">
-                            {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
-                        </span>
-                    )}
-                    <Segmented
-                        options={rangeOpts.map(o => ({ id: o.key, label: o.label }))}
-                        value={range}
-                        onChange={selectRange}
-                        aria-label={title ?? t('chart.title')}
-                    />
-                </div>
+                <Segmented
+                    options={rangeOpts.map(o => ({ id: o.key, label: o.label }))}
+                    value={range}
+                    onChange={selectRange}
+                    aria-label={title ?? t('chart.title')}
+                />
             </div>
 
-            {/* Legend — always visible so each line is labelled, on mobile too */}
-            <div className="flex items-center gap-4 mb-1 text-[0.6875rem] text-[var(--text-muted)]">
+            {/* Legend — always visible so each line is labelled, on mobile too.
+                The calibration factor closes it: in the title row it cut the
+                title to "Hormon…" on a phone. Wraps rather than squeezing. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1 text-[0.75rem] text-[var(--text-muted)]">
                 <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
@@ -640,6 +672,18 @@ const ResultChart = ({
                             }}
                         />
                         {t('label.cpa_chart')}
+                    </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                    <span
+                        className="w-3.5 h-[2px]"
+                        style={{ background: `repeating-linear-gradient(90deg, ${c.axis} 0, ${c.axis} 5px, transparent 5px, transparent 9px)` }}
+                    />
+                    {t(`chart.ahead_${aheadBasis}`)}
+                </span>
+                {Math.abs(calFactor - 1) > 0.001 && (
+                    <span className="ms-auto tabular-nums">
+                        {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
                     </span>
                 )}
             </div>
@@ -682,7 +726,7 @@ const ResultChart = ({
                                     <rect x={mL} y={yHi} width={plotW} height={yLo - yHi} fill={c.primary} opacity={0.06} />
                                     {inView(rawLo) && <line x1={mL} y1={yLo} x2={mL + plotW} y2={yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
                                     {inView(rawHi) && <line x1={mL} y1={yHi} x2={mL + plotW} y2={yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    <text x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, yHi + 11 * ui)} fontSize={9 * ui} fill={c.axis} opacity={0.75}>{t('chart.target')}</text>
+                                    <text x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, yHi + 14 * ui)} fontSize={axisFont} fill={c.axis}>{t('chart.target')}</text>
                                 </g>
                             );
                         })()}
@@ -703,7 +747,7 @@ const ResultChart = ({
                                                style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}>
                                                 <line x1={mL} y1={y} x2={mL + plotW} y2={y} stroke={c.grid} strokeWidth={1} />
                                                 {roomFor(set) && (
-                                                    <text x={mL - 8 * ui} y={y + 3 * ui} textAnchor="end" fontSize={axisFont} fill={c.axis}>{fmtAxis(v)}</text>
+                                                    <text x={mL - 8 * ui} y={y + 4 * ui} textAnchor="end" fontSize={axisFont} fill={c.axis}>{fmtAxis(v)}</text>
                                                 )}
                                             </g>
                                         );
@@ -723,7 +767,7 @@ const ResultChart = ({
                                             <text key={`ys-${i}`}
                                                   className={tag === 'in' ? 'chart-appear' : undefined}
                                                   style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
-                                                  x={mL + plotW + 8 * ui} y={y + 3 * ui} textAnchor="start"
+                                                  x={mL + plotW + 8 * ui} y={y + 4 * ui} textAnchor="start"
                                                   fontSize={axisFont} fill={c.faint}>{fmtAxis(v)}</text>
                                         );
                                     })}
@@ -753,11 +797,15 @@ const ResultChart = ({
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
                                 {/* Primary curve — dotted in mono when it's the CPA series */}
-                                <path d={linePath('p')} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
+                                <path d={linePath('p', false)} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined} />
+                                <path d={linePath('p', true)} fill="none" stroke={c.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono && primaryIsCPA ? '2 5' : AHEAD_DASH} opacity={AHEAD_OPACITY} />
 
                                 {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
                                 {hasSecondary && (
-                                    <path d={linePath('s')} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
+                                    <>
+                                        <path d={linePath('s', false)} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : undefined} />
+                                        <path d={linePath('s', true)} fill="none" stroke={c.second} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={isMono ? '2 5' : AHEAD_DASH} opacity={AHEAD_OPACITY} />
+                                    </>
                                 )}
                             </g>
 
@@ -831,7 +879,7 @@ const ResultChart = ({
                             transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className="text-[0.6875rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
+                        <div className="text-[0.75rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
                             {formatDate(new Date(hoverPt!.t), lang, timeZone)} · {formatTime(new Date(hoverPt!.t), timeZone)}
                         </div>
                         {/* A curve too low to show reads "--", and has no unit. */}
@@ -840,7 +888,7 @@ const ResultChart = ({
                                 {hoverPt!.p != null ? hoverPt!.p.toFixed(primaryMeta.decimals) : '--'}
                             </span>
                             {hoverPt!.p != null && (
-                                <span className="text-[0.6875rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
+                                <span className="text-[0.75rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
                             )}
                         </div>
                         {hasSecondary && (
@@ -849,7 +897,7 @@ const ResultChart = ({
                                     {hoverPt!.s != null ? hoverPt!.s.toFixed(2) : '--'}
                                 </span>
                                 {hoverPt!.s != null && (
-                                    <span className="text-[0.6875rem] text-[var(--text-muted)]">ng/ml</span>
+                                    <span className="text-[0.75rem] text-[var(--text-muted)]">ng/ml</span>
                                 )}
                             </div>
                         )}
