@@ -33,8 +33,6 @@ const WAVE_MS = 7;
 const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone = '' }) => {
     const [row, setRow] = React.useState<HTMLDivElement | null>(null);
     const { width } = useElementSize(row);
-    const [labelEl, setLabelEl] = React.useState<HTMLSpanElement | null>(null);
-    const { width: labelW } = useElementSize(labelEl);
     const count = width ? Math.min(96, Math.max(24, Math.round(width / TICK_PITCH))) : 48;
     const last = count - 1;
 
@@ -47,23 +45,6 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
     // Centre of tick i. Each tick sits in a 2px slot spread edge to edge.
     const x = (i: number) => `calc(1px + ${(i / last).toFixed(4)} * (100% - 2px))`;
 
-    // The label's left edge, once both widths are known. Beside a second
-    // reading the scale is only as wide as the first one's column, and a long
-    // status ("非針劑女性向 GAHT 目標") can be wider than that: it then starts
-    // at the scale's left end and runs on to the right, into the empty space
-    // under the second reading, rather than off the left of the page.
-    const labelLeft = width && labelW
-        ? Math.max(0, 1 + (cur / last) * (width - 2) - (cur / last) * labelW)
-        : null;
-
-    // The band's two figures, under its ends. On a short scale the band is
-    // only a few ticks wide and "100" and "200" ran into each other ("10200"),
-    // so there they become one "100–200" under its middle.
-    const bandPx = width ? ((bandR - bandL) / last) * (width - 2) : Infinity;
-    const bandLabels = bandPx < 36
-        ? [{ at: (bandL + bandR) / 2, text: `${band.low}–${band.high}` }]
-        : [{ at: bandL, text: String(band.low) }, { at: bandR, text: String(band.high) }];
-
     return (
         // A scale reads left to right whatever the page direction.
         <div dir="ltr" className="relative select-none pt-5 pb-[18px]" aria-hidden="true">
@@ -72,12 +53,10 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
                 runs off either end. Lands once the wave has reached its tick. */}
             {label && (
                 <span
-                    ref={setLabelEl}
                     className={`rail-label absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
                     style={{
-                        ...(labelLeft != null
-                            ? { left: labelLeft }
-                            : { left: x(cur), transform: `translateX(-${((cur / last) * 100).toFixed(2)}%)` }),
+                        left: x(cur),
+                        transform: `translateX(-${((cur / last) * 100).toFixed(2)}%)`,
                         animationDelay: `${cur * WAVE_MS + 180}ms`,
                     }}
                 >
@@ -105,13 +84,13 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
                 })}
             </div>
 
-            {bandLabels.map(({ at, text }) => (
+            {([[bandL, band.low], [bandR, band.high]] as const).map(([i, v]) => (
                 <span
-                    key={text}
-                    className="rail-label absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-[0.75rem] font-medium leading-none tabular-nums text-[var(--text-muted)]"
-                    style={{ left: x(at), animationDelay: `${Math.round(at) * WAVE_MS + 120}ms` }}
+                    key={v}
+                    className="rail-label absolute bottom-0 -translate-x-1/2 text-[0.75rem] font-medium leading-none tabular-nums text-[var(--text-muted)]"
+                    style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
                 >
-                    {text}
+                    {v}
                 </span>
             ))}
         </div>

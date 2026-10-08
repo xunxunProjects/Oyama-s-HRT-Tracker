@@ -163,6 +163,7 @@ export type AheadBasis = 'plan' | 'rhythm' | 'none';
 
 const ResultChart = ({
     sim,
+    showAhead = false,
     ahead = null,
     aheadBasis = 'none',
     events,
@@ -176,6 +177,8 @@ const ResultChart = ({
     timeZone,
 }: {
     sim: SimulationResult | null;
+    /** Carry the curves on past "now", dashed. Off, they end at the "now" dot. */
+    showAhead?: boolean;
     /** `sim` run on with the doses `aheadBasis` expects; drawn in its place after "now". */
     ahead?: SimulationResult | null;
     aheadBasis?: AheadBasis;
@@ -251,8 +254,10 @@ const ResultChart = ({
     // Resample the simulation into the (time, primary, secondary) shape we
     // plot, `f` marking samples after "now". Those come from `ahead` when
     // there is one, up to where `sim` itself ends, so the window spans the
-    // same dates either way. Cyproterone is drawn as modelled, all the way
-    // down, so its curve never breaks off as a dose washes out.
+    // same dates either way. With `showAhead` off there are none: the data
+    // stops at "now", on a point read off exactly there so the line meets
+    // the dot. Cyproterone is drawn as modelled, all the way down, so its
+    // curve never breaks off as a dose washes out.
     const data = useMemo(() => {
         type Pt = { t: number; p: number | null; s: number | null; f: boolean };
         if (!sim || sim.timeH.length === 0) return [] as Pt[];
@@ -268,20 +273,33 @@ const ResultChart = ({
         };
         const out: Pt[] = [];
         for (let i = 0; i < sim.timeH.length; i++) {
-            if (ahead && sim.timeH[i] > nowH) break;
+            if (sim.timeH[i] > nowH) {
+                if (!showAhead && i > 0) {
+                    const a = point(sim, i - 1), b = point(sim, i);
+                    const k = (now - a.t) / (b.t - a.t || 1);
+                    const lerp = (x: number | null, y: number | null) => (x == null || y == null ? x ?? y : x + (y - x) * k);
+                    out.push({ t: now, p: lerp(a.p, b.p), s: lerp(a.s, b.s), f: false });
+                }
+                if (!showAhead || ahead) break;
+            }
             out.push(point(sim, i));
         }
-        if (ahead) {
+        if (showAhead && ahead) {
             const endH = sim.timeH[sim.timeH.length - 1];
             for (let i = 0; i < ahead.timeH.length && ahead.timeH[i] <= endH; i++) {
                 if (ahead.timeH[i] > nowH) out.push(point(ahead, i));
             }
         }
         return out;
-    }, [sim, ahead, now, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
+    }, [sim, showAhead, ahead, now, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
 
     const fullMin = data.length ? data[0].t : now;
-    const fullMax = data.length ? data[data.length - 1].t : now;
+    const dataMax = data.length ? data[data.length - 1].t : now;
+    // Ending at "now", the window keeps a sliver of room past it (3% of what
+    // is shown), so the "now" dot sits inside the plot rather than half cut
+    // off by its right edge.
+    const fullMax = showAhead ? dataMax
+        : dataMax + 0.03 * (range === '7d' ? 7 * DAY : range === '30d' ? 30 * DAY : dataMax - fullMin);
 
     // Base window (before drag) — centered on "now" for 7d/30d, full span for "all".
     const baseWindow = useMemo<[number, number]>(() => {
@@ -360,7 +378,9 @@ const ResultChart = ({
 
     const onScreen = (time: number) => time >= Math.min(t0, vt0) && time <= Math.max(t1, vt1);
     const labPoints = allLabPoints.filter(l => onScreen(l.t));
-    const markers = allMarkers.filter(m => onScreen(m.t));
+    // A dose already in the log for later has no curve to sit on while the
+    // chart stops at "now", so it waits until the prediction is shown.
+    const markers = allMarkers.filter(m => onScreen(m.t) && (showAhead || m.t <= now));
 
     // Y domains scale to the window being shown, and only that: the samples
     // inside it, its two edges read off exactly, and the labs and doses in it.
@@ -379,12 +399,13 @@ const ResultChart = ({
         for (const d of data) if (d.t >= t0 && d.t <= t1) take(d);
         for (const l of allLabPoints) if (l.t >= t0 && l.t <= t1 && l.v > p) p = l.v;
         for (const m of allMarkers) {
+            if (!showAhead && m.t > now) continue;
             if (m.t < t0 || m.t > t1) continue;
             if (m.axis === 'p' && m.v > p) p = m.v;
             if (m.axis === 's' && m.v > s) s = m.v;
         }
         return { p, s };
-    }, [data, allLabPoints, allMarkers, t0, t1]);
+    }, [data, allLabPoints, allMarkers, t0, t1, showAhead, now]);
 
     const yPrimary = useMemo(() => {
         // Keep the target band's lower edge on-screen so "below target" reads clearly,
@@ -674,13 +695,15 @@ const ResultChart = ({
                         {t('label.cpa_chart')}
                     </span>
                 )}
-                <span className="flex items-center gap-1.5">
-                    <span
-                        className="w-3.5 h-[2px]"
-                        style={{ background: `repeating-linear-gradient(90deg, ${c.axis} 0, ${c.axis} 5px, transparent 5px, transparent 9px)` }}
-                    />
-                    {t(`chart.ahead_${aheadBasis}`)}
-                </span>
+                {showAhead && (
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            className="w-3.5 h-[2px]"
+                            style={{ background: `repeating-linear-gradient(90deg, ${c.axis} 0, ${c.axis} 5px, transparent 5px, transparent 9px)` }}
+                        />
+                        {t(`chart.ahead_${aheadBasis}`)}
+                    </span>
+                )}
                 {Math.abs(calFactor - 1) > 0.001 && (
                     <span className="ms-auto tabular-nums">
                         {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}

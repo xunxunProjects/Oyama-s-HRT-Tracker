@@ -192,8 +192,8 @@ const DoseHeatmap = ({
     const dayLabel = useMemo(() => createDayLabelFormatter(lang), [lang]);
     const doseLabel = (n: number) =>
         n === 1 ? t('heatmap.dose_one') : t('heatmap.doses').replace('{n}', String(n));
-    // Shown under the heading, and the grid's name for a screen reader ahead of
-    // the per-day detail in the tooltip.
+    // The grid shows no heading or tally of its own; this is the whole of what a
+    // screen reader gets before the per-day detail in the tooltip.
     const summary = (total === 1 ? t('heatmap.summary_one') : t('heatmap.summary').replace('{n}', String(total)))
         .replace('{d}', String(days));
 
@@ -275,16 +275,6 @@ const DoseHeatmap = ({
 
     return (
         <div className={`w-full ${className}`}>
-            {/* Named on screen, like the chart. Untitled, its row of month
-                names was the first thing under a phone's nav bar and read as
-                the chart's own date axis: a 7-day chart that seemed to run
-                from June to October. The same 32px row as the chart's header
-                (its range switch is sized in px, so this is too, not in rem),
-                so side by side on a wide screen the two headings line up. */}
-            <div className="flex h-[32px] items-center justify-between gap-3 mb-2">
-                <h2 className="text-sm font-medium text-[var(--text)] truncate">{t('heatmap.title')}</h2>
-                <p className="shrink-0 text-xs text-[var(--text-muted)] tabular-nums">{summary}</p>
-            </div>
             <div ref={setWrapEl} className="relative select-none touch-pan-y">
                 {weeks > 0 && (
                     <svg
