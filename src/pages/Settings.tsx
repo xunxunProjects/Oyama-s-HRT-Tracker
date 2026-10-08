@@ -45,6 +45,8 @@ interface SettingsProps {
     setDevMode: (v: boolean) => void;
     hideSiteLabel: boolean;
     setHideSiteLabel: (v: boolean) => void;
+    showPrediction: boolean;
+    setShowPrediction: (v: boolean) => void;
     onNavigateToMilkTea: () => void;
     onNavigateToCatStates: () => void;
     isAdmin: boolean;
@@ -108,7 +110,7 @@ const Settings: React.FC<SettingsProps> = ({
     weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
     onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
     onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
-    devMode, setDevMode, hideSiteLabel, setHideSiteLabel, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
+    devMode, setDevMode, hideSiteLabel, setHideSiteLabel, showPrediction, setShowPrediction, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
     onNavigateToSupplies, supplyCount,
 }) => {
     const { mode } = useHRTMode();
@@ -196,6 +198,12 @@ const Settings: React.FC<SettingsProps> = ({
                     label={t('settings.theme')}
                     value={t(`theme.${theme}`)}
                     onClick={() => navTo(onNavigateToAppearance, 'general')}
+                />
+                <SwitchRow
+                    label={t('settings.prediction')}
+                    desc={t('settings.prediction_desc')}
+                    checked={showPrediction}
+                    onChange={setShowPrediction}
                 />
                 <SwitchRow
                     label={t('settings.pixel_cats')}

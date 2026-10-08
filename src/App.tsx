@@ -63,6 +63,16 @@ const AppContent = () => {
     const { user, token, logout, needsSetup2FA, clearSetup2FA } = useAuth();
     const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
+    // --- Prediction curve: the Overview chart carried on past "now", dashed,
+    // on the plan's doses. Off unless switched on in Settings; a display
+    // preference, so it stays on the device. ---
+    const [showPrediction, setShowPrediction] = useState<boolean>(() =>
+        localStorage.getItem('app-show-prediction') === 'true'
+    );
+    useEffect(() => {
+        localStorage.setItem('app-show-prediction', String(showPrediction));
+    }, [showPrediction]);
+
     // Use Custom Hooks
     const {
         events,
@@ -96,7 +106,7 @@ const AppContent = () => {
         currentTime,
         regimens,
         supplies, saveSupply, deleteSupply,
-    } = useAppData(showDialog);
+    } = useAppData(showDialog, { withPrediction: showPrediction });
     const nowH = currentTime.getTime() / 3600000;
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
     const [supplyLeadDays, setSupplyLeadDaysState] = useState(() => Number(localStorage.getItem('hrt-supply-lead-days')) || 14);
@@ -479,6 +489,7 @@ const AppContent = () => {
                             events={events}
                             simulation={simulation}
                             simulationAhead={simulationAhead}
+                            showPrediction={showPrediction}
                             labResults={labResults}
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}
@@ -621,6 +632,8 @@ const AppContent = () => {
                             setDevMode={setDevMode}
                             hideSiteLabel={hideSiteLabel}
                             setHideSiteLabel={setHideSiteLabel}
+                            showPrediction={showPrediction}
+                            setShowPrediction={setShowPrediction}
                             onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
                             onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
                             isAdmin={!!user?.isAdmin}

@@ -29,6 +29,8 @@ interface HomeProps {
     simulation: SimulationResult | null;
     /** The same model with the regimens' next doses added: what the chart draws, dashed, after "now". */
     simulationAhead: SimulationResult | null;
+    /** Whether the chart carries on past "now" at all (Settings, off by default). */
+    showPrediction: boolean;
     labResults: LabResult[];
     onEditEvent: (e: DoseEvent) => void;
     calibrationFn: (timeH: number) => number;
@@ -62,6 +64,7 @@ const Home: React.FC<HomeProps> = ({
     events,
     simulation,
     simulationAhead,
+    showPrediction,
     labResults,
     onEditEvent,
     calibrationFn,
@@ -248,12 +251,11 @@ const Home: React.FC<HomeProps> = ({
                         </span>
                     ) : <span />}
 
-                    {/* The scale reads the first number only, so beside a
-                        second one it keeps to the first one's column. Run
-                        under both, its "you are here" tick landed right below
-                        the cyproterone figure. */}
+                    {/* The scale runs the full width under both readings. Kept
+                        to the first one's column beside a second reading, it
+                        came out too short to read. */}
                     {primary.value > 0 && (
-                        <div className={`mt-0.5 ${companion ? '' : 'col-span-2'}`}>
+                        <div className="col-span-2 mt-0.5">
                             <LevelRail
                                 value={primary.value}
                                 band={primary.band}
@@ -393,6 +395,7 @@ const Home: React.FC<HomeProps> = ({
                         <div className="min-w-0 2xl:flex-1 2xl:max-w-2xl">
                             <ResultChart
                                 sim={simulation}
+                                showAhead={showPrediction}
                                 ahead={simulationAhead}
                                 aheadBasis={simulationAhead ? (plan.length ? 'plan' : 'rhythm') : 'none'}
                                 events={events}

@@ -96,7 +96,8 @@ export interface DoseDayGroup {
     events: DoseEvent[];
 }
 
-export const useAppData = (showDialog: ShowDialog) => {
+/** `withPrediction`: run the look-ahead simulation the Overview chart draws past "now". Off by default in Settings. */
+export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: { withPrediction?: boolean } = {}) => {
     const { t, lang } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
     const { user } = useAuth();
@@ -379,11 +380,12 @@ export const useAppData = (showDialog: ShowDialog) => {
     // those doses, not the clock, so it reruns when one is logged or a slot
     // passes rather than every minute; and run on the last 120 days of the log,
     // since older doses move the future by less than 0.01% (see MC_HISTORY_H).
+    // Not run at all while the prediction curve is switched off.
     const doses = useMemo(() => {
-        if (!simulation || !simulation.timeH.length) return [];
+        if (!withPrediction || !simulation || !simulation.timeH.length) return [];
         const nowH = currentTime.getTime() / 3600000;
         return dosesAhead(regimens, nowH, simulation.timeH[simulation.timeH.length - 1]);
-    }, [simulation, regimens, currentTime]);
+    }, [withPrediction, simulation, regimens, currentTime]);
     const dosesKey = doses.map(e => `${e.route}|${e.ester}|${e.doseMG}|${e.timeH}`).join(',');
     const simulationAhead = useMemo<SimulationResult | null>(() => {
         if (!doses.length) return null;
