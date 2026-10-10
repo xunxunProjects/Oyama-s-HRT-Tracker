@@ -20,7 +20,6 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
     const [cacheBuster] = useState(() => Date.now());
 
     const avatarUrl = `/api/user/avatar/${username}?t=${cacheBuster}`;
-    const on = 'text-[var(--text)]';
     const muted = 'text-[var(--text-muted)]';
 
     const onCropComplete = useCallback((_a: any, pixels: any) => setCroppedAreaPixels(pixels), []);

@@ -3,7 +3,7 @@ import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 
 import PixelCat, { CatPose } from '../components/PixelCat';
 import { useTranslation } from '../contexts/LanguageContext';
-import { CAT_STATE_WINDOWS, usePixelCats, CatState } from '../contexts/PixelCatContext';
+import { CAT_STATE_WINDOWS, usePixelCats } from '../contexts/PixelCatContext';
 
 interface CatStatesProps {
     onBack: () => void;
