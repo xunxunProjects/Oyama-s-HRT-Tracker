@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
+import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
 import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory } from '../../logic';
 import { Lang } from '../i18n/translations';

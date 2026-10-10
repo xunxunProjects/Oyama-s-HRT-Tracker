@@ -1,0 +1,56 @@
+name: Desktop
+
+# The Rust side of the Tauri app only changes when src-tauri does (Dependabot's
+# cargo updates included), so it is checked then and not on every pull request.
+# Full installers are built by release.yml.
+on:
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - ".github/workflows/desktop.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src-tauri/**"
+      - ".github/workflows/desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Rust check
+    # Tauri 1 needs webkit2gtk 4.0 on Linux, which current Ubuntu images no
+    # longer ship; macOS needs nothing extra.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Stand-in frontend
+        # tauri::generate_context! embeds distDir at compile time, so it has
+        # to exist; what is in it does not matter to a check.
+        run: mkdir -p dist && echo '<!doctype html>' > dist/index.html
+
+      - name: Check
+        working-directory: src-tauri
+        run: cargo check --locked --all-targets

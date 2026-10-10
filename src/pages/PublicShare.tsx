@@ -23,7 +23,7 @@ const formatWearDays = (days: number): string =>
     (Math.round(days * 100) / 100).toString();
 
 const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
-    const { lang, t } = useTranslation();
+    const { lang } = useTranslation();
     const copy = getShareCopy(lang);
     const [state, setState] = useState<ShareState>({ kind: 'loading' });
     const [password, setPassword] = useState('');

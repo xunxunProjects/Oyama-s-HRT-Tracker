@@ -58,18 +58,13 @@ This project is built with **React** and **TypeScript**, bundled with [Vite](htt
 2. **Install dependencies 安装依赖**
 
    ```bash
-   # using npm
    npm install
-
-   # or using pnpm
-   pnpm install
    ```
 
 3. **Start the dev server 运行项目**
 
    ```bash
    npm run dev
-   # or: pnpm dev
    ```
 
    Then open <http://localhost:3000> in your browser.
@@ -120,7 +115,7 @@ npm run wrangler:migrate:remote
 
 Web and Docker builds use same-origin `/api` requests by default. Desktop and
 other custom-protocol builds should set `VITE_API_ORIGIN` to their Worker/API
-origin at build time; the official Tauri workflow supplies the hosted origin.
+origin at build time; the release workflow supplies the hosted origin.
 
 To stop the app without deleting its data: / 停止应用但保留数据：
 
@@ -135,7 +130,7 @@ docker run -d --name hrt-tracker \
   -p 8787:8787 \
   --env-file .env \
   -v "$(pwd)/data:/data" \
-  ghcr.io/xunxunProjects/oyama-s-hrt-tracker-docker:latest
+  ghcr.io/xunxunprojects/oyama-s-hrt-tracker:latest
 ```
 
 `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. When used, set both. The
@@ -152,6 +147,38 @@ for `main`, version tags, and manual runs.
 
 `.github/workflows/docker-publish.yml` 会在 PR 中验证构建，并在 `main`、版本标签或
 手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。
+
+---
+
+## Releases 发布版本
+
+Every pull request and push to `main` runs CI: a typecheck, a production build
+and a check that every file carries the same version. Dependabot opens weekly
+update pull requests for npm, Cargo, GitHub Actions and the Docker base image.
+
+每个 PR 与推送到 `main` 的提交都会运行 CI：类型检查、生产构建，以及检查各文件中的
+版本号是否一致。Dependabot 每周为 npm、Cargo、GitHub Actions 与 Docker 基础镜像
+提交更新 PR。
+
+To release, set the version, commit it on `main`, and push a matching tag:
+/ 发布新版本时，先设置版本号并提交到 `main`，再推送对应的标签：
+
+```bash
+python3 scripts/set_version.py 1.5.0
+git commit -am "Release 1.5.0"
+git tag v1.5.0
+git push origin main v1.5.0
+```
+
+The tag starts `.github/workflows/release.yml`, which checks that the tag is on
+`main` and matches the version files, drafts a GitHub release with generated
+notes, builds the macOS (universal `.dmg`) and Windows (`.msi`) installers,
+attaches them and publishes the release. The same tag publishes the matching
+Docker image.
+
+标签会触发 `.github/workflows/release.yml`：确认标签位于 `main` 且与版本号一致，
+生成带更新说明的 GitHub Release 草稿，构建 macOS（通用 `.dmg`）与 Windows（`.msi`）
+安装包并上传，然后正式发布。同一标签也会发布对应版本的 Docker 镜像。
 
 ---
 

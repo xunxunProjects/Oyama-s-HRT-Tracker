@@ -339,8 +339,6 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
  */
 export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd';
 
-export const CALIBRATION_METHODS: readonly CalibrationMethod[] = ['off', 'ekf', 'ou_kalman', 'mipd'];
-
 /**
  * How newly-added labs are allowed to act on the historical curve.
  *  - 'forward'       : causal filtering — each point in time only uses labs up
@@ -350,8 +348,6 @@ export const CALIBRATION_METHODS: readonly CalibrationMethod[] = ['off', 'ekf', 
  *                      hindsight; a new lab can revise older estimates.
  */
 export type CalibrationHistoryMode = 'forward' | 'retrospective';
-
-export const CALIBRATION_HISTORY_MODES: readonly CalibrationHistoryMode[] = ['forward', 'retrospective'];
 
 /** Map legacy stored method ids onto the current estimator set. */
 export function normalizeCalibrationMethod(raw: string | null | undefined): CalibrationMethod {
@@ -825,20 +821,6 @@ export function computeCalibration(
 }
 
 // --- Compression Utilities ---
-
-export async function compressData(data: string): Promise<string> {
-    const stream = new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'));
-    const response = new Response(stream);
-    const blob = await response.blob();
-    const buffer = await blob.arrayBuffer();
-    // Convert to base64
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-}
 
 export async function decompressData(base64: string): Promise<string> {
     const binary = atob(base64);
@@ -1809,32 +1791,6 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     }
 
     return { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concNGdL_T, auc };
-}
-
-export function interpolateConcentration(sim: SimulationResult, hour: number): number | null {
-    if (!sim.timeH.length) return null;
-    if (hour <= sim.timeH[0]) return sim.concPGmL[0];
-    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concPGmL[sim.concPGmL.length - 1];
-
-    // Binary search for efficiency
-    let low = 0;
-    let high = sim.timeH.length - 1;
-
-    while (high - low > 1) {
-        const mid = Math.floor((low + high) / 2);
-        if (sim.timeH[mid] === hour) return sim.concPGmL[mid];
-        if (sim.timeH[mid] < hour) low = mid;
-        else high = mid;
-    }
-
-    const t0 = sim.timeH[low];
-    const t1 = sim.timeH[high];
-    const c0 = sim.concPGmL[low];
-    const c1 = sim.concPGmL[high];
-
-    if (t1 === t0) return c0;
-    const ratio = (hour - t0) / (t1 - t0);
-    return c0 + (c1 - c0) * ratio;
 }
 
 export function interpolateConcentration_E2(sim: SimulationResult, hour: number): number | null {

@@ -1,5 +1,3 @@
-import { Syringe, Pill, Droplet, Sticker, X, FlaskConical, Atom, Shield, Hexagon, Orbit, Dna, Shell } from 'lucide-react';
-import { Route, DoseEvent, Ester, getBioavailabilityMultiplier, getToE2Factor, ExtraKey } from '../../logic';
 import { Lang } from '../i18n/translations';
 
 export const LOCALE_MAP: Record<Lang, string> = {
@@ -85,46 +83,3 @@ export const formatTime = (date: Date, timeZone?: string) => {
     return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 };
 
-const iconMuted = "w-5 h-5 text-[var(--text-muted)]";
-
-export const getRouteIcon = (route: Route) => {
-    switch (route) {
-        case Route.injection: return <Syringe className={iconMuted} />;
-        case Route.oral: return <Pill className={iconMuted} />;
-        case Route.sublingual: return <Pill className={iconMuted} />;
-        case Route.gel: return <Droplet className={iconMuted} />;
-        case Route.patchApply: return <Sticker className={iconMuted} />;
-        case Route.patchRemove: return <X className={iconMuted} />;
-    }
-};
-
-export const getEsterIcon = (ester: Ester) => {
-    switch (ester) {
-        case Ester.E2: return <Atom className={iconMuted} />;
-        case Ester.CPA:
-        case Ester.SPIRO:
-        case Ester.BICA:
-        case Ester.MPA:
-        case Ester.LEUP:
-        case Ester.TRIP: return <Shield className={iconMuted} />;
-        case Ester.EV: return <Shell className={iconMuted} />;
-        case Ester.EB: return <Hexagon className={iconMuted} />;
-        case Ester.EC: return <Orbit className={iconMuted} />;
-        case Ester.EN: return <Dna className={iconMuted} />;
-        case Ester.EU: return <FlaskConical className={iconMuted} />;
-        default: return <FlaskConical className={iconMuted} />;
-    }
-};
-
-export const getBioDoseMG = (event: DoseEvent) => {
-    const multiplier = getBioavailabilityMultiplier(event.route, event.ester, event.extras || {});
-    return multiplier * event.doseMG;
-};
-
-export const getRawDoseMG = (event: DoseEvent) => {
-    if (event.route === Route.patchRemove) return null;
-    if (event.extras[ExtraKey.releaseRateUGPerDay]) return null;
-    const factor = getToE2Factor(event.ester);
-    if (!factor) return event.doseMG;
-    return event.doseMG / factor;
-};

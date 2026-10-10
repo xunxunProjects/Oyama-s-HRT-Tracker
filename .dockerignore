@@ -13,6 +13,4 @@ src-tauri
 logs
 *.log
 test_data_*.json
-bun.lock
-pnpm-lock.yaml
 *.md
