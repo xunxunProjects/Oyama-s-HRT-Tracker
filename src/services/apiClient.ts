@@ -75,13 +75,20 @@ export function apiEndpoint(path: string): string {
 /**
  * Thin wrapper around `fetch` for talking to our API.
  *
+ * A path like "/api/login" goes through `apiEndpoint`, so callers can pass
+ * plain paths and still reach VITE_API_ORIGIN from a desktop build, where a
+ * relative URL would resolve against the app's own custom protocol instead.
+ *
  * The worker tags session-level 401s (missing/expired/revoked token) with the
  * `X-Session-Invalid` header. Business-logic 401s — e.g. an incorrect password
  * on change-password / delete-account — are NOT tagged, so they flow through to
  * the caller untouched and never trigger a sign-out.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const res = await fetch(input, init);
+    const target = typeof input === 'string' && input.startsWith('/') && !input.startsWith('//')
+        ? apiEndpoint(input)
+        : input;
+    const res = await fetch(target, init);
     if (res.status === 401 && res.headers.get('X-Session-Invalid') === '1') {
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));

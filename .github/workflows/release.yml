@@ -46,13 +46,23 @@ jobs:
       - name: Draft the release
         env:
           GH_TOKEN: ${{ github.token }}
+          MAC_SIGNED: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
             echo "A release for $TAG already exists; the builds will add to it."
-          else
-            gh release create "$TAG" --draft --verify-tag --generate-notes \
-              --title "Oyama's HRT Tracker ${TAG#v}"
+            exit 0
           fi
+          notes=""
+          if [ "$MAC_SIGNED" != "true" ]; then
+            notes=$(cat <<'EOF'
+          > **macOS:** this build is not notarized by Apple, so the first launch says Apple could not verify it is free of malware. Open the app once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or run `xattr -dr com.apple.quarantine "/Applications/Oyama's HRT Tracker.app"` in Terminal.
+          >
+          > **macOS：** 此版本未经 Apple 公证，首次打开时会提示“无法验证是否包含恶意软件”。先尝试打开一次，然后前往 **系统设置 → 隐私与安全性**，点击 **仍要打开**；或在终端运行上面的 `xattr` 命令。
+          EOF
+            )
+          fi
+          gh release create "$TAG" --draft --verify-tag --generate-notes \
+            --title "Oyama's HRT Tracker ${TAG#v}" --notes "$notes"
 
   desktop:
     name: Build ${{ matrix.name }}
@@ -108,7 +118,39 @@ jobs:
         run: npm ci
 
       - name: Build installer
-        run: npm run tauri:build -- $BUILD_ARGS
+        env:
+          # macOS signing and notarization. With an Apple Developer ID in these
+          # repository secrets the bundler signs with it and has Apple notarize
+          # the app, so it opens without a warning. Without them, the empty
+          # values are dropped below and tauri.conf.json's ad-hoc signature is
+          # used instead, which macOS lets the user allow once.
+          #   APPLE_CERTIFICATE           base64 of the Developer ID Application .p12
+          #   APPLE_CERTIFICATE_PASSWORD  that .p12's password
+          #   APPLE_SIGNING_IDENTITY      e.g. "Developer ID Application: Name (TEAMID)"
+          #   APPLE_ID                    Apple Account email
+          #   APPLE_PASSWORD              an app-specific password for it
+          #   APPLE_TEAM_ID               the 10-character team ID
+          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
+        run: |
+          # The bundler acts on these being set at all, so an empty one has to
+          # be unset rather than left blank.
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+                      APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then unset "$name"; fi
+          done
+          npm run tauri:build -- $BUILD_ARGS
+
+      - name: Check the macOS signature
+        if: runner.os == 'macOS'
+        run: |
+          app=$(ls -d src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app)
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv "$app" 2>&1 | grep -E '^(Identifier|Signature|TeamIdentifier|Authority)' || true
 
       - name: Attach to the release
         env:
