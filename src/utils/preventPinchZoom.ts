@@ -30,6 +30,13 @@ export function preventPinchZoom(): void {
     // event rather than a gesture — same physical pinch, so same treatment.
     // Keyboard zoom (⌘/Ctrl with +/-) isn't cancellable and stays available,
     // which is what keeps this from taking zoom away outright.
+    //
+    // Only there, though. A non-passive wheel listener on the window makes
+    // WebKit hold every trackpad scroll until this script has answered, which
+    // is what made scrolling feel sticky in Safari and the macOS desktop app
+    // (WKWebView) — and WebKit reports pinch through the gesture events above,
+    // so the listener bought it nothing.
+    if ('GestureEvent' in window) return;
     window.addEventListener('wheel', (e) => {
         if (e.ctrlKey) e.preventDefault();
     }, { passive: false });

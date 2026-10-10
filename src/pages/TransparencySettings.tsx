@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 
 import { useTranslation } from '../contexts/LanguageContext';
+import { apiEndpoint } from '../services/apiClient';
 
 interface TransparencyStats {
     total_users: number;
@@ -37,7 +38,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/transparency', { signal, cache: 'no-store' });
+            const res = await fetch(apiEndpoint('/api/transparency'), { signal, cache: 'no-store' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json() as TransparencyStats;
             setStats(data);

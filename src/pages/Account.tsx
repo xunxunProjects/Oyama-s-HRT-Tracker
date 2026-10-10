@@ -10,6 +10,7 @@ import { cloudService, BackupMeta } from '../services/cloud';
 import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload, hasCloudKey, deriveAndCacheCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
+import { apiEndpoint } from '../services/apiClient';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
 import { formatBytes } from '../utils/helpers';
@@ -91,7 +92,7 @@ const Account: React.FC<AccountProps> = ({
     // Bust the avatar cache once per mount so returning from the edit-avatar
     // page (which remounts Account) reflects a freshly uploaded image.
     const avatarCacheBuster = useMemo(() => Date.now(), []);
-    const avatarUrl = `/api/user/avatar/${user?.username}?t=${avatarCacheBuster}`;
+    const avatarUrl = apiEndpoint(`/api/user/avatar/${user?.username}?t=${avatarCacheBuster}`);
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
     const [savingCloud, setSavingCloud] = useState(false);

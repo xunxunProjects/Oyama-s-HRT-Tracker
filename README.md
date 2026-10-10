@@ -180,6 +180,18 @@ Docker image.
 生成带更新说明的 GitHub Release 草稿，构建 macOS（通用 `.dmg`）与 Windows（`.msi`）
 安装包并上传，然后正式发布。同一标签也会发布对应版本的 Docker 镜像。
 
+macOS only opens apps without a warning when they are signed with an Apple
+Developer ID and notarized. Add these repository secrets and releases are
+signed and notarized automatically: `APPLE_CERTIFICATE` (base64 of the
+Developer ID Application `.p12`), `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (an app-specific
+password) and `APPLE_TEAM_ID`. Without them the app is ad-hoc signed, and the
+release notes tell users how to allow it once.
+
+macOS 只会直接打开使用 Apple Developer ID 签名并经过公证的应用。添加上述仓库
+Secrets 后，发布版本会自动签名并公证；未添加时应用仅做临时（ad-hoc）签名，
+发布说明中会附上首次打开的方法。
+
 ---
 
 ## Deployment & Hosting 部署与托管

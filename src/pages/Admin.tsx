@@ -6,6 +6,7 @@ import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope, Stor
 import { useDialog } from '../contexts/DialogContext';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
+import { apiEndpoint } from '../services/apiClient';
 import { Lang } from '../i18n/translations';
 
 type AdminCat = 'users' | 'notice' | 'system';
@@ -471,7 +472,7 @@ const Admin: React.FC = () => {
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-9 h-9 rounded-full bg-[var(--surface-hover)] flex items-center justify-center overflow-hidden shrink-0">
                                     <img
-                                        src={`/api/user/avatar/${u.username}`}
+                                        src={apiEndpoint(`/api/user/avatar/${u.username}`)}
                                         alt={u.username}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {

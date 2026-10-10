@@ -4,7 +4,7 @@ import Cropper from 'react-easy-crop';
 import { ImagePlus, Check } from 'lucide-react';
 import getCroppedImg from '../utils/cropImage';
 import { useTranslation } from '../contexts/LanguageContext';
-import { apiErrorFrom, apiFetch } from '../services/apiClient';
+import { apiEndpoint, apiErrorFrom, apiFetch } from '../services/apiClient';
 
 const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void }> = ({ username, token, onBack }) => {
     const { t } = useTranslation();
@@ -19,7 +19,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
     const [avatarError, setAvatarError] = useState(false);
     const [cacheBuster] = useState(() => Date.now());
 
-    const avatarUrl = `/api/user/avatar/${username}?t=${cacheBuster}`;
+    const avatarUrl = apiEndpoint(`/api/user/avatar/${username}?t=${cacheBuster}`);
     const muted = 'text-[var(--text-muted)]';
 
     const onCropComplete = useCallback((_a: any, pixels: any) => setCroppedAreaPixels(pixels), []);
