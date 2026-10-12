@@ -1,136 +1,115 @@
-# Security Documentation
+# Security Policy 安全政策
 
-This document outlines the security measures implemented in this application and provides guidance for secure deployment.
+This app stores health information, so we take security reports seriously and
+are grateful for them.
 
-## Security Improvements Implemented
+本应用涉及健康信息，因此我们非常重视安全问题，也非常感谢每一份报告。
 
-### 1. JWT Secret Validation
-- **Issue**: Application previously used a weak fallback secret (`'fallback-secret'`) if `JWT_SECRET` environment variable was not set
-- **Fix**: Added `validateJWTSecret()` function that:
-  - Ensures `JWT_SECRET` is set
-  - Rejects secrets shorter than 32 characters
-  - Rejects the hardcoded fallback value
-  - Throws an error on startup if requirements are not met
-- **Impact**: Prevents deployment with weak JWT secrets
+---
 
-### 2. Timing Attack Protection
-- **Issue**: Admin password comparison used simple string equality (`===`), vulnerable to timing attacks
-- **Fix**: Implemented `timingSafeEqual()` function for constant-time string comparison
-- **Impact**: Prevents attackers from using timing analysis to guess admin credentials
+## Reporting a vulnerability 报告漏洞
 
-### 3. Rate Limiting
-- **Issue**: No rate limiting on authentication endpoints allowed brute-force attacks
-- **Fix**: Added rate limiting with:
-  - 5 requests per minute per IP for `/api/login` and `/api/register`
-  - Returns HTTP 429 (Too Many Requests) when limit exceeded
-  - Includes `Retry-After` header
-  - Automatic cleanup of expired entries to prevent memory leaks (max 10,000 entries)
-  - Rejects requests without identifiable IP to prevent rate limit bypass
-- **Impact**: Significantly reduces brute-force attack effectiveness
-- **Note**: This is an in-memory implementation suitable for single-instance deployments
+**Please do not open a public issue, discussion or pull request for a security
+problem.** Report it privately instead:
 
-### 4. Input Validation
-- **Issue**: No validation of username format or password strength
-- **Fix**: Added validation functions:
-  - `validateUsername()`: Ensures 3-30 characters, alphanumeric plus underscore and hyphen
-  - `validatePassword()`: Enforces 8-128 character length
-- **Impact**: Prevents injection attacks and ensures basic password security
+**请不要通过公开的 issue、讨论或 PR 报告安全问题**，请私下报告：
 
-### 5. Content-Type Validation
-- **Issue**: Endpoints accepting JSON did not validate Content-Type header
-- **Fix**: Added Content-Type validation for all JSON endpoints
-- **Impact**: Prevents potential CSRF and content-type confusion attacks
+1. Go to the repository's **Security** tab and choose **Report a vulnerability**,
+   or open <https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/security/advisories/new>
+   directly.
 
-### 6. Username Enumeration Protection
-- **Issue**: Different error messages for non-existent users vs wrong password
-- **Fix**: Returns generic "Invalid credentials" message in both cases
-- **Impact**: Prevents attackers from determining valid usernames
+   打开仓库的 **Security** 标签页并选择 **Report a vulnerability**，或直接访问
+   <https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/security/advisories/new>。
 
-### 7. Response Headers
-- **Issue**: Missing Content-Type headers in JSON responses
-- **Fix**: Added `Content-Type: application/json` to all JSON responses
-- **Impact**: Prevents content-type confusion attacks
+2. Describe the problem, how to reproduce it, which version or deployment it
+   affects, and what an attacker could do with it. A proof of concept helps, but
+   please use test accounts and never access data that is not yours.
 
-## Security Configuration Requirements
+   描述问题、复现步骤、受影响的版本或部署，以及攻击者可能借此做什么。附上概念验证会很有帮助，
+   但请使用测试账号，切勿访问不属于你的数据。
 
-### Required Environment Variables
+Only the maintainers can see the report. You can write in English or Chinese.
 
-1. **JWT_SECRET** (Required)
-   - Must be at least 32 characters long
-   - Should be cryptographically random
-   - Example generation: `openssl rand -base64 48`
-   - **NEVER** commit this to version control
+报告仅维护者可见，中英文皆可。
 
-2. **ADMIN_USERNAME** (Optional)
-   - If set, enables admin access via environment variables
-   - Should be unique and not easily guessable
+### What to expect 处理流程
 
-3. **ADMIN_PASSWORD** (Optional)
-   - If set alongside ADMIN_USERNAME, enables admin login
-   - Should be strong and unique
-   - Store securely (e.g., in Cloudflare Workers secrets)
+- We aim to acknowledge a report within **7 days** and to share our assessment
+  and a plan soon after.
 
-### Deployment Checklist
+  我们会尽量在 **7 天内**确认收到报告，并随后告知评估结果与处理计划。
 
-- [ ] Generate a strong JWT_SECRET (at least 32 characters)
-- [ ] Configure JWT_SECRET in your deployment environment
-- [ ] If using admin account, set strong ADMIN_USERNAME and ADMIN_PASSWORD
-- [ ] Verify CORS configuration matches your deployment needs
-- [ ] Enable HTTPS (should be automatic with Cloudflare Workers)
-- [ ] Review rate limiting settings for your expected traffic
-- [ ] Monitor authentication logs for suspicious activity
+- We fix confirmed problems in a new release and publish a GitHub security
+  advisory once users can update. We are happy to credit you there unless you
+  prefer to stay anonymous.
 
-## Known Security Considerations
+  确认的问题会在新版本中修复，并在用户可以更新后发布 GitHub 安全公告。除非你希望匿名，
+  我们很乐意在公告中致谢。
 
-### CORS Configuration
-The application currently uses `Access-Control-Allow-Origin: *` which allows requests from any origin. This is appropriate for a public-facing API where authentication is handled via JWT tokens. However, consider restricting this to specific domains in production if your use case allows.
+- Please give us a reasonable chance to fix the problem before disclosing it
+  publicly.
 
-### Rate Limiting
-The current rate limiting implementation is in-memory and will be reset when the worker restarts. For production deployments with multiple instances, consider using:
-- Cloudflare Workers KV or Durable Objects for distributed rate limiting
-- Cloudflare's built-in rate limiting features
+  在公开披露之前，请给我们合理的修复时间。
 
-### Password Strength
-The current password validation enforces a minimum length of 8 characters. Consider implementing additional requirements:
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character
+## Supported versions 支持的版本
 
-### Session Management
-JWT tokens are set to expire after:
-- Admin tokens: 1 day
-- User tokens: 7 days
+Security fixes go into the latest release and the hosted site. Please update to
+the latest release before reporting, and tell us if an older version you rely
+on is affected.
 
-Consider implementing:
-- Refresh tokens for longer sessions
-- Token revocation mechanism
-- Session logging and monitoring
+安全修复会进入最新版本与官方托管站点。报告前请先更新到最新版本；如果你依赖的旧版本受影响，也请告诉我们。
 
-### SQL Injection
-The application uses parameterized queries throughout, which provides good protection against SQL injection. Continue to use prepared statements with `.bind()` for all database operations.
+| Version 版本 | Supported 支持 |
+| --- | --- |
+| Latest release 最新版本 | Yes 是 |
+| Older releases 旧版本 | No 否 |
 
-### Dependencies
-Regularly update dependencies to patch security vulnerabilities:
-```bash
-npm audit
-npm audit fix
-```
+## Scope 范围
 
-## Security Best Practices
+In scope: the web app, the Cloudflare Worker API (`worker.ts`), the Docker
+image and the desktop app in this repository. Problems in a third-party
+deployment should go to whoever runs it, though we would like to hear about
+anything that comes from our code.
 
-1. **Never commit secrets**: Use environment variables for all sensitive data
-2. **Use HTTPS**: Always deploy with HTTPS enabled (automatic with Cloudflare Workers)
-3. **Monitor logs**: Regularly review authentication and error logs
-4. **Update dependencies**: Keep all packages up to date
-5. **Test security**: Regularly test authentication and authorization logic
-6. **Backup data**: Maintain regular backups of the database
-7. **Incident response**: Have a plan for responding to security incidents
+范围包括本仓库中的网页应用、Cloudflare Worker API（`worker.ts`）、Docker 镜像与桌面应用。
+第三方部署的问题请联系其运营者；但如果问题源于我们的代码，也欢迎告诉我们。
 
-## Reporting Security Issues
+Questions about the accuracy of a concentration estimate are not security
+issues; please use the issue templates for those.
 
-If you discover a security vulnerability, please report it to the maintainers privately rather than opening a public issue. This allows for coordinated disclosure and patching.
+关于浓度估算准确性的问题不属于安全问题，请使用 issue 模板提交。
 
-## License
+---
 
-This security documentation is part of the HRT Recorder Web project and is subject to the same MIT License.
+## Self-hosting securely 安全地自托管
+
+If you run your own copy:
+
+如果你自行部署：
+
+- Set `JWT_SECRET` to a random value of at least 32 characters, for example
+  `openssl rand -base64 48`. The Worker refuses to start with a missing, short
+  or weak secret. Never commit it.
+
+  将 `JWT_SECRET` 设置为至少 32 个字符的随机值，例如 `openssl rand -base64 48`。
+  缺少、过短或过弱的密钥会导致 Worker 拒绝启动。切勿将其提交到代码库。
+
+- `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. If you use them, set both
+  to strong, unique values and store them as secrets
+  (`wrangler secret put`, or the `.env` file for Docker).
+
+  `ADMIN_USERNAME` 与 `ADMIN_PASSWORD` 是可选项。如需使用，请同时设置为强且唯一的值，
+  并以 Secret 方式保存（`wrangler secret put`，或 Docker 的 `.env` 文件）。
+
+- Serve the app over HTTPS only.
+
+  仅通过 HTTPS 提供服务。
+
+- Keep up with releases; Dependabot and CodeQL watch this repository, and fixes
+  ship in new versions.
+
+  及时跟进新版本；本仓库由 Dependabot 与 CodeQL 持续检查，修复会随新版本发布。
+
+The history of past security changes is in [CHANGELOG.md](./CHANGELOG.md).
+
+以往的安全改进记录见 [CHANGELOG.md](./CHANGELOG.md)。

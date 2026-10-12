@@ -1,0 +1,69 @@
+name: Question about a concentration estimate 浓度估算疑问
+description: The modelled level looks different from what you expected or measured. 模型估算的浓度与你的预期或化验结果不一致。
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The app's estimates come from a population model and can differ from any one person's blood test. Reports that compare the estimate with real lab results help us check and improve the model. This is not medical advice, and we cannot advise on your treatment; please talk to your doctor about dosing.
+
+        应用中的估算基于群体模型，与个人的实际化验结果可能存在差异。将估算值与真实化验结果进行对比的反馈，能帮助我们检验和改进模型。这里不提供医疗建议，也无法就你的治疗方案给出意见；关于剂量请咨询医生。
+
+        **Privacy 隐私**：issues are public. Share only what you are comfortable with, and round numbers if you prefer. issue 是公开的，请只填写你愿意公开的信息，可以使用近似值。
+  - type: dropdown
+    id: route
+    attributes:
+      label: Route 给药途径
+      multiple: true
+      options:
+        - Injection 注射
+        - Oral 口服
+        - Sublingual 舌下
+        - Gel 凝胶
+        - Patch 贴片
+        - Other 其他
+    validations:
+      required: true
+  - type: textarea
+    id: regimen
+    attributes:
+      label: Medication and regimen 药物与用药方案
+      description: Drug or ester, dose and how often. For sublingual, the hold time; for patches, the release rate and how long each is worn. 药物或酯类、剂量与频率。舌下请注明含服时间；贴片请注明释放速率与佩戴时长。
+      placeholder: e.g. Estradiol valerate 5 mg IM every 7 days, for 3 months
+    validations:
+      required: true
+  - type: input
+    id: weight
+    attributes:
+      label: Body weight entered in the app 应用中填写的体重
+      placeholder: e.g. 60 kg
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Estimate and lab result 估算值与化验结果
+      description: What the app shows, what the lab measured (with units), and when the blood was drawn relative to the last dose. 应用显示的数值、化验测得的数值（含单位），以及抽血时间距上次用药多久。
+      placeholder: |
+        App estimate: 180 pg/mL
+        Lab result: 95 pg/mL
+        Drawn 6 days after the last injection
+    validations:
+      required: true
+  - type: dropdown
+    id: calibration
+    attributes:
+      label: Is calibration with lab results on? 是否开启了化验校准？
+      options:
+        - "No 否"
+        - "Yes 是"
+        - "Not sure 不确定"
+  - type: input
+    id: version
+    attributes:
+      label: App version 应用版本
+      description: Leave blank if you use the website. 使用网页版可留空。
+      placeholder: e.g. 1.4.2
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else 其他补充
+      description: Other medications that may matter, screenshots of the chart, or exported data with personal details removed. 可能有关的其他药物、图表截图，或去除个人信息后的导出数据。

@@ -223,6 +223,18 @@ Wishing steady progress and good health to everyone who uses this tool.
 
 ---
 
+## Contributing 参与贡献
+
+Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,
+a map of the code and how to add a translation, and please follow the
+[Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, see
+[SECURITY.md](./SECURITY.md).
+
+欢迎参与贡献。开发环境、代码结构与新增翻译的方法见 [CONTRIBUTING.md](./CONTRIBUTING.md)，
+请遵守[行为准则](./CODE_OF_CONDUCT.md)。报告安全问题请参阅 [SECURITY.md](./SECURITY.md)。
+
+---
+
 ## License 许可
 
 本项目遵守 MIT License。See [LICENSE](./LICENSE) for details.
