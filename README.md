@@ -42,7 +42,7 @@ We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided 
 
 ---
 
-## 🧪 Run Locally 本地运行
+## Run Locally 本地运行
 
 This project is built with **React** and **TypeScript**, bundled with [Vite](https://vitejs.dev/).
 
@@ -51,7 +51,7 @@ This project is built with **React** and **TypeScript**, bundled with [Vite](htt
 1. **Clone the repository 克隆仓库**
 
    ```bash
-   git clone https://github.com/SmirnovaOyama/Oyama-s-HRT-Tracker.git
+   git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
    cd Oyama-s-HRT-Tracker
    ```
 
@@ -220,6 +220,18 @@ If you deploy this app publicly, please: / 如果你将该应用公开部署，�
 
 Wishing steady progress and good health to everyone who uses this tool.
 
+
+---
+
+## Contributing 参与贡献
+
+Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,
+a map of the code and how to add a translation, and please follow the
+[Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, see
+[SECURITY.md](./SECURITY.md).
+
+欢迎参与贡献。开发环境、代码结构与新增翻译的方法见 [CONTRIBUTING.md](./CONTRIBUTING.md)，
+请遵守[行为准则](./CODE_OF_CONDUCT.md)。报告安全问题请参阅 [SECURITY.md](./SECURITY.md)。
 
 ---
 
