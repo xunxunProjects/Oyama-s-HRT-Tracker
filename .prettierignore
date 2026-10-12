@@ -1,0 +1,7 @@
+dist/
+dev-dist/
+public/
+src-tauri/
+.wrangler/
+data/
+package-lock.json

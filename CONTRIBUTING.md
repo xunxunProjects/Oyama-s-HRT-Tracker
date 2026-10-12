@@ -155,9 +155,14 @@ npm run tauri:dev
    **Fork 并新建分支**：从 `main` 创建一个名字简短明确的分支，例如 `fix/patch-removal-time`。
 
 3. **Keep the change focused.** One pull request should do one thing. Match the
-   style of the code around it.
+   style of the code around it. Please don't reformat whole existing files yet,
+   by hand or with format on save: the repository-wide Prettier pass will land
+   as its own pull request. New files can be formatted with
+   `npx prettier --write <file>`.
 
-   **保持修改聚焦**：一个 PR 只做一件事，并与周围代码的风格保持一致。
+   **保持修改聚焦**：一个 PR 只做一件事，并与周围代码的风格保持一致。暂时请不要整体格式化已有文件，
+   无论是手动还是保存时自动格式化：全仓库的 Prettier 格式化会单独提交。新文件可以用
+   `npx prettier --write <文件>` 格式化。
 
 4. **Check it locally** with the same steps CI runs:
 
@@ -165,6 +170,7 @@ npm run tauri:dev
 
    ```bash
    npx tsc --noEmit                    # typecheck the app and worker.ts 类型检查
+   npm run lint                        # ESLint: errors fail CI, please add no new warnings 代码检查：错误会让 CI 失败，请不要新增警告
    npm run build                       # production build 生产构建
    python3 scripts/set_version.py --check
    ```
