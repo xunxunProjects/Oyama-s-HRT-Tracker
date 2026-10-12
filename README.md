@@ -1,8 +1,12 @@
-# HRT Recorder Web
+# Oyama's HRT Tracker
 
-**HRT Recorder Web** — A privacy-focused, web-based tool for simulating and tracking estradiol levels during Hormone Replacement Therapy (HRT).
+**Oyama's HRT Tracker** is a privacy-focused tool for logging Hormone Replacement Therapy (HRT) and simulating the hormone levels your doses produce. It has a feminizing mode (estradiol, plus cyproterone acetate) and a masculinizing mode (testosterone), and it can also log other adjunct drugs.
 
-**HRT Recorder Web**（HRT 网页记录工具）——一个注重隐私的网页工具，用于在激素替代疗法（HRT）期间模拟和追踪雌二醇水平。
+**Oyama's HRT Tracker**（HRT 记录工具）是一个注重隐私的工具，用于记录激素替代疗法（HRT）用药，并模拟这些剂量带来的激素水平。它提供女性化模式（雌二醇，以及醋酸环丙孕酮）和男性化模式（睾酮），也可以记录其他辅助用药。
+
+It runs in the browser and can be installed as a PWA, as a desktop app for macOS and Windows built with Tauri, or as a self-hosted Docker image. Cloud backup (end-to-end encrypted) and share links are optional.
+
+它可以在浏览器中运行并安装为 PWA，也可以作为基于 Tauri 的 macOS 与 Windows 桌面应用使用，或通过 Docker 镜像自行部署。云备份（端到端加密）与分享链接均为可选功能。
 
 > [!WARNING]
 > **Not medical advice.** This app shows estimates from a pharmacokinetic model. They can differ a lot from your real hormone levels and are no substitute for blood tests or a clinician. Do not start, stop or change any medication based on this app alone.
@@ -15,29 +19,45 @@
 
 ## Algorithm & Core Logic 算法逻辑
 
-The pharmacokinetic algorithms, mathematical models, and parameters used in this simulation are derived directly from the **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** repository.
+The estradiol pharmacokinetic model is based on `PKcore.swift` and `PKparameter.swift` by **@LaoZhong-Mihari**, from the **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** repository. Its three-compartment structure, two-part injection depot kinetics and sublingual absorption tiers come from there.
 
-本模拟中使用的药代动力学算法、数学模型与相关参数，直接来源于 **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** 仓库。
+雌二醇的药代动力学模型基于 **@LaoZhong-Mihari** 在 **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** 仓库中提供的 `PKcore.swift` 与 `PKparameter.swift`，其中的三室模型、双相肌注库房动力学与舌下吸收分层均来自该仓库。
 
-We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided by **@LaoZhong-Mihari**, ensuring that the web simulation matches the accuracy of the original native implementation (including 3-compartment models, two-part depot kinetics, and specific sublingual absorption tiers).
+This project has since adjusted and extended the model: it adds testosterone (injection esters, gel and patch) for the masculinizing mode, cyproterone acetate on its own curve, and estradiol undecylate injections; it revises the gel and sublingual handling; and it can calibrate the estradiol curve against your lab results. See [Algorithm Explanation.md](./Algorithm%20Explanation.md) for the details.
 
-我们严格遵循 **@LaoZhong-Mihari** 提供的 `PKcore.swift` 与 `PKparameter.swift` 中的逻辑，确保网页端模拟与原生实现在精度上保持一致（包括三室模型、双相肌注库房动力学以及特定的舌下吸收分层等）。
+此后本项目对模型做了调整和扩展：为男性化模式加入了睾酮（注射用酯、凝胶与贴片），为醋酸环丙孕酮加入了单独的曲线，并新增了十一酸雌二醇注射；调整了凝胶与舌下给药的处理；还可以用你的检查结果校准雌二醇曲线。详情见 [Algorithm Explanation.md](./Algorithm%20Explanation.md)。
 
 ---
 
 ## Features 功能
 
-- **Multi-Route Simulation**: Supports Injection (Valerate, Benzoate, Cypionate, Enanthate), Oral, Sublingual, Gel, and Patches.
+- **Feminizing and masculinizing modes**: in feminizing mode, estradiol by injection (benzoate, valerate, cypionate, enanthate, and undecylate in beta), oral, sublingual, gel and patch, with oral cyproterone acetate on its own curve. In masculinizing mode, testosterone injection (cypionate, enanthate, undecanoate) and gel; a testosterone patch can also be added to the medication plan and supplies.
 
-  **多给药途径模拟**：支持注射（戊酸酯 Valerate、苯甲酸酯 Benzoate、环戊丙酸酯 Cypionate、庚酸酯 Enanthate）、口服、舌下、凝胶以及贴片等多种给药方式。
+  **女性化与男性化模式**：女性化模式支持雌二醇的注射（苯甲酸酯、戊酸酯、环戊丙酸酯、庚酸酯，以及 Beta 阶段的十一酸酯）、口服、舌下、凝胶与贴片，口服醋酸环丙孕酮以单独的曲线显示。男性化模式支持睾酮注射（环戊丙酸酯、庚酸酯、十一酸酯）与凝胶；睾酮贴片也可以加入用药方案与药量库存。
 
-- **Real-time Visualization**: Interactive charts showing estimated estradiol concentration (pg/mL) over time.
+- **Other drugs**: in feminizing mode, spironolactone, bicalutamide, medroxyprogesterone acetate, raloxifene and the GnRH agonists leuprorelin and triptorelin can be logged, planned and stocked. They have no level model, so they draw no curve and do not change any estimate.
 
-  **实时可视化**：通过交互式图表展示随时间变化的雌二醇估算浓度（pg/mL）。
+  **其他药物**：在女性化模式中，螺内酯、比卡鲁胺、醋酸甲羟孕酮、雷洛昔芬，以及 GnRH 激动剂亮丙瑞林与曲普瑞林，可以记录、加入用药方案并管理库存。它们没有浓度模型，因此不会绘制曲线，也不影响任何估算值。
 
-- **Sublingual Guidance**: Detailed "Hold Time" and absorption parameter (θ) guidance based on strict medical modeling.
+- **Charts**: interactive charts of the estimated level over time (estradiol in pg/mL, cyproterone acetate in ng/mL, total testosterone in ng/dL), with your lab results plotted alongside.
 
-  **舌下服用指导**：基于严格的医学建模，提供详细的"含服时间（Hold Time）"与吸收参数（θ）参考。
+  **图表**：交互式图表展示随时间变化的估算浓度（雌二醇 pg/mL、醋酸环丙孕酮 ng/mL、总睾酮 ng/dL），并在图上标出你的检查结果。
+
+- **Sublingual hold time**: pick one of four hold-time tiers (2 to 15 minutes) or enter your own; the model turns it into the share of the dose absorbed through the lining of the mouth (θ).
+
+  **舌下含服时间**：从四档含服时间（2 到 15 分钟）中选择，或自行填写；模型据此估算经口腔黏膜吸收的剂量比例（θ）。
+
+- **Lab calibration**: log blood test results. Estradiol results can calibrate the model to you, with a choice of estimator (EKF, OU-Kalman or MIPD), and the model parameters can also be edited by hand.
+
+  **模型校准**：记录抽血检查结果。雌二醇结果可用于按你的情况校准模型，可选 EKF、OU-Kalman 或 MIPD 三种方式；也可以手动编辑模型参数。
+
+- **Medication plan**: list what you take and how often. The overview shows what is due today and logs a dose with one tap, and a what-if view compares carrying on as now with a planned change.
+
+  **用药方案**：记下你使用的药物与频率。总览页会显示今天待用的剂量，一键即可记录；方案试算页面可以对比维持现状与计划中的调整。
+
+- **Supplies**: record how much of each medicine you have. The app subtracts the doses you log, estimates when it will run out at your current rate and warns on the overview ahead of time.
+
+  **药量库存**：记录每种药物的存量。应用会扣除已记录的用量，按当前用药频率估算用完的日期，并提前在总览页提醒。
 
 - **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and unlike backups they are stored unencrypted on the server. See the [privacy notice](./PRIVACY.md) for details.
 
