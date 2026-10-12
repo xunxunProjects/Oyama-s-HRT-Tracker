@@ -42,7 +42,7 @@ We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided 
 
 ---
 
-## 🧪 Run Locally 本地运行
+## Run Locally 本地运行
 
 This project is built with **React** and **TypeScript**, bundled with [Vite](https://vitejs.dev/).
 
