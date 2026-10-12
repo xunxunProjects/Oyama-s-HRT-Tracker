@@ -132,6 +132,7 @@ npm run tauri:dev
 | `src/services/` | Calls to the Worker API. 调用 Worker API 的代码。 |
 | `src/i18n/` | Translations (`translations.ts`) and share-page copy (`share.ts`). 界面翻译与分享页文案。 |
 | `logic.ts` | The pharmacokinetic model: dose events, parameters, simulation. See [Algorithm Explanation.md](./Algorithm%20Explanation.md). 药代动力学模型：给药事件、参数与模拟，详见算法说明。 |
+| `tests/` | Unit tests for `logic.ts` (Vitest). 针对 `logic.ts` 的单元测试（Vitest）。 |
 | `worker.ts`, `backupPolicy.ts` | Cloudflare Worker backend: API, auth, D1 database, R2 avatar storage, scheduled cleanup. Cloudflare Worker 后端：API、认证、D1 数据库、R2 头像存储与定时清理。 |
 | `migrations/` | D1 schema. Add a new numbered file; never edit one that has shipped. D1 数据库结构。新增带编号的文件，不要修改已发布的迁移。 |
 | `wrangler.toml` | Worker configuration and bindings. Worker 配置与绑定。 |
@@ -165,6 +166,7 @@ npm run tauri:dev
 
    ```bash
    npx tsc --noEmit                    # typecheck the app and worker.ts 类型检查
+   npm test                            # unit tests for the dose math 剂量计算单元测试
    npm run build                       # production build 生产构建
    python3 scripts/set_version.py --check
    ```
@@ -188,11 +190,16 @@ A few things need extra care:
   must cite their source (a paper, a label, or the upstream
   [HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)
   code) and say how the curve changes. People read these numbers about their
-  own bodies.
+  own bodies. Tests marked `it.fails` in `tests/suspected-bugs.test.ts` and
+  `tests/literature.test.ts` record known problems: when a change fixes one,
+  that test starts failing, and the marker should become `it`.
 
   **模型（`logic.ts`）**：修改药代动力学参数或公式时，必须注明来源（论文、说明书或上游
   [HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)
   的代码），并说明曲线会如何变化。用户会根据这些数字理解自己的身体。
+  `tests/suspected-bugs.test.ts` 与 `tests/literature.test.ts` 中标为 `it.fails`
+  的测试记录的是已知问题：修改修复了其中一项时，对应测试会开始失败，此时请把
+  `it.fails` 改为 `it`。
 
 - **The database.** Add a new file in `migrations/` rather than editing an old
   one, and make sure an existing database upgrades cleanly.
