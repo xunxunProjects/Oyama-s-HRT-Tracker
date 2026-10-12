@@ -51,7 +51,7 @@ This project is built with **React** and **TypeScript**, bundled with [Vite](htt
 1. **Clone the repository 克隆仓库**
 
    ```bash
-   git clone https://github.com/SmirnovaOyama/Oyama-s-HRT-Tracker.git
+   git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
    cd Oyama-s-HRT-Tracker
    ```
 
