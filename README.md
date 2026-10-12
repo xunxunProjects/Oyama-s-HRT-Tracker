@@ -4,6 +4,13 @@
 
 **HRT Recorder Web**（HRT 网页记录工具）——一个注重隐私的网页工具，用于在激素替代疗法（HRT）期间模拟和追踪雌二醇水平。
 
+> [!WARNING]
+> **Not medical advice.** This app shows estimates from a pharmacokinetic model. They can differ a lot from your real hormone levels and are no substitute for blood tests or a clinician. Do not start, stop or change any medication based on this app alone.
+>
+> **不构成医疗建议。** 本应用展示的是药代动力学模型的估算值，可能与你真实的激素水平相差很大，不能替代抽血检查或医生的判断。请勿仅凭本应用开始、停止或调整任何用药。
+
+**Privacy 隐私说明:** [English](./PRIVACY.md) · [中文](./PRIVACY.zh-CN.md)
+
 ---
 
 ## Algorithm & Core Logic 算法逻辑
@@ -32,13 +39,13 @@ We strictly adhere to the `PKcore.swift` and `PKparameter.swift` logic provided 
 
   **舌下服用指导**：基于严格的医学建模，提供详细的"含服时间（Hold Time）"与吸收参数（θ）参考。
 
-- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data.
+- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and unlike backups they are stored unencrypted on the server. See the [privacy notice](./PRIVACY.md) for details.
 
-  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据。
+  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据，但与云备份不同，分享内容在服务器上未加密。详见[隐私说明](./PRIVACY.zh-CN.md)。
 
-- **Internationalization**: Native support for **Simplified Chinese**, **English**, **Cantonese**, **Russian**, **Ukrainian**, and more.
+- **Internationalization**: Interface in **Simplified Chinese**, **Traditional Chinese**, **Cantonese**, **English**, **Japanese**, **Korean** and **Turkish**.
 
-  **多语言支持**：原生支持简体中文、英语、粤语、俄语、乌克兰语等多语言界面。
+  **多语言支持**：界面支持简体中文、繁体中文、粤语、英语、日语、韩语和土耳其语。
 
 ---
 
