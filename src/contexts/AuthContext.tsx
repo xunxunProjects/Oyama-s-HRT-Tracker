@@ -18,12 +18,9 @@ interface AuthContextType {
     loginWithToken: (data: AuthResponse, verifiedPassword?: string) => Promise<void>;
     register: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
-    isLoading: boolean;
     updateProfile: (username: string) => Promise<void>;
     changePassword: (current: string, newPass: string) => Promise<void>;
     deleteAccount: (password: string, code?: string, backupCode?: string) => Promise<void>;
-    needsSetup2FA: boolean;
-    clearSetup2FA: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -39,16 +36,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { t } = useTranslation();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
-    const [isLoading, setIsLoading] = useState(true);
-    const [needsSetup2FA, setNeedsSetup2FA] = useState(() => localStorage.getItem('needs_setup_2fa') === 'true');
 
-    // Clear any stale forced-2FA flag persisted from previous app versions —
-    // 2FA setup is now optional, never forced.
+    // Versions before 2FA became optional persisted a forced-setup flag; drop it.
     useEffect(() => {
-        if (localStorage.getItem('needs_setup_2fa') === 'true') {
-            localStorage.removeItem('needs_setup_2fa');
-            setNeedsSetup2FA(false);
-        }
+        localStorage.removeItem('needs_setup_2fa');
     }, []);
 
     useEffect(() => {
@@ -62,7 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 void logout();
             }
         }
-        setIsLoading(false);
     }, [token]);
 
     const login = async (username: string, password: string, totpCode?: string, backupCode?: string) => {
@@ -72,13 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         await deriveAndCacheCloudKey(password, data.user.id);
-        if (data.needsSetup2FA) {
-            setNeedsSetup2FA(true);
-            localStorage.setItem('needs_setup_2fa', 'true');
-        } else {
-            setNeedsSetup2FA(false);
-            localStorage.removeItem('needs_setup_2fa');
-        }
     };
 
     const loginWithToken = async (data: AuthResponse, verifiedPassword?: string) => {
@@ -86,9 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
-        // Passkey login always counts as completing 2FA
-        setNeedsSetup2FA(false);
-        localStorage.removeItem('needs_setup_2fa');
         // A passkey proves who you are; it does not hand this device the
         // password the cloud key is derived from. When the passkey was only the
         // *second* factor the password is right here and the server has just
@@ -106,14 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         await deriveAndCacheCloudKey(password, data.user.id);
-        // 2FA setup is optional — do not force new users into setup flow.
-        setNeedsSetup2FA(false);
-        localStorage.removeItem('needs_setup_2fa');
-    };
-
-    const clearSetup2FA = () => {
-        setNeedsSetup2FA(false);
-        localStorage.removeItem('needs_setup_2fa');
     };
 
     // Clear this device's copy of the session. Split out so the forced sign-out
@@ -122,10 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const clearLocalSession = () => {
         setToken(null);
         setUser(null);
-        setNeedsSetup2FA(false);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
-        localStorage.removeItem('needs_setup_2fa');
         cacheCloudKey(null);
     };
 
@@ -191,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, loginWithToken, register, logout, isLoading, updateProfile, changePassword, deleteAccount, needsSetup2FA, clearSetup2FA }}>
+        <AuthContext.Provider value={{ user, token, login, loginWithToken, register, logout, updateProfile, changePassword, deleteAccount }}>
             {children}
         </AuthContext.Provider>
     );

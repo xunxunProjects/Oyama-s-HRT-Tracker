@@ -979,7 +979,6 @@ export default {
 
         // 2FA check
         const userWithTotp = await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?').bind(user.id).first() as any;
-        let twoFAVerified = false;
         if (userWithTotp?.totp_secret) {
           // TOTP is enabled — accept totp_code or backup_code
           if (!totp_code && !backup_code) {
@@ -995,7 +994,6 @@ export default {
             const totpValid = await consumeTOTP(env, user.id, userWithTotp.totp_secret, String(totp_code));
             if (!totpValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 401);
           }
-          twoFAVerified = true;
         } else {
           // No TOTP: check if user has any passkeys registered
           const pkRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?').bind(user.id).first() as any;
@@ -1010,7 +1008,6 @@ export default {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               }));
             }
-            twoFAVerified = true;
           }
         }
 
@@ -1025,8 +1022,6 @@ export default {
         const secret = new TextEncoder().encode(jwtSecret);
         const token = await new SignJWT({ sub: user.id, username: user.username, role: 'user', sid: sessionId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('7d').sign(secret);
         const loginResp: Record<string, any> = { token, user: { id: user.id, username: user.username, isAdmin: false } };
-        // 2FA setup is optional — do not force users to configure it on login.
-        void twoFAVerified;
         return withSecurityHeaders(new Response(JSON.stringify(loginResp), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
       }
 

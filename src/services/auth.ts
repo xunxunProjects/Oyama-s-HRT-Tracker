@@ -9,7 +9,6 @@ export interface User {
 export interface AuthResponse {
     token: string;
     user: User;
-    needsSetup2FA?: boolean;
 }
 
 export interface Session {

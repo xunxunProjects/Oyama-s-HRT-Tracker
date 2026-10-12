@@ -17,9 +17,7 @@ import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
-import WeightEditorModal from './components/WeightEditorModal';
 import DoseFormModal from './components/DoseFormModal';
-import ImportModal from './components/ImportModal';
 import Sidebar from './components/Sidebar';
 import PasswordInputModal from './components/PasswordInputModal';
 import DisclaimerModal from './components/DisclaimerModal';
@@ -60,7 +58,7 @@ const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
     const { showDialog } = useDialog();
     const { mode } = useHRTMode();
-    const { user, token, logout, needsSetup2FA, clearSetup2FA } = useAuth();
+    const { user, token, logout } = useAuth();
     const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
     // --- Prediction curve: the Overview chart carried on past "now", dashed,
@@ -130,10 +128,8 @@ const AppContent = () => {
 
 
     // --- Local UI State (Modals & Forms) ---
-    const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
-    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
@@ -202,12 +198,6 @@ const AppContent = () => {
 
     // --- Theme Effect ---
     useEffect(() => {
-        if (needsSetup2FA && user && currentView !== 'two-factor') {
-            handleViewChange('two-factor');
-        }
-    }, [needsSetup2FA, user]);
-
-    useEffect(() => {
         localStorage.setItem('app-theme', theme);
         const root = window.document.documentElement;
 
@@ -244,10 +234,10 @@ const AppContent = () => {
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
-        const shouldLock = isPasswordInputOpen || isWeightModalOpen || isFormOpen || isImportModalOpen || isDisclaimerOpen;
+        const shouldLock = isPasswordInputOpen || isFormOpen || isDisclaimerOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-    }, [isPasswordInputOpen, isWeightModalOpen, isFormOpen, isImportModalOpen, isDisclaimerOpen]);
+    }, [isPasswordInputOpen, isFormOpen, isDisclaimerOpen]);
 
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
@@ -389,9 +379,7 @@ const AppContent = () => {
                 parsed = await parseCloudBackup(backup.data);
                 timestamp = backup.created_at;
             } else {
-                // Metadata first, then fetch only the newest body — the same
-                // reason as the startup check: the plain list endpoint is
-                // SELECT * and would ship every retained backup to read one.
+                // Metadata first, then fetch only the newest body.
                 const metas = await cloudService.listMeta(token);
                 if (!metas || metas.length === 0) {
                     showDialog('alert', t('account.no_cloud_backups'));
@@ -429,18 +417,10 @@ const AppContent = () => {
         }
     };
 
-    // Construct Nav Items again just for Sidebar prop, or reuse from hook if we exported it
-    // Actually we exported navItems from useAppNavigation
-    // But we need to pass them to sidebar.
-    // And also reconstruct the bottom nav bar manually because it was inline in the original App.tsx
-    // Let's grab navItems logic from hook or just reconstruct here?
-    // The hook provides navItems.
-
     // Takes over the whole screen rather than sitting in the view stack: the
     // intro is where language and HRT mode get chosen, and leaving the nav up
-    // would let someone tab away with both still on their defaults. Yields to a
-    // forced 2FA setup, which is the one thing that can't wait behind a tour.
-    if (showOnboarding && !needsSetup2FA) {
+    // would let someone tab away with both still on their defaults.
+    if (showOnboarding) {
         return (
             <Onboarding
                 languageOptions={languageOptions}
@@ -459,7 +439,7 @@ const AppContent = () => {
             <Sidebar
                 navItems={navItems}
                 currentView={tabForView(currentView)}
-                onViewChange={(v) => !needsSetup2FA && handleViewChange(v)}
+                onViewChange={handleViewChange}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
 
@@ -601,14 +581,8 @@ const AppContent = () => {
                         <Settings
                             t={t}
                             lang={lang}
-                            setLang={setLang}
                             theme={theme}
-                            setTheme={setTheme}
                             languageOptions={languageOptions}
-                            onImportJson={importEventsFromJson}
-                            labResults={labResults}
-                            onExport={handleExportConfirm}
-                            onQuickExport={handleQuickExport}
                             onClearAllEvents={clearAllEvents}
                             events={events}
                             showDialog={showDialog}
@@ -616,7 +590,6 @@ const AppContent = () => {
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             weight={weight}
-                            setIsWeightModalOpen={setIsWeightModalOpen}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
                             onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
@@ -722,9 +695,8 @@ const AppContent = () => {
                         <TwoFactorPage
                             token={token}
                             enabled={twoFAEnabled}
-                            onStatusChange={(v) => { setTwoFAEnabled(v); if (v) clearSetup2FA(); }}
+                            onStatusChange={setTwoFAEnabled}
                             onBack={() => handleViewChange('account')}
-                            setupRequired={needsSetup2FA}
                         />
                     )}
 
@@ -808,22 +780,15 @@ const AppContent = () => {
                             // settings tab is the one that should read as active.
                             const activeTab = currentView === 'admin' ? 'settings' : tabForView(currentView);
                             const isActive = activeTab === id;
-                            const isDisabled = needsSetup2FA && id !== 'two-factor';
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => !isDisabled && handleViewChange(id as ViewKey)}
-                                    disabled={isDisabled}
+                                    onClick={() => handleViewChange(id as ViewKey)}
                                     aria-current={isActive ? 'page' : undefined}
                                     className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors duration-150 motion-reduce:transition-none
-                                        ${isDisabled
-                                            ? 'text-[var(--text-disabled)] cursor-not-allowed'
-                                            : isActive
-                                            ? 'text-[var(--text)]'
-                                            : 'text-[var(--text-muted)]'
-                                        }`}
+                                        ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                                 >
-                                    <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive && !isDisabled ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
+                                    <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
                                         <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
                                     </span>
                                     <span className="text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em]">
@@ -840,13 +805,6 @@ const AppContent = () => {
                 isOpen={isPasswordInputOpen}
                 onClose={() => setIsPasswordInputOpen(false)}
                 onConfirm={handlePasswordSubmit}
-            />
-
-            <WeightEditorModal
-                isOpen={isWeightModalOpen}
-                onClose={() => setIsWeightModalOpen(false)}
-                currentWeight={weight}
-                onSave={setWeight}
             />
 
             <DoseFormModal
@@ -870,12 +828,6 @@ const AppContent = () => {
             <DisclaimerModal
                 isOpen={isDisclaimerOpen}
                 onClose={() => setIsDisclaimerOpen(false)}
-            />
-
-            <ImportModal
-                isOpen={isImportModalOpen}
-                onClose={() => setIsImportModalOpen(false)}
-                onImportJson={importEventsFromJson}
             />
 
             <AuthModal

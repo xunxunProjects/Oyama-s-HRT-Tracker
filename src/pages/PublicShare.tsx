@@ -201,7 +201,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(value => !value)}
-                                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-body"
+                                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 >
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

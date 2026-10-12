@@ -14,14 +14,8 @@ import { fill } from '../utils/regimenText';
 interface SettingsProps {
     t: (key: string) => string;
     lang: Lang;
-    setLang: (lang: Lang) => void;
     theme: AppTheme;
-    setTheme: (theme: AppTheme) => void;
     languageOptions: { value: string; label: string }[];
-    onImportJson: (text: string) => boolean | Promise<boolean>;
-    labResults: any[];
-    onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
-    onQuickExport: () => void;
     onClearAllEvents: () => void;
     events: DoseEvent[];
     showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void;
@@ -29,7 +23,6 @@ interface SettingsProps {
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     weight: number;
-    setIsWeightModalOpen: (isOpen: boolean) => void;
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
@@ -288,7 +281,7 @@ const Settings: React.FC<SettingsProps> = ({
                 />
                 <NavRow
                     label={t('drawer.github')}
-                    onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/SmirnovaOyama/Oyama-s-HRT-recorder', '_blank'))}
+                    onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/xunxunProjects/Oyama-s-HRT-Tracker', '_blank'))}
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />

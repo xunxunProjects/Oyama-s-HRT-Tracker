@@ -9,8 +9,6 @@ export const useTranslation = () => {
     return ctx;
 };
 
-const RTL_LANGS: ReadonlySet<Lang> = new Set<Lang>();
-
 const LANG_LOCALE: Record<Lang, string> = {
     'zh': 'zh-CN',
     'zh-TW': 'zh-TW',
@@ -49,9 +47,8 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
     useEffect(() => {
         localStorage.setItem('hrt-lang', lang);
-        document.title = (lang.startsWith('zh') || lang === 'yue') ? "HRT 记录" : "HRT Tracker";
+        document.title = (TRANSLATIONS as Record<string, Record<string, string>>)[lang]?.['app.title'] ?? 'HRT Tracker';
         document.documentElement.lang = LANG_LOCALE[lang] ?? lang;
-        document.documentElement.dir = RTL_LANGS.has(lang) ? 'rtl' : 'ltr';
     }, [lang]);
 
     const t = (key: string) => {

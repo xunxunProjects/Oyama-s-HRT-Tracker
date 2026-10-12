@@ -21,7 +21,6 @@ interface TwoFactorPageProps {
     enabled: boolean;
     onStatusChange: (enabled: boolean) => void;
     onBack: () => void;
-    setupRequired?: boolean;
 }
 
 type SetupStep = 'scan' | 'verify';
@@ -79,7 +78,7 @@ const BackupCodesBlock: React.FC<{
     </div>
 );
 
-const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack, setupRequired = false }) => {
+const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
 
@@ -395,15 +394,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     return (
         <div className="relative pb-32">
             {/* Header */}
-            <PageHeader onBack={onBack} backDisabled={setupRequired} title={t('account.2fa')} />
-
-            {/* Mandatory setup notice */}
-            {setupRequired && (
-                <div className={`px-6 md:px-10 mb-4 flex items-start gap-2 text-sm ${muted}`}>
-                    <span className="icon-line"><AlertCircle size={14} /></span>
-                    <span>{t('auth.setup_2fa_required')}</span>
-                </div>
-            )}
+            <PageHeader onBack={onBack} title={t('account.2fa')} />
 
             <div className={PAGE_COLUMN}>
                 <Tabs<ActiveTab>

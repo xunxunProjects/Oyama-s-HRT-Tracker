@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
     "lib": [
@@ -12,19 +11,12 @@
     "skipLibCheck": true,
     "types": [
       "node",
-      "@cloudflare/workers-types",
-      "vite-plugin-pwa/client"
+      "@cloudflare/workers-types"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "allowJs": true,
     "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
