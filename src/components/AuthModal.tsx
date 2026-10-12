@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Loader2, Fingerprint } from 'lucide-react';
 import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const [useBackupCode, setUseBackupCode] = useState(false);
     const [backupCode, setBackupCode] = useState('');
     const [passkeyLoading, setPasskeyLoading] = useState(false);
+    // The password the server accepted before it asked for a second factor.
+    // The passkey retry button needs it too, or that sign-in leaves this
+    // device without a cloud key and sync stuck on locked.
+    const acceptedPasswordRef = useRef<string | null>(null);
 
     const { login, register, loginWithToken } = useAuth();
     const { t } = useTranslation();
@@ -99,6 +103,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 setNeedsTOTP(true);
                 setTwoFAMethod(method);
                 setError(null);
+                acceptedPasswordRef.current = password;
                 if (method === 'passkey') {
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
@@ -212,7 +217,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={() => handlePasskeyLogin()}
+                                                onClick={() => handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)}
                                                 disabled={passkeyLoading}
                                                 className="btn-secondary w-full"
                                             >

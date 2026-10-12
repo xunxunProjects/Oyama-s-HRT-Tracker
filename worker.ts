@@ -743,6 +743,11 @@ export default {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, HEAD, POST, DELETE, OPTIONS, PATCH, PUT',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      // A VITE_API_ORIGIN build (the desktop app) calls cross-origin, where the
+      // browser hides every response header outside the CORS-safe list unless
+      // it is named here. The client reads Retry-After to back off, and
+      // X-Session-Invalid to tell an expired session from a wrong password.
+      'Access-Control-Expose-Headers': 'Retry-After, X-Session-Invalid',
     };
 
     const shareJson = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
@@ -774,7 +779,7 @@ export default {
     // as an incorrect password. The client only force-signs-out on tagged
     // responses, never on a wrong-password attempt.
     const sessionInvalid = (message: string) =>
-      jsonError('SESSION_INVALID', message, 401, { 'X-Session-Invalid': '1', 'Access-Control-Expose-Headers': 'X-Session-Invalid' });
+      jsonError('SESSION_INVALID', message, 401, { 'X-Session-Invalid': '1' });
 
     try {
       // Validate JWT secret first — if misconfigured return 503 not 500
@@ -1529,7 +1534,7 @@ export default {
           // that no longer existed. Bodies come one at a time from /api/content/:id.
           if (url.pathname === '/api/content' && request.method === 'GET') {
             const content = await env.DB.prepare('SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC').bind(userId).all();
-            return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            return withSecurityHeaders(new Response(JSON.stringify(content.results), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }));
           }
           if (url.pathname === '/api/content' && request.method === 'POST') {
             // Same guard the share endpoints already apply. Without it this
@@ -1572,20 +1577,20 @@ export default {
                 `DELETE FROM content WHERE user_id = ? AND id IN (${stale.map(() => '?').join(',')})`
               ).bind(userId, ...stale).run();
             }
-            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Content saved', id }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Content saved', id }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }));
           }
           // Delete a specific backup (user can only delete their own)
           if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'DELETE') {
             const backupId = url.pathname.split('/').pop();
             await env.DB.prepare('DELETE FROM content WHERE id = ? AND user_id = ?').bind(backupId, userId).run();
-            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Backup deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            return withSecurityHeaders(new Response(JSON.stringify({ message: 'Backup deleted' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }));
           }
           // Load a specific backup by ID
           if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
             const backupId = url.pathname.split('/').pop();
             const row = await env.DB.prepare('SELECT * FROM content WHERE id = ? AND user_id = ?').bind(backupId, userId).first();
             if (!row) return jsonError('NOT_FOUND', 'Not found', 404);
-            return withSecurityHeaders(new Response(JSON.stringify(row), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }));
+            return withSecurityHeaders(new Response(JSON.stringify(row), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }));
           }
         }
 
