@@ -43,5 +43,9 @@ jobs:
         # Covers the web app and worker.ts alike.
         run: npx tsc --noEmit
 
+      - name: Unit tests
+        # Dose and concentration math in logic.ts; see tests/.
+        run: npm test
+
       - name: Build
         run: npm run build
