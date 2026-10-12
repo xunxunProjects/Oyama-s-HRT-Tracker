@@ -1,0 +1,70 @@
+name: Bug report 问题报告
+description: Something in the app is broken or behaves unexpectedly. 应用中有功能损坏或表现异常。
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Please do not include personal or medical details you would not want made public.
+
+        感谢你花时间报告问题。请不要填写任何你不希望公开的个人信息或医疗数据。
+
+        If the problem is a security vulnerability, please follow [SECURITY.md](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/blob/main/SECURITY.md) instead. 如果是安全漏洞，请按照 SECURITY.md 私下报告。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? 发生了什么？
+      description: Describe the problem and what you expected to happen instead. 描述问题，以及你原本期望的结果。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce 复现步骤
+      placeholder: |
+        1. Go to ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where are you using the app? 你在哪里使用本应用？
+      multiple: true
+      options:
+        - Website in a browser 浏览器中的网页版
+        - Installed web app (PWA) 安装到主屏幕的网页应用
+        - macOS desktop app 桌面应用
+        - Windows desktop app 桌面应用
+        - Self-hosted (Docker or Cloudflare) 自托管
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device, OS and browser 设备、系统与浏览器
+      placeholder: e.g. iPhone 15, iOS 18, Safari
+  - type: input
+    id: version
+    attributes:
+      label: App version 应用版本
+      description: The release you installed. Leave blank if you use the website. 填写你安装的版本；使用网页版可留空。
+      placeholder: e.g. 1.4.2
+  - type: dropdown
+    id: language
+    attributes:
+      label: Interface language 界面语言
+      options:
+        - 简体中文
+        - 正體中文
+        - 廣東話
+        - English
+        - 日本語
+        - 한국어
+        - Türkçe
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs 截图或日志
+      description: Screenshots, screen recordings or browser console errors help a lot. 截图、录屏或浏览器控制台报错都很有帮助。

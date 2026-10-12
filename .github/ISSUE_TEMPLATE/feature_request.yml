@@ -1,0 +1,32 @@
+name: Feature request 功能建议
+description: Suggest an idea or an improvement. 提出新想法或改进建议。
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve? 这能解决什么问题？
+      description: Tell us what you are trying to do and what gets in the way. 告诉我们你想做什么，以及遇到了什么阻碍。
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen? 你希望怎样实现？
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered 考虑过的其他方案
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources 参考资料
+      description: For a new medication, route or model change, link the paper, label or guideline it is based on. 如果涉及新的药物、给药途径或模型修改，请附上依据的论文、说明书或指南。
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing 参与开发
+      options:
+        - label: I would like to help build this. 我愿意参与实现。
