@@ -66,3 +66,40 @@ simple = { limit = 60, period = 60 }
 name = "RL_PER_MINUTE_300"
 namespace_id = "1300"
 simple = { limit = 300, period = 60 }
+
+# Worker Previews (one per pull request branch, created by Workers Builds with
+# `wrangler preview`) get their own database, avatar bucket and rate-limit
+# namespaces, so code from a pull request never touches production data.
+[[previews.d1_databases]]
+binding = "DB"
+database_name = "hrt-tracker-preview"
+database_id = "c088f884-9144-4235-b889-b1aa59ecc28a"
+
+[[previews.r2_buckets]]
+binding = "AVATAR_BUCKET"
+bucket_name = "hrt-tracker-preview-avatars"
+
+[[previews.ratelimits]]
+name = "RL_PER_MINUTE_10"
+namespace_id = "2010"
+simple = { limit = 10, period = 60 }
+
+[[previews.ratelimits]]
+name = "RL_PER_MINUTE_20"
+namespace_id = "2020"
+simple = { limit = 20, period = 60 }
+
+[[previews.ratelimits]]
+name = "RL_PER_MINUTE_30"
+namespace_id = "2030"
+simple = { limit = 30, period = 60 }
+
+[[previews.ratelimits]]
+name = "RL_PER_MINUTE_60"
+namespace_id = "2060"
+simple = { limit = 60, period = 60 }
+
+[[previews.ratelimits]]
+name = "RL_PER_MINUTE_300"
+namespace_id = "2300"
+simple = { limit = 300, period = 60 }
