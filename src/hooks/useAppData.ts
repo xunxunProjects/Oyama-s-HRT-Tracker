@@ -1,19 +1,39 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShowDialog } from '../contexts/DialogContext';
 import { v4 as uuidv4 } from 'uuid';
-import { DoseEvent, Route, Ester, SimulationResult, runSimulation, interpolateConcentration_E2, interpolateConcentration_CPA, interpolateConcentration_T, LabResult, computeCalibration, CalibrationMethod, CalibrationHistoryMode, normalizeCalibrationMethod, isTestosteroneEster, isT_LabUnit, PKCustomParams, applyPKOverrides, sanitizePKParams, isPlausibleBodyWeightKG,
-         BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX, DOSE_MG_MAX,
-         EVENT_TIME_H_MIN, EVENT_TIME_H_MAX } from '../../logic';
+import {
+    DoseEvent,
+    Route,
+    Ester,
+    SimulationResult,
+    runSimulation,
+    interpolateConcentration_E2,
+    interpolateConcentration_CPA,
+    interpolateConcentration_T,
+    LabResult,
+    computeCalibration,
+    CalibrationMethod,
+    CalibrationHistoryMode,
+    normalizeCalibrationMethod,
+    isTestosteroneEster,
+    isT_LabUnit,
+    PKCustomParams,
+    applyPKOverrides,
+    sanitizePKParams,
+    isPlausibleBodyWeightKG,
+    BODY_WEIGHT_KG_MIN,
+    BODY_WEIGHT_KG_MAX,
+    DOSE_MG_MAX,
+    EVENT_TIME_H_MIN,
+    EVENT_TIME_H_MAX,
+} from '../../logic';
 import { createDayLabelFormatter, toDayKey } from '../utils/helpers';
 import { detectRegimens, dosesAhead, normalizeSupply, Supply } from '../utils/regimen';
 import { PlanItem, normalizePlanItem, legacyCpaItem, regimensFromPlan } from '../utils/plan';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
-import {
-    MODE_KEYS, RecordKind, SyncState, Tombstones,
-    pruneTombstones, sanitizeTombstones,
-} from '../utils/syncMerge';
+import { MODE_KEYS, RecordKind, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from '../utils/syncMerge';
 
 /** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
 const LOCAL_OWNER = 'local';
@@ -27,17 +47,13 @@ const LOCAL_OWNER = 'local';
 // Signed-out keys keep their original, un-prefixed names, so records written
 // before this change — and by anyone who never signs in — are still found
 // exactly where they were.
-const nsFor = (owner: string, suffix: string) =>
-    owner === LOCAL_OWNER ? `hrt-${suffix}` : `hrt-u${owner}-${suffix}`;
+const nsFor = (owner: string, suffix: string) => (owner === LOCAL_OWNER ? `hrt-${suffix}` : `hrt-u${owner}-${suffix}`);
 
 const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: string) =>
     nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
 const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses', 'deletions'] as const;
-const SHARED_SUFFIXES = [
-    'weight', 'pk-params', 'cal-method', 'cal-history-mode',
-    'weight-at', 'pk-params-at',
-] as const;
+const SHARED_SUFFIXES = ['weight', 'pk-params', 'cal-method', 'cal-history-mode', 'weight-at', 'pk-params-at'] as const;
 
 /**
  * First sign-in on this device adopts whatever was recorded while signed out.
@@ -109,11 +125,13 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     const keyFor = (m: 'transfem' | 'transmasc', suffix: string) => modeKeyFor(owner, m, suffix);
     const sharedKey = (suffix: string) => nsFor(owner, suffix);
 
-    const loadJSON = <T,>(key: string, fallback: T): T => {
+    const loadJSON = <T>(key: string, fallback: T): T => {
         try {
             const s = localStorage.getItem(key);
             return s ? (JSON.parse(s) as T) : fallback;
-        } catch { return fallback; }
+        } catch {
+            return fallback;
+        }
     };
 
     // --- Deletion log ------------------------------------------------------
@@ -149,7 +167,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         const current = readTombstones(m);
         let touched = false;
         for (const id of ids) {
-            if (current[kind][id] !== undefined) { delete current[kind][id]; touched = true; }
+            if (current[kind][id] !== undefined) {
+                delete current[kind][id];
+                touched = true;
+            }
         }
         if (touched) writeTombstones(m, current);
     };
@@ -187,10 +208,12 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setWeightState(w);
         localStorage.setItem(sharedKey('weight-at'), String(Date.now()));
     };
-    const [labResults, setLabResults] = useState<LabResult[]>(() => loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));
+    const [labResults, setLabResults] = useState<LabResult[]>(() =>
+        loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]),
+    );
     const [calibrationMethod, setCalibrationMethodState] = useState<CalibrationMethod>(() =>
         // Hybrid-MIPD is the default; legacy 'average'/'adaptive' values are migrated.
-        normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method')))
+        normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))),
     );
     const setCalibrationMethod = (m: CalibrationMethod) => {
         setCalibrationMethodState(m);
@@ -204,12 +227,19 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setCalibrationHistoryModeState(m);
         localStorage.setItem(sharedKey('cal-history-mode'), m);
     };
-    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() => loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
-    const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() => loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
+    const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() =>
+        loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]),
+    );
+    const [quickDoses, setQuickDoses] = useState<QuickDose[]>(() =>
+        loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]),
+    );
     // What's left of each medicine on hand. Kept on this device only, like quick
     // doses: it is a count of the drawer, not part of the medical record, so it
     // stays out of exports and cloud sync.
-    const loadSupplies = (m: 'transfem' | 'transmasc') => loadJSON<unknown[]>(keyFor(m, 'supplies'), []).map(normalizeSupply).filter((x): x is Supply => x !== null);
+    const loadSupplies = (m: 'transfem' | 'transmasc') =>
+        loadJSON<unknown[]>(keyFor(m, 'supplies'), [])
+            .map(normalizeSupply)
+            .filter((x): x is Supply => x !== null);
     const [supplies, setSupplies] = useState<Supply[]>(() => loadSupplies(mode));
     const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
         const saved = localStorage.getItem(sharedKey('pk-params'));
@@ -218,7 +248,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             const parsed = sanitizePKParams(JSON.parse(saved));
             applyPKOverrides(parsed); // Apply immediately so first simulation uses custom params
             return parsed;
-        } catch { return null; }
+        } catch {
+            return null;
+        }
     });
 
     // The medication plan, entered by the person. Kept on this device, like supplies.
@@ -227,7 +259,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             const cpa = legacyCpaItem(localStorage.getItem(sharedKey('cpa-plan')));
             if (cpa) return [cpa];
         }
-        return loadJSON<unknown[]>(keyFor(m, 'plan'), []).map(normalizePlanItem).filter((x): x is PlanItem => x !== null);
+        return loadJSON<unknown[]>(keyFor(m, 'plan'), [])
+            .map(normalizePlanItem)
+            .filter((x): x is PlanItem => x !== null);
     };
     const [plan, setPlan] = useState<PlanItem[]>(() => loadPlan(mode));
 
@@ -270,7 +304,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         const savedWeight = localStorage.getItem(sharedKey('weight'));
         setWeightState(savedWeight ? parseFloat(savedWeight) : 70.0);
         setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
-        setCalibrationHistoryModeState(localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective');
+        setCalibrationHistoryModeState(
+            localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective',
+        );
         setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope]);
@@ -300,7 +336,6 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setReadyScope(prev => (prev === scope ? prev : scope));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, labResults, doseTemplates, quickDoses, supplies, plan]);
-
 
     useEffect(() => {
         if (loadedScopeRef.current !== scope) return;
@@ -353,7 +388,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     // The clock only ticks once a minute, so a dose logged "now" is later than
     // it and reads as scheduled for the future until the next tick. Catch the
     // clock up whenever the log changes.
-    useEffect(() => { setCurrentTime(new Date()); }, [events]);
+    useEffect(() => {
+        setCurrentTime(new Date());
+    }, [events]);
 
     // Derived in the same render as the events it comes from. As an effect it
     // landed one render late, so every open of the Overview with data (and
@@ -455,33 +492,95 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             // Transmasc: total T status bands (ng/dL). Reference: male range 300–1000 ng/dL.
             if (currentT > 0) {
                 const c = currentT;
-                if (c > 1000) return { label: 'status.level.t_high',    color: 'text-[var(--warning)]', bg: 'bg-[var(--surface-muted)]',  border: 'border-[var(--border)]' };
-                if (c >= 600) return { label: 'status.level.t_upper',   color: 'text-[var(--status-positive)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-                if (c >= 300) return { label: 'status.level.t_male',    color: 'text-[var(--status-positive)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-                if (c >= 100) return { label: 'status.level.t_subtarget', color: 'text-[var(--status-violet)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-                return { label: 'status.level.t_low', color: 'text-[var(--status-neutral)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
+                if (c > 1000)
+                    return {
+                        label: 'status.level.t_high',
+                        color: 'text-[var(--warning)]',
+                        bg: 'bg-[var(--surface-muted)]',
+                        border: 'border-[var(--border)]',
+                    };
+                if (c >= 600)
+                    return {
+                        label: 'status.level.t_upper',
+                        color: 'text-[var(--status-positive)]',
+                        bg: 'bg-[var(--surface-muted)]',
+                        border: 'border-[var(--border)]',
+                    };
+                if (c >= 300)
+                    return {
+                        label: 'status.level.t_male',
+                        color: 'text-[var(--status-positive)]',
+                        bg: 'bg-[var(--surface-muted)]',
+                        border: 'border-[var(--border)]',
+                    };
+                if (c >= 100)
+                    return {
+                        label: 'status.level.t_subtarget',
+                        color: 'text-[var(--status-violet)]',
+                        bg: 'bg-[var(--surface-muted)]',
+                        border: 'border-[var(--border)]',
+                    };
+                return {
+                    label: 'status.level.t_low',
+                    color: 'text-[var(--status-neutral)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
             }
             return null;
         }
         if (currentLevel > 0) {
             const conc = currentLevel;
-            if (conc > 300) return { label: 'status.level.high', color: 'text-[var(--warning)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-            if (conc >= 100 && conc <= 200) return { label: 'status.level.mtf', color: 'text-[var(--status-positive)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-            if (conc >= 70 && conc <= 300) return { label: 'status.level.luteal', color: 'text-[var(--status-info)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-            if (conc >= 30 && conc < 70) return { label: 'status.level.follicular', color: 'text-[var(--status-violet)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-            if (conc >= 8 && conc < 30) return { label: 'status.level.male', color: 'text-[var(--status-neutral)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
-            return { label: 'status.level.low', color: 'text-[var(--warning)]', bg: 'bg-[var(--surface-muted)]', border: 'border-[var(--border)]' };
+            if (conc > 300)
+                return {
+                    label: 'status.level.high',
+                    color: 'text-[var(--warning)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
+            if (conc >= 100 && conc <= 200)
+                return {
+                    label: 'status.level.mtf',
+                    color: 'text-[var(--status-positive)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
+            if (conc >= 70 && conc <= 300)
+                return {
+                    label: 'status.level.luteal',
+                    color: 'text-[var(--status-info)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
+            if (conc >= 30 && conc < 70)
+                return {
+                    label: 'status.level.follicular',
+                    color: 'text-[var(--status-violet)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
+            if (conc >= 8 && conc < 30)
+                return {
+                    label: 'status.level.male',
+                    color: 'text-[var(--status-neutral)]',
+                    bg: 'bg-[var(--surface-muted)]',
+                    border: 'border-[var(--border)]',
+                };
+            return {
+                label: 'status.level.low',
+                color: 'text-[var(--warning)]',
+                bg: 'bg-[var(--surface-muted)]',
+                border: 'border-[var(--border)]',
+            };
         }
         return null;
     }, [currentLevel, currentT, isTransmasc]);
-
 
     // --- Actions ---
     // Every write goes through here, which makes this the one place that has to
     // stamp `updatedAt`. Sync uses the stamp to tell an edit from its older
     // twin; an unstamped record silently loses that argument.
-    const stamp = <T extends object>(record: T): T & { updatedAt: number } =>
-        ({ ...record, updatedAt: Date.now() });
+    const stamp = <T extends object>(record: T): T & { updatedAt: number } => ({ ...record, updatedAt: Date.now() });
 
     const addEvent = (e: DoseEvent) => {
         forgetDeletions('events', [e.id]);
@@ -489,12 +588,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     };
     const addEvents = (list: DoseEvent[]) => {
         if (!list.length) return;
-        forgetDeletions('events', list.map(e => e.id));
+        forgetDeletions(
+            'events',
+            list.map(e => e.id),
+        );
         setEvents(prev => [...prev, ...list.map(stamp)]);
     };
     const updateEvent = (e: DoseEvent) => {
         const next = stamp(e);
-        setEvents(prev => prev.map(p => p.id === e.id ? next : p));
+        setEvents(prev => prev.map(p => (p.id === e.id ? next : p)));
     };
     const deleteEvent = (id: string) => {
         recordDeletions('events', [id]);
@@ -508,11 +610,19 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     };
     const clearAllEvents = () => {
         if (!events.length) return;
-        showDialog('confirm', t('drawer.clear_confirm'), () => {
-            recordDeletions('events', events.map(e => e.id));
-            setEvents([]);
-        }, { danger: true, confirmLabel: t('btn.delete') });
-    }
+        showDialog(
+            'confirm',
+            t('drawer.clear_confirm'),
+            () => {
+                recordDeletions(
+                    'events',
+                    events.map(e => e.id),
+                );
+                setEvents([]);
+            },
+            { danger: true, confirmLabel: t('btn.delete') },
+        );
+    };
 
     const addLabResult = (res: LabResult) => {
         forgetDeletions('labResults', [res.id]);
@@ -520,7 +630,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     };
     const updateLabResult = (res: LabResult) => {
         const next = stamp(res);
-        setLabResults(prev => prev.map(r => r.id === res.id ? next : r));
+        setLabResults(prev => prev.map(r => (r.id === res.id ? next : r)));
     };
     const deleteLabResult = (id: string) => {
         recordDeletions('labResults', [id]);
@@ -528,11 +638,19 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     };
     const clearLabResults = () => {
         if (!labResults.length) return;
-        showDialog('confirm', t('lab.clear_confirm'), () => {
-            recordDeletions('labResults', labResults.map(r => r.id));
-            setLabResults([]);
-        }, { danger: true, confirmLabel: t('btn.delete') });
-    }
+        showDialog(
+            'confirm',
+            t('lab.clear_confirm'),
+            () => {
+                recordDeletions(
+                    'labResults',
+                    labResults.map(r => r.id),
+                );
+                setLabResults([]);
+            },
+            { danger: true, confirmLabel: t('btn.delete') },
+        );
+    };
 
     const addTemplate = (template: DoseTemplate) => {
         forgetDeletions('doseTemplates', [template.id]);
@@ -546,15 +664,27 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     // Quick doses are a per-device shortcut list, not part of the record — they
     // are neither exported nor synced, so no tombstone is needed.
     const addQuickDose = (dose: QuickDose) => setQuickDoses(prev => [...prev, dose]);
-    const saveSupply = (supply: Supply) => setSupplies(prev => prev.some(s => s.id === supply.id) ? prev.map(s => (s.id === supply.id ? supply : s)) : [...prev, supply]);
+    const saveSupply = (supply: Supply) =>
+        setSupplies(prev =>
+            prev.some(s => s.id === supply.id) ? prev.map(s => (s.id === supply.id ? supply : s)) : [...prev, supply],
+        );
     const deleteSupply = (id: string) => setSupplies(prev => prev.filter(s => s.id !== id));
-    const savePlanItem = (item: PlanItem) => setPlan(prev => prev.some(i => i.id === item.id) ? prev.map(i => (i.id === item.id ? item : i)) : [...prev, item]);
+    const savePlanItem = (item: PlanItem) =>
+        setPlan(prev =>
+            prev.some(i => i.id === item.id) ? prev.map(i => (i.id === item.id ? item : i)) : [...prev, item],
+        );
     const deletePlanItem = (id: string) => setPlan(prev => prev.filter(i => i.id !== id));
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
     const touchPkParams = () => localStorage.setItem(sharedKey('pk-params-at'), String(Date.now()));
-    const setPkParams = (params: PKCustomParams) => { touchPkParams(); setPkParamsState(params); };
-    const clearPkParams = () => { touchPkParams(); setPkParamsState(null); };
+    const setPkParams = (params: PKCustomParams) => {
+        touchPkParams();
+        setPkParamsState(params);
+    };
+    const clearPkParams = () => {
+        touchPkParams();
+        setPkParamsState(null);
+    };
     // A backup with hundreds of thousands of same-day events makes the
     // simulation's peri-event sampling explode into a synchronous loop that
     // never finishes, and a file like that would wedge every later open too.
@@ -578,72 +708,79 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
         if (!Array.isArray(raw)) throw new Error('Invalid format');
         if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
-        return raw.map((item: any) => {
-            if (!item || typeof item !== 'object') return null;
-            const { route, timeH, doseMG, ester, extras } = item;
-            if (!Object.values(Route).includes(route)) return null;
-            const timeNum = Number(timeH);
-            // Out-of-range timestamps are dropped rather than clamped: moving a
-            // record to a date the user never chose is worse than losing it, and
-            // a stray one stretches the simulation grid over the whole span.
-            if (!Number.isFinite(timeNum) || timeNum < EVENT_TIME_H_MIN || timeNum > EVENT_TIME_H_MAX) return null;
-            const doseNum = Number(doseMG);
-            // A dose with no usable code at all predates the field and is estradiol.
-            const validEster = isDrugCode(ester) ? ester : Ester.E2;
-            const sanitizedExtras = (extras && typeof extras === 'object') ? extras : {};
-            return {
-                id: typeof item.id === 'string' ? item.id : uuidv4(),
-                route,
-                timeH: timeNum,
-                doseMG: Number.isFinite(doseNum) ? Math.min(DOSE_MG_MAX, Math.max(0, doseNum)) : 0,
-                ester: validEster,
-                extras: sanitizedExtras,
-                updatedAt: keepStamp(item)
-            } as DoseEvent;
-        }).filter((item): item is DoseEvent => item !== null);
+        return raw
+            .map((item: any) => {
+                if (!item || typeof item !== 'object') return null;
+                const { route, timeH, doseMG, ester, extras } = item;
+                if (!Object.values(Route).includes(route)) return null;
+                const timeNum = Number(timeH);
+                // Out-of-range timestamps are dropped rather than clamped: moving a
+                // record to a date the user never chose is worse than losing it, and
+                // a stray one stretches the simulation grid over the whole span.
+                if (!Number.isFinite(timeNum) || timeNum < EVENT_TIME_H_MIN || timeNum > EVENT_TIME_H_MAX) return null;
+                const doseNum = Number(doseMG);
+                // A dose with no usable code at all predates the field and is estradiol.
+                const validEster = isDrugCode(ester) ? ester : Ester.E2;
+                const sanitizedExtras = extras && typeof extras === 'object' ? extras : {};
+                return {
+                    id: typeof item.id === 'string' ? item.id : uuidv4(),
+                    route,
+                    timeH: timeNum,
+                    doseMG: Number.isFinite(doseNum) ? Math.min(DOSE_MG_MAX, Math.max(0, doseNum)) : 0,
+                    ester: validEster,
+                    extras: sanitizedExtras,
+                    updatedAt: keepStamp(item),
+                } as DoseEvent;
+            })
+            .filter((item): item is DoseEvent => item !== null);
     };
 
     const sanitizeImportedLabResults = (raw: any): LabResult[] => {
         if (!Array.isArray(raw)) return [];
         if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
-        return raw.map((item: any) => {
-            if (!item || typeof item !== 'object') return null;
-            const { timeH, concValue, unit } = item;
-            const timeNum = Number(timeH);
-            const valNum = Number(concValue);
-            if (!Number.isFinite(timeNum) || !Number.isFinite(valNum)) return null;
-            const unitVal = (unit === 'pg/ml' || unit === 'pmol/l' || unit === 'ng/dl' || unit === 'nmol/l') ? unit : 'pmol/l';
-            return {
-                id: typeof item.id === 'string' ? item.id : uuidv4(),
-                timeH: timeNum,
-                concValue: valNum,
-                unit: unitVal,
-                updatedAt: keepStamp(item)
-            } as LabResult;
-        }).filter((item): item is LabResult => item !== null);
+        return raw
+            .map((item: any) => {
+                if (!item || typeof item !== 'object') return null;
+                const { timeH, concValue, unit } = item;
+                const timeNum = Number(timeH);
+                const valNum = Number(concValue);
+                if (!Number.isFinite(timeNum) || !Number.isFinite(valNum)) return null;
+                const unitVal =
+                    unit === 'pg/ml' || unit === 'pmol/l' || unit === 'ng/dl' || unit === 'nmol/l' ? unit : 'pmol/l';
+                return {
+                    id: typeof item.id === 'string' ? item.id : uuidv4(),
+                    timeH: timeNum,
+                    concValue: valNum,
+                    unit: unitVal,
+                    updatedAt: keepStamp(item),
+                } as LabResult;
+            })
+            .filter((item): item is LabResult => item !== null);
     };
 
     const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
         if (!Array.isArray(raw)) return [];
         if (raw.length > MAX_IMPORT_ENTRIES) throw new Error('Too many entries');
-        return raw.map((item: any) => {
-            if (!item || typeof item !== 'object') return null;
-            const { name, route, ester, doseMG, extras, createdAt } = item;
-            if (!Object.values(Route).includes(route)) return null;
-            if (!isDrugCode(ester)) return null;
-            const doseNum = Number(doseMG);
-            if (!Number.isFinite(doseNum) || doseNum < 0) return null;
-            return {
-                id: typeof item.id === 'string' ? item.id : uuidv4(),
-                name: typeof name === 'string' ? name : 'Template',
-                route,
-                ester,
-                doseMG: doseNum,
-                extras: (extras && typeof extras === 'object') ? extras : {},
-                createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
-                updatedAt: keepStamp(item)
-            } as DoseTemplate;
-        }).filter((item): item is DoseTemplate => item !== null);
+        return raw
+            .map((item: any) => {
+                if (!item || typeof item !== 'object') return null;
+                const { name, route, ester, doseMG, extras, createdAt } = item;
+                if (!Object.values(Route).includes(route)) return null;
+                if (!isDrugCode(ester)) return null;
+                const doseNum = Number(doseMG);
+                if (!Number.isFinite(doseNum) || doseNum < 0) return null;
+                return {
+                    id: typeof item.id === 'string' ? item.id : uuidv4(),
+                    name: typeof name === 'string' ? name : 'Template',
+                    route,
+                    ester,
+                    doseMG: doseNum,
+                    extras: extras && typeof extras === 'object' ? extras : {},
+                    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+                    updatedAt: keepStamp(item),
+                } as DoseTemplate;
+            })
+            .filter((item): item is DoseTemplate => item !== null);
     };
 
     /**
@@ -686,11 +823,22 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     if (!block || typeof block !== 'object') continue;
                     const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
                     const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
-                    const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+                    const tmps = Array.isArray(block.doseTemplates)
+                        ? sanitizeImportedTemplates(block.doseTemplates)
+                        : [];
                     if (m === mode) {
-                        if (Array.isArray(block.events)) { newEvents = evs; replaced.events = true; }
-                        if (Array.isArray(block.labResults)) { newLabs = ls; replaced.labResults = true; }
-                        if (Array.isArray(block.doseTemplates)) { newTemplates = tmps; replaced.doseTemplates = true; }
+                        if (Array.isArray(block.events)) {
+                            newEvents = evs;
+                            replaced.events = true;
+                        }
+                        if (Array.isArray(block.labResults)) {
+                            newLabs = ls;
+                            replaced.labResults = true;
+                        }
+                        if (Array.isArray(block.doseTemplates)) {
+                            newTemplates = tmps;
+                            replaced.doseTemplates = true;
+                        }
                     } else {
                         // Write other mode's data straight to localStorage.
                         if (Array.isArray(block.events)) {
@@ -702,14 +850,24 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                         }
                         if (Array.isArray(block.labResults)) {
                             otherModeWrites.push(() => {
-                                reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
+                                reconcileReplacement(
+                                    m,
+                                    'labResults',
+                                    loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []),
+                                    ls,
+                                );
                                 localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
                             });
                             importedOtherMode = true;
                         }
                         if (Array.isArray(block.doseTemplates)) {
                             otherModeWrites.push(() => {
-                                reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
+                                reconcileReplacement(
+                                    m,
+                                    'doseTemplates',
+                                    loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []),
+                                    tmps,
+                                );
                                 localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
                             });
                             importedOtherMode = true;
@@ -760,10 +918,14 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     otherModeWrites.push(() => {
                         const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
                         const existingIds = new Set(existing.map(x => x.id));
-                        forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
+                        forgetDeletions(
+                            'events',
+                            otherEvs.map(e => e.id),
+                            otherMode,
+                        );
                         localStorage.setItem(
                             keyFor(otherMode, 'events'),
-                            JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))])
+                            JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))]),
                         );
                     });
                     importedOtherMode = true;
@@ -778,10 +940,14 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     otherModeWrites.push(() => {
                         const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
                         const existingIds = new Set(existing.map(x => x.id));
-                        forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
+                        forgetDeletions(
+                            'labResults',
+                            otherLs.map(l => l.id),
+                            otherMode,
+                        );
                         localStorage.setItem(
                             keyFor(otherMode, 'lab-results'),
-                            JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))])
+                            JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))]),
                         );
                     });
                     importedOtherMode = true;
@@ -789,7 +955,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 }
             }
 
-            if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length && !newPkParams) throw new Error('No valid entries');
+            if (
+                !importedOtherMode &&
+                !newEvents.length &&
+                !newWeight &&
+                !newLabs.length &&
+                !newTemplates.length &&
+                !newPkParams
+            )
+                throw new Error('No valid entries');
             if (check) return true;
             otherModeWrites.forEach(write => write());
 
@@ -837,7 +1011,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     if (!block || typeof block !== 'object') continue;
                     const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
                     const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
-                    const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+                    const tmps = Array.isArray(block.doseTemplates)
+                        ? sanitizeImportedTemplates(block.doseTemplates)
+                        : [];
                     if (m === mode) {
                         incomingEvents = evs;
                         incomingLabs = ls;
@@ -855,12 +1031,30 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                         const newTmps = tmps.filter(tm => !tmpIds.has(tm.id));
                         // An explicit merge is the user asking for these records
                         // back, so any tombstone standing in the way goes.
-                        forgetDeletions('events', evs.map(e => e.id), m);
-                        forgetDeletions('labResults', ls.map(l => l.id), m);
-                        forgetDeletions('doseTemplates', tmps.map(tm => tm.id), m);
-                        if (newEvs.length) localStorage.setItem(keyFor(m, 'events'), JSON.stringify([...existingEvs, ...newEvs]));
-                        if (newLs.length) localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify([...existingLs, ...newLs]));
-                        if (newTmps.length) localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify([...existingTmps, ...newTmps]));
+                        forgetDeletions(
+                            'events',
+                            evs.map(e => e.id),
+                            m,
+                        );
+                        forgetDeletions(
+                            'labResults',
+                            ls.map(l => l.id),
+                            m,
+                        );
+                        forgetDeletions(
+                            'doseTemplates',
+                            tmps.map(tm => tm.id),
+                            m,
+                        );
+                        if (newEvs.length)
+                            localStorage.setItem(keyFor(m, 'events'), JSON.stringify([...existingEvs, ...newEvs]));
+                        if (newLs.length)
+                            localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify([...existingLs, ...newLs]));
+                        if (newTmps.length)
+                            localStorage.setItem(
+                                keyFor(m, 'dose-templates'),
+                                JSON.stringify([...existingTmps, ...newTmps]),
+                            );
                         mergedOther += newEvs.length + newLs.length;
                     }
                 }
@@ -871,7 +1065,8 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 if (Array.isArray(parsed.events)) incomingEvents = sanitizeImportedEvents(parsed.events);
                 if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
                 if (Array.isArray(parsed.labResults)) incomingLabs = sanitizeImportedLabResults(parsed.labResults);
-                if (Array.isArray(parsed.doseTemplates)) incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
+                if (Array.isArray(parsed.doseTemplates))
+                    incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
             }
 
             // v1 flat-format safety (merge): siphon wrong-mode events *and labs*
@@ -888,7 +1083,11 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
                     const existingIds = new Set(existing.map(x => x.id));
                     const newOnes = otherEvs.filter(e => !existingIds.has(e.id));
-                    forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
+                    forgetDeletions(
+                        'events',
+                        otherEvs.map(e => e.id),
+                        otherMode,
+                    );
                     if (newOnes.length) {
                         localStorage.setItem(keyFor(otherMode, 'events'), JSON.stringify([...existing, ...newOnes]));
                         mergedOther += newOnes.length;
@@ -904,16 +1103,30 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
                     const existingIds = new Set(existing.map(x => x.id));
                     const newOnes = otherLs.filter(l => !existingIds.has(l.id));
-                    forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
+                    forgetDeletions(
+                        'labResults',
+                        otherLs.map(l => l.id),
+                        otherMode,
+                    );
                     if (newOnes.length) {
-                        localStorage.setItem(keyFor(otherMode, 'lab-results'), JSON.stringify([...existing, ...newOnes]));
+                        localStorage.setItem(
+                            keyFor(otherMode, 'lab-results'),
+                            JSON.stringify([...existing, ...newOnes]),
+                        );
                         mergedOther += newOnes.length;
                     }
                     incomingLabs = keepLs;
                 }
             }
 
-            if (!mergedOther && !incomingEvents.length && !incomingWeight && !incomingLabs.length && !incomingTemplates.length) throw new Error('No valid entries');
+            if (
+                !mergedOther &&
+                !incomingEvents.length &&
+                !incomingWeight &&
+                !incomingLabs.length &&
+                !incomingTemplates.length
+            )
+                throw new Error('No valid entries');
 
             let merged = mergedOther;
 
@@ -925,7 +1138,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 const existingIds = new Set(events.map(e => e.id));
                 const newOnes = incomingEvents.filter(e => !existingIds.has(e.id));
                 merged += newOnes.length;
-                forgetDeletions('events', incomingEvents.map(e => e.id));
+                forgetDeletions(
+                    'events',
+                    incomingEvents.map(e => e.id),
+                );
                 if (newOnes.length > 0) setEvents(prev => [...prev, ...newOnes]);
             }
 
@@ -937,7 +1153,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 const existingIds = new Set(labResults.map(r => r.id));
                 const newOnes = incomingLabs.filter(r => !existingIds.has(r.id));
                 merged += newOnes.length;
-                forgetDeletions('labResults', incomingLabs.map(r => r.id));
+                forgetDeletions(
+                    'labResults',
+                    incomingLabs.map(r => r.id),
+                );
                 if (newOnes.length > 0) setLabResults(prev => [...prev, ...newOnes]);
             }
 
@@ -945,7 +1164,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 const existingIds = new Set(doseTemplates.map(t => t.id));
                 const newOnes = incomingTemplates.filter(t => !existingIds.has(t.id));
                 merged += newOnes.length;
-                forgetDeletions('doseTemplates', incomingTemplates.map(t => t.id));
+                forgetDeletions(
+                    'doseTemplates',
+                    incomingTemplates.map(t => t.id),
+                );
                 if (newOnes.length > 0) setDoseTemplates(prev => [...prev, ...newOnes]);
             }
 
@@ -1040,13 +1262,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             setPkParamsState(next);
             if (next) localStorage.setItem(sharedKey('pk-params'), JSON.stringify(next));
             else localStorage.removeItem(sharedKey('pk-params'));
-            if (state.pkParamsUpdatedAt > 0) localStorage.setItem(sharedKey('pk-params-at'), String(state.pkParamsUpdatedAt));
+            if (state.pkParamsUpdatedAt > 0)
+                localStorage.setItem(sharedKey('pk-params-at'), String(state.pkParamsUpdatedAt));
         }
     };
 
     return {
         events,
-        weight, setWeight,
+        weight,
+        setWeight,
         labResults,
         doseTemplates,
         quickDoses,
@@ -1056,22 +1280,38 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         simulation,
         currentTime,
         calibrationFn,
-        calibrationMethod, setCalibrationMethod,
-        calibrationHistoryMode, setCalibrationHistoryMode,
+        calibrationMethod,
+        setCalibrationMethod,
+        calibrationHistoryMode,
+        setCalibrationHistoryMode,
         calibration,
         currentLevel,
         currentCPA,
-        plan, savePlanItem, deletePlanItem,
+        plan,
+        savePlanItem,
+        deletePlanItem,
         currentT,
         currentStatus,
         simulationAhead,
         groupedEvents,
-        addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
-        addLabResult, updateLabResult, deleteLabResult, clearLabResults,
-        addTemplate, deleteTemplate,
-        addQuickDose, deleteQuickDose,
+        addEvent,
+        addEvents,
+        updateEvent,
+        deleteEvent,
+        deleteEvents,
+        clearAllEvents,
+        addLabResult,
+        updateLabResult,
+        deleteLabResult,
+        clearLabResults,
+        addTemplate,
+        deleteTemplate,
+        addQuickDose,
+        deleteQuickDose,
         regimens,
-        supplies, saveSupply, deleteSupply,
+        supplies,
+        saveSupply,
+        deleteSupply,
         processImportedData,
         mergeImportedData,
         buildExportPayload,

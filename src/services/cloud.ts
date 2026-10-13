@@ -33,15 +33,17 @@ export const cloudService = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-            body
+            body,
         });
         if (!res.ok) throw await apiErrorFrom(res);
         try {
-            const body = await res.json() as { id?: string };
+            const body = (await res.json()) as { id?: string };
             return typeof body?.id === 'string' ? body.id : null;
-        } catch { return null; }
+        } catch {
+            return null;
+        }
     },
 
     // No `load()` that fetches every backup at once: the list is metadata only,
@@ -49,25 +51,25 @@ export const cloudService = {
 
     async listMeta(token: string): Promise<BackupMeta[]> {
         const res = await apiFetch('/api/content', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as BackupMeta[];
+        return (await res.json()) as BackupMeta[];
     },
 
     async loadOne(token: string, backupId: string): Promise<CloudBackup> {
         const res = await apiFetch(`/api/content/${encodeURIComponent(backupId)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as CloudBackup;
+        return (await res.json()) as CloudBackup;
     },
 
     async deleteBackup(token: string, backupId: string): Promise<void> {
         const res = await apiFetch(`/api/content/${encodeURIComponent(backupId)}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-    }
+    },
 };

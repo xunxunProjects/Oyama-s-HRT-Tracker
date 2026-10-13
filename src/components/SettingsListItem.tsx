@@ -70,15 +70,19 @@ export const SettingsListItem: React.FC<SettingsListItemProps> = ({
             style={style}
             className={`w-full min-h-14 flex items-center gap-3 py-3.5 text-start disabled:opacity-45 disabled:cursor-not-allowed ${onClick ? `${rowBleed} disabled:hover:bg-transparent` : ''} ${className}`}
         >
-            {React.isValidElement(Icon)
-                ? Icon
-                : <IconComponent size={20} className={`${isDanger ? danger : muted} shrink-0`} />}
+            {React.isValidElement(Icon) ? (
+                Icon
+            ) : (
+                <IconComponent size={20} className={`${isDanger ? danger : muted} shrink-0`} />
+            )}
             <div className="flex-1 min-w-0 text-start">
                 <p className={`text-sm font-medium ${isDanger ? danger : on}`}>{title}</p>
                 {description && <div className={`text-xs ${muted} mt-0.5`}>{description}</div>}
             </div>
             {trailing}
-            {showChevron && onClick && <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />}
+            {showChevron && onClick && (
+                <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
+            )}
         </Tag>
     );
 };

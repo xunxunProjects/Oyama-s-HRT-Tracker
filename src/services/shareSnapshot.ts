@@ -9,9 +9,7 @@ const evenlySampleRange = (start: number, end: number, count: number): number[] 
     const length = end - start + 1;
     if (length <= count) return Array.from({ length }, (_, index) => start + index);
     if (count === 1) return [end];
-    return Array.from({ length: count }, (_, index) =>
-        start + Math.round(index * (length - 1) / (count - 1))
-    );
+    return Array.from({ length: count }, (_, index) => start + Math.round((index * (length - 1)) / (count - 1)));
 };
 
 const nearestTimeIndex = (times: number[], target: number): number => {
@@ -73,8 +71,8 @@ export const buildSharedDosageSnapshot = ({
         const indexes = sampleIndexes(simulation.timeH, events);
         // Preserve the sender's calibrated curve without disclosing the lab
         // values or weight used to calibrate it.
-        const calibratedE2 = indexes.map(sourceIndex =>
-            simulation.concPGmL_E2[sourceIndex] * calibrationFn(simulation.timeH[sourceIndex])
+        const calibratedE2 = indexes.map(
+            sourceIndex => simulation.concPGmL_E2[sourceIndex] * calibrationFn(simulation.timeH[sourceIndex]),
         );
         sharedSimulation = {
             timeH: indexes.map(index => simulation.timeH[index]),

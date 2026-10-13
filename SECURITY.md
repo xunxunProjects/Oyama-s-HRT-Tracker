@@ -59,10 +59,10 @@ on is affected.
 
 安全修复会进入最新版本与官方托管站点。报告前请先更新到最新版本；如果你依赖的旧版本受影响，也请告诉我们。
 
-| Version 版本 | Supported 支持 |
-| --- | --- |
-| Latest release 最新版本 | Yes 是 |
-| Older releases 旧版本 | No 否 |
+| Version 版本            | Supported 支持 |
+| ----------------------- | -------------- |
+| Latest release 最新版本 | Yes 是         |
+| Older releases 旧版本   | No 否          |
 
 ## Scope 范围
 

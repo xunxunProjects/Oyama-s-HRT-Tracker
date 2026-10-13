@@ -35,7 +35,10 @@ const Tick: React.FC<{
  * tick draws on in its place, and the reverse when the moment passes.
  */
 export const CopyTick: React.FC<{ copied: boolean; size?: number; strokeWidth?: number; className?: string }> = ({
-    copied, size = 14, strokeWidth = 2, className = '',
+    copied,
+    size = 14,
+    strokeWidth = 2,
+    className = '',
 }) => (
     <span className={`inline-grid shrink-0 place-items-center ${className}`} aria-hidden="true">
         <Copy

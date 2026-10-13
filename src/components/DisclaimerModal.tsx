@@ -1,7 +1,7 @@
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
 
-const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const DisclaimerModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { t } = useTranslation();
 
     useEscape(onClose, isOpen);

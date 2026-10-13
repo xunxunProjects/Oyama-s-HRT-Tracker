@@ -23,7 +23,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
     onE2Change,
     bioMultiplier,
     invalid,
-    errorId
+    errorId,
 }) => {
     const { t } = useTranslation();
     const { isTransmasc } = useHRTMode();
@@ -34,7 +34,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
     const appliedVal = parseFloat(e2Dose);
     const hasDose = Number.isFinite(appliedVal) && appliedVal > 0;
     const absorbed = hasDose && bioMultiplier ? appliedVal * bioMultiplier : null;
-    const bioPct = bioMultiplier ? (bioMultiplier * 100) : null;
+    const bioPct = bioMultiplier ? bioMultiplier * 100 : null;
     const siteLabelId = React.useId();
     const doseId = React.useId();
 
@@ -42,14 +42,16 @@ const GelFields: React.FC<GelFieldsProps> = ({
         <div className="space-y-4">
             {/* Application site */}
             <div className="space-y-1.5">
-                <label id={siteLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.gel_site')}</label>
+                <label id={siteLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    {t('field.gel_site')}
+                </label>
                 <CustomSelect
                     labelledBy={siteLabelId}
                     value={String(gelSite)}
-                    onChange={(val) => setGelSite(parseInt(val, 10))}
+                    onChange={val => setGelSite(parseInt(val, 10))}
                     options={GEL_SITE_ORDER.map((siteKey, idx) => ({
                         value: String(idx),
-                        label: t(`gel.site.${siteKey}`)
+                        label: t(`gel.site.${siteKey}`),
                     }))}
                 />
             </div>
@@ -62,10 +64,12 @@ const GelFields: React.FC<GelFieldsProps> = ({
                 <input
                     id={doseId}
                     {...refusedFieldProps(e2Dose, invalid, errorId)}
-                    type="number" inputMode="decimal"
+                    type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.001"
-                    value={e2Dose} onChange={e => onE2Change(e.target.value)}
+                    value={e2Dose}
+                    onChange={e => onE2Change(e.target.value)}
                     className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0.0"
                     style={{ fontSize: '16px' }}
@@ -75,7 +79,10 @@ const GelFields: React.FC<GelFieldsProps> = ({
                     <p className="text-xs text-[var(--text-muted)] pl-1">
                         {t('gel.bioavailability')}: {bioPct.toFixed(0)}%
                         {absorbed !== null && (
-                            <> · {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg</>
+                            <>
+                                {' '}
+                                · {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg
+                            </>
                         )}
                     </p>
                 )}

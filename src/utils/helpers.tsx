@@ -1,13 +1,13 @@
 import { Lang } from '../i18n/translations';
 
 export const LOCALE_MAP: Record<Lang, string> = {
-    'zh': 'zh-CN',
+    zh: 'zh-CN',
     'zh-TW': 'zh-TW',
-    'yue': 'zh-HK',
-    'en': 'en-US',
-    'ja': 'ja-JP',
-    'ko': 'ko-KR',
-    'tr': 'tr-TR',
+    yue: 'zh-HK',
+    en: 'en-US',
+    ja: 'ja-JP',
+    ko: 'ko-KR',
+    tr: 'tr-TR',
 };
 
 export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
@@ -31,8 +31,12 @@ export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
  * into `timeH`. Returning the old string leaves that case rendering as it did.
  */
 export const createDayLabelFormatter = (lang: Lang) => {
-    const fmt = new Intl.DateTimeFormat(LOCALE_MAP[lang] || 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    return (date: Date): string => Number.isNaN(date.getTime()) ? 'Invalid Date' : fmt.format(date);
+    const fmt = new Intl.DateTimeFormat(LOCALE_MAP[lang] || 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+    return (date: Date): string => (Number.isNaN(date.getTime()) ? 'Invalid Date' : fmt.format(date));
 };
 
 /**
@@ -82,4 +86,3 @@ export const formatBytes = (bytes: number): string => {
 export const formatTime = (date: Date, timeZone?: string) => {
     return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 };
-

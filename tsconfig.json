@@ -3,16 +3,9 @@
     "target": "ES2022",
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "types": [
-      "node",
-      "@cloudflare/workers-types"
-    ],
+    "types": ["node", "@cloudflare/workers-types"],
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -20,9 +13,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src-tauri"
-  ]
+  "exclude": ["node_modules", "dist", "src-tauri"]
 }

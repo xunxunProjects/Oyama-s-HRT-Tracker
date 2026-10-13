@@ -20,10 +20,7 @@ interface SessionsPageProps {
 function parseDevice(ua: string): { browser: string | null; os: string; isMobile: boolean } {
     const lower = ua.toLowerCase();
     const isMobile =
-        lower.includes('mobile') ||
-        lower.includes('android') ||
-        lower.includes('iphone') ||
-        lower.includes('ipad');
+        lower.includes('mobile') || lower.includes('android') || lower.includes('iphone') || lower.includes('ipad');
 
     let browser: string | null = null;
     if (lower.includes('edg')) browser = 'Edge';
@@ -67,34 +64,46 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
         }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        load();
+    }, []);
 
     const handleTerminate = (sid: string) => {
-        showDialog('confirm', t('account.sessions_terminate_confirm'), async () => {
-            setTerminating(sid);
-            try {
-                await authService.terminateSession(token, sid);
-                setSessions(prev => prev.filter(s => s.id !== sid));
-            } catch {
-                showDialog('alert', t('account.sessions_terminate_failed'));
-            } finally {
-                setTerminating(null);
-            }
-        }, { danger: true, title: t('session.sign_out_device'), confirmLabel: t('account.sign_out') });
+        showDialog(
+            'confirm',
+            t('account.sessions_terminate_confirm'),
+            async () => {
+                setTerminating(sid);
+                try {
+                    await authService.terminateSession(token, sid);
+                    setSessions(prev => prev.filter(s => s.id !== sid));
+                } catch {
+                    showDialog('alert', t('account.sessions_terminate_failed'));
+                } finally {
+                    setTerminating(null);
+                }
+            },
+            { danger: true, title: t('session.sign_out_device'), confirmLabel: t('account.sign_out') },
+        );
     };
 
     const handleTerminateOthers = () => {
-        showDialog('confirm', t('account.sessions_terminate_all_confirm'), async () => {
-            setTerminating('others');
-            try {
-                await authService.terminateOtherSessions(token);
-                setSessions(prev => prev.filter(s => s.is_current));
-            } catch {
-                showDialog('alert', t('account.sessions_terminate_failed'));
-            } finally {
-                setTerminating(null);
-            }
-        }, { danger: true, title: t('account.sessions_terminate_others'), confirmLabel: t('account.sign_out') });
+        showDialog(
+            'confirm',
+            t('account.sessions_terminate_all_confirm'),
+            async () => {
+                setTerminating('others');
+                try {
+                    await authService.terminateOtherSessions(token);
+                    setSessions(prev => prev.filter(s => s.is_current));
+                } catch {
+                    showDialog('alert', t('account.sessions_terminate_failed'));
+                } finally {
+                    setTerminating(null);
+                }
+            },
+            { danger: true, title: t('account.sessions_terminate_others'), confirmLabel: t('account.sign_out') },
+        );
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
@@ -131,16 +140,15 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                             const DeviceIcon = isMobile ? Smartphone : Monitor;
 
                             return (
-                                <div
-                                    key={s.id}
-                                    className={`flex items-start gap-3 py-4 ${divider}`}
-                                >
+                                <div key={s.id} className={`flex items-start gap-3 py-4 ${divider}`}>
                                     <SettingsIconBox icon={DeviceIcon} />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <p className={`text-sm font-medium ${settingsOn} truncate`}>{label}</p>
                                             {s.is_current && (
-                                                <span className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
+                                                <span
+                                                    className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}
+                                                >
                                                     {t('account.sessions_current')}
                                                 </span>
                                             )}
@@ -149,7 +157,8 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             {maskIpAddress(s.ip)}
                                         </p>
                                         <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                            {t('account.sessions_last_used')} {formatRelative(s.last_used_at, nowSec, t)}
+                                            {t('account.sessions_last_used')}{' '}
+                                            {formatRelative(s.last_used_at, nowSec, t)}
                                             {' · '}
                                             {t('account.sessions_created')} {formatRelative(s.created_at, nowSec, t)}
                                         </p>
@@ -162,7 +171,11 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             title={t('session.sign_out_device')}
                                             className={`tap-target shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
-                                            {isTerminating ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <X size={15} strokeWidth={1.5} />}
+                                            {isTerminating ? (
+                                                <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+                                            ) : (
+                                                <X size={15} strokeWidth={1.5} />
+                                            )}
                                         </button>
                                     )}
                                 </div>
@@ -177,7 +190,11 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                         disabled={terminating === 'others'}
                         className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
                     >
-                        {terminating === 'others' ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <LogOut size={15} strokeWidth={1.5} />}
+                        {terminating === 'others' ? (
+                            <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+                        ) : (
+                            <LogOut size={15} strokeWidth={1.5} />
+                        )}
                         {t('account.sessions_terminate_others')}
                     </button>
                 )}

@@ -111,14 +111,14 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             bottom: window.innerHeight - rect.top + 6,
                             left: rect.left,
                             width: rect.width,
-                            maxHeight: maxHeight
+                            maxHeight: maxHeight,
                         });
                     } else {
                         setPositionStyle({
                             top: rect.bottom + 6,
                             left: rect.left,
                             width: rect.width,
-                            maxHeight: maxHeight
+                            maxHeight: maxHeight,
                         });
                     }
                 }
@@ -156,7 +156,9 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
     useEffect(() => {
         if (!isOpen) return;
         const list = dropdownRef.current;
-        const row = list?.querySelector<HTMLElement>('[aria-selected="true"]') ?? list?.querySelector<HTMLElement>('[role="option"]');
+        const row =
+            list?.querySelector<HTMLElement>('[aria-selected="true"]') ??
+            list?.querySelector<HTMLElement>('[role="option"]');
         row?.focus({ preventScroll: true });
     }, [isOpen, portalTarget]);
 
@@ -194,7 +196,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     ref={triggerRef}
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    onKeyDown={(e) => {
+                    onKeyDown={e => {
                         if (!isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
                             e.preventDefault();
                             setIsOpen(true);
@@ -205,9 +207,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                     aria-controls={isOpen ? listId : undefined}
                     aria-labelledby={nameId ? `${nameId} ${valueId}` : undefined}
                     className={`group w-full min-h-[44px] ps-3.5 pe-3 py-2 bg-[var(--field)] border rounded-[var(--radius-md)] outline-none flex items-center justify-between overflow-hidden
-                        ${isOpen
-                            ? 'border-[var(--accent-ink)]'
-                            : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}
+                        ${
+                            isOpen
+                                ? 'border-[var(--accent-ink)]'
+                                : 'border-[var(--border)] hover:border-[var(--border-strong)]'
+                        }`}
                 >
                     {icon ? (
                         <>
@@ -216,8 +220,13 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 <span className="font-medium text-[var(--text)] text-sm">{label}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span id={valueId} className="text-sm text-[var(--text-muted)]">{selectedOption?.label}</span>
-                                <ChevronDown size={18} className={`chev text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
+                                <span id={valueId} className="text-sm text-[var(--text-muted)]">
+                                    {selectedOption?.label}
+                                </span>
+                                <ChevronDown
+                                    size={18}
+                                    className={`chev text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
+                                />
                             </div>
                         </>
                     ) : (
@@ -227,56 +236,67 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 cut short first: the drug is what the field must
                                 confirm, and it used to be the part cut off. */}
                             <div className="flex items-center gap-2 min-w-0">
-                                {selectedOption?.icon && <div className="text-[var(--text-muted)]">{selectedOption.icon}</div>}
-                                <span id={valueId} className="text-[var(--text)] text-sm truncate">{selectedOption?.label || value}</span>
+                                {selectedOption?.icon && (
+                                    <div className="text-[var(--text-muted)]">{selectedOption.icon}</div>
+                                )}
+                                <span id={valueId} className="text-[var(--text)] text-sm truncate">
+                                    {selectedOption?.label || value}
+                                </span>
                             </div>
                             {selectedOption?.description && (
-                                <span className="flex-1 min-w-0 ms-2 truncate text-end text-xs text-[var(--text-muted)]">{selectedOption.description}</span>
+                                <span className="flex-1 min-w-0 ms-2 truncate text-end text-xs text-[var(--text-muted)]">
+                                    {selectedOption.description}
+                                </span>
                             )}
-                            <ChevronDown size={18} className={`chev shrink-0 ms-1.5 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown
+                                size={18}
+                                className={`chev shrink-0 ms-1.5 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
+                            />
                         </>
                     )}
                 </button>
 
-                {isOpen && portalTarget && createPortal(
-                    <div
-                        ref={dropdownRef}
-                        id={listId}
-                        style={positionStyle}
-                        role="listbox"
-                        aria-labelledby={nameId}
-                        onKeyDown={handleListKeyDown}
-                        className="dropdown-in menu-surface fixed z-[999] overflow-y-auto"
-                    >
-                        {options.map(opt => (
-                            <button
-                                key={opt.value}
-                                type="button"
-                                tabIndex={-1}
-                                role="option"
-                                aria-selected={opt.value === value}
-                                onClick={() => handleSelect(opt.value)}
-                                className="menu-item"
-                            >
-                                {opt.icon && <div className="text-[var(--text-muted)]">{opt.icon}</div>}
-                                {/* Label and description share a line when they
+                {isOpen &&
+                    portalTarget &&
+                    createPortal(
+                        <div
+                            ref={dropdownRef}
+                            id={listId}
+                            style={positionStyle}
+                            role="listbox"
+                            aria-labelledby={nameId}
+                            onKeyDown={handleListKeyDown}
+                            className="dropdown-in menu-surface fixed z-[999] overflow-y-auto"
+                        >
+                            {options.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    tabIndex={-1}
+                                    role="option"
+                                    aria-selected={opt.value === value}
+                                    onClick={() => handleSelect(opt.value)}
+                                    className="menu-item"
+                                >
+                                    {opt.icon && <div className="text-[var(--text-muted)]">{opt.icon}</div>}
+                                    {/* Label and description share a line when they
                                     fit; otherwise the description drops under
                                     the label whole, rather than both wrapping
                                     side by side in two narrow columns. */}
-                                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
-                                    <span>{opt.label}</span>
-                                    {opt.description && (
-                                        <span className="text-xs font-normal text-[var(--text-muted)]">
-                                            {opt.description}
-                                        </span>
-                                    )}
-                                </span>
-                                <Tick on={opt.value === value} size={18} />
-                            </button>
-                        ))}
-                    </div>,
-                    portalTarget
-                )}
+                                    <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
+                                        <span>{opt.label}</span>
+                                        {opt.description && (
+                                            <span className="text-xs font-normal text-[var(--text-muted)]">
+                                                {opt.description}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <Tick on={opt.value === value} size={18} />
+                                </button>
+                            ))}
+                        </div>,
+                        portalTarget,
+                    )}
             </div>
         </div>
     );

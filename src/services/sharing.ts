@@ -65,7 +65,7 @@ export class ShareApiError extends Error {
 const readError = async (response: Response): Promise<ShareApiError> => {
     let body: { code?: string; message?: string } | null = null;
     try {
-        body = await response.json() as { code?: string; message?: string };
+        body = (await response.json()) as { code?: string; message?: string };
     } catch {
         // The worker also has plain-text error responses outside share routes.
     }
@@ -74,9 +74,7 @@ const readError = async (response: Response): Promise<ShareApiError> => {
         response.status,
         body?.code ?? 'SHARE_REQUEST_FAILED',
         body?.message ?? `Share request failed (${response.status})`,
-        Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-            ? retryAfterSeconds * 1_000
-            : null,
+        Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1_000 : null,
     );
 };
 
@@ -89,7 +87,7 @@ export const sharingService = {
         const response = await apiFetch(apiEndpoint('/api/shares'), {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${authToken}`,
+                Authorization: `Bearer ${authToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -100,51 +98,51 @@ export const sharingService = {
             }),
         });
         if (!response.ok) throw await readError(response);
-        return await response.json() as CreatedShare;
+        return (await response.json()) as CreatedShare;
     },
 
     async open(token: string): Promise<ShareDetails | LockedShare> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
             cache: 'no-store',
             body: JSON.stringify({ token }),
         });
         if (response.status === 401) {
-            const body = await response.json() as LockedShare & { code?: string };
+            const body = (await response.json()) as LockedShare & { code?: string };
             if (body.code === 'PASSWORD_REQUIRED' || body.passwordRequired) return body;
         }
         if (!response.ok) throw await readError(response);
-        return await response.json() as ShareDetails;
+        return (await response.json()) as ShareDetails;
     },
 
     async unlock(token: string, password: string): Promise<ShareDetails> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
             cache: 'no-store',
             body: JSON.stringify({ token, password }),
         });
         if (!response.ok) throw await readError(response);
-        return await response.json() as ShareDetails;
+        return (await response.json()) as ShareDetails;
     },
 
     async list(authToken: string): Promise<ShareSummary[]> {
         const response = await apiFetch(apiEndpoint('/api/shares'), {
             headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Accept': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+                Accept: 'application/json',
             },
             cache: 'no-store',
         });
         if (!response.ok) throw await readError(response);
-        const body = await response.json() as { shares: ShareSummary[] };
+        const body = (await response.json()) as { shares: ShareSummary[] };
         return body.shares;
     },
 
@@ -156,20 +154,20 @@ export const sharingService = {
         const response = await apiFetch(apiEndpoint('/api/shares/live'), {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${authToken}`,
+                Authorization: `Bearer ${authToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ snapshot }),
             signal,
         });
         if (!response.ok) throw await readError(response);
-        return await response.json() as { updated: number; updatedAt: number };
+        return (await response.json()) as { updated: number; updatedAt: number };
     },
 
     async revoke(authToken: string, shareId: string): Promise<void> {
         const response = await apiFetch(apiEndpoint(`/api/shares/${encodeURIComponent(shareId)}`), {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${authToken}` },
+            headers: { Authorization: `Bearer ${authToken}` },
         });
         if (!response.ok) throw await readError(response);
     },

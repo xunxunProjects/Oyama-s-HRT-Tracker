@@ -27,8 +27,14 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
-        if (file.size > 5 * 1024 * 1024) { setError(t('avatar.error_size')); return; }
-        if (!['image/jpeg', 'image/png'].includes(file.type)) { setError(t('avatar.error_type')); return; }
+        if (file.size > 5 * 1024 * 1024) {
+            setError(t('avatar.error_size'));
+            return;
+        }
+        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+            setError(t('avatar.error_type'));
+            return;
+        }
         const reader = new FileReader();
         reader.addEventListener('load', () => {
             setImageSrc(reader.result?.toString() || null);
@@ -52,7 +58,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
             if (!blob) throw new Error(t('avatar.crop_failed'));
             const res = await apiFetch('/api/user/avatar', {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
                 body: blob,
             });
             if (!res.ok) throw await apiErrorFrom(res);
@@ -71,7 +77,9 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                 {/* On the same edge as everything under it: the padded box
                     it used to sit in indented the red text off that line. */}
                 {error && (
-                    <p role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+                    <p role="alert" className="text-sm text-[var(--danger)]">
+                        {error}
+                    </p>
                 )}
 
                 {!imageSrc ? (
@@ -83,7 +91,9 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                                 className={`w-full h-full object-cover absolute inset-0 z-10 ${avatarError ? 'hidden' : 'block'}`}
                                 onError={() => setAvatarError(true)}
                             />
-                            <div className={`w-full h-full flex items-center justify-center text-5xl font-light absolute inset-0 ${muted}`}>
+                            <div
+                                className={`w-full h-full flex items-center justify-center text-5xl font-light absolute inset-0 ${muted}`}
+                            >
                                 {username.charAt(0).toUpperCase()}
                             </div>
                         </div>
@@ -120,7 +130,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                                 max={3}
                                 step={0.1}
                                 aria-label={t('avatar.zoom')}
-                                onChange={(e) => setZoom(Number(e.target.value))}
+                                onChange={e => setZoom(Number(e.target.value))}
                                 className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-[var(--surface-pressed)] accent-[var(--accent)]"
                             />
                         </div>
@@ -132,12 +142,14 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                             >
                                 {t('btn.cancel')}
                             </button>
-                            <button
-                                onClick={handleUpload}
-                                disabled={isUploading}
-                                className="btn-primary flex-1"
-                            >
-                                {isUploading ? '…' : <><Check size={16} /> {t('btn.save')}</>}
+                            <button onClick={handleUpload} disabled={isUploading} className="btn-primary flex-1">
+                                {isUploading ? (
+                                    '…'
+                                ) : (
+                                    <>
+                                        <Check size={16} /> {t('btn.save')}
+                                    </>
+                                )}
                             </button>
                         </div>
                     </>

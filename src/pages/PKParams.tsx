@@ -85,7 +85,7 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
     },
 ];
 
-const divider = "border-b border-[var(--border)]";
+const divider = 'border-b border-[var(--border)]';
 
 const FIELDS = SECTIONS.flatMap(s => s.fields);
 const clampTo = (f: FieldDef, n: number) => Math.max(f.min, Math.min(f.max, n));
@@ -95,7 +95,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     const { showDialog } = useDialog();
 
     const [draft, setDraft] = useState<PKCustomParams>(() =>
-        pkParams ? { ...DEFAULT_PK_PARAMS, ...pkParams } : { ...DEFAULT_PK_PARAMS }
+        pkParams ? { ...DEFAULT_PK_PARAMS, ...pkParams } : { ...DEFAULT_PK_PARAMS },
     );
     // What a field shows while it is being typed in. The number behind it is
     // read in, and clamped, when the field is left, so clearing a field to
@@ -165,11 +165,16 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     };
 
     const handleReset = () => {
-        showDialog('confirm', t('pk.reset_confirm'), () => {
-            setDraft({ ...DEFAULT_PK_PARAMS });
-            setText({});
-            onReset();
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            t('pk.reset_confirm'),
+            () => {
+                setDraft({ ...DEFAULT_PK_PARAMS });
+                setText({});
+                onReset();
+            },
+            { danger: true },
+        );
     };
 
     const isCustomized = (key: keyof PKCustomParams) => draft[key] !== DEFAULT_PK_PARAMS[key];
@@ -179,17 +184,19 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
             <PageHeader
                 onBack={handleBack}
                 title={t('pk.title')}
-                actions={pkParams && (
-                    <span className="mr-2 text-xs font-medium text-[var(--warning)]">
-                        {t('pk.customized')}
-                    </span>
-                )}
+                actions={
+                    pkParams && (
+                        <span className="mr-2 text-xs font-medium text-[var(--warning)]">{t('pk.customized')}</span>
+                    )
+                }
             />
 
             <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
                 <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--border)]">
-                    <span className="icon-line text-sm"><AlertTriangle size={13} className="text-[var(--warning)]" /></span>
+                    <span className="icon-line text-sm">
+                        <AlertTriangle size={13} className="text-[var(--warning)]" />
+                    </span>
                     <p className="text-sm text-[var(--text-muted)]">{t('pk.warn')}</p>
                 </div>
 
@@ -200,7 +207,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             onClick={() => toggleSection(section.key)}
                             className={`w-full flex items-center justify-between py-4 ${divider} text-start`}
                         >
-              <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
+                            <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
                                 {t(section.titleKey)}
                             </span>
                             <ChevronDown
@@ -223,7 +230,10 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                         {t(field.labelKey)}
                                                     </span>
                                                     {changed && (
-                                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0" title={t('pk.modified')} />
+                                                        <span
+                                                            className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0"
+                                                            title={t('pk.modified')}
+                                                        />
                                                     )}
                                                 </div>
                                                 <span className="text-xs text-[var(--text-muted)]">
@@ -256,7 +266,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
                 {/* Info note */}
                 <div className="flex items-start gap-2 pt-4 pb-2">
-                    <span className="icon-line text-xs"><Info size={13} className="text-[var(--text-muted)]" /></span>
+                    <span className="icon-line text-xs">
+                        <Info size={13} className="text-[var(--text-muted)]" />
+                    </span>
                     <p className="text-xs text-[var(--text-muted)]">{t('pk.note')}</p>
                 </div>
 
@@ -264,19 +276,19 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     live once something differs from what is saved. For a
                     moment after saving it says so instead, still disabled,
                     since there is nothing new to save. */}
-                <button
-                    onClick={handleSave}
-                    disabled={!dirty}
-                    className="btn-primary w-full mt-4"
-                >
-                    {saved && !dirty ? <><Check size={14} />{t('pk.saved')}</> : t('btn.save')}
+                <button onClick={handleSave} disabled={!dirty} className="btn-primary w-full mt-4">
+                    {saved && !dirty ? (
+                        <>
+                            <Check size={14} />
+                            {t('pk.saved')}
+                        </>
+                    ) : (
+                        t('btn.save')
+                    )}
                 </button>
 
                 {/* Reset all */}
-                <button
-                    onClick={handleReset}
-                    className="w-full flex items-center gap-2 py-[18px] text-start"
-                >
+                <button onClick={handleReset} className="w-full flex items-center gap-2 py-[18px] text-start">
                     <RotateCcw size={14} className="text-[var(--danger)]" />
                     <span className="text-[0.9375rem] text-[var(--danger)]">{t('pk.reset')}</span>
                 </button>

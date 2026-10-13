@@ -1,35 +1,35 @@
 // --- Types & Enums ---
 
 export enum Route {
-    sublingual = "sublingual",
-    injection = "injection",
-    patchApply = "patchApply",
-    patchRemove = "patchRemove",
-    gel = "gel",
-    oral = "oral"
+    sublingual = 'sublingual',
+    injection = 'injection',
+    patchApply = 'patchApply',
+    patchRemove = 'patchRemove',
+    gel = 'gel',
+    oral = 'oral',
 }
 
 export enum Ester {
-    E2 = "E2",
-    EB = "EB",
-    EV = "EV",
-    EC = "EC",
-    EN = "EN",
-    EU = "EU",
-    CPA = "CPA",
+    E2 = 'E2',
+    EB = 'EB',
+    EV = 'EV',
+    EC = 'EC',
+    EN = 'EN',
+    EU = 'EU',
+    CPA = 'CPA',
     // Anti-androgens and a SERM, as listed on mtf.wiki. None has a level model:
     // see UNMODELLED_DRUGS.
-    SPIRO = "SPIRO", // Spironolactone
-    BICA = "BICA",   // Bicalutamide
-    MPA = "MPA",     // Medroxyprogesterone acetate
-    LEUP = "LEUP",   // Leuprorelin (GnRH agonist)
-    TRIP = "TRIP",   // Triptorelin (GnRH agonist)
-    RLX = "RLX",     // Raloxifene (SERM)
+    SPIRO = 'SPIRO', // Spironolactone
+    BICA = 'BICA', // Bicalutamide
+    MPA = 'MPA', // Medroxyprogesterone acetate
+    LEUP = 'LEUP', // Leuprorelin (GnRH agonist)
+    TRIP = 'TRIP', // Triptorelin (GnRH agonist)
+    RLX = 'RLX', // Raloxifene (SERM)
     // Transmasculine HRT (testosterone) esters
-    T = "T",    // Unesterified testosterone (gel / patch base)
-    TC = "TC",  // Testosterone Cypionate
-    TE = "TE",  // Testosterone Enanthate
-    TU = "TU"   // Testosterone Undecanoate
+    T = 'T', // Unesterified testosterone (gel / patch base)
+    TC = 'TC', // Testosterone Cypionate
+    TE = 'TE', // Testosterone Enanthate
+    TU = 'TU', // Testosterone Undecanoate
 }
 
 // Set of testosterone-based esters (used to route simulation into the T curve).
@@ -45,7 +45,12 @@ export function isTestosteroneEster(e: Ester): boolean {
  * them out, so they draw no curve and add nothing to any estimate.
  */
 export const UNMODELLED_DRUGS: ReadonlySet<Ester> = new Set<Ester>([
-    Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX,
+    Ester.SPIRO,
+    Ester.BICA,
+    Ester.MPA,
+    Ester.LEUP,
+    Ester.TRIP,
+    Ester.RLX,
 ]);
 
 /** GnRH agonists: a depot injection every few weeks rather than a daily pill. */
@@ -76,27 +81,27 @@ export function isEstradiolEster(e: Ester): boolean {
 export type HRTMode = 'transfem' | 'transmasc';
 
 export enum ExtraKey {
-    concentrationMGmL = "concentrationMGmL",
-    areaCM2 = "areaCM2",
-    releaseRateUGPerDay = "releaseRateUGPerDay",
-    sublingualTheta = "sublingualTheta",
-    sublingualTier = "sublingualTier",
-    gelSite = "gelSite",
+    concentrationMGmL = 'concentrationMGmL',
+    areaCM2 = 'areaCM2',
+    releaseRateUGPerDay = 'releaseRateUGPerDay',
+    sublingualTheta = 'sublingualTheta',
+    sublingualTier = 'sublingualTier',
+    gelSite = 'gelSite',
     // Planned wear duration (hours) for a patch application. When set, the patch
     // is treated as removed `patchWearH` hours after it is applied, so a single
     // "apply" event self-completes without a separate "remove" event. An explicit
     // patchRemove event still takes precedence, up to PATCH_MAX_OVERWEAR_H past
     // the planned wear.
-    patchWearH = "patchWearH"
+    patchWearH = 'patchWearH',
 }
 
 enum GelSite {
-    arm = "arm",
-    thigh = "thigh",
-    scrotal = "scrotal"
+    arm = 'arm',
+    thigh = 'thigh',
+    scrotal = 'scrotal',
 }
 
-export const GEL_SITE_ORDER = ["arm", "thigh", "scrotal"] as const;
+export const GEL_SITE_ORDER = ['arm', 'thigh', 'scrotal'] as const;
 
 export interface DoseEvent {
     id: string;
@@ -182,20 +187,20 @@ export interface DoseAdvisory {
 // https://transfemscience.org/articles/cpa-dosage/; WPATH SOC 8 gives
 // 10 mg/day); UCSF masculinizing-therapy guidance (T, 50–100 mg/week).
 const DOSE_CEILING = {
-    cpaPerDay: 12.5,        // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
-    e2OralPerDay: 12,       // mg/day of estradiol — usual 2–8
-    e2SublingualPerDay: 9,  // mg/day of estradiol — usual 0.5–6
-    e2GelPerDay: 9,         // mg/day of estradiol — usual 1.5–6
-    e2PatchPerDay: 0.6,     // mg/day delivered — usual 0.05–0.4 (50–400 µg/day)
+    cpaPerDay: 12.5, // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
+    e2OralPerDay: 12, // mg/day of estradiol — usual 2–8
+    e2SublingualPerDay: 9, // mg/day of estradiol — usual 0.5–6
+    e2GelPerDay: 9, // mg/day of estradiol — usual 1.5–6
+    e2PatchPerDay: 0.6, // mg/day delivered — usual 0.05–0.4 (50–400 µg/day)
     // Injected estradiol, in mg of the ester. Table 5's usual ranges for the
     // valerate, cypionate, enanthate, benzoate and undecylate all top out
     // around 6 mg of ester a week (EB 2.25 mg/3 d, EU 24 mg/28 d), so one
     // weekly ceiling in ester mg fits every ester once each is read at its own
     // cadence (see _injectionWeeklyRate).
     e2InjPerWeek: 20,
-    e2InjSingle: 50,        // mg — a single injected-E2 dose this large is excessive
-    tGelPerDay: 150,        // mg/day — testosterone gel
-    tInjPerWeek: 200,       // mg/week — injected testosterone (50–100 mg/wk is typical)
+    e2InjSingle: 50, // mg — a single injected-E2 dose this large is excessive
+    tGelPerDay: 150, // mg/day — testosterone gel
+    tInjPerWeek: 200, // mg/week — injected testosterone (50–100 mg/wk is typical)
 } as const;
 
 // Injections closer together than this are one dose split across sites.
@@ -254,10 +259,13 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
     for (const e of events) {
         if (!isEstradiolEster(e.ester) || !inWindow(e.timeH)) continue;
         const ceiling =
-            e.route === Route.oral ? DOSE_CEILING.e2OralPerDay
-            : e.route === Route.sublingual ? DOSE_CEILING.e2SublingualPerDay
-            : e.route === Route.gel ? DOSE_CEILING.e2GelPerDay
-            : null;
+            e.route === Route.oral
+                ? DOSE_CEILING.e2OralPerDay
+                : e.route === Route.sublingual
+                  ? DOSE_CEILING.e2SublingualPerDay
+                  : e.route === Route.gel
+                    ? DOSE_CEILING.e2GelPerDay
+                    : null;
         if (ceiling === null) continue;
         const day = _localDay(e.timeH);
         byDay.set(day, (byDay.get(day) ?? 0) + (e.doseMG * getToE2Factor(e.ester)) / ceiling);
@@ -270,9 +278,10 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
         const rate = _patchRateMgPerDay(e);
         if (rate === null) continue;
         const removeAt = removals.get(e);
-        const wear = removeAt !== undefined && removeAt > e.timeH
-            ? removeAt - e.timeH
-            : _plannedWearH(e) ?? PATCH_UNKNOWN_WEAR_H;
+        const wear =
+            removeAt !== undefined && removeAt > e.timeH
+                ? removeAt - e.timeH
+                : (_plannedWearH(e) ?? PATCH_UNKNOWN_WEAR_H);
         patches.push({ start: e.timeH, end: e.timeH + wear, rate });
     }
 
@@ -295,7 +304,8 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
     // switch from tablets in the morning to a patch at night is two half days,
     // not one full day of each.
     for (const [day, ratio] of byDay) {
-        const total = ratio + patchMgPerDay(_localDayStartH(day), _localDayStartH(day + 1)) / DOSE_CEILING.e2PatchPerDay;
+        const total =
+            ratio + patchMgPerDay(_localDayStartH(day), _localDayStartH(day + 1)) / DOSE_CEILING.e2PatchPerDay;
         if (total > mx) mx = total;
     }
     // Each application, where the patch total rises.
@@ -460,7 +470,10 @@ function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseE
  * A gentle, non-diagnostic heads-up when the *logged doses* run clearly above the
  * usual range. Returns the single most-exceeded family, or null. Not medical advice.
  */
-export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() / (1000 * 60 * 60)): DoseAdvisory | null {
+export function getDoseAdvisory(
+    events: DoseEvent[],
+    nowH: number = Date.now() / (1000 * 60 * 60),
+): DoseAdvisory | null {
     if (!events.length) return null;
 
     const isE2 = (e: DoseEvent) => isEstradiolEster(e.ester);
@@ -509,10 +522,10 @@ export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() /
 // unusual combination worth a second look, distinct from either hormone being
 // off on its own. Thresholds reuse the same bands as the Home status chips.
 const HORMONE_LEVEL_THRESHOLDS = {
-    e2LowPgMl: 30,   // below follicular-phase range
+    e2LowPgMl: 30, // below follicular-phase range
     e2HighPgMl: 300, // Home status chip's "high" cutoff
-    tLowNgDl: 50,    // well within the typical feminizing-suppression target
-    tHighNgDl: 300,  // adult male reference range lower bound
+    tLowNgDl: 50, // well within the typical feminizing-suppression target
+    tHighNgDl: 300, // adult male reference range lower bound
 } as const;
 
 // The latest E2 and T labs are read together only when drawn this close in time;
@@ -590,8 +603,8 @@ export type CalibrationHistoryMode = 'forward' | 'retrospective';
 /** Map legacy stored method ids onto the current estimator set. */
 export function normalizeCalibrationMethod(raw: string | null | undefined): CalibrationMethod {
     if (raw === 'off' || raw === 'ekf' || raw === 'ou_kalman' || raw === 'mipd') return raw;
-    if (raw === 'average') return 'mipd';      // amplitude-only LS → MAP with prior
-    if (raw === 'adaptive') return 'ekf';      // amplitude + clearance fit → EKF
+    if (raw === 'average') return 'mipd'; // amplitude-only LS → MAP with prior
+    if (raw === 'adaptive') return 'ekf'; // amplitude + clearance fit → EKF
     return 'mipd';
 }
 
@@ -599,8 +612,8 @@ export function normalizeCalibrationMethod(raw: string | null | undefined): Cali
 export interface CalibrationPoint {
     id: string;
     timeH: number;
-    obs: number;   // measured E2, converted to pg/mL
-    pred: number;  // raw model-predicted E2 at the lab time (pg/mL)
+    obs: number; // measured E2, converted to pg/mL
+    pred: number; // raw model-predicted E2 at the lab time (pg/mL)
     ratio: number; // obs / pred (how far the body runs above/below the model)
 }
 
@@ -688,8 +701,8 @@ const CAL_MEAS_SD = 0.13;
 // Population priors (log-space SD) for the personal parameters. Amplitude varies
 // a lot between people; clearance less so, and is only identifiable from several
 // well-spaced labs.
-const CAL_PRIOR_SD_AMP = 0.50; // ≈ ±65% amplitude
-const CAL_PRIOR_SD_K = 0.35;   // ≈ ±42% clearance
+const CAL_PRIOR_SD_AMP = 0.5; // ≈ ±65% amplitude
+const CAL_PRIOR_SD_K = 0.35; // ≈ ±42% clearance
 // Minimum labs before personal *clearance* (curve shape) is allowed to move.
 // Labs drawn within LAB_CLUSTER_H of each other count once: several draws at
 // the same moment say nothing about how fast the level falls, and used to
@@ -697,9 +710,9 @@ const CAL_PRIOR_SD_K = 0.35;   // ≈ ±42% clearance
 const MIN_LABS_FOR_CLEARANCE = 3;
 const LAB_CLUSTER_H = 6;
 // OU mean-reversion timescale for the dynamic (OU-Kalman) correction.
-const OU_TAU_H = 336;          // ~2 weeks; ≈63% of info decays per τ
-const OU_STAT_SD = 0.5;        // stationary SD of the log-correction
-const CAL_STUDENT_NU = 4;      // Student-t dof for the robust MIPD likelihood
+const OU_TAU_H = 336; // ~2 weeks; ≈63% of info decays per τ
+const OU_STAT_SD = 0.5; // stationary SD of the log-correction
+const CAL_STUDENT_NU = 4; // Student-t dof for the robust MIPD likelihood
 
 const clampFactor = (x: number) => Math.max(0.01, Math.min(100, x));
 // The fitted clearance stays on the grid the curve is drawn from. Clamping
@@ -733,9 +746,9 @@ function clearanceIdentifiable(labTimes: number[], count: number): boolean {
  * with g_i interpolated across the grid — so fitting needs no further simulation.
  */
 interface ClearanceField {
-    logK: number[];                       // grid knots (ascending), log clearance-mult
-    sims: (SimulationResult | null)[];    // sim per knot (baseline reused at k≈0)
-    gLog: number[][];                     // gLog[knot][lab] = log model E2 at lab time
+    logK: number[]; // grid knots (ascending), log clearance-mult
+    sims: (SimulationResult | null)[]; // sim per knot (baseline reused at k≈0)
+    gLog: number[][]; // gLog[knot][lab] = log model E2 at lab time
     baselineSim: SimulationResult;
 }
 
@@ -759,10 +772,10 @@ function buildClearanceField(
         const sim = atUnity
             ? baselineSim
             : runSimulationWithParams(events, bodyWeightKG, {
-                ...baseParams,
-                e2_kClear: baseParams.e2_kClear * kMul,
-                e2_kClearInj: baseParams.e2_kClearInj * kMul,
-            });
+                  ...baseParams,
+                  e2_kClear: baseParams.e2_kClear * kMul,
+                  e2_kClearInj: baseParams.e2_kClearInj * kMul,
+              });
         logK.push(lk);
         sims.push(sim);
         const row: number[] = [];
@@ -770,7 +783,7 @@ function buildClearanceField(
             let c = sim ? interpolateConcentration_E2(sim, t) : null;
             if (c === null || Number.isNaN(c) || c < 1e-6) {
                 const b = interpolateConcentration_E2(baselineSim, t);
-                c = (b === null || b < 1e-6) ? 1e-6 : b; // fall back to baseline shape
+                c = b === null || b < 1e-6 ? 1e-6 : b; // fall back to baseline shape
             }
             row.push(Math.log(c));
         }
@@ -858,7 +871,8 @@ function piecewiseFactor(
         if (!labTimes.length || timeH < labTimes[0]) return 1;
         let idx = 0;
         for (let i = 0; i < labTimes.length; i++) {
-            if (labTimes[i] <= timeH) idx = i; else break;
+            if (labTimes[i] <= timeH) idx = i;
+            else break;
         }
         return segFns[idx](timeH);
     };
@@ -894,30 +908,42 @@ function curveFitErrPct(points: CalibrationPoint[], factorFn: (timeH: number) =>
  * to about 7% away from labs that matched the model exactly.
  */
 function ekfFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
-    let x0 = 0, x1 = 0;                                   // [a, k]
+    let x0 = 0,
+        x1 = 0; // [a, k]
     let p00 = CAL_PRIOR_SD_AMP ** 2;
     let p11 = allowClearance ? CAL_PRIOR_SD_K ** 2 : 1e-8;
-    let p01 = 0, p10 = 0;
+    let p01 = 0,
+        p10 = 0;
     const R = CAL_MEAS_SD ** 2;
-    const q00 = Math.log(1.01) ** 2;                     // tiny amplitude drift
+    const q00 = Math.log(1.01) ** 2; // tiny amplitude drift
     const q11 = allowClearance ? Math.log(1.005) ** 2 : 0;
 
     for (let i = 0; i < count; i++) {
-        p00 += q00; p11 += q11;                          // predict (random walk)
+        p00 += q00;
+        p11 += q11; // predict (random walk)
         const H0 = 1;
         const H1 = allowClearance ? fieldGSlope(field, i, x1) : 0;
         const innov = logObs[i] - (x0 + fieldG(field, i, x1));
-        const ph0 = p00 * H0 + p01 * H1;                 // P·Hᵀ
+        const ph0 = p00 * H0 + p01 * H1; // P·Hᵀ
         const ph1 = p10 * H0 + p11 * H1;
         const S = H0 * ph0 + H1 * ph1 + R;
-        const kg0 = ph0 / S, kg1 = ph1 / S;              // Kalman gain
+        const kg0 = ph0 / S,
+            kg1 = ph1 / S; // Kalman gain
         x0 += kg0 * innov;
         x1 = clampLogK(x1 + kg1 * innov);
         // P ← (I − K·H)·P
-        const a00 = 1 - kg0 * H0, a01 = -kg0 * H1, a10 = -kg1 * H0, a11 = 1 - kg1 * H1;
-        const np00 = a00 * p00 + a01 * p10, np01 = a00 * p01 + a01 * p11;
-        const np10 = a10 * p00 + a11 * p10, np11 = a10 * p01 + a11 * p11;
-        p00 = np00; p01 = np01; p10 = np10; p11 = np11;
+        const a00 = 1 - kg0 * H0,
+            a01 = -kg0 * H1,
+            a10 = -kg1 * H0,
+            a11 = 1 - kg1 * H1;
+        const np00 = a00 * p00 + a01 * p10,
+            np01 = a00 * p01 + a01 * p11;
+        const np10 = a10 * p00 + a11 * p10,
+            np11 = a10 * p01 + a11 * p11;
+        p00 = np00;
+        p01 = np01;
+        p10 = np10;
+        p11 = np11;
     }
     return { a: x0, k: x1 };
 }
@@ -935,7 +961,8 @@ function ekfFit(field: ClearanceField, logObs: number[], count: number, allowCle
  * best.
  */
 function mipdFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
-    const sigma = CAL_MEAS_SD, nu = CAL_STUDENT_NU;
+    const sigma = CAL_MEAS_SD,
+        nu = CAL_STUDENT_NU;
     const robust = count >= MIN_LABS_FOR_CLEARANCE;
     const precA = 1 / CAL_PRIOR_SD_AMP ** 2;
     const precK = 1 / CAL_PRIOR_SD_K ** 2;
@@ -951,17 +978,24 @@ function mipdFit(field: ClearanceField, logObs: number[], count: number, allowCl
     };
 
     const solve = (a0: number, k0: number) => {
-        let a = a0, k = allowClearance ? k0 : 0;
+        let a = a0,
+            k = allowClearance ? k0 : 0;
         for (let iter = 0; iter < 50; iter++) {
-            let A00 = precA, A01 = 0, A11 = allowClearance ? precK : 1;
-            let b0 = -precA * a, b1 = allowClearance ? -precK * k : 0; // prior pulls toward (0,0)
+            let A00 = precA,
+                A01 = 0,
+                A11 = allowClearance ? precK : 1;
+            let b0 = -precA * a,
+                b1 = allowClearance ? -precK * k : 0; // prior pulls toward (0,0)
             for (let i = 0; i < count; i++) {
                 const r = logObs[i] - (a + fieldG(field, i, k));
                 const u = r / sigma;
                 const w = robust ? (nu + 1) / (nu + u * u) / (sigma * sigma) : 1 / (sigma * sigma);
                 const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
-                A00 += w; A01 += w * J1; A11 += w * J1 * J1;
-                b0 += w * r; b1 += w * J1 * r;
+                A00 += w;
+                A01 += w * J1;
+                A11 += w * J1 * J1;
+                b0 += w * r;
+                b1 += w * J1 * r;
             }
             const det = A00 * A11 - A01 * A01;
             if (Math.abs(det) < 1e-12) break;
@@ -971,9 +1005,11 @@ function mipdFit(field: ClearanceField, logObs: number[], count: number, allowCl
             const f0 = objective(a, k);
             let t = 1;
             while (t > 1e-4 && objective(a + t * d0, clampLogK(k + t * d1)) > f0 + 1e-12) t /= 2;
-            const na = a + t * d0, nk = clampLogK(k + t * d1);
+            const na = a + t * d0,
+                nk = clampLogK(k + t * d1);
             const moved = Math.abs(na - a) + Math.abs(nk - k);
-            a = na; k = nk;
+            a = na;
+            k = nk;
             if (moved < 1e-7) break;
         }
         return { a, k, f: objective(a, k) };
@@ -1004,10 +1040,15 @@ function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistory
     const Pstat = OU_STAT_SD ** 2;
     const R = CAL_MEAS_SD ** 2;
 
-    const zf = new Array(n), Pf = new Array(n), zPred = new Array(n), Ppred = new Array(n);
+    const zf = new Array(n),
+        Pf = new Array(n),
+        zPred = new Array(n),
+        Ppred = new Array(n);
     for (let i = 0; i < n; i++) {
-        if (i === 0) { zPred[i] = 0; Ppred[i] = Pstat; }
-        else {
+        if (i === 0) {
+            zPred[i] = 0;
+            Ppred[i] = Pstat;
+        } else {
             const phi = Math.exp(-theta * (labTimes[i] - labTimes[i - 1]));
             zPred[i] = phi * zf[i - 1];
             Ppred[i] = phi * phi * Pf[i - 1] + Pstat * (1 - phi * phi);
@@ -1017,10 +1058,11 @@ function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistory
         zf[i] = zPred[i] + kg * (m[i] - zPred[i]);
         Pf[i] = (1 - kg) * Ppred[i];
     }
-    const zs = zf.slice(), Ps = Pf.slice();
+    const zs = zf.slice(),
+        Ps = Pf.slice();
     for (let i = n - 2; i >= 0; i--) {
         const phi = Math.exp(-theta * (labTimes[i + 1] - labTimes[i]));
-        const C = Pf[i] * phi / Ppred[i + 1];
+        const C = (Pf[i] * phi) / Ppred[i + 1];
         zs[i] = zf[i] + C * (zs[i + 1] - zPred[i + 1]);
         Ps[i] = Pf[i] + C * C * (Ps[i + 1] - Ppred[i + 1]);
     }
@@ -1030,7 +1072,10 @@ function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistory
         let z: number;
         if (forward) {
             let j = -1;
-            for (let i = 0; i < n; i++) { if (labTimes[i] <= t) j = i; else break; }
+            for (let i = 0; i < n; i++) {
+                if (labTimes[i] <= t) j = i;
+                else break;
+            }
             z = j < 0 ? 0 : Math.exp(-theta * (t - labTimes[j])) * zf[j];
         } else if (t <= labTimes[0]) {
             z = Math.exp(-theta * (labTimes[0] - t)) * zs[0];
@@ -1038,9 +1083,13 @@ function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistory
             z = Math.exp(-theta * (t - labTimes[n - 1])) * zs[n - 1];
         } else {
             let j = 0;
-            for (let i = 0; i < n - 1; i++) { if (labTimes[i] <= t) j = i; else break; }
-            const D = labTimes[j + 1] - labTimes[j], s = t - labTimes[j];
-            const sh = Math.sinh(theta * D) || 1;        // OU bridge conditional mean
+            for (let i = 0; i < n - 1; i++) {
+                if (labTimes[i] <= t) j = i;
+                else break;
+            }
+            const D = labTimes[j + 1] - labTimes[j],
+                s = t - labTimes[j];
+            const sh = Math.sinh(theta * D) || 1; // OU bridge conditional mean
             z = (Math.sinh(theta * (D - s)) * zs[j] + Math.sinh(theta * s) * zs[j + 1]) / sh;
         }
         return clampFactor(Math.exp(z));
@@ -1048,7 +1097,10 @@ function ouCalibrate(points: CalibrationPoint[], historyMode: CalibrationHistory
 
     const zUse = forward ? zf : zs;
     let sse = 0;
-    for (let i = 0; i < n; i++) { const r = m[i] - zUse[i]; sse += r * r; }
+    for (let i = 0; i < n; i++) {
+        const r = m[i] - zUse[i];
+        sse += r * r;
+    }
     const zRep = zUse[n - 1];
     return {
         factorFn,
@@ -1081,7 +1133,14 @@ export function computeCalibration(
 ): CalibrationResult {
     const points = computeCalibrationPoints(baselineSim, results);
     const identity: CalibrationResult = {
-        method, factorFn: () => 1, scale: 1, kMul: 1, halfLifeDeltaPct: 0, n: points.length, fitErrPct: null, points,
+        method,
+        factorFn: () => 1,
+        scale: 1,
+        kMul: 1,
+        halfLifeDeltaPct: 0,
+        n: points.length,
+        fitErrPct: null,
+        points,
     };
     if (method === 'off' || !baselineSim || points.length === 0) return identity;
 
@@ -1109,10 +1168,12 @@ export function computeCalibration(
     if (historyMode === 'forward') {
         const params = Array.from({ length: n }, (_, i) => fit(i + 1));
         factorFn = piecewiseFactor(field, labTimes, params);
-        aRep = params[n - 1].a; kRep = params[n - 1].k;
+        aRep = params[n - 1].a;
+        kRep = params[n - 1].k;
     } else {
         const f = fit(n);
-        aRep = f.a; kRep = f.k;
+        aRep = f.a;
+        kRep = f.k;
         factorFn = constantFactor(field, aRep, kRep);
     }
 
@@ -1147,35 +1208,35 @@ const CorePK = {
     vdPerKG_CPA: 14.0, // L/kg for CPA (Cyproterone Acetate, ~986L/70kg)
     kClear: 0.41,
     kClearInjection: 0.041,
-    depotK1Corr: 1.0
+    depotK1Corr: 1.0,
 };
 
 const EsterInfo = {
-    [Ester.E2]: { name: "Estradiol", mw: 272.38 },
-    [Ester.EB]: { name: "Estradiol Benzoate", mw: 376.50 },
-    [Ester.EV]: { name: "Estradiol Valerate", mw: 356.50 },
-    [Ester.EC]: { name: "Estradiol Cypionate", mw: 396.58 },
-    [Ester.EN]: { name: "Estradiol Enanthate", mw: 384.56 },
-    [Ester.EU]: { name: "Estradiol Undecylate", mw: 440.66 },
-    [Ester.CPA]: { name: "Cyproterone Acetate", mw: 416.94 },
-    [Ester.SPIRO]: { name: "Spironolactone", mw: 416.57 },
-    [Ester.BICA]: { name: "Bicalutamide", mw: 430.37 },
-    [Ester.MPA]: { name: "Medroxyprogesterone Acetate", mw: 386.52 },
-    [Ester.LEUP]: { name: "Leuprorelin", mw: 1209.42 },
-    [Ester.TRIP]: { name: "Triptorelin", mw: 1311.45 },
-    [Ester.RLX]: { name: "Raloxifene", mw: 473.58 },
+    [Ester.E2]: { name: 'Estradiol', mw: 272.38 },
+    [Ester.EB]: { name: 'Estradiol Benzoate', mw: 376.5 },
+    [Ester.EV]: { name: 'Estradiol Valerate', mw: 356.5 },
+    [Ester.EC]: { name: 'Estradiol Cypionate', mw: 396.58 },
+    [Ester.EN]: { name: 'Estradiol Enanthate', mw: 384.56 },
+    [Ester.EU]: { name: 'Estradiol Undecylate', mw: 440.66 },
+    [Ester.CPA]: { name: 'Cyproterone Acetate', mw: 416.94 },
+    [Ester.SPIRO]: { name: 'Spironolactone', mw: 416.57 },
+    [Ester.BICA]: { name: 'Bicalutamide', mw: 430.37 },
+    [Ester.MPA]: { name: 'Medroxyprogesterone Acetate', mw: 386.52 },
+    [Ester.LEUP]: { name: 'Leuprorelin', mw: 1209.42 },
+    [Ester.TRIP]: { name: 'Triptorelin', mw: 1311.45 },
+    [Ester.RLX]: { name: 'Raloxifene', mw: 473.58 },
     // Testosterone esters (MW = parent + ester group)
-    [Ester.T]:  { name: "Testosterone",           mw: 288.42 },
-    [Ester.TC]: { name: "Testosterone Cypionate", mw: 412.60 },
-    [Ester.TE]: { name: "Testosterone Enanthate", mw: 400.59 },
-    [Ester.TU]: { name: "Testosterone Undecanoate", mw: 456.70 }
+    [Ester.T]: { name: 'Testosterone', mw: 288.42 },
+    [Ester.TC]: { name: 'Testosterone Cypionate', mw: 412.6 },
+    [Ester.TE]: { name: 'Testosterone Enanthate', mw: 400.59 },
+    [Ester.TU]: { name: 'Testosterone Undecanoate', mw: 456.7 },
 };
 
 /** What a dose delivers, in English: the hormone for an estradiol or testosterone ester, otherwise the drug itself. */
 export function activeCompoundName(ester: Ester): string {
     if (!isKnownEster(ester)) return ester; // a newer version's drug: its code is all there is to go on
-    if (isTestosteroneEster(ester)) return "Testosterone";
-    if (isEstradiolEster(ester)) return "Estradiol";
+    if (isTestosteroneEster(ester)) return 'Testosterone';
+    if (isEstradiolEster(ester)) return 'Estradiol';
     return EsterInfo[ester].name;
 }
 
@@ -1210,9 +1271,9 @@ export function getToE2Factor(ester: Ester): number {
 // These are research/teaching estimates; they are NOT for individual dosing decisions.
 //
 const T_CorePK = {
-    vdPerKG: 1.0,          // L/kg for total testosterone (apparent)
-    kClear: 0.5,           // h⁻¹ — fast native T clearance (gel / patch / oral)
-    kClearInjection: 0.035 // h⁻¹ — effective clearance used with the flip‑flop depot model
+    vdPerKG: 1.0, // L/kg for total testosterone (apparent)
+    kClear: 0.5, // h⁻¹ — fast native T clearance (gel / patch / oral)
+    kClearInjection: 0.035, // h⁻¹ — effective clearance used with the flip‑flop depot model
 };
 
 // Two-part depot absorption (fast + slow library), analogous to the E2 injection model.
@@ -1231,43 +1292,70 @@ const T_CorePK = {
 // measured on its own. The older parameters peaked at about 3 days and fell to
 // a trough of 0.17 of the peak.
 const T_DepotPK = {
-    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0 },
+    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.4, [Ester.TU]: 0 },
     // Fast library k1 (h⁻¹) — controls Tmax/Cmax
-    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: Math.LN2 / (50 * 24) },
+    k1_fast: { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: Math.LN2 / (50 * 24) },
     // Slow library k1 (h⁻¹) — controls terminal tail (flip‑flop)
-    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: Math.LN2 / (50 * 24) }
+    k1_slow: { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: Math.LN2 / (50 * 24) },
 };
 
 // Hydrolysis rate (k2) for T esters in the 3-compartment analytical path.
 // Kept much larger than the slow‑library k1 so terminal kinetics are flip‑flop.
 // Undecanoate: see T_DepotPK.
 const T_EsterPK = {
-    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.036 }
+    k2: { [Ester.TC]: 0.2, [Ester.TE]: 0.2, [Ester.TU]: 0.036 },
 };
 
 const T_GelPK = {
-    k1: 0.05    // h⁻¹ (Tmax ≈ a few hours after application)
+    k1: 0.05, // h⁻¹ (Tmax ≈ a few hours after application)
     // Bioavailability (F) is site-dependent — see DEFAULT_PK_PARAMS.t_gel_*.
 };
 
 const T_PatchPK = {
-    k1: 0.03,   // h⁻¹ — used only if no nominal µg/day release is provided
-    F:  1.0     // zero‑order input uses the nominal release rate directly
+    k1: 0.03, // h⁻¹ — used only if no nominal µg/day release is provided
+    F: 1.0, // zero‑order input uses the nominal release rate directly
 };
 
-
 const TwoPartDepotPK = {
-    Frac_fast: { [Ester.EB]: 0.90, [Ester.EV]: 0.40, [Ester.EC]: 0.229164549, [Ester.EN]: 0.05, [Ester.EU]: 0.08, [Ester.E2]: 1.0 },
-    k1_fast: { [Ester.EB]: 0.144, [Ester.EV]: 0.0216, [Ester.EC]: 0.005035046, [Ester.EN]: 0.0010, [Ester.EU]: 0.0060, [Ester.E2]: 0.5 }, // Added non-zero k1 for E2
-    k1_slow: { [Ester.EB]: 0.114, [Ester.EV]: 0.0138, [Ester.EC]: 0.004510574, [Ester.EN]: 0.0050, [Ester.EU]: 0.0022, [Ester.E2]: 0 }
+    Frac_fast: {
+        [Ester.EB]: 0.9,
+        [Ester.EV]: 0.4,
+        [Ester.EC]: 0.229164549,
+        [Ester.EN]: 0.05,
+        [Ester.EU]: 0.08,
+        [Ester.E2]: 1.0,
+    },
+    k1_fast: {
+        [Ester.EB]: 0.144,
+        [Ester.EV]: 0.0216,
+        [Ester.EC]: 0.005035046,
+        [Ester.EN]: 0.001,
+        [Ester.EU]: 0.006,
+        [Ester.E2]: 0.5,
+    }, // Added non-zero k1 for E2
+    k1_slow: {
+        [Ester.EB]: 0.114,
+        [Ester.EV]: 0.0138,
+        [Ester.EC]: 0.004510574,
+        [Ester.EN]: 0.005,
+        [Ester.EU]: 0.0022,
+        [Ester.E2]: 0,
+    },
 };
 
 const InjectionPK = {
-    formationFraction: { [Ester.EB]: 0.1092, [Ester.EV]: 0.0623, [Ester.EC]: 0.1173, [Ester.EN]: 0.12, [Ester.EU]: 0.040, [Ester.E2]: 1.0 }
+    formationFraction: {
+        [Ester.EB]: 0.1092,
+        [Ester.EV]: 0.0623,
+        [Ester.EC]: 0.1173,
+        [Ester.EN]: 0.12,
+        [Ester.EU]: 0.04,
+        [Ester.E2]: 1.0,
+    },
 };
 
 const EsterPK = {
-    k2: { [Ester.EB]: 0.090, [Ester.EV]: 0.070, [Ester.EC]: 0.045, [Ester.EN]: 0.015, [Ester.EU]: 0.012, [Ester.E2]: 0 }
+    k2: { [Ester.EB]: 0.09, [Ester.EV]: 0.07, [Ester.EC]: 0.045, [Ester.EN]: 0.015, [Ester.EU]: 0.012, [Ester.E2]: 0 },
 };
 
 const OralPK = {
@@ -1294,53 +1382,53 @@ const OralPK = {
     // shape is left to timed lab results (tests/literature.test.ts, known gaps).
     kE1Pool: Math.LN2 / 14.36,
     bioavailability: 0.03,
-    kAbsSL: 1.8
+    kAbsSL: 1.8,
 };
 
 // Define deterministic order for mapping integer tiers (0-3)   to keys
-export const SL_TIER_ORDER = ["quick", "casual", "standard", "strict"] as const;
+export const SL_TIER_ORDER = ['quick', 'casual', 'standard', 'strict'] as const;
 
 export const SublingualTierParams = {
     quick: { theta: 0.01, hold: 2 },
     casual: { theta: 0.04, hold: 5 },
     standard: { theta: 0.11, hold: 10 },
-    strict: { theta: 0.18, hold: 15 }
+    strict: { theta: 0.18, hold: 15 },
 };
 
 // --- PK Custom Parameters ---
 
 export interface PKCustomParams {
     // E2 elimination rates
-    e2_kClear: number;       // non-injection h⁻¹ (default: 0.41)
-    e2_kClearInj: number;    // injection h⁻¹ (default: 0.041)
+    e2_kClear: number; // non-injection h⁻¹ (default: 0.41)
+    e2_kClearInj: number; // injection h⁻¹ (default: 0.041)
     // E2 injection formation fractions (active E2 per mg ester)
-    e2_ff_EB: number;        // Estradiol Benzoate (default: 0.1092)
-    e2_ff_EV: number;        // Estradiol Valerate (default: 0.0623)
-    e2_ff_EC: number;        // Estradiol Cypionate (default: 0.1173)
-    e2_ff_EN: number;        // Estradiol Enanthate (default: 0.12)
-    e2_ff_EU: number;        // Estradiol Undecylate (default: 0.040)
+    e2_ff_EB: number; // Estradiol Benzoate (default: 0.1092)
+    e2_ff_EV: number; // Estradiol Valerate (default: 0.0623)
+    e2_ff_EC: number; // Estradiol Cypionate (default: 0.1173)
+    e2_ff_EN: number; // Estradiol Enanthate (default: 0.12)
+    e2_ff_EU: number; // Estradiol Undecylate (default: 0.040)
     // E2 oral/sublingual
-    e2_oral_bio: number;     // oral bioavailability fraction (default: 0.03)
-    e2_sl_quick: number;     // SL theta — quick tier (default: 0.01)
-    e2_sl_casual: number;    // SL theta — casual tier (default: 0.04)
-    e2_sl_standard: number;  // SL theta — standard tier (default: 0.11)
-    e2_sl_strict: number;    // SL theta — strict tier (default: 0.18)
+    e2_oral_bio: number; // oral bioavailability fraction (default: 0.03)
+    e2_sl_quick: number; // SL theta — quick tier (default: 0.01)
+    e2_sl_casual: number; // SL theta — casual tier (default: 0.04)
+    e2_sl_standard: number; // SL theta — standard tier (default: 0.11)
+    e2_sl_strict: number; // SL theta — strict tier (default: 0.18)
     // E2 gel bioavailability per site
-    e2_gel_arm: number;      // Arm (default: 0.05)
-    e2_gel_thigh: number;    // Thigh (default: 0.05)
-    e2_gel_scrotal: number;  // Scrotal (default: 0.25)
+    e2_gel_arm: number; // Arm (default: 0.05)
+    e2_gel_thigh: number; // Thigh (default: 0.05)
+    e2_gel_scrotal: number; // Scrotal (default: 0.25)
     // Testosterone elimination rates
-    t_kClear: number;        // non-injection h⁻¹ (default: 0.5)
-    t_kClearInj: number;     // injection h⁻¹ (default: 0.035)
+    t_kClear: number; // non-injection h⁻¹ (default: 0.5)
+    t_kClearInj: number; // injection h⁻¹ (default: 0.035)
     // T injection formation fractions
-    t_ff_TC: number;         // Testosterone Cypionate (default: 0.043)
-    t_ff_TE: number;         // Testosterone Enanthate (default: 0.043)
-    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.043)
+    t_ff_TC: number; // Testosterone Cypionate (default: 0.043)
+    t_ff_TE: number; // Testosterone Enanthate (default: 0.043)
+    t_ff_TU: number; // Testosterone Undecanoate (default: 0.043)
     // T gel bioavailability per site (arm/thigh ~AndroGel-like; scrotal skin is
     // markedly more permeable — see DEFAULT_PK_PARAMS comment for sources)
-    t_gel_arm: number;       // Arm (default: 0.10)
-    t_gel_thigh: number;     // Thigh (default: 0.10)
-    t_gel_scrotal: number;   // Scrotal (default: 0.50)
+    t_gel_arm: number; // Arm (default: 0.10)
+    t_gel_thigh: number; // Thigh (default: 0.10)
+    t_gel_scrotal: number; // Scrotal (default: 0.50)
 }
 
 export const DEFAULT_PK_PARAMS: PKCustomParams = {
@@ -1350,7 +1438,7 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_ff_EV: 0.0623,
     e2_ff_EC: 0.1173,
     e2_ff_EN: 0.12,
-    e2_ff_EU: 0.040,
+    e2_ff_EU: 0.04,
     e2_oral_bio: 0.03,
     e2_sl_quick: 0.01,
     e2_sl_casual: 0.04,
@@ -1421,9 +1509,9 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     // labeling. Scrotal: scrotal skin is ~5–8x more permeable to androgens than
     // arm/thigh skin (Iyer et al. 2017, Andrology; Kuhnert et al. 2005) — 0.50
     // uses the conservative end of that range rather than the full 8x.
-    t_gel_arm: 0.10,
-    t_gel_thigh: 0.10,
-    t_gel_scrotal: 0.50,
+    t_gel_arm: 0.1,
+    t_gel_thigh: 0.1,
+    t_gel_scrotal: 0.5,
 };
 
 /**
@@ -1512,9 +1600,11 @@ export function sanitizePKParams(raw: unknown): PKCustomParams | null {
         // parameter's minimum (an elimination rate 400 times too slow).
         const rawValue = src[key];
         const value =
-            typeof rawValue === 'number' ? rawValue
-            : typeof rawValue === 'string' && rawValue.trim() !== '' ? Number(rawValue)
-            : NaN;
+            typeof rawValue === 'number'
+                ? rawValue
+                : typeof rawValue === 'string' && rawValue.trim() !== ''
+                  ? Number(rawValue)
+                  : NaN;
         if (!Number.isFinite(value)) continue;
         recognised++;
         if (PK_FORMER_DEFAULTS[key]?.includes(value)) continue;
@@ -1544,7 +1634,11 @@ export function getActivePKParams(): PKCustomParams {
  * active parameters afterwards. Used by the adaptive calibration to evaluate
  * candidate personal-PK fits without disturbing the live simulation's params.
  */
-export function runSimulationWithParams(events: DoseEvent[], bodyWeightKG: number, params: PKCustomParams): SimulationResult | null {
+export function runSimulationWithParams(
+    events: DoseEvent[],
+    bodyWeightKG: number,
+    params: PKCustomParams,
+): SimulationResult | null {
     const saved = _activePKParams;
     _activePKParams = { ...DEFAULT_PK_PARAMS, ...params };
     try {
@@ -1721,7 +1815,7 @@ const CPA_ORAL_F = CPA_ORAL.F;
 export function getBioavailabilityMultiplier(
     route: Route,
     ester: Ester,
-    extras: Partial<Record<ExtraKey, number>> = {}
+    extras: Partial<Record<ExtraKey, number>> = {},
 ): number {
     const mwFactor = getToE2Factor(ester);
 
@@ -1737,7 +1831,10 @@ export function getBioavailabilityMultiplier(
                 return formation * mwFactor;
             }
             case Route.gel: {
-                const siteIdx = Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.gelSite] ?? 0)));
+                const siteIdx = Math.min(
+                    GEL_SITE_ORDER.length - 1,
+                    Math.max(0, Math.round(extras[ExtraKey.gelSite] ?? 0)),
+                );
                 const siteKey = GEL_SITE_ORDER[siteIdx] as GelSite;
                 return _getTGelBio(siteKey) * mwFactor;
             }
@@ -1764,7 +1861,10 @@ export function getBioavailabilityMultiplier(
                     theta = Math.min(1, Math.max(0, customTheta));
                 }
             } else if (extras[ExtraKey.sublingualTier] !== undefined) {
-                const tierIdx = Math.min(SL_TIER_ORDER.length - 1, Math.max(0, Math.round(extras[ExtraKey.sublingualTier]!)));
+                const tierIdx = Math.min(
+                    SL_TIER_ORDER.length - 1,
+                    Math.max(0, Math.round(extras[ExtraKey.sublingualTier]!)),
+                );
                 const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
                 theta = _getSLTheta(tierKey);
             }
@@ -1813,29 +1913,62 @@ function resolveParams(event: DoseEvent): PKParams {
             case Route.injection: {
                 if (event.ester === Ester.T) {
                     // Shouldn't happen (bare T is not injected in practice), return zeroed params.
-                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                    return {
+                        Frac_fast: 0,
+                        k1_fast: 0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F: 0,
+                        rateMGh: 0,
+                        F_fast: 0,
+                        F_slow: 0,
+                    };
                 }
                 const Frac_fast = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;
                 const k1_fast = (T_DepotPK.k1_fast as any)[event.ester] ?? 0.025;
                 const k1_slow = (T_DepotPK.k1_slow as any)[event.ester] ?? 0.005;
-                const k2 = (T_EsterPK.k2 as any)[event.ester] ?? 0.20;
+                const k2 = (T_EsterPK.k2 as any)[event.ester] ?? 0.2;
                 const F = getBioavailabilityMultiplier(Route.injection, event.ester, extras);
                 return { Frac_fast, k1_fast, k1_slow, k2, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
             }
             case Route.gel: {
                 const F = getBioavailabilityMultiplier(Route.gel, event.ester, extras);
-                return { Frac_fast: 1.0, k1_fast: T_GelPK.k1, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                return {
+                    Frac_fast: 1.0,
+                    k1_fast: T_GelPK.k1,
+                    k1_slow: 0,
+                    k2: 0,
+                    k3: tK3,
+                    F,
+                    rateMGh: 0,
+                    F_fast: F,
+                    F_slow: F,
+                };
             }
             case Route.patchApply: {
                 const F = getBioavailabilityMultiplier(Route.patchApply, event.ester, extras);
                 const releaseRateUGPerDay = extras[ExtraKey.releaseRateUGPerDay];
-                const rateMGh = (typeof releaseRateUGPerDay === 'number' && Number.isFinite(releaseRateUGPerDay) && releaseRateUGPerDay > 0)
-                    ? (releaseRateUGPerDay / 24 / 1000) * F
-                    : 0;
+                const rateMGh =
+                    typeof releaseRateUGPerDay === 'number' &&
+                    Number.isFinite(releaseRateUGPerDay) &&
+                    releaseRateUGPerDay > 0
+                        ? (releaseRateUGPerDay / 24 / 1000) * F
+                        : 0;
                 if (rateMGh > 0) {
                     return { Frac_fast: 1.0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh, F_fast: F, F_slow: F };
                 }
-                return { Frac_fast: 1.0, k1_fast: T_PatchPK.k1, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                return {
+                    Frac_fast: 1.0,
+                    k1_fast: T_PatchPK.k1,
+                    k1_slow: 0,
+                    k2: 0,
+                    k3: tK3,
+                    F,
+                    rateMGh: 0,
+                    F_fast: F,
+                    F_slow: F,
+                };
             }
             case Route.patchRemove:
                 return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
@@ -1908,24 +2041,67 @@ function resolveParams(event: DoseEvent): PKParams {
             // gel Cmax runs low against both labels (predicted ~31 vs EstroGel's 46.4,
             // ~41 vs Divigel's 51.5) — but that is a k1 problem, not an F problem.
             const k1 = 0.0193;
-            return { Frac_fast: 1.0, k1_fast: k1, k1_slow: 0, k2: 0, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            return {
+                Frac_fast: 1.0,
+                k1_fast: k1,
+                k1_slow: 0,
+                k2: 0,
+                k3: defaultK3,
+                F,
+                rateMGh: 0,
+                F_fast: F,
+                F_slow: F,
+            };
         }
 
         case Route.patchApply: {
             const F = getBioavailabilityMultiplier(Route.patchApply, event.ester, extras);
             const releaseRateUGPerDay = extras[ExtraKey.releaseRateUGPerDay];
-            const rateMGh = (typeof releaseRateUGPerDay === 'number' && Number.isFinite(releaseRateUGPerDay) && releaseRateUGPerDay > 0)
-                ? (releaseRateUGPerDay / 24 / 1000) * F
-                : 0;
+            const rateMGh =
+                typeof releaseRateUGPerDay === 'number' &&
+                Number.isFinite(releaseRateUGPerDay) &&
+                releaseRateUGPerDay > 0
+                    ? (releaseRateUGPerDay / 24 / 1000) * F
+                    : 0;
             if (rateMGh > 0) {
-                return { Frac_fast: 1.0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F, rateMGh, F_fast: F, F_slow: F };
+                return {
+                    Frac_fast: 1.0,
+                    k1_fast: 0,
+                    k1_slow: 0,
+                    k2: 0,
+                    k3: defaultK3,
+                    F,
+                    rateMGh,
+                    F_fast: F,
+                    F_slow: F,
+                };
             }
             const k1 = 0.0075;
-            return { Frac_fast: 1.0, k1_fast: k1, k1_slow: 0, k2: 0, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            return {
+                Frac_fast: 1.0,
+                k1_fast: k1,
+                k1_slow: 0,
+                k2: 0,
+                k3: defaultK3,
+                F,
+                rateMGh: 0,
+                F_fast: F,
+                F_slow: F,
+            };
         }
 
         case Route.patchRemove:
-            return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+            return {
+                Frac_fast: 0,
+                k1_fast: 0,
+                k1_slow: 0,
+                k2: 0,
+                k3: defaultK3,
+                F: 0,
+                rateMGh: 0,
+                F_fast: 0,
+                F_slow: 0,
+            };
 
         case Route.oral: {
             // === 针对 CPA 的特殊处理开始 ===
@@ -1942,7 +2118,7 @@ function resolveParams(event: DoseEvent): PKParams {
                     F: CPA_ORAL_F,
                     rateMGh: 0,
                     F_fast: CPA_ORAL_F,
-                    F_slow: CPA_ORAL_F
+                    F_slow: CPA_ORAL_F,
                 };
             }
             // === 针对 CPA 的特殊处理结束 ===
@@ -1952,7 +2128,17 @@ function resolveParams(event: DoseEvent): PKParams {
             const k1Value = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
             const k2Value = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
             const F = _activePKParams.e2_oral_bio * toE2;
-            return { Frac_fast: 1.0, k1_fast: k1Value, k1_slow: 0, k2: k2Value, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+            return {
+                Frac_fast: 1.0,
+                k1_fast: k1Value,
+                k1_slow: 0,
+                k2: k2Value,
+                k3: defaultK3,
+                F,
+                rateMGh: 0,
+                F_fast: F,
+                F_slow: F,
+            };
         }
     }
 
@@ -2099,7 +2285,8 @@ function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
         a.timeH - b.timeH ||
         (_plannedWearH(a) ?? Infinity) - (_plannedWearH(b) ?? Infinity) ||
         a.doseMG - b.doseMG ||
-        (Number(a.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) - (Number(b.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) ||
+        (Number(a.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) -
+            (Number(b.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) ||
         String(a.ester).localeCompare(String(b.ester)) ||
         String(a.id).localeCompare(String(b.id));
     const applies = allEvents.filter(e => e.route === Route.patchApply).sort(byTimeThenContent);
@@ -2195,11 +2382,15 @@ class PrecomputedEventModel {
                     // silently. Fall back to the two-compartment form, matching
                     // what the sublingual branch already does for the same case.
                     if (params.k2 > 0) {
-                        return _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
-                            _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3);
+                        return (
+                            _analytic3C(tau, doseFast, params.F, params.k1_fast, params.k2, params.k3) +
+                            _analytic3C(tau, doseSlow, params.F, params.k1_slow, params.k2, params.k3)
+                        );
                     }
-                    return _analytic2C(tau, doseFast, params.F, params.k1_fast, params.k3) +
-                        _analytic2C(tau, doseSlow, params.F, params.k1_slow, params.k3);
+                    return (
+                        _analytic2C(tau, doseFast, params.F, params.k1_fast, params.k3) +
+                        _analytic2C(tau, doseSlow, params.F, params.k1_slow, params.k3)
+                    );
                 };
                 break;
             case Route.gel:
@@ -2209,7 +2400,9 @@ class PrecomputedEventModel {
                     this.model = (timeH: number) => {
                         const tau = timeH - startTime;
                         if (tau < 0) return 0;
-                        return _analytic2C(tau, dose, F * wFast, ka, alpha) + _analytic2C(tau, dose, F * wSlow, ka, beta);
+                        return (
+                            _analytic2C(tau, dose, F * wFast, ka, alpha) + _analytic2C(tau, dose, F * wSlow, ka, beta)
+                        );
                     };
                     break;
                 }
@@ -2228,14 +2421,16 @@ class PrecomputedEventModel {
                     const doseS = dose * (1.0 - params.Frac_fast);
 
                     // Dual-branch first-order helper (same closed form as oneCompAmount).
-                    const fastAmount = params.k2 > 0
-                        ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
-                        : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
+                    const fastAmount =
+                        params.k2 > 0
+                            ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
+                            : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
 
                     // Swallowed (gut) fraction follows the oral route's path.
-                    const slowAmount = (params.k2_slow ?? 0) > 0
-                        ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
-                        : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
+                    const slowAmount =
+                        (params.k2_slow ?? 0) > 0
+                            ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
+                            : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
 
                     return fastAmount + slowAmount;
                 };
@@ -2250,9 +2445,9 @@ class PrecomputedEventModel {
                     // Zero Order
                     if (params.rateMGh > 0) {
                         if (tau <= wearH) {
-                            return params.rateMGh / params.k3 * (1 - Math.exp(-params.k3 * tau));
+                            return (params.rateMGh / params.k3) * (1 - Math.exp(-params.k3 * tau));
                         } else {
-                            const amtRemoval = params.rateMGh / params.k3 * (1 - Math.exp(-params.k3 * wearH));
+                            const amtRemoval = (params.rateMGh / params.k3) * (1 - Math.exp(-params.k3 * wearH));
                             return amtRemoval * Math.exp(-params.k3 * (tau - wearH));
                         }
                     }
@@ -2330,10 +2525,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
 
     const startTime = sortedEvents[0].timeH - 24;
     const nowH = Date.now() / (1000 * 60 * 60);
-    const endTime = Math.max(
-        sortedEvents[sortedEvents.length - 1].timeH + (24 * 14),
-        nowH + 24
-    );
+    const endTime = Math.max(sortedEvents[sortedEvents.length - 1].timeH + 24 * 14, nowH + 24);
     // Adaptive step count: at least 1 point per hour, minimum 2000. The cap only
     // guards against a pathological/malformed event time (e.g. a bad timestamp
     // decades away) blowing up memory — at realistic usage spans (even several
@@ -2441,7 +2633,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         const currentConc_T = (totalAmountMG_T * 1e8) / plasmaVolumeML_T;
 
         // Total in pg/mL (convert CPA from ng/mL to pg/mL for compatibility)
-        const currentConc = currentConc_E2 + (currentConc_CPA * 1000);
+        const currentConc = currentConc_E2 + currentConc_CPA * 1000;
 
         timeH.push(t);
         concPGmL.push(currentConc);
@@ -2545,60 +2737,52 @@ export function interpolateConcentration_T(sim: SimulationResult, hour: number):
 
 async function generateKey(password: string, salt: Uint8Array, iterations: number = 600000) {
     const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
+    const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, [
+        'deriveKey',
+    ]);
     return window.crypto.subtle.deriveKey(
         {
-            name: "PBKDF2",
+            name: 'PBKDF2',
             salt: salt as any,
             iterations: iterations,
-            hash: "SHA-256"
+            hash: 'SHA-256',
         },
         keyMaterial,
-        { name: "AES-GCM", length: 256 },
+        { name: 'AES-GCM', length: 256 },
         false,
-        ["encrypt", "decrypt"]
+        ['encrypt', 'decrypt'],
     );
 }
 
 function buffToBase64(buff: Uint8Array): string {
-    const bin = Array.from(buff, (byte) => String.fromCharCode(byte)).join("");
+    const bin = Array.from(buff, byte => String.fromCharCode(byte)).join('');
     return btoa(bin);
 }
 
 function base64ToBuff(b64: string): Uint8Array {
     const bin = atob(b64);
-    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return Uint8Array.from(bin, c => c.charCodeAt(0));
 }
 
-export async function encryptData(text: string, customPassword?: string): Promise<{ data: string, password: string }> {
+export async function encryptData(text: string, customPassword?: string): Promise<{ data: string; password: string }> {
     const password = customPassword || buffToBase64(window.crypto.getRandomValues(new Uint8Array(12)));
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const iterations = 600000;
     const key = await generateKey(password, salt, iterations);
     const enc = new TextEncoder();
-    const encrypted = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv as any },
-        key,
-        enc.encode(text)
-    );
+    const encrypted = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as any }, key, enc.encode(text));
 
     const bundle = {
         encrypted: true,
         iv: buffToBase64(iv),
         salt: buffToBase64(salt),
         iter: iterations,
-        data: buffToBase64(new Uint8Array(encrypted))
+        data: buffToBase64(new Uint8Array(encrypted)),
     };
     return {
         data: JSON.stringify(bundle),
-        password
+        password,
     };
 }
 
@@ -2616,15 +2800,16 @@ export async function decryptData(jsonString: string, password: string): Promise
         // forever with no error and no way to cancel. Bounded to the range this
         // app actually writes (600k today, 100k in older exports).
         const declaredIter = bundle.iter;
-        const iterations = (typeof declaredIter === 'number' && Number.isSafeInteger(declaredIter)
-            && declaredIter >= 100000 && declaredIter <= 1000000) ? declaredIter : 100000;
+        const iterations =
+            typeof declaredIter === 'number' &&
+            Number.isSafeInteger(declaredIter) &&
+            declaredIter >= 100000 &&
+            declaredIter <= 1000000
+                ? declaredIter
+                : 100000;
 
         const key = await generateKey(password, salt, iterations);
-        const decrypted = await window.crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: iv as any },
-            key,
-            data as any
-        );
+        const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as any }, key, data as any);
         return new TextDecoder().decode(decrypted);
     } catch (e) {
         console.error(e);
@@ -2645,13 +2830,10 @@ export interface CloudBundle {
 }
 
 async function importRawAesKey(rawKeyB64: string): Promise<CryptoKey> {
-    return window.crypto.subtle.importKey(
-        "raw",
-        base64ToBuff(rawKeyB64) as any,
-        { name: "AES-GCM" },
-        false,
-        ["encrypt", "decrypt"]
-    );
+    return window.crypto.subtle.importKey('raw', base64ToBuff(rawKeyB64) as any, { name: 'AES-GCM' }, false, [
+        'encrypt',
+        'decrypt',
+    ]);
 }
 
 // Derive an extractable AES-GCM key from the password + a stable per-user salt,
@@ -2660,26 +2842,22 @@ async function importRawAesKey(rawKeyB64: string): Promise<CryptoKey> {
 // strictly safer than caching the password itself.
 export async function deriveCloudKey(password: string, userId: string): Promise<string> {
     const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
+    const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, [
+        'deriveKey',
+    ]);
     const key = await window.crypto.subtle.deriveKey(
         {
-            name: "PBKDF2",
+            name: 'PBKDF2',
             salt: enc.encode(`hrt-cloud-v1:${userId}`) as any,
             iterations: 600000,
-            hash: "SHA-256"
+            hash: 'SHA-256',
         },
         keyMaterial,
-        { name: "AES-GCM", length: 256 },
+        { name: 'AES-GCM', length: 256 },
         true,
-        ["encrypt", "decrypt"]
+        ['encrypt', 'decrypt'],
     );
-    const raw = await window.crypto.subtle.exportKey("raw", key);
+    const raw = await window.crypto.subtle.exportKey('raw', key);
     return buffToBase64(new Uint8Array(raw));
 }
 
@@ -2692,14 +2870,14 @@ export async function encryptCloudPayload(plaintext: string, rawKeyB64: string):
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const enc = new TextEncoder();
     const encrypted = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv as any },
+        { name: 'AES-GCM', iv: iv as any },
         key,
-        enc.encode(plaintext)
+        enc.encode(plaintext),
     );
     return {
         cloud: 1,
         iv: buffToBase64(iv),
-        data: buffToBase64(new Uint8Array(encrypted))
+        data: buffToBase64(new Uint8Array(encrypted)),
     };
 }
 
@@ -2709,11 +2887,7 @@ export async function decryptCloudPayload(bundle: any, rawKeyB64: string): Promi
         const key = await importRawAesKey(rawKeyB64);
         const iv = base64ToBuff(bundle.iv);
         const data = base64ToBuff(bundle.data);
-        const decrypted = await window.crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: iv as any },
-            key,
-            data as any
-        );
+        const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as any }, key, data as any);
         return new TextDecoder().decode(decrypted);
     } catch (e) {
         return null;

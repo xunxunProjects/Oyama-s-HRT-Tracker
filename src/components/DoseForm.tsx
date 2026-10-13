@@ -4,8 +4,33 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
-import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory, isEstradiolEster, isKnownEster, sublingualThetaFromHold as thetaFromHold, sublingualHoldFromTheta as holdFromTheta } from '../../logic';
-import { Save, Trash2, Info, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
+import {
+    Route,
+    Ester,
+    ExtraKey,
+    DoseEvent,
+    SL_TIER_ORDER,
+    SublingualTierParams,
+    getBioavailabilityMultiplier,
+    getToE2Factor,
+    getDoseAdvisory,
+    isEstradiolEster,
+    isKnownEster,
+    sublingualThetaFromHold as thetaFromHold,
+    sublingualHoldFromTheta as holdFromTheta,
+} from '../../logic';
+import {
+    Save,
+    Trash2,
+    Info,
+    Bookmark,
+    BookmarkPlus,
+    X,
+    ChevronDown,
+    Check,
+    AlertTriangle,
+    ExternalLink,
+} from 'lucide-react';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
 import { drugLabel, productNames } from '../utils/regimenText';
@@ -51,7 +76,7 @@ const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
     medium: 'text-[var(--status-info)]',
     high: 'text-[var(--warning)]',
     very_high: 'text-[var(--danger)]',
-    above: 'text-[var(--danger)]'
+    above: 'text-[var(--danger)]',
 };
 
 const formatGuideNumber = (val: number) => {
@@ -90,19 +115,39 @@ const trimDose = (mg: number) => mg.toFixed(3).replace(/\.?0+$/, '');
 // The route menu in a fixed order, the most used first. The Route enum's own
 // order is what's stored and stays as it is. A route this list doesn't know
 // yet still shows, at the end.
-const ROUTE_MENU_ORDER = [Route.injection, Route.oral, Route.sublingual, Route.gel, Route.patchApply, Route.patchRemove];
+const ROUTE_MENU_ORDER = [
+    Route.injection,
+    Route.oral,
+    Route.sublingual,
+    Route.gel,
+    Route.patchApply,
+    Route.patchRemove,
+];
 const menuRoutes = (isTransmasc: boolean): Route[] => {
     const all = [...ROUTE_MENU_ORDER, ...Object.values(Route).filter(r => !ROUTE_MENU_ORDER.includes(r))];
     if (!isTransmasc) return all;
     // Transmasc: no oral/sublingual; no patches (T patches are uncommon and
     // not realistically modeled with the current µg/day scheme).
-    return all.filter(r =>
-        r !== Route.oral && r !== Route.sublingual &&
-        r !== Route.patchApply && r !== Route.patchRemove
+    return all.filter(
+        r => r !== Route.oral && r !== Route.sublingual && r !== Route.patchApply && r !== Route.patchRemove,
     );
 };
 
-const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
+const DoseForm: React.FC<DoseFormProps> = ({
+    eventToEdit,
+    onSave,
+    onCancel,
+    onDelete,
+    templates = [],
+    onSaveTemplate,
+    onDeleteTemplate,
+    isInline = false,
+    hideHeader = false,
+    quickDoses,
+    onAddQuickDose,
+    onDeleteQuickDose,
+    events = [],
+}) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -143,7 +188,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     }, [showSaveTemplateInput]);
 
     // Form State
-    const [dateStr, setDateStr] = useState("");
+    const [dateStr, setDateStr] = useState('');
     const { isTransmasc } = useHRTMode();
     const [route, setRoute] = useState<Route>(Route.injection);
     const [ester, setEster] = useState<Ester>(isTransmasc ? Ester.TC : Ester.EV);
@@ -153,18 +198,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     // rather than swapping in the route's first drug on save.
     const [foreignDrug, setForeignDrug] = useState<{ route: Route; ester: Ester } | null>(null);
 
-    const [rawDose, setRawDose] = useState("");
-    const [e2Dose, setE2Dose] = useState("");
+    const [rawDose, setRawDose] = useState('');
+    const [e2Dose, setE2Dose] = useState('');
 
-    const [patchMode, setPatchMode] = useState<"dose" | "rate">("rate");
-    const [patchRate, setPatchRate] = useState("");
-    const [patchWearDays, setPatchWearDays] = useState("");
+    const [patchMode, setPatchMode] = useState<'dose' | 'rate'>('rate');
+    const [patchRate, setPatchRate] = useState('');
+    const [patchWearDays, setPatchWearDays] = useState('');
 
     const [gelSite, setGelSite] = useState(0); // Index in GEL_SITE_ORDER
 
     const [slTier, setSlTier] = useState(2);
     const [useCustomTheta, setUseCustomTheta] = useState(false);
-    const [customHoldInput, setCustomHoldInput] = useState<string>("10");
+    const [customHoldInput, setCustomHoldInput] = useState<string>('10');
     const [customHoldValue, setCustomHoldValue] = useState<number>(10);
     const [lastEditedField, setLastEditedField] = useState<'raw' | 'bio'>('bio');
 
@@ -214,7 +259,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }
         if (preset.route === Route.patchApply) {
             const wearH = preset.extras[ExtraKey.patchWearH];
-            setPatchWearDays(typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0 ? (wearH / 24).toString() : "");
+            setPatchWearDays(
+                typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0 ? (wearH / 24).toString() : '',
+            );
         }
 
         if (preset.route === Route.sublingual) {
@@ -239,19 +286,21 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         isInitializingRef.current = true;
         if (eventToEdit) {
             const d = new Date(eventToEdit.timeH * 3600000);
-            const iso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             setDateStr(iso);
             setRoute(eventToEdit.route);
             setEster(eventToEdit.ester);
-            setForeignDrug(isKnownEster(eventToEdit.ester) ? null : { route: eventToEdit.route, ester: eventToEdit.ester });
+            setForeignDrug(
+                isKnownEster(eventToEdit.ester) ? null : { route: eventToEdit.route, ester: eventToEdit.ester },
+            );
 
             if (eventToEdit.route === Route.patchApply && eventToEdit.extras[ExtraKey.releaseRateUGPerDay]) {
-                setPatchMode("rate");
+                setPatchMode('rate');
                 setPatchRate(eventToEdit.extras[ExtraKey.releaseRateUGPerDay].toString());
-                setE2Dose("");
-                setRawDose("");
+                setE2Dose('');
+                setRawDose('');
             } else {
-                setPatchMode("dose");
+                setPatchMode('dose');
                 const factor = getToE2Factor(eventToEdit.ester);
                 const e2Val = eventToEdit.doseMG * factor;
                 setE2Dose(trimDose(e2Val));
@@ -276,19 +325,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 } else if (eventToEdit.extras[ExtraKey.sublingualTheta] !== undefined) {
                     const thetaVal = eventToEdit.extras[ExtraKey.sublingualTheta];
                     setUseCustomTheta(true);
-                    const safeTheta = (typeof thetaVal === 'number' && Number.isFinite(thetaVal)) ? thetaVal : 0.11;
+                    const safeTheta = typeof thetaVal === 'number' && Number.isFinite(thetaVal) ? thetaVal : 0.11;
                     const hold = Math.max(1, Math.min(60, holdFromTheta(safeTheta)));
                     setCustomHoldValue(hold);
                     setCustomHoldInput(hold.toString());
                 } else {
                     setUseCustomTheta(false);
                     setCustomHoldValue(10);
-                    setCustomHoldInput("10");
+                    setCustomHoldInput('10');
                 }
             } else {
                 setUseCustomTheta(false);
                 setCustomHoldValue(10);
-                setCustomHoldInput("10");
+                setCustomHoldInput('10');
             }
 
             if (eventToEdit.route === Route.gel) {
@@ -298,29 +347,33 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             }
 
             const wearH = eventToEdit.extras[ExtraKey.patchWearH];
-            if (eventToEdit.route === Route.patchApply && typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0) {
+            if (
+                eventToEdit.route === Route.patchApply &&
+                typeof wearH === 'number' &&
+                Number.isFinite(wearH) &&
+                wearH > 0
+            ) {
                 setPatchWearDays((wearH / 24).toString());
             } else {
-                setPatchWearDays("");
+                setPatchWearDays('');
             }
-
         } else {
             const now = new Date();
-            const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            const iso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             setDateStr(iso);
             setRoute(isTransmasc ? Route.injection : Route.sublingual);
             setEster(isTransmasc ? Ester.TC : Ester.EV);
             setForeignDrug(null);
-            setRawDose("");
-            setE2Dose("");
-            setPatchMode("rate");
-            setPatchRate("");
-            setPatchWearDays("");
+            setRawDose('');
+            setE2Dose('');
+            setPatchMode('rate');
+            setPatchRate('');
+            setPatchWearDays('');
             setSlTier(2);
             setGelSite(0);
             setUseCustomTheta(false);
             setCustomHoldValue(10);
-            setCustomHoldInput("10");
+            setCustomHoldInput('10');
             setLastEditedField('bio');
 
             // Most people log the same thing again, so a new dose starts on the
@@ -331,10 +384,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             // passed over.
             const nowH = Date.now() / 3600000;
             const routes = menuRoutes(isTransmasc);
-            const last = events.reduce<DoseEvent | null>((best, ev) => (
-                ev.timeH <= nowH && ev.route !== Route.patchRemove && routes.includes(ev.route) &&
-                (!best || ev.timeH > best.timeH) ? ev : best
-            ), null);
+            const last = events.reduce<DoseEvent | null>(
+                (best, ev) =>
+                    ev.timeH <= nowH &&
+                    ev.route !== Route.patchRemove &&
+                    routes.includes(ev.route) &&
+                    (!best || ev.timeH > best.timeH)
+                        ? ev
+                        : best,
+                null,
+            );
             if (last) fillFrom(last, false);
         }
 
@@ -356,7 +415,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             // number parses the same, and the field reads 3.82, not 3.820.
             setE2Dose(trimDose(e2Equivalent));
         } else {
-            setE2Dose("");
+            setE2Dose('');
         }
     };
 
@@ -372,7 +431,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 setRawDose(trimDose(v / factor));
             }
         } else {
-            setRawDose("");
+            setRawDose('');
         }
     };
 
@@ -402,7 +461,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     useEffect(() => {
         if (!doseError) return;
         const box = fieldsRef.current;
-        const field = box?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? box?.querySelector<HTMLElement>('input');
+        const field =
+            box?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? box?.querySelector<HTMLElement>('input');
         field?.focus();
     }, [doseError]);
 
@@ -428,7 +488,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             ester,
             doseMG: parseFloat(rawDose) || 0,
             extras: {},
-            createdAt: Date.now()
+            createdAt: Date.now(),
         };
 
         if (route === Route.sublingual && slExtras) {
@@ -483,7 +543,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
         const extras: any = {};
         // An empty field asks for a dose; "greater than zero" is for a 0 typed.
-        const doseMsg = (typed: string) => (typed.trim() === '' ? t('modal.dose.dose_required') : t('error.nonPositive'));
+        const doseMsg = (typed: string) =>
+            typed.trim() === '' ? t('modal.dose.dose_required') : t('error.nonPositive');
 
         if (route === Route.sublingual && useCustomTheta) {
             if (!Number.isFinite(customHoldValue) || customHoldValue < 1) {
@@ -492,7 +553,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             }
         }
 
-        if (route === Route.patchApply && patchMode === "rate") {
+        if (route === Route.patchApply && patchMode === 'rate') {
             const rateVal = parseFloat(patchRate);
             if (!Number.isFinite(rateVal) || rateVal <= 0) {
                 failSave(doseMsg(patchRate));
@@ -500,7 +561,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             }
             finalDose = 0;
             extras[ExtraKey.releaseRateUGPerDay] = rateVal;
-        } else if (route === Route.patchApply && patchMode === "dose") {
+        } else if (route === Route.patchApply && patchMode === 'dose') {
             const raw = parseFloat(rawDose);
             if (!rawDose || rawDose.trim() === '' || !Number.isFinite(raw) || raw <= 0) {
                 failSave(doseMsg(rawDose));
@@ -525,7 +586,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     return;
                 }
                 const factor = getToE2Factor(ester) || 1;
-                finalDose = (ester === Ester.E2) ? e2Equivalent : e2Equivalent / factor;
+                finalDose = ester === Ester.E2 ? e2Equivalent : e2Equivalent / factor;
             }
         }
 
@@ -547,12 +608,15 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         const newEvent: DoseEvent = {
             id: eventToEdit?.id || uuidv4(),
             route,
-            ester: (route === Route.patchRemove || route === Route.patchApply || route === Route.gel)
-                ? (isTransmasc ? Ester.T : Ester.E2)
-                : ester,
+            ester:
+                route === Route.patchRemove || route === Route.patchApply || route === Route.gel
+                    ? isTransmasc
+                        ? Ester.T
+                        : Ester.E2
+                    : ester,
             timeH,
             doseMG: finalDose,
-            extras
+            extras,
         };
 
         onSave(newEvent);
@@ -624,7 +688,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (isTransmasc) return null;
         const cfg = DOSE_GUIDE_CONFIG[route];
         if (!cfg) return null;
-        if (route === Route.patchApply && patchMode === "dose" && cfg.requiresRate) {
+        if (route === Route.patchApply && patchMode === 'dose' && cfg.requiresRate) {
             return { config: cfg, level: null, value: null, showRateHint: true as const };
         }
         const rawVal = route === Route.patchApply ? parseFloat(patchRate) : parseFloat(e2Dose);
@@ -646,20 +710,28 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     // per-dose guide above doesn't — see getDoseAdvisory in logic.ts.
     const doseAdvisory = useMemo(() => getDoseAdvisory(events), [events]);
 
-    const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : "";
+    const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : '';
     const guideRangeText = doseGuide?.config
-        ? `${doseGuide.config.thresholds.map((threshold) => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
-        : "";
-    const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : "";
+        ? `${doseGuide.config.thresholds.map(threshold => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
+        : '';
+    const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : '';
     // The record a delete confirm is about, as its row reads: what, how much,
     // and how and when it was taken. With a dozen identical CPA rows the
     // time is what tells them apart.
     const describeDose = (ev: DoseEvent) => {
         const rate = ev.extras[ExtraKey.releaseRateUGPerDay];
-        const what = ev.route === Route.patchRemove
-            ? t('route.patchRemove')
-            : `${drugLabel(ev.ester, t)} · ${rate ? `${rate} µg/d` : `${trimDose(ev.doseMG)} mg`}`;
-        const when = new Date(ev.timeH * 3600000).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+        const what =
+            ev.route === Route.patchRemove
+                ? t('route.patchRemove')
+                : `${drugLabel(ev.ester, t)} · ${rate ? `${rate} µg/d` : `${trimDose(ev.doseMG)} mg`}`;
+        const when = new Date(ev.timeH * 3600000).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        });
         return ev.route === Route.patchRemove ? `${what}\n${when}` : `${what}\n${t(`route.${ev.route}`)} · ${when}`;
     };
 
@@ -695,36 +767,64 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     {/* The bookmark gives way to the tick for a moment once a
                         template is loaded, the swap CopyTick makes for Copy. */}
                     <span className="inline-grid shrink-0 place-items-center" aria-hidden="true">
-                        <Bookmark size={14} data-hidden={templateTick === 'loaded'} className="copy-glyph col-start-1 row-start-1" />
-                        <Tick on={templateTick === 'loaded'} size={14} tone="current" className="col-start-1 row-start-1" />
+                        <Bookmark
+                            size={14}
+                            data-hidden={templateTick === 'loaded'}
+                            className="copy-glyph col-start-1 row-start-1"
+                        />
+                        <Tick
+                            on={templateTick === 'loaded'}
+                            size={14}
+                            tone="current"
+                            className="col-start-1 row-start-1"
+                        />
                     </span>
                     <span>{t('template.load_title')}</span>
                 </button>
                 {showTemplateMenu && (
-                    <div ref={templateMenuRef} className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50">
+                    <div
+                        ref={templateMenuRef}
+                        className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50"
+                    >
                         <div className="py-1">
                             {templates.map((template: DoseTemplate) => (
-                                <div key={template.id} className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b border-[var(--border)] last:border-b-0">
+                                <div
+                                    key={template.id}
+                                    className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b border-[var(--border)] last:border-b-0"
+                                >
                                     <button
                                         type="button"
-                                        onClick={() => { handleLoadTemplate(template); closeTemplateMenu(); }}
+                                        onClick={() => {
+                                            handleLoadTemplate(template);
+                                            closeTemplateMenu();
+                                        }}
                                         className="flex-1 text-left"
                                     >
                                         <div className="text-sm font-medium text-[var(--text)]">{template.name}</div>
                                         <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                                            {t(`route.${template.route}`)} · {template.extras[ExtraKey.releaseRateUGPerDay]
+                                            {t(`route.${template.route}`)} ·{' '}
+                                            {template.extras[ExtraKey.releaseRateUGPerDay]
                                                 ? `${template.extras[ExtraKey.releaseRateUGPerDay]} µg/d`
                                                 : `${trimDose(template.doseMG)} mg`}
                                         </div>
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={(e) => {
+                                        onClick={e => {
                                             e.stopPropagation();
-                                            showDialog('confirm', template.name, () => {
-                                                closeTemplateMenu();
-                                                onDeleteTemplate(template.id);
-                                            }, { danger: true, title: t('template.delete_confirm'), confirmLabel: t('btn.delete') });
+                                            showDialog(
+                                                'confirm',
+                                                template.name,
+                                                () => {
+                                                    closeTemplateMenu();
+                                                    onDeleteTemplate(template.id);
+                                                },
+                                                {
+                                                    danger: true,
+                                                    title: t('template.delete_confirm'),
+                                                    confirmLabel: t('btn.delete'),
+                                                },
+                                            );
                                         }}
                                         // Shown on hover where there is one; at rest, muted, on a
                                         // touch screen, where it used to take taps unseen.
@@ -750,12 +850,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         <form
             className="flex flex-col h-full"
             noValidate
-            onSubmit={(e) => {
+            onSubmit={e => {
                 e.preventDefault();
                 handleSave();
             }}
         >
-
             {/* Save Template Dialog Overlay */}
             {/* Save Template Dialog Overlay (Removed) */}
 
@@ -767,7 +866,12 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     </h3>
                     <div className="flex gap-2 items-center">
                         {renderLoadTemplateControl()}
-                        <button type="button" onClick={onCancel} className="p-1.5 hover:bg-[var(--surface-hover)] rounded-lg" aria-label={t('btn.cancel')}>
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="p-1.5 hover:bg-[var(--surface-hover)] rounded-lg"
+                            aria-label={t('btn.cancel')}
+                        >
                             <X size={18} className="text-[var(--text-muted)]" />
                         </button>
                     </div>
@@ -777,14 +881,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             {/* Inline Header (Simpler) */}
             {isInline && !hideHeader && (
                 <div className="pb-4 border-b border-[var(--border)] flex justify-between items-center">
-          <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
+                    <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
                         {t('timeline.add_title')}
                     </span>
                     {renderLoadTemplateControl()}
                 </div>
             )}
 
-            <div className={`space-y-4 flex-1 overflow-y-auto ${!isInline ? 'px-6 pb-4' : hideHeader ? 'pb-2' : 'pb-4'}`}>
+            <div
+                className={`space-y-4 flex-1 overflow-y-auto ${!isInline ? 'px-6 pb-4' : hideHeader ? 'pb-2' : 'pb-4'}`}
+            >
                 {/* Time */}
                 <div ref={timeRowRef}>
                     <button
@@ -796,7 +902,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         <span className="text-[0.9375rem] text-[var(--text)]">{t('field.time')}</span>
                         <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                             <span className="text-sm tabular-nums">
-                                {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
+                                {dateStr
+                                    ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          hour12: false,
+                                      })
+                                    : '—'}
                             </span>
                             <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                         </div>
@@ -805,8 +920,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         isOpen={isDatePickerOpen}
                         inline
                         onClose={closeDatePicker}
-                        onConfirm={(date) => {
-                            const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        onConfirm={date => {
+                            const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                                .toISOString()
+                                .slice(0, 16);
                             setDateStr(iso);
                         }}
                         initialDate={dateStr ? new Date(dateStr) : new Date()}
@@ -819,10 +936,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 <CustomSelect
                     label={t('field.route')}
                     value={route}
-                    onChange={(val) => setRoute(val as Route)}
+                    onChange={val => setRoute(val as Route)}
                     options={availableRoutes.map(r => ({
                         value: r,
-                        label: t(`route.${r}`)
+                        label: t(`route.${r}`),
                     }))}
                 />
 
@@ -839,7 +956,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <CustomSelect
                                 label={t('field.ester')}
                                 value={ester}
-                                onChange={(val) => setEster(val as Ester)}
+                                onChange={val => setEster(val as Ester)}
                                 options={availableEsters.map(e => ({
                                     value: e,
                                     label: drugLabel(e, t),
@@ -855,7 +972,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     ester={ester}
                                     quickDoses={quickDoses}
                                     currentDose={rawDose}
-                                    onSelectDose={(val) => handleRawChange(val.toString())}
+                                    onSelectDose={val => handleRawChange(val.toString())}
                                     onAddQuickDose={onAddQuickDose}
                                     onDeleteQuickDose={onDeleteQuickDose}
                                 />
@@ -949,16 +1066,34 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <div className="mt-3 border-t border-[var(--border)] pt-3">
                                 {/* The safety warning stays in view; the rest folds. */}
                                 <GuideFold
-                                    icon={<span className="icon-line text-sm"><AlertTriangle className="w-4 h-4 text-[var(--warning)]" /></span>}
-                                    heading={<span className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.title')}</span>}
-                                    lead={<span className="block text-sm text-[var(--warning)] mt-0.5">{t('inj.guide.safety')}</span>}
+                                    icon={
+                                        <span className="icon-line text-sm">
+                                            <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
+                                        </span>
+                                    }
+                                    heading={
+                                        <span className="text-sm font-semibold text-[var(--text)]">
+                                            {t('inj.guide.title')}
+                                        </span>
+                                    }
+                                    lead={
+                                        <span className="block text-sm text-[var(--warning)] mt-0.5">
+                                            {t('inj.guide.safety')}
+                                        </span>
+                                    }
                                 >
                                     <div className="pt-3 space-y-3">
                                         {/* Usage & Dosage */}
                                         <div className="space-y-1.5 pl-6">
-                                            <p className="text-sm text-[var(--text-muted)]">{t('inj.guide.route_methods')}</p>
-                                            <p className="text-xs font-medium text-[var(--danger)]">{t('inj.guide.route_warn')}</p>
-                                            <p className="text-sm font-semibold text-[var(--text)] mt-1">{t('inj.guide.dosage_title')}</p>
+                                            <p className="text-sm text-[var(--text-muted)]">
+                                                {t('inj.guide.route_methods')}
+                                            </p>
+                                            <p className="text-xs font-medium text-[var(--danger)]">
+                                                {t('inj.guide.route_warn')}
+                                            </p>
+                                            <p className="text-sm font-semibold text-[var(--text)] mt-1">
+                                                {t('inj.guide.dosage_title')}
+                                            </p>
                                             <ul className="text-sm text-[var(--text-muted)] space-y-0.5 list-disc list-inside">
                                                 <li>{t('inj.guide.dosage_ev')}</li>
                                                 <li>{t('inj.guide.dosage_ec')}</li>
@@ -967,9 +1102,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                                 href="https://transfemscience.org/misc/injectable-e2-simulator/"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                onClick={(e) => {
+                                                onClick={e => {
                                                     e.preventDefault();
-                                                    confirmAndOpenExternal('https://transfemscience.org/misc/injectable-e2-simulator/');
+                                                    confirmAndOpenExternal(
+                                                        'https://transfemscience.org/misc/injectable-e2-simulator/',
+                                                    );
                                                 }}
                                                 className="inline-flex items-center gap-1 text-sm text-[var(--accent-ink)] hover:underline mt-0.5"
                                             >
@@ -980,12 +1117,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
                                         {/* Precautions */}
                                         <div className="pl-6 space-y-1">
-                                            <p className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.notes_title')}</p>
+                                            <p className="text-sm font-semibold text-[var(--text)]">
+                                                {t('inj.guide.notes_title')}
+                                            </p>
                                             <ul className="text-xs text-[var(--text-muted)] space-y-1.5 list-disc list-inside leading-relaxed">
                                                 <li>{t('inj.guide.note_1')}</li>
                                                 <li>{t('inj.guide.note_2')}</li>
-                                                <li className="font-semibold text-[var(--danger)]">{t('inj.guide.note_3')}</li>
-                                                <li><span className="font-semibold text-[var(--warning)]">{t('inj.guide.note_4')}</span></li>
+                                                <li className="font-semibold text-[var(--danger)]">
+                                                    {t('inj.guide.note_3')}
+                                                </li>
+                                                <li>
+                                                    <span className="font-semibold text-[var(--warning)]">
+                                                        {t('inj.guide.note_4')}
+                                                    </span>
+                                                </li>
                                                 <li>{t('inj.guide.note_5')}</li>
                                                 <li>{t('inj.guide.note_6')}</li>
                                                 <li>{t('inj.guide.note_7')}</li>
@@ -999,9 +1144,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                             href="https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            onClick={(e) => {
+                                            onClick={e => {
                                                 e.preventDefault();
-                                                confirmAndOpenExternal('https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection');
+                                                confirmAndOpenExternal(
+                                                    'https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection',
+                                                );
                                             }}
                                             className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent-ink)]"
                                         >
@@ -1017,8 +1164,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {ester === Ester.CPA && (
                             <div className="mt-3 p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)]">
                                 <GuideFold
-                                    icon={<span className="icon-line text-sm me-1"><Info className="w-5 h-5 text-[var(--text-muted)]" /></span>}
-                                    heading={<span className="text-sm font-bold text-[var(--text)]">{t('dose.guide.title')}</span>}
+                                    icon={
+                                        <span className="icon-line text-sm me-1">
+                                            <Info className="w-5 h-5 text-[var(--text-muted)]" />
+                                        </span>
+                                    }
+                                    heading={
+                                        <span className="text-sm font-bold text-[var(--text)]">
+                                            {t('dose.guide.title')}
+                                        </span>
+                                    }
                                     lead={
                                         <span className="mt-2.5 flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
                                             <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
@@ -1029,7 +1184,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     {/* Hangs under the heading, clear of the icon (20px + 12px). */}
                                     <ul className="ps-8 pt-1 space-y-1">
                                         {(['combo', 'ultralow'] as const).map(key => (
-                                            <li key={key} className="flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
+                                            <li
+                                                key={key}
+                                                className="flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed"
+                                            >
                                                 <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
                                                 {t(`dose.guide.cpa_hint.${key}`)}
                                             </li>
@@ -1042,34 +1200,42 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         {/* Dose guide for non-injection routes. Only once there is a
                             dose to place: before that it was three lines of
                             "enter a dose" and bare thresholds on every new form. */}
-                        {doseGuide && (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
-                            <div className="mt-2 pt-2 border-t border-[var(--border)] flex gap-2">
-                                <span className="icon-line text-xs"><Info className="w-3.5 h-3.5 text-[var(--text-muted)]" /></span>
-                                <div className="space-y-0.5 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-semibold text-[var(--text)]">{t('dose.guide.title')}</span>
-                                        {doseGuide.level && (
-                                            <span className={`text-xs font-medium ${guideBadgeClass}`}>
-                                                {t(`dose.guide.level.${doseGuide.level}`)}
+                        {doseGuide &&
+                            (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
+                                <div className="mt-2 pt-2 border-t border-[var(--border)] flex gap-2">
+                                    <span className="icon-line text-xs">
+                                        <Info className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                    </span>
+                                    <div className="space-y-0.5 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-semibold text-[var(--text)]">
+                                                {t('dose.guide.title')}
                                             </span>
+                                            {doseGuide.level && (
+                                                <span className={`text-xs font-medium ${guideBadgeClass}`}>
+                                                    {t(`dose.guide.level.${doseGuide.level}`)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-[var(--text-muted)]">
+                                            {t('dose.guide.current')}:{' '}
+                                            {doseGuide.value !== null
+                                                ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}`
+                                                : t('dose.guide.current_blank')}
+                                        </p>
+                                        {guideRangeText && (
+                                            <p className="text-[0.6875rem] text-[var(--text-muted)] leading-snug">
+                                                {t('dose.guide.reference')}: {guideRangeText}
+                                            </p>
+                                        )}
+                                        {doseGuide.showRateHint && (
+                                            <p className="text-[0.6875rem] text-[var(--warning)] leading-snug">
+                                                {t('dose.guide.patch_rate_hint')}
+                                            </p>
                                         )}
                                     </div>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        {t('dose.guide.current')}: {doseGuide.value !== null ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}` : t('dose.guide.current_blank')}
-                                    </p>
-                                    {guideRangeText && (
-                                        <p className="text-[0.6875rem] text-[var(--text-muted)] leading-snug">
-                                            {t('dose.guide.reference')}: {guideRangeText}
-                                        </p>
-                                    )}
-                                    {doseGuide.showRateHint && (
-                                        <p className="text-[0.6875rem] text-[var(--warning)] leading-snug">
-                                            {t('dose.guide.patch_rate_hint')}
-                                        </p>
-                                    )}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
                         {/* Recent-use heads-up — logged doses already running high */}
                         {doseAdvisory && (
@@ -1088,26 +1254,34 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 the template name field opens it drops to a full row below.
                 Cancel and Save (the edit form in the list) keep a row of their
                 own, where neither label has to wrap. */}
-            <div className={`flex flex-wrap gap-x-2 gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}>
+            <div
+                className={`flex flex-wrap gap-x-2 gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}
+            >
                 {/* Says what the tick shows, for anyone who can't see it. */}
                 <span role="status" className="sr-only">
-                    {templateTick === 'saved' ? t('template.saved') : templateTick === 'loaded' ? t('template.loaded') : ''}
+                    {templateTick === 'saved'
+                        ? t('template.saved')
+                        : templateTick === 'loaded'
+                          ? t('template.loaded')
+                          : ''}
                 </span>
                 <div className="flex gap-2 items-center flex-wrap min-h-10">
-
                     {/* Template Save Section. Both halves clip, to collapse to
                         nothing in turn, so their buttons draw the focus ring
                         inside their own box, where it isn't cut off. */}
                     <div className="flex items-center">
-                        <div className={`overflow-hidden flex items-center ${
-                            showSaveTemplateInput ? 'w-[14rem] sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
-                        }`} {...inertWhen(!showSaveTemplateInput)}>
+                        <div
+                            className={`overflow-hidden flex items-center ${
+                                showSaveTemplateInput ? 'w-[14rem] sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
+                            }`}
+                            {...inertWhen(!showSaveTemplateInput)}
+                        >
                             <input
                                 ref={templateInputRef}
                                 type="text"
                                 value={templateName}
-                                onChange={(e) => setTemplateName(e.target.value)}
-                                onKeyDown={(e) => {
+                                onChange={e => setTemplateName(e.target.value)}
+                                onKeyDown={e => {
                                     // Enter here names the template; it must not save the dose.
                                     // Except the Enter that commits an IME conversion (kana to
                                     // kanji, pinyin to hanzi): that one only finishes the word.
@@ -1132,17 +1306,23 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             </button>
                             <button
                                 type="button"
-                                onClick={() => { setShowSaveTemplateInput(false); setTemplateName(''); }}
+                                onClick={() => {
+                                    setShowSaveTemplateInput(false);
+                                    setTemplateName('');
+                                }}
                                 className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0 focus-inset"
                                 aria-label={t('btn.cancel')}
                             >
                                 <X size={18} />
                             </button>
                         </div>
-                        
-                        <div className={`overflow-hidden ${
-                            showSaveTemplateInput ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
-                        }`} {...inertWhen(showSaveTemplateInput)}>
+
+                        <div
+                            className={`overflow-hidden ${
+                                showSaveTemplateInput ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
+                            }`}
+                            {...inertWhen(showSaveTemplateInput)}
+                        >
                             <button
                                 ref={templateButtonRef}
                                 type="button"
@@ -1155,7 +1335,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 aria-label={t('template.save_title')}
                             >
                                 <span className="inline-grid shrink-0 place-items-center" aria-hidden="true">
-                                    <BookmarkPlus size={18} data-hidden={templateTick === 'saved'} className="copy-glyph col-start-1 row-start-1" />
+                                    <BookmarkPlus
+                                        size={18}
+                                        data-hidden={templateTick === 'saved'}
+                                        className="copy-glyph col-start-1 row-start-1"
+                                    />
                                     <Tick on={templateTick === 'saved'} size={18} className="col-start-1 row-start-1" />
                                 </span>
                             </button>
@@ -1169,10 +1353,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             onClick={() => {
                                 setShowSaveTemplateInput(false);
                                 setShowTemplateMenu(false);
-                                showDialog('confirm', describeDose(eventToEdit), () => {
-                                    onDelete(eventToEdit.id);
-                                    onCancel();
-                                }, { danger: true, title: t('modal.dose.delete_confirm'), confirmLabel: t('btn.delete') });
+                                showDialog(
+                                    'confirm',
+                                    describeDose(eventToEdit),
+                                    () => {
+                                        onDelete(eventToEdit.id);
+                                        onCancel();
+                                    },
+                                    {
+                                        danger: true,
+                                        title: t('modal.dose.delete_confirm'),
+                                        confirmLabel: t('btn.delete'),
+                                    },
+                                );
                             }}
                             className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded flex items-center justify-center"
                             title={t('btn.delete')}
@@ -1183,7 +1376,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     )}
                 </div>
 
-                <div className={`flex gap-2 ml-auto shrink-0 grow ${hideHeader ? 'basis-full' : 'basis-48'} sm:grow-0 sm:basis-auto justify-end`}>
+                <div
+                    className={`flex gap-2 ml-auto shrink-0 grow ${hideHeader ? 'basis-full' : 'basis-48'} sm:grow-0 sm:basis-auto justify-end`}
+                >
                     {hideHeader && (
                         <button
                             type="button"

@@ -17,7 +17,13 @@ export interface SegmentedOption<K extends string> {
  * nudges its neighbours. Longer lists belong in a Select; whole-panel
  * switches in Tabs.
  */
-function Segmented<K extends string>({ options, value, onChange, className = '', ...aria }: {
+function Segmented<K extends string>({
+    options,
+    value,
+    onChange,
+    className = '',
+    ...aria
+}: {
     options: readonly SegmentedOption<K>[];
     value: K;
     onChange: (id: K) => void;
@@ -62,15 +68,21 @@ function Segmented<K extends string>({ options, value, onChange, className = '',
                 return (
                     <button
                         key={id}
-                        ref={el => { optionRefs.current[id] = el; }}
+                        ref={el => {
+                            optionRefs.current[id] = el;
+                        }}
                         type="button"
                         role="tab"
                         aria-selected={selected}
                         onClick={() => onChange(id)}
                         className={`tap-target relative z-[1] grid h-[26px] items-center rounded-full px-3 text-[0.8125rem] leading-[1.125rem] whitespace-nowrap ${selected ? 'text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
-                        <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">{label}</span>
-                        <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+                        <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">
+                            {label}
+                        </span>
+                        <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : 'font-medium'}`}>
+                            {label}
+                        </span>
                     </button>
                 );
             })}

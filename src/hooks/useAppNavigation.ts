@@ -2,18 +2,54 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { Home, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import CalibrationCurveIcon from '../components/CalibrationCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
-import { depthLeft, isSteppingBack, navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from './navHistory';
+import {
+    depthLeft,
+    isSteppingBack,
+    navDepth,
+    pushNavEntry,
+    readNavEntry,
+    replaceNavEntry,
+    stepBack,
+    TAB_RESELECT,
+} from './navHistory';
 
-export type ViewKey = 'home' | 'share' | 'history' | 'lab' | 'lab-calibration' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'change-password' | 'delete-account' | 'edit-profile' | 'edit-avatar' | 'pk-params' | 'settings-hrt-mode' | 'settings-language' | 'settings-appearance' | 'settings-weight' | 'settings-export' | 'settings-import' | 'settings-transparency' | 'settings-milk-tea' | 'settings-cat-states' | 'forecast' | 'supplies' | 'plan';
+export type ViewKey =
+    | 'home'
+    | 'share'
+    | 'history'
+    | 'lab'
+    | 'lab-calibration'
+    | 'settings'
+    | 'account'
+    | 'admin'
+    | 'sessions'
+    | 'two-factor'
+    | 'change-password'
+    | 'delete-account'
+    | 'edit-profile'
+    | 'edit-avatar'
+    | 'pk-params'
+    | 'settings-hrt-mode'
+    | 'settings-language'
+    | 'settings-appearance'
+    | 'settings-weight'
+    | 'settings-export'
+    | 'settings-import'
+    | 'settings-transparency'
+    | 'settings-milk-tea'
+    | 'settings-cat-states'
+    | 'forecast'
+    | 'supplies'
+    | 'plan';
 
 /**
  * Which top-level tab a view belongs to, so the sidebar and the bottom bar
  * both keep their section lit while a page inside it is open.
  */
 const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
-    'forecast': 'home',
-    'plan': 'home',
-    'share': 'home',
+    forecast: 'home',
+    plan: 'home',
+    share: 'home',
     'lab-calibration': 'lab',
     'settings-hrt-mode': 'settings',
     'settings-language': 'settings',
@@ -25,8 +61,8 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-milk-tea': 'settings',
     'settings-cat-states': 'settings',
     'pk-params': 'settings',
-    'supplies': 'settings',
-    'sessions': 'account',
+    supplies: 'settings',
+    sessions: 'account',
     'two-factor': 'account',
     'change-password': 'account',
     'delete-account': 'account',
@@ -49,10 +85,38 @@ const parentOf = (view: ViewKey): ViewKey | undefined => (view === 'admin' ? 'se
  * than the jump landing on Settings, a tab nobody tapped.
  */
 const ALSO_UNDER: Partial<Record<ViewKey, ViewKey>> = {
-    'supplies': 'home',
+    supplies: 'home',
 };
 
-const VIEW_ORDER: ViewKey[] = ['home', 'plan', 'forecast', 'share', 'history', 'lab', 'lab-calibration', 'settings', 'account', 'sessions', 'two-factor', 'change-password', 'delete-account', 'edit-profile', 'edit-avatar', 'pk-params', 'supplies', 'settings-hrt-mode', 'settings-language', 'settings-appearance', 'settings-weight', 'settings-export', 'settings-import', 'settings-transparency', 'settings-milk-tea', 'settings-cat-states', 'admin'];
+const VIEW_ORDER: ViewKey[] = [
+    'home',
+    'plan',
+    'forecast',
+    'share',
+    'history',
+    'lab',
+    'lab-calibration',
+    'settings',
+    'account',
+    'sessions',
+    'two-factor',
+    'change-password',
+    'delete-account',
+    'edit-profile',
+    'edit-avatar',
+    'pk-params',
+    'supplies',
+    'settings-hrt-mode',
+    'settings-language',
+    'settings-appearance',
+    'settings-weight',
+    'settings-export',
+    'settings-import',
+    'settings-transparency',
+    'settings-milk-tea',
+    'settings-cat-states',
+    'admin',
+];
 
 type Direction = 'forward' | 'backward';
 const directionOf = (from: ViewKey, to: ViewKey): Direction =>
@@ -91,12 +155,15 @@ export const useAppNavigation = (user: any) => {
     // A fresh stack: the view's tab as the base entry, and the view above it
     // when it is a page inside that tab, so Back from it still has somewhere
     // to go. Only ever called with history at the base entry.
-    const land = useCallback((view: ViewKey, direction: Direction) => {
-        const tab = tabForView(view);
-        replaceNavEntry(tab, 0);
-        if (tab !== view) pushNavEntry(view, 1);
-        show(view, direction, false);
-    }, [show]);
+    const land = useCallback(
+        (view: ViewKey, direction: Direction) => {
+            const tab = tabForView(view);
+            replaceNavEntry(tab, 0);
+            if (tab !== view) pushNavEntry(view, 1);
+            show(view, direction, false);
+        },
+        [show],
+    );
 
     // While a step back is still on its way, the entry it leaves is still the
     // current one, so the move waits in `pending` and popstate carries it on.
@@ -216,7 +283,10 @@ export const useAppNavigation = (user: any) => {
         restoreScroll.current = false;
         const top = scrollTops.current[currentView] ?? 0;
         el.scrollTop = top;
-        if (el.scrollTop < top) requestAnimationFrame(() => { el.scrollTop = top; });
+        if (el.scrollTop < top)
+            requestAnimationFrame(() => {
+                el.scrollTop = top;
+            });
     }, [currentView]);
 
     // --- Derived Data ---
@@ -240,6 +310,6 @@ export const useAppNavigation = (user: any) => {
         handleViewChange,
         handleTabSelect,
         mainScrollRef,
-        navItems
+        navItems,
     };
 };

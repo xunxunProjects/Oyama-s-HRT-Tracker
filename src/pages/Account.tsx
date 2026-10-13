@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+    UploadCloud,
+    LogOut,
+    BadgeCheck,
+    Edit2,
+    Loader2,
+    Trash2,
+    Cloud,
+    HardDrive,
+    DownloadCloud,
+    Merge,
+    ChevronDown,
+    Plus,
+    Minus,
+    Fingerprint,
+    Lock,
+    MonitorSmartphone,
+    CloudOff,
+    CheckCircle2,
+    AlertCircle,
+    RefreshCw,
+} from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
@@ -9,7 +30,13 @@ import { describeAuthError } from '../components/AuthModal';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
-import { readCloudBackup, unlockCloudBackup, normalizeBackupPayload, hasCloudKey, deriveAndCacheCloudKey } from '../utils/cloudBackup';
+import {
+    readCloudBackup,
+    unlockCloudBackup,
+    normalizeBackupPayload,
+    hasCloudKey,
+    deriveAndCacheCloudKey,
+} from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import { apiEndpoint } from '../services/apiClient';
@@ -44,11 +71,11 @@ interface AccountProps {
     lastSyncedAt: number | null;
 }
 
-const divider = "border-b border-[var(--border)]";
-const sectionLabelBase = "text-xs font-semibold mb-2 block";
+const divider = 'border-b border-[var(--border)]';
+const sectionLabelBase = 'text-xs font-semibold mb-2 block';
 const sectionLabel = `${sectionLabelBase} text-[var(--text-muted)]`;
-const iconCls = "text-[var(--text-muted)] shrink-0";
-const statusMuted = "text-xs text-[var(--text-muted)] shrink-0";
+const iconCls = 'text-[var(--text-muted)] shrink-0';
+const statusMuted = 'text-xs text-[var(--text-muted)] shrink-0';
 
 const AUTH_TABS = ['sign-in', 'sign-up'] as const;
 
@@ -60,18 +87,22 @@ const AUTH_TABS = ['sign-in', 'sign-up'] as const;
  * "cloud archive is encrypted, unlock it first" and, until it is cleared, stops
  * every backup this device would otherwise write.
  */
-type UnlockTarget =
-    | { purpose: 'expand'; rawData: any; backupId: string }
-    | { purpose: 'sync' };
+type UnlockTarget = { purpose: 'expand'; rawData: any; backupId: string } | { purpose: 'sync' };
 
 const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
     switch (status) {
-        case 'syncing': return <Loader2 size={18} className={`${className} animate-spin`} />;
-        case 'synced': return <CheckCircle2 size={18} className={className} />;
-        case 'locked': return <Lock size={18} className={className} />;
-        case 'error': return <AlertCircle size={18} className="text-[var(--warning)] shrink-0" />;
-        case 'off': return <CloudOff size={18} className={className} />;
-        default: return <Cloud size={18} className={className} />;
+        case 'syncing':
+            return <Loader2 size={18} className={`${className} animate-spin`} />;
+        case 'synced':
+            return <CheckCircle2 size={18} className={className} />;
+        case 'locked':
+            return <Lock size={18} className={className} />;
+        case 'error':
+            return <AlertCircle size={18} className="text-[var(--warning)] shrink-0" />;
+        case 'off':
+            return <CloudOff size={18} className={className} />;
+        default:
+            return <Cloud size={18} className={className} />;
     }
 };
 
@@ -153,15 +184,22 @@ const Account: React.FC<AccountProps> = ({
             // A silent refresh that fails keeps the rows it already shows:
             // they were real a moment ago, and an error line in their place
             // would be the blinking the comment above rules out.
-            if (!silent) { setBackupList([]); setBackupsFailed(true); }
+            if (!silent) {
+                setBackupList([]);
+                setBackupsFailed(true);
+            }
+        } finally {
+            if (!silent) setBackupsLoading(false);
         }
-        finally { if (!silent) setBackupsLoading(false); }
     };
 
     useEffect(() => {
         if (user && token) {
             fetchBackups();
-            authService.get2FAStatus(token).then(s => onTwoFAStatusChange(s.enabled)).catch(() => {});
+            authService
+                .get2FAStatus(token)
+                .then(s => onTwoFAStatusChange(s.enabled))
+                .catch(() => {});
         }
     }, [user, token]);
 
@@ -177,18 +215,31 @@ const Account: React.FC<AccountProps> = ({
         try {
             await onCloudSave();
             await fetchBackups();
-        } finally { setSavingCloud(false); }
+        } finally {
+            setSavingCloud(false);
+        }
     };
 
     const handleDeleteBackup = async (id: string) => {
         if (!token) return;
-        showDialog('confirm', t('account.delete_backup_confirm'), async () => {
-            try {
-                await cloudService.deleteBackup(token, id);
-                setBackupList(prev => prev.filter(b => b.id !== id));
-                setExpandedData(prev => { const n = { ...prev }; delete n[id]; return n; });
-            } catch { showDialog('alert', t('account.delete_backup_failed')); }
-        }, { danger: true, confirmLabel: t('btn.delete') });
+        showDialog(
+            'confirm',
+            t('account.delete_backup_confirm'),
+            async () => {
+                try {
+                    await cloudService.deleteBackup(token, id);
+                    setBackupList(prev => prev.filter(b => b.id !== id));
+                    setExpandedData(prev => {
+                        const n = { ...prev };
+                        delete n[id];
+                        return n;
+                    });
+                } catch {
+                    showDialog('alert', t('account.delete_backup_failed'));
+                }
+            },
+            { danger: true, confirmLabel: t('btn.delete') },
+        );
     };
 
     // Signing out hides every record made under this account: they stay on
@@ -203,7 +254,10 @@ const Account: React.FC<AccountProps> = ({
     };
 
     const toggleExpand = async (b: BackupMeta) => {
-        if (expandedId === b.id) { setExpandedId(null); return; }
+        if (expandedId === b.id) {
+            setExpandedId(null);
+            return;
+        }
         setExpandedId(b.id);
         if (expandedData[b.id]) return;
         setExpandLoading(b.id);
@@ -224,7 +278,9 @@ const Account: React.FC<AccountProps> = ({
         } catch {
             showDialog('alert', t('account.load_backup_failed'));
             setExpandedId(null);
-        } finally { setExpandLoading(null); }
+        } finally {
+            setExpandLoading(null);
+        }
     };
 
     /**
@@ -246,7 +302,11 @@ const Account: React.FC<AccountProps> = ({
             const data = await authService.login(user.username, password);
             const sid = sessionIdFromToken(data.token);
             if (sid) {
-                try { await authService.terminateSession(data.token, sid); } catch { /* revoke is best-effort */ }
+                try {
+                    await authService.terminateSession(data.token, sid);
+                } catch {
+                    /* revoke is best-effort */
+                }
             }
             return true;
         } catch (e: any) {
@@ -269,16 +329,17 @@ const Account: React.FC<AccountProps> = ({
     const unlockSync = async (password: string) => {
         if (!token || !user) return;
         const metas = backupList.length ? backupList : await cloudService.listMeta(token);
-        const newest = metas.length
-            ? metas.reduce((a, b) => (b.created_at > a.created_at ? b : a))
-            : null;
+        const newest = metas.length ? metas.reduce((a, b) => (b.created_at > a.created_at ? b : a)) : null;
 
         if (newest) {
             const backup = await cloudService.loadOne(token, newest.id);
             const res = await unlockCloudBackup(backup.data, password, user.id);
             // `locked` here means ciphertext that stayed shut — a wrong password,
             // or an origin where the key cannot be derived at all.
-            if (res.status === 'locked') { setUnlockError(t('account.unlock_failed')); return; }
+            if (res.status === 'locked') {
+                setUnlockError(t('account.unlock_failed'));
+                return;
+            }
         }
         // Nothing decrypted, so nothing has vouched for the password yet.
         if (!hasCloudKey()) {
@@ -344,10 +405,20 @@ const Account: React.FC<AccountProps> = ({
         const localOnlyTemplates = localData.doseTemplates.filter((t: any) => !backupTemplateIds.has(t.id));
 
         return {
-            newEvents, newLabs, newTemplates,
-            localOnlyEvents, localOnlyLabs, localOnlyTemplates,
+            newEvents,
+            newLabs,
+            newTemplates,
+            localOnlyEvents,
+            localOnlyLabs,
+            localOnlyTemplates,
             total: newEvents.length + newLabs.length + newTemplates.length,
-            totalDiff: newEvents.length + newLabs.length + newTemplates.length + localOnlyEvents.length + localOnlyLabs.length + localOnlyTemplates.length
+            totalDiff:
+                newEvents.length +
+                newLabs.length +
+                newTemplates.length +
+                localOnlyEvents.length +
+                localOnlyLabs.length +
+                localOnlyTemplates.length,
         };
     };
 
@@ -358,7 +429,8 @@ const Account: React.FC<AccountProps> = ({
         try {
             if (isLogin) {
                 await login(
-                    username, password,
+                    username,
+                    password,
                     needsTOTP && twoFAMethod === 'totp' && !useBackupCode ? totpCode : undefined,
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
@@ -407,7 +479,7 @@ const Account: React.FC<AccountProps> = ({
         setAuthError(null);
         try {
             const opts = await authService.passkeyAuthOptions(username || undefined);
-            const credential = await navigator.credentials.get({
+            const credential = (await navigator.credentials.get({
                 publicKey: {
                     rpId: window.location.hostname,
                     challenge: b64url2ab(opts.challenge),
@@ -418,9 +490,12 @@ const Account: React.FC<AccountProps> = ({
                     timeout: 60000,
                     userVerification: 'preferred',
                 },
-            }) as PublicKeyCredential | null;
+            })) as PublicKeyCredential | null;
             if (!credential) return;
-            const result = await authService.passkeyAuthVerify(opts.challengeToken, serializeAssertionCredential(credential));
+            const result = await authService.passkeyAuthVerify(
+                opts.challengeToken,
+                serializeAssertionCredential(credential),
+            );
             await loginWithToken(result, verified);
         } catch (e: any) {
             if (e.name !== 'NotAllowedError') {
@@ -431,7 +506,8 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
-    const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]";
+    const inputCls =
+        'w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]';
 
     const authErrorId = `${formId}-error`;
     const authErrorLine = authError && (
@@ -440,11 +516,7 @@ const Account: React.FC<AccountProps> = ({
         </p>
     );
     const authSubmit = (
-        <button
-            type="submit"
-            disabled={authLoading}
-            className="btn-primary w-full"
-        >
+        <button type="submit" disabled={authLoading} className="btn-primary w-full">
             {authLoading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -489,9 +561,14 @@ const Account: React.FC<AccountProps> = ({
                         </button>
                         <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-[var(--text)] text-lg truncate">{user.username}</span>
+                                <span className="font-semibold text-[var(--text)] text-lg truncate">
+                                    {user.username}
+                                </span>
                                 {user.isAdmin && (
-                                    <BadgeCheck className="w-5 h-5 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} />
+                                    <BadgeCheck
+                                        className="w-5 h-5 shrink-0 text-[var(--accent-ink)]"
+                                        strokeWidth={2.5}
+                                    />
                                 )}
                             </div>
                             <button
@@ -508,29 +585,29 @@ const Account: React.FC<AccountProps> = ({
                     <section>
                         <span className={sectionLabel}>{t('account.security')}</span>
                         <div className={settingsSection}>
-                        <SettingsListItem
-                            icon={Lock}
-                            title={t('account.change_password')}
-                            description={t('account.change_password_desc')}
-                            onClick={() => onNavigate('change-password')}
-                        />
-                        <SettingsListItem
-                            icon={ShieldIcon}
-                            title={t('account.2fa')}
-                            description={t('account.2fa_desc')}
-                            onClick={() => onNavigate('two-factor')}
-                            trailing={
-                                <span className={statusMuted}>
-                                    {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
-                                </span>
-                            }
-                        />
-                        <SettingsListItem
-                            icon={MonitorSmartphone}
-                            title={t('account.sessions')}
-                            description={t('account.sessions_desc')}
-                            onClick={() => onNavigate('sessions')}
-                        />
+                            <SettingsListItem
+                                icon={Lock}
+                                title={t('account.change_password')}
+                                description={t('account.change_password_desc')}
+                                onClick={() => onNavigate('change-password')}
+                            />
+                            <SettingsListItem
+                                icon={ShieldIcon}
+                                title={t('account.2fa')}
+                                description={t('account.2fa_desc')}
+                                onClick={() => onNavigate('two-factor')}
+                                trailing={
+                                    <span className={statusMuted}>
+                                        {twoFAEnabled ? t('account.2fa_enabled') : t('account.2fa_disabled')}
+                                    </span>
+                                }
+                            />
+                            <SettingsListItem
+                                icon={MonitorSmartphone}
+                                title={t('account.sessions')}
+                                description={t('account.sessions_desc')}
+                                onClick={() => onNavigate('sessions')}
+                            />
                         </div>
                     </section>
 
@@ -538,8 +615,7 @@ const Account: React.FC<AccountProps> = ({
                     <section>
                         <span className={sectionLabel}>{t('settings.group.data')}</span>
                         <div className={settingsSection}>
-
-                        {/* Sync runs on its own — no prompts, no buttons. This line
+                            {/* Sync runs on its own — no prompts, no buttons. This line
                             is the only place it reports for duty, so a failure
                             (or a backup this device can't decrypt) is visible
                             somewhere rather than silently never happening.
@@ -549,282 +625,484 @@ const Account: React.FC<AccountProps> = ({
                             only way in used to be opening a backup in the list
                             below, which is not where anyone looks after reading
                             "unlock it first". So this line becomes the button. */}
-                        {syncStatus === 'locked' ? (
-                            <SettingsListItem
-                                icon={<SyncIcon status={syncStatus} className={iconCls} />}
-                                title={t('sync.status.locked')}
-                                onClick={() => { setUnlockError(null); setUnlockTarget({ purpose: 'sync' }); }}
-                                showChevron={false}
-                                trailing={
-                                    <span className="text-xs font-medium text-[var(--accent-ink)] shrink-0">
-                                        {t('sync.unlock_action')}
-                                    </span>
-                                }
-                            />
-                        ) : (
-                            <SettingsListItem
-                                icon={<SyncIcon status={syncStatus} className={iconCls} />}
-                                title={t(`sync.status.${syncStatus}`)}
-                                description={(syncStatus === 'error' || syncStatus === 'off' || showLastSynced) ? (
-                                    <>
-                                        {/* The reason, not just the fact. Without this line a full
+                            {syncStatus === 'locked' ? (
+                                <SettingsListItem
+                                    icon={<SyncIcon status={syncStatus} className={iconCls} />}
+                                    title={t('sync.status.locked')}
+                                    onClick={() => {
+                                        setUnlockError(null);
+                                        setUnlockTarget({ purpose: 'sync' });
+                                    }}
+                                    showChevron={false}
+                                    trailing={
+                                        <span className="text-xs font-medium text-[var(--accent-ink)] shrink-0">
+                                            {t('sync.unlock_action')}
+                                        </span>
+                                    }
+                                />
+                            ) : (
+                                <SettingsListItem
+                                    icon={<SyncIcon status={syncStatus} className={iconCls} />}
+                                    title={t(`sync.status.${syncStatus}`)}
+                                    description={
+                                        syncStatus === 'error' || syncStatus === 'off' || showLastSynced ? (
+                                            <>
+                                                {/* The reason, not just the fact. Without this line a full
                                             database, an oversized payload and a dead network were
                                             all the same word. */}
-                                        {syncStatus === 'error' && (
-                                            <p className="text-[var(--danger)]">{describeSyncError(syncErrorCode, t)}</p>
-                                        )}
-                                        {/* Off is a choice made in Settings, and this line is the
+                                                {syncStatus === 'error' && (
+                                                    <p className="text-[var(--danger)]">
+                                                        {describeSyncError(syncErrorCode, t)}
+                                                    </p>
+                                                )}
+                                                {/* Off is a choice made in Settings, and this line is the
                                             only place sync reports; without saying where the
                                             switch is, "Sync off" was a dead end. The names come
                                             from Settings' own keys, as on the delete page, so a
                                             rename there can't leave this pointing nowhere. */}
-                                        {syncStatus === 'off' && (
-                                            <p>{t('account.sync_off_desc')
-                                                .replace('{path}', [t('nav.settings'), t('settings.group.data')].join(' › '))
-                                                .replace('{setting}', t('settings.auto_sync'))}</p>
-                                        )}
-                                        {/* To the minute and in the app's language, like the
+                                                {syncStatus === 'off' && (
+                                                    <p>
+                                                        {t('account.sync_off_desc')
+                                                            .replace(
+                                                                '{path}',
+                                                                [t('nav.settings'), t('settings.group.data')].join(
+                                                                    ' › ',
+                                                                ),
+                                                            )
+                                                            .replace('{setting}', t('settings.auto_sync'))}
+                                                    </p>
+                                                )}
+                                                {/* To the minute and in the app's language, like the
                                             backup rows below. */}
-                                        {showLastSynced && (
-                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))}</p>
-                                        )}
-                                    </>
-                                ) : undefined}
-                            />
-                        )}
+                                                {showLastSynced && (
+                                                    <p>
+                                                        {(t('sync.last_synced') as string).replace(
+                                                            '{time}',
+                                                            new Date(lastSyncedAt!).toLocaleTimeString(locale, {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            }),
+                                                        )}
+                                                    </p>
+                                                )}
+                                            </>
+                                        ) : undefined
+                                    }
+                                />
+                            )}
 
-                        {/* Disabled while locked: with no key on this device the
+                            {/* Disabled while locked: with no key on this device the
                             reconcile behind this button cannot read the cloud
                             copy and refuses to overwrite it, so pressing it only
                             ever produced "save failed". The row above is what
                             fixes that, so leave this one out of reach until it
                             has been. */}
-                        <SettingsListItem
-                            icon={savingCloud
-                                ? <Loader2 className={`${iconCls} animate-spin`} size={18} />
-                                : UploadCloud}
-                            title={t('account.backup_cloud')}
-                            description={t('account.backup_cloud_desc')}
-                            onClick={handleSave}
-                            disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
-                            showChevron={false}
-                            trailing={backupList.length > 0 && (
-                                // The bare "3/5" stays, as backupPolicy.ts promises, but
-                                // says what it counts to anyone who hovers or listens.
-                                <span className={`${statusMuted} tabular-nums`} title={backupsKept}>
-                                    <span aria-hidden="true">{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
-                                    <span className="sr-only">{backupsKept}</span>
-                                </span>
-                            )}
-                        />
+                            <SettingsListItem
+                                icon={
+                                    savingCloud ? (
+                                        <Loader2 className={`${iconCls} animate-spin`} size={18} />
+                                    ) : (
+                                        UploadCloud
+                                    )
+                                }
+                                title={t('account.backup_cloud')}
+                                description={t('account.backup_cloud_desc')}
+                                onClick={handleSave}
+                                disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
+                                showChevron={false}
+                                trailing={
+                                    backupList.length > 0 && (
+                                        // The bare "3/5" stays, as backupPolicy.ts promises, but
+                                        // says what it counts to anyone who hovers or listens.
+                                        <span className={`${statusMuted} tabular-nums`} title={backupsKept}>
+                                            <span aria-hidden="true">
+                                                {backupList.length}/{MAX_CLOUD_BACKUPS}
+                                            </span>
+                                            <span className="sr-only">{backupsKept}</span>
+                                        </span>
+                                    )
+                                }
+                            />
 
-                        {/* Backup list */}
-                        {backupsLoading ? (
-                            <div className="flex justify-center py-6">
-                                <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
-                            </div>
-                        ) : backupsFailed ? (
-                            <div className="py-6 flex flex-col items-center gap-2 text-center">
-                                <p role="alert" className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                                    <AlertCircle size={14} className="shrink-0 text-[var(--warning)]" />
-                                    {t('account.backups_list_failed')}
-                                </p>
-                                <button type="button" onClick={() => fetchBackups()} className="btn-ghost btn-ghost-accent tap-target">
-                                    <RefreshCw size={14} />
-                                    {t('account.retry')}
-                                </button>
-                            </div>
-                        ) : backupList.length === 0 ? (
-                            <div className="py-6 flex flex-col items-center gap-2">
-                                <Cloud size={28} className="text-[var(--text-disabled)]" />
-                                <p className="text-xs text-[var(--text-muted)]">{t('account.no_backups')}</p>
-                            </div>
-                        ) : (
-                            backupList.map(b => (
-                                <div key={b.id}>
-                                    {/* Laid out as a SettingsListItem (20px icon, gap-3)
+                            {/* Backup list */}
+                            {backupsLoading ? (
+                                <div className="flex justify-center py-6">
+                                    <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                                </div>
+                            ) : backupsFailed ? (
+                                <div className="py-6 flex flex-col items-center gap-2 text-center">
+                                    <p
+                                        role="alert"
+                                        className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
+                                    >
+                                        <AlertCircle size={14} className="shrink-0 text-[var(--warning)]" />
+                                        {t('account.backups_list_failed')}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => fetchBackups()}
+                                        className="btn-ghost btn-ghost-accent tap-target"
+                                    >
+                                        <RefreshCw size={14} />
+                                        {t('account.retry')}
+                                    </button>
+                                </div>
+                            ) : backupList.length === 0 ? (
+                                <div className="py-6 flex flex-col items-center gap-2">
+                                    <Cloud size={28} className="text-[var(--text-disabled)]" />
+                                    <p className="text-xs text-[var(--text-muted)]">{t('account.no_backups')}</p>
+                                </div>
+                            ) : (
+                                backupList.map(b => (
+                                    <div key={b.id}>
+                                        {/* Laid out as a SettingsListItem (20px icon, gap-3)
                                         so its text starts on the same line as every row
                                         above; not one, because it holds its own delete
                                         button. Named by how long ago, which is what
                                         "restore from before the mistake" needs, with the
                                         stamp to the minute underneath: seconds made every
                                         row read the same. */}
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-expanded={expandedId === b.id}
-                                        className="flex items-center gap-3 py-4 cursor-pointer"
-                                        onClick={() => toggleExpand(b)}
-                                        onKeyDown={(e) => {
-                                            if (e.target !== e.currentTarget) return;
-                                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(b); }
-                                        }}
-                                    >
-                                        <HardDrive size={20} className={iconCls} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-[var(--text)] truncate">
-                                                {formatRelative(b.created_at, listedAt, t)}
-                                            </p>
-                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
-                                                {new Date(b.created_at * 1000).toLocaleString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                {' · '}
-                                                {formatBytes(b.data_size)}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
-                                            aria-label={t('btn.delete')}
-                                            title={t('btn.delete')}
-                                            className="-my-1.5 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-expanded={expandedId === b.id}
+                                            className="flex items-center gap-3 py-4 cursor-pointer"
+                                            onClick={() => toggleExpand(b)}
+                                            onKeyDown={e => {
+                                                if (e.target !== e.currentTarget) return;
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    toggleExpand(b);
+                                                }
+                                            }}
                                         >
-                                            <Trash2 size={16} />
-                                        </button>
-                                        <ChevronDown size={16} className={`chev ${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`} />
-                                    </div>
-                                    <div className="disclosure" data-open={expandedId === b.id}>
-                                        <div className="disclosure-inner">
-                                            <div className="pb-4 pt-1 space-y-3">
-                                                {expandLoading === b.id ? (
-                                                    <div className="flex justify-center py-6">
-                                                        <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
-                                                    </div>
-                                                ) : expandedData[b.id] ? (() => {
-                                                    const data = expandedData[b.id];
-                                                    const diff = computeDiff(data);
-                                                    const showingDiff = mergeDiffId === b.id;
-                                                    return (
-                                                        <>
-                                                            {/* Stats row */}
-                                                            <div className="grid grid-cols-4 gap-3 py-2">
-                                                                {[
-                                                                    { label: t('account.backup_doses'), val: (data.events || []).length },
-                                                                    { label: t('account.backup_weight'), val: data.weight ?? '—' },
-                                                                    { label: t('account.backup_labs'), val: (data.labResults || []).length },
-                                                                    { label: t('account.backup_templates'), val: (data.doseTemplates || []).length },
-                                                                ].map(({ label, val }) => (
-                                                                    <div key={label} className="text-center">
-                                    <p className="text-[0.6875rem] text-[var(--text-muted)] font-medium">{label}</p>
-                                                                        <p className="text-sm font-semibold text-[var(--text)] mt-0.5 tabular-nums">{val}</p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-
-                                                            {/* Recent doses preview */}
-                                                            {(data.events || []).length > 0 && (
-                                                                <div>
-                                                                    {(data.events as any[]).slice(0, 3).map((ev: any, i: number) => (
-                                                                        <div key={i} className={`flex items-center justify-between py-2 text-xs ${divider} last:border-b-0`}>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="font-medium text-[var(--text)]">{ev.ester}</span>
-                                                                                <span className="text-[var(--text-muted)]">{ev.route}</span>
+                                            <HardDrive size={20} className={iconCls} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-[var(--text)] truncate">
+                                                    {formatRelative(b.created_at, listedAt, t)}
+                                                </p>
+                                                <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                                                    {new Date(b.created_at * 1000).toLocaleString(locale, {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })}
+                                                    {' · '}
+                                                    {formatBytes(b.data_size)}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    handleDeleteBackup(b.id);
+                                                }}
+                                                aria-label={t('btn.delete')}
+                                                title={t('btn.delete')}
+                                                className="-my-1.5 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                            <ChevronDown
+                                                size={16}
+                                                className={`chev ${iconCls} ${expandedId === b.id ? 'rotate-180' : ''}`}
+                                            />
+                                        </div>
+                                        <div className="disclosure" data-open={expandedId === b.id}>
+                                            <div className="disclosure-inner">
+                                                <div className="pb-4 pt-1 space-y-3">
+                                                    {expandLoading === b.id ? (
+                                                        <div className="flex justify-center py-6">
+                                                            <Loader2
+                                                                className="animate-spin text-[var(--text-muted)]"
+                                                                size={20}
+                                                            />
+                                                        </div>
+                                                    ) : expandedData[b.id] ? (
+                                                        (() => {
+                                                            const data = expandedData[b.id];
+                                                            const diff = computeDiff(data);
+                                                            const showingDiff = mergeDiffId === b.id;
+                                                            return (
+                                                                <>
+                                                                    {/* Stats row */}
+                                                                    <div className="grid grid-cols-4 gap-3 py-2">
+                                                                        {[
+                                                                            {
+                                                                                label: t('account.backup_doses'),
+                                                                                val: (data.events || []).length,
+                                                                            },
+                                                                            {
+                                                                                label: t('account.backup_weight'),
+                                                                                val: data.weight ?? '—',
+                                                                            },
+                                                                            {
+                                                                                label: t('account.backup_labs'),
+                                                                                val: (data.labResults || []).length,
+                                                                            },
+                                                                            {
+                                                                                label: t('account.backup_templates'),
+                                                                                val: (data.doseTemplates || []).length,
+                                                                            },
+                                                                        ].map(({ label, val }) => (
+                                                                            <div key={label} className="text-center">
+                                                                                <p className="text-[0.6875rem] text-[var(--text-muted)] font-medium">
+                                                                                    {label}
+                                                                                </p>
+                                                                                <p className="text-sm font-semibold text-[var(--text)] mt-0.5 tabular-nums">
+                                                                                    {val}
+                                                                                </p>
                                                                             </div>
-                                                                            <span className="font-semibold text-[var(--text)] tabular-nums">{ev.doseMG} mg</span>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    {/* Recent doses preview */}
+                                                                    {(data.events || []).length > 0 && (
+                                                                        <div>
+                                                                            {(data.events as any[])
+                                                                                .slice(0, 3)
+                                                                                .map((ev: any, i: number) => (
+                                                                                    <div
+                                                                                        key={i}
+                                                                                        className={`flex items-center justify-between py-2 text-xs ${divider} last:border-b-0`}
+                                                                                    >
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="font-medium text-[var(--text)]">
+                                                                                                {ev.ester}
+                                                                                            </span>
+                                                                                            <span className="text-[var(--text-muted)]">
+                                                                                                {ev.route}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <span className="font-semibold text-[var(--text)] tabular-nums">
+                                                                                            {ev.doseMG} mg
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            {(data.events || []).length > 3 && (
+                                                                                <p className="text-[0.6875rem] text-[var(--text-muted)] text-center py-1.5">
+                                                                                    +{(data.events || []).length - 3} …
+                                                                                </p>
+                                                                            )}
                                                                         </div>
-                                                                    ))}
-                                                                    {(data.events || []).length > 3 && (
-                                                                        <p className="text-[0.6875rem] text-[var(--text-muted)] text-center py-1.5">
-                                                                            +{(data.events || []).length - 3} …
-                                                                        </p>
                                                                     )}
-                                                                </div>
-                                                            )}
 
-                                                            {/* Merge diff panel */}
-                                                            <div className={`grid ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                                                <div className="overflow-hidden">
-                                                                    <div className="space-y-2 pt-2">
-                                    <p className="text-[0.6875rem] font-semibold text-[var(--text-muted)]">{t('account.merge_preview')}</p>
-                                                                        {diff.totalDiff === 0 ? (
-                                                                            <p className="text-xs text-[var(--text-muted)] py-2 text-center">{t('account.nothing_to_merge')}</p>
-                                                                        ) : (
-                                                                            <div className="space-y-1.5">
-                                                                                {diff.newEvents.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text)]">{t('account.new_doses')}</span>
-                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newEvents.length}</span>
+                                                                    {/* Merge diff panel */}
+                                                                    <div
+                                                                        className={`grid ${showingDiff ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                                                                    >
+                                                                        <div className="overflow-hidden">
+                                                                            <div className="space-y-2 pt-2">
+                                                                                <p className="text-[0.6875rem] font-semibold text-[var(--text-muted)]">
+                                                                                    {t('account.merge_preview')}
+                                                                                </p>
+                                                                                {diff.totalDiff === 0 ? (
+                                                                                    <p className="text-xs text-[var(--text-muted)] py-2 text-center">
+                                                                                        {t('account.nothing_to_merge')}
+                                                                                    </p>
+                                                                                ) : (
+                                                                                    <div className="space-y-1.5">
+                                                                                        {diff.newEvents.length > 0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Plus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text)]">
+                                                                                                    {t(
+                                                                                                        'account.new_doses',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text)] font-medium tabular-nums">
+                                                                                                    +
+                                                                                                    {
+                                                                                                        diff.newEvents
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {diff.newLabs.length > 0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Plus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text)]">
+                                                                                                    {t(
+                                                                                                        'account.new_labs',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text)] font-medium tabular-nums">
+                                                                                                    +
+                                                                                                    {
+                                                                                                        diff.newLabs
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {diff.newTemplates.length >
+                                                                                            0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Plus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text)]">
+                                                                                                    {t(
+                                                                                                        'account.new_templates',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text)] font-medium tabular-nums">
+                                                                                                    +
+                                                                                                    {
+                                                                                                        diff
+                                                                                                            .newTemplates
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {diff.localOnlyEvents.length >
+                                                                                            0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Minus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text-muted)]">
+                                                                                                    {t(
+                                                                                                        'account.local_only_doses',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text-muted)] font-medium tabular-nums">
+                                                                                                    {
+                                                                                                        diff
+                                                                                                            .localOnlyEvents
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {diff.localOnlyLabs.length >
+                                                                                            0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Minus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text-muted)]">
+                                                                                                    {t(
+                                                                                                        'account.local_only_labs',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text-muted)] font-medium tabular-nums">
+                                                                                                    {
+                                                                                                        diff
+                                                                                                            .localOnlyLabs
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {diff.localOnlyTemplates
+                                                                                            .length > 0 && (
+                                                                                            <div className="flex items-center gap-1.5 text-xs">
+                                                                                                <Minus
+                                                                                                    size={12}
+                                                                                                    strokeWidth={1.5}
+                                                                                                    className="text-[var(--text-muted)] shrink-0"
+                                                                                                />
+                                                                                                <span className="text-[var(--text-muted)]">
+                                                                                                    {t(
+                                                                                                        'account.local_only_templates',
+                                                                                                    )}
+                                                                                                </span>
+                                                                                                <span className="text-[var(--text-muted)] font-medium tabular-nums">
+                                                                                                    {
+                                                                                                        diff
+                                                                                                            .localOnlyTemplates
+                                                                                                            .length
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                 )}
-                                                                                {diff.newLabs.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text)]">{t('account.new_labs')}</span>
-                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newLabs.length}</span>
-                                                                                    </div>
-                                                                                )}
-                                                                                {diff.newTemplates.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Plus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text)]">{t('account.new_templates')}</span>
-                                                                                        <span className="text-[var(--text)] font-medium tabular-nums">+{diff.newTemplates.length}</span>
-                                                                                    </div>
-                                                                                )}
-                                                                                {diff.localOnlyEvents.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_doses')}</span>
-                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyEvents.length}</span>
-                                                                                    </div>
-                                                                                )}
-                                                                                {diff.localOnlyLabs.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_labs')}</span>
-                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyLabs.length}</span>
-                                                                                    </div>
-                                                                                )}
-                                                                                {diff.localOnlyTemplates.length > 0 && (
-                                                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                                                        <Minus size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                                                                                        <span className="text-[var(--text-muted)]">{t('account.local_only_templates')}</span>
-                                                                                        <span className="text-[var(--text-muted)] font-medium tabular-nums">{diff.localOnlyTemplates.length}</span>
-                                                                                    </div>
+                                                                                {diff.total > 0 && (
+                                                                                    <button
+                                                                                        onClick={() => {
+                                                                                            onCloudMerge(b.id);
+                                                                                            setExpandedId(null);
+                                                                                            setMergeDiffId(null);
+                                                                                        }}
+                                                                                        className="btn-primary w-full mt-1"
+                                                                                    >
+                                                                                        <Merge
+                                                                                            size={13}
+                                                                                            strokeWidth={1.5}
+                                                                                        />
+                                                                                        {t('account.confirm_merge')} (+
+                                                                                        {diff.total})
+                                                                                    </button>
                                                                                 )}
                                                                             </div>
-                                                                        )}
-                                                                        {diff.total > 0 && (
-                                                                            <button
-                                                                                onClick={() => { onCloudMerge(b.id); setExpandedId(null); setMergeDiffId(null); }}
-                                                                                className="btn-primary w-full mt-1"
-                                                                            >
-                                                                                <Merge size={13} strokeWidth={1.5} />
-                                                                                {t('account.confirm_merge')} (+{diff.total})
-                                                                            </button>
-                                                                        )}
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            </div>
 
-                                                            {/* Action buttons */}
-                                                            <div className="flex gap-2 pt-1">
-                                                                <button
-                                                                    onClick={() => setMergeDiffId(showingDiff ? null : b.id)}
-                                                                    className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border transition-colors ${showingDiff
-                                                                        ? 'bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text)]'
-                                                                        : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-muted)]'
-                                                                    }`}
-                                                                >
-                                                                    <Merge size={13} strokeWidth={1.5} />
-                                                                    {t('account.merge')}
-                                                                    {diff.total > 0 && <span className="text-[0.6875rem] text-[var(--text-muted)] font-medium">+{diff.total}</span>}
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => { onCloudLoad(b.id); setExpandedId(null); }}
-                                                                    className="btn-primary flex-1"
-                                                                >
-                                                                    <DownloadCloud size={13} strokeWidth={1.5} />
-                                                                    {t('account.restore')}
-                                                                </button>
-                                                            </div>
-                                                        </>
-                                                    );
-                                                })() : null}
+                                                                    {/* Action buttons */}
+                                                                    <div className="flex gap-2 pt-1">
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                setMergeDiffId(
+                                                                                    showingDiff ? null : b.id,
+                                                                                )
+                                                                            }
+                                                                            className={`flex-1 py-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 border transition-colors ${
+                                                                                showingDiff
+                                                                                    ? 'bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text)]'
+                                                                                    : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-muted)]'
+                                                                            }`}
+                                                                        >
+                                                                            <Merge size={13} strokeWidth={1.5} />
+                                                                            {t('account.merge')}
+                                                                            {diff.total > 0 && (
+                                                                                <span className="text-[0.6875rem] text-[var(--text-muted)] font-medium">
+                                                                                    +{diff.total}
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                onCloudLoad(b.id);
+                                                                                setExpandedId(null);
+                                                                            }}
+                                                                            className="btn-primary flex-1"
+                                                                        >
+                                                                            <DownloadCloud
+                                                                                size={13}
+                                                                                strokeWidth={1.5}
+                                                                            />
+                                                                            {t('account.restore')}
+                                                                        </button>
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()
+                                                    ) : null}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
                         </div>
                     </section>
 
@@ -862,8 +1140,16 @@ const Account: React.FC<AccountProps> = ({
                         The intro's own rows and words, so the promise reads
                         as the one made on the first day. */}
                     <div className="mb-4">
-                        <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
-                        <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
+                        <Point
+                            mark="lock"
+                            title={t('onboarding.privacy_local')}
+                            desc={t('onboarding.privacy_local_desc')}
+                        />
+                        <Point
+                            mark="cloud"
+                            title={t('onboarding.privacy_cloud')}
+                            desc={t('onboarding.privacy_cloud_desc')}
+                        />
                     </div>
 
                     {/* Login / Register tabs */}
@@ -873,166 +1159,225 @@ const Account: React.FC<AccountProps> = ({
                             { id: 'sign-up', label: t('auth.sign_up') },
                         ]}
                         value={isLogin ? 'sign-in' : 'sign-up'}
-                        onChange={id => { setIsLogin(id === 'sign-in'); setAuthError(null); setNeedsTOTP(false); }}
+                        onChange={id => {
+                            setIsLogin(id === 'sign-in');
+                            setAuthError(null);
+                            setNeedsTOTP(false);
+                        }}
                         className="mb-5"
                     />
 
                     <div key={isLogin ? 'sign-in' : 'sign-up'} className={authAnim}>
-                    <form onSubmit={handleAuthSubmit} className="space-y-4">
-                        {!needsTOTP && authErrorLine}
-                        <div className="space-y-1.5">
-                            <label htmlFor={`${formId}-username`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
-                            <input
-                                id={`${formId}-username`}
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className={inputCls}
-                                style={{ fontSize: '16px' }}
-                                placeholder={t('auth.username_placeholder')}
-                                autoComplete="username"
-                                aria-describedby={authError && !needsTOTP ? authErrorId : undefined}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label htmlFor={`${formId}-password`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
-                            <input
-                                id={`${formId}-password`}
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className={inputCls}
-                                style={{ fontSize: '16px' }}
-                                placeholder={t('auth.password_placeholder')}
-                                autoComplete={isLogin ? 'current-password' : 'new-password'}
-                                aria-describedby={[
-                                    !isLogin ? `${formId}-key-note` : '',
-                                    authError && !needsTOTP ? authErrorId : '',
-                                ].filter(Boolean).join(' ') || undefined}
-                                required
-                            />
-                        </div>
-                        {/* Signing up is the moment to say it: the password is
+                        <form onSubmit={handleAuthSubmit} className="space-y-4">
+                            {!needsTOTP && authErrorLine}
+                            <div className="space-y-1.5">
+                                <label
+                                    htmlFor={`${formId}-username`}
+                                    className="block text-xs font-semibold text-[var(--text-muted)]"
+                                >
+                                    {t('auth.username')}
+                                </label>
+                                <input
+                                    id={`${formId}-username`}
+                                    type="text"
+                                    value={username}
+                                    onChange={e => setUsername(e.target.value)}
+                                    className={inputCls}
+                                    style={{ fontSize: '16px' }}
+                                    placeholder={t('auth.username_placeholder')}
+                                    autoComplete="username"
+                                    aria-describedby={authError && !needsTOTP ? authErrorId : undefined}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label
+                                    htmlFor={`${formId}-password`}
+                                    className="block text-xs font-semibold text-[var(--text-muted)]"
+                                >
+                                    {t('auth.password')}
+                                </label>
+                                <input
+                                    id={`${formId}-password`}
+                                    type="password"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    className={inputCls}
+                                    style={{ fontSize: '16px' }}
+                                    placeholder={t('auth.password_placeholder')}
+                                    autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                    aria-describedby={
+                                        [
+                                            !isLogin ? `${formId}-key-note` : '',
+                                            authError && !needsTOTP ? authErrorId : '',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ') || undefined
+                                    }
+                                    required
+                                />
+                            </div>
+                            {/* Signing up is the moment to say it: the password is
                             what the backups are encrypted with, so no reset
                             brings them back (see changePassword in
                             AuthContext). */}
-                        {!isLogin && (
-                            <p id={`${formId}-key-note`} className="callout">{t('auth.password_is_key')}</p>
-                        )}
-                        {/* Only sign-in ever asks for a second factor, and
+                            {!isLogin && (
+                                <p id={`${formId}-key-note`} className="callout">
+                                    {t('auth.password_is_key')}
+                                </p>
+                            )}
+                            {/* Only sign-in ever asks for a second factor, and
                             switching tabs clears it, so this is the sign-in
                             form's. */}
-                        {needsTOTP && (
-                            <div className="space-y-3">
-                                <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
-                                    <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
-                                    {t('auth.needs_2fa')}
-                                </div>
-                                {useBackupCode ? (
-                                    <div key="backup" className="space-y-1.5">
-                                        <label htmlFor={`${formId}-backup`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
-                                        <input
-                                            id={`${formId}-backup`}
-                                            type="text"
-                                            value={backupCode}
-                                            onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                                            className={`${inputCls} tracking-[0.1em] font-mono text-center`}
-                                            style={{ fontSize: '16px' }}
-                                            placeholder={t('auth.backup_code_placeholder')}
-                                            autoComplete="off"
-                                            aria-describedby={authError ? authErrorId : undefined}
-                                            autoFocus
-                                            required={useBackupCode}
-                                        />
+                            {needsTOTP && (
+                                <div className="space-y-3">
+                                    <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
+                                        <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
+                                        {t('auth.needs_2fa')}
                                     </div>
-                                ) : twoFAMethod !== 'passkey' && (
-                                    <div key="totp" className="space-y-1.5">
-                                        <label htmlFor={`${formId}-totp`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
-                                        <input
-                                            id={`${formId}-totp`}
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]{6}"
-                                            maxLength={6}
-                                            value={totpCode}
-                                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            className={`${inputCls} tracking-[0.15em] font-mono text-center`}
-                                            style={{ fontSize: '16px' }}
-                                            placeholder={t('auth.totp_placeholder')}
-                                            autoComplete="one-time-code"
-                                            aria-describedby={authError ? authErrorId : undefined}
-                                            autoFocus
-                                            required={needsTOTP && !useBackupCode}
-                                        />
-                                    </div>
-                                )}
-                                {/* The error and the code's own button straight
+                                    {useBackupCode ? (
+                                        <div key="backup" className="space-y-1.5">
+                                            <label
+                                                htmlFor={`${formId}-backup`}
+                                                className="block text-xs font-semibold text-[var(--text-muted)]"
+                                            >
+                                                {t('auth.backup_code_label')}
+                                            </label>
+                                            <input
+                                                id={`${formId}-backup`}
+                                                type="text"
+                                                value={backupCode}
+                                                onChange={e => setBackupCode(e.target.value.toUpperCase())}
+                                                className={`${inputCls} tracking-[0.1em] font-mono text-center`}
+                                                style={{ fontSize: '16px' }}
+                                                placeholder={t('auth.backup_code_placeholder')}
+                                                autoComplete="off"
+                                                aria-describedby={authError ? authErrorId : undefined}
+                                                autoFocus
+                                                required={useBackupCode}
+                                            />
+                                        </div>
+                                    ) : (
+                                        twoFAMethod !== 'passkey' && (
+                                            <div key="totp" className="space-y-1.5">
+                                                <label
+                                                    htmlFor={`${formId}-totp`}
+                                                    className="block text-xs font-semibold text-[var(--text-muted)]"
+                                                >
+                                                    {t('auth.totp_code')}
+                                                </label>
+                                                <input
+                                                    id={`${formId}-totp`}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]{6}"
+                                                    maxLength={6}
+                                                    value={totpCode}
+                                                    onChange={e =>
+                                                        setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                                                    }
+                                                    className={`${inputCls} tracking-[0.15em] font-mono text-center`}
+                                                    style={{ fontSize: '16px' }}
+                                                    placeholder={t('auth.totp_placeholder')}
+                                                    autoComplete="one-time-code"
+                                                    aria-describedby={authError ? authErrorId : undefined}
+                                                    autoFocus
+                                                    required={needsTOTP && !useBackupCode}
+                                                />
+                                            </div>
+                                        )
+                                    )}
+                                    {/* The error and the code's own button straight
                                     under the field the person just typed into.
                                     The error used to sit above Username and the
                                     button below the passkey and backup-code
                                     alternatives, both off screen once a phone
                                     keyboard was up. */}
-                                {authErrorLine}
-                                {!(twoFAMethod === 'passkey' && !useBackupCode) && authSubmit}
-                                {useBackupCode ? (
-                                    <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                        className="text-xs text-[var(--accent-ink)] hover:underline">
-                                        ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
-                                    </button>
-                                ) : (
-                                    <>
-                                        {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
-                                            <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
-                                        )}
-                                        {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
-                                            <>
-                                                {twoFAMethod !== 'passkey' && (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex-1 h-px bg-[var(--border)]" />
-                                                        <span className="text-xs text-[var(--text-muted)]">{t('common.or')}</span>
-                                                        <div className="flex-1 h-px bg-[var(--border)]" />
-                                                    </div>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)}
-                                                    disabled={passkeyLoading}
-                                                    className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
-                                                >
-                                                    {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                                    {t('auth.passkey_as_2fa')}
-                                                </button>
-                                            </>
-                                        )}
-                                        <button type="button" onClick={() => setUseBackupCode(true)}
-                                            className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1">
-                                            {t('auth.use_backup_code')}
+                                    {authErrorLine}
+                                    {!(twoFAMethod === 'passkey' && !useBackupCode) && authSubmit}
+                                    {useBackupCode ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setUseBackupCode(false);
+                                                setBackupCode('');
+                                            }}
+                                            className="text-xs text-[var(--accent-ink)] hover:underline"
+                                        >
+                                            ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
                                         </button>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                        {!needsTOTP && authSubmit}
-                        {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
-                            <>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-px bg-[var(--border)]" />
-                                    <span className="text-xs text-[var(--text-muted)]">{t('common.or')}</span>
-                                    <div className="flex-1 h-px bg-[var(--border)]" />
+                                    ) : (
+                                        <>
+                                            {twoFAMethod === 'passkey' &&
+                                                typeof window !== 'undefined' &&
+                                                !window.PublicKeyCredential && (
+                                                    <p className="text-xs text-[var(--danger)] text-center">
+                                                        {t('auth.passkey_unsupported')}
+                                                    </p>
+                                                )}
+                                            {typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                                                <>
+                                                    {twoFAMethod !== 'passkey' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 h-px bg-[var(--border)]" />
+                                                            <span className="text-xs text-[var(--text-muted)]">
+                                                                {t('common.or')}
+                                                            </span>
+                                                            <div className="flex-1 h-px bg-[var(--border)]" />
+                                                        </div>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)
+                                                        }
+                                                        disabled={passkeyLoading}
+                                                        className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    >
+                                                        {passkeyLoading ? (
+                                                            <Loader2 size={16} className="animate-spin" />
+                                                        ) : (
+                                                            <Fingerprint size={16} />
+                                                        )}
+                                                        {t('auth.passkey_as_2fa')}
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setUseBackupCode(true)}
+                                                className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1"
+                                            >
+                                                {t('auth.use_backup_code')}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => handlePasskeyLogin()}
-                                    disabled={passkeyLoading}
-                                    className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                    {t('auth.passkey_login')}
-                                </button>
-                            </>
-                        )}
-                    </form>
+                            )}
+                            {!needsTOTP && authSubmit}
+                            {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-px bg-[var(--border)]" />
+                                        <span className="text-xs text-[var(--text-muted)]">{t('common.or')}</span>
+                                        <div className="flex-1 h-px bg-[var(--border)]" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePasskeyLogin()}
+                                        disabled={passkeyLoading}
+                                        className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {passkeyLoading ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <Fingerprint size={16} />
+                                        )}
+                                        {t('auth.passkey_login')}
+                                    </button>
+                                </>
+                            )}
+                        </form>
                     </div>
                 </div>
             )}

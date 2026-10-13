@@ -8,10 +8,10 @@ interface ImportSectionProps {
 }
 
 // Each row is one button, so the whole row takes the tap (as on Export).
-const rowBase = "w-full flex items-start justify-between py-[18px] text-start";
-const rowLabel = "block text-[0.9375rem] text-[var(--text)]";
-const rowDesc = "block text-xs text-[var(--text-muted)] mt-0.5";
-const action = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
+const rowBase = 'w-full flex items-start justify-between py-[18px] text-start';
+const rowLabel = 'block text-[0.9375rem] text-[var(--text)]';
+const rowDesc = 'block text-xs text-[var(--text-muted)] mt-0.5';
+const action = 'text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5';
 
 const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
     const { t } = useTranslation();
@@ -50,7 +50,10 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
             {/* Paste JSON */}
             <div>
                 <button
-                    onClick={() => { setShowPaste(v => !v); setText(''); }}
+                    onClick={() => {
+                        setShowPaste(v => !v);
+                        setText('');
+                    }}
                     aria-expanded={showPaste}
                     className={`${rowBase} ${rowBleed}`}
                 >
@@ -77,11 +80,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                             spellCheck={false}
                         />
                         <div className="flex justify-end">
-                            <button
-                                onClick={handleTextImport}
-                                disabled={!text.trim()}
-                                className="btn-primary"
-                            >
+                            <button onClick={handleTextImport} disabled={!text.trim()} className="btn-primary">
                                 {/* Plain "Import": the text can hold labs, weight and
                                     parameters as well as doses. */}
                                 {t('import.btn')}

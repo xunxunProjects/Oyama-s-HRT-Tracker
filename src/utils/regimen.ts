@@ -1,7 +1,17 @@
 import {
-    DoseEvent, Route, Ester, ExtraKey, LabResult, SimulationResult,
-    CalibrationMethod, CalibrationHistoryMode,
-    runSimulation, computeCalibration, isTestosteroneEster, isKnownEster, UNMODELLED_DRUGS,
+    DoseEvent,
+    Route,
+    Ester,
+    ExtraKey,
+    LabResult,
+    SimulationResult,
+    CalibrationMethod,
+    CalibrationHistoryMode,
+    runSimulation,
+    computeCalibration,
+    isTestosteroneEster,
+    isKnownEster,
+    UNMODELLED_DRUGS,
 } from '../../logic';
 
 /**
@@ -46,16 +56,26 @@ const DETECT_WINDOW_H = 42 * 24;
 const MIN_DOSES = 3;
 
 export const hormoneOf = (ester: Ester): Hormone =>
-    !isKnownEster(ester) ? 'other'
-    : ester === Ester.RLX ? 'SERM'
-    : ester === Ester.CPA || UNMODELLED_DRUGS.has(ester) ? 'AA'
-    : isTestosteroneEster(ester) ? 'T' : 'E2';
+    !isKnownEster(ester)
+        ? 'other'
+        : ester === Ester.RLX
+          ? 'SERM'
+          : ester === Ester.CPA || UNMODELLED_DRUGS.has(ester)
+            ? 'AA'
+            : isTestosteroneEster(ester)
+              ? 'T'
+              : 'E2';
 
-const signature = (e: Pick<DoseEvent, 'route' | 'ester' | 'doseMG' | 'extras'>) => [
-    e.route, e.ester, e.doseMG.toFixed(3),
-    e.extras[ExtraKey.sublingualTier] ?? '', e.extras[ExtraKey.sublingualTheta] ?? '',
-    e.extras[ExtraKey.gelSite] ?? '', e.extras[ExtraKey.releaseRateUGPerDay] ?? '',
-].join('|');
+const signature = (e: Pick<DoseEvent, 'route' | 'ester' | 'doseMG' | 'extras'>) =>
+    [
+        e.route,
+        e.ester,
+        e.doseMG.toFixed(3),
+        e.extras[ExtraKey.sublingualTier] ?? '',
+        e.extras[ExtraKey.sublingualTheta] ?? '',
+        e.extras[ExtraKey.gelSite] ?? '',
+        e.extras[ExtraKey.releaseRateUGPerDay] ?? '',
+    ].join('|');
 
 const median = (xs: number[]) => {
     const s = [...xs].sort((a, b) => a - b);
@@ -68,7 +88,7 @@ export const lapseH = (intervalH: number) => intervalH * 2.5 + 12;
 
 /** Whether a logged dose belongs to a regimen. */
 export const regimenMatches = (r: Regimen, e: DoseEvent) =>
-    (r.loose ? e.route === r.route && e.ester === r.ester : signature(e) === r.key);
+    r.loose ? e.route === r.route && e.ester === r.ester : signature(e) === r.key;
 
 export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
     const groups = new Map<string, DoseEvent[]>();
@@ -76,7 +96,8 @@ export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
         if (e.route === Route.patchRemove) continue;
         const k = signature(e);
         const list = groups.get(k);
-        if (list) list.push(e); else groups.set(k, [e]);
+        if (list) list.push(e);
+        else groups.set(k, [e]);
     }
 
     const out: Regimen[] = [];
@@ -139,7 +160,14 @@ function continuation(r: Regimen, untilH: number, fromH = -Infinity): DoseEvent[
     const lastLogged = Math.max(r.lastH, ...r.scheduledH);
     for (let t = lastLogged + r.intervalH; t <= untilH; t += r.intervalH) {
         if (t < fromH) continue;
-        out.push({ id: `proj-${r.key}-${t}`, route: r.route, ester: r.ester, timeH: t, doseMG: r.doseMG, extras: r.extras });
+        out.push({
+            id: `proj-${r.key}-${t}`,
+            route: r.route,
+            ester: r.ester,
+            timeH: t,
+            doseMG: r.doseMG,
+            extras: r.extras,
+        });
     }
     return out;
 }
@@ -160,7 +188,14 @@ export const dosesAhead = (regimens: Regimen[], nowH: number, untilH: number): D
         const dueH = Math.max(r.lastH, ...r.scheduledH) + r.intervalH;
         const atH = Math.ceil(nowH);
         if (dueH < nowH && atH <= untilH && !(out.length && out[0].timeH - atH < r.intervalH / 2)) {
-            out.unshift({ id: `due-${r.key}`, route: r.route, ester: r.ester, timeH: atH, doseMG: r.doseMG, extras: r.extras });
+            out.unshift({
+                id: `due-${r.key}`,
+                route: r.route,
+                ester: r.ester,
+                timeH: atH,
+                doseMG: r.doseMG,
+                extras: r.extras,
+            });
         }
         return out;
     });
@@ -234,7 +269,10 @@ export interface Adherence {
  * from its slot is the timing spread.
  */
 export function adherenceOf(r: Regimen, events: DoseEvent[]): Adherence {
-    const times = events.filter(e => regimenMatches(r, e) && e.timeH >= r.sinceH && e.timeH <= r.lastH).map(e => e.timeH).sort((a, b) => a - b);
+    const times = events
+        .filter(e => regimenMatches(r, e) && e.timeH >= r.sinceH && e.timeH <= r.lastH)
+        .map(e => e.timeH)
+        .sort((a, b) => a - b);
     if (times.length < 2) return { missRate: 0, jitterSdH: 0 };
     let slots = 0;
     const offsets: number[] = [];
@@ -258,14 +296,20 @@ function seededRandom(seedText: string) {
     let h = 2166136261;
     for (let i = 0; i < seedText.length; i++) h = Math.imul(h ^ seedText.charCodeAt(i), 16777619);
     let a = h >>> 0;
-    const rand = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const rand = () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     const gauss = () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
     return { rand, gauss };
 }
 
 const percentile = (sorted: number[], p: number) => {
     const i = (sorted.length - 1) * p;
-    const lo = Math.floor(i), hi = Math.ceil(i);
+    const lo = Math.floor(i),
+        hi = Math.ceil(i);
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 };
 
@@ -273,21 +317,36 @@ function interp(timeH: number[], value: number[], h: number): number {
     if (h <= timeH[0]) return value[0];
     const n = timeH.length;
     if (h >= timeH[n - 1]) return value[n - 1];
-    let lo = 0, hi = n - 1;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (timeH[m] <= h) lo = m; else hi = m; }
+    let lo = 0,
+        hi = n - 1;
+    while (hi - lo > 1) {
+        const m = (lo + hi) >> 1;
+        if (timeH[m] <= h) lo = m;
+        else hi = m;
+    }
     const u = (h - timeH[lo]) / (timeH[hi] - timeH[lo]);
     return value[lo] + (value[hi] - value[lo]) * u;
 }
 
-function statsOn(timeH: number[], value: number[], fromH: number, toH: number, target: { low: number; high: number } | null = null): Stats | null {
-    let trough = Infinity, peak = -Infinity, area = 0, span = 0, inside = 0;
+function statsOn(
+    timeH: number[],
+    value: number[],
+    fromH: number,
+    toH: number,
+    target: { low: number; high: number } | null = null,
+): Stats | null {
+    let trough = Infinity,
+        peak = -Infinity,
+        area = 0,
+        span = 0,
+        inside = 0;
     for (let i = 0; i < timeH.length; i++) {
         if (timeH[i] < fromH || timeH[i] > toH) continue;
         trough = Math.min(trough, value[i]);
         peak = Math.max(peak, value[i]);
         if (i > 0 && timeH[i - 1] >= fromH) {
             const dt = timeH[i] - timeH[i - 1];
-            area += (value[i] + value[i - 1]) / 2 * dt;
+            area += ((value[i] + value[i - 1]) / 2) * dt;
             span += dt;
             if (target) {
                 const mid = (value[i] + value[i - 1]) / 2;
@@ -296,7 +355,12 @@ function statsOn(timeH: number[], value: number[], fromH: number, toH: number, t
         }
     }
     if (!Number.isFinite(trough)) return null;
-    return { trough, peak, average: span > 0 ? area / span : (trough + peak) / 2, inRange: target && span > 0 ? inside / span : null };
+    return {
+        trough,
+        peak,
+        average: span > 0 ? area / span : (trough + peak) / 2,
+        inRange: target && span > 0 ? inside / span : null,
+    };
 }
 
 /**
@@ -336,8 +400,26 @@ function steadyAfter(timeH: number[], value: number[], fromH: number, cycleH: nu
  * rather than a borrowed population figure). The band is the 10th to 90th
  * percentile across runs, hour by hour.
  */
-function simulateScenario(input: ForecastInput, fixed: DoseEvent[], projected: DoseEvent[], cycleH: number, habits: Adherence, seedText: string, startH: number): Scenario | null {
-    const { weight, labResults, calibrationMethod, calibrationHistoryMode, isTransmasc, nowH, horizonH, fitErrPct, target } = input;
+function simulateScenario(
+    input: ForecastInput,
+    fixed: DoseEvent[],
+    projected: DoseEvent[],
+    cycleH: number,
+    habits: Adherence,
+    seedText: string,
+    startH: number,
+): Scenario | null {
+    const {
+        weight,
+        labResults,
+        calibrationMethod,
+        calibrationHistoryMode,
+        isTransmasc,
+        nowH,
+        horizonH,
+        fitErrPct,
+        target,
+    } = input;
     const all = [...fixed, ...projected].sort((a, b) => a.timeH - b.timeH);
     const sim: SimulationResult | null = runSimulation(all, weight);
     if (!sim || !sim.timeH.length) return null;
@@ -364,34 +446,58 @@ function simulateScenario(input: ForecastInput, fixed: DoseEvent[], projected: D
     const sigma = !isTransmasc && fitErrPct !== null ? Math.log(1 + fitErrPct / 100) : 0;
     const { rand, gauss } = seededRandom(seedText);
     const perHour: number[][] = grid.map(() => []);
-    const troughs: number[] = [], peaks: number[] = [], averages: number[] = [];
+    const troughs: number[] = [],
+        peaks: number[] = [],
+        averages: number[] = [];
     for (let run = 0; run < RUNS; run++) {
         const scale = Math.exp(sigma * gauss());
         const shifted: DoseEvent[] = [];
         for (const e of projected) {
             if (rand() < habits.missRate) continue;
-            const spread = Math.min(habits.jitterSdH * gauss(), (cycleH / 3));
+            const spread = Math.min(habits.jitterSdH * gauss(), cycleH / 3);
             shifted.push({ ...e, timeH: e.timeH + Math.max(-cycleH / 3, spread) });
         }
-        const runSim = runSimulation([...recentFixed, ...shifted].sort((a, b) => a.timeH - b.timeH), weight);
+        const runSim = runSimulation(
+            [...recentFixed, ...shifted].sort((a, b) => a.timeH - b.timeH),
+            weight,
+        );
         if (!runSim || !runSim.timeH.length) continue;
         const raw = isTransmasc ? runSim.timeH.map((_, i) => runSim.concNGdL_T?.[i] ?? 0) : runSim.concPGmL_E2;
         const vals = grid.map(h => interp(runSim.timeH, raw, h) * factor(h) * scale);
         vals.forEach((v, i) => perHour[i].push(v));
         const s = statsOn(grid, vals, statFromH, statToH, target);
-        if (s) { troughs.push(s.trough); peaks.push(s.peak); averages.push(s.average); }
+        if (s) {
+            troughs.push(s.trough);
+            peaks.push(s.peak);
+            averages.push(s.average);
+        }
     }
 
     const ok = troughs.length >= RUNS / 2;
-    const p = (xs: number[]): [number, number] => { const s = [...xs].sort((a, b) => a - b); return [percentile(s, 0.1), percentile(s, 0.9)]; };
+    const p = (xs: number[]): [number, number] => {
+        const s = [...xs].sort((a, b) => a - b);
+        return [percentile(s, 0.1), percentile(s, 0.9)];
+    };
     return {
         series: { timeH: sim.timeH, value },
         stats,
-        band: ok ? {
-            timeH: grid,
-            lo: perHour.map(v => percentile([...v].sort((a, b) => a - b), 0.1)),
-            hi: perHour.map(v => percentile([...v].sort((a, b) => a - b), 0.9)),
-        } : null,
+        band: ok
+            ? {
+                  timeH: grid,
+                  lo: perHour.map(v =>
+                      percentile(
+                          [...v].sort((a, b) => a - b),
+                          0.1,
+                      ),
+                  ),
+                  hi: perHour.map(v =>
+                      percentile(
+                          [...v].sort((a, b) => a - b),
+                          0.9,
+                      ),
+                  ),
+              }
+            : null,
         range: ok ? { trough: p(troughs), peak: p(peaks), average: p(averages) } : null,
         statFromH,
         statToH,
@@ -412,7 +518,15 @@ export function forecastCurrent(input: ForecastInput, regimens: Regimen[]): Scen
     const habits = main ? adherenceOf(main, events) : { missRate: 0, jitterSdH: 0 };
     const projected = regimens.flatMap(r => continuation(r, nowH + horizonH, nowH));
     // Measured from the regimen's own start, so "steady" reflects how long it has been running.
-    return simulateScenario(input, events, projected, main ? Math.max(24, main.intervalH) : 24, habits, `current|${regimens.map(r => r.key).join(',')}|${Math.floor(nowH)}`, main?.sinceH ?? nowH);
+    return simulateScenario(
+        input,
+        events,
+        projected,
+        main ? Math.max(24, main.intervalH) : 24,
+        habits,
+        `current|${regimens.map(r => r.key).join(',')}|${Math.floor(nowH)}`,
+        main?.sinceH ?? nowH,
+    );
 }
 
 /** The same future with `plan` switched in from its start (or added on top). */
@@ -426,15 +540,33 @@ export function forecastPlan(input: ForecastInput, regimens: Regimen[], plan: Pl
 
     const replaced = (e: { ester: Ester }) => plan.replace && hormoneOf(e.ester) === target;
     const kept = events.filter(e => !(e.timeH >= plan.startH && replaced(e)));
-    const carried = regimens.flatMap(r => continuation(r, endH, nowH).filter(e => !(replaced(r) && e.timeH >= plan.startH)));
+    const carried = regimens.flatMap(r =>
+        continuation(r, endH, nowH).filter(e => !(replaced(r) && e.timeH >= plan.startH)),
+    );
     const planDoses: DoseEvent[] = [];
     for (let t = plan.startH; t <= endH; t += plan.intervalH) {
-        planDoses.push({ id: `plan-${t}`, route: plan.route, ester: plan.ester, timeH: t, doseMG: plan.doseMG, extras: plan.extras });
+        planDoses.push({
+            id: `plan-${t}`,
+            route: plan.route,
+            ester: plan.ester,
+            timeH: t,
+            doseMG: plan.doseMG,
+            extras: plan.extras,
+        });
     }
     const seed = `plan|${signature({ ...plan, doseMG: plan.doseMG })}|${plan.intervalH}|${plan.startH}|${plan.replace}|${Math.floor(nowH)}`;
     // A plan that only carries on the current regimen has been running since that regimen began.
-    const continues = main && plan.replace && signature(plan) === signature(main) && Math.abs(plan.intervalH - main.intervalH) < 0.5;
-    return simulateScenario(input, kept, [...carried, ...planDoses], Math.max(24, plan.intervalH), habits, seed, continues ? main.sinceH : plan.startH);
+    const continues =
+        main && plan.replace && signature(plan) === signature(main) && Math.abs(plan.intervalH - main.intervalH) < 0.5;
+    return simulateScenario(
+        input,
+        kept,
+        [...carried, ...planDoses],
+        Math.max(24, plan.intervalH),
+        habits,
+        seed,
+        continues ? main.sinceH : plan.startH,
+    );
 }
 
 /** How a medicine comes: what one unit is, so a count on the shelf converts to mg (or patches). */
@@ -462,31 +594,48 @@ export interface Supply {
 /** mg in one unit of the pack; 1 for a patch, and for bulk mg. */
 export const packUnitMG = (p: Pack): number => {
     switch (p.kind) {
-        case 'vial': return p.ml * p.mgPerMl;
-        case 'pill': case 'pump': case 'sachet': return p.mg;
-        default: return 1;
+        case 'vial':
+            return p.ml * p.mgPerMl;
+        case 'pill':
+        case 'pump':
+        case 'sachet':
+            return p.mg;
+        default:
+            return 1;
     }
 };
 
 /** Packs that make sense for a route, first is the default. */
 export const packKindsFor = (route: Route): PackKind[] => {
     switch (route) {
-        case Route.injection: return ['vial', 'bulk'];
-        case Route.oral: case Route.sublingual: return ['pill', 'bulk'];
-        case Route.gel: return ['pump', 'sachet', 'bulk'];
-        case Route.patchApply: return ['patch'];
-        default: return ['bulk'];
+        case Route.injection:
+            return ['vial', 'bulk'];
+        case Route.oral:
+        case Route.sublingual:
+            return ['pill', 'bulk'];
+        case Route.gel:
+            return ['pump', 'sachet', 'bulk'];
+        case Route.patchApply:
+            return ['patch'];
+        default:
+            return ['bulk'];
     }
 };
 
 export const defaultPack = (kind: PackKind): Pack => {
     switch (kind) {
-        case 'vial': return { kind, ml: 5, mgPerMl: 40 };
-        case 'pill': return { kind, mg: 2 };
-        case 'pump': return { kind, mg: 1.25 };
-        case 'sachet': return { kind, mg: 1.5 };
-        case 'patch': return { kind };
-        default: return { kind: 'bulk' };
+        case 'vial':
+            return { kind, ml: 5, mgPerMl: 40 };
+        case 'pill':
+            return { kind, mg: 2 };
+        case 'pump':
+            return { kind, mg: 1.25 };
+        case 'sachet':
+            return { kind, mg: 1.5 };
+        case 'patch':
+            return { kind };
+        default:
+            return { kind: 'bulk' };
     }
 };
 
@@ -496,7 +645,14 @@ export const normalizeSupply = (raw: any): Supply | null => {
     if (raw.pack && typeof raw.pack === 'object' && typeof raw.count === 'number') return raw as Supply;
     const amount = Number(raw.amount);
     if (!Number.isFinite(amount)) return null;
-    return { id: raw.id, route: raw.route, ester: raw.ester, pack: raw.route === Route.patchApply ? { kind: 'patch' } : { kind: 'bulk' }, count: amount, startedAt: Number(raw.startedAt) || Date.now() };
+    return {
+        id: raw.id,
+        route: raw.route,
+        ester: raw.ester,
+        pack: raw.route === Route.patchApply ? { kind: 'patch' } : { kind: 'bulk' },
+        count: amount,
+        startedAt: Number(raw.startedAt) || Date.now(),
+    };
 };
 
 export interface SupplyStatus {
@@ -513,9 +669,11 @@ export function supplyStatus(s: Supply, events: DoseEvent[], regimens: Regimen[]
     const fromH = s.startedAt / 3600000;
     const matches = (e: { route: Route; ester: Ester }) => e.route === s.route && e.ester === s.ester;
     const perDose = (e: { doseMG: number }) => (s.route === Route.patchApply ? 1 : e.doseMG);
-    const used = events.filter(e => matches(e) && e.timeH >= fromH && e.timeH <= nowH).reduce((a, e) => a + perDose(e), 0);
+    const used = events
+        .filter(e => matches(e) && e.timeH >= fromH && e.timeH <= nowH)
+        .reduce((a, e) => a + perDose(e), 0);
     const remaining = Math.max(0, s.count * packUnitMG(s.pack) - used);
-    const rate = regimens.filter(matches).reduce((a, r) => a + perDose(r) * 24 / r.intervalH, 0);
+    const rate = regimens.filter(matches).reduce((a, r) => a + (perDose(r) * 24) / r.intervalH, 0);
     const dailyUse = rate > 0 ? rate : null;
-    return { supply: s, used, remaining, dailyUse, runOutH: dailyUse ? nowH + remaining / dailyUse * 24 : null };
+    return { supply: s, used, remaining, dailyUse, runOutH: dailyUse ? nowH + (remaining / dailyUse) * 24 : null };
 }

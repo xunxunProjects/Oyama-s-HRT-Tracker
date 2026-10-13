@@ -22,7 +22,7 @@ interface LabResultFormProps {
     defaultTUnit?: LabUnit;
 }
 
-const divider = "border-b border-[var(--border)]";
+const divider = 'border-b border-[var(--border)]';
 
 const E2_UNITS: LabUnit[] = ['pmol/l', 'pg/ml'];
 const T_UNITS: LabUnit[] = ['ng/dl', 'nmol/l'];
@@ -71,7 +71,12 @@ const HormoneValueField: React.FC<{
                 <label htmlFor={id} className="text-[0.9375rem] text-[var(--text)]">
                     {label}
                 </label>
-                <Segmented options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} aria-label={label} />
+                <Segmented
+                    options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))}
+                    value={unit}
+                    onChange={onUnitChange}
+                    aria-label={label}
+                />
             </div>
             {/* The other-unit reading sits inside the field, so it appears
                 as you type without pushing the rows below it down. */}
@@ -98,38 +103,45 @@ const HormoneValueField: React.FC<{
     );
 };
 
-const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, defaultE2Unit = 'pmol/l', defaultTUnit = 'ng/dl' }) => {
+const LabResultForm: React.FC<LabResultFormProps> = ({
+    resultToEdit,
+    onSave,
+    onCancel,
+    onDelete,
+    defaultE2Unit = 'pmol/l',
+    defaultTUnit = 'ng/dl',
+}) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
-    const [dateStr, setDateStr] = useState("");
+    const [dateStr, setDateStr] = useState('');
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     // Editing an existing record: single value tied to that record's hormone.
     const [editUnit, setEditUnit] = useState<LabUnit>('pmol/l');
-    const [editValue, setEditValue] = useState("");
+    const [editValue, setEditValue] = useState('');
 
     // Adding new: estradiol and testosterone are independent fields, so one
     // blood draw covering both markers can be logged as a single entry at a
     // single timestamp instead of two separate saves. The add form is
     // remounted each time it opens, so the starting units are read once here.
     const [e2Unit, setE2Unit] = useState<LabUnit>(defaultE2Unit);
-    const [e2Value, setE2Value] = useState("");
+    const [e2Value, setE2Value] = useState('');
     const [tUnit, setTUnit] = useState<LabUnit>(defaultTUnit);
-    const [tValue, setTValue] = useState("");
+    const [tValue, setTValue] = useState('');
 
     useEffect(() => {
         if (resultToEdit) {
             const d = new Date(resultToEdit.timeH * 3600000);
-            const iso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             setDateStr(iso);
             setEditValue(resultToEdit.concValue.toString());
             setEditUnit(resultToEdit.unit);
         } else {
             const now = new Date();
-            const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            const iso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             setDateStr(iso);
-            setE2Value("");
-            setTValue("");
+            setE2Value('');
+            setTValue('');
         }
     }, [resultToEdit]);
 
@@ -158,7 +170,14 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
     };
 
     const canSave = resultToEdit ? editNum !== null : addFieldsOk && (e2Num !== null || tNum !== null);
-    const formatWhen = (d: Date) => d.toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const formatWhen = (d: Date) =>
+        d.toLocaleString(LOCALE_MAP[lang] || 'en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     const editIsT = isT_LabUnit(editUnit);
 
     return (
@@ -170,13 +189,9 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     onClick={() => setIsDatePickerOpen(v => !v)}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[0.9375rem] text-[var(--text)]">
-                        {t('lab.date')}
-                    </span>
+                    <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.date')}</span>
                     <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                        <span className="text-sm tabular-nums">
-                            {dateStr ? formatWhen(new Date(dateStr)) : '—'}
-                        </span>
+                        <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
                         <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                     </div>
                 </button>
@@ -184,8 +199,10 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     isOpen={isDatePickerOpen}
                     inline
                     onClose={() => setIsDatePickerOpen(false)}
-                    onConfirm={(date) => {
-                        const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    onConfirm={date => {
+                        const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                            .toISOString()
+                            .slice(0, 16);
                         setDateStr(iso);
                     }}
                     initialDate={dateStr ? new Date(dateStr) : new Date()}
@@ -226,9 +243,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                                 onValueChange={setTValue}
                             />
                         </div>
-                        <p className="text-xs text-[var(--text-muted)] pt-2">
-                            {t('lab.dual_hint')}
-                        </p>
+                        <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.dual_hint')}</p>
                     </>
                 )}
             </div>
@@ -240,10 +255,17 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                         <button
                             // The question is the heading; the body names the one
                             // result going, as saved, so the right row is deleted.
-                            onClick={() => showDialog('confirm', `${resultToEdit.concValue} ${UNIT_LABELS[resultToEdit.unit]} · ${formatWhen(new Date(resultToEdit.timeH * 3600000))}`, () => {
-                                onDelete(resultToEdit.id);
-                                onCancel();
-                            }, { danger: true, title: t('lab.delete_confirm'), confirmLabel: t('btn.delete') })}
+                            onClick={() =>
+                                showDialog(
+                                    'confirm',
+                                    `${resultToEdit.concValue} ${UNIT_LABELS[resultToEdit.unit]} · ${formatWhen(new Date(resultToEdit.timeH * 3600000))}`,
+                                    () => {
+                                        onDelete(resultToEdit.id);
+                                        onCancel();
+                                    },
+                                    { danger: true, title: t('lab.delete_confirm'), confirmLabel: t('btn.delete') },
+                                )
+                            }
                             className="tap-target p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded"
                             title={t('btn.delete')}
                             aria-label={t('btn.delete')}
@@ -260,11 +282,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     >
                         {t('btn.cancel')}
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={!canSave || !dateStr}
-                        className="btn-primary min-w-[88px]"
-                    >
+                    <button onClick={handleSave} disabled={!canSave || !dateStr} className="btn-primary min-w-[88px]">
                         <Check size={14} />
                         {t('btn.save')}
                     </button>

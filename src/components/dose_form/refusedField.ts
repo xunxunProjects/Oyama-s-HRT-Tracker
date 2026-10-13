@@ -6,6 +6,4 @@
  * a pair of linked fields is shown it is the empty one, or both.
  */
 export const refusedFieldProps = (value: string, invalid?: boolean, errorId?: string) =>
-    invalid && !(parseFloat(value) > 0)
-        ? { 'aria-invalid': true as const, 'aria-describedby': errorId }
-        : {};
+    invalid && !(parseFloat(value) > 0) ? { 'aria-invalid': true as const, 'aria-describedby': errorId } : {};

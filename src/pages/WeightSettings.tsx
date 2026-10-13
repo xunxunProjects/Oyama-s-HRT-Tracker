@@ -35,7 +35,7 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
         onBack();
     };
 
-    const divider = "border-b border-[var(--border)]";
+    const divider = 'border-b border-[var(--border)]';
 
     return (
         <div className="relative pb-32">
@@ -50,7 +50,7 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
                                 inputMode="decimal"
                                 enterKeyHint="done"
                                 value={weightStr}
-                                onChange={(e) => setWeightStr(e.target.value)}
+                                onChange={e => setWeightStr(e.target.value)}
                                 aria-label={t('status.weight')}
                                 aria-invalid={showError}
                                 aria-describedby="weight-help"

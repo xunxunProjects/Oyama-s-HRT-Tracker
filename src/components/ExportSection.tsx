@@ -19,10 +19,10 @@ interface ExportSectionProps {
 // Each row is one button, so the whole row takes the tap, not only the
 // 22px-tall accent words on the right, which stay as the row's label for
 // what it does. Rows are divided the way Settings rows are.
-const rowBase = "w-full flex items-start justify-between py-[18px] text-start";
-const rowLabel = "block text-[0.9375rem] text-[var(--text)]";
-const rowDesc = "block text-xs text-[var(--text-muted)] mt-0.5";
-const action = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
+const rowBase = 'w-full flex items-start justify-between py-[18px] text-start';
+const rowLabel = 'block text-[0.9375rem] text-[var(--text)]';
+const rowDesc = 'block text-xs text-[var(--text-muted)] mt-0.5';
+const action = 'text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5';
 
 const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weight, onExport, onQuickExport }) => {
     const { t, lang } = useTranslation();
@@ -97,11 +97,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     };
 
     if (!hasData) {
-        return (
-            <p className="py-8 text-sm text-center text-[var(--text-muted)]">
-                {t('drawer.empty_export')}
-            </p>
-        );
+        return <p className="py-8 text-sm text-center text-[var(--text-muted)]">{t('drawer.empty_export')}</p>;
     }
 
     return (
@@ -138,7 +134,9 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                     Only the panel's own OK closes it then. */}
                 <div>
                     <button
-                        onClick={() => { if (!generatedPassword) setShowEncrypted(v => !v); }}
+                        onClick={() => {
+                            if (!generatedPassword) setShowEncrypted(v => !v);
+                        }}
                         aria-expanded={showEncrypted}
                         aria-disabled={generatedPassword ? true : undefined}
                         className={`${rowBase} ${generatedPassword ? 'row-bleed cursor-default' : rowBleed}`}
@@ -161,7 +159,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                     type="password"
                                     name="export-encryption-password"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={e => setPassword(e.target.value)}
                                     placeholder={t('export.password_placeholder')}
                                     className="w-full py-2.5 px-3 pl-9 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)]"
                                     autoComplete="new-password"
@@ -169,15 +167,13 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                     autoCapitalize="off"
                                     spellCheck={false}
                                 />
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={14} />
+                                <Lock
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                                    size={14}
+                                />
                             </div>
-                            <p className="text-xs text-[var(--text-muted)]">
-                                {t('export.password_hint_random')}
-                            </p>
-                            <button
-                                onClick={handleEncryptedExport}
-                                className="btn-primary w-full"
-                            >
+                            <p className="text-xs text-[var(--text-muted)]">{t('export.password_hint_random')}</p>
+                            <button onClick={handleEncryptedExport} className="btn-primary w-full">
                                 {t('export.btn_encrypted')}
                             </button>
 
@@ -186,24 +182,27 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                     <p className="text-xs font-semibold text-[var(--text)]">
                                         {t('export.password_title')}
                                     </p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        {t('export.password_desc')}
-                                    </p>
+                                    <p className="text-xs text-[var(--text-muted)]">{t('export.password_desc')}</p>
                                     <div className="flex items-center gap-2 bg-[var(--surface-hover)] rounded-md px-3 py-2">
                                         <span className="font-mono text-sm text-[var(--text)] flex-1 select-all break-all">
                                             {generatedPassword}
                                         </span>
-                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="tap-target shrink-0 p-1 text-[var(--text-muted)]">
+                                        <button
+                                            onClick={handleCopyPassword}
+                                            aria-label={copied ? t('export.copied') : t('btn.copy')}
+                                            className="tap-target shrink-0 p-1 text-[var(--text-muted)]"
+                                        >
                                             <CopyTick copied={copied} size={14} />
                                         </button>
                                     </div>
                                     {copyFailed === 'password' && (
-                                        <p className="text-xs text-[var(--text-muted)]">
-                                            {t('export.copy_failed')}
-                                        </p>
+                                        <p className="text-xs text-[var(--text-muted)]">{t('export.copy_failed')}</p>
                                     )}
                                     <button
-                                        onClick={() => { setGeneratedPassword(null); setShowEncrypted(false); }}
+                                        onClick={() => {
+                                            setGeneratedPassword(null);
+                                            setShowEncrypted(false);
+                                        }}
                                         className="tap-target w-full py-1.5 text-xs text-[var(--text-muted)]"
                                     >
                                         {t('btn.ok')}

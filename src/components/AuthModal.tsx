@@ -102,9 +102,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     // What Share does, in Share's own words, then why it needs an account.
     // No space after a CJK full stop, which carries its own.
     const shareDesc = getShareCopy(lang).modalDescription;
-    const reasonText = reason === 'share'
-        ? `${shareDesc}${/[。！？]$/.test(shareDesc) ? '' : ' '}${t('auth.share_needs_account')}`
-        : null;
+    const reasonText =
+        reason === 'share'
+            ? `${shareDesc}${/[。！？]$/.test(shareDesc) ? '' : ' '}${t('auth.share_needs_account')}`
+            : null;
 
     // Closes, clearing the form as any close does, and hands back to the
     // opener so it can carry on.
@@ -147,7 +148,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         setError(null);
         try {
             const opts = await authService.passkeyAuthOptions(username || undefined);
-            const credential = await navigator.credentials.get({
+            const credential = (await navigator.credentials.get({
                 publicKey: {
                     rpId: window.location.hostname,
                     challenge: b64url2ab(opts.challenge),
@@ -158,9 +159,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     timeout: 60000,
                     userVerification: 'preferred',
                 },
-            }) as PublicKeyCredential | null;
+            })) as PublicKeyCredential | null;
             if (!credential) return;
-            const result = await authService.passkeyAuthVerify(opts.challengeToken, serializeAssertionCredential(credential));
+            const result = await authService.passkeyAuthVerify(
+                opts.challengeToken,
+                serializeAssertionCredential(credential),
+            );
             await loginWithToken(result, verified);
             succeed();
         } catch (e: any) {
@@ -179,7 +183,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         try {
             if (isLogin) {
                 await login(
-                    username, password,
+                    username,
+                    password,
                     needsTOTP && twoFAMethod === 'totp' && !useBackupCode ? totpCode : undefined,
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
@@ -210,14 +215,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     // where the eyes and, on a phone, the visible part of the screen are; at
     // the top of the form it sat behind the keyboard.
     const errorLine = error && (
-        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">
+            {error}
+        </p>
     );
     const submitButton = (
-        <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full mt-1"
-        >
+        <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -226,202 +229,244 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     return (
         <div className="modal-overlay">
             <div className="modal-shell">
-            <div
-                className="modal-card overflow-hidden p-0"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby={`${id}-title`}
-                aria-describedby={reasonText ? `${id}-reason` : undefined}
-                onKeyDown={keepFocusInside}
-            >
-                <div className="px-5 pt-5 pb-2">
-                    <div className="flex items-center justify-between">
-                        <h2 id={`${id}-title`} className="modal-title mb-0">
-                            {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
-                        </h2>
-                        <button
-                            type="button"
-                            onClick={close}
-                            aria-label={t('btn.cancel')}
-                            title={t('btn.cancel')}
-                            className="tap-target p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)]"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-                    {reasonText && (
-                        <p id={`${id}-reason`} className="mt-1.5 text-sm leading-relaxed text-muted">{reasonText}</p>
-                    )}
-                </div>
-
-                <form onSubmit={handleSubmit} className="px-5 pb-5 pt-1 space-y-3">
-                    {!needsTOTP && errorLine}
-
-                    <div className="space-y-1.5">
-                        <label htmlFor={`${id}-username`} className="text-sm text-muted">{t('auth.username')}</label>
-                        <input
-                            ref={usernameRef}
-                            id={`${id}-username`}
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="input-base"
-                            placeholder={t('auth.username_placeholder')}
-                            autoComplete="username"
-                            aria-describedby={error && !needsTOTP ? errorId : undefined}
-                            required
-                        />
+                <div
+                    className="modal-card overflow-hidden p-0"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby={`${id}-title`}
+                    aria-describedby={reasonText ? `${id}-reason` : undefined}
+                    onKeyDown={keepFocusInside}
+                >
+                    <div className="px-5 pt-5 pb-2">
+                        <div className="flex items-center justify-between">
+                            <h2 id={`${id}-title`} className="modal-title mb-0">
+                                {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={close}
+                                aria-label={t('btn.cancel')}
+                                title={t('btn.cancel')}
+                                className="tap-target p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)]"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        {reasonText && (
+                            <p id={`${id}-reason`} className="mt-1.5 text-sm leading-relaxed text-muted">
+                                {reasonText}
+                            </p>
+                        )}
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label htmlFor={`${id}-password`} className="text-sm text-muted">{t('auth.password')}</label>
-                        <input
-                            id={`${id}-password`}
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="input-base"
-                            placeholder={t('auth.password_placeholder')}
-                            autoComplete={isLogin ? 'current-password' : 'new-password'}
-                            aria-describedby={[
-                                !isLogin ? `${id}-key-note` : '',
-                                error && !needsTOTP ? errorId : '',
-                            ].filter(Boolean).join(' ') || undefined}
-                            required
-                        />
-                    </div>
+                    <form onSubmit={handleSubmit} className="px-5 pb-5 pt-1 space-y-3">
+                        {!needsTOTP && errorLine}
 
-                    {/* Signing up is the moment to say it: the password is
+                        <div className="space-y-1.5">
+                            <label htmlFor={`${id}-username`} className="text-sm text-muted">
+                                {t('auth.username')}
+                            </label>
+                            <input
+                                ref={usernameRef}
+                                id={`${id}-username`}
+                                type="text"
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
+                                className="input-base"
+                                placeholder={t('auth.username_placeholder')}
+                                autoComplete="username"
+                                aria-describedby={error && !needsTOTP ? errorId : undefined}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label htmlFor={`${id}-password`} className="text-sm text-muted">
+                                {t('auth.password')}
+                            </label>
+                            <input
+                                id={`${id}-password`}
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="input-base"
+                                placeholder={t('auth.password_placeholder')}
+                                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                aria-describedby={
+                                    [!isLogin ? `${id}-key-note` : '', error && !needsTOTP ? errorId : '']
+                                        .filter(Boolean)
+                                        .join(' ') || undefined
+                                }
+                                required
+                            />
+                        </div>
+
+                        {/* Signing up is the moment to say it: the password is
                         what the backups are encrypted with, so there is no
                         reset that brings them back. */}
-                    {!isLogin && (
-                        <p id={`${id}-key-note`} className="callout">{t('auth.password_is_key')}</p>
-                    )}
+                        {!isLogin && (
+                            <p id={`${id}-key-note`} className="callout">
+                                {t('auth.password_is_key')}
+                            </p>
+                        )}
 
-                    {needsTOTP && (
-                        <div className="space-y-3">
-                            <div className="callout flex items-center gap-2 text-xs">
-                                <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
-                                {t('auth.needs_2fa')}
-                            </div>
-                            {useBackupCode ? (
-                                <div key="backup" className="space-y-2">
-                                    <label htmlFor={`${id}-backup`} className="text-sm text-muted">{t('auth.backup_code_label')}</label>
-                                    <input
-                                        id={`${id}-backup`}
-                                        type="text"
-                                        value={backupCode}
-                                        onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                                        className="input-base font-mono text-center tracking-widest"
-                                        placeholder={t('auth.backup_code_placeholder')}
-                                        autoComplete="off"
-                                        aria-describedby={error ? errorId : undefined}
-                                        autoFocus
-                                        required={useBackupCode}
-                                    />
+                        {needsTOTP && (
+                            <div className="space-y-3">
+                                <div className="callout flex items-center gap-2 text-xs">
+                                    <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
+                                    {t('auth.needs_2fa')}
                                 </div>
-                            ) : twoFAMethod !== 'passkey' && (
-                                <div key="totp" className="space-y-1.5">
-                                    <label htmlFor={`${id}-totp`} className="text-sm text-muted">{t('auth.totp_code')}</label>
-                                    <input
-                                        id={`${id}-totp`}
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]{6}"
-                                        maxLength={6}
-                                        value={totpCode}
-                                        onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        className="input-base font-mono text-center tracking-widest"
-                                        placeholder={t('auth.totp_placeholder')}
-                                        autoComplete="one-time-code"
-                                        aria-describedby={error ? errorId : undefined}
-                                        autoFocus
-                                        required={needsTOTP && !useBackupCode}
-                                    />
-                                </div>
-                            )}
-                            {errorLine}
-                            {/* The code's own button straight under it, and the
+                                {useBackupCode ? (
+                                    <div key="backup" className="space-y-2">
+                                        <label htmlFor={`${id}-backup`} className="text-sm text-muted">
+                                            {t('auth.backup_code_label')}
+                                        </label>
+                                        <input
+                                            id={`${id}-backup`}
+                                            type="text"
+                                            value={backupCode}
+                                            onChange={e => setBackupCode(e.target.value.toUpperCase())}
+                                            className="input-base font-mono text-center tracking-widest"
+                                            placeholder={t('auth.backup_code_placeholder')}
+                                            autoComplete="off"
+                                            aria-describedby={error ? errorId : undefined}
+                                            autoFocus
+                                            required={useBackupCode}
+                                        />
+                                    </div>
+                                ) : (
+                                    twoFAMethod !== 'passkey' && (
+                                        <div key="totp" className="space-y-1.5">
+                                            <label htmlFor={`${id}-totp`} className="text-sm text-muted">
+                                                {t('auth.totp_code')}
+                                            </label>
+                                            <input
+                                                id={`${id}-totp`}
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]{6}"
+                                                maxLength={6}
+                                                value={totpCode}
+                                                onChange={e =>
+                                                    setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                                                }
+                                                className="input-base font-mono text-center tracking-widest"
+                                                placeholder={t('auth.totp_placeholder')}
+                                                autoComplete="one-time-code"
+                                                aria-describedby={error ? errorId : undefined}
+                                                autoFocus
+                                                required={needsTOTP && !useBackupCode}
+                                            />
+                                        </div>
+                                    )
+                                )}
+                                {errorLine}
+                                {/* The code's own button straight under it, and the
                                 other ways in after: with the passkey button and
                                 the backup-code link in between, the submit sat
                                 below every alternative and, with a phone
                                 keyboard up, off the screen. */}
-                            {!(twoFAMethod === 'passkey' && !useBackupCode) && submitButton}
-                            {useBackupCode ? (
-                                <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                    className="text-xs text-[var(--accent-ink)] hover:underline">
-                                    ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
-                                </button>
-                            ) : (
-                                <>
-                                    {twoFAMethod === 'passkey' && !webauthn && (
-                                        <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
-                                    )}
-                                    {webauthn && (
-                                        <>
-                                            {twoFAMethod !== 'passkey' && (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex-1 h-px bg-[var(--border)]" />
-                                                    <span className="text-xs text-muted">{t('common.or')}</span>
-                                                    <div className="flex-1 h-px bg-[var(--border)]" />
-                                                </div>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)}
-                                                disabled={passkeyLoading}
-                                                className="btn-secondary w-full"
-                                            >
-                                                {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                                {t('auth.passkey_as_2fa')}
-                                            </button>
-                                        </>
-                                    )}
-                                    <button type="button" onClick={() => setUseBackupCode(true)}
-                                        className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1">
-                                        {t('auth.use_backup_code')}
+                                {!(twoFAMethod === 'passkey' && !useBackupCode) && submitButton}
+                                {useBackupCode ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setUseBackupCode(false);
+                                            setBackupCode('');
+                                        }}
+                                        className="text-xs text-[var(--accent-ink)] hover:underline"
+                                    >
+                                        ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
                                     </button>
-                                </>
-                            )}
-                        </div>
-                    )}
+                                ) : (
+                                    <>
+                                        {twoFAMethod === 'passkey' && !webauthn && (
+                                            <p className="text-xs text-[var(--danger)] text-center">
+                                                {t('auth.passkey_unsupported')}
+                                            </p>
+                                        )}
+                                        {webauthn && (
+                                            <>
+                                                {twoFAMethod !== 'passkey' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 h-px bg-[var(--border)]" />
+                                                        <span className="text-xs text-muted">{t('common.or')}</span>
+                                                        <div className="flex-1 h-px bg-[var(--border)]" />
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)
+                                                    }
+                                                    disabled={passkeyLoading}
+                                                    className="btn-secondary w-full"
+                                                >
+                                                    {passkeyLoading ? (
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                    ) : (
+                                                        <Fingerprint size={16} />
+                                                    )}
+                                                    {t('auth.passkey_as_2fa')}
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setUseBackupCode(true)}
+                                            className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1"
+                                        >
+                                            {t('auth.use_backup_code')}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
 
-                    {!needsTOTP && submitButton}
+                        {!needsTOTP && submitButton}
 
-                    {/* The Account page has always offered this; the modal
+                        {/* The Account page has always offered this; the modal
                         didn't, so someone whose account has only a passkey
                         had no way in from here. */}
-                    {isLogin && !needsTOTP && webauthn && (
-                        <>
-                            <div className="flex items-center gap-2">
-                                <div className="flex-1 h-px bg-[var(--border)]" />
-                                <span className="text-xs text-muted">{t('common.or')}</span>
-                                <div className="flex-1 h-px bg-[var(--border)]" />
-                            </div>
+                        {isLogin && !needsTOTP && webauthn && (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-px bg-[var(--border)]" />
+                                    <span className="text-xs text-muted">{t('common.or')}</span>
+                                    <div className="flex-1 h-px bg-[var(--border)]" />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handlePasskeyLogin()}
+                                    disabled={passkeyLoading}
+                                    className="btn-secondary w-full"
+                                >
+                                    {passkeyLoading ? (
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                        <Fingerprint size={16} />
+                                    )}
+                                    {t('auth.passkey_login')}
+                                </button>
+                            </>
+                        )}
+
+                        <div className="pt-2 text-center text-sm text-muted">
+                            {isLogin ? t('auth.no_account') : t('auth.has_account')}{' '}
                             <button
                                 type="button"
-                                onClick={() => handlePasskeyLogin()}
-                                disabled={passkeyLoading}
-                                className="btn-secondary w-full"
+                                onClick={() => {
+                                    setIsLogin(!isLogin);
+                                    setError(null);
+                                    setNeedsTOTP(false);
+                                }}
+                                className="text-[var(--accent-ink)] hover:underline"
                             >
-                                {passkeyLoading ? <Loader2 size={16} className="animate-spin" /> : <Fingerprint size={16} />}
-                                {t('auth.passkey_login')}
+                                {isLogin ? t('auth.go_register') : t('auth.go_login')}
                             </button>
-                        </>
-                    )}
-
-                    <div className="pt-2 text-center text-sm text-muted">
-                        {isLogin ? t('auth.no_account') : t('auth.has_account')}{' '}
-                        <button
-                            type="button"
-                            onClick={() => { setIsLogin(!isLogin); setError(null); setNeedsTOTP(false); }}
-                            className="text-[var(--accent-ink)] hover:underline"
-                        >
-                            {isLogin ? t('auth.go_register') : t('auth.go_login')}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

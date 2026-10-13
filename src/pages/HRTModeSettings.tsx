@@ -33,10 +33,11 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
                             className="w-full flex items-center justify-between gap-4 py-4 border-b border-[var(--border)] last:border-b-0 text-start"
                         >
                             <span>
-                                <span className={`block text-[0.9375rem] ${mode === value
-                                    ? 'font-semibold text-[var(--text)]'
-                                    : 'text-[var(--text)]'
-                                }`}>
+                                <span
+                                    className={`block text-[0.9375rem] ${
+                                        mode === value ? 'font-semibold text-[var(--text)]' : 'text-[var(--text)]'
+                                    }`}
+                                >
                                     {t(labelKey)}
                                 </span>
                                 <span className="block text-xs text-[var(--text-muted)] mt-0.5">{t(descKey)}</span>

@@ -67,24 +67,29 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
             <div ref={setRow} className="flex h-[18px] items-end justify-between">
                 {Array.from({ length: count }, (_, i) => {
                     const reached = i <= cur;
-                    const look = i === cur
-                        ? `h-[18px] w-[3px] bg-current ${tone}`
-                        : i >= bandL && i <= bandR
-                            ? `h-[11px] w-[1.5px] ${reached
-                                ? 'bg-[var(--accent-ink)]'
-                                : 'bg-[var(--accent-ink)]/40'}`
-                            : `h-2 w-[1.5px] ${reached
-                                ? 'bg-[var(--text-muted)]'
-                                : 'bg-[var(--border)]'}`;
+                    const look =
+                        i === cur
+                            ? `h-[18px] w-[3px] bg-current ${tone}`
+                            : i >= bandL && i <= bandR
+                              ? `h-[11px] w-[1.5px] ${reached ? 'bg-[var(--accent-ink)]' : 'bg-[var(--accent-ink)]/40'}`
+                              : `h-2 w-[1.5px] ${reached ? 'bg-[var(--text-muted)]' : 'bg-[var(--border)]'}`;
                     return (
                         <span key={i} className="flex w-0.5 justify-center">
-                            <span className={`rail-tick rounded-full ${look}`} style={{ animationDelay: `${i * WAVE_MS}ms` }} />
+                            <span
+                                className={`rail-tick rounded-full ${look}`}
+                                style={{ animationDelay: `${i * WAVE_MS}ms` }}
+                            />
                         </span>
                     );
                 })}
             </div>
 
-            {([[bandL, band.low], [bandR, band.high]] as const).map(([i, v]) => (
+            {(
+                [
+                    [bandL, band.low],
+                    [bandR, band.high],
+                ] as const
+            ).map(([i, v]) => (
                 <span
                     key={v}
                     className="rail-label absolute bottom-0 -translate-x-1/2 text-[0.75rem] font-medium leading-none tabular-nums text-[var(--text-muted)]"

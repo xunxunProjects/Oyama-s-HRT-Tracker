@@ -69,8 +69,8 @@ const DoseHeatmap = ({
     // Same terracotta family as the chart. Empty is the chart's grid neutral;
     // the four filled steps climb from a light tint to a deep burnt shade.
     const c = isDarkMode
-        // heatmap-0…4 and chart-axis from the design tokens, as hex for SVG.
-        ? { empty: '#2c2a26', axis: '#a7a49e', ring: '#df8f74', levels: ['#4d271a', '#924833', '#cc785c', '#f0ad96'] }
+        ? // heatmap-0…4 and chart-axis from the design tokens, as hex for SVG.
+          { empty: '#2c2a26', axis: '#a7a49e', ring: '#df8f74', levels: ['#4d271a', '#924833', '#cc785c', '#f0ad96'] }
         : { empty: '#eeedea', axis: '#6b6860', ring: '#cc785c', levels: ['#fee7de', '#f0ad96', '#cc785c', '#924833'] };
 
     // The plot is laid out in raw SVG units, so unlike the rest of the UI it
@@ -82,8 +82,8 @@ const DoseHeatmap = ({
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width]);
 
-    const gutter = 20 * ui;   // weekday labels down the left
-    const header = 15 * ui;   // month labels across the top
+    const gutter = 20 * ui; // weekday labels down the left
+    const header = 15 * ui; // month labels across the top
     const gap = 3 * ui;
 
     // How many weeks fit, then the square size that divides that span exactly —
@@ -108,7 +108,10 @@ const DoseHeatmap = ({
             if (Number.isNaN(at.getTime())) continue;
             const key = toDayKey(at);
             let rec = m.get(key);
-            if (!rec) { rec = { count: 0, mg: new Map() }; m.set(key, rec); }
+            if (!rec) {
+                rec = { count: 0, mg: new Map() };
+                m.set(key, rec);
+            }
             rec.count += 1;
             if (e.doseMG > 0) rec.mg.set(e.ester, (rec.mg.get(e.ester) ?? 0) + e.doseMG);
         }
@@ -127,7 +130,7 @@ const DoseHeatmap = ({
             const days: Cell[] = [];
             for (let row = 0; row < 7; row++) {
                 const date = addDays(first, col * 7 + row);
-                if (date.getTime() > today.getTime()) continue;  // the rest of this week hasn't happened
+                if (date.getTime() > today.getTime()) continue; // the rest of this week hasn't happened
                 const key = toDayKey(date);
                 const rec = byDay.get(key);
                 days.push({ col, row, date, key, count: rec?.count ?? 0, mg: rec?.mg ?? null });
@@ -142,15 +145,18 @@ const DoseHeatmap = ({
         for (const column of columns) for (const d of column) m.set(d.key, d);
         return m;
     }, [columns]);
-    const hover = hoverKey ? byKey.get(hoverKey) ?? null : null;
+    const hover = hoverKey ? (byKey.get(hoverKey) ?? null) : null;
 
     const { total, days, busiest } = useMemo(() => {
-        let total = 0, days = 0, busiest = 0;
-        for (const column of columns) for (const d of column) {
-            total += d.count;
-            days += 1;
-            if (d.count > busiest) busiest = d.count;
-        }
+        let total = 0,
+            days = 0,
+            busiest = 0;
+        for (const column of columns)
+            for (const d of column) {
+                total += d.count;
+                days += 1;
+                if (d.count > busiest) busiest = d.count;
+            }
         return { total, days, busiest };
     }, [columns]);
 
@@ -191,12 +197,12 @@ const DoseHeatmap = ({
     }, [locale]);
 
     const dayLabel = useMemo(() => createDayLabelFormatter(lang), [lang]);
-    const doseLabel = (n: number) =>
-        n === 1 ? t('heatmap.dose_one') : t('heatmap.doses').replace('{n}', String(n));
+    const doseLabel = (n: number) => (n === 1 ? t('heatmap.dose_one') : t('heatmap.doses').replace('{n}', String(n)));
     // The grid shows no heading or tally of its own; this is the whole of what a
     // screen reader gets before the per-day detail in the tooltip.
-    const summary = (total === 1 ? t('heatmap.summary_one') : t('heatmap.summary').replace('{n}', String(total)))
-        .replace('{d}', String(days));
+    const summary = (
+        total === 1 ? t('heatmap.summary_one') : t('heatmap.summary').replace('{n}', String(total))
+    ).replace('{d}', String(days));
 
     // A finger has no "leave", so a tapped tooltip is dismissed by the next press
     // anywhere outside the grid. Capture phase, so a press on the grid itself is
@@ -233,7 +239,7 @@ const DoseHeatmap = ({
     };
 
     const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-        if (e.pointerType !== 'mouse') return;   // touch commits on tap, below
+        if (e.pointerType !== 'mouse') return; // touch commits on tap, below
         setHoverKey(cellAt(e.clientX, e.clientY, e.currentTarget)?.key ?? null);
     };
     const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -258,7 +264,9 @@ const DoseHeatmap = ({
     useLayoutEffect(() => {
         if (!tipEl) return;
         const r = tipEl.getBoundingClientRect();
-        setTip(prev => (Math.abs(prev.w - r.width) < 0.5 && Math.abs(prev.h - r.height) < 0.5 ? prev : { w: r.width, h: r.height }));
+        setTip(prev =>
+            Math.abs(prev.w - r.width) < 0.5 && Math.abs(prev.h - r.height) < 0.5 ? prev : { w: r.width, h: r.height },
+        );
     });
 
     // Above the cell when it fits there, below otherwise — and below on the very
@@ -268,11 +276,14 @@ const DoseHeatmap = ({
     const tipTop = hover == null ? 0 : tipBelow ? y(hover.row) + cell + 6 : y(hover.row) - 6 - tip.h;
     // Right-aligned to the cell once a left-aligned tooltip would run past the
     // grid, then clamped so neither edge can leave it.
-    const tipLeft = hover == null ? 0 : clamp(
-        x(hover.col) + tip.w > svgW ? x(hover.col) + cell - tip.w : x(hover.col),
-        0,
-        Math.max(0, svgW - tip.w),
-    );
+    const tipLeft =
+        hover == null
+            ? 0
+            : clamp(
+                  x(hover.col) + tip.w > svgW ? x(hover.col) + cell - tip.w : x(hover.col),
+                  0,
+                  Math.max(0, svgW - tip.w),
+              );
 
     return (
         <div className={`w-full ${className}`}>
@@ -296,8 +307,10 @@ const DoseHeatmap = ({
                             <text
                                 key={`mo-${m.col}`}
                                 className="chart-appear"
-                                x={x(m.col)} y={header - 5 * ui}
-                                fontSize={12 * ui} fill={c.axis}
+                                x={x(m.col)}
+                                y={header - 5 * ui}
+                                fontSize={12 * ui}
+                                fill={c.axis}
                             >
                                 {m.label}
                             </text>
@@ -307,8 +320,11 @@ const DoseHeatmap = ({
                             <text
                                 key={`wd-${w.row}`}
                                 className="chart-appear"
-                                x={gutter - 6 * ui} y={y(w.row) + cell / 2 + 4 * ui}
-                                textAnchor="end" fontSize={12 * ui} fill={c.axis}
+                                x={gutter - 6 * ui}
+                                y={y(w.row) + cell / 2 + 4 * ui}
+                                textAnchor="end"
+                                fontSize={12 * ui}
+                                fill={c.axis}
                             >
                                 {w.label}
                             </text>
@@ -329,8 +345,10 @@ const DoseHeatmap = ({
                                     return (
                                         <rect
                                             key={d.key}
-                                            x={x(col)} y={y(d.row)}
-                                            width={cell} height={cell}
+                                            x={x(col)}
+                                            y={y(d.row)}
+                                            width={cell}
+                                            height={cell}
                                             rx={Math.max(2, cell * 0.22)}
                                             fill={level === 0 ? c.empty : c.levels[level - 1]}
                                             stroke={isHover || isToday ? c.ring : 'none'}
@@ -363,7 +381,10 @@ const DoseHeatmap = ({
                         {/* Each drug by the name the plan rows above use, not its
                             code ("CPA"), and the amount as written ("12.5 mg"). */}
                         {hoverMg.map(([ester, mg]) => (
-                            <div key={ester} className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]">
+                            <div
+                                key={ester}
+                                className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]"
+                            >
                                 {esterName(ester as Ester, t)} · {Number(mg.toFixed(2))} mg
                             </div>
                         ))}

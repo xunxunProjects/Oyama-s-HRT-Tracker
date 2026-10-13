@@ -13,8 +13,3 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
-
-# These files still use 2-space indents. Remove this section in the
-# repo-wide Prettier reformat, which moves them to 4.
-[/{worker.ts,vite.config.ts,vitest.config.ts}]
-indent_size = 2

@@ -24,20 +24,13 @@ export const exportToCSV = (data: ExportData): string => {
         t('export.col.item'),
         t('export.col.value'),
         t('export.col.unit'),
-        t('export.col.route_ester')
+        t('export.col.route_ester'),
     ]);
 
     // Events
     events.forEach(e => {
         const date = formatDate(new Date(e.timeH * 3600000), lang);
-        rows.push([
-            t('export.val.dose'),
-            date,
-            activeCompoundName(e.ester),
-            e.doseMG,
-            'mg',
-            `${e.route} - ${e.ester}`
-        ]);
+        rows.push([t('export.val.dose'), date, activeCompoundName(e.ester), e.doseMG, 'mg', `${e.route} - ${e.ester}`]);
     });
 
     // Labs
@@ -49,7 +42,7 @@ export const exportToCSV = (data: ExportData): string => {
             isT_LabUnit(l.unit) ? 'Testosterone' : 'Estradiol',
             l.concValue,
             l.unit,
-            '-'
+            '-',
         ]);
     });
 
@@ -62,8 +55,7 @@ const sortByDateDescending = <T extends { timeH: number }>(items: T[]): T[] =>
         .sort((a, b) => b.item.timeH - a.item.timeH || a.index - b.index)
         .map(({ item }) => item);
 
-export const getLabTestLabel = (labResult: LabResult): 'E2' | 'T' =>
-    isT_LabUnit(labResult.unit) ? 'T' : 'E2';
+export const getLabTestLabel = (labResult: LabResult): 'E2' | 'T' => (isT_LabUnit(labResult.unit) ? 'T' : 'E2');
 
 export const buildPDFDocument = (data: ExportData, generatedAt = new Date()) => {
     const { events, labResults } = data;
@@ -87,7 +79,7 @@ export const buildPDFDocument = (data: ExportData, generatedAt = new Date()) => 
         formatDate(new Date(e.timeH * 3600000), safeLang as Lang),
         `${e.doseMG} mg`,
         e.route,
-        e.ester
+        e.ester,
     ]);
 
     autoTable(doc, {
@@ -106,7 +98,7 @@ export const buildPDFDocument = (data: ExportData, generatedAt = new Date()) => 
     const labRows = labResults.map(l => [
         formatDate(new Date(l.timeH * 3600000), safeLang as Lang),
         getLabTestLabel(l),
-        `${l.concValue} ${l.unit}`
+        `${l.concValue} ${l.unit}`,
     ]);
 
     autoTable(doc, {

@@ -33,15 +33,15 @@ const STYLE_KEY = 'app-pixel-cat-style';
  * 24 hours and can never leave a gap.
  */
 export type CatState =
-    | 'waking'    // 06-08  still half under the covers
-    | 'alert'     // 08-10  properly up, the liveliest stretch
-    | 'playing'   // 10-12  batting at something
-    | 'napping'   // 12-15  the long midday sleep
-    | 'grooming'  // 15-17  washing up
-    | 'waiting'   // 17-18  sat by an empty bowl, staring
-    | 'eating'    // 18-20  dinner
-    | 'winding'   // 20-21  fed, drowsy, not yet down
-    | 'asleep';   // 21-06  out cold under the quilt
+    | 'waking' // 06-08  still half under the covers
+    | 'alert' // 08-10  properly up, the liveliest stretch
+    | 'playing' // 10-12  batting at something
+    | 'napping' // 12-15  the long midday sleep
+    | 'grooming' // 15-17  washing up
+    | 'waiting' // 17-18  sat by an empty bowl, staring
+    | 'eating' // 18-20  dinner
+    | 'winding' // 20-21  fed, drowsy, not yet down
+    | 'asleep'; // 21-06  out cold under the quilt
 
 const CAT_SCHEDULE: readonly (readonly [number, CatState])[] = [
     [6, 'waking'],
@@ -61,12 +61,13 @@ const CAT_SCHEDULE: readonly (readonly [number, CatState])[] = [
  * a state with hours it no longer covers. The final window wraps past midnight,
  * so its `to` is the first entry's `from`.
  */
-export const CAT_STATE_WINDOWS: readonly { state: CatState; from: number; to: number }[] =
-    CAT_SCHEDULE.map(([from, state], i) => ({
+export const CAT_STATE_WINDOWS: readonly { state: CatState; from: number; to: number }[] = CAT_SCHEDULE.map(
+    ([from, state], i) => ({
         state,
         from,
         to: CAT_SCHEDULE[(i + 1) % CAT_SCHEDULE.length][0],
-    }));
+    }),
+);
 
 export const catStateForHour = (hour: number): CatState => {
     // Before the first entry is still the previous day's last state.
@@ -81,9 +82,7 @@ const catStateNow = (): CatState => catStateForHour(new Date().getHours());
 
 export const PixelCatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // On by default — opting out is the deliberate act.
-    const [showCats, setShowCats] = useState<boolean>(
-        () => localStorage.getItem(SHOW_KEY) !== 'false',
-    );
+    const [showCats, setShowCats] = useState<boolean>(() => localStorage.getItem(SHOW_KEY) !== 'false');
 
     const [catStyle, setCatStyle] = useState<CatStyle>(() => {
         const saved = localStorage.getItem(STYLE_KEY);

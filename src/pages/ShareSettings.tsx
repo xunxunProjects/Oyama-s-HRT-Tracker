@@ -6,7 +6,13 @@ import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
-import { CreatedShare, notifyLiveSharesChanged, ShareApiError, ShareSummary, sharingService } from '../services/sharing';
+import {
+    CreatedShare,
+    notifyLiveSharesChanged,
+    ShareApiError,
+    ShareSummary,
+    sharingService,
+} from '../services/sharing';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
@@ -80,7 +86,8 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         setError(null);
         setShares([]);
         setSharesLoading(true);
-        sharingService.list(authToken)
+        sharingService
+            .list(authToken)
             .then(items => setShares(items.filter(item => !item.expired)))
             .catch(() => setShares([]))
             .finally(() => setSharesLoading(false));
@@ -100,9 +107,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         try {
             const expiresAt = new Date(expiresAtInput).getTime();
             if (
-                !Number.isFinite(expiresAt)
-                || expiresAt <= Date.now()
-                || expiresAt > Date.now() + 365 * 24 * 60 * 60_000
+                !Number.isFinite(expiresAt) ||
+                expiresAt <= Date.now() ||
+                expiresAt > Date.now() + 365 * 24 * 60 * 60_000
             ) {
                 setError(copy.invalidExpiry);
                 return;
@@ -114,16 +121,19 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
             });
             setCreatedShare(result);
             if (result.live) notifyLiveSharesChanged();
-            setShares(previous => [{
-                id: result.id,
-                createdAt: result.createdAt,
-                expiresAt: result.expiresAt,
-                passwordRequired: result.passwordRequired,
-                live: result.live,
-                mode: result.mode,
-                updatedAt: result.updatedAt,
-                expired: false,
-            }, ...previous.filter(item => item.id !== result.id)]);
+            setShares(previous => [
+                {
+                    id: result.id,
+                    createdAt: result.createdAt,
+                    expiresAt: result.expiresAt,
+                    passwordRequired: result.passwordRequired,
+                    live: result.live,
+                    mode: result.mode,
+                    updatedAt: result.updatedAt,
+                    expired: false,
+                },
+                ...previous.filter(item => item.id !== result.id),
+            ]);
         } catch (requestError) {
             if (requestError instanceof ShareApiError) {
                 if (requestError.code === 'SNAPSHOT_TOO_LARGE') setError(copy.tooLarge);
@@ -151,19 +161,24 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     };
 
     const handleRevoke = (share: ShareSummary) => {
-        showDialog('confirm', copy.revokeConfirm, async () => {
-            setRevokingId(share.id);
-            try {
-                await sharingService.revoke(authToken, share.id);
-                setShares(previous => previous.filter(item => item.id !== share.id));
-                if (createdShare?.id === share.id) setCreatedShare(null);
-                if (share.live) notifyLiveSharesChanged();
-            } catch {
-                showDialog('alert', copy.revokeError);
-            } finally {
-                setRevokingId(null);
-            }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            copy.revokeConfirm,
+            async () => {
+                setRevokingId(share.id);
+                try {
+                    await sharingService.revoke(authToken, share.id);
+                    setShares(previous => previous.filter(item => item.id !== share.id));
+                    if (createdShare?.id === share.id) setCreatedShare(null);
+                    if (share.live) notifyLiveSharesChanged();
+                } catch {
+                    showDialog('alert', copy.revokeError);
+                } finally {
+                    setRevokingId(null);
+                }
+            },
+            { danger: true },
+        );
     };
 
     return (
@@ -172,210 +187,239 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
 
             <div className={PAGE_COLUMN}>
                 <p className="pb-5 text-sm leading-relaxed text-muted">{copy.modalDescription}</p>
-                    {createdShare ? (
-                        <div className="pb-0 pt-5">
-                            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-body">
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]">
-                                    <Check size={14} strokeWidth={2.25} />
-                                </span>
-                                <p className="text-[0.9375rem] font-medium">{copy.created}</p>
-                                {createdShare.live && (
-                                    <span className={liveBadgeClass}>{copy.liveBadge}</span>
-                                )}
-                                {createdShare.passwordRequired && (
-                                    <span className={metaBadgeClass}>
-                                        <LockKeyhole size={12} />
-                                        {copy.protected}
-                                    </span>
-                                )}
-                            </div>
-
-                            <label className="sr-only" htmlFor="created-share-link">
-                                {copy.copy}
-                            </label>
-                            <div className="flex flex-col gap-1 border-b border-[var(--border)] py-1 sm:flex-row sm:items-center sm:gap-3">
-                                <input
-                                    ref={linkInputRef}
-                                    id="created-share-link"
-                                    readOnly
-                                    value={createdShare.url}
-                                    className="min-w-0 flex-1 select-all truncate border-0 bg-transparent py-2.5 font-mono text-[0.8125rem] text-body outline-none"
-                                    onFocus={(event) => event.currentTarget.select()}
-                                />
-                                {/* Both labels share one grid cell so the button keeps a single
-                                    width across the copy → copied swap, in every locale. */}
-                                <button
-                                    type="button"
-                                    onClick={handleCopy}
-                                    className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--accent-ink)] transition-colors hover:bg-[var(--surface-hover)] sm:self-auto"
-                                >
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <CopyTick copied={copied} size={14} />
-                                        {/* Both labels share one cell so the button keeps the wider one's width. */}
-                                        <span className="grid">
-                                            <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>{copy.copy}</span>
-                                            <span className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>{copy.copied}</span>
-                                        </span>
-                                    </span>
-                                </button>
-                            </div>
-
+                {createdShare ? (
+                    <div className="pb-0 pt-5">
+                        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-body">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]">
+                                <Check size={14} strokeWidth={2.25} />
+                            </span>
+                            <p className="text-[0.9375rem] font-medium">{copy.created}</p>
+                            {createdShare.live && <span className={liveBadgeClass}>{copy.liveBadge}</span>}
                             {createdShare.passwordRequired && (
-                                <p className="mt-3 text-sm leading-relaxed text-muted">{copy.passwordHint}</p>
+                                <span className={metaBadgeClass}>
+                                    <LockKeyhole size={12} />
+                                    {copy.protected}
+                                </span>
                             )}
                         </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="border-b border-[var(--border)] pb-6">
-                            <div className="callout mb-5">
-                                {liveEnabled ? copy.liveSnapshotNote : copy.snapshotNote}
-                            </div>
 
-                            <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--border)] py-[18px]">
-                                <label htmlFor="share-live-toggle" className="cursor-pointer text-[0.9375rem] font-medium text-body">
-                                    {copy.liveToggle}
-                                </label>
-                                <Switch id="share-live-toggle" checked={liveEnabled} onChange={setLiveEnabled} />
-                            </div>
-
-                            <div className="mb-5">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <label htmlFor="share-password-toggle" className="text-sm font-medium text-body cursor-pointer">
-                                            {copy.passwordToggle}
-                                        </label>
-                                    </div>
-                                    <Switch
-                                        id="share-password-toggle"
-                                        checked={passwordEnabled}
-                                        onChange={next => { setPasswordEnabled(next); setError(null); }}
-                                    />
-                                </div>
-
-                                {passwordEnabled && (
-                                    <div className="mt-3">
-                                        <label htmlFor="share-password" className="block mb-1.5 text-xs font-medium text-muted">
-                                            {copy.passwordLabel}
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                id="share-password"
-                                                type={showPassword ? 'text' : 'password'}
-                                                value={password}
-                                                onChange={(event) => setPassword(event.target.value)}
-                                                className="input-base pr-11"
-                                                placeholder={copy.passwordPlaceholder}
-                                                minLength={8}
-                                                maxLength={128}
-                                                autoComplete="new-password"
-                                                required
-                                                autoFocus
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(value => !value)}
-                                                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
-                                                aria-label={showPassword ? t('auth.hide_password') : t('auth.show_password')}
-                                            >
-                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="mb-5">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsExpiryPickerOpen(value => !value)}
-                                    aria-expanded={isExpiryPickerOpen}
-                                    className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
-                                >
-                                    <span className="text-[0.9375rem] text-body">{copy.expiryLabel}</span>
-                                    <span className="flex items-center gap-1.5 text-muted">
-                                        <span className="text-sm tabular-nums">
-                                            {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
+                        <label className="sr-only" htmlFor="created-share-link">
+                            {copy.copy}
+                        </label>
+                        <div className="flex flex-col gap-1 border-b border-[var(--border)] py-1 sm:flex-row sm:items-center sm:gap-3">
+                            <input
+                                ref={linkInputRef}
+                                id="created-share-link"
+                                readOnly
+                                value={createdShare.url}
+                                className="min-w-0 flex-1 select-all truncate border-0 bg-transparent py-2.5 font-mono text-[0.8125rem] text-body outline-none"
+                                onFocus={event => event.currentTarget.select()}
+                            />
+                            {/* Both labels share one grid cell so the button keeps a single
+                                    width across the copy → copied swap, in every locale. */}
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--accent-ink)] transition-colors hover:bg-[var(--surface-hover)] sm:self-auto"
+                            >
+                                <span className="inline-flex items-center gap-1.5">
+                                    <CopyTick copied={copied} size={14} />
+                                    {/* Both labels share one cell so the button keeps the wider one's width. */}
+                                    <span className="grid">
+                                        <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>
+                                            {copy.copy}
                                         </span>
-                                        <ChevronDown size={14} className={`chev ${isExpiryPickerOpen ? 'rotate-180' : ''}`} />
+                                        <span className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>
+                                            {copy.copied}
+                                        </span>
                                     </span>
-                                </button>
-                                <DateTimePicker
-                                    isOpen={isExpiryPickerOpen}
-                                    inline
-                                    onClose={() => setIsExpiryPickerOpen(false)}
-                                    onConfirm={(date) => setExpiresAtInput(toLocalDateTimeValue(date.getTime()))}
-                                    initialDate={expiresAtInput ? new Date(expiresAtInput) : new Date(Date.now() + 7 * 24 * 60 * 60_000)}
-                                    mode="datetime"
-                                    title={copy.expiryLabel}
-                                />
-                                <p className="mt-1.5 text-xs text-muted">{copy.expiryHint}</p>
-                            </div>
+                                </span>
+                            </button>
+                        </div>
 
-                            {error && (
-                                <p className="mb-4 text-sm text-[var(--danger)]" role="alert">{error}</p>
-                            )}
-
-                            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <button type="button" onClick={onBack} className="btn-secondary">
-                                    {t('btn.cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
-                                    className="btn-primary min-w-[8.5rem]"
-                                >
-                                    {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}
-                                    {submitting ? copy.creating : copy.create}
-                                </button>
-                            </div>
-                        </form>
-                    )}
-
-                    <div className="pb-6 pt-5">
-                        <h3 className="text-[0.9375rem] font-medium text-body">{copy.manageTitle}</h3>
-                        <p className="mt-1 text-sm leading-relaxed text-muted">{copy.manageDescription}</p>
-                        {sharesLoading ? (
-                            <div className="flex items-center gap-2 py-4 text-sm text-muted">
-                                <Loader2 size={14} className="animate-spin" /> {copy.loading}
-                            </div>
-                        ) : shares.length === 0 ? (
-                            <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
-                        ) : (
-                            <div className="mt-3 border-t border-[var(--border)]">
-                                {shares.map(share => (
-                                    <div key={share.id} className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                                                <p className="text-sm font-medium text-body">
-                                                    {copy.sharedOn} {formatStamp(share.createdAt, lang)}
-                                                </p>
-                                                {share.live && (
-                                                    <span className={liveBadgeClass}>{copy.liveBadge}</span>
-                                                )}
-                                                {share.passwordRequired && (
-                                                    <span className={metaBadgeClass}>
-                                                        <LockKeyhole size={12} />
-                                                        {copy.protected}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="mt-1 truncate text-xs text-muted">
-                                                {copy.expiresOn} {share.expiresAt ? formatStamp(share.expiresAt, lang) : copy.neverExpires}
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRevoke(share)}
-                                            disabled={revokingId === share.id}
-                                            className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50 "
-                                        >
-                                            {revokingId === share.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                            {copy.revoke}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
+                        {createdShare.passwordRequired && (
+                            <p className="mt-3 text-sm leading-relaxed text-muted">{copy.passwordHint}</p>
                         )}
                     </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="border-b border-[var(--border)] pb-6">
+                        <div className="callout mb-5">{liveEnabled ? copy.liveSnapshotNote : copy.snapshotNote}</div>
+
+                        <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--border)] py-[18px]">
+                            <label
+                                htmlFor="share-live-toggle"
+                                className="cursor-pointer text-[0.9375rem] font-medium text-body"
+                            >
+                                {copy.liveToggle}
+                            </label>
+                            <Switch id="share-live-toggle" checked={liveEnabled} onChange={setLiveEnabled} />
+                        </div>
+
+                        <div className="mb-5">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <label
+                                        htmlFor="share-password-toggle"
+                                        className="text-sm font-medium text-body cursor-pointer"
+                                    >
+                                        {copy.passwordToggle}
+                                    </label>
+                                </div>
+                                <Switch
+                                    id="share-password-toggle"
+                                    checked={passwordEnabled}
+                                    onChange={next => {
+                                        setPasswordEnabled(next);
+                                        setError(null);
+                                    }}
+                                />
+                            </div>
+
+                            {passwordEnabled && (
+                                <div className="mt-3">
+                                    <label
+                                        htmlFor="share-password"
+                                        className="block mb-1.5 text-xs font-medium text-muted"
+                                    >
+                                        {copy.passwordLabel}
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            id="share-password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={password}
+                                            onChange={event => setPassword(event.target.value)}
+                                            className="input-base pr-11"
+                                            placeholder={copy.passwordPlaceholder}
+                                            minLength={8}
+                                            maxLength={128}
+                                            autoComplete="new-password"
+                                            required
+                                            autoFocus
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(value => !value)}
+                                            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
+                                            aria-label={
+                                                showPassword ? t('auth.hide_password') : t('auth.show_password')
+                                            }
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mb-5">
+                            <button
+                                type="button"
+                                onClick={() => setIsExpiryPickerOpen(value => !value)}
+                                aria-expanded={isExpiryPickerOpen}
+                                className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
+                            >
+                                <span className="text-[0.9375rem] text-body">{copy.expiryLabel}</span>
+                                <span className="flex items-center gap-1.5 text-muted">
+                                    <span className="text-sm tabular-nums">
+                                        {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
+                                    </span>
+                                    <ChevronDown
+                                        size={14}
+                                        className={`chev ${isExpiryPickerOpen ? 'rotate-180' : ''}`}
+                                    />
+                                </span>
+                            </button>
+                            <DateTimePicker
+                                isOpen={isExpiryPickerOpen}
+                                inline
+                                onClose={() => setIsExpiryPickerOpen(false)}
+                                onConfirm={date => setExpiresAtInput(toLocalDateTimeValue(date.getTime()))}
+                                initialDate={
+                                    expiresAtInput
+                                        ? new Date(expiresAtInput)
+                                        : new Date(Date.now() + 7 * 24 * 60 * 60_000)
+                                }
+                                mode="datetime"
+                                title={copy.expiryLabel}
+                            />
+                            <p className="mt-1.5 text-xs text-muted">{copy.expiryHint}</p>
+                        </div>
+
+                        {error && (
+                            <p className="mb-4 text-sm text-[var(--danger)]" role="alert">
+                                {error}
+                            </p>
+                        )}
+
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <button type="button" onClick={onBack} className="btn-secondary">
+                                {t('btn.cancel')}
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
+                                className="btn-primary min-w-[8.5rem]"
+                            >
+                                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}
+                                {submitting ? copy.creating : copy.create}
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                <div className="pb-6 pt-5">
+                    <h3 className="text-[0.9375rem] font-medium text-body">{copy.manageTitle}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">{copy.manageDescription}</p>
+                    {sharesLoading ? (
+                        <div className="flex items-center gap-2 py-4 text-sm text-muted">
+                            <Loader2 size={14} className="animate-spin" /> {copy.loading}
+                        </div>
+                    ) : shares.length === 0 ? (
+                        <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
+                    ) : (
+                        <div className="mt-3 border-t border-[var(--border)]">
+                            {shares.map(share => (
+                                <div
+                                    key={share.id}
+                                    className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                                            <p className="text-sm font-medium text-body">
+                                                {copy.sharedOn} {formatStamp(share.createdAt, lang)}
+                                            </p>
+                                            {share.live && <span className={liveBadgeClass}>{copy.liveBadge}</span>}
+                                            {share.passwordRequired && (
+                                                <span className={metaBadgeClass}>
+                                                    <LockKeyhole size={12} />
+                                                    {copy.protected}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="mt-1 truncate text-xs text-muted">
+                                            {copy.expiresOn}{' '}
+                                            {share.expiresAt ? formatStamp(share.expiresAt, lang) : copy.neverExpires}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRevoke(share)}
+                                        disabled={revokingId === share.id}
+                                        className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50 "
+                                    >
+                                        {revokingId === share.id ? (
+                                            <Loader2 size={14} className="animate-spin" />
+                                        ) : (
+                                            <Trash2 size={14} />
+                                        )}
+                                        {copy.revoke}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -42,11 +42,15 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {error && (
-                        <p id={`${id}-error`} role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+                        <p id={`${id}-error`} role="alert" className="text-sm text-[var(--danger)]">
+                            {error}
+                        </p>
                     )}
 
                     <div>
-                        <label htmlFor={`${id}-username`} className={`block text-xs font-medium mb-1.5 ${muted}`}>{t('account.new_username')}</label>
+                        <label htmlFor={`${id}-username`} className={`block text-xs font-medium mb-1.5 ${muted}`}>
+                            {t('account.new_username')}
+                        </label>
                         <input
                             id={`${id}-username`}
                             type="text"
@@ -60,11 +64,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={!canSave}
-                        className="btn-primary w-full"
-                    >
+                    <button type="submit" disabled={!canSave} className="btn-primary w-full">
                         {isLoading && <Loader2 size={16} className="animate-spin" />}
                         {t('btn.save')}
                     </button>

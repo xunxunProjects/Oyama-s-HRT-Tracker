@@ -52,15 +52,19 @@ interface SettingsProps {
 type SettingsCat = 'general' | 'data' | 'about';
 type MobileView = 'list' | SettingsCat;
 
-const rowBase = "w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start";
-const rowLabel = "text-[0.9375rem] text-[var(--text)]";
-const rowValue = "flex items-center gap-1 text-[0.9375rem] text-[var(--text-muted)]";
-const muted = "text-[var(--text-muted)]";
-const on = "text-[var(--text)]";
+const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
+const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
+const rowValue = 'flex items-center gap-1 text-[0.9375rem] text-[var(--text-muted)]';
+const muted = 'text-[var(--text-muted)]';
+const on = 'text-[var(--text)]';
 
 const section = settingsSection;
 
-const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({ label, value, onClick }) => (
+const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({
+    label,
+    value,
+    onClick,
+}) => (
     <button onClick={onClick} className={`${rowBase} ${rowBleed}`}>
         <span className={rowLabel}>{label}</span>
         <span className={rowValue}>
@@ -73,13 +77,20 @@ const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => 
 // The text is the switch's <label>, so a tap on the words (the bigger, more
 // natural target on a phone) flips it too. The description is read after the
 // name rather than folded into it.
-const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => {
+const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({
+    label,
+    desc,
+    checked,
+    onChange,
+}) => {
     const id = React.useId();
     return (
         <div className={`${rowBase} cursor-default`}>
             <label htmlFor={id} className="cursor-pointer">
                 <span className={`block ${rowLabel}`}>{label}</span>
-                <span id={`${id}-desc`} className={`block text-xs ${muted} mt-0.5`}>{desc}</span>
+                <span id={`${id}-desc`} className={`block text-xs ${muted} mt-0.5`}>
+                    {desc}
+                </span>
             </label>
             <Switch id={id} checked={checked} onChange={onChange} label={label} describedBy={`${id}-desc`} />
         </div>
@@ -123,13 +134,40 @@ const leaveMobileCat = (setMobileView: (v: MobileView) => void) => {
 };
 
 const Settings: React.FC<SettingsProps> = ({
-    t, lang, theme, languageOptions, onClearAllEvents, events,
-    showDialog, setIsDisclaimerOpen, onShowIntro, onNavigateToTransparency,
-    weight, pkParams, onNavigateToPKParams, onNavigateToHRTMode,
-    onNavigateToLanguage, onNavigateToAppearance, onNavigateToWeight,
-    onNavigateToExport, onNavigateToImport, autoSync, setAutoSync, isLoggedIn,
-    devMode, setDevMode, hideSiteLabel, setHideSiteLabel, showPrediction, setShowPrediction, onNavigateToMilkTea, onNavigateToCatStates, isAdmin, onNavigateToAdmin,
-    onNavigateToSupplies, supplyCount,
+    t,
+    lang,
+    theme,
+    languageOptions,
+    onClearAllEvents,
+    events,
+    showDialog,
+    setIsDisclaimerOpen,
+    onShowIntro,
+    onNavigateToTransparency,
+    weight,
+    pkParams,
+    onNavigateToPKParams,
+    onNavigateToHRTMode,
+    onNavigateToLanguage,
+    onNavigateToAppearance,
+    onNavigateToWeight,
+    onNavigateToExport,
+    onNavigateToImport,
+    autoSync,
+    setAutoSync,
+    isLoggedIn,
+    devMode,
+    setDevMode,
+    hideSiteLabel,
+    setHideSiteLabel,
+    showPrediction,
+    setShowPrediction,
+    onNavigateToMilkTea,
+    onNavigateToCatStates,
+    isAdmin,
+    onNavigateToAdmin,
+    onNavigateToSupplies,
+    supplyCount,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -180,9 +218,24 @@ const Settings: React.FC<SettingsProps> = ({
     // Each hint names what people come looking for in that category, so the
     // weight and the prediction switch can be found from this first screen.
     const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(' · ') },
-        { id: 'data',    label: t('settings.group.data'),    Icon: Database,  hint: [t('export.title'), t('import.title')].join(' · ') },
-        { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
+        {
+            id: 'general',
+            label: t('settings.group.general'),
+            Icon: Settings2,
+            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(' · '),
+        },
+        {
+            id: 'data',
+            label: t('settings.group.data'),
+            Icon: Database,
+            hint: [t('export.title'), t('import.title')].join(' · '),
+        },
+        {
+            id: 'about',
+            label: t('settings.group.about'),
+            Icon: Info,
+            hint: [t('drawer.model_title'), t('transparency.title')].join(' · '),
+        },
     ];
 
     // Each category is a stack of sections: like rows sit together, and the
@@ -204,11 +257,11 @@ const Settings: React.FC<SettingsProps> = ({
                 />
                 <NavRow
                     label={t('settings.pk_params')}
-                    value={pkParams && (
-                        <span className="text-xs text-[var(--warning)] font-medium mr-1">
-                            {t('pk.customized')}
-                        </span>
-                    )}
+                    value={
+                        pkParams && (
+                            <span className="text-xs text-[var(--warning)] font-medium mr-1">{t('pk.customized')}</span>
+                        )
+                    }
                     onClick={() => navTo(onNavigateToPKParams, 'general')}
                 />
             </div>
@@ -311,7 +364,9 @@ const Settings: React.FC<SettingsProps> = ({
                         {t('drawer.clear')}
                     </span>
                     {events.length > 0 && (
-                        <span className={`${rowValue} tabular-nums`}>{events.length} {t('timeline.records')}</span>
+                        <span className={`${rowValue} tabular-nums`}>
+                            {events.length} {t('timeline.records')}
+                        </span>
                     )}
                 </button>
             </div>
@@ -323,11 +378,19 @@ const Settings: React.FC<SettingsProps> = ({
             <div className={section}>
                 <NavRow
                     label={t('drawer.model_title')}
-                    onClick={() => showDialog('confirm', t('drawer.model_confirm'), () => window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'))}
+                    onClick={() =>
+                        showDialog('confirm', t('drawer.model_confirm'), () =>
+                            window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'),
+                        )
+                    }
                 />
                 <NavRow
                     label={t('drawer.github')}
-                    onClick={() => showDialog('confirm', t('drawer.github_confirm'), () => window.open('https://github.com/xunxunProjects/Oyama-s-HRT-Tracker', '_blank'))}
+                    onClick={() =>
+                        showDialog('confirm', t('drawer.github_confirm'), () =>
+                            window.open('https://github.com/xunxunProjects/Oyama-s-HRT-Tracker', '_blank'),
+                        )
+                    }
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
@@ -351,10 +414,13 @@ const Settings: React.FC<SettingsProps> = ({
                         onChange={setHideSiteLabel}
                     />
                 )}
-                {devMode && <NavRow label={t('settings.cat_states')} onClick={() => navTo(onNavigateToCatStates, 'about')} />}
-                {devMode && <NavRow label={t('settings.milk_tea_egg')} onClick={() => navTo(onNavigateToMilkTea, 'about')} />}
+                {devMode && (
+                    <NavRow label={t('settings.cat_states')} onClick={() => navTo(onNavigateToCatStates, 'about')} />
+                )}
+                {devMode && (
+                    <NavRow label={t('settings.milk_tea_egg')} onClick={() => navTo(onNavigateToMilkTea, 'about')} />
+                )}
             </div>
-
         </div>
     );
 
@@ -373,40 +439,41 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="md:hidden">
                 {/* Keyed so drilling in slides forward and backing out slides back. */}
                 <div key={mobileView} className={mobileAnim}>
-                {mobileView === 'list' ? (
-                    <>
-                        <PageHeader title={t('nav.settings')} />
-                        <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
-                            {cats.map(({ id, label, Icon, hint }) => (
-                                <button
-                                    key={id}
-                                    onClick={() => enterMobileCat(id)}
-                                    // The rule starts after the 36px tile and its 12px gap.
-                                    style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                                    className={`${rowBase} ${rowBleed}`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                            <Icon size={20} strokeWidth={1.75} className={muted} />
+                    {mobileView === 'list' ? (
+                        <>
+                            <PageHeader title={t('nav.settings')} />
+                            <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
+                                {cats.map(({ id, label, Icon, hint }) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => enterMobileCat(id)}
+                                        // The rule starts after the 36px tile and its 12px gap.
+                                        style={{ '--divider-inset': '3rem' } as React.CSSProperties}
+                                        className={`${rowBase} ${rowBleed}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
+                                                <Icon size={20} strokeWidth={1.75} className={muted} />
+                                            </div>
+                                            <div className="text-start">
+                                                <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
+                                                <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-start">
-                                            <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
-                                            <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <PageHeader onBack={exitMobileCat} title={cats.find(c => c.id === mobileView)?.label} />
-                        <div className={`${PAGE_COLUMN} mt-3`}>
-                            {catContent(mobileView as SettingsCat)}
-                        </div>
-                    </>
-                )}
+                                        <ChevronRight
+                                            size={18}
+                                            className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <PageHeader onBack={exitMobileCat} title={cats.find(c => c.id === mobileView)?.label} />
+                            <div className={`${PAGE_COLUMN} mt-3`}>{catContent(mobileView as SettingsCat)}</div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -416,12 +483,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="hidden md:block">
                 <PageHeader title={t('nav.settings')} />
                 <div className={`${PAGE_COLUMN} mt-3`}>
-                    <Tabs
-                        tabs={cats}
-                        value={cat}
-                        onChange={selectCat}
-                        className="mb-4"
-                    />
+                    <Tabs tabs={cats} value={cat} onChange={selectCat} className="mb-4" />
                     <div key={cat} className={catAnim}>
                         {catContent(cat)}
                     </div>

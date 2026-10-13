@@ -25,7 +25,8 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     useEffect(() => {
         if (!token) return;
-        authService.get2FAStatus(token)
+        authService
+            .get2FAStatus(token)
             .then(s => setTotpEnabled(!!s.totp))
             .catch(() => {});
     }, [token]);
@@ -78,11 +79,15 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     filed under the account but are no longer shown once it is
                     gone, so the one way to keep them is to export first. */}
                 <div className="flex items-start gap-3">
-                    <span className="icon-line text-sm leading-relaxed"><AlertTriangle size={18} className="text-[var(--danger)]" /></span>
+                    <span className="icon-line text-sm leading-relaxed">
+                        <AlertTriangle size={18} className="text-[var(--danger)]" />
+                    </span>
                     <div className="space-y-4 min-w-0">
                         <div className="space-y-1">
                             <p className={`text-sm leading-relaxed ${muted}`}>{t('account.delete_account_desc')}</p>
-                            <p className="text-sm font-medium text-[var(--danger)] leading-relaxed">{t('account.delete_warning')}</p>
+                            <p className="text-sm font-medium text-[var(--danger)] leading-relaxed">
+                                {t('account.delete_warning')}
+                            </p>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-[var(--text)]">{t('account.delete_server_title')}</p>
@@ -104,11 +109,15 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {error && (
-                        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+                        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">
+                            {error}
+                        </p>
                     )}
 
                     <div>
-                        <label htmlFor={`${id}-password`} className={labelCls}>{t('account.enter_password_confirm')}</label>
+                        <label htmlFor={`${id}-password`} className={labelCls}>
+                            {t('account.enter_password_confirm')}
+                        </label>
                         <input
                             id={`${id}-password`}
                             type="password"
@@ -122,10 +131,12 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         />
                     </div>
 
-                    {totpEnabled && (
-                        useBackup ? (
+                    {totpEnabled &&
+                        (useBackup ? (
                             <div>
-                                <label htmlFor={`${id}-backup`} className={labelCls}>{t('auth.backup_code_label')}</label>
+                                <label htmlFor={`${id}-backup`} className={labelCls}>
+                                    {t('auth.backup_code_label')}
+                                </label>
                                 <input
                                     id={`${id}-backup`}
                                     type="text"
@@ -137,14 +148,22 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     aria-describedby={error ? errorId : undefined}
                                     style={{ fontSize: '16px' }}
                                 />
-                                <button type="button" onClick={() => { setUseBackup(false); setBackupCode(''); }}
-                                    className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setUseBackup(false);
+                                        setBackupCode('');
+                                    }}
+                                    className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}
+                                >
                                     ← {t('account.2fa_code')}
                                 </button>
                             </div>
                         ) : (
                             <div>
-                                <label htmlFor={`${id}-code`} className={labelCls}>{t('account.2fa_code')}</label>
+                                <label htmlFor={`${id}-code`} className={labelCls}>
+                                    {t('account.2fa_code')}
+                                </label>
                                 <input
                                     id={`${id}-code`}
                                     type="text"
@@ -159,13 +178,18 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     aria-describedby={error ? errorId : undefined}
                                     style={{ fontSize: '16px' }}
                                 />
-                                <button type="button" onClick={() => { setUseBackup(true); setCode(''); }}
-                                    className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setUseBackup(true);
+                                        setCode('');
+                                    }}
+                                    className={`mt-2 text-xs ${muted} hover:text-[var(--text)] transition-colors`}
+                                >
                                     {t('auth.use_backup_code')}
                                 </button>
                             </div>
-                        )
-                    )}
+                        ))}
 
                     <button
                         type="submit"

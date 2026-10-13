@@ -19,6 +19,7 @@ Notable changes to this project. Full release notes for each version are on the
   修复了从 2026 年 9 月之前的镜像升级后 Docker 容器起不来的问题：这类数据卷常常已有两步验证
   密钥那一列，却没有后来加的防重放那一列，迁移 `0005` 会因为已存在的那一列失败。对账步骤现在会
   先补上缺的那一列；Cloudflare 部署用 `npm run wrangler:migrate:reconcile` 运行的也是同一步。
+
 - Made the app friendlier to use without changing its look. The system Back
   gesture now steps back through pages instead of leaving the app. A new dose
   starts on the drug and route used last. Confirms say what they will delete or
@@ -32,12 +33,14 @@ Notable changes to this project. Full release notes for each version are on the
   沿用上一次的药物和途径；确认框写清楚要删除或替换的内容，导入覆盖记录前会先提醒；用药记录、
   概览方案和空页面用应用自己的插画区分药物和下一步；点「快用完」那行直接进药量库存，点曲线能
   看到数值，检查页把结果列在图的上面；底部导航的「校准」改名为「检查」，与页面标题一致。
+
 - Added a contributing guide, a code of conduct, issue and pull request
   templates, and a vulnerability reporting policy in `SECURITY.md`. The security
   history that used to live there moved into this file.
 
   新增贡献指南、行为准则、issue 与 PR 模板，并将 `SECURITY.md` 改写为漏洞报告政策；
   原先其中的安全改进记录移至本文件。
+
 - Added unit tests for the dose and concentration math in `logic.ts`
   (`npm test`, run in CI). Problems they found, and gaps against published
   data, are recorded as expected failures under `tests/`; no calculation
@@ -45,6 +48,7 @@ Notable changes to this project. Full release notes for each version are on the
 
   新增 `logic.ts` 剂量与浓度计算的单元测试（`npm test`，已加入 CI）。
   测试中发现的问题以及与文献数据的差距，以预期失败的形式记录在 `tests/` 中，计算结果没有改动。
+
 - Fixed the calculation problems those tests recorded. Patch removals end the
   patch that is actually on. The current level right after an oral or
   sublingual dose is no longer read off a coarse grid. Lab calibration reports
@@ -67,6 +71,7 @@ Notable changes to this project. Full release notes for each version are on the
   计算（100 mg 峰值约 285 ng/mL）；睾酮注射按 Xyosted、Aveed 与 Nebido 说明书校准（每周
   100 mg 环戊丙酸或庚酸睾酮平均约 740 ng/dL，原为 430），以前保存过模型参数页的用户也会用上
   新值。舌下吸收参数未改，但舌下雌二醇的峰值变低，含服时间越短越明显，因为吞下的部分现在上升得慢。
+
 - Updated dependencies so `npm audit` reports nothing, including a critical
   advisory in the test runner (Vitest 3 to 4). React's type packages match
   React 18 again, and `autoprefixer` is gone because Tailwind 4 adds the
