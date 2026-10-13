@@ -162,11 +162,30 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    // The Time row and the picker under it. Escape folds the picker away,
+    // and focus on one of its fields would go down with it, dropped on the
+    // page (in the Edit Dose modal, the next Tab started behind the modal),
+    // so it is handed back to the Time row.
+    const timeRowRef = useRef<HTMLDivElement>(null);
+    const timeButtonRef = useRef<HTMLButtonElement>(null);
+    const closeDatePicker = () => {
+        if (timeRowRef.current?.contains(document.activeElement)) timeButtonRef.current?.focus();
+        setIsDatePickerOpen(false);
+    };
     const isInitializingRef = useRef(false);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false);
     const [templateName, setTemplateName] = useState('');
-    useEscapeLayer(() => setShowTemplateMenu(false), showTemplateMenu);
+    // Likewise for the template menu: closing it, by Escape, by choosing a
+    // row or by deleting one (the dialog hands focus back to the row's delete
+    // button first), takes focus from the row to the Load Template button.
+    const templateMenuRef = useRef<HTMLDivElement>(null);
+    const loadTemplateButtonRef = useRef<HTMLButtonElement>(null);
+    const closeTemplateMenu = () => {
+        if (templateMenuRef.current?.contains(document.activeElement)) loadTemplateButtonRef.current?.focus();
+        setShowTemplateMenu(false);
+    };
+    useEscapeLayer(closeTemplateMenu, showTemplateMenu);
     // The name field and the bookmark button take turns in one spot, and the
     // hidden one is inert, so focus moves across with each swap instead of
     // being dropped on the page.
@@ -713,6 +732,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         return (
             <div className="relative">
                 <button
+                    ref={loadTemplateButtonRef}
                     type="button"
                     onClick={() => setShowTemplateMenu(!showTemplateMenu)}
                     aria-expanded={showTemplateMenu}
@@ -728,13 +748,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     <span>{t('template.load_title')}</span>
                 </button>
                 {showTemplateMenu && (
-                    <div className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50">
+                    <div ref={templateMenuRef} className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50">
                         <div className="py-1">
                             {templates.map((template: DoseTemplate) => (
                                 <div key={template.id} className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b border-[var(--border)] last:border-b-0">
                                     <button
                                         type="button"
-                                        onClick={() => { handleLoadTemplate(template); setShowTemplateMenu(false); }}
+                                        onClick={() => { handleLoadTemplate(template); closeTemplateMenu(); }}
                                         className="flex-1 text-left"
                                     >
                                         <div className="text-sm font-medium text-[var(--text)]">{template.name}</div>
@@ -749,7 +769,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             showDialog('confirm', template.name, () => {
-                                                setShowTemplateMenu(false);
+                                                closeTemplateMenu();
                                                 onDeleteTemplate(template.id);
                                             }, { danger: true, title: t('template.delete_confirm'), confirmLabel: t('btn.delete') });
                                         }}
@@ -757,7 +777,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         // touch screen, where it used to take taps unseen.
                                         className="tap-target opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
                                         title={t('btn.delete')}
-                                        aria-label={t('btn.delete')}
+                                        aria-label={`${t('btn.delete')} ${template.name}`}
                                     >
                                         <Trash2 size={13} />
                                     </button>
@@ -813,8 +833,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
             <div className={`space-y-4 flex-1 overflow-y-auto ${!isInline ? 'px-6 pb-4' : hideHeader ? 'pb-2' : 'pb-4'}`}>
                 {/* Time */}
-                <div>
+                <div ref={timeRowRef}>
                     <button
+                        ref={timeButtonRef}
                         type="button"
                         onClick={() => setIsDatePickerOpen(v => !v)}
                         className="w-full flex items-center justify-between py-[18px] border-b border-[var(--border)] text-start"
@@ -830,7 +851,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     <DateTimePicker
                         isOpen={isDatePickerOpen}
                         inline
-                        onClose={() => setIsDatePickerOpen(false)}
+                        onClose={closeDatePicker}
                         onConfirm={(date) => {
                             const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                             setDateStr(iso);
