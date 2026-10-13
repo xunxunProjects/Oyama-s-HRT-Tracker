@@ -441,17 +441,6 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
 }
 
 /**
- * How lab results are used to calibrate the E2 estimate.
- *  - 'off'      : ignore labs, show the raw model.
- *  - 'average'  : amplitude-only regression — one personal scale (log-space
- *                 least-squares over all labs). Optimal single multiplier, but
- *                 cannot correct curve shape.
- *  - 'adaptive' : self-learning regression — fits a personal amplitude AND
- *                 clearance (half-life) by re-simulating over a clearance grid.
- *                 Needs ≥2 well-spaced labs to move clearance; falls back to
- *                 amplitude-only with sparse data. Bounded so it can't run away.
- */
-/**
  * Personal E2 calibration estimators. The three learning methods below mirror
  * the calibration models offered by hrt.transmtf.com; they are reimplemented
  * here over the two parameters this PK engine can actually identify from labs:
@@ -1093,7 +1082,6 @@ export function getToE2Factor(ester: Ester): number {
 // Transmasculine (testosterone) PK parameters
 // -----------------------------------------------------------------------------
 //
-// These parameters follow the structure described in `transmasc_hrt_modeling_document.md`.
 // Gel and injection levels are checked at 70 kg against the labels cited
 // where their parameters are set (tests/literature.test.ts). Label populations
 // are mostly heavier than that; one weight for every route keeps the routes
