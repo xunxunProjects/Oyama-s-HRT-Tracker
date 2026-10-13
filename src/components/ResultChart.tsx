@@ -205,6 +205,8 @@ const ResultChart = ({
     const [panOffset, setPanOffset] = useState(0); // ms the window is dragged from its centered base
     const [dragging, setDragging] = useState(false);
     const dragRef = useRef<{ startX: number; startY: number; startOffset: number; moved: boolean; pointerId: number } | null>(null);
+    // Where the current press went down, pan or no pan, so lifting can tell a tap from a swipe.
+    const pressRef = useRef<{ x: number; y: number } | null>(null);
 
     const selectRange = (r: RangeKey) => { setRange(r); setPanOffset(0); };
 
@@ -584,6 +586,7 @@ const ResultChart = ({
     };
 
     const onPointerDown = (e: React.PointerEvent) => {
+        pressRef.current = { x: e.clientX, y: e.clientY };
         if (!canPan) return;
         dragRef.current = { startX: e.clientX, startY: e.clientY, startOffset: panOffset, moved: false, pointerId: e.pointerId };
     };
@@ -621,10 +624,45 @@ const ResultChart = ({
         const drag = dragRef.current;
         if (drag && e) { try { e.currentTarget.releasePointerCapture(drag.pointerId); } catch { /* ignore */ } }
         dragRef.current = null;
+        pressRef.current = null;
         if (dragging) setDragging(false);
     };
 
-    const onPointerLeave = (e: React.PointerEvent) => { endDrag(e); setHover(null); };
+    // A finger has no hover: every press on a pannable window starts a drag,
+    // which keeps the readout away, and the "leave" a lifting finger fires
+    // cleared whatever was left. So on touch the chart could only be looked
+    // at. Now a tap that didn't turn into a pan or a scroll puts the readout
+    // where it landed, and it stays until the next press outside the plot,
+    // the way the heatmap's tooltip does. A tap on a dose marker only opens
+    // that dose.
+    const onPointerUp = (e: React.PointerEvent) => {
+        const press = pressRef.current;
+        const panned = !!dragRef.current?.moved;
+        endDrag(e);
+        if (e.pointerType === 'mouse' || !press || panned) return;
+        if (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10) return;
+        if ((e.target as Element).closest?.('[data-dose-marker]')) { setHover(null); return; }
+        updateHover(e.clientX);
+    };
+
+    // Only a mouse leaving means "done looking"; see onPointerUp.
+    const onPointerLeave = (e: React.PointerEvent) => {
+        endDrag(e);
+        if (e.pointerType === 'mouse') setHover(null);
+    };
+
+    // A tapped readout is dismissed by the next press anywhere outside the
+    // plot. Capture phase, so a press on the plot itself is seen here first
+    // and left alone for the tap above to move the readout.
+    const hovering = hover != null;
+    useEffect(() => {
+        if (!hovering || !plotEl) return;
+        const dismiss = (e: PointerEvent) => {
+            if (!plotEl.contains(e.target as Node)) setHover(null);
+        };
+        window.addEventListener('pointerdown', dismiss, true);
+        return () => window.removeEventListener('pointerdown', dismiss, true);
+    }, [hovering, plotEl]);
 
     const hoverPt = hover != null ? data[hover] : null;
     const showHover = !dragging && hoverPt != null && hoverPt.t >= t0 && hoverPt.t <= t1 && plotW > 0;
@@ -642,6 +680,16 @@ const ResultChart = ({
     if (!sim || sim.timeH.length === 0) {
         return <div className="h-72 md:h-96" aria-hidden="true" />;
     }
+
+    // The target band as drawn, clamped to the plot; null while it is entirely off-screen.
+    const band = (() => {
+        if (!primaryTarget) return null;
+        const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
+        const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
+        if (yLo - yHi < 0.5) return null;
+        const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
+        return { yHi, yLo, lowEdge: inView(YP(primaryTarget.low)), highEdge: inView(YP(primaryTarget.high)) };
+    })();
 
     return (
         <div className="w-full">
@@ -706,7 +754,7 @@ const ResultChart = ({
                         className="block"
                         onPointerDown={onPointerDown}
                         onPointerMove={onPointerMove}
-                        onPointerUp={endDrag}
+                        onPointerUp={onPointerUp}
                         onPointerCancel={endDrag}
                         onPointerLeave={onPointerLeave}
                         style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
@@ -721,22 +769,13 @@ const ResultChart = ({
                         </defs>
 
                         {/* Target reference band — quiet wash marking the typical range */}
-                        {primaryTarget && (() => {
-                            const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
-                            const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
-                            if (yLo - yHi < 0.5) return null; // band entirely off-screen
-                            const rawLo = YP(primaryTarget.low);
-                            const rawHi = YP(primaryTarget.high);
-                            const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
-                            return (
-                                <g className="chart-appear" style={{ animationDelay: '120ms' }}>
-                                    <rect x={mL} y={yHi} width={plotW} height={yLo - yHi} fill={c.primary} opacity={0.06} />
-                                    {inView(rawLo) && <line x1={mL} y1={yLo} x2={mL + plotW} y2={yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    {inView(rawHi) && <line x1={mL} y1={yHi} x2={mL + plotW} y2={yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    <text x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, yHi + 14 * ui)} fontSize={axisFont} fill={c.axis}>{t('chart.target')}</text>
-                                </g>
-                            );
-                        })()}
+                        {band && (
+                            <g className="chart-appear" style={{ animationDelay: '120ms' }}>
+                                <rect x={mL} y={band.yHi} width={plotW} height={band.yLo - band.yHi} fill={c.primary} opacity={0.06} />
+                                {band.lowEdge && <line x1={mL} y1={band.yLo} x2={mL + plotW} y2={band.yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                                {band.highEdge && <line x1={mL} y1={band.yHi} x2={mL + plotW} y2={band.yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                            </g>
+                        )}
 
                         {/* Horizontal grid + primary axis labels. The outgoing
                             set is kept alongside the incoming one and both are
@@ -816,6 +855,23 @@ const ResultChart = ({
                                 )}
                             </g>
 
+                            {/* The band's name, over the curves rather than under
+                                them with the wash: the curve crosses the band's top
+                                edge right where it sits, and drew through it. The
+                                halo in the page colour keeps it legible there; the
+                                marks drawn after it still sit on top. */}
+                            {band && (
+                                <text
+                                    className="chart-appear" style={{ animationDelay: '120ms' }}
+                                    x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, band.yHi + 14 * ui)}
+                                    fontSize={axisFont} fill={c.axis}
+                                    paintOrder="stroke" stroke={c.dot} strokeWidth={3 * ui} strokeLinejoin="round"
+                                    pointerEvents="none"
+                                >
+                                    {t('chart.target')}
+                                </text>
+                            )}
+
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
                                 <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.axis} strokeWidth={1} strokeDasharray="2 4" />
@@ -835,6 +891,7 @@ const ResultChart = ({
                                 return (
                                     <g
                                         key={`m-${i}`}
+                                        data-dose-marker=""
                                         className={`chart-mark${onPointClick ? ' cursor-pointer' : ''}`}
                                         style={{ animationDelay: sweepDelay(cx) }}
                                         onClick={() => onPointClick?.(m.event)}
