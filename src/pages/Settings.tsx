@@ -70,15 +70,21 @@ const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => 
     </button>
 );
 
-const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => (
-    <div className={`${rowBase} cursor-default`}>
-        <div>
-            <p className={rowLabel}>{label}</p>
-            <p className={`text-xs ${muted} mt-0.5`}>{desc}</p>
+// The text is the switch's <label>, so a tap on the words (the bigger, more
+// natural target on a phone) flips it too. The description is read after the
+// name rather than folded into it.
+const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => {
+    const id = React.useId();
+    return (
+        <div className={`${rowBase} cursor-default`}>
+            <label htmlFor={id} className="cursor-pointer">
+                <span className={`block ${rowLabel}`}>{label}</span>
+                <span id={`${id}-desc`} className={`block text-xs ${muted} mt-0.5`}>{desc}</span>
+            </label>
+            <Switch id={id} checked={checked} onChange={onChange} label={label} describedBy={`${id}-desc`} />
         </div>
-        <Switch checked={checked} onChange={onChange} label={label} />
-    </div>
-);
+    );
+};
 
 // Hard stops rather than a smooth blend, in equal fifths — the flag's stripes
 // are even, and anything else reads as a lopsided swatch.
@@ -171,8 +177,10 @@ const Settings: React.FC<SettingsProps> = ({
     const catAnim = useSwitchAnimation(cat, CAT_ORDER);
     const mobileAnim = useSwitchAnimation(mobileView, MOBILE_ORDER);
 
+    // Each hint names what people come looking for in that category, so the
+    // weight and the prediction switch can be found from this first screen.
     const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('settings.hrt_mode'), t('drawer.lang'), t('settings.theme')].join(' · ') },
+        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(' · ') },
         { id: 'data',    label: t('settings.group.data'),    Icon: Database,  hint: [t('export.title'), t('import.title')].join(' · ') },
         { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
     ];
@@ -291,7 +299,8 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow label={t('import.title')} onClick={() => navTo(onNavigateToImport, 'data')} />
             </div>
 
-            {/* Destructive, so it sits apart from Export and Import rather than one row under them. */}
+            {/* Destructive, so it sits apart from Export and Import rather than one row under them.
+                The count says how much goes before the tap, not only in the confirm. */}
             <div className={section}>
                 <button
                     onClick={onClearAllEvents}
@@ -301,6 +310,9 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
                         {t('drawer.clear')}
                     </span>
+                    {events.length > 0 && (
+                        <span className={`${rowValue} tabular-nums`}>{events.length} {t('timeline.records')}</span>
+                    )}
                 </button>
             </div>
         </div>
