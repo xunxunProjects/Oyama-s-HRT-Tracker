@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Monitor, Smartphone, Loader2, LogOut, X } from 'lucide-react';
+import { Monitor, Smartphone, Loader2, LogOut, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -49,14 +49,19 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     const nowSec = Math.floor(Date.now() / 1000);
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(false);
+    // The list could not be fetched. Said where the list goes, with a way to
+    // try again, rather than in a dialog that left "No active sessions" behind
+    // it: never true for someone signed in, since this device is one.
+    const [failed, setFailed] = useState(false);
     const [terminating, setTerminating] = useState<string | null>(null);
 
     const load = async () => {
         setLoading(true);
         try {
             setSessions(await authService.listSessions(token));
+            setFailed(false);
         } catch {
-            showDialog('alert', t('account.sessions_fetch_failed'));
+            setFailed(true);
         } finally {
             setLoading(false);
         }
@@ -103,6 +108,17 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                 {loading ? (
                     <div className="flex justify-center py-16">
                         <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                    </div>
+                ) : failed ? (
+                    <div className="flex flex-col items-center gap-2 py-14 text-center">
+                        <p role="alert" className={`flex items-center gap-1.5 text-sm ${settingsMuted}`}>
+                            <AlertCircle size={15} className="shrink-0 text-[var(--warning)]" />
+                            {t('account.sessions_fetch_failed')}
+                        </p>
+                        <button type="button" onClick={load} className="btn-ghost btn-ghost-accent tap-target">
+                            <RefreshCw size={14} />
+                            {t('account.retry')}
+                        </button>
                     </div>
                 ) : sessions.length === 0 ? (
                     <p className={`text-sm ${settingsMuted} text-center py-14`}>{t('account.sessions_empty')}</p>

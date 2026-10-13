@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
@@ -97,6 +97,10 @@ const Account: React.FC<AccountProps> = ({
     const avatarUrl = apiEndpoint(`/api/user/avatar/${user?.username}?t=${avatarCacheBuster}`);
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
+    // The list could not be fetched. Kept apart from an empty list, which is
+    // how it used to show: "No cloud backups yet" to someone whose backups
+    // might be the only copy they have.
+    const [backupsFailed, setBackupsFailed] = useState(false);
     const [savingCloud, setSavingCloud] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [expandedData, setExpandedData] = useState<Record<string, any>>({});
@@ -137,7 +141,13 @@ const Account: React.FC<AccountProps> = ({
         try {
             const list = await cloudService.listMeta(token);
             setBackupList(list);
-        } catch { if (!silent) setBackupList([]); }
+            setBackupsFailed(false);
+        } catch {
+            // A silent refresh that fails keeps the rows it already shows:
+            // they were real a moment ago, and an error line in their place
+            // would be the blinking the comment above rules out.
+            if (!silent) { setBackupList([]); setBackupsFailed(true); }
+        }
         finally { if (!silent) setBackupsLoading(false); }
     };
 
@@ -574,6 +584,17 @@ const Account: React.FC<AccountProps> = ({
                         {backupsLoading ? (
                             <div className="flex justify-center py-6">
                                 <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                            </div>
+                        ) : backupsFailed ? (
+                            <div className="py-6 flex flex-col items-center gap-2 text-center">
+                                <p role="alert" className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                                    <AlertCircle size={14} className="shrink-0 text-[var(--warning)]" />
+                                    {t('account.backups_list_failed')}
+                                </p>
+                                <button type="button" onClick={() => fetchBackups()} className="btn-ghost btn-ghost-accent tap-target">
+                                    <RefreshCw size={14} />
+                                    {t('account.retry')}
+                                </button>
                             </div>
                         ) : backupList.length === 0 ? (
                             <div className="py-6 flex flex-col items-center gap-2">
