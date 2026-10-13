@@ -202,6 +202,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.selected": "已选 {n} 条",
         "timeline.batch_delete_title": "删除记录",
         "timeline.patch_worn": "佩戴 {d}",
+        "timeline.saved": "已保存",
 
         "drawer.clear": "清空所有记录",
         "drawer.clear_confirm": "删除所有记录？此操作不可撤销。",
@@ -971,6 +972,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.selected": "{n} selected",
         "timeline.batch_delete_title": "Delete records",
         "timeline.patch_worn": "worn {d}",
+        "timeline.saved": "Saved",
 
         "drawer.clear": "Clear All Records",
         "drawer.clear_confirm": "Clear all records? This cannot be undone.",
@@ -1631,6 +1633,7 @@ const ZH_TW = {
     "timeline.selected": "已選取 {n} 筆",
     "timeline.batch_delete_title": "刪除紀錄",
     "timeline.patch_worn": "佩戴 {d}",
+    "timeline.saved": "已儲存",
 
     "drawer.clear": "清除所有劑量",
     "drawer.clear_confirm": "確定要刪除所有紀錄？此動作無法復原。",
@@ -2915,6 +2918,7 @@ export const TRANSLATIONS = {
         "timeline.selected": "{n} 件を選択中",
         "timeline.batch_delete_title": "記録を削除",
         "timeline.patch_worn": "貼付 {d}",
+        "timeline.saved": "保存しました",
 
         "drawer.clear": "すべての用量を削除",
         "drawer.clear_confirm": "すべての記録を削除しますか？この操作は元に戻せません。",
@@ -3665,6 +3669,7 @@ export const TRANSLATIONS = {
         "timeline.selected": "{n}개 선택됨",
         "timeline.batch_delete_title": "기록 삭제",
         "timeline.patch_worn": "{d} 착용",
+        "timeline.saved": "저장됨",
 
         "drawer.clear": "모든 기록 삭제",
         "drawer.clear_confirm": "모든 기록을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -4435,6 +4440,7 @@ export const TRANSLATIONS = {
         "timeline.selected": "{n} seçildi",
         "timeline.batch_delete_title": "Kayıtları sil",
         "timeline.patch_worn": "{d} takılı kaldı",
+        "timeline.saved": "Kaydedildi",
 
         "drawer.clear": "Tüm Kayıtları Temizle",
         "drawer.clear_confirm": "Tüm kayıtlar silinsin mi? Bu işlem geri alınamaz.",

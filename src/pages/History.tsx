@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
 import { Plus, Minus, Trash2, ListChecks, Repeat, ChevronDown } from 'lucide-react';
 import Tick from '../components/Tick';
@@ -33,6 +33,16 @@ const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string
 // is room, and an icon-only button keeps its words as its aria-label.
 const iconOnNarrow = 'max-sm:w-11 max-sm:justify-center max-sm:px-0';
 const labelOnWide = 'max-sm:hidden';
+
+// The add form folds away over --duration-base. The saved row is looked for
+// once it has, so it is scrolled to where it ends up, not to where it was
+// while the form still sat above it.
+const FOLD_MS = 240;
+// How long a row just saved keeps its wash and tick.
+const SAVED_MARK_MS = 1500;
+// Long enough for the wash to fade back out (.row-wash) and the tick to be
+// rubbed out before the tick is unmounted.
+const SAVED_FADE_MS = 400;
 
 /**
  * A number field with − and + on either side, so the batch values can be
@@ -141,6 +151,28 @@ const History: React.FC<HistoryProps> = ({
     // had not happened yet pushed today's doses out of sight.
     const [plannedOpen, setPlannedOpen] = useState(false);
 
+    // The row just added or edited. Once the form is out of the way it is
+    // scrolled into view and marked for a moment, so a save shows where the
+    // dose went instead of only changing the count, which invited logging it
+    // twice. A new object on every save, so saving one row twice marks it twice.
+    const [saved, setSaved] = useState<{ id: string } | null>(null);
+    const [savedMarkOn, setSavedMarkOn] = useState(false);
+    const savedRowRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (!saved) return;
+        const timers = [
+            window.setTimeout(() => {
+                const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+                savedRowRef.current?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+                setSavedMarkOn(true);
+            }, FOLD_MS),
+            window.setTimeout(() => setSavedMarkOn(false), FOLD_MS + SAVED_MARK_MS),
+            window.setTimeout(() => setSaved(null), FOLD_MS + SAVED_MARK_MS + SAVED_FADE_MS),
+        ];
+        return () => timers.forEach(clearTimeout);
+    }, [saved]);
+
     const allEvents = useMemo(() => groupedEvents.flatMap(g => g.events), [groupedEvents]);
     const totalRecords = allEvents.length;
     const nowH = Date.now() / 3600000;
@@ -176,6 +208,14 @@ const History: React.FC<HistoryProps> = ({
         return wornH;
     }, [allEvents]);
 
+    const markSaved = (e: DoseEvent) => {
+        // A dose saved for later lands in the planned section: open it, or
+        // there would be no row to show.
+        if (e.timeH > nowH) setPlannedOpen(true);
+        setSavedMarkOn(false);
+        setSaved({ id: e.id });
+    };
+
     // Batch add is a choice for one save, not a mode the form stays in: left
     // on, the next single dose quietly went in seven times. Every way the form
     // closes turns it off; the interval and count are kept for next time.
@@ -202,6 +242,8 @@ const History: React.FC<HistoryProps> = ({
             onSaveEvent(e);
         }
         closeQuickAdd();
+        // For a batch, the first of the series: the dose at the time chosen.
+        markSaved(e);
     };
 
     const enterSelectMode = () => {
@@ -251,6 +293,8 @@ const History: React.FC<HistoryProps> = ({
         const isEditing = editingId === ev.id;
         const isSelected = selectedIds.has(ev.id);
         const isFuture = ev.timeH > nowH;
+        const isSaved = saved?.id === ev.id;
+        const isMarked = isSaved && savedMarkOn;
         const isRemoval = ev.route === Route.patchRemove;
         const wornH = isRemoval ? wornBeforeRemoval.get(ev) : undefined;
         const editOpen = isEditing && !selectMode;
@@ -262,9 +306,10 @@ const History: React.FC<HistoryProps> = ({
                     gel, patch, tablet and pill all read "Estradiol (E2)". */}
                 <button
                     type="button"
+                    ref={isSaved ? savedRowRef : undefined}
                     onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
                     {...(selectMode ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-expanded': isEditing })}
-                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}
+                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}`}
                 >
                     {selectMode ? (
                         <span className={`check-dot inline-flex shrink-0 items-center justify-center w-4 h-4 rounded-full border ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}>
@@ -274,7 +319,8 @@ const History: React.FC<HistoryProps> = ({
                     <Doodle name={ev.route} size={1.75} asleep={isFuture} />
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-baseline gap-2 min-w-0">
+                            {/* Room kept for the tick while it shows, so it never sits on a long name. */}
+                            <div className={`flex items-baseline gap-2 min-w-0 ${isSaved ? 'pe-5' : ''}`}>
                                 <span className="font-medium text-[var(--text)] truncate text-sm">
                                     {isRemoval ? t('route.patchRemove') : drugLabel(ev.ester, t)}
                                 </span>
@@ -284,7 +330,12 @@ const History: React.FC<HistoryProps> = ({
                                     </span>
                                 )}
                             </div>
-                            <span className="text-xs tabular-nums text-[var(--text-muted)] shrink-0">
+                            <span className="relative text-xs tabular-nums text-[var(--text-muted)] shrink-0">
+                                {isSaved && (
+                                    <span className="absolute inset-y-0 end-full me-1 flex items-center">
+                                        <Tick on={savedMarkOn} size={14} />
+                                    </span>
+                                )}
                                 {formatTime(new Date(ev.timeH * 3600000))}
                             </span>
                         </div>
@@ -338,6 +389,7 @@ const History: React.FC<HistoryProps> = ({
                                     onSave={(e) => {
                                         onSaveEvent(e);
                                         setEditingId(null);
+                                        markSaved(e);
                                     }}
                                     onCancel={() => setEditingId(null)}
                                     onDelete={(id) => {
@@ -435,6 +487,9 @@ const History: React.FC<HistoryProps> = ({
                     </>
                 )}
             />
+
+            {/* Said aloud when a save is marked, for anyone who cannot see the tick. */}
+            <p className="sr-only" aria-live="polite">{savedMarkOn ? t('timeline.saved') : ''}</p>
 
             {/* Inert while closed, so a keyboard does not tab through a form it cannot see. */}
             <div className="disclosure mt-4" data-open={isQuickAddOpen} {...inertWhen(!isQuickAddOpen)}>
