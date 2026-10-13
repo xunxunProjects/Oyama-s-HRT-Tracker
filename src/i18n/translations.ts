@@ -199,6 +199,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.batch_hint": "从所选给药时间开始，每 {d} 天一条，共添加 {n} 条记录。",
         "timeline.future": "计划",
         "timeline.records": "条记录",
+        "timeline.patch_worn": "佩戴 {d}",
 
         "drawer.clear": "清空所有记录",
         "drawer.clear_confirm": "删除所有记录？此操作不可撤销。",
@@ -965,6 +966,7 @@ export const TRANSLATIONS_BASE = {
         "timeline.batch_hint": "Starting from the selected dose time, one entry every {d} days, {n} entries total.",
         "timeline.future": "Planned",
         "timeline.records": "Records",
+        "timeline.patch_worn": "worn {d}",
 
         "drawer.clear": "Clear All Records",
         "drawer.clear_confirm": "Clear all records? This cannot be undone.",
@@ -1622,6 +1624,7 @@ const ZH_TW = {
     "timeline.batch_hint": "從所選給藥時間開始，每 {d} 天一筆，共新增 {n} 筆紀錄。",
     "timeline.future": "計劃",
     "timeline.records": "條記錄",
+    "timeline.patch_worn": "佩戴 {d}",
 
     "drawer.clear": "清除所有劑量",
     "drawer.clear_confirm": "確定要刪除所有紀錄？此動作無法復原。",
@@ -2401,6 +2404,7 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "由揀好嘅畀藥時間開始，每 {d} 日一條，總共加 {n} 條記錄。",
         "timeline.future": "計劃",
         "timeline.records": "條記錄",
+        "timeline.patch_worn": "貼咗 {d}",
 
         "drawer.clear": "清空全部記錄",
         "drawer.clear_confirm": "真係要刪晒所有記錄？呢步唔可以撤銷。",
@@ -2900,6 +2904,7 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "選択した投与時刻から {d} 日ごとに1件、計 {n} 件追加します。",
         "timeline.future": "予定",
         "timeline.records": "件の記録",
+        "timeline.patch_worn": "貼付 {d}",
 
         "drawer.clear": "すべての用量を削除",
         "drawer.clear_confirm": "すべての記録を削除しますか？この操作は元に戻せません。",
@@ -3647,6 +3652,7 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "선택한 투여 시각부터 {d}일마다 1건씩, 총 {n}건 추가됩니다.",
         "timeline.future": "예정",
         "timeline.records": "건",
+        "timeline.patch_worn": "{d} 착용",
 
         "drawer.clear": "모든 기록 삭제",
         "drawer.clear_confirm": "모든 기록을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -4414,6 +4420,7 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "Seçilen doz zamanından başlayarak her {d} günde bir, toplam {n} kayıt eklenir.",
         "timeline.future": "Planlı",
         "timeline.records": "Kayıt",
+        "timeline.patch_worn": "{d} takılı kaldı",
 
         "drawer.clear": "Tüm Kayıtları Temizle",
         "drawer.clear_confirm": "Tüm kayıtlar silinsin mi? Bu işlem geri alınamaz.",

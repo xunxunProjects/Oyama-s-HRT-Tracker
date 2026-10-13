@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
-import { Plus, Minus, Trash2, ListChecks, Repeat } from 'lucide-react';
+import { Plus, Minus, Trash2, ListChecks, Repeat, ChevronDown } from 'lucide-react';
 import Tick from '../components/Tick';
 import Switch from '../components/Switch';
+import Doodle from '../components/Doodle';
 import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster } from '../../logic';
 import { formatTime } from '../utils/helpers';
@@ -23,6 +24,7 @@ const MAX_BATCH_COUNT = 365;
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const headerBtn = headerAction;
+const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /**
  * A number field with − and + on either side, so the batch values can be
@@ -122,9 +124,27 @@ const History: React.FC<HistoryProps> = ({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-    const allEvents = groupedEvents.flatMap(g => g.events);
+    const allEvents = useMemo(() => groupedEvents.flatMap(g => g.events), [groupedEvents]);
     const totalRecords = allEvents.length;
     const nowH = Date.now() / 3600000;
+
+    // How long the patch each removal took off had been worn, for its row.
+    // Paired the way the model pairs them (patchRemovalTimes in logic.ts): in
+    // time order, each removal ends the oldest patch still on, so the row says
+    // what the curve does. Keyed on the event, as there, since imported files
+    // can repeat an id.
+    const wornBeforeRemoval = useMemo(() => {
+        const wornH = new Map<DoseEvent, number>();
+        const onSkin: DoseEvent[] = [];
+        for (const e of [...allEvents].sort((a, b) => a.timeH - b.timeH)) {
+            if (e.route === Route.patchApply) onSkin.push(e);
+            else if (e.route === Route.patchRemove) {
+                const applied = onSkin.shift();
+                if (applied && e.timeH > applied.timeH) wornH.set(e, e.timeH - applied.timeH);
+            }
+        }
+        return wornH;
+    }, [allEvents]);
 
     const handleQuickSave = (e: DoseEvent) => {
         const interval = parseFloat(batchIntervalDays);
@@ -186,6 +206,134 @@ const History: React.FC<HistoryProps> = ({
         .replace('{d}', batchIntervalDays || '?')
         .replace('{n}', batchCount || '?');
 
+    const renderRow = (ev: DoseEvent) => {
+        const isEditing = editingId === ev.id;
+        const isSelected = selectedIds.has(ev.id);
+        const isFuture = ev.timeH > nowH;
+        const isRemoval = ev.route === Route.patchRemove;
+        const wornH = isRemoval ? wornBeforeRemoval.get(ev) : undefined;
+        const editOpen = isEditing && !selectMode;
+        return (
+            <div key={ev.id} className="border-b border-[var(--border)] last:border-b-0">
+                {/* A button, so a keyboard reaches every record: it opens the
+                    record's form, or in select mode ticks it. The drawing at its
+                    head says the route, which the first line alone does not when
+                    gel, patch, tablet and pill all read "Estradiol (E2)". */}
+                <button
+                    type="button"
+                    onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
+                    {...(selectMode ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-expanded': isEditing })}
+                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}
+                >
+                    {selectMode ? (
+                        <span className={`check-dot inline-flex shrink-0 items-center justify-center w-4 h-4 rounded-full border ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}>
+                            <Tick on={isSelected} size={11} strokeWidth={2.5} tone="current" className="text-[var(--on-accent)]" />
+                        </span>
+                    ) : null}
+                    <Doodle name={ev.route} size={1.75} asleep={isFuture} />
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-baseline gap-2 min-w-0">
+                                <span className="font-medium text-[var(--text)] truncate text-sm">
+                                    {isRemoval ? t('route.patchRemove') : drugLabel(ev.ester, t)}
+                                </span>
+                                {wornH !== undefined && (
+                                    <span className={`shrink-0 text-xs ${muted}`}>
+                                        {t('timeline.patch_worn').replace('{d}', `${formatWearDays(wornH / 24)} ${t('unit.day_short')}`)}
+                                    </span>
+                                )}
+                                {isFuture && (
+                                    <span className={`shrink-0 self-center text-[0.6875rem] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
+                                        {t('timeline.future')}
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-xs tabular-nums text-[var(--text-muted)] shrink-0">
+                                {formatTime(new Date(ev.timeH * 3600000))}
+                            </span>
+                        </div>
+                        {/* A removal is the one line: its route is its name,
+                            and it has no amount of its own. */}
+                        {!isRemoval && (
+                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
+                                <span className="truncate">{t(`route.${ev.route}`)}</span>
+                                {ev.extras[ExtraKey.releaseRateUGPerDay] ? (
+                                    <>
+                                        <span className="text-[var(--text)]">{`${ev.extras[ExtraKey.releaseRateUGPerDay]} µg/d`}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-[var(--text)] font-medium">{`${ev.doseMG.toFixed(2)} mg`}</span>
+                                        {ev.ester !== Ester.E2 && isEstradiolEster(ev.ester) && (
+                                            <span className="opacity-70">
+                                                {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
+                                            </span>
+                                        )}
+                                        {isTestosteroneEster(ev.ester) && ev.ester !== Ester.T && (
+                                            <span className="opacity-70">
+                                                {`(${t('label.t')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
+                                            </span>
+                                        )}
+                                    </>
+                                )}
+                                {ev.route === Route.patchApply && typeof ev.extras[ExtraKey.patchWearH] === 'number' && ev.extras[ExtraKey.patchWearH]! > 0 && (
+                                    <>
+                                        <span className="text-[var(--text)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    {!selectMode && (
+                        <ChevronDown size={16} className={`chev ${muted} shrink-0 ${isEditing ? 'rotate-180' : ''}`} />
+                    )}
+                </button>
+
+                <div className="disclosure" data-open={editOpen} {...inertWhen(!editOpen)}>
+                    <div className="disclosure-inner">
+                        {/* Mounted only for the row being edited — with hundreds of
+                            records, keeping every row's form mounted (even collapsed
+                            to zero height) made every dose add/edit re-render all of
+                            them at once. */}
+                        {editOpen && (
+                            <div className="pb-4 pt-1">
+                                <DoseForm
+                                    eventToEdit={ev}
+                                    onSave={(e) => {
+                                        onSaveEvent(e);
+                                        setEditingId(null);
+                                    }}
+                                    onCancel={() => setEditingId(null)}
+                                    onDelete={(id) => {
+                                        onDeleteEvent(id);
+                                        setEditingId(null);
+                                    }}
+                                    templates={doseTemplates}
+                                    onSaveTemplate={onSaveTemplate}
+                                    onDeleteTemplate={onDeleteTemplate}
+                                    isInline={true}
+                                    hideHeader={true}
+                                    events={allEvents}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup) => (
+        <div key={key} className="mb-6 last:mb-0">
+            <div className="sticky top-[80px] z-10 bg-[var(--bg)] py-2">
+                <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
+            </div>
+            <div>
+                {dayEvents.map(renderRow)}
+            </div>
+        </div>
+    );
+
     return (
         <div className="relative pb-32">
             <PageHeader
@@ -228,8 +376,9 @@ const History: React.FC<HistoryProps> = ({
                 )}
             />
 
-            <div className={`mt-4 grid ${isQuickAddOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="overflow-hidden">
+            {/* Inert while closed, so a keyboard does not tab through a form it cannot see. */}
+            <div className="disclosure mt-4" data-open={isQuickAddOpen} {...inertWhen(!isQuickAddOpen)}>
+                <div className="disclosure-inner">
                     <div className={`${PAGE_COLUMN} mb-6`}>
                         <div className="flex items-center justify-between py-3">
                             <div>
@@ -291,109 +440,7 @@ const History: React.FC<HistoryProps> = ({
 
             {groupedEvents.length > 0 && (
             <div className={PAGE_COLUMN}>
-                {groupedEvents.map(({ key, label, events: dayEvents }) => (
-                    <div key={key} className="mb-6 last:mb-0">
-                        <div className="sticky top-[80px] z-10 bg-[var(--bg)] py-2">
-              <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
-                        </div>
-                        <div>
-                            {dayEvents.map(ev => {
-                                const isEditing = editingId === ev.id;
-                                const isSelected = selectedIds.has(ev.id);
-                                const isFuture = ev.timeH > nowH;
-                                return (
-                                <div key={ev.id} className="border-b border-[var(--border)] last:border-b-0">
-                                    <div
-                                        onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
-                                        className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}
-                                    >
-                                        {selectMode ? (
-                                            <span className={`icon-line text-sm check-dot w-4 h-4 rounded-full border justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}>
-                                                <Tick on={isSelected} size={11} strokeWidth={2.5} tone="current" className="text-[var(--on-accent)]" />
-                                            </span>
-                                        ) : null}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <span className="font-medium text-[var(--text)] truncate text-sm">
-                                                        {ev.route === Route.patchRemove ? t('route.patchRemove') : drugLabel(ev.ester, t)}
-                                                    </span>
-                                                    {isFuture && (
-                                                        <span className={`shrink-0 text-[0.6875rem] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
-                                                            {t('timeline.future')}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className="text-xs tabular-nums text-[var(--text-muted)] shrink-0">
-                                                    {formatTime(new Date(ev.timeH * 3600000))}
-                                                </span>
-                                            </div>
-                                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
-                                                <span className="truncate">{t(`route.${ev.route}`)}</span>
-                                                {ev.extras[ExtraKey.releaseRateUGPerDay] ? (
-                                                    <>
-                                                        <span className="text-[var(--text)]">{`${ev.extras[ExtraKey.releaseRateUGPerDay]} µg/d`}</span>
-                                                    </>
-                                                ) : ev.route !== Route.patchRemove && (
-                                                    <>
-                                                        <span className="text-[var(--text)] font-medium">{`${ev.doseMG.toFixed(2)} mg`}</span>
-                                                        {ev.ester !== Ester.E2 && isEstradiolEster(ev.ester) && (
-                                                            <span className="opacity-70">
-                                                                {`(${t('label.e2')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
-                                                            </span>
-                                                        )}
-                                                        {isTestosteroneEster(ev.ester) && ev.ester !== Ester.T && (
-                                                            <span className="opacity-70">
-                                                                {`(${t('label.t')} eq: ${(ev.doseMG * getToE2Factor(ev.ester)).toFixed(2)} mg)`}
-                                                            </span>
-                                                        )}
-                                                    </>
-                                                )}
-                                                {ev.route === Route.patchApply && typeof ev.extras[ExtraKey.patchWearH] === 'number' && ev.extras[ExtraKey.patchWearH]! > 0 && (
-                                                    <>
-                                                        <span className="text-[var(--text)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className={`grid ${isEditing && !selectMode ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                        <div className="overflow-hidden">
-                                            {/* Mounted only for the row being edited — with hundreds of
-                                                records, keeping every row's form mounted (even collapsed
-                                                to zero height) made every dose add/edit re-render all of
-                                                them at once. */}
-                                            {isEditing && !selectMode && (
-                                                <div className="pb-4 pt-1">
-                                                    <DoseForm
-                                                        eventToEdit={ev}
-                                                        onSave={(e) => {
-                                                            onSaveEvent(e);
-                                                            setEditingId(null);
-                                                        }}
-                                                        onCancel={() => setEditingId(null)}
-                                                        onDelete={(id) => {
-                                                            onDeleteEvent(id);
-                                                            setEditingId(null);
-                                                        }}
-                                                        templates={doseTemplates}
-                                                        onSaveTemplate={onSaveTemplate}
-                                                        onDeleteTemplate={onDeleteTemplate}
-                                                        isInline={true}
-                                                        hideHeader={true}
-                                                        events={allEvents}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
+                {groupedEvents.map(day => renderDay(day))}
             </div>
             )}
 
