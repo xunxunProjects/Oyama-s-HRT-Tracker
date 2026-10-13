@@ -199,6 +199,8 @@ export const TRANSLATIONS_BASE = {
         "timeline.batch_hint": "从所选给药时间开始，每 {d} 天一条，共添加 {n} 条记录。",
         "timeline.future": "计划",
         "timeline.records": "条记录",
+        "timeline.selected": "已选 {n} 条",
+        "timeline.batch_delete_title": "删除记录",
         "timeline.patch_worn": "佩戴 {d}",
 
         "drawer.clear": "清空所有记录",
@@ -966,6 +968,8 @@ export const TRANSLATIONS_BASE = {
         "timeline.batch_hint": "Starting from the selected dose time, one entry every {d} days, {n} entries total.",
         "timeline.future": "Planned",
         "timeline.records": "Records",
+        "timeline.selected": "{n} selected",
+        "timeline.batch_delete_title": "Delete records",
         "timeline.patch_worn": "worn {d}",
 
         "drawer.clear": "Clear All Records",
@@ -1624,6 +1628,8 @@ const ZH_TW = {
     "timeline.batch_hint": "從所選給藥時間開始，每 {d} 天一筆，共新增 {n} 筆紀錄。",
     "timeline.future": "計劃",
     "timeline.records": "條記錄",
+    "timeline.selected": "已選取 {n} 筆",
+    "timeline.batch_delete_title": "刪除紀錄",
     "timeline.patch_worn": "佩戴 {d}",
 
     "drawer.clear": "清除所有劑量",
@@ -2404,6 +2410,8 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "由揀好嘅畀藥時間開始，每 {d} 日一條，總共加 {n} 條記錄。",
         "timeline.future": "計劃",
         "timeline.records": "條記錄",
+        "timeline.selected": "揀咗 {n} 條",
+        "timeline.batch_delete_title": "刪除記錄",
         "timeline.patch_worn": "貼咗 {d}",
 
         "drawer.clear": "清空全部記錄",
@@ -2904,6 +2912,8 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "選択した投与時刻から {d} 日ごとに1件、計 {n} 件追加します。",
         "timeline.future": "予定",
         "timeline.records": "件の記録",
+        "timeline.selected": "{n} 件を選択中",
+        "timeline.batch_delete_title": "記録を削除",
         "timeline.patch_worn": "貼付 {d}",
 
         "drawer.clear": "すべての用量を削除",
@@ -3652,6 +3662,8 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "선택한 투여 시각부터 {d}일마다 1건씩, 총 {n}건 추가됩니다.",
         "timeline.future": "예정",
         "timeline.records": "건",
+        "timeline.selected": "{n}개 선택됨",
+        "timeline.batch_delete_title": "기록 삭제",
         "timeline.patch_worn": "{d} 착용",
 
         "drawer.clear": "모든 기록 삭제",
@@ -4420,6 +4432,8 @@ export const TRANSLATIONS = {
         "timeline.batch_hint": "Seçilen doz zamanından başlayarak her {d} günde bir, toplam {n} kayıt eklenir.",
         "timeline.future": "Planlı",
         "timeline.records": "Kayıt",
+        "timeline.selected": "{n} seçildi",
+        "timeline.batch_delete_title": "Kayıtları sil",
         "timeline.patch_worn": "{d} takılı kaldı",
 
         "drawer.clear": "Tüm Kayıtları Temizle",

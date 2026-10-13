@@ -26,6 +26,14 @@ const on = 'text-[var(--text)]';
 const headerBtn = headerAction;
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
+// On a phone, Select and Select all are only their icon, and Delete only its
+// word. Spelled out in full they cut an English title to "Dose Hist…", and in
+// select mode to "D…" with the count wrapping under it, which grew the header
+// past the 80px the day labels are pinned at. The rest comes back once there
+// is room, and an icon-only button keeps its words as its aria-label.
+const iconOnNarrow = 'max-sm:w-11 max-sm:justify-center max-sm:px-0';
+const labelOnWide = 'max-sm:hidden';
+
 /**
  * A number field with − and + on either side, so the batch values can be
  * nudged with a thumb instead of summoning the number pad. Typing still works;
@@ -220,7 +228,7 @@ const History: React.FC<HistoryProps> = ({
         showDialog('confirm', msg, () => {
             onDeleteEvents([...selectedIds]);
             exitSelectMode();
-        }, { danger: true });
+        }, { danger: true, title: t('timeline.batch_delete_title'), confirmLabel: t('btn.delete') });
     };
 
     const batchHint = t('timeline.batch_hint')
@@ -356,36 +364,58 @@ const History: React.FC<HistoryProps> = ({
         <div className="relative pb-32">
             <PageHeader
                 title={t('timeline.title')}
-                subtitle={`${totalRecords} ${t('timeline.records')}`}
+                // Always one line: wrapped, it grew the header past the 80px
+                // the day labels are pinned at. In select mode it counts the
+                // selection, which is what the page is about to act on.
+                subtitle={
+                    <span className="block truncate">
+                        {selectMode
+                            ? t('timeline.selected').replace('{n}', String(selectedIds.size))
+                            : `${totalRecords} ${t('timeline.records')}`}
+                    </span>
+                }
                 actions={selectMode ? (
                     <>
-                        <button onClick={toggleSelectAll} className={`${headerBtn} ${muted}`}>
+                        <button
+                            type="button"
+                            onClick={toggleSelectAll}
+                            aria-label={t('timeline.select_all')}
+                            className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
+                        >
                             <ListChecks size={15} strokeWidth={1.5} />
-                            <span>{t('timeline.select_all')}</span>
+                            <span className={labelOnWide}>{t('timeline.select_all')}</span>
                         </button>
                         <button
+                            type="button"
                             onClick={handleDeleteSelected}
                             disabled={!selectedIds.size}
-                            className={`${headerBtn} text-[var(--danger)] disabled:opacity-40`}
+                            className={`${headerBtn} text-[var(--danger)] disabled:opacity-40 tap-target`}
                         >
-                            <Trash2 size={15} strokeWidth={1.5} />
+                            <Trash2 size={15} strokeWidth={1.5} className={labelOnWide} />
                             <span>{t('btn.delete')}{selectedIds.size ? ` (${selectedIds.size})` : ''}</span>
                         </button>
-                        <button onClick={exitSelectMode} className={`${headerBtn} ${muted}`}>
+                        <button type="button" onClick={exitSelectMode} className={`${headerBtn} ${muted} tap-target`}>
                             <span>{t('btn.cancel')}</span>
                         </button>
                     </>
                 ) : (
                     <>
                         {totalRecords > 0 && (
-                            <button onClick={enterSelectMode} className={`${headerBtn} ${muted}`}>
+                            <button
+                                type="button"
+                                onClick={enterSelectMode}
+                                aria-label={t('timeline.select')}
+                                className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
+                            >
                                 <ListChecks size={15} strokeWidth={1.5} />
-                                <span>{t('timeline.select')}</span>
+                                <span className={labelOnWide}>{t('timeline.select')}</span>
                             </button>
                         )}
                         <button
+                            type="button"
                             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                            className={`${headerBtn} text-[var(--accent-ink)]`}
+                            aria-expanded={isQuickAddOpen}
+                            className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
                         >
                             <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
                             <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
