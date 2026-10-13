@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { settingsSection, rowBleed } from './SettingsListItem';
 
 interface ImportSectionProps {
     onImportJson: (text: string) => boolean | Promise<boolean>;
 }
 
-const rowBase = "flex items-start justify-between py-[18px] border-b border-[var(--border)]";
-const rowLabel = "text-[0.9375rem] text-[var(--text)]";
-const rowDesc = "text-xs text-[var(--text-muted)] mt-0.5";
-const actionBtn = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
+// Each row is one button, so the whole row takes the tap (as on Export).
+const rowBase = "w-full flex items-start justify-between py-[18px] text-start";
+const rowLabel = "block text-[0.9375rem] text-[var(--text)]";
+const rowDesc = "block text-xs text-[var(--text-muted)] mt-0.5";
+const action = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
 
 const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
     const { t } = useTranslation();
@@ -35,34 +37,24 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
     };
 
     return (
-        <div>
+        <div className={settingsSection}>
             {/* File import */}
-            <div className={rowBase}>
-                <div>
-                    <p className={rowLabel}>{t('import.file')}</p>
-                </div>
-                <button onClick={() => fileInputRef.current?.click()} className={actionBtn}>
-                    {t('import.file_btn')}
-                </button>
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/json"
-                    className="hidden"
-                    onChange={handleFileChange}
-                />
-            </div>
+            <button onClick={() => fileInputRef.current?.click()} className={`${rowBase} ${rowBleed}`}>
+                <span className={rowLabel}>{t('import.file')}</span>
+                <span className={action}>{t('import.file_btn')}</span>
+            </button>
 
             {/* Paste JSON */}
-            <div className="border-b border-[var(--border)] last:border-b-0">
+            <div>
                 <button
                     onClick={() => { setShowPaste(v => !v); setText(''); }}
-                    className="w-full flex items-start justify-between py-[18px] text-start"
+                    aria-expanded={showPaste}
+                    className={`${rowBase} ${rowBleed}`}
                 >
-                    <div>
-                        <p className={rowLabel}>{t('import.text')}</p>
-                        <p className={rowDesc}>{t('import.paste_hint')}</p>
-                    </div>
+                    <span>
+                        <span className={rowLabel}>{t('import.text')}</span>
+                        <span className={rowDesc}>{t('import.paste_hint')}</span>
+                    </span>
                     <span className="shrink-0 ml-6 mt-0.5 p-1 text-[var(--text-muted)]">
                         {showPaste ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </span>
@@ -95,6 +87,15 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                     </div>
                 )}
             </div>
+
+            {/* Never shown, so it draws no divider of its own. */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={handleFileChange}
+            />
         </div>
     );
 };
