@@ -1150,7 +1150,11 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 onChange={(e) => setTemplateName(e.target.value)}
                                 onKeyDown={(e) => {
                                     // Enter here names the template; it must not save the dose.
-                                    if (e.key === 'Enter') {
+                                    // Except the Enter that commits an IME conversion (kana to
+                                    // kanji, pinyin to hanzi): that one only finishes the word.
+                                    // Safari sends its keydown after compositionend, with
+                                    // isComposing false, so keyCode 229 is what gives it away.
+                                    if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                                         e.preventDefault();
                                         handleSaveAsTemplate();
                                     }
