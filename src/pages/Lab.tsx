@@ -159,7 +159,7 @@ const Lab: React.FC<LabProps> = ({
                         <VialDoodle className="w-24 h-auto mb-6" />
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('lab.empty')}</p>
                         {/* What a lab is for, in the words the intro uses. */}
-                        <p className={`text-sm ${muted} max-w-xs`}>{t('onboarding.how_calibrate_desc')}</p>
+                        <p className={`text-sm ${muted} max-w-xs text-balance`}>{t('onboarding.how_calibrate_desc')}</p>
                         {/* Adding a result is the one thing this page is waiting
                             for. Gone while the form is open above. */}
                         {!isQuickAddLabOpen && (

@@ -42,6 +42,16 @@ export const tabForView = (view: ViewKey): ViewKey => VIEW_TAB[view] ?? view;
  */
 const parentOf = (view: ViewKey): ViewKey | undefined => (view === 'admin' ? 'settings' : VIEW_TAB[view]);
 
+/**
+ * Pages another tab's page also opens. Supplies lives under Settings, but the
+ * Overview's running-low line opens it too, and opened from there it is a page
+ * of the Overview: its tab stays lit and Back returns to the Overview, rather
+ * than the jump landing on Settings, a tab nobody tapped.
+ */
+const ALSO_UNDER: Partial<Record<ViewKey, ViewKey>> = {
+    'supplies': 'home',
+};
+
 const VIEW_ORDER: ViewKey[] = ['home', 'plan', 'forecast', 'share', 'history', 'lab', 'lab-calibration', 'settings', 'account', 'sessions', 'two-factor', 'change-password', 'delete-account', 'edit-profile', 'edit-avatar', 'pk-params', 'supplies', 'settings-hrt-mode', 'settings-language', 'settings-appearance', 'settings-weight', 'settings-export', 'settings-import', 'settings-transparency', 'settings-milk-tea', 'settings-cat-states', 'admin'];
 
 type Direction = 'forward' | 'backward';
@@ -54,6 +64,8 @@ export const useAppNavigation = (user: any) => {
     // --- State ---
     const [currentView, setCurrentView] = useState<ViewKey>('home');
     const [transitionDirection, setTransitionDirection] = useState<Direction>('forward');
+    // Set while a page from ALSO_UNDER is open under the other tab.
+    const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(null);
     const mainScrollRef = useRef<HTMLDivElement>(null);
     // The view on screen, for the history listener, which outlives renders.
     const viewRef = useRef<ViewKey>('home');
@@ -66,12 +78,13 @@ export const useAppNavigation = (user: any) => {
     const pending = useRef<{ view: ViewKey; direction: Direction } | null>(null);
 
     // --- Actions ---
-    const show = useCallback((view: ViewKey, direction: Direction, restore: boolean) => {
+    const show = useCallback((view: ViewKey, direction: Direction, restore: boolean, under?: ViewKey) => {
         const el = mainScrollRef.current;
         if (el) scrollTops.current[viewRef.current] = el.scrollTop;
         viewRef.current = view;
         restoreScroll.current = restore;
         setTransitionDirection(direction);
+        setOpenedUnder(under ?? null);
         setCurrentView(view);
     }, []);
 
@@ -111,6 +124,11 @@ export const useAppNavigation = (user: any) => {
         if (parentOf(view) === from) {
             pushNavEntry(view, depth + 1);
             show(view, 'forward', false);
+            return;
+        }
+        if (ALSO_UNDER[view] === from) {
+            pushNavEntry(view, depth + 1, undefined, from);
+            show(view, 'forward', false, from);
             return;
         }
         // A sibling page sits at the same level, so it takes over the entry.
@@ -178,11 +196,11 @@ export const useAppNavigation = (user: any) => {
             // it would light its own tab while its back arrow led to this one.
             // Step back over it to where this Forward started.
             const left = depthLeft();
-            if (entry.depth > left && parentOf(entry.view) !== viewRef.current) {
+            if (entry.depth > left && parentOf(entry.view) !== viewRef.current && entry.under !== viewRef.current) {
                 stepBack(entry.depth - left);
                 return;
             }
-            show(entry.view, directionOf(viewRef.current, entry.view), true);
+            show(entry.view, directionOf(viewRef.current, entry.view), true, entry.under);
         };
         window.addEventListener('popstate', onPop);
         return () => window.removeEventListener('popstate', onPop);
@@ -216,6 +234,8 @@ export const useAppNavigation = (user: any) => {
 
     return {
         currentView,
+        /** The tab to light: the view's own, or the one it was opened under. */
+        currentTab: openedUnder ? tabForView(openedUnder) : tabForView(currentView),
         transitionDirection,
         handleViewChange,
         handleTabSelect,

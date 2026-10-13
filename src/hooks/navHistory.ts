@@ -24,6 +24,8 @@ export interface NavEntry {
     /** How many entries above the base this one is: 0 for a tab's own page. */
     depth: number;
     cat?: string;
+    /** The page this one was opened from, when that isn't its own tab (see ALSO_UNDER). */
+    under?: ViewKey;
 }
 
 /** The current entry, or null when it isn't one the app wrote. */
@@ -40,8 +42,8 @@ export const navDepth = (): number => readNavEntry()?.depth ?? 0;
 let shownDepth = navDepth();
 let leftDepth = shownDepth;
 
-export const pushNavEntry = (view: ViewKey, depth: number, cat?: string) => {
-    window.history.pushState({ hrtNav: 1, view, depth, cat } satisfies NavEntry, '');
+export const pushNavEntry = (view: ViewKey, depth: number, cat?: string, under?: ViewKey) => {
+    window.history.pushState({ hrtNav: 1, view, depth, cat, under } satisfies NavEntry, '');
     shownDepth = depth;
 };
 

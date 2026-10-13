@@ -100,7 +100,7 @@ const DoseAdvisoryNotice: React.FC<{
                     onClick={onCalibrate}
                     className="group flex items-start gap-2 text-start text-xs text-[var(--text-muted)]"
                 >
-                    <span className="icon-line"><CalibrationCurveIcon size={16} strokeWidth={1.75} className="lucide opacity-80" /></span>
+                    <span className="icon-line"><CalibrationCurveIcon size={16} strokeWidth={1.75} className="opacity-80" /></span>
                     <span>
                         {t('advisory.calibrate.text')}{' '}
                         <span className="font-medium text-[var(--accent-ink)]">

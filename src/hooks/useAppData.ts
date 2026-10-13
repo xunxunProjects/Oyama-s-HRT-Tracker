@@ -511,7 +511,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         showDialog('confirm', t('drawer.clear_confirm'), () => {
             recordDeletions('events', events.map(e => e.id));
             setEvents([]);
-        }, { danger: true });
+        }, { danger: true, confirmLabel: t('btn.delete') });
     }
 
     const addLabResult = (res: LabResult) => {
@@ -531,7 +531,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         showDialog('confirm', t('lab.clear_confirm'), () => {
             recordDeletions('labResults', labResults.map(r => r.id));
             setLabResults([]);
-        }, { danger: true });
+        }, { danger: true, confirmLabel: t('btn.delete') });
     }
 
     const addTemplate = (template: DoseTemplate) => {

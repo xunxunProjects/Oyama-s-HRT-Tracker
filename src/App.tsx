@@ -11,7 +11,7 @@ import { PlanItem, planEvent } from './utils/plan';
 import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
-import { useAppNavigation, ViewKey, tabForView } from './hooks/useAppNavigation';
+import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
 import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
@@ -120,6 +120,7 @@ const AppContent = () => {
 
     const {
         currentView,
+        currentTab,
         transitionDirection,
         handleViewChange,
         handleTabSelect,
@@ -336,18 +337,23 @@ const AppContent = () => {
     // Items with a tap still on record to take back. A dose deleted elsewhere is gone from here too.
     const undoableIds = planLogs.filter(l => events.some(e => e.id === l.eventId)).map(l => l.itemId);
 
-    const handleQuickExport = () => {
+    // Says whether the copy landed, and nothing more: Export shows the result
+    // in place on its Copy row, so a success alert on top only cost a tap,
+    // and a failed write used to be swallowed while the row still said "copied".
+    const handleQuickExport = async (): Promise<boolean> => {
         if (events.length === 0 && labResults.length === 0) {
             showDialog('alert', t('drawer.empty_export'));
-            return;
+            return false;
         }
         const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
-        navigator.clipboard.writeText(json).then(() => {
-            showDialog('alert', t('drawer.export_copied'));
-        }).catch(err => {
+        try {
+            await navigator.clipboard.writeText(json);
+            return true;
+        } catch (err) {
             console.error('Failed to copy: ', err);
-        });
+            return false;
+        }
     };
 
     const downloadFile = (data: string, filename: string) => {
@@ -467,7 +473,7 @@ const AppContent = () => {
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
             <Sidebar
                 navItems={navItems}
-                currentView={tabForView(currentView)}
+                currentView={currentTab}
                 onViewChange={handleTabSelect}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
@@ -696,6 +702,7 @@ const AppContent = () => {
                         <ImportSettings
                             onImportJson={importEventsFromJson}
                             onBack={() => handleViewChange('settings')}
+                            onNavigateToExport={() => handleViewChange('settings-export')}
                         />
                     )}
 
@@ -821,7 +828,7 @@ const AppContent = () => {
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             // Mobile reaches admin from Settings → General, so the
                             // settings tab is the one that should read as active.
-                            const activeTab = currentView === 'admin' ? 'settings' : tabForView(currentView);
+                            const activeTab = currentView === 'admin' ? 'settings' : currentTab;
                             const isActive = activeTab === id;
                             return (
                                 <button

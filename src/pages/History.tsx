@@ -33,7 +33,7 @@ const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string
 // On a phone, Select and Select all are only their icon, and Delete only its
 // word. Spelled out in full they cut an English title to "Dose Hist…", and in
 // select mode to "D…" with the count wrapping under it, which grew the header
-// past the 80px the day labels are pinned at. The rest comes back once there
+// past the 5rem the day labels are pinned at. The rest comes back once there
 // is room, and an icon-only button keeps its words as its aria-label.
 const iconOnNarrow = 'max-sm:w-11 max-sm:justify-center max-sm:px-0';
 const labelOnWide = 'max-sm:hidden';
@@ -240,7 +240,7 @@ const History: React.FC<HistoryProps> = ({
 
     // Cancel hands focus back to the row. Cancel sits at the foot of a form
     // that can run past the screen, so the row may be out of sight above it
-    // (under the 80px header counts); then it is brought back to the middle,
+    // (under the 5rem header counts); then it is brought back to the middle,
     // or focus would land on something no one can see.
     const closeEdit = () => {
         const row = editingRowRef.current;
@@ -248,7 +248,8 @@ const History: React.FC<HistoryProps> = ({
         if (!row) return;
         row.focus({ preventScroll: true });
         const { top, bottom } = row.getBoundingClientRect();
-        if (top < 80 || bottom > window.innerHeight) centerRow(row);
+        const headerPx = 5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        if (top < headerPx || bottom > window.innerHeight) centerRow(row);
     };
 
     // Batch add is a choice for one save, not a mode the form stays in: left
@@ -459,7 +460,7 @@ const History: React.FC<HistoryProps> = ({
     // label's own padding hid the top of it on each day's first row.
     const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => (
         <div key={key} className="mb-6 last:mb-0">
-            <div className={`${pinned ? 'sticky top-[80px] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
+            <div className={`${pinned ? 'sticky top-[5rem] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
                 <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
             </div>
             <div className="pt-1">
@@ -472,7 +473,7 @@ const History: React.FC<HistoryProps> = ({
         <div className="relative pb-32">
             <PageHeader
                 title={t('timeline.title')}
-                // Always one line: wrapped, it grew the header past the 80px
+                // Always one line: wrapped, it grew the header past the 5rem
                 // the day labels are pinned at. In select mode it counts the
                 // selection, which is what the page is about to act on.
                 subtitle={
@@ -599,7 +600,7 @@ const History: React.FC<HistoryProps> = ({
                 <div className={`${PAGE_COLUMN} flex flex-col items-center text-center py-16`}>
                     <LogDoodle className="w-24 h-auto mb-6" />
                     <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
-                    <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
+                    <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
                     <button type="button" onClick={() => setIsQuickAddOpen(true)} className="btn-primary">
                         {t('home.empty_cta')}
                     </button>
