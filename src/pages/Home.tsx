@@ -234,71 +234,75 @@ const Home: React.FC<HomeProps> = ({
                     neither can shrink: on a 360px phone the first ran into the
                     second ("pg/ml" drawn under "26.6"), and a four-digit peak
                     did so up to 414. So the second reading goes under the
-                    first, on the left with its label, until the column (not
-                    the screen: from md the sidebar takes its share) holds the
-                    pair at the largest size, 32rem. That is every phone; the
-                    pair sits side by side from about 560px wide. */}
+                    first and its scale, on the left with its label, until the
+                    column (not the screen: from md the sidebar takes its
+                    share) holds the pair at the largest size, 32rem. That is
+                    every phone; the pair sits side by side from about 560px
+                    wide. */}
                 <div className="@container">
-                <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1.5 @min-[32rem]:grid-cols-[minmax(0,1fr)_auto]">
-                    <p className={`text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-1 @min-[32rem]:row-start-1`}>{primary.label}</p>
+                    <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1.5 @min-[32rem]:grid-cols-[minmax(0,1fr)_auto]">
+                        <p className={`text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-1 @min-[32rem]:row-start-1`}>{primary.label}</p>
 
-                    {/* Number and unit sit in a slot wide enough for a
-                        four-digit reading (two for the second column), so a
-                        reading gaining a digit, or counting up from zero on
-                        load, doesn't shove the cats or the other column about.
-                        The status rides on the tick scale, which a screen
-                        reader skips, so it is said here, after the unit. */}
-                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 @min-[32rem]:col-start-1 @min-[32rem]:row-start-2">
-                        <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
-                            {primary.value > 0 ? (
-                                <>
-                                    <span className={on}><AnimatedNumber value={primary.value} decimals={primary.decimals} /></span>
-                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
-                                    {currentStatus && <span className="sr-only">{t(currentStatus.label)}</span>}
-                                </>
-                            ) : (
-                                <span className={dim}>--</span>
-                            )}
-                        </span>
-                        {cats}
-                    </div>
-
-                    {companion && (
-                        <>
-                            {companion.label && (
-                                <p className={`mt-3 text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-2 @min-[32rem]:row-start-1 @min-[32rem]:mt-0 @min-[32rem]:text-right`}>{companion.label}</p>
-                            )}
-                            <span className={`${readingSlot} whitespace-nowrap @min-[32rem]:col-start-2 @min-[32rem]:row-start-2 @min-[32rem]:justify-end`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
-                                {companion.value > 0 ? (
+                        {/* Number and unit sit in a slot wide enough for a
+                            four-digit reading (two for the second column), so a
+                            reading gaining a digit, or counting up from zero on
+                            load, doesn't shove the cats or the other column about.
+                            The status rides on the tick scale, which a screen
+                            reader skips, so it is said here, after the unit. */}
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 @min-[32rem]:col-start-1 @min-[32rem]:row-start-2">
+                            <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
+                                {primary.value > 0 ? (
                                     <>
-                                        <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
-                                        <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
+                                        <span className={on}><AnimatedNumber value={primary.value} decimals={primary.decimals} /></span>
+                                        <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
+                                        {currentStatus && <span className="sr-only">{t(currentStatus.label)}</span>}
                                     </>
                                 ) : (
                                     <span className={dim}>--</span>
                                 )}
                             </span>
-                        </>
-                    )}
-
-                    {/* The scale runs the full width under both readings. Kept
-                        to the first one's column beside a second reading, it
-                        came out too short to read. It describes the first
-                        reading only, so beside a second drug's reading the
-                        status names whose it is: under the cyproterone figure,
-                        "above reference range" read as the cyproterone level. */}
-                    {primary.value > 0 && (
-                        <div className="mt-0.5 @min-[32rem]:col-span-2">
-                            <LevelRail
-                                value={primary.value}
-                                band={primary.band}
-                                domain={primary.domain}
-                                label={currentStatus ? (companion?.label ? `${primary.label} · ${t(currentStatus.label)}` : t(currentStatus.label)) : undefined}
-                                tone={currentStatus?.color}
-                            />
+                            {cats}
                         </div>
-                    )}
-                </div>
+
+                        {/* The scale belongs to the first reading, so stacked it
+                            comes straight after it, before the second: placed after
+                            both, its 100 and 200 sat right under the cyproterone
+                            figure and read as that figure's scale. Side by side it
+                            runs the full width under both, as before; kept to the
+                            first one's column there, it came out too short to read.
+                            Beside a second drug's reading the status also names
+                            whose it is: under the cyproterone figure, "above
+                            reference range" read as the cyproterone level. */}
+                        {primary.value > 0 && (
+                            <div className="mt-0.5 @min-[32rem]:col-span-2 @min-[32rem]:col-start-1 @min-[32rem]:row-start-3">
+                                <LevelRail
+                                    value={primary.value}
+                                    band={primary.band}
+                                    domain={primary.domain}
+                                    label={currentStatus ? (companion?.label ? `${primary.label} · ${t(currentStatus.label)}` : t(currentStatus.label)) : undefined}
+                                    tone={currentStatus?.color}
+                                />
+                            </div>
+                        )}
+
+                        {companion && (
+                            <>
+                                {companion.label && (
+                                    <p className={`mt-3 text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-2 @min-[32rem]:row-start-1 @min-[32rem]:mt-0 @min-[32rem]:text-right`}>{companion.label}</p>
+                                )}
+                                <span className={`${readingSlot} whitespace-nowrap @min-[32rem]:col-start-2 @min-[32rem]:row-start-2 @min-[32rem]:justify-end`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
+                                    {companion.value > 0 ? (
+                                        <>
+                                            <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
+                                            <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
+                                        </>
+                                    ) : (
+                                        <span className={dim}>--</span>
+                                    )}
+                                </span>
+                            </>
+                        )}
+                    </div>
                 </div>
                 </>
                 )}
@@ -382,7 +386,7 @@ const Home: React.FC<HomeProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => onEditEvent(loggedToday)}
-                                            className="group flex min-w-0 items-center gap-3 text-start"
+                                            className="tap-target group flex min-w-0 items-center gap-3 text-start"
                                         >
                                             {text}
                                             <span className="sr-only">{t('modal.dose.edit_title')}</span>
@@ -424,7 +428,12 @@ const Home: React.FC<HomeProps> = ({
                         {/* Each line leads to the stock it is about, so the medicine
                             running out can be recounted or restocked from where the
                             warning is read. It is the only sentence, so all of it keeps
-                            the caution colour (see DoseAdvisory). */}
+                            the caution colour (see DoseAdvisory). Lines sit edge to edge,
+                            so each is a full 44px tall itself rather than a .tap-target,
+                            whose area would overlap the next. The chevron is held to the
+                            last word (a word joiner, which Chrome ignores before an inline
+                            SVG unless the two are kept from wrapping) so it never ends up
+                            alone on a line. */}
                         {lowSupplies.map(({ supply, remaining, runOutH }) => {
                             const name = supplyLabel(supply, t);
                             return (
@@ -432,12 +441,12 @@ const Home: React.FC<HomeProps> = ({
                                     key={supply.id}
                                     type="button"
                                     onClick={onNavigateToSupplies}
-                                    className="group block w-full py-1.5 text-start text-sm leading-relaxed text-[var(--warning)]"
+                                    className="group block min-h-11 w-full py-2.5 text-start text-sm leading-relaxed text-[var(--warning)]"
                                 >
                                     {remaining <= 0 || runOutH === null
                                         ? fill(t('supplies.used_up'), { name })
                                         : fillNodes(t('supplies.running_low'), { name, n: Math.max(0, Math.round((runOutH - nowH) / 24)), date: <span className="whitespace-nowrap">{dueLabel(runOutH, lang, false, nowH)}</span> })}
-                                    <ChevronRight size={15} aria-hidden="true" className="ms-0.5 inline-block align-[-3px] opacity-60 transition-opacity group-hover:opacity-100 rtl:-scale-x-100" />
+                                    <span className="whitespace-nowrap">{'\u2060'}<ChevronRight size={15} aria-hidden="true" className="ms-0.5 inline-block align-[-3px] opacity-60 transition-opacity group-hover:opacity-100 rtl:-scale-x-100" /></span>
                                 </button>
                             );
                         })}
