@@ -278,16 +278,14 @@ const Home: React.FC<HomeProps> = ({
                         </div>
 
                         {/* The scale belongs to the first reading and runs the
-                            full width under both. Beside a second drug's reading
-                            the status also names whose it is, so "above reference
-                            range" never reads as the cyproterone level. */}
+                            full width under both. */}
                         {primary.value > 0 && (
                             <div className="col-span-2 col-start-1 row-start-3 mt-0.5">
                                 <LevelRail
                                     value={primary.value}
                                     band={primary.band}
                                     domain={primary.domain}
-                                    label={currentStatus ? (companion?.label ? `${primary.label} · ${t(currentStatus.label)}` : t(currentStatus.label)) : undefined}
+                                    label={currentStatus ? t(currentStatus.label) : undefined}
                                     tone={currentStatus?.color}
                                 />
                             </div>
