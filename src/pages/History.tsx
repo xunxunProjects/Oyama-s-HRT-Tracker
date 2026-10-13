@@ -11,6 +11,7 @@ import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
 import LogDoodle from '../components/LogDoodle';
 import { DoseTemplate } from '../components/DoseFormModal';
+import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
@@ -88,6 +89,12 @@ interface HistoryProps {
     onSaveTemplate: (t: DoseTemplate) => void;
     onDeleteTemplate: (id: string) => void;
     groupedEvents: DoseDayGroup[];
+    /** Every dose, for the add form to start from what was taken last. */
+    events?: DoseEvent[];
+    /** The one-tap doses, shown at the top of the add form as they are in the edit sheet. */
+    quickDoses?: QuickDose[];
+    onAddQuickDose?: (dose: QuickDose) => void;
+    onDeleteQuickDose?: (id: string) => void;
 }
 
 const History: React.FC<HistoryProps> = ({

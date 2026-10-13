@@ -240,6 +240,21 @@ const AppContent = () => {
     }, [isPasswordInputOpen, isFormOpen, isDisclaimerOpen]);
 
 
+    // An import replaces the records on this device (and, with sync on, on
+    // every device), so it asks first whenever there is something to lose.
+    // Restoring a backup onto an empty device stays a single step.
+    const confirmImport = (run: () => void) => {
+        if (events.length === 0 && labResults.length === 0 && doseTemplates.length === 0) {
+            run();
+            return;
+        }
+        showDialog('confirm', t('import.replace_confirm'), run, {
+            danger: true,
+            title: t('import.replace_title'),
+            confirmLabel: t('import.replace_btn'),
+        });
+    };
+
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
             let parsed = JSON.parse(text);
@@ -257,7 +272,8 @@ const AppContent = () => {
                 parsed = JSON.parse(decompressed);
             }
 
-            return processImportedData(parsed);
+            confirmImport(() => processImportedData(parsed));
+            return true;
         } catch (err) {
             console.error(err);
             showDialog('alert', t('drawer.import_error'));
@@ -276,9 +292,9 @@ const AppContent = () => {
                     const decompressed = await decompressData(parsed.c);
                     parsed = JSON.parse(decompressed);
                 }
-                processImportedData(parsed);
                 setIsPasswordInputOpen(false);
                 setPendingImportText(null);
+                confirmImport(() => processImportedData(parsed));
             } catch (e) {
                 console.error(e);
                 showDialog('alert', t('import.decrypt_error'));
@@ -474,8 +490,8 @@ const AppContent = () => {
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}
                             theme={theme}
-                            onNavigateToHistory={() => handleViewChange('history')}
-                            onNavigateToLab={() => handleViewChange('lab')}
+                            onNavigateToHistory={() => { setIsQuickAddOpen(true); handleViewChange('history'); }}
+                            onNavigateToLab={() => { setIsQuickAddLabOpen(true); handleViewChange('lab'); }}
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
                             onAuthRequired={() => setIsAuthModalOpen(true)}
@@ -544,6 +560,10 @@ const AppContent = () => {
                             onSaveTemplate={addTemplate}
                             onDeleteTemplate={deleteTemplate}
                             groupedEvents={groupedEvents}
+                            events={events}
+                            quickDoses={quickDoses}
+                            onAddQuickDose={addQuickDose}
+                            onDeleteQuickDose={deleteQuickDose}
                         />
                     )}
 

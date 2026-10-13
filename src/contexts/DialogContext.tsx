@@ -8,6 +8,12 @@ interface DialogOptions {
      *  button turns red and Cancel takes the initial focus, so a stray Enter
      *  backs out instead of going through with it. */
     danger?: boolean;
+    /** Says what the dialog is about, in place of the generic "Confirm" or
+     *  "Alert" heading. */
+    title?: string;
+    /** Names the action on the confirm button ("Delete", "Import") in place
+     *  of "OK", so the button says what pressing it will do. */
+    confirmLabel?: string;
 }
 
 export type ShowDialog = (type: DialogType, message: string, onConfirm?: () => void, options?: DialogOptions) => void;
@@ -36,6 +42,8 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     const [type, setType] = useState<DialogType>('alert');
     const [message, setMessage] = useState("");
     const [danger, setDanger] = useState(false);
+    const [title, setTitle] = useState<string | undefined>(undefined);
+    const [confirmLabel, setConfirmLabel] = useState<string | undefined>(undefined);
     const [onConfirm, setOnConfirm] = useState<(() => void) | null>(null);
     const cancelRef = useRef<HTMLButtonElement>(null);
     const okRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +54,8 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         setType(type);
         setMessage(message);
         setDanger(!!options?.danger);
+        setTitle(options?.title);
+        setConfirmLabel(options?.confirmLabel);
         setOnConfirm(() => onConfirm || null);
         setIsOpen(true);
     }, []);
@@ -104,7 +114,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                             aria-describedby="app-dialog-message"
                         >
                             <h3 id="app-dialog-title" className="modal-title">
-                                {type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title')}
+                                {title ?? (type === 'confirm' ? t('dialog.confirm_title') : t('dialog.alert_title'))}
                             </h3>
                             <p id="app-dialog-message" className="text-sm text-muted mb-5 leading-relaxed whitespace-pre-line">{message}</p>
                             <div className="flex gap-2">
@@ -114,7 +124,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                                     </button>
                                 )}
                                 <button ref={okRef} onClick={handleConfirm} className={`${danger ? 'btn-danger' : 'btn-primary'} flex-1`}>
-                                    {t('btn.ok')}
+                                    {confirmLabel ?? t('btn.ok')}
                                 </button>
                             </div>
                         </div>
