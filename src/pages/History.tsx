@@ -124,9 +124,27 @@ const History: React.FC<HistoryProps> = ({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+    // Doses later than now fold into one section above the list, closed. A
+    // batch add writes up to a year ahead, and newest first, those weeks that
+    // had not happened yet pushed today's doses out of sight.
+    const [plannedOpen, setPlannedOpen] = useState(false);
+
     const allEvents = useMemo(() => groupedEvents.flatMap(g => g.events), [groupedEvents]);
     const totalRecords = allEvents.length;
     const nowH = Date.now() / 3600000;
+
+    // Each day split at now, so the planned part of today goes with the rest
+    // of the planned doses and the part already taken stays in the list.
+    const plannedDays: DoseDayGroup[] = [];
+    const pastDays: DoseDayGroup[] = [];
+    for (const day of groupedEvents) {
+        const ahead = day.events.filter(e => e.timeH > nowH);
+        if (ahead.length) plannedDays.push({ ...day, events: ahead });
+        if (ahead.length < day.events.length) {
+            pastDays.push(ahead.length ? { ...day, events: day.events.filter(e => e.timeH <= nowH) } : day);
+        }
+    }
+    const plannedCount = plannedDays.reduce((n, day) => n + day.events.length, 0);
 
     // How long the patch each removal took off had been worn, for its row.
     // Paired the way the model pairs them (patchRemovalTimes in logic.ts): in
@@ -188,6 +206,9 @@ const History: React.FC<HistoryProps> = ({
     };
 
     const toggleSelectAll = () => {
+        // All includes the planned doses: show them ticked rather than delete
+        // rows that were folded away out of sight.
+        if (selectedIds.size !== totalRecords) setPlannedOpen(true);
         setSelectedIds(prev =>
             prev.size === totalRecords ? new Set() : new Set(allEvents.map(e => e.id))
         );
@@ -240,11 +261,6 @@ const History: React.FC<HistoryProps> = ({
                                 {wornH !== undefined && (
                                     <span className={`shrink-0 text-xs ${muted}`}>
                                         {t('timeline.patch_worn').replace('{d}', `${formatWearDays(wornH / 24)} ${t('unit.day_short')}`)}
-                                    </span>
-                                )}
-                                {isFuture && (
-                                    <span className={`shrink-0 self-center text-[0.6875rem] font-medium ${muted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}>
-                                        {t('timeline.future')}
                                     </span>
                                 )}
                             </div>
@@ -323,9 +339,11 @@ const History: React.FC<HistoryProps> = ({
         );
     };
 
-    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup) => (
+    // `pinned` keeps the day's label under the header while its rows scroll
+    // by. Not inside the planned section: that folds, and a fold clips.
+    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => (
         <div key={key} className="mb-6 last:mb-0">
-            <div className="sticky top-[80px] z-10 bg-[var(--bg)] py-2">
+            <div className={`${pinned ? 'sticky top-[80px] z-10' : ''} bg-[var(--bg)] py-2`}>
                 <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
             </div>
             <div>
@@ -438,9 +456,37 @@ const History: React.FC<HistoryProps> = ({
                 </div>
             )}
 
-            {groupedEvents.length > 0 && (
+            {plannedCount > 0 && (
+                <div className={`${PAGE_COLUMN} mb-2`}>
+                    {/* Ruled off from the list below, so open it still reads as
+                        apart from the doses already taken. */}
+                    <div className="border-b border-[var(--border)]">
+                        <button
+                            type="button"
+                            onClick={() => setPlannedOpen(o => !o)}
+                            aria-expanded={plannedOpen}
+                            className="w-full min-h-11 flex items-center gap-2 py-3 text-start"
+                        >
+                            <span className={`text-xs font-semibold ${muted}`}>{t('timeline.future')}</span>
+                            <span className={`text-xs tabular-nums ${muted}`}>{plannedCount}</span>
+                            <ChevronDown size={16} className={`chev ${muted} shrink-0 ms-auto ${plannedOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {/* Widened by the rows' own bleed (-mx-2), so the fold's
+                            clip does not square off their highlight or focus ring. */}
+                        <div className="disclosure -mx-2" data-open={plannedOpen} {...inertWhen(!plannedOpen)}>
+                            <div className="disclosure-inner">
+                                <div className="px-2 pb-3">
+                                    {plannedDays.map(day => renderDay(day, false))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {pastDays.length > 0 && (
             <div className={PAGE_COLUMN}>
-                {groupedEvents.map(day => renderDay(day))}
+                {pastDays.map(day => renderDay(day, true))}
             </div>
             )}
 
