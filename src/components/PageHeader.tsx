@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from '../contexts/LanguageContext';
 
 /**
  * The reading column every page sits in: one width, one side padding, centred
@@ -25,7 +26,10 @@ const muted = 'text-[var(--text-muted)]';
  *
  * A top-level page (Overview aside) has a plain title, an optional count
  * under it and optional actions on the right. A page reached from another one
- * gets `onBack`, and the title becomes the way back.
+ * gets `onBack`, and the title becomes the way back. A screen reader hears
+ * the title and then "Back": the arrow alone said nothing, so the button was
+ * announced as just the page's name. The visible title comes first, so
+ * someone driving it by voice can still say what they see.
  */
 const PageHeader: React.FC<{
     title: React.ReactNode;
@@ -33,6 +37,7 @@ const PageHeader: React.FC<{
     onBack?: () => void;
     actions?: React.ReactNode;
 }> = ({ title, subtitle, onBack, actions }) => {
+    const { t } = useTranslation();
     // A zero-height marker just above the sticky bar: once it has scrolled out
     // of view, content is passing under the bar and the hairline shows.
     const [marker, setMarker] = React.useState<HTMLDivElement | null>(null);
@@ -55,8 +60,9 @@ const PageHeader: React.FC<{
                                 onClick={onBack}
                                 className="flex min-w-0 items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                             >
-                                <ArrowLeft size={22} className={`${muted} shrink-0`} />
+                                <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
                                 <span className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</span>
+                                <span className="sr-only">, {t('nav.back')}</span>
                             </button>
                         ) : (
                             <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</h1>
