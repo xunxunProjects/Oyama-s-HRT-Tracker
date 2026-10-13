@@ -53,11 +53,11 @@ This project has since adjusted and extended the model: it adds testosterone (in
 
 - **Medication plan**: list what you take and how often. The overview shows what is due today and logs a dose with one tap, and a what-if view compares carrying on as now with a planned change.
 
-  **用药方案**：记下你使用的药物与频率。总览页会显示今天待用的剂量，一键即可记录；方案试算页面可以对比维持现状与计划中的调整。
+  **用药方案**：记下你使用的药物与频率。概览页会显示今天待用的剂量，一键即可记录；方案试算页面可以对比维持现状与计划中的调整。
 
 - **Supplies**: record how much of each medicine you have. The app subtracts the doses you log, estimates when it will run out at your current rate and warns on the overview ahead of time.
 
-  **药量库存**：记录每种药物的存量。应用会扣除已记录的用量，按当前用药频率估算用完的日期，并提前在总览页提醒。
+  **药量库存**：记录每种药物的存量。应用会扣除已记录的用量，按当前用药频率估算用完的日期，并提前在概览页提醒。
 
 - **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and unlike backups they are stored unencrypted on the server. See the [privacy notice](./PRIVACY.md) for details.
 
