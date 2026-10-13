@@ -600,11 +600,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         }
     }, [availableRoutes, route]);
 
+    // A route whose list doesn't hold the current drug starts on the drug last
+    // logged by that route, then on the list's first. A new dose opens on the
+    // last one taken, often a daily antiandrogen, and switching that to
+    // Injection would otherwise land on whatever comes first (EB) rather than
+    // the EV the person always injects.
     useEffect(() => {
         if (!availableEsters.includes(ester)) {
-            setEster(availableEsters[0]);
+            let last: DoseEvent | null = null;
+            for (const e of events) {
+                if (e.route === route && availableEsters.includes(e.ester) && (!last || e.timeH > last.timeH)) last = e;
+            }
+            setEster(last?.ester ?? availableEsters[0]);
         }
-    }, [availableEsters, ester]);
+    }, [availableEsters, ester, events, route]);
 
     const doseGuide = useMemo(() => {
         // The thresholds are estradiol's; they say nothing about anything else.

@@ -646,7 +646,17 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         }).filter((item): item is DoseTemplate => item !== null);
     };
 
-    const processImportedData = (parsed: any): boolean => {
+    /**
+     * `check`: only say whether the payload holds anything to import, writing
+     * nothing and showing nothing, so the import can ask "replace your
+     * records?" for a file that can actually replace them and report a bad
+     * file straight away instead.
+     */
+    const processImportedData = (parsed: any, { check = false }: { check?: boolean } = {}): boolean => {
+        // Writes to the other mode's storage, held back until the payload has
+        // passed the "anything valid?" test below, so a check (or a payload
+        // that fails it) leaves storage as it was.
+        const otherModeWrites: (() => void)[] = [];
         try {
             let newEvents: DoseEvent[] = [];
             let newWeight: number | undefined = undefined;
@@ -684,18 +694,24 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     } else {
                         // Write other mode's data straight to localStorage.
                         if (Array.isArray(block.events)) {
-                            reconcileReplacement(m, 'events', loadJSON<DoseEvent[]>(keyFor(m, 'events'), []), evs);
-                            localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
+                            otherModeWrites.push(() => {
+                                reconcileReplacement(m, 'events', loadJSON<DoseEvent[]>(keyFor(m, 'events'), []), evs);
+                                localStorage.setItem(keyFor(m, 'events'), JSON.stringify(evs));
+                            });
                             importedOtherMode = true;
                         }
                         if (Array.isArray(block.labResults)) {
-                            reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
-                            localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
+                            otherModeWrites.push(() => {
+                                reconcileReplacement(m, 'labResults', loadJSON<LabResult[]>(keyFor(m, 'lab-results'), []), ls);
+                                localStorage.setItem(keyFor(m, 'lab-results'), JSON.stringify(ls));
+                            });
                             importedOtherMode = true;
                         }
                         if (Array.isArray(block.doseTemplates)) {
-                            reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
-                            localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
+                            otherModeWrites.push(() => {
+                                reconcileReplacement(m, 'doseTemplates', loadJSON<DoseTemplate[]>(keyFor(m, 'dose-templates'), []), tmps);
+                                localStorage.setItem(keyFor(m, 'dose-templates'), JSON.stringify(tmps));
+                            });
                             importedOtherMode = true;
                         }
                     }
@@ -741,13 +757,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 const otherEvs: DoseEvent[] = [];
                 for (const e of newEvents) (eventBelongs(e) ? keepEvs : otherEvs).push(e);
                 if (otherEvs.length) {
-                    const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
-                    const existingIds = new Set(existing.map(x => x.id));
-                    forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
-                    localStorage.setItem(
-                        keyFor(otherMode, 'events'),
-                        JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))])
-                    );
+                    otherModeWrites.push(() => {
+                        const existing = loadJSON<DoseEvent[]>(keyFor(otherMode, 'events'), []);
+                        const existingIds = new Set(existing.map(x => x.id));
+                        forgetDeletions('events', otherEvs.map(e => e.id), otherMode);
+                        localStorage.setItem(
+                            keyFor(otherMode, 'events'),
+                            JSON.stringify([...existing, ...otherEvs.filter(e => !existingIds.has(e.id))])
+                        );
+                    });
                     importedOtherMode = true;
                     newEvents = keepEvs;
                 }
@@ -757,19 +775,23 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 const otherLs: LabResult[] = [];
                 for (const l of newLabs) (labBelongs(l) ? keepLs : otherLs).push(l);
                 if (otherLs.length) {
-                    const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
-                    const existingIds = new Set(existing.map(x => x.id));
-                    forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
-                    localStorage.setItem(
-                        keyFor(otherMode, 'lab-results'),
-                        JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))])
-                    );
+                    otherModeWrites.push(() => {
+                        const existing = loadJSON<LabResult[]>(keyFor(otherMode, 'lab-results'), []);
+                        const existingIds = new Set(existing.map(x => x.id));
+                        forgetDeletions('labResults', otherLs.map(l => l.id), otherMode);
+                        localStorage.setItem(
+                            keyFor(otherMode, 'lab-results'),
+                            JSON.stringify([...existing, ...otherLs.filter(l => !existingIds.has(l.id))])
+                        );
+                    });
                     importedOtherMode = true;
                     newLabs = keepLs;
                 }
             }
 
             if (!importedOtherMode && !newEvents.length && !newWeight && !newLabs.length && !newTemplates.length && !newPkParams) throw new Error('No valid entries');
+            if (check) return true;
+            otherModeWrites.forEach(write => write());
 
             // A replace-import states the whole set for each kind it mentions,
             // so anything it drops from one is a deletion. Recording it is what
@@ -793,6 +815,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             showDialog('alert', t('drawer.import_success'));
             return true;
         } catch (err) {
+            if (check) return false;
             console.error(err);
             showDialog('alert', t('drawer.import_error'));
             return false;

@@ -358,9 +358,12 @@ const History: React.FC<HistoryProps> = ({
                     <Doodle name={ev.route} size={1.75} asleep={isFuture} />
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                            {/* Room kept for the tick while it shows, so it never sits on a long name. */}
-                            <div className={`flex items-baseline gap-2 min-w-0 ${isSaved ? 'pe-5' : ''}`}>
-                                <span className="font-medium text-[var(--text)] truncate text-sm">
+                            {/* Room kept for the tick while it shows, so it never sits on a long name.
+                                A long name wraps rather than being cut: beside the doodle and the
+                                chevron, a 320px phone has room for about 15 Latin letters, and a
+                                cut "Patch Re…" no longer says it is a removal. */}
+                            <div className={`flex flex-wrap items-baseline gap-x-2 min-w-0 ${isSaved ? 'pe-5' : ''}`}>
+                                <span className="font-medium text-[var(--text)] [overflow-wrap:anywhere] text-sm">
                                     {isRemoval ? t('route.patchRemove') : drugLabel(ev.ester, t)}
                                 </span>
                                 {wornH !== undefined && (

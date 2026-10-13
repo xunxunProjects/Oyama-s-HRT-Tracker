@@ -9,6 +9,7 @@ import VialDoodle from '../components/VialDoodle';
 import CalibrationPlot from '../components/CalibrationPlot';
 import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 import { fill } from '../utils/regimenText';
+import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface LabProps {
     t: (key: string) => string;
@@ -50,6 +51,7 @@ const Lab: React.FC<LabProps> = ({
 }) => {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
+    const { isTransmasc } = useHRTMode();
 
     // The add form always opens at the top of the page, so when Add is
     // tapped from further down (where the list is) the page goes back up to
@@ -158,8 +160,12 @@ const Lab: React.FC<LabProps> = ({
                     <div className="flex flex-col items-center py-16 text-center">
                         <VialDoodle className="w-24 h-auto mb-6" />
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('lab.empty')}</p>
-                        {/* What a lab is for, in the words the intro uses. */}
-                        <p className={`text-sm ${muted} max-w-xs text-balance`}>{t('onboarding.how_calibrate_desc')}</p>
+                        {/* What a lab is for, in the words the intro uses. Only
+                            estradiol labs calibrate the curve, so in transmasc
+                            mode, where labs are testosterone, it isn't said. */}
+                        {!isTransmasc && (
+                            <p className={`text-sm ${muted} max-w-xs text-balance`}>{t('onboarding.how_calibrate_desc')}</p>
+                        )}
                         {/* Adding a result is the one thing this page is waiting
                             for. Gone while the form is open above. */}
                         {!isQuickAddLabOpen && (

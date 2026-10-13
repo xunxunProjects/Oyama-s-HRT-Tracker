@@ -30,8 +30,11 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
         e.target.value = '';
     };
 
+    // The pasted text stays when the import doesn't go through (a Cancel at
+    // "replace your records?", or a file it can't read), so it can be fixed
+    // or tried again without pasting it all over.
     const handleTextImport = async () => {
-        await onImportJson(text);
+        if (!(await onImportJson(text))) return;
         setText('');
         setShowPaste(false);
     };

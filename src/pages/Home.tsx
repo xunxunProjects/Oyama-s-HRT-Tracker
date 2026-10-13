@@ -375,7 +375,7 @@ const Home: React.FC<HomeProps> = ({
                                                 left: st.kind === 'due' ? st.total - st.done : 0,
                                                 day: st.kind === 'rest' ? <span className="whitespace-nowrap">{dueLabel(st.nextH, lang, false, nowH)}</span> : null,
                                             })}
-                                            {loggedToday && <ChevronRight size={13} aria-hidden="true" className="ms-0.5 inline-block align-[-2px] opacity-70 rtl:-scale-x-100" />}
+                                            {loggedToday && <span className="whitespace-nowrap">{'\u2060'}<ChevronRight size={13} aria-hidden="true" className="ms-0.5 inline-block align-[-2px] opacity-70 rtl:-scale-x-100" /></span>}
                                         </span>
                                     </span>
                                 </>

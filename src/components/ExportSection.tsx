@@ -68,6 +68,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     const handleCopyJson = async () => {
         if (!onQuickExport) return;
         setCopyFailed(null);
+        setJsonCopied(false);
         let ok: void | boolean;
         try {
             ok = await onQuickExport();
@@ -235,13 +236,13 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                 </button>
             </div>
 
-            {/* Where a failed copy is announced. It stays mounted, outside the
-                rows, because a button's contents are read as its name rather
-                than as news, and a region that appears already filled is often
-                not read at all. It is emptied before each try, so a second
-                failure is heard again. */}
+            {/* Where a copy's result is announced, failed or done. It stays
+                mounted, outside the rows, because a button's contents are read
+                as its name rather than as news, and a region that appears
+                already filled is often not read at all. It is emptied before
+                each try, so a second result is heard again. */}
             <p className="sr-only" role="status">
-                {copyFailed ? t('export.copy_failed') : ''}
+                {copyFailed ? t('export.copy_failed') : jsonCopied ? t('export.copied') : ''}
             </p>
         </>
     );

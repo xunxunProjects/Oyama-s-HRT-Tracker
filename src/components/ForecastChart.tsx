@@ -49,6 +49,11 @@ const ForecastChart: React.FC<{
     const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
     const { width } = useElementSize(plotEl);
     const [hoverH, setHoverH] = useState<number | null>(null);
+    // The readout's width, measured before paint, so it can be kept inside the
+    // plot: a fixed flip at 60% let a wide readout (long line names, or a tap
+    // near the right on a phone) run off the screen.
+    const [tipEl, setTipEl] = useState<HTMLDivElement | null>(null);
+    const { width: tipW } = useElementSize(tipEl);
     const height = 260;
     // SVG units do not follow the root font size, so, as in ResultChart, the
     // root size is read back to keep the axis type at the 12px floor for
@@ -374,11 +379,15 @@ const ForecastChart: React.FC<{
                 )}
                 {hoverH !== null && readout && readout.length > 0 && (
                     <div
+                        ref={setTipEl}
                         className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
                         style={{
-                            left: Math.min(Math.max(X(hoverH), pad.l + 4), pad.l + plotW - 4),
+                            // Right of the line when it fits, left of it when it
+                            // doesn't, and never past either edge.
+                            left: X(hoverH) + 8 + tipW > width
+                                ? Math.max(0, X(hoverH) - 8 - tipW)
+                                : Math.max(0, Math.min(X(hoverH) + 8, width - tipW)),
                             top: 8,
-                            transform: `translate(${X(hoverH) > pad.l + plotW * 0.6 ? 'calc(-100% - 8px)' : '8px'}, 0)`,
                         }}
                     >
                         <div className="text-xs text-[var(--text-muted)] mb-0.5 whitespace-nowrap">

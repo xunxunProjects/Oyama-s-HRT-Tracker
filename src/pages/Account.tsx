@@ -930,7 +930,7 @@ const Account: React.FC<AccountProps> = ({
                                     {t('auth.needs_2fa')}
                                 </div>
                                 {useBackupCode ? (
-                                    <div className="space-y-1.5">
+                                    <div key="backup" className="space-y-1.5">
                                         <label htmlFor={`${formId}-backup`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
                                         <input
                                             id={`${formId}-backup`}
@@ -947,7 +947,7 @@ const Account: React.FC<AccountProps> = ({
                                         />
                                     </div>
                                 ) : twoFAMethod !== 'passkey' && (
-                                    <div className="space-y-1.5">
+                                    <div key="totp" className="space-y-1.5">
                                         <label htmlFor={`${formId}-totp`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
                                         <input
                                             id={`${formId}-totp`}

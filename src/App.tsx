@@ -11,7 +11,7 @@ import { PlanItem, planEvent } from './utils/plan';
 import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
-import { useAppNavigation, ViewKey } from './hooks/useAppNavigation';
+import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
 import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
@@ -161,6 +161,17 @@ const AppContent = () => {
         localStorage.setItem('app-dev-mode', String(devMode));
     }, [devMode]);
 
+    // A page whose guard below has gone false (signed out, developer mode
+    // off) renders nothing, leaving a blank screen. The browser's Forward can
+    // land on one after a sign-out, and an expired sign-in can leave one open,
+    // so step up to the page it belongs to.
+    const pageGone =
+        (!token && (currentView === 'share' || currentView === 'sessions' || currentView === 'two-factor' || currentView === 'edit-avatar')) ||
+        (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states'));
+    useEffect(() => {
+        if (pageGone) handleViewChange(tabForView(currentView));
+    }, [pageGone, currentView, handleViewChange]);
+
     // --- Site label: the host name strip above the mobile view. Switched off
     // from Settings while developer mode is on, and kept off after that. ---
     const [hideSiteLabel, setHideSiteLabel] = useState<boolean>(() =>
@@ -255,10 +266,20 @@ const AppContent = () => {
 
 
     // An import replaces the records on this device (and, with sync on, on
-    // every device), so it asks first whenever there is something to lose.
-    // Restoring a backup onto an empty device stays a single step.
-    const confirmImport = (run: () => void) => {
-        if (events.length === 0 && labResults.length === 0 && doseTemplates.length === 0) {
+    // every device), so it asks first whenever there is something to lose, in
+    // either HRT mode: a backup carries both. Restoring a backup onto an empty
+    // device stays a single step, and a file with nothing usable in it is
+    // reported as such before anything is asked. Resolves to whether the
+    // import went through, so the paste box keeps its text after a Cancel.
+    const confirmImport = (parsed: unknown): Promise<boolean> => new Promise(resolve => {
+        if (!processImportedData(parsed, { check: true })) {
+            showDialog('alert', t('drawer.import_error'));
+            resolve(false);
+            return;
+        }
+        const run = () => resolve(processImportedData(parsed));
+        const { modes } = buildExportPayload();
+        if (Object.values(modes).every(m => !m.events.length && !m.labResults.length && !m.doseTemplates.length)) {
             run();
             return;
         }
@@ -266,8 +287,9 @@ const AppContent = () => {
             danger: true,
             title: t('import.replace_title'),
             confirmLabel: t('import.replace_btn'),
+            onCancel: () => resolve(false),
         });
-    };
+    });
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
@@ -286,8 +308,7 @@ const AppContent = () => {
                 parsed = JSON.parse(decompressed);
             }
 
-            confirmImport(() => processImportedData(parsed));
-            return true;
+            return await confirmImport(parsed);
         } catch (err) {
             console.error(err);
             showDialog('alert', t('drawer.import_error'));
@@ -308,7 +329,7 @@ const AppContent = () => {
                 }
                 setIsPasswordInputOpen(false);
                 setPendingImportText(null);
-                confirmImport(() => processImportedData(parsed));
+                confirmImport(parsed);
             } catch (e) {
                 console.error(e);
                 showDialog('alert', t('import.decrypt_error'));

@@ -305,7 +305,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                                 {t('auth.needs_2fa')}
                             </div>
                             {useBackupCode ? (
-                                <div className="space-y-2">
+                                <div key="backup" className="space-y-2">
                                     <label htmlFor={`${id}-backup`} className="text-sm text-muted">{t('auth.backup_code_label')}</label>
                                     <input
                                         id={`${id}-backup`}
@@ -321,7 +321,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                                     />
                                 </div>
                             ) : twoFAMethod !== 'passkey' && (
-                                <div className="space-y-1.5">
+                                <div key="totp" className="space-y-1.5">
                                     <label htmlFor={`${id}-totp`} className="text-sm text-muted">{t('auth.totp_code')}</label>
                                     <input
                                         id={`${id}-totp`}
