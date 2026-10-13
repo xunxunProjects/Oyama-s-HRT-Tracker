@@ -48,6 +48,12 @@ const SAVED_MARK_MS = 1500;
 // rubbed out before the tick is unmounted.
 const SAVED_FADE_MS = 400;
 
+// Brings a row to the middle of the screen, in one jump with reduced motion.
+const centerRow = (row: HTMLElement) => {
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    row.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+};
+
 /**
  * A number field with − and + on either side, so the batch values can be
  * nudged with a thumb instead of summoning the number pad. Typing still works;
@@ -161,14 +167,24 @@ const History: React.FC<HistoryProps> = ({
     // twice. A new object on every save, so saving one row twice marks it twice.
     const [saved, setSaved] = useState<{ id: string } | null>(null);
     const [savedMarkOn, setSavedMarkOn] = useState(false);
-    const savedRowRef = useRef<HTMLButtonElement>(null);
+    const savedRowRef = useRef<HTMLButtonElement | null>(null);
+    // The row whose form is open, for focus to go back to when the form
+    // closes. Closing it unmounts the control that had focus, which dropped
+    // focus on the page itself, and a keyboard or screen reader that does
+    // not keep its place started again from the top.
+    const editingRowRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         if (!saved) return;
         const timers = [
             window.setTimeout(() => {
-                const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-                savedRowRef.current?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+                const row = savedRowRef.current;
+                if (row) centerRow(row);
+                // Focus goes on to the row the save made, so the next Tab
+                // starts from there. Only while the form's Save button has left
+                // it nowhere: anything focused since is left where it is.
+                const active = document.activeElement;
+                if (!active || active === document.body) row?.focus({ preventScroll: true });
                 setSavedMarkOn(true);
             }, FOLD_MS),
             window.setTimeout(() => setSavedMarkOn(false), FOLD_MS + SAVED_MARK_MS),
@@ -220,6 +236,19 @@ const History: React.FC<HistoryProps> = ({
         if (e.timeH > hoursNow()) setPlannedOpen(true);
         setSavedMarkOn(false);
         setSaved({ id: e.id });
+    };
+
+    // Cancel hands focus back to the row. Cancel sits at the foot of a form
+    // that can run past the screen, so the row may be out of sight above it
+    // (under the 80px header counts); then it is brought back to the middle,
+    // or focus would land on something no one can see.
+    const closeEdit = () => {
+        const row = editingRowRef.current;
+        setEditingId(null);
+        if (!row) return;
+        row.focus({ preventScroll: true });
+        const { top, bottom } = row.getBoundingClientRect();
+        if (top < 80 || bottom > window.innerHeight) centerRow(row);
     };
 
     // Batch add is a choice for one save, not a mode the form stays in: left
@@ -312,7 +341,10 @@ const History: React.FC<HistoryProps> = ({
                     gel, patch, tablet and pill all read "Estradiol (E2)". */}
                 <button
                     type="button"
-                    ref={isSaved ? savedRowRef : undefined}
+                    ref={el => {
+                        if (isSaved) savedRowRef.current = el;
+                        if (isEditing) editingRowRef.current = el;
+                    }}
                     onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
                     {...(selectMode ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-expanded': isEditing })}
                     className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}`}
@@ -397,8 +429,11 @@ const History: React.FC<HistoryProps> = ({
                                         setEditingId(null);
                                         markSaved(e);
                                     }}
-                                    onCancel={() => setEditingId(null)}
+                                    onCancel={closeEdit}
                                     onDelete={(id) => {
+                                        // The form calls onCancel after this, and the
+                                        // row is going: nothing to hand focus back to.
+                                        editingRowRef.current = null;
                                         onDeleteEvent(id);
                                         setEditingId(null);
                                     }}
