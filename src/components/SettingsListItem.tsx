@@ -60,6 +60,8 @@ export const SettingsListItem: React.FC<SettingsListItemProps> = ({
     const Tag = onClick ? 'button' : 'div';
     // The rule above this row starts after the 20px icon and its 12px gap.
     const style = { '--divider-inset': '2rem' } as React.CSSProperties;
+    // React 18's isValidElement does not narrow the other branch to the component type.
+    const IconComponent = Icon as SettingsIcon;
     return (
         <Tag
             type={onClick ? 'button' : undefined}
@@ -70,7 +72,7 @@ export const SettingsListItem: React.FC<SettingsListItemProps> = ({
         >
             {React.isValidElement(Icon)
                 ? Icon
-                : <Icon size={20} className={`${isDanger ? danger : muted} shrink-0`} />}
+                : <IconComponent size={20} className={`${isDanger ? danger : muted} shrink-0`} />}
             <div className="flex-1 min-w-0 text-start">
                 <p className={`text-sm font-medium ${isDanger ? danger : on}`}>{title}</p>
                 {description && <div className={`text-xs ${muted} mt-0.5`}>{description}</div>}

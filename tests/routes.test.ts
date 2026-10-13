@@ -218,7 +218,7 @@ describe('gel', () => {
         [0.5, 21],
         [1.0, 30.5],
         [0.75, 28.3],
-    ])('%s mg/day reproduces the label Cavg of %s pg/mL within 30%%', (mgPerDay, labelCavg) => {
+    ])('%s mg/day reproduces the label Cavg of %s pg/mL within 30%', (mgPerDay, labelCavg) => {
         for (const weight of [65, 70]) {
             const sim = runSimulation(regimen(Route.gel, Ester.E2, mgPerDay, 24, 40, NOW_H - 24), weight)!;
             const { mean } = scan(sim, E2, NOW_H - 24, NOW_H, 0.1);

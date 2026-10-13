@@ -23,6 +23,15 @@ Notable changes to this project. Full release notes for each version are on the
 
   新增 `logic.ts` 剂量与浓度计算的单元测试（`npm test`，已加入 CI）。
   测试中发现的问题以及与文献数据的差距，以预期失败的形式记录在 `tests/` 中，计算结果没有改动。
+- Updated dependencies so `npm audit` reports nothing, including a critical
+  advisory in the test runner (Vitest 3 to 4). React's type packages match
+  React 18 again, and `autoprefixer` is gone because Tailwind 4 adds the
+  prefixes it needs. On Safari 17 and older, glass panels now keep their
+  see-through look instead of falling back to a solid colour.
+
+  更新依赖，`npm audit` 不再报告任何问题，其中包括测试工具中的一个严重级别漏洞（Vitest 3 升到 4）。
+  React 的类型包重新与 React 18 对应；移除了 `autoprefixer`，Tailwind 4 会自行添加所需的前缀。
+  在 Safari 17 及更早版本上，半透明面板不再退回为不透明的纯色。
 
 ## 1.4.2
 
