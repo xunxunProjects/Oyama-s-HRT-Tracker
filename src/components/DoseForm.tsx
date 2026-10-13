@@ -1128,13 +1128,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 )}
             </div>
 
-            {/* Footer Buttons */}
-            <div className={`flex flex-wrap gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}>
+            {/* Footer Buttons. On a phone the template controls and Save
+                share one row, Save taking the rest of it; on rows of their own
+                they put Save under the floating nav for an injection at
+                390x844. Save keeps a 12rem basis and doesn't shrink, so when
+                the template name field opens it drops to a full row below.
+                Cancel and Save (the edit form in the list) keep a row of their
+                own, where neither label has to wrap. */}
+            <div className={`flex flex-wrap gap-x-2 gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}>
                 {/* Says what the tick shows, for anyone who can't see it. */}
                 <span role="status" className="sr-only">
                     {templateTick === 'saved' ? t('template.saved') : templateTick === 'loaded' ? t('template.loaded') : ''}
                 </span>
-                <div className="flex gap-2 items-center flex-wrap min-h-10 w-full sm:w-auto">
+                <div className="flex gap-2 items-center flex-wrap min-h-10">
 
                     {/* Template Save Section. Both halves clip, to collapse to
                         nothing in turn, so their buttons draw the focus ring
@@ -1224,7 +1230,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     )}
                 </div>
 
-                <div className="flex gap-2 ml-auto shrink-0 w-full sm:w-auto justify-end">
+                <div className={`flex gap-2 ml-auto shrink-0 grow ${hideHeader ? 'basis-full' : 'basis-48'} sm:grow-0 sm:basis-auto justify-end`}>
                     {hideHeader && (
                         <button
                             type="button"
