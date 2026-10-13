@@ -11,7 +11,7 @@ import {
     runSimulation,
     SimulationResult,
 } from '../logic';
-import { BW, NOW_H, VD_CPA_ML, VD_E2_ML, VD_T_ML, dose, regimen, relErr, scan, trapz } from './helpers';
+import { BW, NOW_H, VD_E2_ML, VD_T_ML, dose, regimen, relErr, scan, trapz } from './helpers';
 import { UpstreamCompound, upstreamE2Amount } from './reference/pkcoreUpstream';
 
 const E2 = interpolateConcentration_E2;
@@ -93,25 +93,31 @@ describe('oral', () => {
         expect(relErr(e2AucFor(Route.oral, Ester.EV, 2, 200), toPgMl((2 * F) / 0.41))).toBeLessThan(0.005);
     });
 
-    it('E2 peaks 2 to 3 hours after the dose ("Algorithm Explanation.md", kAbsE2 = 0.32)', () => {
-        const t0 = NOW_H - 100;
+    it('E2 goes through the estrone pool: it peaks about 10 h after the dose, then halves every 14.4 h', () => {
+        const t0 = NOW_H - 200;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!;
-        const { tmaxH } = scan(sim, E2, t0, t0 + 24);
-        expect(tmaxH).toBeGreaterThanOrEqual(2);
-        expect(tmaxH).toBeLessThanOrEqual(3);
+        const { tmaxH } = scan(sim, E2, t0, t0 + 48);
+        expect(tmaxH).toBeGreaterThan(9);
+        expect(tmaxH).toBeLessThan(12);
+        const halfLife = (24 * Math.LN2) / Math.log(E2(sim, t0 + 48)! / E2(sim, t0 + 72)!);
+        expect(relErr(halfLife, 14.36)).toBeLessThan(0.02);
     });
 
-    it('EV is absorbed more slowly than E2', () => {
-        const t0 = NOW_H - 100;
-        const e2 = scan(runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!, E2, t0, t0 + 24);
-        const ev = scan(runSimulation([dose(Route.oral, Ester.EV, 2, t0)], BW)!, E2, t0, t0 + 24);
-        expect(ev.tmaxH).toBeGreaterThan(e2.tmaxH);
+    it('EV falls at its absorption rate (half-life 13.9 h) and peaks earlier than E2', () => {
+        const t0 = NOW_H - 200;
+        const e2 = scan(runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!, E2, t0, t0 + 48);
+        const evSim = runSimulation([dose(Route.oral, Ester.EV, 2, t0)], BW)!;
+        const ev = scan(evSim, E2, t0, t0 + 48);
+        expect(ev.tmaxH).toBeLessThan(e2.tmaxH);
+        const halfLife = (24 * Math.LN2) / Math.log(E2(evSim, t0 + 48)! / E2(evSim, t0 + 72)!);
+        expect(relErr(halfLife, Math.LN2 / 0.05)).toBeLessThan(0.02);
     });
 
-    it('CPA lands on the CPA curve in ng/mL with F = 0.7 and k = 0.017/h, and leaves E2 at zero', () => {
+    it('CPA lands on the CPA curve in ng/mL with F = 0.88 and the Androcur clearance, and leaves E2 at zero', () => {
+        // 3.5 mL/min/kg at 70 kg is 14.7 L/h.
         const sim = runSimulation([dose(Route.oral, Ester.CPA, 10, NOW_H - 3000)], BW)!;
         const auc = trapz(sim.timeH, sim.concPGmL_CPA);
-        expect(relErr(auc, (((10 * 0.7) / 0.017) * 1e6) / VD_CPA_ML)).toBeLessThan(0.005);
+        expect(relErr(auc, ((10 * 0.88) / (0.0035 * 60 * BW)) * 1000)).toBeLessThan(0.005);
         expect(Math.max(...sim.concPGmL_E2)).toBe(0);
         expect(CPA(sim, NOW_H - 2990)!).toBeGreaterThan(0);
     });
@@ -306,7 +312,7 @@ describe('testosterone routes', () => {
         '%s injection: exposure equals F·D/k3 on the T curve, nothing on E2',
         ester => {
             const sim = runSimulation([dose(Route.injection, ester, 100, NOW_H - 30_000)], BW)!;
-            const F = 0.025 * getToE2Factor(ester);
+            const F = 0.043 * getToE2Factor(ester);
             expect(relErr(trapz(sim.timeH, sim.concNGdL_T), tPerNgDl((100 * F) / 0.035))).toBeLessThan(0.005);
             expect(Math.max(...sim.concPGmL_E2)).toBe(0);
         },
@@ -384,10 +390,12 @@ describe('cross-check against upstream PKcore (estradiol)', () => {
             ester,
             upRoute: 'injection' as const,
         })),
-        { name: 'E2 oral', route: Route.oral, ester: Ester.E2, upRoute: 'oral' },
+        // Oral estradiol, and the swallowed share of sublingual estradiol, now
+        // pass through an estrone pool that upstream does not model (see
+        // OralPK.kE1Pool), so only the valerate forms are compared.
         { name: 'EV oral', route: Route.oral, ester: Ester.EV, upRoute: 'oral' },
         ...[0, 1, 2, 3].flatMap(tier =>
-            [Ester.E2, Ester.EV].map(ester => ({
+            [Ester.EV].map(ester => ({
                 name: `${ester} sublingual tier ${tier}`,
                 route: Route.sublingual,
                 ester,

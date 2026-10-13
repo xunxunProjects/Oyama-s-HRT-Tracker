@@ -5,8 +5,8 @@
  * report group means with wide spread, often without body weight, and some are
  * not baseline-corrected. Where the model falls outside the band the test is
  * marked `it.fails`: it states where the model should land and passes while
- * the gap exists. Those are reported, not fixed, because changing the model
- * needs its own evidence and review.
+ * the gap exists. A model change that closes one needs its own evidence,
+ * cited where the parameter is set in logic.ts.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -54,6 +54,50 @@ describe('oral estradiol valerate, single 1 mg tablet', () => {
     });
 });
 
+describe('oral estradiol at steady state', () => {
+    // Leinung et al. 2018, transfeminine people on oral estradiol, mean levels
+    // by dose (chemiluminescent immunoassay, draw time not stated), as tabulated
+    // in https://transfemscience.org/articles/oral-e2-leinung-2018/ Table 1.
+    // With no draw time, the model's mean over the dosing day is compared.
+    it.each([
+        [2, 62],
+        [4, 102],
+        [8, 159],
+    ])('%i mg/day averages within 1.5x of %i pg/mL', (mg, mean) => {
+        const sim = runSimulation(regimen(Route.oral, Ester.E2, mg, 24, 30, NOW_H - 24), BW)!;
+        within(scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1).mean, mean);
+    });
+
+    it('the level before the next dose stays above half the daily mean, as a 14 h half-life implies', () => {
+        // The model used to fall to under 1 pg/mL between doses of 2 mg/day.
+        const sim = runSimulation(regimen(Route.oral, Ester.E2, 2, 24, 30, NOW_H - 24), BW)!;
+        const { mean } = scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1);
+        expect(interpolateConcentration_E2(sim, NOW_H - 24 - 1e-6)! / mean).toBeGreaterThan(0.5);
+    });
+});
+
+describe('cyproterone acetate, single 100 mg dose', () => {
+    // Androcur 50 mg SmPC, section 5.2: "two cyproterone acetate 50 mg tablets
+    // gives maximum serum levels of about 285 ng/ml at about 3 hours"; terminal
+    // half-life 43.9 h. https://www.medicines.org.uk/emc/product/15996/smpc/print
+    // The model used to peak at about 67 ng/mL.
+    it('peaks within 1.5x of 285 ng/mL, 2 to 4 h after the dose', () => {
+        const t0 = NOW_H - 300;
+        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
+        const { cmax, tmaxH } = scan(sim, interpolateConcentration_CPA, t0, t0 + 24);
+        within(cmax, 285);
+        expect(tmaxH).toBeGreaterThanOrEqual(2);
+        expect(tmaxH).toBeLessThanOrEqual(4);
+    });
+
+    it('falls with a half-life within 1.5x of 43.9 h after the first day', () => {
+        const t0 = NOW_H - 300;
+        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
+        const c = (h: number) => interpolateConcentration_CPA(sim, t0 + h)!;
+        within((48 * Math.LN2) / Math.log(c(48) / c(96)), 43.9);
+    });
+});
+
 describe('transdermal estradiol patch', () => {
     // Climara label, Table 2 (abdomen, single application): Cavg 41 pg/mL at
     // 0.05 mg/day and 87 pg/mL at 0.1 mg/day.
@@ -89,6 +133,103 @@ describe('testosterone gel', () => {
     });
 });
 
+// 1 nmol/L of testosterone is 28.84 ng/dL.
+const NMOL_T = 28.84;
+
+/** Lowest, highest and mean testosterone over [from, to], hourly. */
+const tRange = (events: Parameters<typeof runSimulation>[0], from: number, to: number) => {
+    const sim = runSimulation(events, BW)!;
+    let lo = Infinity,
+        hi = -Infinity;
+    for (let t = from; t <= to; t += 1) {
+        const c = interpolateConcentration_T(sim, t)!;
+        lo = Math.min(lo, c);
+        hi = Math.max(hi, c);
+    }
+    return { lo, hi, mean: scan(sim, interpolateConcentration_T, from, to, 0.5).mean };
+};
+
+describe('testosterone injections', () => {
+    // The formation fraction (DEFAULT_PK_PARAMS.t_ff_*) is fitted to the first
+    // two, so their averages get a tight band.
+    it('enanthate weekly at the Xyosted trial mean dose averages within 1.1x of the label Cavg of 553 ng/dL', () => {
+        // Xyosted label, week 12, N = 137, doses of 50, 75 or 100 mg averaging
+        // 73.9 mg/week: https://medlibrary.org/lib/rx/meds/xyosted/page/4/
+        const sim = runSimulation(regimen(Route.injection, Ester.TE, 73.9, 168, 20, NOW_H - 168), BW)!;
+        within(scan(sim, interpolateConcentration_T, NOW_H - 168, NOW_H, 0.5).mean, 553, 1.1);
+    });
+
+    it('undecanoate on the Aveed schedule matches the label after the third injection', () => {
+        // Aveed label, 750 mg at weeks 0, 4 and 14, N = 117: Cavg 495, Cmax 891,
+        // Cmin 324 ng/dL. https://medlibrary.org/lib/rx/meds/aveed/page/6/
+        // The label's Cmax is a mean of each man's own peak, which sits above
+        // the peak of a mean curve.
+        const wk = 24 * 7;
+        const t0 = NOW_H - 30 * wk;
+        const doses = [0, 4, 14].map(w => dose(Route.injection, Ester.TU, 750, t0 + w * wk));
+        const { lo, hi, mean } = tRange(doses, t0 + 14 * wk, t0 + 24 * wk);
+        within(mean, 495, 1.1);
+        within(hi, 891);
+        within(lo, 324);
+    });
+
+    it('undecanoate 1000 mg peaks about a week after the first injection', () => {
+        // Nebido label: "mean Cmax values of 38 nmol/L (11 ng/mL) were obtained
+        // after 7 days". https://www.rxreasoner.com/monographs/nebido/pharmacology
+        // The model reaches about half that height: the label's first peak is as
+        // high as its steady-state peak, which no linear model can give, and
+        // the model is fitted to the steady state below.
+        const t0 = NOW_H - 24 * 100;
+        const sim = runSimulation([dose(Route.injection, Ester.TU, 1000, t0)], BW)!;
+        const { tmaxH } = scan(sim, interpolateConcentration_T, t0, t0 + 24 * 30, 0.5);
+        expect(tmaxH / 24).toBeGreaterThan(5);
+        expect(tmaxH / 24).toBeLessThan(9);
+    });
+
+    it('undecanoate 1000 mg every 10 weeks peaks and troughs within 1.5x of the Nebido label', () => {
+        // Nebido label: "Mean Cmax and Cmin values of testosterone at
+        // steady-state were about 37 ... and 16 nmol/L". The model used to fall
+        // to a trough of 0.17 of its peak, against the label's 0.43.
+        const every10wk = 24 * 7 * 10;
+        const { lo, hi } = tRange(
+            regimen(Route.injection, Ester.TU, 1000, every10wk, 8, NOW_H - every10wk),
+            NOW_H - every10wk,
+            NOW_H,
+        );
+        within(hi, 37 * NMOL_T);
+        within(lo, 16 * NMOL_T);
+    });
+
+    it('weekly injections at the dose transgender men settled on average within 1.5x of their mean level', () => {
+        // Spratt et al., J Clin Endocrinol Metab 2017;102(7):2349, 63 transgender
+        // men on weekly subcutaneous testosterone: 31.7% settled on 50 mg, 54% on
+        // 75 to 80 mg, 11.1% on 100 mg and 3.2% on 150 mg (a mean of about
+        // 73.6 mg/week), with a mean testosterone of 702 ng/dL. The report below
+        // names neither the ester nor the draw time, so cypionate is assumed
+        // and the model's weekly mean is compared.
+        // https://www.healio.com/news/endocrinology/20170412/subcutaneous-testosterone-therapy-safe-effective-in-femaletomale-transgender-patients
+        const sim = runSimulation(regimen(Route.injection, Ester.TC, 73.6, 168, 20, NOW_H - 168), BW)!;
+        within(scan(sim, interpolateConcentration_T, NOW_H - 168, NOW_H, 0.5).mean, 702);
+    });
+
+    it('cypionate 200 mg IM gives at least the Azmiro label exposure, and not more than twice it', () => {
+        // Azmiro label, 26 hypogonadal men, single 200 mg IM dose, 31 days of
+        // sampling: baseline-corrected AUC 137,219 h·ng/dL, Cmax 758 ng/dL.
+        // https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/216318s002lbl.pdf
+        // Subtracting the pre-dose level after a dose that suppresses the men's
+        // own testosterone understates the dose's share, so the label is a
+        // lower bound here.
+        const t0 = NOW_H - 24 * 40;
+        const sim = runSimulation([dose(Route.injection, Ester.TC, 200, t0)], BW)!;
+        let auc = 0;
+        for (let t = t0; t < t0 + 24 * 31; t += 0.5) {
+            auc += 0.25 * (interpolateConcentration_T(sim, t)! + interpolateConcentration_T(sim, t + 0.5)!);
+        }
+        expect(auc).toBeGreaterThan(137219);
+        expect(auc).toBeLessThan(2 * 137219);
+    });
+});
+
 describe('known gaps against published data', () => {
     // Doll et al., "Pharmacokinetics of Sublingual Versus Oral Estradiol in
     // Transgender Women", Endocr Pract 2022;28(3):237-242, PMID 34781041.
@@ -96,7 +237,7 @@ describe('known gaps against published data', () => {
     // 144 pg/mL at 1 h, oral at 35 pg/mL at 8 h.
     // https://pubmed.ncbi.nlm.nih.gov/34781041/
     //
-    // Sublingual: the standard tier (θ = 0.11) peaks at about 549 pg/mL, 3.8x the
+    // Sublingual: the standard tier (θ = 0.11) peaks at about 509 pg/mL, 3.5x the
     // study. This is what GitHub issue #22 reports (about 1400 pg/mL for 2 mg at
     // 55 kg). The study does not say how long the tablet was held, so even a
     // factor of 2 is generous.
@@ -106,55 +247,33 @@ describe('known gaps against published data', () => {
         within(scan(sim, interpolateConcentration_E2, t0, t0 + 12, 0.01).cmax, 144, 2);
     });
 
-    // Oral: the model peaks at about 69 pg/mL at 3 h and falls with an apparent
-    // half-life of about 2.3 h, so at steady state on 2 mg/day the trough is
-    // under 1 pg/mL. Labels report 14-26 h (e.g. Bijuva, Angeliq). The design
-    // doc lists the missing estrone/estrone sulfate reservoir as a known
-    // limitation, and the parameters match upstream PKcore, so this is a model
-    // simplification rather than a coding error.
-    it.fails('oral 1 mg peaks within 1.5x of 35 pg/mL, no earlier than 5 h', () => {
+    // Oral: the study sampled up to 8 h, and oral estradiol was still rising
+    // then. The model, which routes swallowed estradiol through an estrone pool
+    // (OralPK.kE1Pool), peaks at about 10 h, but at about 16 pg/mL at 8 h it is
+    // under half the study's 35. The baseline-corrected oral valerate study
+    // below the injections gives 24.7 pg/mL per mg of estradiol at its peak,
+    // which the model meets within 1.5x; this abstract does not say whether
+    // the participants' own estradiol was subtracted.
+    it('oral 1 mg is still rising at 8 h', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
-        const { cmax, tmaxH } = scan(sim, interpolateConcentration_E2, t0, t0 + 24);
-        within(cmax, 35);
-        expect(tmaxH).toBeGreaterThanOrEqual(5);
+        expect(interpolateConcentration_E2(sim, t0 + 8)!).toBeGreaterThan(interpolateConcentration_E2(sim, t0 + 6)!);
     });
 
-    // Androcur 50 mg SmPC, section 5.2: "two cyproterone acetate 50 mg tablets
-    // gives maximum serum levels of about 285 ng/ml at about 3 hours"; absolute
-    // bioavailability 88%. https://www.medicines.org.uk/emc/product/15996/smpc/print
-    // The model peaks at about 67 ng/mL. It puts the whole dose into the
-    // terminal-phase volume (14 L/kg) with F = 0.7, so total exposure is close
-    // (about 0.7x) but the peak is about 4x low.
-    it.fails('cyproterone 100 mg peaks within 1.5x of 285 ng/mL', () => {
-        const t0 = NOW_H - 300;
-        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
-        within(scan(sim, interpolateConcentration_CPA, t0, t0 + 24).cmax, 285);
+    it.fails('oral 1 mg reaches 35 pg/mL at 8 h, within 1.5x', () => {
+        const t0 = NOW_H - 100;
+        const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
+        within(interpolateConcentration_E2(sim, t0 + 8)!, 35);
     });
 
-    // Nebido (testosterone undecanoate 1000 mg) label: first-injection "mean
-    // Cmax values of 38 nmol/L (11 ng/mL) were obtained after 7 days"; at steady
-    // state "Mean Cmax and Cmin ... about 37 ... and 16 nmol/L".
-    // https://www.rxreasoner.com/monographs/nebido/pharmacology
-    // The model peaks at about 3.2 days and its steady-state trough/peak ratio is
-    // about 0.17 against the label's 0.43. This is a shape problem, separate from
-    // the average-level shortfall in suspected-bugs.test.ts; upstream PKcore's own
-    // TU parameters peak at about 7 days.
-    it.fails('TU 1000 mg peaks after about 7 days, and at steady state the trough is about 0.4 of the peak', () => {
-        const t0 = NOW_H - 24 * 7 * 10 * 8;
-        const single = runSimulation([dose(Route.injection, Ester.TU, 1000, t0)], BW)!;
-        const { tmaxH } = scan(single, interpolateConcentration_T, t0, t0 + 24 * 30, 0.5);
-        expect(tmaxH / 24).toBeGreaterThan(5);
-
-        const every10wk = 24 * 7 * 10;
-        const ss = runSimulation(regimen(Route.injection, Ester.TU, 1000, every10wk, 8, NOW_H - every10wk), BW)!;
-        let lo = Infinity,
-            hi = -Infinity;
-        for (let t = NOW_H - every10wk; t <= NOW_H; t += 1) {
-            const c = interpolateConcentration_T(ss, t)!;
-            lo = Math.min(lo, c);
-            hi = Math.max(hi, c);
-        }
-        expect(lo / hi).toBeGreaterThan(0.3);
+    // Xyosted label, week 12: Cmin 436 against a Cavg of 553 ng/dL, a ratio of
+    // 0.79 (https://medlibrary.org/lib/rx/meds/xyosted/page/4/). At the same
+    // average the model's weekly enanthate trough is about 240 ng/dL, a ratio of
+    // 0.43: its curve swings more than this subcutaneous label's. Intramuscular
+    // injections may swing more than subcutaneous ones, and the app does not
+    // tell the two apart, so the enanthate depot rates are left as they are.
+    it.fails('enanthate weekly at the Xyosted mean dose troughs within 1.5x of the label Cmin of 436 ng/dL', () => {
+        const { lo } = tRange(regimen(Route.injection, Ester.TE, 73.9, 168, 20, NOW_H - 168), NOW_H - 168, NOW_H);
+        within(lo, 436);
     });
 });

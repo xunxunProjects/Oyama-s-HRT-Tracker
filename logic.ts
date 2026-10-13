@@ -118,6 +118,9 @@ export interface SimulationResult {
     concPGmL_CPA: number[];
     // Transmasculine: total testosterone concentration in ng/dL
     concNGdL_T: number[];
+    // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
+    // adds CPA converted to pg/mL, a different drug in a unit a thousand times
+    // larger, which would swamp it.
     auc: number;
 }
 
@@ -167,33 +170,129 @@ export interface DoseAdvisory {
     kind: 'e2' | 't' | 'cpa' | 'e2_cpa';
 }
 
-// Ceilings sit at the high end of typical GAHT dosing, so only clearly excessive
-// use trips them — not merely a high-normal dose. Sources: transfemscience.org
-// (E2/CPA ranges), UCSF masculinizing-therapy guidance (T ranges).
+// Ceilings sit at about 1.5× the top of the usual range for each route, so only
+// clearly excessive use trips them, not merely a high-normal dose. Usual ranges:
+// transfemscience.org "An Introduction to Transfeminine Hormone Therapy",
+// Table 5 (E2, CPA); UCSF masculinizing-therapy guidance (T).
 const DOSE_CEILING = {
-    cpaPerDay: 12.5,   // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
-    e2DailyPerDay: 12, // mg/day — oral/sublingual/gel/patch estradiol
-    e2InjPerWeek: 20,  // mg/week — injected estradiol esters (5–10 mg/wk is high-normal)
-    e2InjSingle: 50,   // mg — a single injected-E2 dose this large is excessive
-    tDailyPerDay: 150, // mg/day — transdermal testosterone
-    tInjPerWeek: 200,  // mg/week — injected testosterone (50–100 mg/wk is typical)
+    cpaPerDay: 12.5,        // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
+    e2OralPerDay: 12,       // mg/day — usual 2–8
+    e2SublingualPerDay: 9,  // mg/day — usual 0.5–6
+    e2GelPerDay: 9,         // mg/day — usual 1.5–6
+    e2PatchPerDay: 0.6,     // mg/day delivered — usual 0.05–0.4 (50–400 µg/day)
+    // Injected estradiol, in mg of the ester. Table 5's usual ranges for the
+    // valerate, cypionate, enanthate, benzoate and undecylate all top out
+    // around 6 mg of ester a week (EB 2.25 mg/3 d, EU 24 mg/28 d), so one
+    // weekly ceiling in ester mg fits every ester once each is read at its own
+    // cadence (see _injectionWeeklyRate).
+    e2InjPerWeek: 20,
+    e2InjSingle: 50,        // mg — a single injected-E2 dose this large is excessive
+    tGelPerDay: 150,        // mg/day — testosterone gel
+    tInjPerWeek: 200,       // mg/week — injected testosterone (50–100 mg/wk is typical)
 } as const;
 
-const _isDailyRoute = (r: Route) =>
-    r === Route.oral || r === Route.sublingual || r === Route.gel || r === Route.patchApply;
+// Injections closer together than this are one dose split across sites.
+const SPLIT_INJECTION_H = 12;
+// How long a patch with neither a removal nor a planned wear time is assumed
+// to be on. Short on purpose: a forgotten removal must not read as patches
+// piling up.
+const PATCH_UNKNOWN_WEAR_H = 24;
 
 /**
- * Largest single-day total dose (mg) within the trailing `days` window for events
- * matching `pred` — i.e. "how much did you take on your heaviest recent day". Used
- * for daily-dosed routes; robust to how much history exists and to window edges (a
- * trailing average would over/under-count depending on where dose times fall).
+ * Calendar day in the device's own time zone, as a day number. People think in
+ * local days: two evening doses an hour apart must not land on different days
+ * just because UTC midnight falls between them.
+ */
+function _localDay(timeH: number): number {
+    const offsetH = new Date(timeH * 3600 * 1000).getTimezoneOffset() / 60;
+    return Math.floor((timeH - offsetH) / 24);
+}
+
+/** Labelled release rate of a patch in mg/day, or null when only a reservoir dose was logged. */
+function _patchRateMgPerDay(e: DoseEvent): number | null {
+    const ug = e.extras?.[ExtraKey.releaseRateUGPerDay];
+    return typeof ug === 'number' && Number.isFinite(ug) && ug > 0 ? ug / 1000 : null;
+}
+
+/**
+ * Heaviest recent estradiol day, as a fraction of the ceiling (1 = at the
+ * ceiling). Oral, sublingual and gel doses count by what was taken on each
+ * local day; patches count by what they deliver over the 24 h from each
+ * application. Routes add up as fractions of their own ceilings, so 6 mg oral plus a
+ * 300 µg/day patch is half of one plus half of the other.
+ *
+ * A patch logged by reservoir dose only has no known daily delivery (its
+ * reservoir is several times what it releases) and is left out, as the
+ * per-dose guide in the dose form does.
+ */
+function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number {
+    const inWindow = (t: number) => nowH - t >= 0 && nowH - t <= days * 24;
+    const byDay = new Map<number, number>();
+    const times: number[] = [];
+    for (const e of events) {
+        if (!isEstradiolEster(e.ester) || !inWindow(e.timeH)) continue;
+        const ceiling =
+            e.route === Route.oral ? DOSE_CEILING.e2OralPerDay
+            : e.route === Route.sublingual ? DOSE_CEILING.e2SublingualPerDay
+            : e.route === Route.gel ? DOSE_CEILING.e2GelPerDay
+            : null;
+        if (ceiling === null) continue;
+        const day = _localDay(e.timeH);
+        byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG / ceiling);
+        times.push(e.timeH);
+    }
+
+    const removals = patchRemovalTimes(events);
+    const patches: { start: number; end: number; rate: number }[] = [];
+    for (const e of events) {
+        if (e.route !== Route.patchApply || !isEstradiolEster(e.ester) || e.timeH > nowH) continue;
+        const rate = _patchRateMgPerDay(e);
+        if (rate === null) continue;
+        const removeAt = removals.get(e);
+        const wear = removeAt !== undefined && removeAt > e.timeH
+            ? removeAt - e.timeH
+            : _plannedWearH(e) ?? PATCH_UNKNOWN_WEAR_H;
+        patches.push({ start: e.timeH, end: e.timeH + wear, rate });
+        if (inWindow(e.timeH)) times.push(e.timeH);
+    }
+
+    // What the patches deliver over the 24 h from `t`, in mg. Measuring a day's
+    // delivery rather than the rate at one instant keeps a changeover, where
+    // the new patch goes on minutes before the old one comes off, from counting
+    // as two patches for the whole day. Rounded so that a day exactly at the
+    // ceiling does not cross it by floating-point error.
+    const patchMgFrom = (t: number) => {
+        let mg = 0;
+        for (const p of patches) {
+            const overlapH = Math.min(p.end, t + 24) - Math.max(p.start, t);
+            if (overlapH > 0) mg += (p.rate * overlapH) / 24;
+        }
+        return Math.round(mg * 1e6) / 1e6;
+    };
+
+    // Checked from every application, where the patch total rises, and from
+    // every other dose, to add the patches to that day's tablets or gel.
+    let mx = 0;
+    for (const t of times) {
+        const ratio = (byDay.get(_localDay(t)) ?? 0) + patchMgFrom(t) / DOSE_CEILING.e2PatchPerDay;
+        if (ratio > mx) mx = ratio;
+    }
+    return mx;
+}
+
+/**
+ * Largest single local-day total dose (mg) within the trailing `days` window for
+ * events matching `pred` — i.e. "how much did you take on your heaviest recent
+ * day". Used for daily-dosed routes; robust to how much history exists and to
+ * window edges (a trailing average would over/under-count depending on where
+ * dose times fall).
  */
 function _maxDailyDose(events: DoseEvent[], nowH: number, days: number, pred: (e: DoseEvent) => boolean): number {
     const byDay = new Map<number, number>();
     for (const e of events) {
         const age = nowH - e.timeH;
         if (age >= 0 && age <= days * 24 && pred(e)) {
-            const day = Math.floor(e.timeH / 24);
+            const day = _localDay(e.timeH);
             byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG);
         }
     }
@@ -202,24 +301,58 @@ function _maxDailyDose(events: DoseEvent[], nowH: number, days: number, pred: (e
     return mx;
 }
 
+/** Injections in the trailing window, with doses split across sites merged into one. */
+function _mergedInjections(events: DoseEvent[], nowH: number, days: number, pred: (e: DoseEvent) => boolean) {
+    const injections = events
+        .filter(e => e.route === Route.injection && pred(e) && nowH - e.timeH >= 0 && nowH - e.timeH <= days * 24)
+        .sort((a, b) => a.timeH - b.timeH);
+    const merged: { ester: Ester; timeH: number; doseMG: number }[] = [];
+    const latest = new Map<Ester, { ester: Ester; timeH: number; doseMG: number }>();
+    for (const e of injections) {
+        const prev = latest.get(e.ester);
+        if (prev && e.timeH - prev.timeH < SPLIT_INJECTION_H) {
+            prev.doseMG += e.doseMG;
+        } else {
+            const m = { ester: e.ester, timeH: e.timeH, doseMG: e.doseMG };
+            merged.push(m);
+            latest.set(e.ester, m);
+        }
+    }
+    return merged;
+}
+
 /**
  * Weekly-equivalent dose for an injected family, inferred from the person's own
  * cadence (dose ÷ typical gap between injections). This avoids false alarms right
  * after a long-interval depot (e.g. undecanoate every 10–12 weeks), which a fixed
- * trailing window would wrongly read as a huge weekly rate. Needs ≥2 injections to
- * infer a gap; returns null otherwise (a lone depot's schedule is unknowable).
+ * trailing window would wrongly read as a huge weekly rate.
+ *
+ * Each ester is read at its own cadence, and only while it is still being
+ * taken: a regimen counts until two of its gaps pass with no injection, or
+ * until another ester starts after its last injection (a switch). Esters taken
+ * side by side add up. An ester needs ≥2 injections to infer a gap; a lone
+ * depot's schedule is unknowable and adds nothing.
  */
-function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number | null {
-    const fam = events
-        .filter(e => pred(e) && nowH - e.timeH >= 0 && nowH - e.timeH <= 120 * 24)
-        .sort((a, b) => a.timeH - b.timeH);
-    if (fam.length < 2) return null;
-    const gaps: number[] = [];
-    for (let i = 1; i < fam.length; i++) gaps.push(fam[i].timeH - fam[i - 1].timeH);
-    gaps.sort((a, b) => a - b);
-    const medGapH = gaps[Math.floor(gaps.length / 2)];
-    if (medGapH <= 0) return null;
-    return fam[fam.length - 1].doseMG / (medGapH / 168); // 168 h = 1 week
+function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number {
+    const merged = _mergedInjections(events, nowH, 120, pred);
+    const firstH = new Map<Ester, number>();
+    for (const m of merged) if (!firstH.has(m.ester)) firstH.set(m.ester, m.timeH);
+    let total = 0;
+    for (const ester of firstH.keys()) {
+        const own = merged.filter(m => m.ester === ester);
+        if (own.length < 2) continue;
+        const last = own[own.length - 1];
+        let switchedAway = false;
+        for (const [other, startH] of firstH) if (other !== ester && startH > last.timeH) switchedAway = true;
+        if (switchedAway) continue;
+        const gaps: number[] = [];
+        for (let i = 1; i < own.length; i++) gaps.push(own[i].timeH - own[i - 1].timeH);
+        gaps.sort((a, b) => a - b);
+        const medGapH = gaps[Math.floor(gaps.length / 2)];
+        if (nowH - last.timeH > 2 * medGapH) continue;
+        total += last.doseMG / (medGapH / 168); // 168 h = 1 week
+    }
+    return total;
 }
 
 /**
@@ -232,24 +365,24 @@ export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() /
     const isE2 = (e: DoseEvent) => isEstradiolEster(e.ester);
     const isT = (e: DoseEvent) => isTestosteroneEster(e.ester);
 
-    // Daily-dosed families: heaviest single-day total in the trailing 14 days.
+    // Daily-dosed families: heaviest single local day in the trailing 14 days.
+    // Testosterone patches can't be logged from the app (see DoseForm), so only
+    // gel counts for T.
     const cpaPerDay = _maxDailyDose(events, nowH, 14, e => e.ester === Ester.CPA);
-    const e2DailyPerDay = _maxDailyDose(events, nowH, 14, e => isE2(e) && _isDailyRoute(e.route));
-    const tDailyPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && (e.route === Route.gel || e.route === Route.patchApply));
+    const e2DailyRatio = _e2DailyRatio(events, nowH, 14);
+    const tGelPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && e.route === Route.gel);
 
     // Injected families: cadence-inferred weekly rate, plus a single-dose guard for E2.
-    const e2InjWk = _injectionWeeklyRate(events, nowH, e => isE2(e) && e.route === Route.injection) ?? 0;
-    const tInjWk = _injectionWeeklyRate(events, nowH, e => isT(e) && e.route === Route.injection) ?? 0;
+    const e2InjWk = _injectionWeeklyRate(events, nowH, isE2);
+    const tInjWk = _injectionWeeklyRate(events, nowH, isT);
     let e2InjSingle = 0;
-    for (const e of events) {
-        if (isE2(e) && e.route === Route.injection && nowH - e.timeH >= 0 && nowH - e.timeH <= 30 * 24) {
-            if (e.doseMG > e2InjSingle) e2InjSingle = e.doseMG;
-        }
+    for (const m of _mergedInjections(events, nowH, 30, isE2)) {
+        if (m.doseMG > e2InjSingle) e2InjSingle = m.doseMG;
     }
 
     const cpaRatio = cpaPerDay / DOSE_CEILING.cpaPerDay;
-    const e2Ratio = Math.max(e2DailyPerDay / DOSE_CEILING.e2DailyPerDay, e2InjWk / DOSE_CEILING.e2InjPerWeek, e2InjSingle / DOSE_CEILING.e2InjSingle);
-    const tRatio = Math.max(tDailyPerDay / DOSE_CEILING.tDailyPerDay, tInjWk / DOSE_CEILING.tInjPerWeek);
+    const e2Ratio = Math.max(e2DailyRatio, e2InjWk / DOSE_CEILING.e2InjPerWeek, e2InjSingle / DOSE_CEILING.e2InjSingle);
+    const tRatio = Math.max(tGelPerDay / DOSE_CEILING.tGelPerDay, tInjWk / DOSE_CEILING.tInjPerWeek);
 
     // Both estrogen and antiandrogen running high at once is a real combination
     // (they're routinely dosed together in transfem regimens) and each carries
@@ -280,24 +413,37 @@ const HORMONE_LEVEL_THRESHOLDS = {
     tHighNgDl: 300,  // adult male reference range lower bound
 } as const;
 
+// The latest E2 and T labs are read together only when drawn this close in time;
+// further apart, they describe two different moments.
+const HORMONE_PAIR_MAX_GAP_H = 30 * 24;
+
 export interface HormoneLevelAdvisory {
     kind: 'both_low' | 'both_high';
+}
+
+/** The latest lab of one hormone, averaged over every lab logged at that same moment. */
+function _latestLab(labs: LabResult[], convert: (r: LabResult) => number): { timeH: number; value: number } {
+    const timeH = labs.reduce((mx, r) => Math.max(mx, r.timeH), -Infinity);
+    const same = labs.filter(r => r.timeH === timeH);
+    return { timeH, value: same.reduce((s, r) => s + convert(r), 0) / same.length };
 }
 
 /**
  * Compares the most recent estradiol lab against the most recent testosterone
  * lab (independently latest per hormone) and flags when both are low or both
- * are high at once. Requires at least one lab of each hormone. Not medical advice.
+ * are high at once. Requires at least one lab of each hormone, drawn within 30
+ * days of each other. Not medical advice.
  */
 export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvisory | null {
     const e2Labs = results.filter(r => !isT_LabUnit(r.unit));
     const tLabs = results.filter(r => isT_LabUnit(r.unit));
     if (!e2Labs.length || !tLabs.length) return null;
 
-    const latestE2 = e2Labs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
-    const latestT = tLabs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
-    const e2 = convertToPgMl(latestE2.concValue, latestE2.unit);
-    const t = convertToNgDl(latestT.concValue, latestT.unit);
+    const latestE2 = _latestLab(e2Labs, r => convertToPgMl(r.concValue, r.unit));
+    const latestT = _latestLab(tLabs, r => convertToNgDl(r.concValue, r.unit));
+    if (Math.abs(latestE2.timeH - latestT.timeH) > HORMONE_PAIR_MAX_GAP_H) return null;
+    const e2 = latestE2.value;
+    const t = latestT.value;
 
     const { e2LowPgMl, e2HighPgMl, tLowNgDl, tHighNgDl } = HORMONE_LEVEL_THRESHOLDS;
     if (e2 < e2LowPgMl && t < tLowNgDl) return { kind: 'both_low' };
@@ -305,17 +451,6 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
     return null;
 }
 
-/**
- * How lab results are used to calibrate the E2 estimate.
- *  - 'off'      : ignore labs, show the raw model.
- *  - 'average'  : amplitude-only regression — one personal scale (log-space
- *                 least-squares over all labs). Optimal single multiplier, but
- *                 cannot correct curve shape.
- *  - 'adaptive' : self-learning regression — fits a personal amplitude AND
- *                 clearance (half-life) by re-simulating over a clearance grid.
- *                 Needs ≥2 well-spaced labs to move clearance; falls back to
- *                 amplitude-only with sparse data. Bounded so it can't run away.
- */
 /**
  * Personal E2 calibration estimators. The three learning methods below mirror
  * the calibration models offered by hrt.transmtf.com; they are reimplemented
@@ -325,17 +460,18 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
  *  - 'off'       : no calibration; raw model.
  *  - 'ekf'       : Extended Kalman Filter. Processes labs in time order, keeping
  *                  a running estimate of (log-amplitude, log-clearance) with a
- *                  covariance. Permanent memory (no forgetting); a Jensen term
- *                  corrects the log→linear mean. Amplitude and clearance update
- *                  through independent innovation channels.
+ *                  covariance. Permanent memory (no forgetting). The curve
+ *                  follows the posterior median, so labs that match the model
+ *                  leave it on them. Amplitude and clearance update through
+ *                  independent innovation channels.
  *  - 'ou_kalman' : Ornstein-Uhlenbeck Kalman smoother. Models the log-correction
  *                  as a mean-reverting process; a forward filter + RTS smoother
  *                  yield a time-varying factor that decays toward the model
  *                  between labs (information is nearly gone after ~3 weeks).
  *  - 'mipd'      : Hybrid model-informed precision dosing. MAP fit of amplitude
  *                  and clearance under a population prior with a Student-t
- *                  (robust) likelihood; shrinks to population when data is
- *                  sparse and resists single outliers.
+ *                  (robust) likelihood once there are enough labs to tell an
+ *                  outlier apart; shrinks to population when data is sparse.
  */
 export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd';
 
@@ -453,14 +589,40 @@ const CAL_MEAS_SD = 0.13;
 const CAL_PRIOR_SD_AMP = 0.50; // ≈ ±65% amplitude
 const CAL_PRIOR_SD_K = 0.35;   // ≈ ±42% clearance
 // Minimum labs before personal *clearance* (curve shape) is allowed to move.
+// Labs drawn within LAB_CLUSTER_H of each other count once: several draws at
+// the same moment say nothing about how fast the level falls, and used to
+// invent a half-life change (+27% from three same-hour labs).
 const MIN_LABS_FOR_CLEARANCE = 3;
+const LAB_CLUSTER_H = 6;
 // OU mean-reversion timescale for the dynamic (OU-Kalman) correction.
 const OU_TAU_H = 336;          // ~2 weeks; ≈63% of info decays per τ
 const OU_STAT_SD = 0.5;        // stationary SD of the log-correction
 const CAL_STUDENT_NU = 4;      // Student-t dof for the robust MIPD likelihood
 
-const clampLogFactor = (x: number) => Math.max(-4.6, Math.min(4.6, x)); // exp ∈ [0.01, 100]
 const clampFactor = (x: number) => Math.max(0.01, Math.min(100, x));
+// The fitted clearance stays on the grid the curve is drawn from. Clamping
+// only to [0.01, 100] let the estimate drift past the grid edge, where the
+// predictions stop changing, so the reported kMul and half-life change (shown
+// in CalibrationPlot, CalibrationSettings and Forecast) described a curve
+// other than the one drawn.
+const LOG_KMUL_MIN = Math.log(KMUL_MIN);
+const LOG_KMUL_MAX = Math.log(KMUL_MAX);
+const clampLogK = (k: number) => Math.max(LOG_KMUL_MIN, Math.min(LOG_KMUL_MAX, k));
+
+/** Whether the first `count` labs are numerous and spread out enough to move clearance. */
+function clearanceIdentifiable(labTimes: number[], count: number): boolean {
+    // Each cluster is measured from its first lab, so a run of labs a few
+    // hours apart still counts once per LAB_CLUSTER_H, not once in all.
+    let clusters = 0;
+    let anchor = -Infinity;
+    for (let i = 0; i < count; i++) {
+        if (labTimes[i] - anchor > LAB_CLUSTER_H) {
+            clusters++;
+            anchor = labTimes[i];
+        }
+    }
+    return clusters >= MIN_LABS_FOR_CLEARANCE;
+}
 
 /**
  * Precomputed personal-clearance response. For a grid of clearance multipliers we
@@ -527,36 +689,55 @@ function fieldG(field: ClearanceField, i: number, k: number): number {
     return gLog[j - 1][i] * (1 - t) + gLog[j][i] * t;
 }
 
-/** dg_i/dk via local grid slope (Jacobian of the clearance channel). */
+/**
+ * dg_i/dk via local grid slope (Jacobian of the clearance channel). Zero
+ * outside the grid, where fieldG is flat, so no estimator is pushed further out.
+ */
 function fieldGSlope(field: ClearanceField, i: number, k: number): number {
     const { logK, gLog } = field;
     const n = logK.length;
+    if (k < logK[0] || k > logK[n - 1]) return 0;
     let j = 1;
-    if (k >= logK[n - 1]) j = n - 1;
-    else if (k > logK[0]) { while (j < n - 1 && logK[j] < k) j++; }
+    while (j < n - 1 && logK[j] < k) j++;
     return (gLog[j][i] - gLog[j - 1][i]) / (logK[j] - logK[j - 1]);
 }
 
-/** Nearest grid sim for a continuous log-clearance (used to build factor curves). */
-function fieldSimFor(field: ClearanceField, k: number): SimulationResult {
-    const { logK, sims, baselineSim } = field;
+/** Log E2 at `timeH` of the knot-`j` simulation, with fieldG's fallbacks. */
+function knotLogConc(field: ClearanceField, j: number, timeH: number): number {
+    const sim = field.sims[j];
+    let c = sim ? interpolateConcentration_E2(sim, timeH) : null;
+    if (c === null || Number.isNaN(c) || c < 1e-6) {
+        const b = interpolateConcentration_E2(field.baselineSim, timeH);
+        c = b === null || b < 1e-6 ? 1e-6 : b;
+    }
+    return Math.log(c);
+}
+
+/**
+ * Log E2 at any time for log-clearance k, interpolated across the knots exactly
+ * as fieldG does at the lab times. Snapping to the nearest knot instead drew a
+ * curve up to about 5% away from the one that was fitted.
+ */
+function fieldLogConcAt(field: ClearanceField, k: number, timeH: number): number {
+    const { logK } = field;
     const n = logK.length;
-    const lo = logK[0], hi = logK[n - 1];
-    const frac = (Math.max(lo, Math.min(hi, k)) - lo) / (hi - lo);
-    return sims[Math.round(frac * (n - 1))] ?? baselineSim;
+    const kc = clampLogK(k);
+    let j = 1;
+    while (j < n - 1 && logK[j] < kc) j++;
+    const w = (kc - logK[j - 1]) / (logK[j] - logK[j - 1]);
+    if (w <= 0) return knotLogConc(field, j - 1, timeH);
+    if (w >= 1) return knotLogConc(field, j, timeH);
+    return knotLogConc(field, j - 1, timeH) * (1 - w) + knotLogConc(field, j, timeH) * w;
 }
 
 /** Constant-parameter factor: calibrated = model · scale · (curve_k / baseline). */
 function constantFactor(field: ClearanceField, a: number, k: number): (timeH: number) => number {
     const scale = Math.exp(a);
-    const calSim = fieldSimFor(field, k);
-    const sameAsBaseline = calSim === field.baselineSim;
+    const atBaseline = Math.abs(k) < 1e-9;
     return (timeH: number) => {
         const b = interpolateConcentration_E2(field.baselineSim, timeH);
-        if (b === null || b < 1 || sameAsBaseline) return clampFactor(scale);
-        const c = interpolateConcentration_E2(calSim, timeH);
-        if (c === null || Number.isNaN(c)) return clampFactor(scale);
-        return clampFactor((scale * c) / b);
+        if (b === null || b < 1 || atBaseline) return clampFactor(scale);
+        return clampFactor((scale * Math.exp(fieldLogConcAt(field, k, timeH))) / b);
     };
 }
 
@@ -589,22 +770,28 @@ interface EstimatorOut {
     fitErrPct: number | null;
 }
 
-function sseAt(field: ClearanceField, logObs: number[], a: number, k: number): number {
-    let s = 0;
-    for (let i = 0; i < logObs.length; i++) {
-        const r = logObs[i] - (a + fieldG(field, i, k));
-        s += r * r;
+/**
+ * Typical deviation of the labs from the curve actually drawn (model × factor),
+ * so it agrees with the plot in every method and history mode. Forecast uses it
+ * for its uncertainty band.
+ */
+function curveFitErrPct(points: CalibrationPoint[], factorFn: (timeH: number) => number): number | null {
+    let sse = 0;
+    for (const p of points) {
+        const r = Math.log(p.obs) - Math.log(p.pred * factorFn(p.timeH));
+        sse += r * r;
     }
-    return s;
+    return logRmsePct(sse, points.length);
 }
 
 /**
  * Extended Kalman Filter over state [log-amplitude, log-clearance], processing
- * labs chronologically. Near-zero process noise = permanent memory. Returns the
- * running per-lab snapshots (for forward mode) and the final state + amplitude
- * variance (for the Jensen log→linear mean correction).
+ * the first `count` labs chronologically. Near-zero process noise = permanent
+ * memory. Returns the final state, whose amplitude is the posterior median: an
+ * earlier Jensen term (adding half the amplitude variance) moved the curve up
+ * to about 7% away from labs that matched the model exactly.
  */
-function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean) {
+function ekfFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
     let x0 = 0, x1 = 0;                                   // [a, k]
     let p00 = CAL_PRIOR_SD_AMP ** 2;
     let p11 = allowClearance ? CAL_PRIOR_SD_K ** 2 : 1e-8;
@@ -612,9 +799,8 @@ function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean
     const R = CAL_MEAS_SD ** 2;
     const q00 = Math.log(1.01) ** 2;                     // tiny amplitude drift
     const q11 = allowClearance ? Math.log(1.005) ** 2 : 0;
-    const snapshots: { a: number; k: number; paa: number }[] = [];
 
-    for (let i = 0; i < logObs.length; i++) {
+    for (let i = 0; i < count; i++) {
         p00 += q00; p11 += q11;                          // predict (random walk)
         const H0 = 1;
         const H1 = allowClearance ? fieldGSlope(field, i, x1) : 0;
@@ -624,51 +810,82 @@ function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean
         const S = H0 * ph0 + H1 * ph1 + R;
         const kg0 = ph0 / S, kg1 = ph1 / S;              // Kalman gain
         x0 += kg0 * innov;
-        x1 = clampLogFactor(x1 + kg1 * innov);
+        x1 = clampLogK(x1 + kg1 * innov);
         // P ← (I − K·H)·P
         const a00 = 1 - kg0 * H0, a01 = -kg0 * H1, a10 = -kg1 * H0, a11 = 1 - kg1 * H1;
         const np00 = a00 * p00 + a01 * p10, np01 = a00 * p01 + a01 * p11;
         const np10 = a10 * p00 + a11 * p10, np11 = a10 * p01 + a11 * p11;
         p00 = np00; p01 = np01; p10 = np10; p11 = np11;
-        snapshots.push({ a: x0, k: x1, paa: p00 });
     }
-    return { snapshots, aFinal: x0, kFinal: x1, paaFinal: p00 };
+    return { a: x0, k: x1 };
 }
 
 /**
  * Hybrid model-informed MAP fit of [log-amplitude, log-clearance] under a Gaussian
- * population prior with a Student-t (robust) likelihood, by iteratively reweighted
- * Gauss-Newton. Uses the first `count` labs. Shrinks to the population mean (0,0)
- * when labs are scarce and downweights single outliers.
+ * population prior, by iteratively reweighted Gauss-Newton over the first
+ * `count` labs. Shrinks to the population mean (0,0) when labs are scarce.
+ *
+ * The likelihood is Student-t (downweighting an outlier) only once there are
+ * MIN_LABS_FOR_CLEARANCE labs: with one or two labs nothing can tell an outlier
+ * from a real difference, and the redescending Student-t made the fitted level
+ * fall as a single lab rose. The robust posterior can have several modes, so
+ * the fit starts from several points across the clearance grid and keeps the
+ * best.
  */
 function mipdFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
-    let a = 0, k = 0;
     const sigma = CAL_MEAS_SD, nu = CAL_STUDENT_NU;
+    const robust = count >= MIN_LABS_FOR_CLEARANCE;
     const precA = 1 / CAL_PRIOR_SD_AMP ** 2;
-    const precK = allowClearance ? 1 / CAL_PRIOR_SD_K ** 2 : 1e8;
-    let A00 = precA, A01 = 0, A11 = precK, det = 1;
+    const precK = 1 / CAL_PRIOR_SD_K ** 2;
 
-    for (let iter = 0; iter < 16; iter++) {
-        A00 = precA; A01 = 0; A11 = precK;
-        let b0 = -precA * a, b1 = -precK * k;            // prior pulls toward (0,0)
+    // Negative log posterior, up to a constant.
+    const objective = (a: number, k: number) => {
+        let f = 0.5 * precA * a * a + (allowClearance ? 0.5 * precK * k * k : 0);
         for (let i = 0; i < count; i++) {
-            const r = logObs[i] - (a + fieldG(field, i, k));
-            const u = r / sigma;
-            const w = (nu + 1) / (nu + u * u) / (sigma * sigma); // Student-t IRLS weight
-            const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
-            A00 += w; A01 += w * J1; A11 += w * J1 * J1;
-            b0 += w * r; b1 += w * J1 * r;
+            const u = (logObs[i] - (a + fieldG(field, i, k))) / sigma;
+            f += robust ? 0.5 * (nu + 1) * Math.log(1 + (u * u) / nu) : 0.5 * u * u;
         }
-        det = A00 * A11 - A01 * A01;
-        if (Math.abs(det) < 1e-12) break;
-        const d0 = (A11 * b0 - A01 * b1) / det;
-        const d1 = (A00 * b1 - A01 * b0) / det;
-        a += d0;
-        k = clampLogFactor(k + d1);
-        if (Math.abs(d0) + Math.abs(d1) < 1e-5) break;
+        return f;
+    };
+
+    const solve = (a0: number, k0: number) => {
+        let a = a0, k = allowClearance ? k0 : 0;
+        for (let iter = 0; iter < 50; iter++) {
+            let A00 = precA, A01 = 0, A11 = allowClearance ? precK : 1;
+            let b0 = -precA * a, b1 = allowClearance ? -precK * k : 0; // prior pulls toward (0,0)
+            for (let i = 0; i < count; i++) {
+                const r = logObs[i] - (a + fieldG(field, i, k));
+                const u = r / sigma;
+                const w = robust ? (nu + 1) / (nu + u * u) / (sigma * sigma) : 1 / (sigma * sigma);
+                const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
+                A00 += w; A01 += w * J1; A11 += w * J1 * J1;
+                b0 += w * r; b1 += w * J1 * r;
+            }
+            const det = A00 * A11 - A01 * A01;
+            if (Math.abs(det) < 1e-12) break;
+            const d0 = (A11 * b0 - A01 * b1) / det;
+            const d1 = allowClearance ? (A00 * b1 - A01 * b0) / det : 0;
+            // Halve the step until the posterior does not get worse.
+            const f0 = objective(a, k);
+            let t = 1;
+            while (t > 1e-4 && objective(a + t * d0, clampLogK(k + t * d1)) > f0 + 1e-12) t /= 2;
+            const na = a + t * d0, nk = clampLogK(k + t * d1);
+            const moved = Math.abs(na - a) + Math.abs(nk - k);
+            a = na; k = nk;
+            if (moved < 1e-7) break;
+        }
+        return { a, k, f: objective(a, k) };
+    };
+
+    const starts = allowClearance ? field.logK.filter((_, j) => j % 5 === 0) : [0];
+    let best = solve(0, 0);
+    for (const k0 of starts) {
+        // Start the amplitude at the median residual for this clearance.
+        const res = Array.from({ length: count }, (_, i) => logObs[i] - fieldG(field, i, k0)).sort((x, y) => x - y);
+        const cand = solve(res[Math.floor(count / 2)] ?? 0, k0);
+        if (cand.f < best.f) best = cand;
     }
-    const paa = Math.abs(det) > 1e-12 ? A11 / det : CAL_PRIOR_SD_AMP ** 2; // marginal var(a)
-    return { a, k, paa };
+    return { a: best.a, k: best.k };
 }
 
 /**
@@ -773,38 +990,28 @@ export function computeCalibration(
     // OU-Kalman models a time-varying amplitude correction; no clearance grid needed.
     if (method === 'ou_kalman') {
         const out = ouCalibrate(points, historyMode);
-        return { method, ...out, n, points };
+        return { method, ...out, fitErrPct: curveFitErrPct(points, out.factorFn), n, points };
     }
 
     // EKF and MIPD identify amplitude + clearance; both share the clearance field.
-    const allowClearance = n >= MIN_LABS_FOR_CLEARANCE;
+    // Whether clearance may move is decided per prefix of the labs, so in forward
+    // mode a later lab never changes the segments before it.
     const field = buildClearanceField(baselineSim, events, bodyWeightKG, labTimes);
+    const fit = (count: number) =>
+        method === 'ekf'
+            ? ekfFit(field, logObs, count, clearanceIdentifiable(labTimes, count))
+            : mipdFit(field, logObs, count, clearanceIdentifiable(labTimes, count));
 
     let factorFn: (timeH: number) => number;
     let aRep: number, kRep: number;
-
-    if (method === 'ekf') {
-        const fit = ekfFit(field, logObs, allowClearance);
-        aRep = fit.aFinal + 0.5 * fit.paaFinal;          // Jensen log→linear mean correction
-        kRep = fit.kFinal;
-        factorFn = historyMode === 'forward'
-            ? piecewiseFactor(field, labTimes, fit.snapshots.map(s => ({ a: s.a + 0.5 * s.paa, k: s.k })))
-            : constantFactor(field, aRep, kRep);
+    if (historyMode === 'forward') {
+        const params = Array.from({ length: n }, (_, i) => fit(i + 1));
+        factorFn = piecewiseFactor(field, labTimes, params);
+        aRep = params[n - 1].a; kRep = params[n - 1].k;
     } else {
-        // Hybrid-MIPD
-        if (historyMode === 'forward') {
-            const params: { a: number; k: number }[] = [];
-            for (let i = 0; i < n; i++) {
-                const f = mipdFit(field, logObs, i + 1, i + 1 >= MIN_LABS_FOR_CLEARANCE);
-                params.push({ a: f.a, k: f.k });
-            }
-            factorFn = piecewiseFactor(field, labTimes, params);
-            aRep = params[n - 1].a; kRep = params[n - 1].k;
-        } else {
-            const f = mipdFit(field, logObs, n, allowClearance);
-            aRep = f.a; kRep = f.k;
-            factorFn = constantFactor(field, aRep, kRep);
-        }
+        const f = fit(n);
+        aRep = f.a; kRep = f.k;
+        factorFn = constantFactor(field, aRep, kRep);
     }
 
     const kMul = Math.exp(kRep);
@@ -815,7 +1022,7 @@ export function computeCalibration(
         kMul,
         halfLifeDeltaPct: (1 / kMul - 1) * 100, // half-life ∝ 1/clearance
         n,
-        fitErrPct: logRmsePct(sseAt(field, logObs, aRep, kRep), n),
+        fitErrPct: curveFitErrPct(points, factorFn),
         points,
     };
 }
@@ -870,10 +1077,15 @@ export function activeCompoundName(ester: Ester): string {
     return EsterInfo[ester].name;
 }
 
+/**
+ * mg of estradiol per mg of the dose as logged (for a testosterone ester, mg of
+ * testosterone), from molecular weights. 1 for estradiol itself and for drugs
+ * with no estradiol in them, cyproterone included.
+ */
 export function getToE2Factor(ester: Ester): number {
     if (ester === Ester.E2) return 1.0;
     // No estradiol in these (or nothing known about them): a dose stays the number it was typed as.
-    if (isUnmodelledDrug(ester)) return 1.0;
+    if (isUnmodelledDrug(ester) || ester === Ester.CPA) return 1.0;
     if (isTestosteroneEster(ester)) {
         // "to‑T" factor: mg of ester → mg of free testosterone
         return EsterInfo[Ester.T].mw / EsterInfo[ester].mw;
@@ -885,14 +1097,14 @@ export function getToE2Factor(ester: Ester): number {
 // Transmasculine (testosterone) PK parameters
 // -----------------------------------------------------------------------------
 //
-// These parameters follow the structure described in `transmasc_hrt_modeling_document.md`.
-// They are empirically tuned so the simplified 3-compartment analytical solver reproduces
-// broadly realistic steady-state total‑T concentrations:
-//   - TC 100 mg/week IM  → C_avg ≈ 600 ng/dL
-//   - TE 100 mg/week IM  → C_avg ≈ 600 ng/dL
-//   - TU 1000 mg / 12 wk → C_avg ≈ 500 ng/dL
-//   - Androgel 50 mg/day → C_avg ≈ 500–700 ng/dL
+// Gel and injection levels are checked at 70 kg against the labels cited
+// where their parameters are set (tests/literature.test.ts). Label populations
+// are mostly heavier than that; one weight for every route keeps the routes
+// consistent with each other.
+//   - Androgel 50 mg/day → C_avg ≈ 555 ng/dL (AndroGel 1% label)
 //   - Androderm 5 mg/day patch → C_avg ≈ 500–700 ng/dL
+//   - TC / TE / TU injection levels: see DEFAULT_PK_PARAMS.t_ff_TE
+//   - TU curve shape: see T_DepotPK
 // These are research/teaching estimates; they are NOT for individual dosing decisions.
 //
 const T_CorePK = {
@@ -902,18 +1114,32 @@ const T_CorePK = {
 };
 
 // Two-part depot absorption (fast + slow library), analogous to the E2 injection model.
+//
+// Undecanoate has a single depot. The Nebido label
+// (https://www.rxreasoner.com/monographs/nebido/pharmacology) gives a peak
+// 7 days after a first 1000 mg injection, a release half-life of 90 ± 40 days,
+// and at steady state on 1000 mg every 10 weeks a peak of about 37 nmol/L and a
+// trough of about 16 nmol/L, a trough/peak ratio of 0.43. A 50 day release
+// half-life, at the low end of the label's range, gives that ratio. A
+// first-order depot alone would peak within a day, so the hydrolysis step
+// (T_EsterPK.k2) is slowed to about the injection clearance rate
+// (DEFAULT_PK_PARAMS.t_kClearInj), which moves the peak to day 7. That step stands
+// for whatever delays the rise in the label data and was fitted to it, not
+// measured on its own. The older parameters peaked at about 3 days and fell to
+// a trough of 0.17 of the peak.
 const T_DepotPK = {
-    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0.10 },
+    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0 },
     // Fast library k1 (h⁻¹) — controls Tmax/Cmax
-    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: 0.008 },
+    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: Math.LN2 / (50 * 24) },
     // Slow library k1 (h⁻¹) — controls terminal tail (flip‑flop)
-    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: 0.0009 }
+    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: Math.LN2 / (50 * 24) }
 };
 
 // Hydrolysis rate (k2) for T esters in the 3-compartment analytical path.
 // Kept much larger than the slow‑library k1 so terminal kinetics are flip‑flop.
+// Undecanoate: see T_DepotPK.
 const T_EsterPK = {
-    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.20 }
+    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.036 }
 };
 
 const T_GelPK = {
@@ -944,6 +1170,17 @@ const EsterPK = {
 const OralPK = {
     kAbsE2: 0.32,
     kAbsEV: 0.05,
+    // Swallowed estradiol mostly reaches the blood as estrone and estrone
+    // sulfate, a large pool that turns back into estradiol over many hours, so
+    // after an oral dose estradiol peaks late and falls slowly. Without this
+    // step the model fell with the 2.2 h half-life of kAbsE2 and dropped to
+    // almost nothing between daily doses. The pool's rate is set from the
+    // estradiol half-life measured after oral estradiol valerate, 14.36 h
+    // fasting (Zhang et al. 2024, Table 2, PMC11246651); that study's median
+    // Tmax of 10 h and Cmax/AUC of 0.034/h are what the chain then gives
+    // (10.4 h, 0.032/h). Oral EV already falls at kAbsEV (13.9 h) and is left
+    // as it was. Total exposure is unchanged: F·D/k3 whatever the rates.
+    kE1Pool: Math.LN2 / 14.36,
     bioavailability: 0.03,
     kAbsSL: 1.8
 };
@@ -984,9 +1221,9 @@ export interface PKCustomParams {
     t_kClear: number;        // non-injection h⁻¹ (default: 0.5)
     t_kClearInj: number;     // injection h⁻¹ (default: 0.035)
     // T injection formation fractions
-    t_ff_TC: number;         // Testosterone Cypionate (default: 0.025)
-    t_ff_TE: number;         // Testosterone Enanthate (default: 0.025)
-    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.025)
+    t_ff_TC: number;         // Testosterone Cypionate (default: 0.043)
+    t_ff_TE: number;         // Testosterone Enanthate (default: 0.043)
+    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.043)
     // T gel bioavailability per site (arm/thigh ~AndroGel-like; scrotal skin is
     // markedly more permeable — see DEFAULT_PK_PARAMS comment for sources)
     t_gel_arm: number;       // Arm (default: 0.10)
@@ -1040,9 +1277,27 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_gel_scrotal: 0.25,
     t_kClear: 0.5,
     t_kClearInj: 0.035,
-    t_ff_TC: 0.025,
-    t_ff_TE: 0.025,
-    t_ff_TU: 0.025,
+    // One formation fraction per mg of testosterone for all three esters: two
+    // labels for different esters land on the same value at 70 kg.
+    //   - Xyosted (enanthate, subcutaneous, weekly) label, week 12, N = 137:
+    //     Cavg 553 ng/dL (https://medlibrary.org/lib/rx/meds/xyosted/page/4/).
+    //     Doses were titrated; the FDA clinical pharmacology review gives
+    //     25 men on 50 mg, 93 on 75 mg and 19 on 100 mg, a mean of 73.9 mg/week
+    //     (https://www.accessdata.fda.gov/drugsatfda_docs/nda/2019/209863Orig1s000ClinPharmR.pdf).
+    //     0.043 gives 555 ng/dL on 73.9 mg/week.
+    //   - Aveed (undecanoate 750 mg at weeks 0 and 4, then every 10 weeks)
+    //     label, after the third injection, N = 117: Cavg 495 ng/dL
+    //     (https://medlibrary.org/lib/rx/meds/aveed/page/6/). 0.043 gives 502.
+    // 100 mg/week of cypionate or enanthate then averages about 730–750 ng/dL.
+    // The old value, 0.025, put 100 mg/week at about 430 ng/dL, under the 600
+    // this file used to state as its target, and gave about 0.6 of both labels.
+    // The Azmiro (cypionate 200 mg IM) label reports less, but its values are
+    // baseline-corrected after a dose that suppresses the men's own
+    // testosterone, which understates the dose's share; tests/literature.test.ts
+    // keeps it as a lower bound.
+    t_ff_TC: 0.043,
+    t_ff_TE: 0.043,
+    t_ff_TU: 0.043,
     // Arm/thigh: ~10% absolute bioavailability, matching AndroGel/Testim FDA
     // labeling. Scrotal: scrotal skin is ~5–8x more permeable to androgens than
     // arm/thigh skin (Iyer et al. 2017, Andrology; Kuhnert et al. 2005) — 0.50
@@ -1119,7 +1374,14 @@ export function sanitizePKParams(raw: unknown): PKCustomParams | null {
     let recognised = 0;
     for (const key of Object.keys(PK_PARAM_RANGES) as (keyof PKCustomParams)[]) {
         if (!(key in src)) continue;
-        const value = Number(src[key]);
+        // Only a number, or a string spelling one. Number() alone reads null,
+        // '', false and [] as 0, which the clamp below would turn into each
+        // parameter's minimum (an elimination rate 400 times too slow).
+        const rawValue = src[key];
+        const value =
+            typeof rawValue === 'number' ? rawValue
+            : typeof rawValue === 'string' && rawValue.trim() !== '' ? Number(rawValue)
+            : NaN;
         if (!Number.isFinite(value)) continue;
         const [min, max] = PK_PARAM_RANGES[key];
         out[key] = Math.min(max, Math.max(min, value));
@@ -1167,6 +1429,96 @@ function _getSLTheta(tierKey: string): number {
     return p.e2_sl_standard;
 }
 
+/**
+ * θ for a custom sublingual hold time in minutes, interpolated between the
+ * tiers as currently in effect (custom PK parameters included). Below the
+ * shortest tier the line runs on down to θ = 0. Past the longest tier θ follows
+ * the dissolution-and-swallowing model the tiers were computed from, which
+ * levels off as the dissolved drug runs out (about 0.34 at 30 minutes and 0.45
+ * at 60 with the default tiers); the straight line used to run on to 0.81 at
+ * 60 minutes.
+ */
+export function sublingualThetaFromHold(holdMin: number): number {
+    if (!(holdMin > 0)) return 0;
+    const pts = _slHoldPoints();
+    const h = Math.max(1, holdMin);
+    const last = pts[pts.length - 1];
+    if (h >= last.hold) return _slThetaPastTiers(h, last);
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        if (h >= p1.hold && h <= p2.hold) {
+            const t = (h - p1.hold) / (p2.hold - p1.hold || 1);
+            return Math.min(1, Math.max(0, p1.theta + (p2.theta - p1.theta) * t));
+        }
+    }
+    const slope = (pts[1].theta - pts[0].theta) / (pts[1].hold - pts[0].hold || 1);
+    return Math.min(1, Math.max(0, pts[0].theta + (h - pts[0].hold) * slope));
+}
+
+/**
+ * The hold time in minutes behind a stored custom θ, for showing it again: the
+ * inverse of sublingualThetaFromHold, up to the 60 minutes the dose form
+ * offers. A θ no hold of 60 minutes or less reaches (one saved while the
+ * straight line still ran on) shows as 60.
+ */
+export function sublingualHoldFromTheta(theta: number): number {
+    const pts = _slHoldPoints();
+    const last = pts[pts.length - 1];
+    if (theta > last.theta) {
+        if (theta >= _slThetaPastTiers(SL_MAX_HOLD_MIN, last)) return SL_MAX_HOLD_MIN;
+        let lo = last.hold;
+        let hi = SL_MAX_HOLD_MIN;
+        for (let i = 0; i < 60; i++) {
+            const mid = (lo + hi) / 2;
+            if (_slThetaPastTiers(mid, last) < theta) lo = mid;
+            else hi = mid;
+        }
+        return (lo + hi) / 2;
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        if (theta >= Math.min(p1.theta, p2.theta) && theta <= Math.max(p1.theta, p2.theta)) {
+            const t = (theta - p1.theta) / (p2.theta - p1.theta || 1);
+            return p1.hold + (p2.hold - p1.hold) * t;
+        }
+    }
+    const slope = (pts[1].hold - pts[0].hold) / (pts[1].theta - pts[0].theta || 1);
+    return Math.max(1, pts[0].hold + (theta - pts[0].theta) * slope);
+}
+
+const SL_MAX_HOLD_MIN = 60;
+
+/**
+ * Fraction of a sublingual dose absorbed through the mucosa within a hold of
+ * `holdMin` minutes, from the model in Algorithm Explanation §6.2 (middle
+ * scenario): the tablet dissolves with a 5-minute half-life, and dissolved
+ * drug is absorbed at k_SL = 1.8 h⁻¹ or swallowed at 1.8 h⁻¹. It gives 0.007,
+ * 0.038, 0.112 and 0.189 at the tiers' 2, 5, 10 and 15 minutes (the tiers round
+ * these to 0.01, 0.04, 0.11 and 0.18) and tends to k_SL / (k_SL + k_sw) = 0.5.
+ */
+function _slThetaModel(holdMin: number): number {
+    const kDiss = Math.LN2 / (5 / 60);
+    const kOut = OralPK.kAbsSL + 1.8;
+    const T = holdMin / 60;
+    return (
+        ((OralPK.kAbsSL * kDiss) / (kDiss - kOut)) *
+        ((1 - Math.exp(-kOut * T)) / kOut - (1 - Math.exp(-kDiss * T)) / kDiss)
+    );
+}
+
+/** θ past the longest tier: the model's curve, scaled to meet that tier's θ as in effect. */
+function _slThetaPastTiers(holdMin: number, last: { hold: number; theta: number }): number {
+    return Math.min(1, (last.theta * _slThetaModel(holdMin)) / _slThetaModel(last.hold));
+}
+
+function _slHoldPoints(): { hold: number; theta: number }[] {
+    return SL_TIER_ORDER.map(k => ({ hold: SublingualTierParams[k].hold, theta: _getSLTheta(k) })).sort(
+        (a, b) => a.hold - b.hold,
+    );
+}
+
 function _getE2InjFF(ester: Ester): number {
     const p = _activePKParams;
     if (ester === Ester.EB) return p.e2_ff_EB;
@@ -1199,8 +1551,32 @@ function _getTInjFF(ester: Ester): number {
     if (ester === Ester.TC) return p.t_ff_TC;
     if (ester === Ester.TE) return p.t_ff_TE;
     if (ester === Ester.TU) return p.t_ff_TU;
-    return 0.025;
+    return DEFAULT_PK_PARAMS.t_ff_TE;
 }
+
+// Oral cyproterone acetate, from the Androcur 50 mg SmPC, section 5.2
+// (https://www.medicines.org.uk/emc/product/15996/smpc/print): bioavailability
+// 88%; two 50 mg tablets give "maximum serum levels of about 285 ng/ml at about
+// 3 hours"; terminal half-life 43.9 h; total clearance 3.5 ml/min/kg.
+//
+// Absorbed at ka, it then leaves the blood in two phases, so the response to
+// the absorbed amount, read through the 14 L/kg volume the CPA curve uses, is
+// (wFast·e^(−αt) + wSlow·e^(−βt)) / V. Its integral, wFast/α + wSlow/β, is V/CL
+// = 14 / (0.0035·60) = 66.7 h, which fixes total exposure at the label's
+// clearance. ka = 0.5/h and α = 0.25/h (a 2.8 h first phase) put the peak at 3 h,
+// and wFast is the weight that makes it 285 ng/mL; about a third of the exposure
+// is in the first phase. The model used to put the whole dose straight into the
+// slow phase with F = 0.7, which kept total exposure near (0.7x) but made the
+// 100 mg peak about 67 ng/mL. Diane-35's label reports a higher peak per mg at
+// 2 mg (15 ng/mL at 1.6 h), which a linear model fitted to 100 mg cannot follow.
+const CPA_ORAL = (() => {
+    const alpha = 0.25;
+    const beta = Math.LN2 / 43.9;
+    const wFast = 5.2786;
+    const exposureH = 14 / (0.0035 * 60);
+    return { F: 0.88, ka: 0.5, alpha, beta, wFast, wSlow: (exposureH - wFast / alpha) * beta };
+})();
+const CPA_ORAL_F = CPA_ORAL.F;
 
 export function getBioavailabilityMultiplier(
     route: Route,
@@ -1208,6 +1584,9 @@ export function getBioavailabilityMultiplier(
     extras: Partial<Record<ExtraKey, number>> = {}
 ): number {
     const mwFactor = getToE2Factor(ester);
+
+    // Cyproterone: what resolveParams uses, by mouth only.
+    if (ester === Ester.CPA) return route === Route.oral ? CPA_ORAL_F : 0;
 
     // Transmasculine (testosterone) path
     if (isTestosteroneEster(ester)) {
@@ -1272,6 +1651,9 @@ interface PKParams {
     k1_fast: number;
     k1_slow: number;
     k2: number;
+    // Second step of the slow (swallowed) sublingual branch: the oral route's
+    // estrone pool, as k2 is for an oral dose. Absent means none.
+    k2_slow?: number;
     k3: number;
     F: number;
     rateMGh: number;
@@ -1323,6 +1705,12 @@ function resolveParams(event: DoseEvent): PKParams {
         }
     }
 
+    // Cyproterone is modelled by mouth only. Any other route (it can only arrive
+    // by import) used to fall through to the estradiol parameters below.
+    if (event.ester === Ester.CPA && event.route !== Route.oral) {
+        return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+    }
+
     switch (event.route) {
         case Route.injection: {
             const Frac_fast = TwoPartDepotPK.Frac_fast[event.ester] ?? 0.5;
@@ -1348,13 +1736,16 @@ function resolveParams(event: DoseEvent): PKParams {
                     theta = _getSLTheta(tierKey);
                 }
             }
+            // The swallowed share takes exactly the oral route's path, so θ = 0
+            // is the oral curve.
             const k1_fast = OralPK.kAbsSL;
             const k1_slow = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
             const k2 = EsterPK.k2[event.ester] ?? 0;
+            const k2_slow = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
             const F_fast = toE2;
             const F_slow = _activePKParams.e2_oral_bio * toE2;
             const F = theta * F_fast + (1 - theta) * F_slow;
-            return { Frac_fast: theta, k1_fast, k1_slow, k2, k3: defaultK3, F, rateMGh: 0, F_fast, F_slow };
+            return { Frac_fast: theta, k1_fast, k1_slow, k2, k2_slow, k3: defaultK3, F, rateMGh: 0, F_fast, F_slow };
         }
 
         case Route.gel: {
@@ -1398,23 +1789,28 @@ function resolveParams(event: DoseEvent): PKParams {
 
         case Route.oral: {
             // === 针对 CPA 的特殊处理开始 ===
+            // Only ka and the slow phase's β matter here, for how long the dose
+            // counts (computeMaxLifetimeH); the curve itself is drawn from
+            // CPA_ORAL in PrecomputedEventModel.
             if (event.ester === Ester.CPA) {
                 return {
                     Frac_fast: 1.0,
-                    k1_fast: 1.0,
+                    k1_fast: CPA_ORAL.ka,
                     k1_slow: 0,
                     k2: 0,
-                    k3: 0.017,
-                    F: 0.7,
+                    k3: CPA_ORAL.beta,
+                    F: CPA_ORAL_F,
                     rateMGh: 0,
-                    F_fast: 0.7,
-                    F_slow: 0.7
+                    F_fast: CPA_ORAL_F,
+                    F_slow: CPA_ORAL_F
                 };
             }
             // === 针对 CPA 的特殊处理结束 ===
 
+            // EV: one step at kAbsEV. Everything else: absorption, then the
+            // estrone pool (see OralPK.kE1Pool).
             const k1Value = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
-            const k2Value = event.ester === Ester.EV ? (EsterPK.k2[Ester.EV] || 0) : 0;
+            const k2Value = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
             const F = _activePKParams.e2_oral_bio * toE2;
             return { Frac_fast: 1.0, k1_fast: k1Value, k1_slow: 0, k2: k2Value, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
         }
@@ -1424,89 +1820,171 @@ function resolveParams(event: DoseEvent): PKParams {
 }
 
 /**
- * Separate near-coincident first-order rate constants by a sub-permille amount so
- * the triple-exponential kernel below stays clear of its removable singularities.
- * The kernel is analytic in (k1, k2, k3): evaluated at a nudge of ~1e-6·max(k) it
- * equals the exact l'Hôpital limit to full display precision, while the tiny offset
- * avoids the catastrophic cancellation that appears as two rates collide. k1
- * (absorption) is held fixed; k2 and k3 are moved minimally and deterministically.
- * A few passes suffice to pull all three apart, even when all three coincide.
+ * First divided difference of s ↦ e^(−sτ) at x and y, (e^(−xτ) − e^(−yτ)) / (x − y),
+ * taken without cancellation when x and y are close: it tends to −τ·e^(−xτ).
  */
-function _separateRates(k1: number, k2: number, k3: number): [number, number, number] {
-    const eps = 1e-6 * Math.max(k1, k2, k3);
-    if (!(eps > 0)) return [k1, k2, k3];
-    if (Math.abs(k2 - k1) < eps) k2 = k1 + eps;
-    for (let i = 0; i < 6; i++) {
-        let moved = false;
-        if (Math.abs(k3 - k1) < eps) { k3 = k1 + (k3 >= k1 ? eps : -eps); moved = true; }
-        if (Math.abs(k3 - k2) < eps) { k3 = k2 + (k3 >= k2 ? eps : -eps); moved = true; }
-        if (!moved) break;
+function _expDivDiff1(x: number, y: number, tau: number): number {
+    const z = (Math.abs(y - x) * tau) / 2;
+    if (z > 1) return (Math.exp(-x * tau) - Math.exp(-y * tau)) / (x - y);
+    const sinhc = z === 0 ? 1 : Math.sinh(z) / z;
+    return -tau * Math.exp((-(x + y) / 2) * tau) * sinhc;
+}
+
+/**
+ * Second divided difference of s ↦ e^(−sτ) at a, b and c. Written as the usual
+ * sum of three exponentials over products of rate differences, it loses every
+ * significant digit as two or three rates meet (testosterone enanthate's
+ * absorption and elimination rates are equal by default). Here the outer
+ * difference is taken across the widest pair of rates, and when all three sit
+ * within 0.5/τ of each other a Taylor series about their mean is used instead:
+ *   τ²·e^(−mτ) · Σ_j H_j(u) / (j + 2)!,   u_i = (m − k_i)·τ,
+ * with H_j the complete homogeneous symmetric polynomial of degree j.
+ */
+function _expDivDiff2(a: number, b: number, c: number, tau: number): number {
+    if (a > b) [a, b] = [b, a];
+    if (b > c) [b, c] = [c, b];
+    if (a > b) [a, b] = [b, a];
+    if ((c - a) * tau >= 0.5) return (_expDivDiff1(b, c, tau) - _expDivDiff1(a, b, tau)) / (c - a);
+    const mean = (a + b + c) / 3;
+    const ua = (mean - a) * tau;
+    const ub = (mean - b) * tau;
+    const uc = (mean - c) * tau;
+    // H_j over {ua}, {ua, ub} and {ua, ub, uc}, built up one degree at a time.
+    let h1 = 1;
+    let h2 = 1;
+    let h3 = 1;
+    let fact = 2;
+    let sum = 0.5;
+    for (let j = 1; j < 20; j++) {
+        h1 *= ua;
+        h2 = h1 + ub * h2;
+        h3 = h2 + uc * h3;
+        fact *= j + 2;
+        sum += h3 / fact;
     }
-    return [k1, k2, k3];
+    return tau * tau * Math.exp(-mean * tau) * sum;
+}
+
+// 2-Compartment (Bateman) solution: absorption k_a → elimination k_e, no
+// hydrolysis step. Used wherever there is no ester to cleave — the 3C form is
+// multiplied by k2 throughout, so feeding it k2 = 0 returns a flat zero.
+//   amount = dose·F·k_a·(e^(−k_e·τ) − e^(−k_a·τ)) / (k_a − k_e)
+function _analytic2C(tau: number, doseMG: number, F: number, ka: number, ke: number): number {
+    if (ka <= 0 || doseMG <= 0) return 0;
+    return -doseMG * F * ka * _expDivDiff1(ka, ke, tau);
 }
 
 // 3-Compartment Analytical Solution (sequential first-order: absorption k1 → ester
 // hydrolysis k2 → central-compartment elimination k3). Returns the central-compartment
-// amount for a unit bolus, scaled by dose·F. Coincident rates are separated first so
-// the closed form reproduces the correct removable-singularity limit instead of a
-// zero dropout or a numerically unstable value.
-// 2-Compartment (Bateman) solution: absorption k_a → elimination k_e, no
-// hydrolysis step. Used wherever there is no ester to cleave — the 3C form is
-// multiplied by k2 throughout, so feeding it k2 = 0 returns a flat zero.
-function _analytic2C(tau: number, doseMG: number, F: number, ka: number, ke: number): number {
-    if (ka <= 0 || doseMG <= 0) return 0;
-    if (Math.abs(ka - ke) < 1e-9) return doseMG * F * ka * tau * Math.exp(-ke * tau);
-    return doseMG * F * ka / (ka - ke) * (Math.exp(-ke * tau) - Math.exp(-ka * tau));
-}
-
+// amount for a bolus, scaled by dose·F:
+//   amount = dose·F·k1·k2·Σ_i e^(−k_i·τ) / Π_(j≠i) (k_j − k_i)
+// which is k1·k2 times the second divided difference of e^(−sτ) at the three
+// rates, so coincident rates take their exact limit.
 function _analytic3C(tau: number, doseMG: number, F: number, k1: number, k2: number, k3: number): number {
     if (k1 <= 0 || doseMG <= 0) return 0;
-    [k1, k2, k3] = _separateRates(k1, k2, k3);
-    const k1_k2 = k1 - k2;
-    const k1_k3 = k1 - k3;
-    const k2_k3 = k2 - k3;
-
-    const term1 = Math.exp(-k1 * tau) / (k1_k2 * k1_k3);
-    const term2 = Math.exp(-k2 * tau) / (-k1_k2 * k2_k3);
-    const term3 = Math.exp(-k3 * tau) / (k1_k3 * k2_k3);
-
-    return doseMG * F * k1 * k2 * (term1 + term2 + term3);
+    return doseMG * F * k1 * k2 * _expDivDiff2(k1, k2, k3, tau);
 }
 
 function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
-    const k1 = p.k1_fast;
-    if (Math.abs(k1 - p.k3) < 1e-9) {
-        return doseMG * p.F * k1 * tau * Math.exp(-p.k3 * tau);
-    }
-    return doseMG * p.F * k1 / (k1 - p.k3) * (Math.exp(-p.k3 * tau) - Math.exp(-k1 * tau));
+    return _analytic2C(tau, doseMG, p.F, p.k1_fast, p.k3);
 }
 
 /**
  * Pair each patch application with its own removal.
  *
  * Nothing on a patchRemove event says which application it ends, so the pairing
- * has to come from order: walk the timeline and give each removal the oldest
- * application still on the skin (FIFO). Picking the first removal *after* each
- * application instead — which is what a per-event `find` does — hands the same
- * early removal to every overlapping patch, so on a staggered two-patch
- * regimen the second patch stops delivering the moment the first comes off.
+ * is inferred: walk the removals in time order and give each one the oldest
+ * patch that is plausibly still on the skin at that moment. Picking the first
+ * removal *after* each application instead (what a per-event `find` does) hands
+ * the same early removal to every overlapping patch, so on a staggered
+ * two-patch regimen the second patch would stop delivering when the first
+ * comes off.
+ *
+ * A patch counts as "on" for a removal when it is of the same hormone (the form
+ * writes estradiol or testosterone on a removal by mode), was applied at least
+ * PATCH_MIN_WEAR_H earlier, and, if it has a planned wear time, that wear ended
+ * no more than PATCH_REMOVAL_GRACE_H before the removal. So:
+ *   - a patch that already came off by its planned wear does not soak up a
+ *     later removal of a newer patch;
+ *   - a removal logged a little late still ends the old patch, not the new one
+ *     put on just before it;
+ *   - a removal logged at the same moment as, or minutes after, a new
+ *     application (the old patch was on before the log started, or the change
+ *     was entered in the other order) does not end the new patch;
+ *   - a removal that fits no patch by its plan ends the newest patch of that
+ *     hormone if that one is still unpaired, so a patch left on past its plan
+ *     and taken off later is worn until the removal;
+ *   - any other removal that fits no patch is ignored instead of consuming
+ *     the next application and shifting every later pairing by one.
+ * Ties between patches applied at the same time are broken by their own
+ * contents, so the result never depends on the order of the input array.
  *
  * Keyed on event identity rather than `id` because imported files can carry
  * duplicate ids. Memoised per event array: the caller builds one array per
  * simulation and asks once per patch event.
  */
+const PATCH_MIN_WEAR_H = 1;
+const PATCH_REMOVAL_GRACE_H = 24;
+
 const patchRemovalCache = new WeakMap<DoseEvent[], Map<DoseEvent, number>>();
+
+function _patchHormone(e: DoseEvent): 'e2' | 't' | null {
+    if (isTestosteroneEster(e.ester)) return 't';
+    if (isEstradiolEster(e.ester)) return 'e2';
+    return null;
+}
+
+function _plannedWearH(e: DoseEvent): number | null {
+    const planned = e.extras?.[ExtraKey.patchWearH];
+    return typeof planned === 'number' && Number.isFinite(planned) && planned > 0 ? planned : null;
+}
 
 function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
     const cached = patchRemovalCache.get(allEvents);
     if (cached) return cached;
     const pairs = new Map<DoseEvent, number>();
-    const onSkin: DoseEvent[] = []; // applications awaiting a removal, oldest first
-    for (const e of allEvents) {
-        if (e.route === Route.patchApply) onSkin.push(e);
-        else if (e.route === Route.patchRemove) {
-            const apply = onSkin.shift();
-            if (apply) pairs.set(apply, e.timeH);
+
+    const byTimeThenContent = (a: DoseEvent, b: DoseEvent) =>
+        a.timeH - b.timeH ||
+        (_plannedWearH(a) ?? Infinity) - (_plannedWearH(b) ?? Infinity) ||
+        a.doseMG - b.doseMG ||
+        (Number(a.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) - (Number(b.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) ||
+        String(a.id).localeCompare(String(b.id));
+    const applies = allEvents.filter(e => e.route === Route.patchApply).sort(byTimeThenContent);
+    const removals = allEvents.filter(e => e.route === Route.patchRemove).sort((a, b) => a.timeH - b.timeH);
+
+    let open: DoseEvent[] = []; // unpaired applications, oldest first
+    let next = 0;
+    for (const r of removals) {
+        while (next < applies.length && applies[next].timeH <= r.timeH - PATCH_MIN_WEAR_H) open.push(applies[next++]);
+        // Removals arrive in time order, so a patch whose planned wear ended
+        // more than the grace period ago is never matched by plan again (only
+        // by the fallback below).
+        open = open.filter(a => {
+            const wear = _plannedWearH(a);
+            return wear === null || a.timeH + wear + PATCH_REMOVAL_GRACE_H >= r.timeH;
+        });
+        const hormone = _patchHormone(r);
+        const idx = open.findIndex(a => hormone === null || _patchHormone(a) === hormone);
+        if (idx >= 0) {
+            pairs.set(open[idx], r.timeH);
+            open.splice(idx, 1);
+            continue;
+        }
+        // No patch fits by its plan. An explicit removal still ends a patch
+        // worn past it (see ExtraKey.patchWearH), so it goes to the newest
+        // patch of that hormone put on before it, if that one is unpaired.
+        // An older patch is never taken: a newer one replaced it.
+        let newestH = -Infinity;
+        for (let i = next - 1; i >= 0; i--) {
+            const a = applies[i];
+            if (hormone !== null && _patchHormone(a) !== hormone) continue;
+            if (a.timeH < newestH) break;
+            newestH = a.timeH;
+            if (!pairs.has(a)) {
+                pairs.set(a, r.timeH);
+                break;
+            }
         }
     }
     patchRemovalCache.set(allEvents, pairs);
@@ -1562,9 +2040,19 @@ class PrecomputedEventModel {
                 break;
             case Route.gel:
             case Route.oral:
+                if (event.route === Route.oral && event.ester === Ester.CPA) {
+                    const { F, ka, alpha, beta, wFast, wSlow } = CPA_ORAL;
+                    this.model = (timeH: number) => {
+                        const tau = timeH - startTime;
+                        if (tau < 0) return 0;
+                        return _analytic2C(tau, dose, F * wFast, ka, alpha) + _analytic2C(tau, dose, F * wSlow, ka, beta);
+                    };
+                    break;
+                }
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
+                    if (params.k2 > 0) return _analytic3C(tau, dose, params.F, params.k1_fast, params.k2, params.k3);
                     return oneCompAmount(tau, dose, params);
                 };
                 break;
@@ -1580,8 +2068,10 @@ class PrecomputedEventModel {
                         ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
                         : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
 
-                    // Swallowed (gut) fraction follows oral simplified path, so no extra k2 hydrolysis here.
-                    const slowAmount = _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
+                    // Swallowed (gut) fraction follows the oral route's path.
+                    const slowAmount = (params.k2_slow ?? 0) > 0
+                        ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
+                        : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
 
                     return fastAmount + slowAmount;
                 };
@@ -1630,12 +2120,12 @@ class PrecomputedEventModel {
  * the evaluation — critical when there are hundreds of events (e.g. daily
  * oral recording for a year).
  */
-function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEvent[], eventTimeH: number): number {
-    // For patches: account for wear duration + post-removal decay. The apply
-    // event carries the time, so reconstruct a minimal event for the resolver.
-    if (route === Route.patchApply) {
-        const applyEvent = allEvents.find(e => e.route === Route.patchApply && e.timeH === eventTimeH);
-        const wearH = applyEvent ? resolvePatchWearH(applyEvent, allEvents) : Number.MAX_VALUE;
+function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: DoseEvent[]): number {
+    // For patches: account for wear duration + post-removal decay. Resolve the
+    // wear of this very event: two patches applied at the same moment can come
+    // off at different times.
+    if (event.route === Route.patchApply) {
+        const wearH = resolvePatchWearH(event, allEvents);
         if (wearH >= Number.MAX_VALUE) return Infinity; // Worn indefinitely, always contributes
         const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
         return wearH + decayH;
@@ -1646,6 +2136,7 @@ function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEven
     if (params.k1_fast > 0) rates.push(params.k1_fast);
     if (params.k1_slow > 0) rates.push(params.k1_slow);
     if (params.k2 > 0) rates.push(params.k2);
+    if ((params.k2_slow ?? 0) > 0) rates.push(params.k2_slow!);
     if (params.k3 > 0) rates.push(params.k3);
 
     if (rates.length === 0) return Infinity;
@@ -1669,7 +2160,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         .map(e => {
             const model = new PrecomputedEventModel(e, sortedEvents);
             const params = resolveParams(e);
-            const maxLifetimeH = computeMaxLifetimeH(params, e.route, sortedEvents, e.timeH);
+            const maxLifetimeH = computeMaxLifetimeH(params, e, sortedEvents);
             return { model, ester: e.ester, startTimeH: e.timeH, maxLifetimeH };
         });
 
@@ -1704,16 +2195,20 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     const stepSize = (endTime - startTime) / (steps - 1);
     const gridTimes = Array.from({ length: steps }, (_, i) => startTime + i * stepSize);
 
-    // Add dense peri-event sampling points around each dose event for better peak/trough capture.
-    // Only add for events whose contribution is still active at endTime to avoid O(n) blowup
-    // with hundreds of events (e.g. daily recording for a year).
+    // Add dense sampling points after every dose, so peaks and the first hours
+    // after a dose are drawn from the model rather than from a straight line
+    // across a coarse grid. This used to be limited to doses still contributing
+    // at the end of the grid, which always excluded short-acting doses (the
+    // grid ends at least 14 days after the last dose): with a long history the
+    // base grid is about one point per hour, so a sublingual peak was drawn up
+    // to about 7% low and the level read shortly after a dose about half the
+    // model's value. Offsets past a dose's own lifetime add nothing and are
+    // skipped.
     const periEventOffsets = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
     const periEventTimes: number[] = [];
     for (const pc of precomputed) {
-        // Skip peri-event sampling for events whose contribution has fully decayed;
-        // their curves are smooth/zero and don't need dense peak capture.
-        if (pc.maxLifetimeH !== Infinity && endTime - pc.startTimeH > 2 * pc.maxLifetimeH) continue;
         for (const offset of periEventOffsets) {
+            if (offset > pc.maxLifetimeH) break;
             const t = pc.startTimeH + offset;
             if (t >= startTime && t <= endTime) {
                 periEventTimes.push(t);
@@ -1721,8 +2216,14 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         }
     }
 
+    // The current time is a sample point too, so the "current level" read off
+    // the result is the model's value rather than an interpolation.
+    const nowTimes = nowH >= startTime && nowH <= endTime ? [nowH] : [];
+
     const eventTimes = sortedEvents.map(e => e.timeH);
-    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes])).sort((a, b) => a - b);
+    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes, ...nowTimes])).sort(
+        (a, b) => a - b,
+    );
 
     // `precomputed` and `allTimes` are both sorted ascending by time, so which
     // events can contribute at a given t forms a sliding window: events
@@ -1786,7 +2287,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
 
         if (i > 0) {
             const dt = t - allTimes[i - 1];
-            auc += 0.5 * (currentConc + concPGmL[i - 1]) * dt;
+            auc += 0.5 * (currentConc_E2 + concPGmL_E2[i - 1]) * dt;
         }
     }
 

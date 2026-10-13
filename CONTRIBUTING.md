@@ -196,16 +196,16 @@ A few things need extra care:
   must cite their source (a paper, a label, or the upstream
   [HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)
   code) and say how the curve changes. People read these numbers about their
-  own bodies. Tests marked `it.fails` in `tests/suspected-bugs.test.ts` and
-  `tests/literature.test.ts` record known problems: when a change fixes one,
-  that test starts failing, and the marker should become `it`.
+  own bodies. Tests marked `it.fails` in `tests/literature.test.ts` record
+  known gaps against published data: when a change fixes one, that test starts
+  failing, and the marker should become `it`.
 
   **模型（`logic.ts`）**：修改药代动力学参数或公式时，必须注明来源（论文、说明书或上游
   [HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)
   的代码），并说明曲线会如何变化。用户会根据这些数字理解自己的身体。
-  `tests/suspected-bugs.test.ts` 与 `tests/literature.test.ts` 中标为 `it.fails`
-  的测试记录的是已知问题：修改修复了其中一项时，对应测试会开始失败，此时请把
-  `it.fails` 改为 `it`。
+  `tests/literature.test.ts` 中标为 `it.fails` 的测试记录的是与已发表数据之间的
+  已知差距：修改修复了其中一项时，对应测试会开始失败，此时请把 `it.fails` 改为
+  `it`。
 
 - **The database.** Add a new file in `migrations/` rather than editing an old
   one, and make sure an existing database upgrades cleanly.
