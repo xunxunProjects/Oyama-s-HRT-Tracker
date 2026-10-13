@@ -493,24 +493,32 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <p className={`text-xs ${muted} mb-1.5`}>{t('account.2fa_secret')}</p>
                                                 <div className={`flex items-center gap-2 bg-[var(--surface-hover)] rounded-md px-3 py-2`}>
                                                     <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSecretVisible(v => !v)}
-                                                        aria-label={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
-                                                        title={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
-                                                        className={`tap-target ${muted}`}
-                                                    >
-                                                        {secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCopySecret}
-                                                        aria-label={t('btn.copy')}
-                                                        title={t('btn.copy')}
-                                                        className={`tap-target ${secretCopied ? on : muted}`}
-                                                    >
-                                                        <CopyTick copied={secretCopied} size={14} strokeWidth={1.5} />
-                                                    </button>
+                                                    {/* tap-target makes a hit area tall, not wide, so
+                                                        each icon carries its own padding, as the passkey
+                                                        X below does. The two sit in one group so their
+                                                        areas meet instead of overlapping, and the
+                                                        group's negative margin keeps the row's height
+                                                        and the icons where they were drawn. */}
+                                                    <div className="flex shrink-0 -m-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSecretVisible(v => !v)}
+                                                            aria-label={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
+                                                            title={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
+                                                            className={`tap-target p-1.5 rounded-md ${muted}`}
+                                                        >
+                                                            {secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCopySecret}
+                                                            aria-label={t('btn.copy')}
+                                                            title={t('btn.copy')}
+                                                            className={`tap-target p-1.5 rounded-md ${secretCopied ? on : muted}`}
+                                                        >
+                                                            <CopyTick copied={secretCopied} size={14} strokeWidth={1.5} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
