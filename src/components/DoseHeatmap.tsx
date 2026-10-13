@@ -1,8 +1,9 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { DoseEvent, Route } from '../../logic';
+import { DoseEvent, Ester, Route } from '../../logic';
 import { LOCALE_MAP, createDayLabelFormatter, toDayKey } from '../utils/helpers';
 import { useElementSize } from '../hooks/useElementSize';
+import { esterName } from '../utils/regimenText';
 
 /** Local midnight of whatever day a moment falls on. */
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -359,9 +360,11 @@ const DoseHeatmap = ({
                         <div className="text-xs font-medium whitespace-nowrap text-[var(--text)]">
                             {hover.count > 0 ? doseLabel(hover.count) : t('heatmap.none')}
                         </div>
+                        {/* Each drug by the name the plan rows above use, not its
+                            code ("CPA"), and the amount as written ("12.5 mg"). */}
                         {hoverMg.map(([ester, mg]) => (
                             <div key={ester} className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]">
-                                {ester} · {mg.toFixed(2)} mg
+                                {esterName(ester as Ester, t)} · {Number(mg.toFixed(2))} mg
                             </div>
                         ))}
                     </div>

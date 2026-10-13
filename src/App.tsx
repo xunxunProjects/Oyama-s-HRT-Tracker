@@ -510,6 +510,7 @@ const AppContent = () => {
                             undoableIds={undoableIds}
                             onUndoPlanLog={handleUndoPlanLog}
                             onNavigateToPlan={() => handleViewChange('plan')}
+                            onNavigateToSupplies={() => handleViewChange('supplies')}
                             supplies={supplies}
                             nowH={nowH}
                             onNavigateToForecast={() => handleViewChange('forecast')}

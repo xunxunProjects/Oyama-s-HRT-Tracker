@@ -9,13 +9,16 @@ import AnimatedNumber from '../components/AnimatedNumber';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
 import DoseDoodle from '../components/DoseDoodle';
+import Doodle from '../components/Doodle';
+import Tick from '../components/Tick';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats } from '../contexts/PixelCatContext';
+import { useDialog } from '../contexts/DialogContext';
 import { AppTheme } from '../constants';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
 import { Regimen, Supply, supplyStatus } from '../utils/regimen';
-import { PlanItem, planStatus } from '../utils/plan';
+import { PlanItem, planStatus, matchesItem } from '../utils/plan';
 import { planItemLabel, supplyLabel, dueLabel, fill, fillNodes } from '../utils/regimenText';
 import { headerAction, headerActionAccent } from '../components/PageHeader';
 
@@ -48,11 +51,12 @@ interface HomeProps {
     /** The medication plan; each item gets a line saying where today stands, and a button that logs its dose. */
     plan: PlanItem[];
     onLogPlanItem: (item: PlanItem) => void;
-    /** The item whose dose was just logged from here and can still be taken back. */
     /** Plan items with a dose tapped in from here that can still be taken back. */
     undoableIds: string[];
     onUndoPlanLog: (itemId: string) => void;
     onNavigateToPlan: () => void;
+    /** Where a running-low line leads: the stock it is about, to recount or restock. */
+    onNavigateToSupplies: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -84,6 +88,7 @@ const Home: React.FC<HomeProps> = ({
     undoableIds,
     onUndoPlanLog,
     onNavigateToPlan,
+    onNavigateToSupplies,
 }) => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const isMono = theme === 'mono';
@@ -91,7 +96,10 @@ const Home: React.FC<HomeProps> = ({
     const { isTransmasc } = useHRTMode();
     const { showCats } = usePixelCats();
     const { lang } = useTranslation();
+    const { showDialog } = useDialog();
     const shareCopy = getShareCopy(lang);
+    // Ties each plan row's buttons to the drug they log (aria-describedby).
+    const rowIdBase = React.useId();
 
     // Warn on how much medication was actually logged (a hard fact), and nudge
     // toward calibration when there's no lab yet to anchor the estimate.
@@ -112,6 +120,18 @@ const Home: React.FC<HomeProps> = ({
     // the quickest way to log that first dose.
     const hasReading = events.length > 0;
     const hasAdvisory = !!doseAdvisory || !!hormoneAdvisory || showCalibrate;
+
+    /** The latest dose of a plan item logged today (the device's calendar day), up to `atH`. */
+    const latestToday = (item: PlanItem, atH: number): DoseEvent | null => {
+        const d = new Date(atH * 3600000);
+        const dayStartH = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 3600000;
+        let latest: DoseEvent | null = null;
+        for (const e of events) {
+            if (!matchesItem(item, e) || e.timeH < dayStartH || e.timeH > atH) continue;
+            if (!latest || e.timeH > latest.timeH) latest = e;
+        }
+        return latest;
+    };
     const showPlanBlock = hasReading || plan.length > 0 || lowSupplies.length > 0;
     const showHeader = hasAdvisory || showPlanBlock;
 
@@ -209,62 +229,80 @@ const Home: React.FC<HomeProps> = ({
 
                 {/* Readings. A grid rather than two flex columns so each row
                     lines up on its own: the labels share a baseline, and so do
-                    the two numbers. On a 375px screen the first column is the
-                    one that gives — minmax(0,…) lets it shrink and its number
-                    line wraps, so the cats drop under the reading instead of
-                    shoving the second reading off the edge. */}
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1.5">
-                    <p className={`text-[0.8125rem] font-medium ${muted}`}>{primary.label}</p>
-                    <p className={`text-right text-[0.8125rem] font-medium ${muted}`}>{companion?.label}</p>
+                    the two numbers. Side by side, the two slots below need
+                    about 380px at a phone's 3rem and 508px at md's 4.5rem, and
+                    neither can shrink: on a 360px phone the first ran into the
+                    second ("pg/ml" drawn under "26.6"), and a four-digit peak
+                    did so up to 414. So the second reading goes under the
+                    first and its scale, on the left with its label, until the
+                    column (not the screen: from md the sidebar takes its
+                    share) holds the pair at the largest size, 32rem. That is
+                    every phone; the pair sits side by side from about 560px
+                    wide. */}
+                <div className="@container">
+                    <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1.5 @min-[32rem]:grid-cols-[minmax(0,1fr)_auto]">
+                        <p className={`text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-1 @min-[32rem]:row-start-1`}>{primary.label}</p>
 
-                    {/* Number and unit sit in a slot wide enough for a
-                        four-digit reading (two for the second column), so a
-                        reading gaining a digit, or counting up from zero on
-                        load, doesn't shove the cats or the other column about.
-                        The status rides on the tick scale, which a screen
-                        reader skips, so it is said here, after the unit. */}
-                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
-                            {primary.value > 0 ? (
-                                <>
-                                    <span className={on}><AnimatedNumber value={primary.value} decimals={primary.decimals} /></span>
-                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
-                                    {currentStatus && <span className="sr-only">{t(currentStatus.label)}</span>}
-                                </>
-                            ) : (
-                                <span className={dim}>--</span>
-                            )}
-                        </span>
-                        {cats}
-                    </div>
-
-                    {companion ? (
-                        <span className={`${readingSlot} justify-end whitespace-nowrap`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
-                            {companion.value > 0 ? (
-                                <>
-                                    <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
-                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
-                                </>
-                            ) : (
-                                <span className={dim}>--</span>
-                            )}
-                        </span>
-                    ) : <span />}
-
-                    {/* The scale runs the full width under both readings. Kept
-                        to the first one's column beside a second reading, it
-                        came out too short to read. */}
-                    {primary.value > 0 && (
-                        <div className="col-span-2 mt-0.5">
-                            <LevelRail
-                                value={primary.value}
-                                band={primary.band}
-                                domain={primary.domain}
-                                label={currentStatus ? t(currentStatus.label) : undefined}
-                                tone={currentStatus?.color}
-                            />
+                        {/* Number and unit sit in a slot wide enough for a
+                            four-digit reading (two for the second column), so a
+                            reading gaining a digit, or counting up from zero on
+                            load, doesn't shove the cats or the other column about.
+                            The status rides on the tick scale, which a screen
+                            reader skips, so it is said here, after the unit. */}
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 @min-[32rem]:col-start-1 @min-[32rem]:row-start-2">
+                            <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
+                                {primary.value > 0 ? (
+                                    <>
+                                        <span className={on}><AnimatedNumber value={primary.value} decimals={primary.decimals} /></span>
+                                        <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
+                                        {currentStatus && <span className="sr-only">{t(currentStatus.label)}</span>}
+                                    </>
+                                ) : (
+                                    <span className={dim}>--</span>
+                                )}
+                            </span>
+                            {cats}
                         </div>
-                    )}
+
+                        {/* The scale belongs to the first reading, so stacked it
+                            comes straight after it, before the second: placed after
+                            both, its 100 and 200 sat right under the cyproterone
+                            figure and read as that figure's scale. Side by side it
+                            runs the full width under both, as before; kept to the
+                            first one's column there, it came out too short to read.
+                            Beside a second drug's reading the status also names
+                            whose it is: under the cyproterone figure, "above
+                            reference range" read as the cyproterone level. */}
+                        {primary.value > 0 && (
+                            <div className="mt-0.5 @min-[32rem]:col-span-2 @min-[32rem]:col-start-1 @min-[32rem]:row-start-3">
+                                <LevelRail
+                                    value={primary.value}
+                                    band={primary.band}
+                                    domain={primary.domain}
+                                    label={currentStatus ? (companion?.label ? `${primary.label} · ${t(currentStatus.label)}` : t(currentStatus.label)) : undefined}
+                                    tone={currentStatus?.color}
+                                />
+                            </div>
+                        )}
+
+                        {companion && (
+                            <>
+                                {companion.label && (
+                                    <p className={`mt-3 text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-2 @min-[32rem]:row-start-1 @min-[32rem]:mt-0 @min-[32rem]:text-right`}>{companion.label}</p>
+                                )}
+                                <span className={`${readingSlot} whitespace-nowrap @min-[32rem]:col-start-2 @min-[32rem]:row-start-2 @min-[32rem]:justify-end`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
+                                    {companion.value > 0 ? (
+                                        <>
+                                            <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
+                                            <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
+                                        </>
+                                    ) : (
+                                        <span className={dim}>--</span>
+                                    )}
+                                </span>
+                            </>
+                        )}
+                    </div>
                 </div>
                 </>
                 )}
@@ -289,16 +327,47 @@ const Home: React.FC<HomeProps> = ({
                     <div className={hasReading || hasAdvisory ? 'mt-2' : ''}>
                         {plan.map(item => {
                             // The real moment, not the minute clock: a dose tapped just now must count at once.
-                            const st = planStatus(item, events, Date.now() / 3600000);
+                            const exactH = Date.now() / 3600000;
+                            const st = planStatus(item, events, exactH);
                             const sentence = st.kind === 'taken' ? 'plan.taken'
                                 : st.kind === 'rest' ? (st.yesterday && item.everyDays === 2 ? 'plan.rest_yesterday' : 'plan.rest')
                                 : item.everyDays > 1 ? 'plan.due_interval'
                                 : st.done > 0 ? 'plan.due_partial' : 'plan.due';
-                            return (
-                                <div key={item.id} className="flex items-center justify-between gap-3 py-1.5">
-                                    <div className="min-w-0">
-                                        <p className={`break-words text-sm ${st.kind === 'due' ? on : muted}`}>{planItemLabel(item, plan, t)}</p>
-                                        <p className={`text-xs ${muted}`}>
+                            const label = planItemLabel(item, plan, t);
+                            const labelId = `${rowIdBase}-${item.id}`;
+                            const taken = st.kind === 'taken';
+                            // Once some of today's doses are in, the row opens the latest of
+                            // them in the dose form: a tap stamps "now", so a pill taken at
+                            // breakfast and tapped at night needs its time put right, and
+                            // after a reload the form is the way to take a tap back. Only
+                            // what the row opens changes; where today stands is still
+                            // worked out by calendar day, as above.
+                            const loggedToday = taken || (st.kind === 'due' && st.done > 0)
+                                ? latestToday(item, exactH)
+                                : null;
+                            // A rest day's button stays, since an injection day does
+                            // move, but it asks first: one stray tap there wrote a full
+                            // dose days early, and it shifts every estimate after it.
+                            const logDose = () => {
+                                if (st.kind !== 'rest') { onLogPlanItem(item); return; }
+                                showDialog(
+                                    'confirm',
+                                    fill(t('plan.early_confirm'), { verb: t(`plan.verb.${item.route}`), day: dueLabel(st.nextH, lang, false, nowH) }),
+                                    () => onLogPlanItem(item),
+                                    { title: label, confirmLabel: t('home.empty_cta') },
+                                );
+                            };
+                            // The route's drawing heads the row, as it does on the Plan
+                            // page: an ampoule and a dissolving tablet tell estradiol
+                            // valerate from estradiol before either name is read. Asleep
+                            // on a rest day only; a row that is done is not "not yet",
+                            // and keeps its colour.
+                            const text = (
+                                <>
+                                    <Doodle name={item.route} size={1.75} asleep={st.kind === 'rest'} />
+                                    <span className="min-w-0">
+                                        <span id={labelId} className={`block break-words text-sm ${st.kind === 'due' ? on : muted}`}>{label}</span>
+                                        <span className={`block text-xs ${muted} ${loggedToday ? 'transition-colors group-hover:text-[var(--text)]' : ''}`}>
                                             {fillNodes(t(sentence), {
                                                 verb: t(`plan.verb.${item.route}`),
                                                 done: st.kind === 'due' ? st.done : 0,
@@ -306,39 +375,86 @@ const Home: React.FC<HomeProps> = ({
                                                 left: st.kind === 'due' ? st.total - st.done : 0,
                                                 day: st.kind === 'rest' ? <span className="whitespace-nowrap">{dueLabel(st.nextH, lang, false, nowH)}</span> : null,
                                             })}
-                                        </p>
-                                    </div>
+                                            {loggedToday && <ChevronRight size={13} aria-hidden="true" className="ms-0.5 inline-block align-[-2px] opacity-70 rtl:-scale-x-100" />}
+                                        </span>
+                                    </span>
+                                </>
+                            );
+                            return (
+                                <div key={item.id} className="flex items-center justify-between gap-3 py-1.5">
+                                    {loggedToday ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => onEditEvent(loggedToday)}
+                                            className="tap-target group flex min-w-0 items-center gap-3 text-start"
+                                        >
+                                            {text}
+                                            <span className="sr-only">{t('modal.dose.edit_title')}</span>
+                                        </button>
+                                    ) : (
+                                        <div className="flex min-w-0 items-center gap-3">{text}</div>
+                                    )}
                                     {/* Undo stays as long as a tap is on record, beside the next tap
-                                        while more doses are due today and alone once they are all in. */}
+                                        while more doses are due today and alone once they are all in.
+                                        The tick shares the log button's place and is drawn on there
+                                        when the last of today's doses goes in, so the slot answers
+                                        the tap instead of going blank. Each button is described by
+                                        the drug it logs: three rows read "Took it" three times. */}
                                     <div className="-mr-2 flex shrink-0 items-center">
                                         {undoableIds.includes(item.id) && (
-                                            <button type="button" onClick={() => onUndoPlanLog(item.id)} className={`${headerAction} ${muted} tap-target`}>
+                                            <button type="button" onClick={() => onUndoPlanLog(item.id)} aria-describedby={labelId} className={`${headerAction} ${muted} tap-target`}>
                                                 {t('plan.undo')}
                                             </button>
                                         )}
-                                        {st.kind !== 'taken' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => onLogPlanItem(item)}
-                                                className={`${st.kind === 'due' ? headerActionAccent : `${headerAction} ${muted}`} tap-target`}
-                                            >
-                                                {t(`plan.done.${item.route}`)}
-                                            </button>
-                                        )}
+                                        <span className="grid items-center justify-items-end">
+                                            {!taken && (
+                                                <button
+                                                    type="button"
+                                                    onClick={logDose}
+                                                    aria-describedby={labelId}
+                                                    className={`${st.kind === 'due' ? headerActionAccent : `${headerAction} ${muted}`} tap-target col-start-1 row-start-1`}
+                                                >
+                                                    {t(`plan.done.${item.route}`)}
+                                                </button>
+                                            )}
+                                            <span className="pointer-events-none col-start-1 row-start-1 px-2.5">
+                                                <Tick on={taken} size={18} />
+                                            </span>
+                                        </span>
                                     </div>
                                 </div>
                             );
                         })}
+                        {/* Each line leads to the stock it is about, so the medicine
+                            running out can be recounted or restocked from where the
+                            warning is read. It is the only sentence, so all of it keeps
+                            the caution colour (see DoseAdvisory). Lines sit edge to edge,
+                            so each is a full 44px tall itself rather than a .tap-target,
+                            whose area would overlap the next. The chevron is held to the
+                            last word (a word joiner, which Chrome ignores before an inline
+                            SVG unless the two are kept from wrapping) so it never ends up
+                            alone on a line. */}
                         {lowSupplies.map(({ supply, remaining, runOutH }) => {
                             const name = supplyLabel(supply, t);
                             return (
-                                <p key={supply.id} className="py-1.5 text-sm leading-relaxed text-[var(--warning)]">
+                                <button
+                                    key={supply.id}
+                                    type="button"
+                                    onClick={onNavigateToSupplies}
+                                    className="group block min-h-11 w-full py-2.5 text-start text-sm leading-relaxed text-[var(--warning)]"
+                                >
                                     {remaining <= 0 || runOutH === null
                                         ? fill(t('supplies.used_up'), { name })
                                         : fillNodes(t('supplies.running_low'), { name, n: Math.max(0, Math.round((runOutH - nowH) / 24)), date: <span className="whitespace-nowrap">{dueLabel(runOutH, lang, false, nowH)}</span> })}
-                                </p>
+                                    <span className="whitespace-nowrap">{'\u2060'}<ChevronRight size={15} aria-hidden="true" className="ms-0.5 inline-block align-[-3px] opacity-60 transition-opacity group-hover:opacity-100 rtl:-scale-x-100" /></span>
+                                </button>
                             );
                         })}
+                        {/* Without a plan nothing here says what one is for, and
+                            everyone who logged before plans arrived is in that state. */}
+                        {plan.length === 0 && hasReading && (
+                            <p className={`pt-1.5 text-xs ${muted}`}>{t('plan.home_hint')}</p>
+                        )}
                         <div className="pt-1.5">
                             <button
                                 type="button"
@@ -370,7 +486,9 @@ const Home: React.FC<HomeProps> = ({
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
-                        <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
+                        {/* Balanced, so short centred copy breaks evenly rather
+                            than leaving one character alone on a second line. */}
+                        <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
                         {/* Logging a dose is the one thing this page is waiting
                             for, so it is the one terracotta button on it. */}
                         <button

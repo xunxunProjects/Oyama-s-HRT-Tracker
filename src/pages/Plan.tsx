@@ -14,8 +14,12 @@ import { regimenLabel, frequencyLabel, gelSiteName } from '../utils/regimenText'
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
-const inputCls = 'w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--text)] outline-none focus:border-[var(--border-strong)]';
-const labelCls = `block text-xs font-semibold mb-1.5 pl-1 ${muted}`;
+// Fields as the selects beside them have them (CustomSelect): the label in
+// body colour at medium weight, flush with the box, and the box .input-base,
+// 44px and field-filled with a terracotta focus. A label of its own style
+// and a 38px transparent box made the paired fields look unrelated.
+const inputCls = 'input-base tabular-nums';
+const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Amount, rhythm and, for a gel, where it goes; for a sublingual dose, how long it is held. */
@@ -145,7 +149,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         type="button"
-                                                        onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDelete(item.id), { danger: true })}
+                                                        onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDelete(item.id), { danger: true, title: regimenLabel(item, t), confirmLabel: t('btn.delete') })}
                                                         className={`${headerAction} text-[var(--danger)]`}
                                                     >
                                                         {t('btn.delete')}
