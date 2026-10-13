@@ -107,9 +107,9 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                 onClick={handleAdd}
                 className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-dashed
  border-[var(--border)]
-                    text-muted
+                    text-[var(--text-muted)]
  hover:border-[var(--border-strong)]
-                    hover:text-body"
+                    hover:text-[var(--text)]"
                 title={t('quickdose.add')}
             >
                 <Plus size={14} strokeWidth={2.5} />

@@ -39,6 +39,10 @@ jobs:
         # Cargo.lock must all carry one version; set_version.py writes them.
         run: python3 scripts/set_version.py --check
 
+      - name: Lint
+        # Errors fail the build; warnings mark existing code to clean up.
+        run: npm run lint
+
       - name: Typecheck
         # Covers the web app and worker.ts alike.
         run: npx tsc --noEmit

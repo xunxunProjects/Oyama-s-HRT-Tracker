@@ -67,8 +67,15 @@ describe('transdermal estradiol patch', () => {
         [100, 87],
     ])('%i µg/day averages within 1.5x of the label Cavg of %i pg/mL', (ug, cavg) => {
         const t0 = NOW_H - 300;
-        const sim = runSimulation([dose(Route.patchApply, Ester.E2, 0, t0,
-            { [ExtraKey.releaseRateUGPerDay]: ug, [ExtraKey.patchWearH]: 168 })], BW)!;
+        const sim = runSimulation(
+            [
+                dose(Route.patchApply, Ester.E2, 0, t0, {
+                    [ExtraKey.releaseRateUGPerDay]: ug,
+                    [ExtraKey.patchWearH]: 168,
+                }),
+            ],
+            BW,
+        )!;
         within(scan(sim, interpolateConcentration_E2, t0, t0 + 168, 0.25).mean, cavg);
     });
 });
@@ -141,10 +148,12 @@ describe('known gaps against published data', () => {
 
         const every10wk = 24 * 7 * 10;
         const ss = runSimulation(regimen(Route.injection, Ester.TU, 1000, every10wk, 8, NOW_H - every10wk), BW)!;
-        let lo = Infinity, hi = -Infinity;
+        let lo = Infinity,
+            hi = -Infinity;
         for (let t = NOW_H - every10wk; t <= NOW_H; t += 1) {
             const c = interpolateConcentration_T(ss, t)!;
-            lo = Math.min(lo, c); hi = Math.max(hi, c);
+            lo = Math.min(lo, c);
+            hi = Math.max(hi, c);
         }
         expect(lo / hi).toBeGreaterThan(0.3);
     });

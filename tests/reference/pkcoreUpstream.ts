@@ -48,10 +48,17 @@ const SL_THETA = [0.01, 0.04, 0.11, 0.18]; // quick, casual, standard, strict
 function bateman(doseMG: number, F: number, ka: number, ke: number, t: number): number {
     if (!(t >= 0) || doseMG <= 0 || ka <= 0) return 0;
     if (Math.abs(ka - ke) < 1e-9) return doseMG * F * ka * t * Math.exp(-ke * t);
-    return doseMG * F * ka / (ka - ke) * (Math.exp(-ke * t) - Math.exp(-ka * t));
+    return ((doseMG * F * ka) / (ka - ke)) * (Math.exp(-ke * t) - Math.exp(-ka * t));
 }
 
-function analytic3CRepeated(tau: number, scaledDose: number, k1: number, k2: number, k3: number, tol: number): number | null {
+function analytic3CRepeated(
+    tau: number,
+    scaledDose: number,
+    k1: number,
+    k2: number,
+    k3: number,
+    tol: number,
+): number | null {
     const e12 = Math.abs(k1 - k2) < tol;
     const e13 = Math.abs(k1 - k3) < tol;
     const e23 = Math.abs(k2 - k3) < tol;
@@ -59,17 +66,17 @@ function analytic3CRepeated(tau: number, scaledDose: number, k1: number, k2: num
     if (e23) {
         const d = k1 - k2;
         if (Math.abs(d) < tol) return null;
-        return scaledDose * k1 * k2 * (Math.exp(-k1 * tau) + Math.exp(-k2 * tau) * (d * tau - 1)) / (d * d);
+        return (scaledDose * k1 * k2 * (Math.exp(-k1 * tau) + Math.exp(-k2 * tau) * (d * tau - 1))) / (d * d);
     }
     if (e12) {
         const d = k1 - k3;
         if (Math.abs(d) < tol) return null;
-        return scaledDose * k1 * k1 * (Math.exp(-k3 * tau) - Math.exp(-k1 * tau) * (1 + d * tau)) / (d * d);
+        return (scaledDose * k1 * k1 * (Math.exp(-k3 * tau) - Math.exp(-k1 * tau) * (1 + d * tau))) / (d * d);
     }
     if (e13) {
         const d = k2 - k1;
         if (Math.abs(d) < tol) return null;
-        return scaledDose * k1 * k2 * (Math.exp(-k2 * tau) + Math.exp(-k1 * tau) * (d * tau - 1)) / (d * d);
+        return (scaledDose * k1 * k2 * (Math.exp(-k2 * tau) + Math.exp(-k1 * tau) * (d * tau - 1))) / (d * d);
     }
     return null;
 }
@@ -79,7 +86,9 @@ export function upstreamAnalytic3C(tau: number, doseMG: number, F: number, k1: n
     if (!(tau >= 0) || k1 <= 0 || k2 <= 0 || k3 <= 0 || doseMG <= 0 || F <= 0) return 0;
     const repeated = analytic3CRepeated(tau, doseMG * F, k1, k2, k3, 1e-9);
     if (repeated !== null) return repeated;
-    const k1k2 = k1 - k2, k1k3 = k1 - k3, k2k3 = k2 - k3;
+    const k1k2 = k1 - k2,
+        k1k3 = k1 - k3,
+        k2k3 = k2 - k3;
     const term1 = Math.exp(-k1 * tau) / (k1k2 * k1k3);
     const term2 = Math.exp(-k2 * tau) / (-k1k2 * k2k3);
     const term3 = Math.exp(-k3 * tau) / (k1k3 * k2k3);
@@ -110,8 +119,10 @@ export function upstreamE2Amount(d: UpstreamDose, timeH: number): number {
             const F = FORMATION_FRACTION[d.compound];
             const k2 = HYDROLYSIS_K2[d.compound] ?? 0;
             const k3 = CORE.kClearInjection;
-            return upstreamAnalytic3C(tau, d.doseE2MG * depot.fracFast, F, depot.k1Fast * CORE.depotK1Corr, k2, k3)
-                + upstreamAnalytic3C(tau, d.doseE2MG * (1 - depot.fracFast), F, depot.k1Slow * CORE.depotK1Corr, k2, k3);
+            return (
+                upstreamAnalytic3C(tau, d.doseE2MG * depot.fracFast, F, depot.k1Fast * CORE.depotK1Corr, k2, k3) +
+                upstreamAnalytic3C(tau, d.doseE2MG * (1 - depot.fracFast), F, depot.k1Slow * CORE.depotK1Corr, k2, k3)
+            );
         }
         case 'oral':
             // Upstream also stores k2 for oral EV, but the oral path is one-compartment
@@ -134,8 +145,8 @@ export function upstreamE2Amount(d: UpstreamDose, timeH: number): number {
             const k3 = CORE.kClear;
             if (d.releaseUGPerDay !== undefined) {
                 const rate = d.releaseUGPerDay / 24_000; // patchReleaseScale is 1.0 for E2
-                if (tau <= wearH) return rate / k3 * (1 - Math.exp(-k3 * tau));
-                return rate / k3 * (1 - Math.exp(-k3 * wearH)) * Math.exp(-k3 * (tau - wearH));
+                if (tau <= wearH) return (rate / k3) * (1 - Math.exp(-k3 * tau));
+                return (rate / k3) * (1 - Math.exp(-k3 * wearH)) * Math.exp(-k3 * (tau - wearH));
             }
             const under = bateman(d.doseE2MG, 1.0, CORE.patchFallbackK1, k3, Math.min(tau, wearH));
             return tau > wearH ? under * Math.exp(-k3 * (tau - wearH)) : under;

@@ -1,4 +1,3 @@
-import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -24,9 +23,9 @@ export default defineConfig(() => {
         manifest: {
           name: 'HRT Tracker',
           short_name: 'HRT Tracker',
-          description: 'Track your HRT dosage and simulate E2 levels',
-          theme_color: '#FAF9F7',
-          background_color: '#FAF9F7',
+          description: 'Log HRT doses and estimate hormone levels',
+          theme_color: '#FFFFFF',
+          background_color: '#FFFFFF',
           display: 'standalone',
           orientation: 'portrait',
           icons: [
@@ -47,30 +46,9 @@ export default defineConfig(() => {
         workbox: {
           // Shared pages require the network API and should always load the
           // current application shell instead of an older precached shell.
-          navigateFallbackDenylist: [/^\/share(?:\/|$)/],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'tailwindcss-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            }
-          ]
+          navigateFallbackDenylist: [/^\/share(?:\/|$)/]
         }
       })
-    ],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      }
-    }
+    ]
   };
 });

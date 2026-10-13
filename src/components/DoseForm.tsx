@@ -835,7 +835,6 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     onRawChange={handleRawChange}
                                     patchWearDays={patchWearDays}
                                     setPatchWearDays={setPatchWearDays}
-                                    route={route}
                                 />
                             )}
                         </div>

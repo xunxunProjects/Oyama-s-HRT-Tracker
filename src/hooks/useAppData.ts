@@ -555,12 +555,6 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     const touchPkParams = () => localStorage.setItem(sharedKey('pk-params-at'), String(Date.now()));
     const setPkParams = (params: PKCustomParams) => { touchPkParams(); setPkParamsState(params); };
     const clearPkParams = () => { touchPkParams(); setPkParamsState(null); };
-    const resetPkParams = () => {
-        showDialog('confirm', t('pk.reset_confirm'), () => {
-            clearPkParams();
-        }, { danger: true });
-    };
-
     // A backup with hundreds of thousands of same-day events makes the
     // simulation's peri-event sampling explode into a synchronous loop that
     // never finishes, and a file like that would wedge every later open too.
@@ -1028,15 +1022,14 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     };
 
     return {
-        events, setEvents,
+        events,
         weight, setWeight,
-        labResults, setLabResults,
-        doseTemplates, setDoseTemplates,
-        quickDoses, setQuickDoses,
+        labResults,
+        doseTemplates,
+        quickDoses,
         pkParams,
         setPkParams,
         clearPkParams,
-        resetPkParams,
         simulation,
         currentTime,
         calibrationFn,

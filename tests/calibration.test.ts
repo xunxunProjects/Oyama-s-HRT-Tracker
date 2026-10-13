@@ -106,7 +106,7 @@ describe('computeCalibration', () => {
         }
     });
 
-    it.each(METHODS)('%s: labs that match the model leave it essentially unchanged', (method) => {
+    it.each(METHODS)('%s: labs that match the model leave it essentially unchanged', method => {
         const cal = computeCalibration(sim, events, BW, labsAt(1), method);
         expect(cal.scale).toBeGreaterThan(0.97);
         expect(cal.scale).toBeLessThan(1.03);
@@ -115,7 +115,7 @@ describe('computeCalibration', () => {
         expect(cal.factorFn(NOW_H - 300)).toBeLessThan(1.05);
     });
 
-    it.each(METHODS)('%s: labs running at twice the model pull the estimate up, towards 2', (method) => {
+    it.each(METHODS)('%s: labs running at twice the model pull the estimate up, towards 2', method => {
         const cal = computeCalibration(sim, events, BW, labsAt(2), method);
         const f = cal.factorFn(NOW_H - 100);
         expect(f).toBeGreaterThan(1.6);
@@ -123,13 +123,13 @@ describe('computeCalibration', () => {
         expect(cal.n).toBe(LAB_TIMES.length);
     });
 
-    it.each(METHODS)('%s: labs at half the model pull the estimate down', (method) => {
+    it.each(METHODS)('%s: labs at half the model pull the estimate down', method => {
         const f = computeCalibration(sim, events, BW, labsAt(0.5), method).factorFn(NOW_H - 100);
         expect(f).toBeGreaterThan(0.35);
         expect(f).toBeLessThan(0.65);
     });
 
-    it.each(METHODS)('%s: the factor always stays within [0.01, 100]', (method) => {
+    it.each(METHODS)('%s: the factor always stays within [0.01, 100]', method => {
         const huge = computeCalibration(sim, events, BW, labsAt(1e6), method);
         const tiny = computeCalibration(sim, events, BW, labsAt(1e-6), method);
         for (const t of [NOW_H - 2000, NOW_H - 500, NOW_H, NOW_H + 500]) {
@@ -194,21 +194,24 @@ describe('computeCalibration', () => {
     });
 
     describe('history modes', () => {
-        it.each(['ekf', 'mipd', 'ou_kalman'] as const)('%s forward: no correction before the first lab', (method) => {
+        it.each(['ekf', 'mipd', 'ou_kalman'] as const)('%s forward: no correction before the first lab', method => {
             const cal = computeCalibration(sim, events, BW, labsAt(2), method, 'forward');
             expect(cal.factorFn(LAB_TIMES[0] - 1)).toBe(1);
             expect(cal.factorFn(LAB_TIMES[0] + 1)).toBeGreaterThan(1.2);
         });
 
-        it.each(['ekf', 'mipd', 'ou_kalman'] as const)('%s forward: adding a later lab never rewrites the past', (method) => {
-            const early = labsAt(2, LAB_TIMES.slice(0, 3));
-            const later = [...early, lab(NOW_H - 100, model(NOW_H - 100) * 0.5)];
-            const a = computeCalibration(sim, events, BW, early, method, 'forward');
-            const b = computeCalibration(sim, events, BW, later, method, 'forward');
-            for (const t of [LAB_TIMES[0] + 10, LAB_TIMES[1] + 50, LAB_TIMES[2] + 10, NOW_H - 101]) {
-                expect(b.factorFn(t)).toBeCloseTo(a.factorFn(t), 9);
-            }
-        });
+        it.each(['ekf', 'mipd', 'ou_kalman'] as const)(
+            '%s forward: adding a later lab never rewrites the past',
+            method => {
+                const early = labsAt(2, LAB_TIMES.slice(0, 3));
+                const later = [...early, lab(NOW_H - 100, model(NOW_H - 100) * 0.5)];
+                const a = computeCalibration(sim, events, BW, early, method, 'forward');
+                const b = computeCalibration(sim, events, BW, later, method, 'forward');
+                for (const t of [LAB_TIMES[0] + 10, LAB_TIMES[1] + 50, LAB_TIMES[2] + 10, NOW_H - 101]) {
+                    expect(b.factorFn(t)).toBeCloseTo(a.factorFn(t), 9);
+                }
+            },
+        );
 
         it('retrospective: a new lab may revise earlier estimates', () => {
             const early = labsAt(2, LAB_TIMES.slice(0, 3));

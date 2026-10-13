@@ -35,7 +35,8 @@ export function regimen(
     extras: Partial<Record<ExtraKey, number>> = {},
 ): DoseEvent[] {
     return Array.from({ length: count }, (_, i) =>
-        dose(route, ester, doseMG, lastH - everyH * (count - 1 - i), extras));
+        dose(route, ester, doseMG, lastH - everyH * (count - 1 - i), extras),
+    );
 }
 
 export function lab(timeH: number, concValue: number, unit: LabResult['unit'] = 'pg/ml'): LabResult {
@@ -53,7 +54,10 @@ export function scan(sim: SimulationResult, read: Reader, from: number, to: numb
     let n = 0;
     for (let t = from; t <= to + 1e-9; t += step) {
         const c = read(sim, t) ?? NaN;
-        if (c > cmax) { cmax = c; tmax = t; }
+        if (c > cmax) {
+            cmax = c;
+            tmax = t;
+        }
         sum += c;
         n += 1;
     }

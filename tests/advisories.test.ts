@@ -17,12 +17,18 @@ describe('getDoseAdvisory', () => {
 
     it('flags more than 12 mg of daily-route estradiol in one day', () => {
         expect(getDoseAdvisory([dose(Route.oral, Ester.E2, 12, NOON)], NOW_H)).toBeNull();
-        expect(getDoseAdvisory([dose(Route.oral, Ester.E2, 7, NOON), dose(Route.sublingual, Ester.E2, 6, NOON + 1)], NOW_H))
-            .toEqual({ kind: 'e2' });
+        expect(
+            getDoseAdvisory(
+                [dose(Route.oral, Ester.E2, 7, NOON), dose(Route.sublingual, Ester.E2, 6, NOON + 1)],
+                NOW_H,
+            ),
+        ).toEqual({ kind: 'e2' });
     });
 
     it('sums by day, not across days', () => {
-        expect(getDoseAdvisory([dose(Route.oral, Ester.E2, 8, NOON), dose(Route.oral, Ester.E2, 8, NOON - 24)], NOW_H)).toBeNull();
+        expect(
+            getDoseAdvisory([dose(Route.oral, Ester.E2, 8, NOON), dose(Route.oral, Ester.E2, 8, NOON - 24)], NOW_H),
+        ).toBeNull();
     });
 
     it('ignores doses older than 14 days and doses in the future', () => {
@@ -57,8 +63,9 @@ describe('getDoseAdvisory', () => {
     });
 
     it('names estradiol and cyproterone together when both run high', () => {
-        expect(getDoseAdvisory([dose(Route.oral, Ester.E2, 20, NOON), dose(Route.oral, Ester.CPA, 25, NOON)], NOW_H))
-            .toEqual({ kind: 'e2_cpa' });
+        expect(
+            getDoseAdvisory([dose(Route.oral, Ester.E2, 20, NOON), dose(Route.oral, Ester.CPA, 25, NOON)], NOW_H),
+        ).toEqual({ kind: 'e2_cpa' });
     });
 
     it('otherwise reports the family that is furthest over its ceiling', () => {
@@ -95,10 +102,10 @@ describe('getHormoneLevelAdvisory', () => {
 
     it('uses the latest lab of each hormone independently, after unit conversion', () => {
         const labs = [
-            lab(10, 500),                // old high E2
-            lab(20, 73.42, 'pmol/l'),    // latest E2: 20 pg/mL
-            lab(5, 1.0, 'nmol/l'),       // latest T: 28.8 ng/dL
-            lab(1, 900, 'ng/dl'),        // old high T
+            lab(10, 500), // old high E2
+            lab(20, 73.42, 'pmol/l'), // latest E2: 20 pg/mL
+            lab(5, 1.0, 'nmol/l'), // latest T: 28.8 ng/dL
+            lab(1, 900, 'ng/dl'), // old high T
         ];
         expect(getHormoneLevelAdvisory(labs)).toEqual({ kind: 'both_low' });
     });

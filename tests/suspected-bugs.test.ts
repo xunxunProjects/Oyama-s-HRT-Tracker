@@ -22,7 +22,7 @@ import { upstreamE2Amount } from './reference/pkcoreUpstream';
 
 const E2 = interpolateConcentration_E2;
 // Steady-state level of one 100 µg/day estradiol patch at 70 kg, ≈ 72.6 pg/mL.
-const ONE_PATCH_100 = 0.1 / 24 / 0.41 * 1e9 / VD_E2_ML;
+const ONE_PATCH_100 = ((0.1 / 24 / 0.41) * 1e9) / VD_E2_ML;
 
 describe('suspected: two patches applied at the same moment', () => {
     // computeMaxLifetimeH() finds "the" patch for an apply event by matching its
@@ -34,13 +34,16 @@ describe('suspected: two patches applied at the same moment', () => {
     it.fails('the patch removed later keeps delivering after the other one comes off', () => {
         const t0 = NOW_H - 300;
         const rate = { [ExtraKey.releaseRateUGPerDay]: 50 };
-        const sim = runSimulation([
-            dose(Route.patchApply, Ester.E2, 0, t0, rate),
-            dose(Route.patchApply, Ester.E2, 0, t0, rate),
-            dose(Route.patchRemove, Ester.E2, 0, t0 + 24),
-            dose(Route.patchRemove, Ester.E2, 0, t0 + 84),
-        ], BW)!;
-        const onePatch = 0.05 / 24 / 0.41 * 1e9 / VD_E2_ML; // ≈ 36 pg/mL
+        const sim = runSimulation(
+            [
+                dose(Route.patchApply, Ester.E2, 0, t0, rate),
+                dose(Route.patchApply, Ester.E2, 0, t0, rate),
+                dose(Route.patchRemove, Ester.E2, 0, t0 + 24),
+                dose(Route.patchRemove, Ester.E2, 0, t0 + 84),
+            ],
+            BW,
+        )!;
+        const onePatch = ((0.05 / 24 / 0.41) * 1e9) / VD_E2_ML; // ≈ 36 pg/mL
         // 70 h in, the first patch is long off and the second is still on. Today
         // this reads about 0 pg/mL instead of one patch's level.
         expect(relErr(interpolateConcentration_E2(sim, t0 + 70)!, onePatch)).toBeLessThan(0.01);
@@ -71,8 +74,18 @@ describe('suspected: dense sampling around dose peaks never applies to short-act
         // The model's own value, summed dose by dose with the independent port of
         // upstream PKcore (tests/reference), which routes.test.ts shows agrees
         // with logic.ts to 0.1% on its grid points.
-        const exact = events.reduce((sum, d) => sum + upstreamE2Amount(
-            { route: 'sublingual', compound: 'E2', doseE2MG: d.doseMG, timeH: d.timeH, tier: 2 }, NOW_H), 0) * 1e9 / VD_E2_ML;
+        const exact =
+            (events.reduce(
+                (sum, d) =>
+                    sum +
+                    upstreamE2Amount(
+                        { route: 'sublingual', compound: 'E2', doseE2MG: d.doseMG, timeH: d.timeH, tier: 2 },
+                        NOW_H,
+                    ),
+                0,
+            ) *
+                1e9) /
+            VD_E2_ML;
         // Today this reads about 285 pg/mL against 568.
         expect(relErr(E2(runSimulation(events, BW)!, NOW_H)!, exact)).toBeLessThan(0.05);
     });
@@ -108,7 +121,9 @@ describe('suspected: patch removals are paired with the wrong patch', () => {
     it.fails('a removal is not paired with a patch whose planned wear already ended', () => {
         const t0 = NOW_H - 1000;
         const twiceWeekly = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
-        const applies = Array.from({ length: 8 }, (_, k) => dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, twiceWeekly));
+        const applies = Array.from({ length: 8 }, (_, k) =>
+            dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, twiceWeekly),
+        );
         const sim = runSimulation([...applies, dose(Route.patchRemove, Ester.E2, 0, t0 + 628)], BW)!;
         // Today about 145 pg/mL (two patches) at t0 + 300 and one patch's level
         // (73) at t0 + 668, after the last patch came off.
@@ -142,10 +157,11 @@ describe('suspected: patch removals are paired with the wrong patch', () => {
     it.fails('the order of removal and application within a change does not wipe out the history', () => {
         const t0 = NOW_H - 1000;
         const rate = { [ExtraKey.releaseRateUGPerDay]: 100 };
-        const changes = (removeOffsetH: number) => Array.from({ length: 6 }, (_, k) => [
-            dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, rate),
-            dose(Route.patchRemove, Ester.E2, 0, t0 + 84 * k + removeOffsetH),
-        ]).flat();
+        const changes = (removeOffsetH: number) =>
+            Array.from({ length: 6 }, (_, k) => [
+                dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, rate),
+                dose(Route.patchRemove, Ester.E2, 0, t0 + 84 * k + removeOffsetH),
+            ]).flat();
         const removedFirst = E2(runSimulation(changes(-0.1), BW)!, t0 + 300)!;
         const removedAfter = E2(runSimulation(changes(0.1), BW)!, t0 + 300)!;
         expect(relErr(removedFirst, ONE_PATCH_100)).toBeLessThan(0.01);
@@ -165,13 +181,19 @@ describe('suspected: lab calibration', () => {
     // changing while fieldGSlope() still reports the edge slope, so the
     // estimate keeps drifting outward. The kMul and half-life change shown to
     // the user then describe a curve other than the one drawn.
-    it.fails.each(['ekf', 'mipd'] as const)('%s reports a clearance within the range it can draw', (method) => {
+    it.fails.each(['ekf', 'mipd'] as const)('%s reports a clearance within the range it can draw', method => {
         const truth = runSimulationWithParams(events, BW, {
             ...DEFAULT_PK_PARAMS,
             e2_kClear: DEFAULT_PK_PARAMS.e2_kClear * 3,
             e2_kClearInj: DEFAULT_PK_PARAMS.e2_kClearInj * 3,
         })!;
-        const cal = computeCalibration(sim, events, BW, LAB_TIMES.map(t => lab(t, E2(truth, t)!)), method);
+        const cal = computeCalibration(
+            sim,
+            events,
+            BW,
+            LAB_TIMES.map(t => lab(t, E2(truth, t)!)),
+            method,
+        );
         // Today ekf reports 2.41 (half-life -58%) and mipd 4.40 (-77%), while both
         // draw the 2x curve (-50%).
         expect(cal.kMul).toBeLessThanOrEqual(2 + 1e-9);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { isPlausibleBodyWeightKG } from '../../logic';
 
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -21,11 +22,11 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
 
     const handleSave = () => {
         const val = parseFloat(weightStr);
-        if (!isNaN(val) && val > 0) {
+        if (isPlausibleBodyWeightKG(val)) {
             onSave(val);
             onBack();
         } else {
-            showDialog('alert', t('error.nonPositive'));
+            showDialog('alert', t('error.weightRange'));
         }
     };
 

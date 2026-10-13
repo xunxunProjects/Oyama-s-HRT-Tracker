@@ -30,7 +30,7 @@ describe('runSimulation: empty and invalid input', () => {
         expect(Math.max(...sim.concPGmL_E2)).toBe(0);
     });
 
-    it('does not reorder or mutate the caller\'s events', () => {
+    it("does not reorder or mutate the caller's events", () => {
         const events = [dose(Route.oral, Ester.E2, 2, NOW_H - 10), dose(Route.oral, Ester.E2, 2, NOW_H - 40)];
         const copy = JSON.parse(JSON.stringify(events));
         runSimulation(events, BW);
@@ -76,7 +76,11 @@ describe('runSimulation: superposition and scaling', () => {
         const c = dose(Route.sublingual, Ester.E2, 1, NOW_H - 149.5, { [ExtraKey.sublingualTier]: 2 });
         const all = runSimulation([a, b, c], BW)!;
         const parts = [a, b, c].map(only =>
-            runSimulation([a, b, c].map(e => (e === only ? e : { ...e, doseMG: 0 })), BW)!);
+            runSimulation(
+                [a, b, c].map(e => (e === only ? e : { ...e, doseMG: 0 })),
+                BW,
+            )!,
+        );
         expect(parts.every(p => p.timeH.length === all.timeH.length)).toBe(true);
         all.timeH.forEach((_, i) => {
             const sum = parts.reduce((s, p) => s + p.concPGmL_E2[i], 0);
@@ -143,11 +147,14 @@ describe('runSimulation: superposition and scaling', () => {
 
 describe('runSimulation: hormones are kept apart', () => {
     it('estradiol, cyproterone and testosterone each fill only their own curve', () => {
-        const sim = runSimulation([
-            dose(Route.oral, Ester.E2, 2, NOW_H - 20),
-            dose(Route.oral, Ester.CPA, 10, NOW_H - 20),
-            dose(Route.gel, Ester.T, 50, NOW_H - 20),
-        ], BW)!;
+        const sim = runSimulation(
+            [
+                dose(Route.oral, Ester.E2, 2, NOW_H - 20),
+                dose(Route.oral, Ester.CPA, 10, NOW_H - 20),
+                dose(Route.gel, Ester.T, 50, NOW_H - 20),
+            ],
+            BW,
+        )!;
         const e2Only = runSimulation([dose(Route.oral, Ester.E2, 2, NOW_H - 20)], BW)!;
         const cpaOnly = runSimulation([dose(Route.oral, Ester.CPA, 10, NOW_H - 20)], BW)!;
         const tOnly = runSimulation([dose(Route.gel, Ester.T, 50, NOW_H - 20)], BW)!;
@@ -158,10 +165,10 @@ describe('runSimulation: hormones are kept apart', () => {
     });
 
     it('concPGmL is E2 plus CPA converted from ng/mL to pg/mL, and the AUC integrates that sum', () => {
-        const sim = runSimulation([
-            dose(Route.oral, Ester.E2, 2, NOW_H - 20),
-            dose(Route.oral, Ester.CPA, 10, NOW_H - 20),
-        ], BW)!;
+        const sim = runSimulation(
+            [dose(Route.oral, Ester.E2, 2, NOW_H - 20), dose(Route.oral, Ester.CPA, 10, NOW_H - 20)],
+            BW,
+        )!;
         sim.timeH.forEach((_, i) => {
             expect(sim.concPGmL[i]).toBeCloseTo(sim.concPGmL_E2[i] + sim.concPGmL_CPA[i] * 1000, 6);
         });
@@ -221,7 +228,14 @@ describe('interpolateConcentration_*', () => {
     });
 
     it('returns null for an empty simulation', () => {
-        const empty: SimulationResult = { timeH: [], concPGmL: [], concPGmL_E2: [], concPGmL_CPA: [], concNGdL_T: [], auc: 0 };
+        const empty: SimulationResult = {
+            timeH: [],
+            concPGmL: [],
+            concPGmL_E2: [],
+            concPGmL_CPA: [],
+            concNGdL_T: [],
+            auc: 0,
+        };
         expect(interpolateConcentration_E2(empty, 5)).toBeNull();
         expect(interpolateConcentration_CPA(empty, 5)).toBeNull();
         expect(interpolateConcentration_T(empty, 5)).toBeNull();

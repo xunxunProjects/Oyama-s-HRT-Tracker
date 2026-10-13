@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { Route } from '../../../logic';
 import Tabs, { useSwitchAnimation } from '../Tabs';
 
 const MODE_ORDER = ['rate', 'dose'] as const;
@@ -14,7 +13,6 @@ interface PatchFieldsProps {
     onRawChange: (val: string) => void;
     patchWearDays: string;
     setPatchWearDays: (val: string) => void;
-    route: Route;
 }
 
 const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";

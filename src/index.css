@@ -3,8 +3,7 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
-    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
 
     /* Type scale. The base is 15px (text-sm, body) with 13px captions
        (text-xs); 12px is the smallest readable size, used deliberately. */
@@ -197,11 +196,6 @@
 @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
-}
-
-@keyframes rise-in {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes sheet-in {
@@ -427,10 +421,6 @@ body {
     display: none;
 }
 
-.safe-area-pb {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 .scroll-pb-nav {
     /* floating nav: bar height + bottom gap + breathing room */
     padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
@@ -444,10 +434,6 @@ body {
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-}
-
-.font-display {
-    font-family: var(--font-display);
 }
 
 /* Shared UI utilities */

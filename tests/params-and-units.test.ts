@@ -38,7 +38,7 @@ describe('lab unit conversion', () => {
         expect(convertToNgDl(10, 'nmol/l')).toBeCloseTo(288.42, 12);
     });
 
-    it('the other hormone\'s unit passes through unchanged (callers filter by isT_LabUnit)', () => {
+    it("the other hormone's unit passes through unchanged (callers filter by isT_LabUnit)", () => {
         expect(convertToPgMl(42, 'ng/dl')).toBe(42);
         expect(convertToNgDl(42, 'pmol/l')).toBe(42);
         expect(isT_LabUnit('ng/dl')).toBe(true);
@@ -51,14 +51,14 @@ describe('lab unit conversion', () => {
 describe('molecular-weight factors', () => {
     it.each([
         [Ester.E2, 1],
-        [Ester.EB, 272.38 / 376.50],
-        [Ester.EV, 272.38 / 356.50],
+        [Ester.EB, 272.38 / 376.5],
+        [Ester.EV, 272.38 / 356.5],
         [Ester.EC, 272.38 / 396.58],
         [Ester.EN, 272.38 / 384.56],
         [Ester.EU, 272.38 / 440.66],
-        [Ester.TC, 288.42 / 412.60],
+        [Ester.TC, 288.42 / 412.6],
         [Ester.TE, 288.42 / 400.59],
-        [Ester.TU, 288.42 / 456.70],
+        [Ester.TU, 288.42 / 456.7],
         [Ester.T, 1],
         [Ester.SPIRO, 1],
     ])('%s → %f', (ester, factor) => {
@@ -112,7 +112,13 @@ describe('PK parameter handling', () => {
         expect(sanitizePKParams(null)).toBeNull();
         expect(sanitizePKParams('x')).toBeNull();
         expect(sanitizePKParams({ unrelated: 1 })).toBeNull();
-        const out = sanitizePKParams({ e2_kClear: 0, e2_oral_bio: 5, e2_ff_EV: 'abc', t_kClear: Infinity, e2_gel_arm: '0.07' })!;
+        const out = sanitizePKParams({
+            e2_kClear: 0,
+            e2_oral_bio: 5,
+            e2_ff_EV: 'abc',
+            t_kClear: Infinity,
+            e2_gel_arm: '0.07',
+        })!;
         expect(out.e2_kClear).toBe(0.001);
         expect(out.e2_oral_bio).toBe(1);
         expect(out.e2_ff_EV).toBe(DEFAULT_PK_PARAMS.e2_ff_EV);
@@ -144,7 +150,10 @@ describe('PK parameter handling', () => {
         const events = [dose(Route.oral, Ester.E2, 2, NOW_H - 20)];
         const t = NOW_H - 17;
         const active = interpolateConcentration_E2(runSimulation(events, BW)!, t)!;
-        const other = interpolateConcentration_E2(runSimulationWithParams(events, BW, { ...DEFAULT_PK_PARAMS, e2_oral_bio: 0.01 })!, t)!;
+        const other = interpolateConcentration_E2(
+            runSimulationWithParams(events, BW, { ...DEFAULT_PK_PARAMS, e2_oral_bio: 0.01 })!,
+            t,
+        )!;
         expect(other / active).toBeCloseTo(0.2, 9);
         expect(getActivePKParams().e2_oral_bio).toBe(0.05);
     });

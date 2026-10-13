@@ -1,6 +1,7 @@
 services:
   hrt-tracker:
-    image: ghcr.io/zikinn/oyama-s-hrt-tracker-docker:latest
+    image: ghcr.io/xunxunprojects/oyama-s-hrt-tracker:latest
+    build: .
     container_name: hrt-tracker
     init: true
     restart: unless-stopped

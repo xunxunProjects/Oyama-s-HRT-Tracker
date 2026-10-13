@@ -240,6 +240,14 @@ a map of the code and how to add a translation, and please follow the
 欢迎参与贡献。开发环境、代码结构与新增翻译的方法见 [CONTRIBUTING.md](./CONTRIBUTING.md)，
 请遵守[行为准则](./CODE_OF_CONDUCT.md)。报告安全问题请参阅 [SECURITY.md](./SECURITY.md)。
 
+Thanks to everyone who has contributed 感谢每一位贡献者:
+
+<a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=xunxunProjects/Oyama-s-HRT-Tracker" alt="Contributors 贡献者" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
 ---
 
 ## License 许可

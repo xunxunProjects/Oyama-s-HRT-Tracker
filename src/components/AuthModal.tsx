@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Loader2, Fingerprint } from 'lucide-react';
 import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const [useBackupCode, setUseBackupCode] = useState(false);
     const [backupCode, setBackupCode] = useState('');
     const [passkeyLoading, setPasskeyLoading] = useState(false);
+    // The password the server accepted before it asked for a second factor.
+    // The passkey retry button needs it too, or that sign-in leaves this
+    // device without a cloud key and sync stuck on locked.
+    const acceptedPasswordRef = useRef<string | null>(null);
 
     const { login, register, loginWithToken } = useAuth();
     const { t } = useTranslation();
@@ -83,7 +87,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             } else {
                 await register(username, password);
                 onClose();
-                // needsSetup2FA redirect is handled by App.tsx
                 return;
             }
             onClose();
@@ -100,6 +103,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 setNeedsTOTP(true);
                 setTwoFAMethod(method);
                 setError(null);
+                acceptedPasswordRef.current = password;
                 if (method === 'passkey') {
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
@@ -119,7 +123,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <h2 className="modal-title mb-0">
                         {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
                     </h2>
-                    <button onClick={onClose} className="p-1 text-muted hover:text-body">
+                    <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text)]">
                         <X size={18} />
                     </button>
                 </div>
@@ -213,7 +217,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={() => handlePasskeyLogin()}
+                                                onClick={() => handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)}
                                                 disabled={passkeyLoading}
                                                 className="btn-secondary w-full"
                                             >
@@ -223,7 +227,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                         </>
                                     )}
                                     <button type="button" onClick={() => setUseBackupCode(true)}
-                                        className="w-full text-xs text-muted hover:text-body text-center py-1">
+                                        className="w-full text-xs text-[var(--text-muted)] hover:text-[var(--text)] text-center py-1">
                                         {t('auth.use_backup_code')}
                                     </button>
                                 </>
