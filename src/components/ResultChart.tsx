@@ -643,7 +643,11 @@ const ResultChart = ({
                     // Capture so the pan keeps tracking even if the finger leaves the SVG.
                     try { e.currentTarget.setPointerCapture(drag.pointerId); } catch { /* ignore */ }
                 } else if (Math.abs(dy) > 6) {
-                    dragRef.current = null; // vertical scroll — bail out of the drag
+                    // Vertical scroll: bail out of the drag, and drop the press
+                    // too, so the moves until the browser takes over don't
+                    // scrub a readout (see onPointerUp).
+                    dragRef.current = null;
+                    pressRef.current = null;
                     return;
                 }
             }
@@ -654,6 +658,7 @@ const ResultChart = ({
             }
             return;
         }
+        if (e.pointerType === 'touch' && !pressRef.current) return;
         updateHover(e.clientX);
     };
 
@@ -670,16 +675,25 @@ const ResultChart = ({
     // cleared whatever was left. So on touch the chart could only be looked
     // at. Now a tap that didn't turn into a pan or a scroll puts the readout
     // where it landed, and it stays until the next press outside the plot,
-    // the way the heatmap's tooltip does. A tap on a dose marker only opens
-    // that dose.
+    // the way the heatmap's tooltip does. A tap on a dose marker that opens
+    // the dose does only that; where nothing opens (a shared chart) it reads
+    // the level like any other tap.
     const onPointerUp = (e: React.PointerEvent) => {
         const press = pressRef.current;
         const panned = !!dragRef.current?.moved;
         endDrag(e);
         if (e.pointerType === 'mouse' || !press || panned) return;
         if (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10) return;
-        if ((e.target as Element).closest?.('[data-dose-marker]')) { setHover(null); return; }
+        if (onPointClick && (e.target as Element).closest?.('[data-dose-marker]')) { setHover(null); return; }
         updateHover(e.clientX);
+    };
+
+    // A press that turns into a page scroll ends in a cancel, not a lift, and
+    // the leave that used to clear the readout is now mouse-only, so the
+    // cancel clears it: scrolling past the chart leaves no readout behind.
+    const onPointerCancel = (e: React.PointerEvent) => {
+        endDrag(e);
+        if (e.pointerType !== 'mouse') setHover(null);
     };
 
     // Only a mouse leaving means "done looking"; see onPointerUp.
@@ -792,7 +806,7 @@ const ResultChart = ({
                         onPointerDown={onPointerDown}
                         onPointerMove={onPointerMove}
                         onPointerUp={onPointerUp}
-                        onPointerCancel={endDrag}
+                        onPointerCancel={onPointerCancel}
                         onPointerLeave={onPointerLeave}
                         style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
                     >
