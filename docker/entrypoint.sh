@@ -19,14 +19,13 @@ mkdir -p "$persist_dir"
 
 # The schema comes from migrations/ and nowhere else. A volume created by an
 # older image got its tables from docker/schema.sql plus DDL the worker ran on
-# demand, so wrangler's migration ledger is empty although the effects are all
-# there; the first statement file records those as applied, and only then are
-# the migrations that are genuinely missing run. Both steps are idempotent.
-./node_modules/.bin/wrangler d1 execute "$database_name" \
+# demand, so wrangler's migration ledger is empty although the effects are
+# there, all but one column; docker/reconcile.mjs adds that column and records
+# them as applied, and only then are the migrations that are genuinely missing
+# run. Both steps are idempotent.
+node ./docker/reconcile.mjs "$database_name" \
     --local \
-    --persist-to "$persist_dir" \
-    --file ./docker/mark-applied-migrations.sql \
-    --yes
+    --persist-to "$persist_dir"
 ./node_modules/.bin/wrangler d1 migrations apply "$database_name" \
     --local \
     --persist-to "$persist_dir"

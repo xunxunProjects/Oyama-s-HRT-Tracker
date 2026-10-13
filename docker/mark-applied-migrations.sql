@@ -1,12 +1,14 @@
 -- Reconcile a database that predates `wrangler d1 migrations apply`.
 --
 -- Older deployments got their schema from schema.sql plus DDL the worker ran
--- lazily at request time, never from the numbered migrations — so wrangler's
--- ledger is empty even though the effects of 0001–0005 are all present, and
+-- lazily at request time, never from the numbered migrations, so wrangler's
+-- ledger is empty even though the effects of 0001-0005 are present, and
 -- 0002 / 0005 are ALTER TABLE ADD COLUMN, which fail on a column that exists.
 -- Each statement records a migration as applied only when its effect is
 -- already in the database. Safe to run any number of times, on any database;
--- a fresh one matches nothing and every migration runs normally.
+-- a fresh one matches nothing and every migration runs normally. Run it
+-- through docker/reconcile.mjs, which first adds users.totp_last_step to a
+-- database that has only half of 0005.
 CREATE TABLE IF NOT EXISTS d1_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
