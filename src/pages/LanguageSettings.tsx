@@ -24,6 +24,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ lang, setLang, lang
                     <button
                         key={value}
                         onClick={() => setLang(value as Lang)}
+                        aria-pressed={lang === value}
                         className="w-full flex items-center justify-between py-4 border-b border-[var(--border)] last:border-b-0 text-start"
                     >
                         <span className={`text-[0.9375rem] ${lang === value

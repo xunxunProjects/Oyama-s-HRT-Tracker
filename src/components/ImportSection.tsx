@@ -87,7 +87,9 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                                 disabled={!text.trim()}
                                 className="btn-primary"
                             >
-                                {t('drawer.import')}
+                                {/* Plain "Import": the text can hold labs, weight and
+                                    parameters as well as doses. */}
+                                {t('import.btn')}
                             </button>
                         </div>
                     </div>
