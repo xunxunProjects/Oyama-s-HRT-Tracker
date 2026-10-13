@@ -247,7 +247,6 @@ If you deploy this app publicly, please: / 如果你将该应用公开部署，�
 
 Wishing steady progress and good health to everyone who uses this tool.
 
-
 ---
 
 ## Contributing 参与贡献

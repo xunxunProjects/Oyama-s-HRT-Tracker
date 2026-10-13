@@ -20,7 +20,7 @@ const STORAGE_KEY = 'hrt-mode';
 export const HRTModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [mode, setModeState] = useState<HRTMode>(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
-        return (saved === 'transmasc' || saved === 'transfem') ? saved : 'transfem';
+        return saved === 'transmasc' || saved === 'transfem' ? saved : 'transfem';
     });
 
     useEffect(() => {

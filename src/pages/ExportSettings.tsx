@@ -15,7 +15,14 @@ interface ExportSettingsProps {
     onBack: () => void;
 }
 
-const ExportSettings: React.FC<ExportSettingsProps> = ({ events, labResults, weight, onExport, onQuickExport, onBack }) => {
+const ExportSettings: React.FC<ExportSettingsProps> = ({
+    events,
+    labResults,
+    weight,
+    onExport,
+    onQuickExport,
+    onBack,
+}) => {
     const { t } = useTranslation();
 
     return (

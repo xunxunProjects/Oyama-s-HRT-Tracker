@@ -64,10 +64,12 @@ export function selectBackupsToKeep(
     const keep = new Set<string>();
     if (revisions.length === 0 || max <= 0) return keep;
 
-    const newestFirst = [...revisions].sort((a, b) =>
-        (b.id === justWrittenId ? 1 : 0) - (a.id === justWrittenId ? 1 : 0)
-        || b.created_at - a.created_at
-        || (a.id < b.id ? 1 : -1));
+    const newestFirst = [...revisions].sort(
+        (a, b) =>
+            (b.id === justWrittenId ? 1 : 0) - (a.id === justWrittenId ? 1 : 0) ||
+            b.created_at - a.created_at ||
+            (a.id < b.id ? 1 : -1),
+    );
     const newest = newestFirst[0];
     keep.add(newest.id);
 

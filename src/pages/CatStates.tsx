@@ -30,24 +30,18 @@ const CatStates: React.FC<CatStatesProps> = ({ onBack }) => {
             <PageHeader onBack={onBack} title={t('settings.cat_states')} />
 
             <div className={PAGE_COLUMN}>
-                <p className="mb-6 text-xs text-muted leading-relaxed">
-                    {t('settings.cat_states_desc')}
-                </p>
+                <p className="mb-6 text-xs text-muted leading-relaxed">{t('settings.cat_states_desc')}</p>
 
                 {POSES.map(pose => (
                     <div key={pose} className="mb-8">
-            <p className="mb-3 text-xs font-semibold text-muted">
-                            {t(`cat.pose.${pose}`)}
-                        </p>
+                        <p className="mb-3 text-xs font-semibold text-muted">{t(`cat.pose.${pose}`)}</p>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
                             {CAT_STATE_WINDOWS.map(({ state, from, to }) => {
                                 const isNow = state === catState;
                                 return (
                                     <div
                                         key={state}
-                                        className={`rounded-md px-2 py-2 ${isNow
-                                            ? 'bg-[var(--accent-subtle)]'
-                                            : ''}`}
+                                        className={`rounded-md px-2 py-2 ${isNow ? 'bg-[var(--accent-subtle)]' : ''}`}
                                     >
                                         <PixelCat pose={pose} state={state} size={128} force />
                                         <p className="mt-1 text-xs text-body">{t(`cat.state.${state}`)}</p>

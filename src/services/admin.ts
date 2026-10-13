@@ -66,49 +66,52 @@ export const adminService = {
         params.set('limit', String(limit));
         const url = `/api/admin/users?${params.toString()}`;
         const res = await apiFetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as PaginatedUsers;
+        return (await res.json()) as PaginatedUsers;
     },
 
     /** What the database is made of. Reads every backup body to size them, so it is on demand only. */
     async getStorage(token: string): Promise<StorageReport> {
         const res = await apiFetch('/api/admin/storage', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as StorageReport;
+        return (await res.json()) as StorageReport;
     },
 
     async deleteUser(token: string, userId: string): Promise<void> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async getUserBackups(token: string, userId: string): Promise<BackupMeta[]> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as BackupMeta[];
+        return (await res.json()) as BackupMeta[];
     },
 
     async deleteBackup(token: string, userId: string, backupId: string): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups/${encodeURIComponent(backupId)}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await apiFetch(
+            `/api/admin/users/${encodeURIComponent(userId)}/backups/${encodeURIComponent(backupId)}`,
+            {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            },
+        );
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async purgeBackups(token: string, userId: string): Promise<void> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
@@ -119,12 +122,12 @@ export const adminService = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ newPassword })
+            body: JSON.stringify({ newPassword }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        const data = await res.json().catch(() => ({})) as { sessionsRevoked?: number };
+        const data = (await res.json().catch(() => ({}))) as { sessionsRevoked?: number };
         return { sessionsRevoked: data.sessionsRevoked ?? 0 };
     },
 
@@ -133,9 +136,9 @@ export const adminService = {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
@@ -143,17 +146,17 @@ export const adminService = {
     async resetAvatar(token: string, userId: string): Promise<void> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/avatar`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async getUser2FA(token: string, userId: string): Promise<AdminUser2FA> {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        return await res.json() as AdminUser2FA;
+        return (await res.json()) as AdminUser2FA;
     },
 
     /** Erase a user's second factors. Omit `scope` to clear every one of them. */
@@ -162,12 +165,12 @@ export const adminService = {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ scope })
+            body: JSON.stringify({ scope }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        const body = await res.json() as { cleared: Cleared2FA };
+        const body = (await res.json()) as { cleared: Cleared2FA };
         return body.cleared;
-    }
+    },
 };

@@ -33,10 +33,12 @@ import {
 // ── the plane ────────────────────────────────────────────────────────────
 // Fixed for both modes and every phase, so nothing under the reader's eye
 // rescales once it has been established.
-const X0 = 28, X1 = 306;      // plot box, left and right
-const Y0 = 20, Y1 = 118;      // plot box, top and baseline
-const DAYS = 56;              // domain, 0 .. DAYS
-const SAMPLES = 225;          // points along the curve
+const X0 = 28,
+    X1 = 306; // plot box, left and right
+const Y0 = 20,
+    Y1 = 118; // plot box, top and baseline
+const DAYS = 56; // domain, 0 .. DAYS
+const SAMPLES = 225; // points along the curve
 
 /** 0.96 rather than 1 leaves the tallest peak a hair clear of the plot top. */
 const HEAD_ROOM = 0.96;
@@ -104,9 +106,7 @@ const compute = (isTransmasc: boolean): CurveData | null => {
     if (!sim) return null;
 
     const interpolate = isTransmasc ? interpolateConcentration_T : interpolateConcentration_E2;
-    const values = Array.from({ length: SAMPLES }, (_, i) =>
-        interpolate(sim, at((i * DAYS) / (SAMPLES - 1))) ?? 0,
-    );
+    const values = Array.from({ length: SAMPLES }, (_, i) => interpolate(sim, at((i * DAYS) / (SAMPLES - 1))) ?? 0);
 
     const simMax = Math.max(...values);
     if (!(simMax > 0)) return null;
@@ -147,7 +147,10 @@ const compute = (isTransmasc: boolean): CurveData | null => {
         unit: isTransmasc ? 'ng/dl' : 'pg/ml',
         doseX: Array.from({ length: DOSE_COUNT }, (_, i) => X(i * DOSE_INTERVAL_D)),
         modelD: buildPath(values, yMax),
-        calD: buildPath(values.map(v => v * scale), yMax),
+        calD: buildPath(
+            values.map(v => v * scale),
+            yMax,
+        ),
         labs: labs.map((lab, i) => ({
             x: X(LAB_DAYS[i]),
             y: Y1 - lab.concValue * k,
@@ -166,10 +169,14 @@ export const useOnboardingCurve = (isTransmasc: boolean): CurveData | null => {
 
     useEffect(() => {
         let live = true;
-        const run = () => { if (live) setData(compute(isTransmasc)); };
-        const idle = (window as unknown as {
-            requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-        }).requestIdleCallback;
+        const run = () => {
+            if (live) setData(compute(isTransmasc));
+        };
+        const idle = (
+            window as unknown as {
+                requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+            }
+        ).requestIdleCallback;
         if (idle) {
             const handle = idle(run, { timeout: 800 });
             return () => {
@@ -178,7 +185,10 @@ export const useOnboardingCurve = (isTransmasc: boolean): CurveData | null => {
             };
         }
         const handle = window.setTimeout(run, 0);
-        return () => { live = false; window.clearTimeout(handle); };
+        return () => {
+            live = false;
+            window.clearTimeout(handle);
+        };
     }, [isTransmasc]);
 
     return data;
@@ -257,7 +267,14 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, beat, playKey, 
                                     on the y axis would be a number to aim at, and
                                     this is somebody else's body. */}
                                 {TICKS.map(({ day, anchor }) => (
-                                    <text key={day} x={X(day)} y={131} fontSize={8.5} textAnchor={anchor} fill="currentColor">
+                                    <text
+                                        key={day}
+                                        x={X(day)}
+                                        y={131}
+                                        fontSize={8.5}
+                                        textAnchor={anchor}
+                                        fill="currentColor"
+                                    >
                                         {day}
                                     </text>
                                 ))}
@@ -288,12 +305,38 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, beat, playKey, 
                         write without knowing the geometry. In the last beat the
                         same line fades out as the ghost takes over. */}
                     {beat >= 1 && (
-                        <path className={beat === 1 ? 'oc-model-draw' : 'oc-model-out'} d={data.modelD} pathLength={1} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                        <path
+                            className={beat === 1 ? 'oc-model-draw' : 'oc-model-out'}
+                            d={data.modelD}
+                            pathLength={1}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.75}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                        />
                     )}
                     {beat === 2 && (
                         <>
-                            <path className="oc-ghost-in" d={data.modelD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
-                            <path className="oc-cal-in" d={data.calD} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+                            <path
+                                className="oc-ghost-in"
+                                d={data.modelD}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={1.75}
+                                strokeDasharray="3 4"
+                                strokeLinejoin="round"
+                                strokeLinecap="round"
+                            />
+                            <path
+                                className="oc-cal-in"
+                                d={data.calD}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={1.75}
+                                strokeLinejoin="round"
+                                strokeLinecap="round"
+                            />
                             {data.labs.map(({ x, y }, i) => (
                                 <rect
                                     key={x}
@@ -350,13 +393,7 @@ const OnboardingCurve: React.FC<OnboardingCurveProps> = ({ data, beat, playKey, 
 );
 
 const Swatch: React.FC<{ dashed?: boolean }> = ({ dashed }) => (
-    <svg
-        viewBox="0 0 14 4"
-        width={14}
-        height={4}
-        aria-hidden="true"
-        className="shrink-0 text-[var(--accent-ink)]"
-    >
+    <svg viewBox="0 0 14 4" width={14} height={4} aria-hidden="true" className="shrink-0 text-[var(--accent-ink)]">
         <line
             x1={0}
             y1={2}

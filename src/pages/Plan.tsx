@@ -23,11 +23,26 @@ const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Amount, rhythm and, for a gel, where it goes; for a sublingual dose, how long it is held. */
-const AmountFields: React.FC<{ draft: PlanDraft; onChange: (patch: Partial<PlanDraft>) => void; t: (k: string) => string }> = ({ draft, onChange, t }) => (
+const AmountFields: React.FC<{
+    draft: PlanDraft;
+    onChange: (patch: Partial<PlanDraft>) => void;
+    t: (k: string) => string;
+}> = ({ draft, onChange, t }) => (
     <>
         <label className="block">
-            <span className={labelCls}>{draft.route === Route.patchApply ? t('field.patch_rate') : `${t('plan.dose')} (mg)`}</span>
-            <input type="number" inputMode="decimal" min="0" step="any" value={draft.dose} onChange={e => onChange({ dose: e.target.value })} className={inputCls} style={{ fontSize: '16px' }} />
+            <span className={labelCls}>
+                {draft.route === Route.patchApply ? t('field.patch_rate') : `${t('plan.dose')} (mg)`}
+            </span>
+            <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                value={draft.dose}
+                onChange={e => onChange({ dose: e.target.value })}
+                className={inputCls}
+                style={{ fontSize: '16px' }}
+            />
         </label>
         <CustomSelect
             label={t('plan.freq')}
@@ -51,7 +66,11 @@ const AmountFields: React.FC<{ draft: PlanDraft; onChange: (patch: Partial<PlanD
                     label={t('field.sl_absorption')}
                     value={String(draft.slTier)}
                     onChange={v => onChange({ slTier: Number(v) })}
-                    options={SL_TIER_ORDER.map((tier, i) => ({ value: String(i), label: t(`sl.tier.${tier}`), description: `${SublingualTierParams[tier].hold} min` }))}
+                    options={SL_TIER_ORDER.map((tier, i) => ({
+                        value: String(i),
+                        label: t(`sl.tier.${tier}`),
+                        description: `${SublingualTierParams[tier].hold} min`,
+                    }))}
                 />
             </div>
         )}
@@ -72,7 +91,8 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
 
     // Nothing left to add once every drug of every route is in the plan.
     const canAdd = (Object.keys(PLAN_DRUGS[mode]) as Route[]).some(r =>
-        (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)));
+        (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)),
+    );
 
     // An empty plan opens straight into the questions: there is nothing else here to look at yet.
     const [adding, setAdding] = useState(plan.length === 0);
@@ -81,7 +101,10 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
     const [edit, setEdit] = useState<PlanDraft | null>(null);
 
     const openRow = (item: PlanItem) => {
-        if (openId === item.id) { setOpenId(null); return; }
+        if (openId === item.id) {
+            setOpenId(null);
+            return;
+        }
         setOpenId(item.id);
         setEdit(itemToDraft(item));
     };
@@ -97,22 +120,24 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
             <PageHeader
                 onBack={onBack}
                 title={t('plan.title')}
-                actions={canAdd && (
-                    <button
-                        type="button"
-                        onClick={() => setAdding(true)}
-                        className={`${headerActionAccent}`}
-                    >
-                        <Plus size={15} />
-                        <span>{t('plan.add')}</span>
-                    </button>
-                )}
+                actions={
+                    canAdd && (
+                        <button type="button" onClick={() => setAdding(true)} className={`${headerActionAccent}`}>
+                            <Plus size={15} />
+                            <span>{t('plan.add')}</span>
+                        </button>
+                    )
+                }
             />
 
             {adding && (
                 <PlanWizard
                     plan={plan}
-                    onAdd={item => { onSave(item); setAdding(false); setCameInEmpty(false); }}
+                    onAdd={item => {
+                        onSave(item);
+                        setAdding(false);
+                        setCameInEmpty(false);
+                    }}
                     // Backing out of the questions this page opened with goes back where they came from.
                     onCancel={() => (cameInEmpty ? onBack() : setAdding(false))}
                 />
@@ -127,29 +152,55 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                             const open = openId === item.id;
                             return (
                                 <div key={item.id}>
-                                    <button type="button" onClick={() => openRow(item)} aria-expanded={open} className="w-full flex items-center gap-3.5 py-4 text-start">
+                                    <button
+                                        type="button"
+                                        onClick={() => openRow(item)}
+                                        aria-expanded={open}
+                                        className="w-full flex items-center gap-3.5 py-4 text-start"
+                                    >
                                         <Doodle name={item.route} />
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm font-medium ${on}`}>{regimenLabel(item, t)}</p>
                                             <p className={`text-xs mt-0.5 leading-relaxed ${muted}`}>
                                                 {frequencyLabel(item, t)}
-                                                {item.route === Route.gel && ` · ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
+                                                {item.route === Route.gel &&
+                                                    ` · ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                                             </p>
                                         </div>
-                                        <ChevronDown size={16} className={`chev ${muted} shrink-0 ${open ? 'rotate-180' : ''}`} />
+                                        <ChevronDown
+                                            size={16}
+                                            className={`chev ${muted} shrink-0 ${open ? 'rotate-180' : ''}`}
+                                        />
                                     </button>
                                     <div className="disclosure" data-open={open} {...inertWhen(!open)}>
                                         <div className="disclosure-inner">
                                             <div className="pb-3 space-y-3">
                                                 {open && edit && (
                                                     <div className="grid grid-cols-2 gap-3">
-                                                        <AmountFields draft={edit} onChange={patch => setEdit(d => (d ? { ...d, ...patch } : d))} t={t} />
+                                                        <AmountFields
+                                                            draft={edit}
+                                                            onChange={patch =>
+                                                                setEdit(d => (d ? { ...d, ...patch } : d))
+                                                            }
+                                                            t={t}
+                                                        />
                                                     </div>
                                                 )}
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         type="button"
-                                                        onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDelete(item.id), { danger: true, title: regimenLabel(item, t), confirmLabel: t('btn.delete') })}
+                                                        onClick={() =>
+                                                            showDialog(
+                                                                'confirm',
+                                                                t('plan.delete_confirm'),
+                                                                () => onDelete(item.id),
+                                                                {
+                                                                    danger: true,
+                                                                    title: regimenLabel(item, t),
+                                                                    confirmLabel: t('btn.delete'),
+                                                                },
+                                                            )
+                                                        }
                                                         className={`${headerAction} text-[var(--danger)]`}
                                                     >
                                                         {t('btn.delete')}

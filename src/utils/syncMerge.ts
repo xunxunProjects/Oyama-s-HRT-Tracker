@@ -251,7 +251,10 @@ export function stableString(value: unknown): string {
     if (Array.isArray(value)) return `[${value.map(stableString).join(',')}]`;
     if (typeof value === 'object') {
         const o = value as Record<string, unknown>;
-        return `{${Object.keys(o).sort().map(k => `${k}:${stableString(o[k])}`).join(',')}}`;
+        return `{${Object.keys(o)
+            .sort()
+            .map(k => `${k}:${stableString(o[k])}`)
+            .join(',')}}`;
     }
     // Normalise numerics so 4, 4.0 and a hand-edited "4" don't read as an edit.
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -273,13 +276,7 @@ function recordStamp(record: any): number {
 
 // --- Merge ------------------------------------------------------------------
 
-function mergeKind(
-    kind: RecordKind,
-    local: any[],
-    remote: any[],
-    tombstones: TombstoneMap,
-    stats: MergeStats,
-): any[] {
+function mergeKind(kind: RecordKind, local: any[], remote: any[], tombstones: TombstoneMap, stats: MergeStats): any[] {
     const out = new Map<string, any>();
     const dropped = new Set<string>();
 
@@ -322,12 +319,13 @@ function mergeKind(
 
         const mineAt = recordStamp(mine);
         const theirsAt = recordStamp(record);
-        const theirsWins = theirsAt !== mineAt
-            ? theirsAt > mineAt
-            // Neither side is provably newer. Pick by fingerprint so this device
-            // and the other one reach the same answer and stop overwriting each
-            // other; which of the two it lands on is arbitrary by necessity.
-            : theirsFp > mineFp;
+        const theirsWins =
+            theirsAt !== mineAt
+                ? theirsAt > mineAt
+                : // Neither side is provably newer. Pick by fingerprint so this device
+                  // and the other one reach the same answer and stop overwriting each
+                  // other; which of the two it lands on is arbitrary by necessity.
+                  theirsFp > mineFp;
         if (theirsWins) {
             out.set(id, record);
             stats.updated++;
@@ -347,15 +345,15 @@ function mergeKind(
  * an endpoint that keeps five revisions.
  */
 function resolveScalar<T>(
-    localValue: T | undefined, localAt: number,
-    remoteValue: T | undefined, remoteAt: number,
+    localValue: T | undefined,
+    localAt: number,
+    remoteValue: T | undefined,
+    remoteAt: number,
 ): { value: T | undefined; at: number } {
     if (localValue === undefined) return { value: remoteValue, at: remoteAt };
     if (remoteValue === undefined) return { value: localValue, at: localAt };
     if (remoteAt !== localAt) {
-        return remoteAt > localAt
-            ? { value: remoteValue, at: remoteAt }
-            : { value: localValue, at: localAt };
+        return remoteAt > localAt ? { value: remoteValue, at: remoteAt } : { value: localValue, at: localAt };
     }
     return stableString(remoteValue) > stableString(localValue)
         ? { value: remoteValue, at: remoteAt }
@@ -381,12 +379,27 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
         const deletions: Tombstones = {
             events: mergeTombstoneMaps(local.modes[m].deletions.events, remote.modes[m].deletions.events),
             labResults: mergeTombstoneMaps(local.modes[m].deletions.labResults, remote.modes[m].deletions.labResults),
-            doseTemplates: mergeTombstoneMaps(local.modes[m].deletions.doseTemplates, remote.modes[m].deletions.doseTemplates),
+            doseTemplates: mergeTombstoneMaps(
+                local.modes[m].deletions.doseTemplates,
+                remote.modes[m].deletions.doseTemplates,
+            ),
         };
         merged.modes[m] = {
             events: mergeKind('events', local.modes[m].events, remote.modes[m].events, deletions.events, stats),
-            labResults: mergeKind('labResults', local.modes[m].labResults, remote.modes[m].labResults, deletions.labResults, stats),
-            doseTemplates: mergeKind('doseTemplates', local.modes[m].doseTemplates, remote.modes[m].doseTemplates, deletions.doseTemplates, stats),
+            labResults: mergeKind(
+                'labResults',
+                local.modes[m].labResults,
+                remote.modes[m].labResults,
+                deletions.labResults,
+                stats,
+            ),
+            doseTemplates: mergeKind(
+                'doseTemplates',
+                local.modes[m].doseTemplates,
+                remote.modes[m].doseTemplates,
+                deletions.doseTemplates,
+                stats,
+            ),
             deletions,
         };
     }

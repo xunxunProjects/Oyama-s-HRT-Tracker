@@ -24,7 +24,7 @@ const COMMON_FREQ: Partial<Record<Route, string[]>> = {
 };
 /** A GnRH agonist is injected too, but as a monthly or three-monthly depot. */
 const commonFreq = (route: Route, ester: Ester): string[] =>
-    (GNRH_AGONISTS.has(ester) ? ['e28', 'e84'] : COMMON_FREQ[route] ?? []);
+    GNRH_AGONISTS.has(ester) ? ['e28', 'e84'] : (COMMON_FREQ[route] ?? []);
 
 interface RowProps {
     on: boolean;
@@ -47,7 +47,11 @@ const Row: React.FC<RowProps> = ({ on, onClick, title, desc, note, mark }) => (
     >
         {mark}
         <span className="min-w-0 flex-1">
-            <span className={`block text-[0.9375rem] ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}>{title}</span>
+            <span
+                className={`block text-[0.9375rem] ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}
+            >
+                {title}
+            </span>
             {desc && <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">{desc}</span>}
         </span>
         {note ? <span className="shrink-0 text-[0.8125rem] text-muted">{note}</span> : <Tick on={on} />}
@@ -82,7 +86,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
     const [allFreq, setAllFreq] = useState(false);
 
-    const drugs = draft ? PLAN_DRUGS[mode][draft.route] ?? [] : [];
+    const drugs = draft ? (PLAN_DRUGS[mode][draft.route] ?? []) : [];
     const steps: StepKey[] = [
         'route',
         ...(!draft || drugs.length > 1 ? ['drug' as const] : []),
@@ -102,7 +106,10 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     };
     const forward = () => {
         if (!ready) return;
-        if (!isLast) { go(at + 1); return; }
+        if (!isLast) {
+            go(at + 1);
+            return;
+        }
         const done = draft && draftToItem(draft, uuidv4());
         if (done) onAdd(done);
     };
@@ -116,19 +123,27 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const patch = (p: Partial<PlanDraft>) => setDraft(d => d && { ...d, ...p });
 
     useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onCancel();
+        };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel]);
 
     const scroller = useRef<HTMLDivElement>(null);
-    useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [at]);
+    useEffect(() => {
+        scroller.current?.scrollTo({ top: 0 });
+    }, [at]);
 
     // What has been answered so far, under the heading of the next question.
-    const soFar = !draft || step === 'route' ? null
-        : step === 'drug' ? t(`regimen.route.${draft.route}`)
-        : step === 'dose' || !item ? supplyLabel(draft, t)
-        : regimenLabel(item, t);
+    const soFar =
+        !draft || step === 'route'
+            ? null
+            : step === 'drug'
+              ? t(`regimen.route.${draft.route}`)
+              : step === 'dose' || !item
+                ? supplyLabel(draft, t)
+                : regimenLabel(item, t);
 
     const common = draft ? commonFreq(draft.route, draft.ester) : [];
     const showAllFreq = allFreq || !draft || !common.includes(draft.freq);
@@ -214,12 +229,16 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                                 step="any"
                                 value={draft.dose}
                                 onChange={e => patch({ dose: e.target.value })}
-                                onKeyDown={e => { if (e.key === 'Enter') forward(); }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') forward();
+                                }}
                                 onFocus={e => e.currentTarget.select()}
                                 aria-label={heading}
                                 className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
                             />
-                            <span className="shrink-0 text-base text-muted">{isPatch ? `µg${t('regimen.per_day')}` : 'mg'}</span>
+                            <span className="shrink-0 text-base text-muted">
+                                {isPatch ? `µg${t('regimen.per_day')}` : 'mg'}
+                            </span>
                         </label>
                     )}
 
@@ -261,7 +280,11 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                                 />
                             ))}
                             {!showAllFreq && (
-                                <button type="button" onClick={() => setAllFreq(true)} className="w-full py-4 text-start text-[0.9375rem] text-muted">
+                                <button
+                                    type="button"
+                                    onClick={() => setAllFreq(true)}
+                                    className="w-full py-4 text-start text-[0.9375rem] text-muted"
+                                >
                                     {t('plan.other_freq')}
                                 </button>
                             )}

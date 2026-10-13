@@ -18,7 +18,9 @@ export const useElementSize = (el: HTMLElement | null) => {
         if (!el) return;
         const measure = () => {
             const r = el.getBoundingClientRect();
-            setSize(prev => (prev.width === r.width && prev.height === r.height ? prev : { width: r.width, height: r.height }));
+            setSize(prev =>
+                prev.width === r.width && prev.height === r.height ? prev : { width: r.width, height: r.height },
+            );
         };
         measure();
         window.addEventListener('resize', measure);

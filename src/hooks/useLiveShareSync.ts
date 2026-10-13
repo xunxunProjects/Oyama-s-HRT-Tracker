@@ -40,7 +40,8 @@ export const useLiveShareSync = ({
         let cancelled = false;
         let previouslyFound = false;
         const refresh = () => {
-            sharingService.list(authToken)
+            sharingService
+                .list(authToken)
                 .then(shares => {
                     if (!cancelled) {
                         const found = shares.some(share => !share.expired && share.live && share.mode === mode);

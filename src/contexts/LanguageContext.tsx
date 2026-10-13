@@ -1,22 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS, Lang } from '../i18n/translations';
 
-const LanguageContext = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string } | null>(null);
+const LanguageContext = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string } | null>(
+    null,
+);
 
 export const useTranslation = () => {
     const ctx = useContext(LanguageContext);
-    if (!ctx) throw new Error("useTranslation must be used within LanguageProvider");
+    if (!ctx) throw new Error('useTranslation must be used within LanguageProvider');
     return ctx;
 };
 
 const LANG_LOCALE: Record<Lang, string> = {
-    'zh': 'zh-CN',
+    zh: 'zh-CN',
     'zh-TW': 'zh-TW',
-    'yue': 'zh-HK',
-    'en': 'en',
-    'ja': 'ja',
-    'ko': 'ko',
-    'tr': 'tr',
+    yue: 'zh-HK',
+    en: 'en',
+    ja: 'ja',
+    ko: 'ko',
+    tr: 'tr',
 };
 
 /**
@@ -33,13 +35,13 @@ const LANG_LOCALE: Record<Lang, string> = {
  * dotted key.
  */
 const FALLBACK: Record<Lang, readonly Lang[]> = {
-    'zh': ['en'],
+    zh: ['en'],
     'zh-TW': ['zh', 'en'],
-    'yue': ['zh-TW', 'zh', 'en'],
-    'en': ['zh'],
-    'ja': ['en', 'zh'],
-    'ko': ['en', 'zh'],
-    'tr': ['en', 'zh'],
+    yue: ['zh-TW', 'zh', 'en'],
+    en: ['zh'],
+    ja: ['en', 'zh'],
+    ko: ['en', 'zh'],
+    tr: ['en', 'zh'],
 };
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
@@ -52,7 +54,7 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     }, [lang]);
 
     const t = (key: string) => {
-        const packs = (TRANSLATIONS as Record<string, Record<string, string>>);
+        const packs = TRANSLATIONS as Record<string, Record<string, string>>;
         const own = packs[lang]?.[key];
         if (own !== undefined) return own;
         for (const alt of FALLBACK[lang] ?? FALLBACK.zh) {
@@ -62,9 +64,5 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
         return key;
     };
 
-    return (
-        <LanguageContext.Provider value={{ lang, setLang, t }}>
-            {children}
-        </LanguageContext.Provider>
-    );
+    return <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>;
 };

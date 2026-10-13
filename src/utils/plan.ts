@@ -42,7 +42,7 @@ export const FREQUENCIES: readonly Frequency[] = [
 ];
 
 export const frequencyKey = (i: Pick<PlanItem, 'everyDays' | 'timesPerDay'>) =>
-    (i.everyDays <= 1 ? `d${i.timesPerDay}` : `e${i.everyDays}`);
+    i.everyDays <= 1 ? `d${i.timesPerDay}` : `e${i.everyDays}`;
 
 /**
  * What each route can carry, per mode: the same drugs the dose form logs.
@@ -78,7 +78,8 @@ export const usualFor = (route: Route, ester: Ester): { dose: string; freq: stri
     if (GNRH_AGONISTS.has(ester)) return { dose: '3.75', freq: 'e28' };
     if (ester === Ester.RLX) return { dose: '60', freq: 'd1' };
     if (route === Route.patchApply) return { dose: '100', freq: 'e3.5' };
-    if (route === Route.injection) return { dose: ester === Ester.TU ? '1000' : [Ester.TC, Ester.TE].includes(ester) ? '50' : '5', freq: 'e7' };
+    if (route === Route.injection)
+        return { dose: ester === Ester.TU ? '1000' : [Ester.TC, Ester.TE].includes(ester) ? '50' : '5', freq: 'e7' };
     if (route === Route.gel) return { dose: ester === Ester.T ? '50' : '1.5', freq: 'd1' };
     return { dose: '2', freq: 'd1' };
 };
@@ -95,24 +96,43 @@ export interface PlanDraft {
     gelSite: number;
 }
 
-export const freshDraft = (route: Route, ester: Ester): PlanDraft => ({ route, ester, slTier: 2, gelSite: 0, ...usualFor(route, ester) });
+export const freshDraft = (route: Route, ester: Ester): PlanDraft => ({
+    route,
+    ester,
+    slTier: 2,
+    gelSite: 0,
+    ...usualFor(route, ester),
+});
 
 export const draftToItem = (d: PlanDraft, id: string): PlanItem | null => {
     const dose = parseFloat(d.dose);
     const f = FREQUENCIES.find(x => x.key === d.freq);
     if (!(dose > 0) || !f) return null;
     const isPatch = d.route === Route.patchApply;
-    const extras: PlanItem['extras'] =
-        isPatch ? { [ExtraKey.releaseRateUGPerDay]: dose, [ExtraKey.patchWearH]: f.everyDays * 24 }
-        : d.route === Route.sublingual ? { [ExtraKey.sublingualTier]: d.slTier }
-        : d.route === Route.gel ? { [ExtraKey.gelSite]: d.gelSite } : {};
-    return { id, route: d.route, ester: d.ester, doseMG: isPatch ? 0 : dose, extras, everyDays: f.everyDays, timesPerDay: f.timesPerDay };
+    const extras: PlanItem['extras'] = isPatch
+        ? { [ExtraKey.releaseRateUGPerDay]: dose, [ExtraKey.patchWearH]: f.everyDays * 24 }
+        : d.route === Route.sublingual
+          ? { [ExtraKey.sublingualTier]: d.slTier }
+          : d.route === Route.gel
+            ? { [ExtraKey.gelSite]: d.gelSite }
+            : {};
+    return {
+        id,
+        route: d.route,
+        ester: d.ester,
+        doseMG: isPatch ? 0 : dose,
+        extras,
+        everyDays: f.everyDays,
+        timesPerDay: f.timesPerDay,
+    };
 };
 
 export const itemToDraft = (i: PlanItem): PlanDraft => ({
     route: i.route,
     ester: i.ester,
-    dose: String(i.route === Route.patchApply ? (i.extras[ExtraKey.releaseRateUGPerDay] ?? 0) : Number(i.doseMG.toFixed(3))),
+    dose: String(
+        i.route === Route.patchApply ? (i.extras[ExtraKey.releaseRateUGPerDay] ?? 0) : Number(i.doseMG.toFixed(3)),
+    ),
     freq: frequencyKey(i),
     slTier: i.extras[ExtraKey.sublingualTier] ?? 2,
     gelSite: i.extras[ExtraKey.gelSite] ?? 0,
@@ -126,9 +146,13 @@ export const normalizePlanItem = (raw: any): PlanItem | null => {
     const doseMG = Number(raw.doseMG);
     if (!(everyDays >= 1) || !(timesPerDay >= 1) || !Number.isFinite(doseMG) || doseMG < 0) return null;
     return {
-        id: raw.id, route: raw.route, ester: raw.ester, doseMG,
+        id: raw.id,
+        route: raw.route,
+        ester: raw.ester,
+        doseMG,
         extras: raw.extras && typeof raw.extras === 'object' ? raw.extras : {},
-        everyDays, timesPerDay: everyDays > 1 ? 1 : timesPerDay,
+        everyDays,
+        timesPerDay: everyDays > 1 ? 1 : timesPerDay,
     };
 };
 
@@ -141,8 +165,18 @@ export const legacyCpaItem = (raw: string | null): PlanItem | null => {
     try {
         const plan = JSON.parse(raw)?.plan;
         if (plan !== 'daily' && plan !== 'alternate') return null;
-        return { id: 'cpa', route: Route.oral, ester: Ester.CPA, doseMG: 12.5, extras: {}, everyDays: plan === 'daily' ? 1 : 2, timesPerDay: 1 };
-    } catch { return null; }
+        return {
+            id: 'cpa',
+            route: Route.oral,
+            ester: Ester.CPA,
+            doseMG: 12.5,
+            extras: {},
+            everyDays: plan === 'daily' ? 1 : 2,
+            timesPerDay: 1,
+        };
+    } catch {
+        return null;
+    }
 };
 
 /** A logged dose counts toward an item when it is the same drug by the same route, whatever the amount. */
@@ -167,7 +201,10 @@ const dayStartH = (h: number) => {
  * still due.
  */
 export function planStatus(item: PlanItem, events: DoseEvent[], nowH: number): PlanStatus {
-    const times = events.filter(e => matchesItem(item, e) && e.timeH <= nowH).map(e => e.timeH).sort((a, b) => a - b);
+    const times = events
+        .filter(e => matchesItem(item, e) && e.timeH <= nowH)
+        .map(e => e.timeH)
+        .sort((a, b) => a - b);
     const todayH = dayStartH(nowH);
     if (item.everyDays <= 1) {
         const done = times.filter(t => t >= todayH).length;
@@ -183,7 +220,12 @@ export function planStatus(item: PlanItem, events: DoseEvent[], nowH: number): P
 
 /** The dose one tap on the Overview logs: the item as planned, at this moment. */
 export const planEvent = (item: PlanItem, id: string, nowMs: number): DoseEvent => ({
-    id, route: item.route, ester: item.ester, doseMG: item.doseMG, extras: { ...item.extras }, timeH: nowMs / 3600000,
+    id,
+    route: item.route,
+    ester: item.ester,
+    doseMG: item.doseMG,
+    extras: { ...item.extras },
+    timeH: nowMs / 3600000,
 });
 
 /**
@@ -192,24 +234,35 @@ export const planEvent = (item: PlanItem, id: string, nowMs: number): DoseEvent 
  * fall back to reading a rhythm off the log when there is no plan at all.
  */
 export function regimensFromPlan(plan: PlanItem[], events: DoseEvent[], nowH: number): Regimen[] {
-    return plan.map(item => {
-        const intervalH = item.everyDays * 24 / Math.max(1, item.timesPerDay);
-        const all = events.filter(e => matchesItem(item, e)).map(e => e.timeH).sort((a, b) => a - b);
-        const past = all.filter(t => t <= nowH);
-        const scheduledH = all.filter(t => t > nowH);
-        const lastH = past.length ? past[past.length - 1] : nowH - intervalH;
-        let sinceH = past.length ? lastH : nowH;
-        for (let i = past.length - 2; i >= 0; i--) {
-            if (past[i + 1] - past[i] > lapseH(intervalH)) break;
-            sinceH = past[i];
-        }
-        return {
-            key: `plan|${item.id}`,
-            loose: true,
-            route: item.route, ester: item.ester, doseMG: item.doseMG, extras: { ...item.extras },
-            hormone: hormoneOf(item.ester),
-            intervalH, lastH, sinceH, scheduledH,
-            nextH: scheduledH[0] ?? Math.max(nowH, lastH + intervalH),
-        };
-    }).sort((a, b) => a.nextH - b.nextH);
+    return plan
+        .map(item => {
+            const intervalH = (item.everyDays * 24) / Math.max(1, item.timesPerDay);
+            const all = events
+                .filter(e => matchesItem(item, e))
+                .map(e => e.timeH)
+                .sort((a, b) => a - b);
+            const past = all.filter(t => t <= nowH);
+            const scheduledH = all.filter(t => t > nowH);
+            const lastH = past.length ? past[past.length - 1] : nowH - intervalH;
+            let sinceH = past.length ? lastH : nowH;
+            for (let i = past.length - 2; i >= 0; i--) {
+                if (past[i + 1] - past[i] > lapseH(intervalH)) break;
+                sinceH = past[i];
+            }
+            return {
+                key: `plan|${item.id}`,
+                loose: true,
+                route: item.route,
+                ester: item.ester,
+                doseMG: item.doseMG,
+                extras: { ...item.extras },
+                hormone: hormoneOf(item.ester),
+                intervalH,
+                lastH,
+                sinceH,
+                scheduledH,
+                nextH: scheduledH[0] ?? Math.max(nowH, lastH + intervalH),
+            };
+        })
+        .sort((a, b) => a.nextH - b.nextH);
 }

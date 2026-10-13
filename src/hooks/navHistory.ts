@@ -31,7 +31,7 @@ export interface NavEntry {
 /** The current entry, or null when it isn't one the app wrote. */
 export const readNavEntry = (): NavEntry | null => {
     const state = window.history.state;
-    return state && state.hrtNav === 1 ? state as NavEntry : null;
+    return state && state.hrtNav === 1 ? (state as NavEntry) : null;
 };
 
 export const navDepth = (): number => readNavEntry()?.depth ?? 0;
@@ -74,7 +74,9 @@ window.addEventListener('popstate', () => {
 export const stepBack = (steps = 1): boolean => {
     if (traversing || steps < 1) return false;
     traversing = true;
-    traverseTimer = window.setTimeout(() => { traversing = false; }, 1000);
+    traverseTimer = window.setTimeout(() => {
+        traversing = false;
+    }, 1000);
     window.history.go(-steps);
     return true;
 };

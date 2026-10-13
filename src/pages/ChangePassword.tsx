@@ -26,8 +26,14 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const handleSubmit = async (ev: React.FormEvent) => {
         ev.preventDefault();
         if (!current || !newPass || !confirm) return;
-        if (newPass !== confirm) { setError(t('pw.mismatch')); return; }
-        if (newPass.length < 8) { setError(t('pw.too_short')); return; }
+        if (newPass !== confirm) {
+            setError(t('pw.mismatch'));
+            return;
+        }
+        if (newPass.length < 8) {
+            setError(t('pw.too_short'));
+            return;
+        }
 
         setIsLoading(true);
         setError('');
@@ -54,7 +60,9 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <div className="flex items-start gap-3">
-                    <span className="icon-line text-sm leading-relaxed"><Lock size={18} className={muted} /></span>
+                    <span className="icon-line text-sm leading-relaxed">
+                        <Lock size={18} className={muted} />
+                    </span>
                     <p className={`text-sm leading-relaxed ${muted}`}>{t('account.change_password_desc')}</p>
                 </div>
 
@@ -66,29 +74,58 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {error && (
-                        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+                        <p id={errorId} role="alert" className="text-sm text-[var(--danger)]">
+                            {error}
+                        </p>
                     )}
 
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor={`${id}-current`} className={labelCls}>{t('account.current_password')}</label>
-                            <input id={`${id}-current`} type="password" value={current} onChange={e => setCurrent(e.target.value)}
-                                className="input-base" autoComplete="current-password" autoFocus
-                                aria-describedby={error ? errorId : undefined} />
+                            <label htmlFor={`${id}-current`} className={labelCls}>
+                                {t('account.current_password')}
+                            </label>
+                            <input
+                                id={`${id}-current`}
+                                type="password"
+                                value={current}
+                                onChange={e => setCurrent(e.target.value)}
+                                className="input-base"
+                                autoComplete="current-password"
+                                autoFocus
+                                aria-describedby={error ? errorId : undefined}
+                            />
                         </div>
                         <div>
-                            <label htmlFor={`${id}-new`} className={labelCls}>{t('account.new_password')}</label>
-                            <input id={`${id}-new`} type="password" value={newPass} onChange={e => setNewPass(e.target.value)}
-                                className="input-base" autoComplete="new-password"
-                                aria-describedby={[`${id}-rule`, error ? errorId : ''].filter(Boolean).join(' ')} />
+                            <label htmlFor={`${id}-new`} className={labelCls}>
+                                {t('account.new_password')}
+                            </label>
+                            <input
+                                id={`${id}-new`}
+                                type="password"
+                                value={newPass}
+                                onChange={e => setNewPass(e.target.value)}
+                                className="input-base"
+                                autoComplete="new-password"
+                                aria-describedby={[`${id}-rule`, error ? errorId : ''].filter(Boolean).join(' ')}
+                            />
                             {/* The rule up front, not only as the error after Save. */}
-                            <p id={`${id}-rule`} className={`mt-1.5 text-xs ${muted}`}>{t('pw.too_short')}</p>
+                            <p id={`${id}-rule`} className={`mt-1.5 text-xs ${muted}`}>
+                                {t('pw.too_short')}
+                            </p>
                         </div>
                         <div>
-                            <label htmlFor={`${id}-confirm`} className={labelCls}>{t('account.confirm_password')}</label>
-                            <input id={`${id}-confirm`} type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-                                className="input-base" autoComplete="new-password"
-                                aria-describedby={error ? errorId : undefined} />
+                            <label htmlFor={`${id}-confirm`} className={labelCls}>
+                                {t('account.confirm_password')}
+                            </label>
+                            <input
+                                id={`${id}-confirm`}
+                                type="password"
+                                value={confirm}
+                                onChange={e => setConfirm(e.target.value)}
+                                className="input-base"
+                                autoComplete="new-password"
+                                aria-describedby={error ? errorId : undefined}
+                            />
                         </div>
                     </div>
 

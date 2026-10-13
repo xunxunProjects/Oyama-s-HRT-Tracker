@@ -47,7 +47,8 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
             if (
                 (triggerRef.current && triggerRef.current.contains(event.target as Node)) ||
                 (listRef.current && listRef.current.contains(event.target as Node))
-            ) return;
+            )
+                return;
             setIsOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -114,9 +115,11 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                 aria-expanded={isOpen}
                 className={`w-full min-h-11 flex items-center justify-between gap-1 rounded-[var(--radius-md)] border ps-3 pe-2.5 py-2 text-sm tabular-nums outline-none transition-colors motion-reduce:transition-none
                     bg-[var(--field)] text-[var(--text)]
-                    ${isOpen
-                        ? 'border-[var(--accent-ink)]'
-                        : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}
+                    ${
+                        isOpen
+                            ? 'border-[var(--accent-ink)]'
+                            : 'border-[var(--border)] hover:border-[var(--border-strong)]'
+                    }`}
             >
                 <span className="truncate">{selected?.label ?? value}</span>
                 <ChevronDown
@@ -125,31 +128,36 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
                 />
             </button>
 
-            {isOpen && portalTarget && createPortal(
-                <div
-                    ref={listRef}
-                    role="listbox"
-                    aria-label={label}
-                    style={positionStyle}
-                    className="dropdown-in menu-surface fixed z-[80] overflow-y-auto"
-                >
-                    {options.map(option => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            role="option"
-                            aria-selected={option.value === value}
-                            data-selected={option.value === value}
-                            onClick={() => { onChange(option.value); setIsOpen(false); }}
-                            className="menu-item justify-between tabular-nums"
-                        >
-                            <span>{option.label}</span>
-                            <Tick on={option.value === value} size={18} />
-                        </button>
-                    ))}
-                </div>,
-                portalTarget,
-            )}
+            {isOpen &&
+                portalTarget &&
+                createPortal(
+                    <div
+                        ref={listRef}
+                        role="listbox"
+                        aria-label={label}
+                        style={positionStyle}
+                        className="dropdown-in menu-surface fixed z-[80] overflow-y-auto"
+                    >
+                        {options.map(option => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="option"
+                                aria-selected={option.value === value}
+                                data-selected={option.value === value}
+                                onClick={() => {
+                                    onChange(option.value);
+                                    setIsOpen(false);
+                                }}
+                                className="menu-item justify-between tabular-nums"
+                            >
+                                <span>{option.label}</span>
+                                <Tick on={option.value === value} size={18} />
+                            </button>
+                        ))}
+                    </div>,
+                    portalTarget,
+                )}
         </div>
     );
 };
@@ -214,18 +222,16 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         return Array.from({ length: last - first + 1 }, (_, index) => first + index);
     }, [currentYear, selectedDate]);
 
-    const months = useMemo(() => (
-        Array.from({ length: 12 }, (_, month) => ({
-            value: month,
-            label: new Date(2020, month, 1).toLocaleDateString(locale, { month: 'long' }),
-        }))
-    ), [locale]);
+    const months = useMemo(
+        () =>
+            Array.from({ length: 12 }, (_, month) => ({
+                value: month,
+                label: new Date(2020, month, 1).toLocaleDateString(locale, { month: 'long' }),
+            })),
+        [locale],
+    );
 
-    const daysInSelectedMonth = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth() + 1,
-        0,
-    ).getDate();
+    const daysInSelectedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
 
     const days = Array.from({ length: daysInSelectedMonth }, (_, index) => index + 1);
     const hours = Array.from({ length: 24 }, (_, index) => index);
@@ -258,20 +264,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
     const labelClass = 'block mb-1.5 text-xs font-medium text-[var(--text-muted)]';
 
-    const renderPart = (
-        label: string,
-        part: DatePart,
-        value: number,
-        options: PartOption[],
-    ) => (
+    const renderPart = (label: string, part: DatePart, value: number, options: PartOption[]) => (
         <div className="min-w-0">
             <span className={labelClass}>{label}</span>
-            <PartSelect
-                label={label}
-                value={value}
-                options={options}
-                onChange={next => setPart(part, next)}
-            />
+            <PartSelect label={label} value={value} options={options} onChange={next => setPart(part, next)} />
         </div>
     );
 
@@ -347,11 +343,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const inner = (
         <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)]">
             <div className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
-                {title && (
-                    <p className="text-sm font-semibold text-[var(--text)] mb-1">
-                        {title}
-                    </p>
-                )}
+                {title && <p className="text-sm font-semibold text-[var(--text)] mb-1">{title}</p>}
                 <p className="text-sm tabular-nums text-[var(--text-muted)]">
                     {[showDate ? dateSummary : null, showTime ? timeSummary : null].filter(Boolean).join(' · ')}
                 </p>
@@ -360,18 +352,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {body}
 
             <div className="px-5 pb-5 pt-3 flex justify-end gap-2 border-t border-[var(--border)]">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary"
-                >
+                <button type="button" onClick={onClose} className="btn-secondary">
                     {t('btn.cancel')}
                 </button>
-                <button
-                    type="button"
-                    onClick={() => onConfirm(selectedDate)}
-                    className="btn-primary"
-                >
+                <button type="button" onClick={() => onConfirm(selectedDate)} className="btn-primary">
                     {t('btn.ok')}
                 </button>
             </div>

@@ -15,9 +15,8 @@ const snap125 = (v: number, dir: 'down' | 'up') => {
     const mag = Math.pow(10, Math.floor(Math.log10(v)));
     const steps = [1, 2, 5, 10];
     const n = v / mag;
-    const s = dir === 'down'
-        ? [...steps].reverse().find(x => x <= n + 1e-9) ?? 1
-        : steps.find(x => x >= n - 1e-9) ?? 10;
+    const s =
+        dir === 'down' ? ([...steps].reverse().find(x => x <= n + 1e-9) ?? 1) : (steps.find(x => x >= n - 1e-9) ?? 10);
     return s * mag;
 };
 
@@ -69,7 +68,8 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
     const calibrated = calibration.method !== 'off';
     const points = useMemo(
-        () => calibration.points.map(p => ({ ...p, cal: calibrated ? p.pred * calibration.factorFn(p.timeH) : p.pred })),
+        () =>
+            calibration.points.map(p => ({ ...p, cal: calibrated ? p.pred * calibration.factorFn(p.timeH) : p.pred })),
         [calibration, calibrated],
     );
 
@@ -92,7 +92,10 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
     const hi = snap125(Math.max(...values) * 1.35, 'up');
     const ticks = logTicks(lo, hi);
 
-    const mL = 34 * ui, mR = 10 * ui, mT = 22 * ui, mB = 40 * ui;
+    const mL = 34 * ui,
+        mR = 10 * ui,
+        mT = 22 * ui,
+        mB = 40 * ui;
     const height = Math.round(Math.min(Math.max(width * 0.8, 240 * ui), 380 * ui));
     const pw = Math.max(0, width - mL - mR);
     const ph = Math.max(0, height - mT - mB);
@@ -103,9 +106,8 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
     const err = calibrated && calibration.fitErrPct !== null ? calibration.fitErrPct : null;
     const k = err !== null ? 1 + err / 100 : 1;
-    const band = err !== null
-        ? `${X(lo)},${Y(lo * k)} ${X(hi)},${Y(hi * k)} ${X(hi)},${Y(hi / k)} ${X(lo)},${Y(lo / k)}`
-        : null;
+    const band =
+        err !== null ? `${X(lo)},${Y(lo * k)} ${X(hi)},${Y(hi * k)} ${X(hi)},${Y(hi / k)} ${X(lo)},${Y(lo / k)}` : null;
 
     const hp = hover !== null ? points[hover] : null;
     const r = 4.5 * ui;
@@ -119,7 +121,11 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                 {calibrated && (
                     <span className="flex items-center gap-1.5">
                         <svg width={10} height={10} viewBox="-5 -5 10 10" className="overflow-visible">
-                            <path d={diamond(3.6)} className={`${surfaceFill} ${primaryStroke} opacity-50`} strokeWidth={1.25} />
+                            <path
+                                d={diamond(3.6)}
+                                className={`${surfaceFill} ${primaryStroke} opacity-50`}
+                                strokeWidth={1.25}
+                            />
                         </svg>
                         {t('cal.plot.before')}
                     </span>
@@ -132,7 +138,15 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                 </span>
                 <span className="flex items-center gap-1.5">
                     <svg width={14} height={2} className="overflow-visible">
-                        <line x1={0} y1={1} x2={14} y2={1} className="stroke-[var(--text-muted)]" strokeWidth={1} strokeDasharray="3 2.5" />
+                        <line
+                            x1={0}
+                            y1={1}
+                            x2={14}
+                            y2={1}
+                            className="stroke-[var(--text-muted)]"
+                            strokeWidth={1}
+                            strokeDasharray="3 2.5"
+                        />
                     </svg>
                     {t('cal.plot.identity')}
                 </span>
@@ -146,7 +160,12 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
             <div ref={setBox} className="relative mt-2 select-none" style={{ height }}>
                 {width > 0 && (
-                    <svg width={width} height={height} className="block overflow-visible" onPointerLeave={() => setHover(null)}>
+                    <svg
+                        width={width}
+                        height={height}
+                        className="block overflow-visible"
+                        onPointerLeave={() => setHover(null)}
+                    >
                         <defs>
                             <clipPath id={clipId}>
                                 <rect x={mL} y={mT} width={pw} height={ph} />
@@ -157,15 +176,57 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                         <g className="chart-appear">
                             {ticks.map(v => (
                                 <g key={v}>
-                                    <line x1={X(v)} y1={mT} x2={X(v)} y2={mT + ph} className={gridStroke} strokeWidth={1} />
-                                    <line x1={mL} y1={Y(v)} x2={mL + pw} y2={Y(v)} className={gridStroke} strokeWidth={1} />
-                                    <text x={X(v)} y={mT + ph + 13 * ui} textAnchor="middle" fontSize={10 * ui} className={`${mutedFill} tabular-nums`} opacity={0.8}>{fmt(v)}</text>
-                                    <text x={mL - 6 * ui} y={Y(v) + 3.5 * ui} textAnchor="end" fontSize={10 * ui} className={`${mutedFill} tabular-nums`} opacity={0.8}>{fmt(v)}</text>
+                                    <line
+                                        x1={X(v)}
+                                        y1={mT}
+                                        x2={X(v)}
+                                        y2={mT + ph}
+                                        className={gridStroke}
+                                        strokeWidth={1}
+                                    />
+                                    <line
+                                        x1={mL}
+                                        y1={Y(v)}
+                                        x2={mL + pw}
+                                        y2={Y(v)}
+                                        className={gridStroke}
+                                        strokeWidth={1}
+                                    />
+                                    <text
+                                        x={X(v)}
+                                        y={mT + ph + 13 * ui}
+                                        textAnchor="middle"
+                                        fontSize={10 * ui}
+                                        className={`${mutedFill} tabular-nums`}
+                                        opacity={0.8}
+                                    >
+                                        {fmt(v)}
+                                    </text>
+                                    <text
+                                        x={mL - 6 * ui}
+                                        y={Y(v) + 3.5 * ui}
+                                        textAnchor="end"
+                                        fontSize={10 * ui}
+                                        className={`${mutedFill} tabular-nums`}
+                                        opacity={0.8}
+                                    >
+                                        {fmt(v)}
+                                    </text>
                                 </g>
                             ))}
                             {/* Axis titles in the corners, pointing along their axis */}
-                            <text x={mL - 6 * ui} y={mT - 9 * ui} fontSize={10.5 * ui} className={mutedFill}>↑ {t('cal.plot.y')} (pg/ml)</text>
-                            <text x={mL + pw} y={mT + ph + 31 * ui} textAnchor="end" fontSize={10.5 * ui} className={mutedFill}>{t('cal.plot.x')} (pg/ml) →</text>
+                            <text x={mL - 6 * ui} y={mT - 9 * ui} fontSize={10.5 * ui} className={mutedFill}>
+                                ↑ {t('cal.plot.y')} (pg/ml)
+                            </text>
+                            <text
+                                x={mL + pw}
+                                y={mT + ph + 31 * ui}
+                                textAnchor="end"
+                                fontSize={10.5 * ui}
+                                className={mutedFill}
+                            >
+                                {t('cal.plot.x')} (pg/ml) →
+                            </text>
                         </g>
 
                         <g clipPath={`url(#${clipId})`}>
@@ -177,7 +238,10 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                 />
                             )}
                             <line
-                                x1={X(lo)} y1={Y(lo)} x2={X(hi)} y2={Y(hi)}
+                                x1={X(lo)}
+                                y1={Y(lo)}
+                                x2={X(hi)}
+                                y2={Y(hi)}
                                 strokeDasharray="3 3"
                                 className="chart-appear stroke-[var(--text-muted)]"
                                 strokeWidth={1}
@@ -186,30 +250,35 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                         </g>
 
                         {/* The pull: a faint trail from each raw prediction to its calibrated one */}
-                        {calibrated && points.map((p, i) => (
-                            <line
-                                key={`trail-${p.id}`}
-                                x1={X(p.pred)} y1={Y(p.obs)} x2={X(p.cal)} y2={Y(p.obs)}
-                                className={`cal-trail ${primaryStroke}`}
-                                strokeWidth={1}
-                                strokeDasharray="2 2.5"
-                                style={{ opacity: settled ? 0.45 : 0, transitionDelay: `${360 + i * 60}ms` }}
-                            />
-                        ))}
+                        {calibrated &&
+                            points.map((p, i) => (
+                                <line
+                                    key={`trail-${p.id}`}
+                                    x1={X(p.pred)}
+                                    y1={Y(p.obs)}
+                                    x2={X(p.cal)}
+                                    y2={Y(p.obs)}
+                                    className={`cal-trail ${primaryStroke}`}
+                                    strokeWidth={1}
+                                    strokeDasharray="2 2.5"
+                                    style={{ opacity: settled ? 0.45 : 0, transitionDelay: `${360 + i * 60}ms` }}
+                                />
+                            ))}
 
                         {/* Raw model, hollow. The entrance animates the outer group's
                             transform, so the position rides on the inner path. */}
-                        {calibrated && points.map(p => (
-                            <g key={`raw-${p.id}`} className="chart-mark">
-                                <path
-                                    d={diamond(r * 0.85)}
-                                    transform={`translate(${X(p.pred)} ${Y(p.obs)})`}
-                                    className={`${surfaceFill} ${primaryStroke}`}
-                                    strokeWidth={1.25}
-                                    opacity={0.5}
-                                />
-                            </g>
-                        ))}
+                        {calibrated &&
+                            points.map(p => (
+                                <g key={`raw-${p.id}`} className="chart-mark">
+                                    <path
+                                        d={diamond(r * 0.85)}
+                                        transform={`translate(${X(p.pred)} ${Y(p.obs)})`}
+                                        className={`${surfaceFill} ${primaryStroke}`}
+                                        strokeWidth={1.25}
+                                        opacity={0.5}
+                                    />
+                                </g>
+                            ))}
 
                         {/* Calibrated, solid. Starts on its hollow twin and glides over. */}
                         {points.map((p, i) => {
@@ -219,11 +288,20 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                 <g
                                     key={`cal-${p.id}`}
                                     className="cal-mark cursor-pointer"
-                                    style={{ transform: `translate(${x}px, ${Y(p.obs)}px)`, transitionDelay: `${160 + i * 60}ms` }}
+                                    style={{
+                                        transform: `translate(${x}px, ${Y(p.obs)}px)`,
+                                        transitionDelay: `${160 + i * 60}ms`,
+                                    }}
                                     onPointerEnter={() => setHover(i)}
                                     onClick={() => setHover(active ? null : i)}
                                 >
-                                    <rect x={-10 * ui} y={-10 * ui} width={20 * ui} height={20 * ui} fill="transparent" />
+                                    <rect
+                                        x={-10 * ui}
+                                        y={-10 * ui}
+                                        width={20 * ui}
+                                        height={20 * ui}
+                                        fill="transparent"
+                                    />
                                     <path
                                         d={diamond(active ? r * 1.3 : r)}
                                         className={`${primaryFill} ${surfaceStroke}`}

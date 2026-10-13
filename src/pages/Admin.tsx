@@ -1,5 +1,24 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Trash2, Loader2, AlertCircle, Server, Search, KeyRound, PenLine, ImageOff, X, ChevronLeft, ChevronRight, Cloud, Trash, Users, ArrowLeft, ShieldCheck, ShieldOff, Megaphone } from 'lucide-react';
+import {
+    Trash2,
+    Loader2,
+    AlertCircle,
+    Server,
+    Search,
+    KeyRound,
+    PenLine,
+    ImageOff,
+    X,
+    ChevronLeft,
+    ChevronRight,
+    Cloud,
+    Trash,
+    Users,
+    ArrowLeft,
+    ShieldCheck,
+    ShieldOff,
+    Megaphone,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatBytes } from '../utils/helpers';
 import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope, StorageReport } from '../services/admin';
@@ -11,7 +30,12 @@ import { Lang } from '../i18n/translations';
 
 type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
-type UserPanel = null | { type: 'password'; user: AdminUser } | { type: 'edit'; user: AdminUser } | { type: 'backups'; user: AdminUser } | { type: '2fa'; user: AdminUser };
+type UserPanel =
+    | null
+    | { type: 'password'; user: AdminUser }
+    | { type: 'edit'; user: AdminUser }
+    | { type: 'backups'; user: AdminUser }
+    | { type: '2fa'; user: AdminUser };
 
 const divider = 'border-b border-[var(--border)]';
 const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
@@ -19,8 +43,10 @@ const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
 const rowValue = `flex items-center gap-1 text-[0.9375rem] ${settingsMuted}`;
 const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors`;
 const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--danger)] hover:bg-[var(--surface-hover)] transition-colors`;
-const textBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
-const dangerTextBtn = 'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--danger)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+const textBtn =
+    'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+const dangerTextBtn =
+    'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--danger)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
 
 let _savedCat: AdminCat = 'users';
 let _savedMobileView: MobileView = 'list';
@@ -102,9 +128,13 @@ const Admin: React.FC = () => {
         if (!token) return;
         setStorageLoading(true);
         setStorageError(null);
-        try { setStorage(await adminService.getStorage(token)); }
-        catch (e: any) { setStorageError(e?.message || 'Failed to measure storage.'); }
-        finally { setStorageLoading(false); }
+        try {
+            setStorage(await adminService.getStorage(token));
+        } catch (e: any) {
+            setStorageError(e?.message || 'Failed to measure storage.');
+        } finally {
+            setStorageLoading(false);
+        }
     };
 
     // Debounced search
@@ -128,21 +158,32 @@ const Admin: React.FC = () => {
         }
     }, [token, searchDebounce, page]);
 
-    useEffect(() => { fetchUsers(); }, [fetchUsers]);
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     // Reset to page 1 when search changes
-    useEffect(() => { setPage(1); }, [searchDebounce]);
+    useEffect(() => {
+        setPage(1);
+    }, [searchDebounce]);
 
     const handleDeleteUser = (user: AdminUser) => {
         if (!token) return;
-        showDialog('confirm', `Delete user "${user.username}"? This cannot be undone.`, async () => {
-            try {
-                await adminService.deleteUser(token, user.id);
-                setUsers(prev => prev.filter(u => u.id !== user.id));
-                if (panel && 'user' in panel && panel.user.id === user.id) setPanel(null);
-                showDialog('alert', 'User deleted.');
-            } catch { showDialog('alert', 'Failed to delete user.'); }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            `Delete user "${user.username}"? This cannot be undone.`,
+            async () => {
+                try {
+                    await adminService.deleteUser(token, user.id);
+                    setUsers(prev => prev.filter(u => u.id !== user.id));
+                    if (panel && 'user' in panel && panel.user.id === user.id) setPanel(null);
+                    showDialog('alert', 'User deleted.');
+                } catch {
+                    showDialog('alert', 'Failed to delete user.');
+                }
+            },
+            { danger: true },
+        );
     };
 
     const openPasswordPanel = (user: AdminUser) => {
@@ -159,31 +200,45 @@ const Admin: React.FC = () => {
         if (!token || !panel || panel.type !== 'password') return;
         try {
             const { sessionsRevoked } = await adminService.changeUserPassword(token, panel.user.id, newPassword);
-            showDialog('alert', sessionsRevoked > 0
-                ? `Password updated. Signed out ${sessionsRevoked} active session${sessionsRevoked === 1 ? '' : 's'}.`
-                : 'Password updated.');
+            showDialog(
+                'alert',
+                sessionsRevoked > 0
+                    ? `Password updated. Signed out ${sessionsRevoked} active session${sessionsRevoked === 1 ? '' : 's'}.`
+                    : 'Password updated.',
+            );
             setPanel(null);
-        } catch (e: any) { showDialog('alert', e.message || 'Failed to update password.'); }
+        } catch (e: any) {
+            showDialog('alert', e.message || 'Failed to update password.');
+        }
     };
 
     const submitUsername = async () => {
         if (!token || !panel || panel.type !== 'edit') return;
         try {
             await adminService.changeUsername(token, panel.user.id, newUsername);
-            setUsers(prev => prev.map(u => u.id === panel.user.id ? { ...u, username: newUsername.trim() } : u));
+            setUsers(prev => prev.map(u => (u.id === panel.user.id ? { ...u, username: newUsername.trim() } : u)));
             showDialog('alert', 'Username updated.');
             setPanel(null);
-        } catch (e: any) { showDialog('alert', e.message || 'Failed to update username.'); }
+        } catch (e: any) {
+            showDialog('alert', e.message || 'Failed to update username.');
+        }
     };
 
     const handleResetAvatar = async (user: AdminUser) => {
         if (!token) return;
-        showDialog('confirm', `Reset avatar for "${user.username}"?`, async () => {
-            try {
-                await adminService.resetAvatar(token, user.id);
-                showDialog('alert', 'Avatar reset.');
-            } catch { showDialog('alert', 'Failed to reset avatar.'); }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            `Reset avatar for "${user.username}"?`,
+            async () => {
+                try {
+                    await adminService.resetAvatar(token, user.id);
+                    showDialog('alert', 'Avatar reset.');
+                } catch {
+                    showDialog('alert', 'Failed to reset avatar.');
+                }
+            },
+            { danger: true },
+        );
     };
 
     const openTwoFAPanel = async (user: AdminUser) => {
@@ -193,34 +248,55 @@ const Admin: React.FC = () => {
         setTwoFALoading(true);
         try {
             setTwoFA(await adminService.getUser2FA(token, user.id));
-        } catch { setTwoFA(null); }
-        finally { setTwoFALoading(false); }
+        } catch {
+            setTwoFA(null);
+        } finally {
+            setTwoFALoading(false);
+        }
     };
 
     const clearTwoFA = (user: AdminUser, scope: TwoFactorScope, confirmText: string) => {
         if (!token) return;
-        showDialog('confirm', confirmText, async () => {
-            try {
-                const cleared = await adminService.clearUser2FA(token, user.id, scope);
-                setTwoFA(await adminService.getUser2FA(token, user.id));
-                setUsers(prev => prev.map(u => u.id === user.id ? {
-                    ...u,
-                    has_totp: cleared.totp ? 0 : u.has_totp,
-                    passkey_count: cleared.passkeys > 0 ? 0 : u.passkey_count,
-                } : u));
-                const parts = [
-                    cleared.totp && 'authenticator app',
-                    cleared.passkeys > 0 && `${cleared.passkeys} passkey${cleared.passkeys === 1 ? '' : 's'}`,
-                    cleared.backupCodes > 0 && `${cleared.backupCodes} backup code${cleared.backupCodes === 1 ? '' : 's'}`,
-                ].filter(Boolean) as string[];
-                const sessions = cleared.sessions > 0
-                    ? ` ${cleared.sessions} session${cleared.sessions === 1 ? '' : 's'} signed out.`
-                    : '';
-                showDialog('alert', parts.length
-                    ? `Removed ${parts.join(', ')}.${sessions}`
-                    : `Nothing to remove — ${user.username} had no 2FA enrolled.`);
-            } catch (e: any) { showDialog('alert', e.message || 'Failed to reset 2FA.'); }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            confirmText,
+            async () => {
+                try {
+                    const cleared = await adminService.clearUser2FA(token, user.id, scope);
+                    setTwoFA(await adminService.getUser2FA(token, user.id));
+                    setUsers(prev =>
+                        prev.map(u =>
+                            u.id === user.id
+                                ? {
+                                      ...u,
+                                      has_totp: cleared.totp ? 0 : u.has_totp,
+                                      passkey_count: cleared.passkeys > 0 ? 0 : u.passkey_count,
+                                  }
+                                : u,
+                        ),
+                    );
+                    const parts = [
+                        cleared.totp && 'authenticator app',
+                        cleared.passkeys > 0 && `${cleared.passkeys} passkey${cleared.passkeys === 1 ? '' : 's'}`,
+                        cleared.backupCodes > 0 &&
+                            `${cleared.backupCodes} backup code${cleared.backupCodes === 1 ? '' : 's'}`,
+                    ].filter(Boolean) as string[];
+                    const sessions =
+                        cleared.sessions > 0
+                            ? ` ${cleared.sessions} session${cleared.sessions === 1 ? '' : 's'} signed out.`
+                            : '';
+                    showDialog(
+                        'alert',
+                        parts.length
+                            ? `Removed ${parts.join(', ')}.${sessions}`
+                            : `Nothing to remove — ${user.username} had no 2FA enrolled.`,
+                    );
+                } catch (e: any) {
+                    showDialog('alert', e.message || 'Failed to reset 2FA.');
+                }
+            },
+            { danger: true },
+        );
     };
 
     const openBackupsPanel = async (user: AdminUser) => {
@@ -230,8 +306,11 @@ const Admin: React.FC = () => {
         try {
             const data = await adminService.getUserBackups(token, user.id);
             setBackups(data);
-        } catch { setBackups([]); }
-        finally { setBackupsLoading(false); }
+        } catch {
+            setBackups([]);
+        } finally {
+            setBackupsLoading(false);
+        }
     };
 
     const handleDeleteBackup = async (backupId: string) => {
@@ -239,20 +318,39 @@ const Admin: React.FC = () => {
         try {
             await adminService.deleteBackup(token, panel.user.id, backupId);
             setBackups(prev => prev.filter(b => b.id !== backupId));
-            setUsers(prev => prev.map(u => u.id === panel.user.id ? { ...u, backup_count: Math.max(0, (u.backup_count || 1) - 1) } : u));
-        } catch { showDialog('alert', 'Failed to delete backup.'); }
+            setUsers(prev =>
+                prev.map(u =>
+                    u.id === panel.user.id ? { ...u, backup_count: Math.max(0, (u.backup_count || 1) - 1) } : u,
+                ),
+            );
+        } catch {
+            showDialog('alert', 'Failed to delete backup.');
+        }
     };
 
     const handlePurgeBackups = async () => {
         if (!token || !panel || panel.type !== 'backups') return;
-        showDialog('confirm', `Purge ALL backups for "${panel.user.username}"?`, async () => {
-            try {
-                await adminService.purgeBackups(token, panel.user.id);
-                setBackups([]);
-                setUsers(prev => prev.map(u => u.id === panel.user.id ? { ...u, backup_count: 0, last_backup_at: null, total_backup_size: 0 } : u));
-                showDialog('alert', 'All backups purged.');
-            } catch { showDialog('alert', 'Failed to purge backups.'); }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            `Purge ALL backups for "${panel.user.username}"?`,
+            async () => {
+                try {
+                    await adminService.purgeBackups(token, panel.user.id);
+                    setBackups([]);
+                    setUsers(prev =>
+                        prev.map(u =>
+                            u.id === panel.user.id
+                                ? { ...u, backup_count: 0, last_backup_at: null, total_backup_size: 0 }
+                                : u,
+                        ),
+                    );
+                    showDialog('alert', 'All backups purged.');
+                } catch {
+                    showDialog('alert', 'Failed to purge backups.');
+                }
+            },
+            { danger: true },
+        );
     };
 
     const renderPanel = () => {
@@ -264,17 +362,34 @@ const Admin: React.FC = () => {
                     <div className="modal-card">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className={`text-[0.9375rem] font-semibold ${settingsOn}`}>{panel.user.username}</h3>
-                                <p className={`text-xs ${settingsMuted} mt-0.5`}>{panel.type === 'password' ? 'Change Password' : panel.type === 'edit' ? 'Edit Profile' : panel.type === '2fa' ? 'Two-Factor Authentication' : 'Cloud Backups'}</p>
+                                <h3 className={`text-[0.9375rem] font-semibold ${settingsOn}`}>
+                                    {panel.user.username}
+                                </h3>
+                                <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                    {panel.type === 'password'
+                                        ? 'Change Password'
+                                        : panel.type === 'edit'
+                                          ? 'Edit Profile'
+                                          : panel.type === '2fa'
+                                            ? 'Two-Factor Authentication'
+                                            : 'Cloud Backups'}
+                                </p>
                             </div>
-                            <button onClick={() => setPanel(null)} className={`${iconBtn} -mr-1 -mt-1`} aria-label="Close">
+                            <button
+                                onClick={() => setPanel(null)}
+                                className={`${iconBtn} -mr-1 -mt-1`}
+                                aria-label="Close"
+                            >
                                 <X size={16} strokeWidth={1.5} />
                             </button>
                         </div>
 
                         {panel.type === 'password' && (
                             <div className="space-y-4">
-                                <p className={`text-sm ${settingsMuted}`}>Set a new password for <span className={`font-medium ${settingsOn}`}>{panel.user.username}</span>.</p>
+                                <p className={`text-sm ${settingsMuted}`}>
+                                    Set a new password for{' '}
+                                    <span className={`font-medium ${settingsOn}`}>{panel.user.username}</span>.
+                                </p>
                                 <input
                                     type="password"
                                     value={newPassword}
@@ -284,7 +399,9 @@ const Admin: React.FC = () => {
                                     autoFocus
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setPanel(null)} className="btn-secondary">Cancel</button>
+                                    <button onClick={() => setPanel(null)} className="btn-secondary">
+                                        Cancel
+                                    </button>
                                     <button
                                         onClick={submitPassword}
                                         disabled={newPassword.length < 8}
@@ -330,20 +447,32 @@ const Admin: React.FC = () => {
                             </div>
                         )}
 
-                        {panel.type === '2fa' && (
-                            twoFALoading ? (
-                                <div className="flex justify-center py-12"><Loader2 className={`animate-spin ${settingsMuted}`} size={20} /></div>
+                        {panel.type === '2fa' &&
+                            (twoFALoading ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                                </div>
                             ) : !twoFA ? (
-                                <p className={`text-sm ${settingsMuted} text-center py-8`}>Could not load 2FA status.</p>
+                                <p className={`text-sm ${settingsMuted} text-center py-8`}>
+                                    Could not load 2FA status.
+                                </p>
                             ) : (
                                 <div>
                                     <div className={`flex items-center justify-between gap-3 py-3.5 ${divider}`}>
                                         <div className="min-w-0">
                                             <p className={`text-sm ${settingsOn}`}>Authenticator app</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>{twoFA.totp ? 'A TOTP secret is enrolled.' : 'Not set up.'}</p>
+                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                                {twoFA.totp ? 'A TOTP secret is enrolled.' : 'Not set up.'}
+                                            </p>
                                         </div>
                                         <button
-                                            onClick={() => clearTwoFA(panel.user, 'totp', `Disable the authenticator app for "${panel.user.username}"? They will sign in with their password alone, and every active session is signed out.`)}
+                                            onClick={() =>
+                                                clearTwoFA(
+                                                    panel.user,
+                                                    'totp',
+                                                    `Disable the authenticator app for "${panel.user.username}"? They will sign in with their password alone, and every active session is signed out.`,
+                                                )
+                                            }
                                             disabled={!twoFA.totp}
                                             className={dangerTextBtn}
                                         >
@@ -354,10 +483,20 @@ const Admin: React.FC = () => {
                                     <div className={`flex items-center justify-between gap-3 py-3.5 ${divider}`}>
                                         <div className="min-w-0">
                                             <p className={`text-sm ${settingsOn}`}>Passkeys</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>{twoFA.passkeys === 0 ? 'None registered.' : `${twoFA.passkeys} registered.`}</p>
+                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                                {twoFA.passkeys === 0
+                                                    ? 'None registered.'
+                                                    : `${twoFA.passkeys} registered.`}
+                                            </p>
                                         </div>
                                         <button
-                                            onClick={() => clearTwoFA(panel.user, 'passkeys', `Remove all ${twoFA.passkeys} passkey(s) for "${panel.user.username}"? Every active session is signed out.`)}
+                                            onClick={() =>
+                                                clearTwoFA(
+                                                    panel.user,
+                                                    'passkeys',
+                                                    `Remove all ${twoFA.passkeys} passkey(s) for "${panel.user.username}"? Every active session is signed out.`,
+                                                )
+                                            }
                                             disabled={twoFA.passkeys === 0}
                                             className={dangerTextBtn}
                                         >
@@ -368,10 +507,20 @@ const Admin: React.FC = () => {
                                     <div className="flex items-center justify-between gap-3 py-3.5">
                                         <div className="min-w-0">
                                             <p className={`text-sm ${settingsOn}`}>Backup codes</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>{twoFA.backupCodes === 0 ? 'None left.' : `${twoFA.backupCodes} unused.`}</p>
+                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                                {twoFA.backupCodes === 0
+                                                    ? 'None left.'
+                                                    : `${twoFA.backupCodes} unused.`}
+                                            </p>
                                         </div>
                                         <button
-                                            onClick={() => clearTwoFA(panel.user, 'backup_codes', `Erase the remaining backup codes for "${panel.user.username}"? Their sessions stay signed in.`)}
+                                            onClick={() =>
+                                                clearTwoFA(
+                                                    panel.user,
+                                                    'backup_codes',
+                                                    `Erase the remaining backup codes for "${panel.user.username}"? Their sessions stay signed in.`,
+                                                )
+                                            }
                                             disabled={twoFA.backupCodes === 0}
                                             className={dangerTextBtn}
                                         >
@@ -381,10 +530,17 @@ const Admin: React.FC = () => {
 
                                     <div className="flex items-end justify-between gap-4 pt-4 border-t border-[var(--border)]">
                                         <p className="text-xs text-[var(--danger)] leading-relaxed">
-                                            Erasing a factor drops this account back to its password alone. Confirm who is asking before you do it.
+                                            Erasing a factor drops this account back to its password alone. Confirm who
+                                            is asking before you do it.
                                         </p>
                                         <button
-                                            onClick={() => clearTwoFA(panel.user, 'all', `Erase ALL two-factor authentication for "${panel.user.username}"? This removes the authenticator secret, every passkey and every backup code, and signs out all of their sessions.`)}
+                                            onClick={() =>
+                                                clearTwoFA(
+                                                    panel.user,
+                                                    'all',
+                                                    `Erase ALL two-factor authentication for "${panel.user.username}"? This removes the authenticator secret, every passkey and every backup code, and signs out all of their sessions.`,
+                                                )
+                                            }
                                             disabled={!twoFA.enabled && twoFA.backupCodes === 0}
                                             className="btn-secondary text-[var(--danger)] shrink-0 disabled:opacity-40 disabled:pointer-events-none"
                                         >
@@ -392,18 +548,22 @@ const Admin: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                            )
-                        )}
+                            ))}
 
-                        {panel.type === 'backups' && (
-                            backupsLoading ? (
-                                <div className="flex justify-center py-12"><Loader2 className={`animate-spin ${settingsMuted}`} size={20} /></div>
+                        {panel.type === 'backups' &&
+                            (backupsLoading ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                                </div>
                             ) : backups.length === 0 ? (
                                 <p className={`text-sm ${settingsMuted} text-center py-8`}>No backups found.</p>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className={`text-xs ${settingsMuted}`}>{backups.length} backup(s) · {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total</span>
+                                        <span className={`text-xs ${settingsMuted}`}>
+                                            {backups.length} backup(s) ·{' '}
+                                            {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total
+                                        </span>
                                         <button
                                             onClick={handlePurgeBackups}
                                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
@@ -413,10 +573,18 @@ const Admin: React.FC = () => {
                                     </div>
                                     <div>
                                         {backups.map(b => (
-                                            <div key={b.id} className={`flex items-center justify-between py-3 ${divider}`}>
+                                            <div
+                                                key={b.id}
+                                                className={`flex items-center justify-between py-3 ${divider}`}
+                                            >
                                                 <div>
-                                                    <p className={`text-sm ${settingsOn}`}>{new Date(b.created_at * 1000).toLocaleString()}</p>
-                                                    <p className={`text-xs ${settingsMuted} mt-0.5`}>{formatBytes(b.data_size)} · <span className="font-mono">{b.id.slice(0, 8)}</span></p>
+                                                    <p className={`text-sm ${settingsOn}`}>
+                                                        {new Date(b.created_at * 1000).toLocaleString()}
+                                                    </p>
+                                                    <p className={`text-xs ${settingsMuted} mt-0.5`}>
+                                                        {formatBytes(b.data_size)} ·{' '}
+                                                        <span className="font-mono">{b.id.slice(0, 8)}</span>
+                                                    </p>
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteBackup(b.id)}
@@ -429,8 +597,7 @@ const Admin: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
-                            )
-                        )}
+                            ))}
                     </div>
                 </div>
             </div>
@@ -442,7 +609,11 @@ const Admin: React.FC = () => {
     const renderUsers = () => (
         <div>
             <div className="relative mb-5">
-                <Search size={15} strokeWidth={1.5} className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`} />
+                <Search
+                    size={15}
+                    strokeWidth={1.5}
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`}
+                />
                 <input
                     type="text"
                     value={searchQuery}
@@ -461,26 +632,27 @@ const Admin: React.FC = () => {
                     <AlertCircle size={16} strokeWidth={1.5} /> {error}
                 </p>
             ) : users.length === 0 ? (
-                <p className={`text-sm ${settingsMuted} text-center py-14`}>No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.</p>
+                <p className={`text-sm ${settingsMuted} text-center py-14`}>
+                    No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.
+                </p>
             ) : (
                 <div>
                     {users.map(u => (
-                        <div
-                            key={u.id}
-                            className={`flex items-center justify-between gap-3 py-4 ${divider}`}
-                        >
+                        <div key={u.id} className={`flex items-center justify-between gap-3 py-4 ${divider}`}>
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-9 h-9 rounded-full bg-[var(--surface-hover)] flex items-center justify-center overflow-hidden shrink-0">
                                     <img
                                         src={apiEndpoint(`/api/user/avatar/${u.username}`)}
                                         alt={u.username}
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
+                                        onError={e => {
                                             e.currentTarget.style.display = 'none';
                                             e.currentTarget.nextElementSibling?.classList.remove('hidden');
                                         }}
                                     />
-                                    <div className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}>
+                                    <div
+                                        className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}
+                                    >
                                         {u.username.substring(0, 2).toUpperCase()}
                                     </div>
                                 </div>
@@ -491,16 +663,23 @@ const Admin: React.FC = () => {
                                         {(u.backup_count ?? 0) > 0 && (
                                             <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
                                                 <Cloud size={11} strokeWidth={1.5} />
-                                                {u.backup_count} · {formatBytes(u.total_backup_size || 0)} · {timeAgo(u.last_backup_at)}
+                                                {u.backup_count} · {formatBytes(u.total_backup_size || 0)} ·{' '}
+                                                {timeAgo(u.last_backup_at)}
                                             </span>
                                         )}
                                         {((u.has_totp ?? 0) > 0 || (u.passkey_count ?? 0) > 0) && (
-                                            <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`} title="Two-factor authentication enabled">
+                                            <span
+                                                className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}
+                                                title="Two-factor authentication enabled"
+                                            >
                                                 <ShieldCheck size={11} strokeWidth={1.5} />
                                                 {[
                                                     (u.has_totp ?? 0) > 0 && 'TOTP',
-                                                    (u.passkey_count ?? 0) > 0 && `${u.passkey_count} passkey${u.passkey_count === 1 ? '' : 's'}`,
-                                                ].filter(Boolean).join(' · ')}
+                                                    (u.passkey_count ?? 0) > 0 &&
+                                                        `${u.passkey_count} passkey${u.passkey_count === 1 ? '' : 's'}`,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
                                             </span>
                                         )}
                                     </div>
@@ -514,13 +693,21 @@ const Admin: React.FC = () => {
                                 <button onClick={() => openTwoFAPanel(u)} className={iconBtn} title="Reset 2FA">
                                     <ShieldOff size={15} strokeWidth={1.5} />
                                 </button>
-                                <button onClick={() => openPasswordPanel(u)} className={iconBtn} title="Change Password">
+                                <button
+                                    onClick={() => openPasswordPanel(u)}
+                                    className={iconBtn}
+                                    title="Change Password"
+                                >
                                     <KeyRound size={15} strokeWidth={1.5} />
                                 </button>
                                 <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit Profile">
                                     <PenLine size={15} strokeWidth={1.5} />
                                 </button>
-                                <button onClick={() => handleDeleteUser(u)} className={dangerIconBtn} title="Delete User">
+                                <button
+                                    onClick={() => handleDeleteUser(u)}
+                                    className={dangerIconBtn}
+                                    title="Delete User"
+                                >
                                     <Trash2 size={15} strokeWidth={1.5} />
                                 </button>
                             </div>
@@ -543,13 +730,15 @@ const Admin: React.FC = () => {
                     {Array.from({ length: totalPages }, (_, i) => i + 1)
                         .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
                         .reduce<(number | '...')[]>((acc, p, i, arr) => {
-                            if (i > 0 && p - (arr[i - 1]) > 1) acc.push('...');
+                            if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
                             acc.push(p);
                             return acc;
                         }, [])
                         .map((item, i) =>
                             item === '...' ? (
-                                <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>...</span>
+                                <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>
+                                    ...
+                                </span>
                             ) : (
                                 <button
                                     key={item}
@@ -562,7 +751,7 @@ const Admin: React.FC = () => {
                                 >
                                     {item}
                                 </button>
-                            )
+                            ),
                         )}
                     <button
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -634,8 +823,7 @@ const Admin: React.FC = () => {
         { id: 'tr', label: 'TR' },
     ];
 
-    const noticeTextFor = (id: 'default' | Lang): string =>
-        id === 'default' ? noticeBody : (noticeI18n[id] ?? '');
+    const noticeTextFor = (id: 'default' | Lang): string => (id === 'default' ? noticeBody : (noticeI18n[id] ?? ''));
 
     const setNoticeTextFor = (id: 'default' | Lang, value: string) => {
         if (id === 'default') setNoticeBody(value);
@@ -646,7 +834,10 @@ const Admin: React.FC = () => {
         if (!token) return;
         const body = noticeBody.trim();
         if (!body) {
-            showDialog('alert', 'The default text is what every locale without its own wording falls back to, so it cannot be empty.');
+            showDialog(
+                'alert',
+                'The default text is what every locale without its own wording falls back to, so it cannot be empty.',
+            );
             return;
         }
         const startsAt = fromLocalInput(noticeStart);
@@ -657,8 +848,13 @@ const Admin: React.FC = () => {
         }
         setNoticeSaving(true);
         try {
-            applyNotice(await noticeService.save(token, { body, i18n: noticeI18n, level: noticeLevel, startsAt, expiresAt }));
-            showDialog('alert', 'Notice published. New visits see it right away; tabs already open pick it up within ten minutes.');
+            applyNotice(
+                await noticeService.save(token, { body, i18n: noticeI18n, level: noticeLevel, startsAt, expiresAt }),
+            );
+            showDialog(
+                'alert',
+                'Notice published. New visits see it right away; tabs already open pick it up within ten minutes.',
+            );
         } catch (e: any) {
             showDialog('alert', e?.message || 'Failed to save the notice.');
         } finally {
@@ -668,38 +864,47 @@ const Admin: React.FC = () => {
 
     const clearNotice = () => {
         if (!token) return;
-        showDialog('confirm', 'Take the banner down for everyone?', async () => {
-            try {
-                await noticeService.clear(token);
-                applyNotice(null);
-                setNoticeLang('default');
-            } catch { showDialog('alert', 'Failed to clear the notice.'); }
-        }, { danger: true });
+        showDialog(
+            'confirm',
+            'Take the banner down for everyone?',
+            async () => {
+                try {
+                    await noticeService.clear(token);
+                    applyNotice(null);
+                    setNoticeLang('default');
+                } catch {
+                    showDialog('alert', 'Failed to clear the notice.');
+                }
+            },
+            { danger: true },
+        );
     };
 
     // Same wording the banner uses: the locale's override when it has one, the
     // default otherwise. Lets the operator see what a given locale will read.
-    const noticePreview = noticeLang === 'default'
-        ? noticeBody
-        : (noticeI18n[noticeLang]?.trim() || noticeBody);
+    const noticePreview = noticeLang === 'default' ? noticeBody : noticeI18n[noticeLang]?.trim() || noticeBody;
 
     const noticeWindowLabel = (): string => {
         if (!notice) return 'Nothing is being shown.';
         const now = Math.floor(Date.now() / 1000);
-        if (notice.startsAt != null && now < notice.startsAt) return `Scheduled for ${new Date(notice.startsAt * 1000).toLocaleString()}`;
-        if (notice.expiresAt != null && now >= notice.expiresAt) return `Expired ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
+        if (notice.startsAt != null && now < notice.startsAt)
+            return `Scheduled for ${new Date(notice.startsAt * 1000).toLocaleString()}`;
+        if (notice.expiresAt != null && now >= notice.expiresAt)
+            return `Expired ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
         if (notice.expiresAt != null) return `Live until ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
         return 'Live now, until you clear it';
     };
 
-    const renderNotice = () => (
+    const renderNotice = () =>
         noticeLoading ? (
-            <div className="flex justify-center py-16"><Loader2 className={`animate-spin ${settingsMuted}`} size={20} /></div>
+            <div className="flex justify-center py-16">
+                <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+            </div>
         ) : (
             <div className="space-y-5">
                 <p className={`text-xs ${settingsMuted} leading-relaxed`}>
-                    One banner, shown at the top of the app to everyone including signed-out visitors.
-                    Editing it brings it back for people who had already dismissed the previous wording.
+                    One banner, shown at the top of the app to everyone including signed-out visitors. Editing it brings
+                    it back for people who had already dismissed the previous wording.
                 </p>
 
                 {/* Language strip. A dot marks a locale that has its own wording. */}
@@ -724,14 +929,20 @@ const Admin: React.FC = () => {
 
                 <div className="space-y-2">
                     <label className={`block text-xs font-medium ${settingsMuted}`}>
-                        {noticeLang === 'default' ? 'Default text (required)' : `Override for ${noticeLangs.find(l => l.id === noticeLang)?.label}`}
+                        {noticeLang === 'default'
+                            ? 'Default text (required)'
+                            : `Override for ${noticeLangs.find(l => l.id === noticeLang)?.label}`}
                     </label>
                     <textarea
                         value={noticeTextFor(noticeLang)}
                         onChange={e => setNoticeTextFor(noticeLang, e.target.value)}
                         rows={4}
                         maxLength={2000}
-                        placeholder={noticeLang === 'default' ? 'What everyone should know…' : 'Leave empty to use the default text'}
+                        placeholder={
+                            noticeLang === 'default'
+                                ? 'What everyone should know…'
+                                : 'Leave empty to use the default text'
+                        }
                         className="input-base resize-y"
                     />
                     <p className={`text-xs ${settingsMuted}`}>
@@ -761,25 +972,41 @@ const Admin: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                         <label className={`block text-xs font-medium ${settingsMuted}`}>Show from (optional)</label>
-                        <input type="datetime-local" value={noticeStart} onChange={e => setNoticeStart(e.target.value)} className="input-base" />
+                        <input
+                            type="datetime-local"
+                            value={noticeStart}
+                            onChange={e => setNoticeStart(e.target.value)}
+                            className="input-base"
+                        />
                     </div>
                     <div className="space-y-2">
                         <label className={`block text-xs font-medium ${settingsMuted}`}>Hide after (optional)</label>
-                        <input type="datetime-local" value={noticeEnd} onChange={e => setNoticeEnd(e.target.value)} className="input-base" />
+                        <input
+                            type="datetime-local"
+                            value={noticeEnd}
+                            onChange={e => setNoticeEnd(e.target.value)}
+                            className="input-base"
+                        />
                     </div>
                 </div>
 
                 {noticePreview.trim() && (
                     <div className="space-y-2">
                         <label className={`block text-xs font-medium ${settingsMuted}`}>Preview</label>
-                        <p className={`flex items-start gap-1.5 text-[0.8125rem] leading-snug whitespace-pre-wrap break-words ${
-                            noticeLevel === 'warn'
-                                ? 'text-[var(--warning)]'
-                                : 'text-[var(--accent-ink)]'
-                        }`}>
-                            {noticeLevel === 'warn'
-                                ? <span className="icon-line"><AlertCircle size={14} strokeWidth={1.75} /></span>
-                                : <span className="icon-line"><Megaphone size={14} strokeWidth={1.75} /></span>}
+                        <p
+                            className={`flex items-start gap-1.5 text-[0.8125rem] leading-snug whitespace-pre-wrap break-words ${
+                                noticeLevel === 'warn' ? 'text-[var(--warning)]' : 'text-[var(--accent-ink)]'
+                            }`}
+                        >
+                            {noticeLevel === 'warn' ? (
+                                <span className="icon-line">
+                                    <AlertCircle size={14} strokeWidth={1.75} />
+                                </span>
+                            ) : (
+                                <span className="icon-line">
+                                    <Megaphone size={14} strokeWidth={1.75} />
+                                </span>
+                            )}
                             <span>{noticePreview}</span>
                         </p>
                     </div>
@@ -787,19 +1014,29 @@ const Admin: React.FC = () => {
 
                 <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--border)]">
                     <span className={`text-xs ${settingsMuted}`}>
-                        {noticeWindowLabel()}{notice ? ` · rev ${notice.revision}` : ''}
+                        {noticeWindowLabel()}
+                        {notice ? ` · rev ${notice.revision}` : ''}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
-                        <button onClick={clearNotice} disabled={!notice} className={dangerTextBtn}>Clear</button>
-                        <button onClick={saveNotice} disabled={noticeSaving || !noticeBody.trim()} className="btn-primary disabled:opacity-40 disabled:pointer-events-none">
-                            {noticeSaving ? <Loader2 size={15} className="animate-spin" /> : <Megaphone size={15} strokeWidth={1.5} />}
+                        <button onClick={clearNotice} disabled={!notice} className={dangerTextBtn}>
+                            Clear
+                        </button>
+                        <button
+                            onClick={saveNotice}
+                            disabled={noticeSaving || !noticeBody.trim()}
+                            className="btn-primary disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                            {noticeSaving ? (
+                                <Loader2 size={15} className="animate-spin" />
+                            ) : (
+                                <Megaphone size={15} strokeWidth={1.5} />
+                            )}
                             {notice ? 'Update Notice' : 'Publish Notice'}
                         </button>
                     </div>
                 </div>
             </div>
-        )
-    );
+        );
 
     const renderSystem = () => (
         <div>
@@ -820,7 +1057,9 @@ const Admin: React.FC = () => {
                                 <li key={t.table} className="flex gap-3">
                                     <span className="w-28 shrink-0">{t.table}</span>
                                     <span className="w-16 text-right tabular-nums">{t.rows.toLocaleString()}</span>
-                                    <span className="tabular-nums">{t.payload_bytes > 0 ? formatBytes(t.payload_bytes) : ''}</span>
+                                    <span className="tabular-nums">
+                                        {t.payload_bytes > 0 ? formatBytes(t.payload_bytes) : ''}
+                                    </span>
                                 </li>
                             ))}
                         </ul>
@@ -835,7 +1074,9 @@ const Admin: React.FC = () => {
             <div className={`${rowBase} cursor-default`}>
                 <div>
                     <p className={rowLabel}>Status</p>
-                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>All systems are running smoothly.</p>
+                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>
+                        All systems are running smoothly.
+                    </p>
                 </div>
                 <span className={rowValue}>Operational</span>
             </div>
@@ -854,24 +1095,23 @@ const Admin: React.FC = () => {
         </div>
     );
 
-    const catContent = (id: AdminCat) => (id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem());
+    const catContent = (id: AdminCat) =>
+        id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem();
 
     return (
         <div className="flex pt-8 pb-32 min-h-full">
-
             {/* ── Left category nav (desktop) ─────────────────────────── */}
             <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--border)]">
-                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>
-                    Admin
-                </p>
+                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>Admin</p>
                 {cats.map(({ id, label, Icon }) => (
                     <button
                         key={id}
                         onClick={() => selectCat(id)}
                         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
-                            ${cat === id
-                                ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
-                                : `${settingsMuted} hover:bg-[var(--surface-hover)]`
+                            ${
+                                cat === id
+                                    ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
+                                    : `${settingsMuted} hover:bg-[var(--surface-hover)]`
                             }`}
                     >
                         <Icon size={16} strokeWidth={1.75} />
@@ -882,9 +1122,7 @@ const Admin: React.FC = () => {
 
             {/* ── Desktop content ─────────────────────────────────────── */}
             <div className="hidden md:block flex-1 px-10 max-w-2xl">
-                <h2 className={`text-xl font-semibold ${settingsOn} mb-6`}>
-                    {cats.find(c => c.id === cat)?.label}
-                </h2>
+                <h2 className={`text-xl font-semibold ${settingsOn} mb-6`}>{cats.find(c => c.id === cat)?.label}</h2>
                 {catContent(cat)}
             </div>
 
@@ -895,13 +1133,13 @@ const Admin: React.FC = () => {
             <div className="md:hidden flex-1 self-start px-6 pb-32">
                 {mobileView === 'list' ? (
                     <>
-                        <h1 className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)] text-xl font-semibold ${settingsOn}`}>Admin</h1>
+                        <h1
+                            className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)] text-xl font-semibold ${settingsOn}`}
+                        >
+                            Admin
+                        </h1>
                         {cats.map(({ id, label, Icon, hint }) => (
-                            <button
-                                key={id}
-                                onClick={() => enterMobileCat(id)}
-                                className={`${rowBase} items-center`}
-                            >
+                            <button key={id} onClick={() => enterMobileCat(id)} className={`${rowBase} items-center`}>
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-lg bg-[var(--surface-hover)]">
                                         <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
