@@ -292,12 +292,6 @@ log p(Θ | y) = Σ_i log p(y_i | θ_i) + Σ_i log p(θ_i | θ_pop, Ω) + log p(�
 - 吸烟 + 高 BMI 条件下 **Hct** 风险上移。
 - 换路由时的过渡期：注射尾部 + 凝胶稳态建立重叠。
 
-图 1 和图 2 仅展示模型形状，不表示真实个体剂量或临床阈值。
-
-![图1](transmasc_hrt_assets/fig_pk.png)
-
-![图2](transmasc_hrt_assets/fig_hct.png)
-
 ## 16. 伪代码
 
 ```text

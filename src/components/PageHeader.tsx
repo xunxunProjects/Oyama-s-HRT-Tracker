@@ -31,10 +31,8 @@ const PageHeader: React.FC<{
     title: React.ReactNode;
     subtitle?: React.ReactNode;
     onBack?: () => void;
-    /** Shows the way back but won't take it (2FA setup that must finish first). */
-    backDisabled?: boolean;
     actions?: React.ReactNode;
-}> = ({ title, subtitle, onBack, backDisabled = false, actions }) => {
+}> = ({ title, subtitle, onBack, actions }) => {
     // A zero-height marker just above the sticky bar: once it has scrolled out
     // of view, content is passing under the bar and the hairline shows.
     const [marker, setMarker] = React.useState<HTMLDivElement | null>(null);
@@ -54,11 +52,10 @@ const PageHeader: React.FC<{
                     <div className="min-w-0">
                         {onBack ? (
                             <button
-                                onClick={backDisabled ? undefined : onBack}
-                                disabled={backDisabled}
-                                className="flex min-w-0 items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg enabled:hover:bg-[var(--surface-hover)] disabled:cursor-default"
+                                onClick={onBack}
+                                className="flex min-w-0 items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                             >
-                                <ArrowLeft size={22} className={`${muted} shrink-0 ${backDisabled ? 'opacity-30' : ''}`} />
+                                <ArrowLeft size={22} className={`${muted} shrink-0`} />
                                 <span className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>{title}</span>
                             </button>
                         ) : (

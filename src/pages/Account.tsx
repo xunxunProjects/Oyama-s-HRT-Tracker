@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
@@ -118,6 +118,10 @@ const Account: React.FC<AccountProps> = ({
     const [useBackupCode, setUseBackupCode] = useState(false);
     const [backupCode, setBackupCode] = useState('');
     const [passkeyLoading, setPasskeyLoading] = useState(false);
+    // The password the server accepted before it asked for a second factor.
+    // The passkey retry button needs it too, or that sign-in leaves this
+    // device without a cloud key and sync stuck on locked.
+    const acceptedPasswordRef = useRef<string | null>(null);
     const { login, register, loginWithToken } = useAuth();
 
     // `silent` refreshes the list in place. Sync reports in on its own schedule
@@ -344,6 +348,7 @@ const Account: React.FC<AccountProps> = ({
                 setNeedsTOTP(true);
                 setTwoFAMethod(method);
                 setAuthError(null);
+                acceptedPasswordRef.current = password;
                 if (method === 'passkey') {
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
@@ -869,7 +874,7 @@ const Account: React.FC<AccountProps> = ({
                                                 )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => handlePasskeyLogin()}
+                                                    onClick={() => handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)}
                                                     disabled={passkeyLoading}
                                                     className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                                 >
