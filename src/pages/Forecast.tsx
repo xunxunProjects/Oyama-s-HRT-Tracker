@@ -17,8 +17,12 @@ import { regimenLabel, intervalLabel, dueLabel, fill } from '../utils/regimenTex
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
-const inputCls = 'w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm tabular-nums text-[var(--text)] outline-none focus:border-[var(--border-strong)]';
-const labelCls = `block text-xs font-semibold mb-1.5 pl-1 ${muted}`;
+// Fields as the selects beside them have them (CustomSelect): the label in
+// body colour at medium weight, flush with the box, and the box .input-base,
+// 44px and field-filled with a terracotta focus. A label of its own style
+// and a 38px transparent box made the paired fields look unrelated.
+const inputCls = 'input-base tabular-nums';
+const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
 const cell = 'py-2.5 border-b border-[var(--border)]';
 
 /** Which drugs each route can carry, per mode: what the dose form offers, minus the antiandrogen. */
