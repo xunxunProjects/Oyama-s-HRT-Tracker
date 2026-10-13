@@ -205,6 +205,14 @@ const AppContent = () => {
         const applyTheme = (isDark: boolean) => {
             root.classList.remove('light', 'dark');
             root.classList.add(isDark ? 'dark' : 'light');
+            // The browser's own bar takes this colour: Android's status bar
+            // and toolbar, an installed app's title bar. index.html's white is
+            // right until the theme is applied (and for the shared view,
+            // which applies none), but it stayed white over a dark page.
+            // --bg of each theme, as hex because not every browser reads
+            // oklch() in this tag.
+            document.querySelectorAll('meta[name="theme-color"]').forEach(meta =>
+                meta.setAttribute('content', isDark ? '#181714' : '#ffffff'));
         };
 
         // Mono renders as light with a grayscale filter (see html.mono in index.css)

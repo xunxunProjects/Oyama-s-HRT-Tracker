@@ -77,6 +77,10 @@
     --surface-hover: var(--neutral-100);
     --surface-pressed: var(--neutral-200);
     --surface-glass: rgba(255, 255, 255, 0.72);
+    /* The sticky page header's glass. At rest it is the page itself, so the
+       bar only shows once rows pass under it. --surface-glass is the glass of
+       what floats, the nav island, and in dark it is lighter than the page. */
+    --surface-glass-bar: rgba(255, 255, 255, 0.72);
     --control-thumb: var(--neutral-0);
     --field: var(--neutral-0);
     --text: var(--neutral-950);
@@ -141,6 +145,7 @@
     --surface-hover: var(--neutral-850);
     --surface-pressed: var(--neutral-800);
     --surface-glass: rgba(35, 33, 30, 0.72);
+    --surface-glass-bar: color-mix(in oklch, var(--bg) 72%, transparent);
     --control-thumb: var(--neutral-800);
     --field: var(--neutral-900);
     --text: var(--neutral-25);
@@ -507,6 +512,18 @@ select:focus-visible {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass {
         background-color: var(--surface);
+    }
+}
+
+/* The sticky page header (PageHeader), on top of .glass: the same blur over
+   the page's own colour, so in dark it no longer sits as a lighter band
+   before anything has scrolled beneath it. Unblurred, it is the page. */
+.glass-bar {
+    background-color: var(--surface-glass-bar);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-bar {
+        background-color: var(--bg);
     }
 }
 
