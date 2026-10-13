@@ -484,8 +484,8 @@ describe('dose advisory reads each regimen as it is taken', () => {
         // 100 mg weekly for four months, then every 3 days (about 233 mg/week).
         // The median of every gap in 120 days took about five weeks to move.
         const events = [
-            ...regimen(Route.injection, Ester.TE, 100, 168, 17, NOON - 3 * 72),
-            ...regimen(Route.injection, Ester.TE, 100, 72, 3, NOON),
+            ...regimen(Route.injection, Ester.TE, 100, 168, 17, NOON - 4 * 72),
+            ...regimen(Route.injection, Ester.TE, 100, 72, 4, NOON),
         ];
         expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 't' });
     });
@@ -500,6 +500,41 @@ describe('dose advisory reads each regimen as it is taken', () => {
         };
         expect(getDoseAdvisory(monThu(72), NOW_H)).toBeNull();
         expect(getDoseAdvisory(monThu(96), NOW_H)).toBeNull();
+    });
+
+    it('a little jitter around the weekly day is not read as a higher dose', () => {
+        // 190 mg/week with the last four gaps at 140, 150, 168 and 214 h, a mean
+        // of 168 h. The median of those four (159 h) read as 201 mg/week.
+        const times = [NOON];
+        for (const gap of [214, 168, 150, 140, 168, 168, 168, 168]) times.unshift(times[0] - gap);
+        expect(
+            getDoseAdvisory(
+                times.map(t => dose(Route.injection, Ester.TC, 190, t)),
+                NOW_H,
+            ),
+        ).toBeNull();
+    });
+
+    it('a longer schedule shows after two of its gaps', () => {
+        // 100 mg weekly, then 250 mg every 3 weeks (83 mg/week). Each long gap
+        // used to read as a stop and restart, keeping the weekly cadence.
+        const events = [
+            ...regimen(Route.injection, Ester.TE, 100, 168, 12, NOON - 2 * 21 * 24),
+            dose(Route.injection, Ester.TE, 250, NOON - 21 * 24),
+            dose(Route.injection, Ester.TE, 250, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('one of two esters taken side by side resuming after a pause does not hide the other', () => {
+        // 120 mg of each a week, on different days (240 mg/week). The enanthate
+        // pauses for five weeks and resumes; the cypionate never stopped.
+        const events = [
+            ...regimen(Route.injection, Ester.TC, 120, 168, 12, NOON - 72),
+            ...regimen(Route.injection, Ester.TE, 120, 168, 8, NOON - 5 * 168),
+            dose(Route.injection, Ester.TE, 120, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 't' });
     });
 
     it('a regimen stopped about 100 days ago raises no advisory', () => {

@@ -311,9 +311,9 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
  * CPA per day, averaged over the days it is taken in the trailing `days`. CPA
  * lasts long enough to be taken every 2 or 3 days (see the CPA dosage article
  * above DOSE_CEILING), and 25 mg every other day is the same 12.5 mg/day as
- * 12.5 mg daily, which a heaviest-day reading would flag. Every dose before
- * the latest dose day is divided by the days from the first dose day to the
- * latest; a single dose day counts in full.
+ * 12.5 mg daily, which a heaviest-day reading would flag. The mean dose per
+ * dose day is divided by the mean gap between dose days, so a larger latest
+ * dose counts at once; a single dose day counts in full.
  */
 function _cpaPerDay(events: DoseEvent[], nowH: number, days: number): number {
     const byDay = new Map<number, number>();
@@ -328,9 +328,10 @@ function _cpaPerDay(events: DoseEvent[], nowH: number, days: number): number {
     if (doseDays.length === 0) return 0;
     const latest = doseDays[doseDays.length - 1];
     if (doseDays.length === 1) return byDay.get(latest)!;
-    let before = 0;
-    for (const d of doseDays) if (d !== latest) before += byDay.get(d)!;
-    return before / (latest - doseDays[0]);
+    let total = 0;
+    for (const mg of byDay.values()) total += mg;
+    const meanGapDays = (latest - doseDays[0]) / (doseDays.length - 1);
+    return total / doseDays.length / meanGapDays;
 }
 
 /**
@@ -381,24 +382,37 @@ function _median(xs: number[]): number {
 }
 
 /**
- * Cadence of one drug's doses, oldest first: the typical gap between them
- * (the median of the last four, so a change of schedule shows within a few
- * doses and a Monday/Thursday rhythm reads as 3.5 days), and when its latest
- * run began. A gap over twice the usual one is a stop and restart, not part of
- * the rhythm. With a single dose the gap is unknowable (null).
+ * Cadence of one drug's doses, oldest first: the typical gap between them (the
+ * mean of the last four, so a change of schedule shows within a few doses and
+ * a Monday/Thursday rhythm reads as 3.5 days), and when its latest run began.
+ * A lone gap over twice the usual one is a stop and restart, not part of the
+ * rhythm; two or more in a row are a longer schedule. With a single dose the
+ * gap is unknowable (null). `earlierRun` spans the run before the latest one,
+ * if there was one.
  */
-function _cadence(times: number[]): { gapH: number | null; runStartH: number } {
+function _cadence(times: number[]): { gapH: number | null; runStartH: number; earlierRun: [number, number] | null } {
     const gaps: number[] = [];
     for (let i = 1; i < times.length; i++) gaps.push(times[i] - times[i - 1]);
-    if (!gaps.length) return { gapH: null, runStartH: times[0] };
+    if (!gaps.length) return { gapH: null, runStartH: times[0], earlierRun: null };
     const usual = _median(gaps);
-    let runStartH = times[0];
+    const long = gaps.map(g => g > 2 * usual);
+    let runStart = 0;
+    let earlierStart = -1;
     const kept: number[] = [];
     gaps.forEach((g, i) => {
-        if (g > 2 * usual) runStartH = times[i + 1];
-        else kept.push(g);
+        if (long[i] && !long[i - 1] && !long[i + 1]) {
+            earlierStart = runStart;
+            runStart = i + 1;
+        } else {
+            kept.push(g);
+        }
     });
-    return { gapH: _median(kept.slice(-4)), runStartH };
+    const recent = kept.slice(-4);
+    return {
+        gapH: recent.reduce((a, b) => a + b, 0) / recent.length,
+        runStartH: times[runStart],
+        earlierRun: earlierStart >= 0 ? [times[earlierStart], times[runStart - 1]] : null,
+    };
 }
 
 /**
@@ -410,26 +424,34 @@ function _cadence(times: number[]): { gapH: number | null; runStartH: number } {
  * Each ester is read at its own cadence, and only while it is still being
  * taken: a regimen counts until two of its gaps pass with no injection, or
  * until another ester with a known cadence starts, or starts again, after its
- * last injection (a switch). Esters taken side by side add up. An ester needs
- * ≥2 injections to infer a gap; a lone depot's schedule is unknowable, so it
- * adds nothing and does not yet replace the ester before it.
+ * last injection (a switch). Esters taken side by side add up, also when one
+ * of them pauses and resumes. An ester needs ≥2 injections to infer a gap; a
+ * lone depot's schedule is unknowable, so it adds nothing and does not yet
+ * replace the ester before it.
  */
 function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number {
     const merged = _mergedInjections(events, nowH, 120, pred);
-    const regimens = new Map<Ester, { last: { timeH: number; doseMG: number }; gapH: number | null; runStartH: number }>();
+    const regimens = new Map<Ester, { times: number[]; lastDoseMG: number } & ReturnType<typeof _cadence>>();
     for (const ester of new Set(merged.map(m => m.ester))) {
         const own = merged.filter(m => m.ester === ester);
-        regimens.set(ester, { last: own[own.length - 1], ..._cadence(own.map(m => m.timeH)) });
+        const times = own.map(m => m.timeH);
+        regimens.set(ester, { times, lastDoseMG: own[own.length - 1].doseMG, ..._cadence(times) });
     }
     let total = 0;
-    for (const [ester, { last, gapH }] of regimens) {
-        if (gapH === null || nowH - last.timeH > 2 * gapH) continue;
+    for (const [ester, r] of regimens) {
+        const lastH = r.times[r.times.length - 1];
+        if (r.gapH === null || nowH - lastH > 2 * r.gapH) continue;
         let switchedAway = false;
         for (const [other, o] of regimens) {
-            if (other !== ester && o.gapH !== null && o.runStartH > last.timeH) switchedAway = true;
+            if (other === ester || o.gapH === null || o.runStartH <= lastH) continue;
+            // Taken during the other ester's earlier run, this one ran beside
+            // it, so the other resuming is not a switch away from this one.
+            const earlier = o.earlierRun;
+            if (earlier && r.times.some(t => t >= earlier[0] && t <= earlier[1])) continue;
+            switchedAway = true;
         }
         if (switchedAway) continue;
-        total += last.doseMG / (gapH / 168); // 168 h = 1 week
+        total += r.lastDoseMG / (r.gapH / 168); // 168 h = 1 week
     }
     return total;
 }
@@ -1460,8 +1482,8 @@ export const PK_PARAM_RANGES: Record<keyof PKCustomParams, readonly [number, num
  * Defaults this file used to ship. The settings page saves every field, so a
  * stored value equal to a former default was, in all likelihood, never chosen
  * by anyone; it is read as the current default, or a corrected default would
- * never reach a person who once pressed Save. Such a value cannot be set by
- * hand any more (0.0251 still can).
+ * never reach a person who once pressed Save. The same goes for that value
+ * typed on the page now; any other, such as 0.0251, is used as typed.
  */
 const PK_FORMER_DEFAULTS: Partial<Record<keyof PKCustomParams, number[]>> = {
     t_ff_TC: [0.025],
@@ -1683,8 +1705,9 @@ function _getTInjFF(ester: Ester): number {
 //
 // All of this is single-dose data. Low doses likely read low: the Dianette
 // (Diane-35) label gives 15 ng/mL at 1.6 h after 2 mg
-// (https://www.medicines.org.uk/emc/product/1122/smpc), where the model gives
-// about 5.7 at 70 kg, and a linear model fitted to 100 mg cannot follow both.
+// (https://www.medicines.org.uk/emc/product/1122/smpc), where the model peaks
+// at about 5.7 ng/mL at 3 h at 70 kg, and a linear model fitted to 100 mg
+// cannot follow both.
 // Levels on daily dosing have not been checked against multiple-dose studies.
 const CPA_ORAL = (() => {
     const alpha = 0.25;

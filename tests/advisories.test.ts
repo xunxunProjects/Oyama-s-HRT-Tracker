@@ -70,6 +70,12 @@ describe('getDoseAdvisory', () => {
         expect(getDoseAdvisory(regimen(Route.oral, Ester.CPA, 25, 24, 7, NOON), NOW_H)).toEqual({ kind: 'cpa' });
     });
 
+    it('counts a larger latest cyproterone dose at once', () => {
+        const events = regimen(Route.oral, Ester.CPA, 12.5, 24, 13, NOON - 24);
+        expect(getDoseAdvisory([...events, dose(Route.oral, Ester.CPA, 12.5, NOON)], NOW_H)).toBeNull();
+        expect(getDoseAdvisory([...events, dose(Route.oral, Ester.CPA, 50, NOON)], NOW_H)).toEqual({ kind: 'cpa' });
+    });
+
     it('reads oral valerate as the estradiol it carries', () => {
         // 13 mg of valerate is 9.9 mg of estradiol, under the 12 mg ceiling.
         expect(getDoseAdvisory([dose(Route.oral, Ester.EV, 13, NOON)], NOW_H)).toBeNull();
