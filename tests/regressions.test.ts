@@ -86,17 +86,37 @@ describe('patch removals end the patch that is actually on', () => {
         expect(E2(sim, t0 + 220)!).toBeLessThan(ONE_PATCH_100 * 1e-3);
     });
 
-    it('a removal long after every planned end is ignored', () => {
+    it('a removal long after the planned end still ends a patch left on, as an explicit removal takes precedence', () => {
+        // Someone who forgot to change a patch logs its removal a day or more
+        // late. The plan-based match skips it, and this removal used to be
+        // dropped, so the patch read as off from its planned end.
         const t0 = NOW_H - 1000;
         const wear = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
-        const alone = runSimulation([dose(Route.patchApply, Ester.E2, 0, t0, wear)], BW)!;
-        const withStrayRemoval = runSimulation(
-            [dose(Route.patchApply, Ester.E2, 0, t0, wear), dose(Route.patchRemove, Ester.E2, 0, t0 + 300)],
+        for (const lateH of [30, 216]) {
+            const sim = runSimulation(
+                [dose(Route.patchApply, Ester.E2, 0, t0, wear), dose(Route.patchRemove, Ester.E2, 0, t0 + 84 + lateH)],
+                BW,
+            )!;
+            expect(relErr(E2(sim, t0 + 84 + lateH - 2)!, ONE_PATCH_100)).toBeLessThan(0.01);
+            expect(E2(sim, t0 + 84 + lateH + 72)!).toBeLessThan(ONE_PATCH_100 * 1e-3);
+        }
+    });
+
+    it('a late removal does not reach back past a newer patch', () => {
+        // A was replaced by B; both planned 84 h. A removal 30 h after B's plan
+        // ended goes to B. A keeps its planned end.
+        const t0 = NOW_H - 1000;
+        const wear = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
+        const sim = runSimulation(
+            [
+                dose(Route.patchApply, Ester.E2, 0, t0, wear),
+                dose(Route.patchApply, Ester.E2, 0, t0 + 84, wear),
+                dose(Route.patchRemove, Ester.E2, 0, t0 + 168 + 30),
+            ],
             BW,
         )!;
-        for (const t of [t0 + 40, t0 + 84, t0 + 90, t0 + 200]) {
-            expect(E2(withStrayRemoval, t)).toBeCloseTo(E2(alone, t)!, 9);
-        }
+        expect(relErr(E2(sim, t0 + 120)!, ONE_PATCH_100)).toBeLessThan(0.01);
+        expect(relErr(E2(sim, t0 + 190)!, ONE_PATCH_100)).toBeLessThan(0.01);
     });
 
     it('a removal at the same moment as an application does not depend on list order', () => {
@@ -309,6 +329,22 @@ describe('lab calibration reports and draws the same thing', () => {
         expect(cal.halfLifeDeltaPct).toBe(0);
     });
 
+    it.each(['ekf', 'mipd'] as const)('%s: a run of labs a few hours apart counts as several draws', method => {
+        // Labs every 5 h used to chain into one cluster however long the run,
+        // so four draws over 15 h, then two more days later, could not move
+        // clearance while the same labs 24 h apart could.
+        const truth = withClearance(1.6);
+        const times = [NOW_H - 300, NOW_H - 295, NOW_H - 290, NOW_H - 285, NOW_H - 120, NOW_H - 115];
+        const cal = computeCalibration(
+            sim,
+            events,
+            BW,
+            times.map(t => lab(t, E2(truth, t)!)),
+            method,
+        );
+        expect(cal.kMul).toBeGreaterThan(1.2);
+    });
+
     it.each([
         ['ekf', 'forward'],
         ['ekf', 'retrospective'],
@@ -418,6 +454,26 @@ describe('dose advisory counts patches by what they deliver', () => {
             .flat()
             .slice(1);
         expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('a changeover that overlaps for minutes is not counted as two patches for the day', () => {
+        // 400 µg/day changed every 84 h. The check used to take the rate at the
+        // moment each patch went on, so any overlap doubled it.
+        const removalAfter = Array.from({ length: 5 }, (_, i) => {
+            const t = NOON - 84 * (4 - i);
+            return [
+                dose(Route.patchApply, Ester.E2, 0, t, { ...rate(400), [ExtraKey.patchWearH]: 84 }),
+                dose(Route.patchRemove, Ester.E2, 0, t + 84 + 1 / 60),
+            ];
+        }).flat();
+        expect(getDoseAdvisory(removalAfter, NOW_H)).toBeNull();
+
+        // No removals, each new patch on 30 minutes before the old one's plan ends.
+        const early = regimen(Route.patchApply, Ester.E2, 0, 83.5, 5, NOON, {
+            ...rate(400),
+            [ExtraKey.patchWearH]: 84,
+        });
+        expect(getDoseAdvisory(early, NOW_H)).toBeNull();
     });
 
     it('a patch with no removal logged is not assumed to stay on', () => {

@@ -217,8 +217,8 @@ function _patchRateMgPerDay(e: DoseEvent): number | null {
 /**
  * Heaviest recent estradiol day, as a fraction of the ceiling (1 = at the
  * ceiling). Oral, sublingual and gel doses count by what was taken on each
- * local day; patches count by what the patches on at that moment deliver per
- * day. Routes add up as fractions of their own ceilings, so 6 mg oral plus a
+ * local day; patches count by what they deliver over the 24 h from each
+ * application. Routes add up as fractions of their own ceilings, so 6 mg oral plus a
  * 300 µg/day patch is half of one plus half of the other.
  *
  * A patch logged by reservoir dose only has no known daily delivery (its
@@ -245,7 +245,7 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
     const removals = patchRemovalTimes(events);
     const patches: { start: number; end: number; rate: number }[] = [];
     for (const e of events) {
-        if (e.route !== Route.patchApply || !isEstradiolEster(e.ester)) continue;
+        if (e.route !== Route.patchApply || !isEstradiolEster(e.ester) || e.timeH > nowH) continue;
         const rate = _patchRateMgPerDay(e);
         if (rate === null) continue;
         const removeAt = removals.get(e);
@@ -256,14 +256,25 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
         if (inWindow(e.timeH)) times.push(e.timeH);
     }
 
-    // The patch total only rises when a patch goes on, so checking it at every
-    // application (and at every other dose, to pair it with that day) finds
-    // the heaviest moment of each day.
+    // What the patches deliver over the 24 h from `t`, in mg. Measuring a day's
+    // delivery rather than the rate at one instant keeps a changeover, where
+    // the new patch goes on minutes before the old one comes off, from counting
+    // as two patches for the whole day. Rounded so that a day exactly at the
+    // ceiling does not cross it by floating-point error.
+    const patchMgFrom = (t: number) => {
+        let mg = 0;
+        for (const p of patches) {
+            const overlapH = Math.min(p.end, t + 24) - Math.max(p.start, t);
+            if (overlapH > 0) mg += (p.rate * overlapH) / 24;
+        }
+        return Math.round(mg * 1e6) / 1e6;
+    };
+
+    // Checked from every application, where the patch total rises, and from
+    // every other dose, to add the patches to that day's tablets or gel.
     let mx = 0;
     for (const t of times) {
-        let rate = 0;
-        for (const p of patches) if (p.start <= t && t < p.end) rate += p.rate;
-        const ratio = (byDay.get(_localDay(t)) ?? 0) + rate / DOSE_CEILING.e2PatchPerDay;
+        const ratio = (byDay.get(_localDay(t)) ?? 0) + patchMgFrom(t) / DOSE_CEILING.e2PatchPerDay;
         if (ratio > mx) mx = ratio;
     }
     return mx;
@@ -600,11 +611,15 @@ const clampLogK = (k: number) => Math.max(LOG_KMUL_MIN, Math.min(LOG_KMUL_MAX, k
 
 /** Whether the first `count` labs are numerous and spread out enough to move clearance. */
 function clearanceIdentifiable(labTimes: number[], count: number): boolean {
+    // Each cluster is measured from its first lab, so a run of labs a few
+    // hours apart still counts once per LAB_CLUSTER_H, not once in all.
     let clusters = 0;
-    let last = -Infinity;
+    let anchor = -Infinity;
     for (let i = 0; i < count; i++) {
-        if (labTimes[i] - last > LAB_CLUSTER_H) clusters++;
-        last = labTimes[i];
+        if (labTimes[i] - anchor > LAB_CLUSTER_H) {
+            clusters++;
+            anchor = labTimes[i];
+        }
     }
     return clusters >= MIN_LABS_FOR_CLEARANCE;
 }
@@ -1896,8 +1911,11 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
  *   - a removal logged at the same moment as, or minutes after, a new
  *     application (the old patch was on before the log started, or the change
  *     was entered in the other order) does not end the new patch;
- *   - a removal that fits no patch is ignored instead of consuming the next
- *     application and shifting every later pairing by one.
+ *   - a removal that fits no patch by its plan ends the newest patch of that
+ *     hormone if that one is still unpaired, so a patch left on past its plan
+ *     and taken off later is worn until the removal;
+ *   - any other removal that fits no patch is ignored instead of consuming
+ *     the next application and shifting every later pairing by one.
  * Ties between patches applied at the same time are broken by their own
  * contents, so the result never depends on the order of the input array.
  *
@@ -1940,7 +1958,8 @@ function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
     for (const r of removals) {
         while (next < applies.length && applies[next].timeH <= r.timeH - PATCH_MIN_WEAR_H) open.push(applies[next++]);
         // Removals arrive in time order, so a patch whose planned wear ended
-        // more than the grace period ago can never be matched again.
+        // more than the grace period ago is never matched by plan again (only
+        // by the fallback below).
         open = open.filter(a => {
             const wear = _plannedWearH(a);
             return wear === null || a.timeH + wear + PATCH_REMOVAL_GRACE_H >= r.timeH;
@@ -1950,6 +1969,22 @@ function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
         if (idx >= 0) {
             pairs.set(open[idx], r.timeH);
             open.splice(idx, 1);
+            continue;
+        }
+        // No patch fits by its plan. An explicit removal still ends a patch
+        // worn past it (see ExtraKey.patchWearH), so it goes to the newest
+        // patch of that hormone put on before it, if that one is unpaired.
+        // An older patch is never taken: a newer one replaced it.
+        let newestH = -Infinity;
+        for (let i = next - 1; i >= 0; i--) {
+            const a = applies[i];
+            if (hormone !== null && _patchHormone(a) !== hormone) continue;
+            if (a.timeH < newestH) break;
+            newestH = a.timeH;
+            if (!pairs.has(a)) {
+                pairs.set(a, r.timeH);
+                break;
+            }
         }
     }
     patchRemovalCache.set(allEvents, pairs);
