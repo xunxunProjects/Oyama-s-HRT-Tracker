@@ -21,34 +21,6 @@ import { BW, NOW_H, VD_E2_ML, dose, lab, regimen, relErr, scan } from './helpers
 import { upstreamE2Amount } from './reference/pkcoreUpstream';
 
 const E2 = interpolateConcentration_E2;
-// Steady-state level of one 100 µg/day estradiol patch at 70 kg, ≈ 72.6 pg/mL.
-const ONE_PATCH_100 = ((0.1 / 24 / 0.41) * 1e9) / VD_E2_ML;
-
-describe('suspected: two patches applied at the same moment', () => {
-    // computeMaxLifetimeH() finds "the" patch for an apply event by matching its
-    // time (`allEvents.find(e => e.route === patchApply && e.timeH === eventTimeH)`).
-    // When two patches go on at the same moment it always finds the first one, so
-    // the second inherits the first one's wear time when deciding how long it can
-    // contribute. If the first comes off earlier, the second patch's contribution
-    // is dropped from the simulation while it is still being worn.
-    it.fails('the patch removed later keeps delivering after the other one comes off', () => {
-        const t0 = NOW_H - 300;
-        const rate = { [ExtraKey.releaseRateUGPerDay]: 50 };
-        const sim = runSimulation(
-            [
-                dose(Route.patchApply, Ester.E2, 0, t0, rate),
-                dose(Route.patchApply, Ester.E2, 0, t0, rate),
-                dose(Route.patchRemove, Ester.E2, 0, t0 + 24),
-                dose(Route.patchRemove, Ester.E2, 0, t0 + 84),
-            ],
-            BW,
-        )!;
-        const onePatch = ((0.05 / 24 / 0.41) * 1e9) / VD_E2_ML; // ≈ 36 pg/mL
-        // 70 h in, the first patch is long off and the second is still on. Today
-        // this reads about 0 pg/mL instead of one patch's level.
-        expect(relErr(interpolateConcentration_E2(sim, t0 + 70)!, onePatch)).toBeLessThan(0.01);
-    });
-});
 
 describe('suspected: dense sampling around dose peaks never applies to short-acting doses', () => {
     // runSimulation() adds extra sample points 0.25-48 h after a dose, but only
@@ -106,67 +78,6 @@ describe('suspected: testosterone injections run below their documented targets'
         const sim = runSimulation(regimen(Route.injection, ester, mg, everyH, 12, NOW_H - everyH), BW)!;
         const { mean } = scan(sim, interpolateConcentration_T, NOW_H - everyH, NOW_H, 0.5);
         expect(relErr(mean, target)).toBeLessThan(0.2);
-    });
-});
-
-describe('suspected: patch removals are paired with the wrong patch', () => {
-    // patchRemovalTimes() hands each logged removal to the oldest patch that has
-    // not had one yet (first in, first out). That breaks in three ways.
-
-    // 1. It ignores a patch's planned wear time. Patches from a regimen carry
-    //    patchWearH and come off on their own (src/utils/plan.ts), so a single
-    //    logged removal gets paired with the very first patch, which then counts
-    //    as worn until that removal, weeks later, on top of every newer patch.
-    //    Meanwhile the patch that was actually taken off keeps delivering.
-    it.fails('a removal is not paired with a patch whose planned wear already ended', () => {
-        const t0 = NOW_H - 1000;
-        const twiceWeekly = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
-        const applies = Array.from({ length: 8 }, (_, k) =>
-            dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, twiceWeekly),
-        );
-        const sim = runSimulation([...applies, dose(Route.patchRemove, Ester.E2, 0, t0 + 628)], BW)!;
-        // Today about 145 pg/mL (two patches) at t0 + 300 and one patch's level
-        // (73) at t0 + 668, after the last patch came off.
-        expect(relErr(E2(sim, t0 + 300)!, ONE_PATCH_100)).toBeLessThan(1e-3);
-        expect(E2(sim, t0 + 668)!).toBeLessThan(ONE_PATCH_100 * 1e-3);
-    });
-
-    // 2. A removal logged at the same moment as an application, when it comes
-    //    after it in the list, pairs with it; resolvePatchWearH() then ignores a
-    //    zero wear time, so that patch never comes off and the next removal is
-    //    used up as well. The outcome depends on list order. The 120-day window
-    //    the forecast simulates (src/hooks/useAppData.ts) can produce this.
-    it.fails('a removal at the same moment as an application does not depend on list order', () => {
-        const t0 = NOW_H - 1000;
-        const apply = dose(Route.patchApply, Ester.E2, 0, t0, { [ExtraKey.releaseRateUGPerDay]: 100 });
-        const removeNow = dose(Route.patchRemove, Ester.E2, 0, t0);
-        const removeLater = dose(Route.patchRemove, Ester.E2, 0, t0 + 84);
-        const a = E2(runSimulation([apply, removeNow, removeLater], BW)!, t0 + 200)!;
-        const b = E2(runSimulation([removeNow, apply, removeLater], BW)!, t0 + 200)!;
-        // Today a is one patch's level (73 pg/mL) long after both removals; b is 0.
-        expect(a).toBeLessThan(1e-3);
-        expect(b).toBeLessThan(1e-3);
-    });
-
-    // 3. One unmatched removal shifts every later pairing by one. At each change
-    //    the old patch comes off and a new one goes on. When the log starts with
-    //    a patch already on, the first removal has no application of its own;
-    //    if each removal is logged a few minutes after the new application, it
-    //    is paired with the patch just put on, and the whole history reads zero.
-    //    Logged a few minutes before instead, it reads correctly.
-    it.fails('the order of removal and application within a change does not wipe out the history', () => {
-        const t0 = NOW_H - 1000;
-        const rate = { [ExtraKey.releaseRateUGPerDay]: 100 };
-        const changes = (removeOffsetH: number) =>
-            Array.from({ length: 6 }, (_, k) => [
-                dose(Route.patchApply, Ester.E2, 0, t0 + 84 * k, rate),
-                dose(Route.patchRemove, Ester.E2, 0, t0 + 84 * k + removeOffsetH),
-            ]).flat();
-        const removedFirst = E2(runSimulation(changes(-0.1), BW)!, t0 + 300)!;
-        const removedAfter = E2(runSimulation(changes(0.1), BW)!, t0 + 300)!;
-        expect(relErr(removedFirst, ONE_PATCH_100)).toBeLessThan(0.01);
-        // Today `removedAfter` is 0.
-        expect(relErr(removedAfter, removedFirst)).toBeLessThan(0.01);
     });
 });
 

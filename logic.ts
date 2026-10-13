@@ -1485,28 +1485,78 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
  * Pair each patch application with its own removal.
  *
  * Nothing on a patchRemove event says which application it ends, so the pairing
- * has to come from order: walk the timeline and give each removal the oldest
- * application still on the skin (FIFO). Picking the first removal *after* each
- * application instead — which is what a per-event `find` does — hands the same
- * early removal to every overlapping patch, so on a staggered two-patch
- * regimen the second patch stops delivering the moment the first comes off.
+ * is inferred: walk the removals in time order and give each one the oldest
+ * patch that is plausibly still on the skin at that moment. Picking the first
+ * removal *after* each application instead (what a per-event `find` does) hands
+ * the same early removal to every overlapping patch, so on a staggered
+ * two-patch regimen the second patch would stop delivering when the first
+ * comes off.
+ *
+ * A patch counts as "on" for a removal when it is of the same hormone (the form
+ * writes estradiol or testosterone on a removal by mode), was applied at least
+ * PATCH_MIN_WEAR_H earlier, and, if it has a planned wear time, that wear ended
+ * no more than PATCH_REMOVAL_GRACE_H before the removal. So:
+ *   - a patch that already came off by its planned wear does not soak up a
+ *     later removal of a newer patch;
+ *   - a removal logged a little late still ends the old patch, not the new one
+ *     put on just before it;
+ *   - a removal logged at the same moment as, or minutes after, a new
+ *     application (the old patch was on before the log started, or the change
+ *     was entered in the other order) does not end the new patch;
+ *   - a removal that fits no patch is ignored instead of consuming the next
+ *     application and shifting every later pairing by one.
+ * Ties between patches applied at the same time are broken by their own
+ * contents, so the result never depends on the order of the input array.
  *
  * Keyed on event identity rather than `id` because imported files can carry
  * duplicate ids. Memoised per event array: the caller builds one array per
  * simulation and asks once per patch event.
  */
+const PATCH_MIN_WEAR_H = 1;
+const PATCH_REMOVAL_GRACE_H = 24;
+
 const patchRemovalCache = new WeakMap<DoseEvent[], Map<DoseEvent, number>>();
+
+function _patchHormone(e: DoseEvent): 'e2' | 't' | null {
+    if (isTestosteroneEster(e.ester)) return 't';
+    if (isEstradiolEster(e.ester)) return 'e2';
+    return null;
+}
+
+function _plannedWearH(e: DoseEvent): number | null {
+    const planned = e.extras?.[ExtraKey.patchWearH];
+    return typeof planned === 'number' && Number.isFinite(planned) && planned > 0 ? planned : null;
+}
 
 function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
     const cached = patchRemovalCache.get(allEvents);
     if (cached) return cached;
     const pairs = new Map<DoseEvent, number>();
-    const onSkin: DoseEvent[] = []; // applications awaiting a removal, oldest first
-    for (const e of allEvents) {
-        if (e.route === Route.patchApply) onSkin.push(e);
-        else if (e.route === Route.patchRemove) {
-            const apply = onSkin.shift();
-            if (apply) pairs.set(apply, e.timeH);
+
+    const byTimeThenContent = (a: DoseEvent, b: DoseEvent) =>
+        a.timeH - b.timeH ||
+        (_plannedWearH(a) ?? Infinity) - (_plannedWearH(b) ?? Infinity) ||
+        a.doseMG - b.doseMG ||
+        (Number(a.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) - (Number(b.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) ||
+        String(a.id).localeCompare(String(b.id));
+    const applies = allEvents.filter(e => e.route === Route.patchApply).sort(byTimeThenContent);
+    const removals = allEvents.filter(e => e.route === Route.patchRemove).sort((a, b) => a.timeH - b.timeH);
+
+    let open: DoseEvent[] = []; // unpaired applications, oldest first
+    let next = 0;
+    for (const r of removals) {
+        while (next < applies.length && applies[next].timeH <= r.timeH - PATCH_MIN_WEAR_H) open.push(applies[next++]);
+        // Removals arrive in time order, so a patch whose planned wear ended
+        // more than the grace period ago can never be matched again.
+        open = open.filter(a => {
+            const wear = _plannedWearH(a);
+            return wear === null || a.timeH + wear + PATCH_REMOVAL_GRACE_H >= r.timeH;
+        });
+        const hormone = _patchHormone(r);
+        const idx = open.findIndex(a => hormone === null || _patchHormone(a) === hormone);
+        if (idx >= 0) {
+            pairs.set(open[idx], r.timeH);
+            open.splice(idx, 1);
         }
     }
     patchRemovalCache.set(allEvents, pairs);
@@ -1630,12 +1680,12 @@ class PrecomputedEventModel {
  * the evaluation — critical when there are hundreds of events (e.g. daily
  * oral recording for a year).
  */
-function computeMaxLifetimeH(params: PKParams, route: Route, allEvents: DoseEvent[], eventTimeH: number): number {
-    // For patches: account for wear duration + post-removal decay. The apply
-    // event carries the time, so reconstruct a minimal event for the resolver.
-    if (route === Route.patchApply) {
-        const applyEvent = allEvents.find(e => e.route === Route.patchApply && e.timeH === eventTimeH);
-        const wearH = applyEvent ? resolvePatchWearH(applyEvent, allEvents) : Number.MAX_VALUE;
+function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: DoseEvent[]): number {
+    // For patches: account for wear duration + post-removal decay. Resolve the
+    // wear of this very event: two patches applied at the same moment can come
+    // off at different times.
+    if (event.route === Route.patchApply) {
+        const wearH = resolvePatchWearH(event, allEvents);
         if (wearH >= Number.MAX_VALUE) return Infinity; // Worn indefinitely, always contributes
         const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
         return wearH + decayH;
@@ -1669,7 +1719,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         .map(e => {
             const model = new PrecomputedEventModel(e, sortedEvents);
             const params = resolveParams(e);
-            const maxLifetimeH = computeMaxLifetimeH(params, e.route, sortedEvents, e.timeH);
+            const maxLifetimeH = computeMaxLifetimeH(params, e, sortedEvents);
             return { model, ester: e.ester, startTimeH: e.timeH, maxLifetimeH };
         });
 
