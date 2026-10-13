@@ -291,6 +291,8 @@ export const TRANSLATIONS_BASE = {
         "modal.dose.add_title": "新增用药记录",
         "modal.dose.edit_title": "编辑用药记录",
         "modal.dose.delete_confirm": "确定删除这条记录吗？",
+        "modal.dose.dose_required": "请先输入剂量。",
+        "field.gel_e2_applied": "雌二醇用量 (mg)",
 
         "field.time": "给药时间",
         "field.route": "给药途径",
@@ -1061,7 +1063,9 @@ export const TRANSLATIONS_BASE = {
         "modal.weight.desc": "Used in peak concentration estimates.",
         "modal.dose.add_title": "Add Dose",
         "modal.dose.edit_title": "Edit Dose",
-        "modal.dose.delete_confirm": "Are you sure you want to delete this record?",
+        "modal.dose.delete_confirm": "Delete this record?",
+        "modal.dose.dose_required": "Enter a dose first.",
+        "field.gel_e2_applied": "Estradiol applied (mg)",
 
         "field.time": "Time",
         "field.route": "Route",
@@ -1716,6 +1720,8 @@ const ZH_TW = {
     "modal.dose.add_title": "新增用藥",
     "modal.dose.edit_title": "編輯用藥",
     "modal.dose.delete_confirm": "確定要刪除這筆紀錄嗎？",
+    "modal.dose.dose_required": "請先輸入劑量",
+    "field.gel_e2_applied": "雌二醇用量（mg）",
 
     "field.time": "用藥時間",
     "date.select": "選擇日期",
@@ -2480,6 +2486,7 @@ export const TRANSLATIONS = {
         "modal.dose.add_title": "新增用藥",
         "modal.dose.edit_title": "編輯用藥",
         "modal.dose.delete_confirm": "確認刪除呢條記錄？",
+        "field.gel_e2_applied": "雌二醇用量 (mg)",
 
         "field.time": "給藥時間",
         "date.select": "選擇日期",
@@ -2987,7 +2994,9 @@ export const TRANSLATIONS = {
         "modal.weight.desc": "濃度ピーク値の推定に使用されます。",
         "modal.dose.add_title": "新規投薬の追加",
         "modal.dose.edit_title": "投薬の編集",
-        "modal.dose.delete_confirm": "この記録を削除してもよろしいですか？",
+        "modal.dose.delete_confirm": "この記録を削除しますか？",
+        "modal.dose.dose_required": "先に用量を入力してください。",
+        "field.gel_e2_applied": "エストラジオール塗布量 (mg)",
 
         "field.time": "投与時刻",
         "date.select": "日付を選択",
@@ -3744,6 +3753,8 @@ export const TRANSLATIONS = {
         "modal.dose.add_title": "용량 추가",
         "modal.dose.edit_title": "용량 편집",
         "modal.dose.delete_confirm": "이 기록을 삭제하시겠습니까?",
+        "modal.dose.dose_required": "먼저 용량을 입력하세요.",
+        "field.gel_e2_applied": "에스트라디올 도포량 (mg)",
 
         "field.time": "시간",
         "date.select": "날짜 선택",
@@ -4515,7 +4526,9 @@ export const TRANSLATIONS = {
         "modal.weight.desc": "Tepe konsantrasyon tahminlerinde kullanılır.",
         "modal.dose.add_title": "Doz Ekle",
         "modal.dose.edit_title": "Dozu Düzenle",
-        "modal.dose.delete_confirm": "Bu kaydı silmek istediğinizden emin misiniz?",
+        "modal.dose.delete_confirm": "Bu kayıt silinsin mi?",
+        "modal.dose.dose_required": "Önce bir doz gir.",
+        "field.gel_e2_applied": "Uygulanan östradiol (mg)",
 
         "field.time": "Saat",
         "date.select": "Tarih seçin",
