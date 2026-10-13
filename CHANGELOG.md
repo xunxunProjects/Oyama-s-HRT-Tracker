@@ -27,19 +27,24 @@ Notable changes to this project. Full release notes for each version are on the
   patch that is actually on. The current level right after an oral or
   sublingual dose is no longer read off a coarse grid. Lab calibration reports
   the clearance it draws. Dose reminders read each injection ester on its own
-  schedule and group doses by local day. Swallowed estradiol now goes through
-  an estrone pool, so oral and sublingual levels no longer fall to almost zero
-  between doses. Oral cyproterone acetate follows the Androcur label (100 mg
-  peaks at about 285 ng/mL). Testosterone injections follow the Xyosted, Aveed
-  and Nebido labels (100 mg/week of cypionate or enanthate averages about
-  740 ng/dL instead of 430). Sublingual absorption is unchanged.
+  schedule, read cyproterone taken every few days by its daily average, and
+  group doses by local day. Swallowed estradiol now goes through an estrone
+  pool, so oral and sublingual levels no longer fall to almost zero between
+  doses. Oral cyproterone acetate follows the Androcur label (100 mg peaks at
+  about 285 ng/mL). Testosterone injections follow the Xyosted, Aveed and
+  Nebido labels (100 mg/week of cypionate or enanthate averages about
+  740 ng/dL instead of 430), also for anyone who saved the model parameters
+  page before. Sublingual absorption is unchanged, but sublingual estradiol
+  peaks are lower, most on the shorter hold times, because the swallowed part
+  now rises slowly.
 
   修正了这些测试记录下的计算问题：贴片的移除记录会配给真正贴着的那一片；口服和舌下给药后的
   当前浓度不再从稀疏网格上读取；化验校准报告的清除率与画出的曲线一致；剂量提醒按每种注射酯
-  各自的周期计算，并按本地日期分组；吞下的雌二醇改为经过雌酮储库，口服与舌下在两次服药之间
-  不再降到接近零；口服醋酸环丙孕酮按 Androcur 说明书计算（100 mg 峰值约 285 ng/mL）；
-  睾酮注射按 Xyosted、Aveed 与 Nebido 说明书校准（每周 100 mg 环戊丙酸或庚酸睾酮平均约
-  740 ng/dL，原为 430）。舌下吸收参数未改。
+  各自的周期计算，隔几天服用的醋酸环丙孕酮按日均量计算，并按本地日期分组；吞下的雌二醇改为
+  经过雌酮储库，口服与舌下在两次服药之间不再降到接近零；口服醋酸环丙孕酮按 Androcur 说明书
+  计算（100 mg 峰值约 285 ng/mL）；睾酮注射按 Xyosted、Aveed 与 Nebido 说明书校准（每周
+  100 mg 环戊丙酸或庚酸睾酮平均约 740 ng/dL，原为 430），以前保存过模型参数页的用户也会用上
+  新值。舌下吸收参数未改，但舌下雌二醇的峰值变低，含服时间越短越明显，因为吞下的部分现在上升得慢。
 
 ## 1.4.2
 

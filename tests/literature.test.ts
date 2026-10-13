@@ -200,21 +200,22 @@ describe('testosterone injections', () => {
         within(lo, 16 * NMOL_T);
     });
 
-    it('weekly injections at the dose transgender men settled on average within 1.5x of their mean level', () => {
+    it('weekly injections at the dose transgender men settled on are within 1.5x of their mean level 3.5 days after a dose', () => {
         // Spratt et al., J Clin Endocrinol Metab 2017;102(7):2349, 63 transgender
-        // men on weekly subcutaneous testosterone: 31.7% settled on 50 mg, 54% on
-        // 75 to 80 mg, 11.1% on 100 mg and 3.2% on 150 mg (a mean of about
-        // 73.6 mg/week), with a mean testosterone of 702 ng/dL. The report below
-        // names neither the ester nor the draw time, so cypionate is assumed
-        // and the model's weekly mean is compared.
-        // https://www.healio.com/news/endocrinology/20170412/subcutaneous-testosterone-therapy-safe-effective-in-femaletomale-transgender-patients
+        // men on weekly subcutaneous testosterone, mostly cypionate: 31.7% settled
+        // on 50 mg, 54% on 75 to 80 mg, 11.1% on 100 mg and 3.2% on 150 mg (a mean
+        // of about 73.6 mg/week), with a mean testosterone of 702 ng/dL drawn 3 to
+        // 4 days after the fourth or a later injection of each dose.
+        // https://academic.oup.com/jcem/article/102/7/2349/3098651
         const sim = runSimulation(regimen(Route.injection, Ester.TC, 73.6, 168, 20, NOW_H - 168), BW)!;
-        within(scan(sim, interpolateConcentration_T, NOW_H - 168, NOW_H, 0.5).mean, 702);
+        within(interpolateConcentration_T(sim, NOW_H - 168 + 84)!, 702);
     });
 
     it('cypionate 200 mg IM gives at least the Azmiro label exposure, and not more than twice it', () => {
-        // Azmiro label, 26 hypogonadal men, single 200 mg IM dose, 31 days of
-        // sampling: baseline-corrected AUC 137,219 h·ng/dL, Cmax 758 ng/dL.
+        // Azmiro label, 26 hypogonadal men, single 200 mg IM dose:
+        // baseline-corrected AUC0-t 137,219 h·ng/dL, Cmax 758 ng/dL. The label
+        // does not give the sampling length; the model's AUC over 28 days is
+        // within 1% of its AUC over the 31 used here.
         // https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/216318s002lbl.pdf
         // Subtracting the pre-dose level after a dose that suppresses the men's
         // own testosterone understates the dose's share, so the label is a
@@ -266,12 +267,26 @@ describe('known gaps against published data', () => {
         within(interpolateConcentration_E2(sim, t0 + 8)!, 35);
     });
 
+    // Angeliq label (1 mg estradiol with drospirenone, daily, steady state):
+    // median Tmax 2.01 h (0.5 to 6.02), Cmax 63.7 pg/mL, AUC0-24 882 h·pg/mL.
+    // https://medlibrary.org/lib/rx/meds/angeliq-1/page/5/
+    // The model peaks at about 8.5 h, as the estrone pool delays every
+    // swallowed dose; see OralPK.kE1Pool for why it is left there.
+    it.fails('oral 1 mg/day at steady state peaks within 4 h of the dose', () => {
+        const sim = runSimulation(regimen(Route.oral, Ester.E2, 1, 24, 30, NOW_H - 24), BW)!;
+        const { tmaxH } = scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1);
+        expect(tmaxH).toBeLessThanOrEqual(4);
+    });
+
     // Xyosted label, week 12: Cmin 436 against a Cavg of 553 ng/dL, a ratio of
     // 0.79 (https://medlibrary.org/lib/rx/meds/xyosted/page/4/). At the same
     // average the model's weekly enanthate trough is about 240 ng/dL, a ratio of
-    // 0.43: its curve swings more than this subcutaneous label's. Intramuscular
-    // injections may swing more than subcutaneous ones, and the app does not
-    // tell the two apart, so the enanthate depot rates are left as they are.
+    // 0.43: its curve swings more than this subcutaneous label's. The
+    // intramuscular Azmiro label swings less than the model too (single 200 mg
+    // cypionate: Tmax 72 h, half-life about 8 days, baseline-corrected Cmax
+    // 758 ng/dL, where the model peaks at about 1430 ng/dL at 2 days), so
+    // injection route does not explain it. The depot rates are left as they are
+    // until timed lab results show which way to move them.
     it.fails('enanthate weekly at the Xyosted mean dose troughs within 1.5x of the label Cmin of 436 ng/dL', () => {
         const { lo } = tRange(regimen(Route.injection, Ester.TE, 73.9, 168, 20, NOW_H - 168), NOW_H - 168, NOW_H);
         within(lo, 436);
