@@ -85,7 +85,8 @@ export enum ExtraKey {
     // Planned wear duration (hours) for a patch application. When set, the patch
     // is treated as removed `patchWearH` hours after it is applied, so a single
     // "apply" event self-completes without a separate "remove" event. An explicit
-    // patchRemove event still takes precedence.
+    // patchRemove event still takes precedence, up to PATCH_MAX_OVERWEAR_H past
+    // the planned wear.
     patchWearH = "patchWearH"
 }
 
@@ -170,15 +171,21 @@ export interface DoseAdvisory {
     kind: 'e2' | 't' | 'cpa' | 'e2_cpa';
 }
 
-// Ceilings sit at about 1.5× the top of the usual range for each route, so only
-// clearly excessive use trips them, not merely a high-normal dose. Usual ranges:
-// transfemscience.org "An Introduction to Transfeminine Hormone Therapy",
-// Table 5 (E2, CPA); UCSF masculinizing-therapy guidance (T).
+// Daily estradiol routes and testosterone gel sit at 1.5× the top of their
+// usual range, so only clearly excessive use trips them, not merely a
+// high-normal dose. Injections sit wider (about 3× for estradiol, 2× for
+// testosterone) because a rate read from the person's own cadence is coarse.
+// CPA sits at the top of its recommended range, not above it, because more
+// blocks testosterone no better; older guidance's 25–50 mg/day does warn.
+// Usual ranges: transfemscience.org "An Introduction to Transfeminine Hormone
+// Therapy", Table 5 (E2) and "Cyproterone Acetate Dosage" (CPA,
+// https://transfemscience.org/articles/cpa-dosage/; WPATH SOC 8 gives
+// 10 mg/day); UCSF masculinizing-therapy guidance (T, 50–100 mg/week).
 const DOSE_CEILING = {
     cpaPerDay: 12.5,        // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
-    e2OralPerDay: 12,       // mg/day — usual 2–8
-    e2SublingualPerDay: 9,  // mg/day — usual 0.5–6
-    e2GelPerDay: 9,         // mg/day — usual 1.5–6
+    e2OralPerDay: 12,       // mg/day of estradiol — usual 2–8
+    e2SublingualPerDay: 9,  // mg/day of estradiol — usual 0.5–6
+    e2GelPerDay: 9,         // mg/day of estradiol — usual 1.5–6
     e2PatchPerDay: 0.6,     // mg/day delivered — usual 0.05–0.4 (50–400 µg/day)
     // Injected estradiol, in mg of the ester. Table 5's usual ranges for the
     // valerate, cypionate, enanthate, benzoate and undecylate all top out
@@ -214,12 +221,28 @@ function _patchRateMgPerDay(e: DoseEvent): number | null {
     return typeof ug === 'number' && Number.isFinite(ug) && ug > 0 ? ug / 1000 : null;
 }
 
+/** When local day `day` (a _localDay number) starts, in hours since the epoch. */
+function _localDayStartH(day: number): number {
+    // Searched for, as a day can start at a clock change rather than at
+    // midnight. UTC offsets lie between −12 h and +14 h, and every offset and
+    // clock change falls on a whole minute.
+    let lo = day * 24 - 14;
+    let hi = day * 24 + 12;
+    while (hi - lo > 1e-4) {
+        const mid = (lo + hi) / 2;
+        if (_localDay(mid) >= day) hi = mid;
+        else lo = mid;
+    }
+    return Math.round(hi * 60) / 60;
+}
+
 /**
  * Heaviest recent estradiol day, as a fraction of the ceiling (1 = at the
  * ceiling). Oral, sublingual and gel doses count by what was taken on each
- * local day; patches count by what they deliver over the 24 h from each
- * application. Routes add up as fractions of their own ceilings, so 6 mg oral plus a
- * 300 µg/day patch is half of one plus half of the other.
+ * local day, in mg of estradiol, plus what patches deliver on that same day.
+ * A patch on its own counts by what it delivers over the 24 h from its
+ * application. Routes add up as fractions of their own ceilings, so 6 mg oral
+ * plus a 300 µg/day patch is half of one plus half of the other.
  *
  * A patch logged by reservoir dose only has no known daily delivery (its
  * reservoir is several times what it releases) and is left out, as the
@@ -228,7 +251,6 @@ function _patchRateMgPerDay(e: DoseEvent): number | null {
 function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number {
     const inWindow = (t: number) => nowH - t >= 0 && nowH - t <= days * 24;
     const byDay = new Map<number, number>();
-    const times: number[] = [];
     for (const e of events) {
         if (!isEstradiolEster(e.ester) || !inWindow(e.timeH)) continue;
         const ceiling =
@@ -238,8 +260,7 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
             : null;
         if (ceiling === null) continue;
         const day = _localDay(e.timeH);
-        byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG / ceiling);
-        times.push(e.timeH);
+        byDay.set(day, (byDay.get(day) ?? 0) + (e.doseMG * getToE2Factor(e.ester)) / ceiling);
     }
 
     const removals = patchRemovalTimes(events);
@@ -253,31 +274,63 @@ function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number 
             ? removeAt - e.timeH
             : _plannedWearH(e) ?? PATCH_UNKNOWN_WEAR_H;
         patches.push({ start: e.timeH, end: e.timeH + wear, rate });
-        if (inWindow(e.timeH)) times.push(e.timeH);
     }
 
-    // What the patches deliver over the 24 h from `t`, in mg. Measuring a day's
-    // delivery rather than the rate at one instant keeps a changeover, where
-    // the new patch goes on minutes before the old one comes off, from counting
-    // as two patches for the whole day. Rounded so that a day exactly at the
-    // ceiling does not cross it by floating-point error.
-    const patchMgFrom = (t: number) => {
+    // What the patches deliver from `from` to `to`, in mg per 24 h. Measuring
+    // a day's delivery rather than the rate at one instant keeps a changeover,
+    // where the new patch goes on minutes before the old one comes off, from
+    // counting as two patches for the whole day. Rounded so that a day exactly
+    // at the ceiling does not cross it by floating-point error.
+    const patchMgPerDay = (from: number, to: number) => {
         let mg = 0;
         for (const p of patches) {
-            const overlapH = Math.min(p.end, t + 24) - Math.max(p.start, t);
+            const overlapH = Math.min(p.end, to) - Math.max(p.start, from);
             if (overlapH > 0) mg += (p.rate * overlapH) / 24;
         }
-        return Math.round(mg * 1e6) / 1e6;
+        return Math.round(((mg * 24) / (to - from)) * 1e6) / 1e6;
     };
 
-    // Checked from every application, where the patch total rises, and from
-    // every other dose, to add the patches to that day's tablets or gel.
     let mx = 0;
-    for (const t of times) {
-        const ratio = (byDay.get(_localDay(t)) ?? 0) + patchMgFrom(t) / DOSE_CEILING.e2PatchPerDay;
+    // Each day with tablets or gel, with the patches worn that same day. A
+    // switch from tablets in the morning to a patch at night is two half days,
+    // not one full day of each.
+    for (const [day, ratio] of byDay) {
+        const total = ratio + patchMgPerDay(_localDayStartH(day), _localDayStartH(day + 1)) / DOSE_CEILING.e2PatchPerDay;
+        if (total > mx) mx = total;
+    }
+    // Each application, where the patch total rises.
+    for (const p of patches) {
+        if (!inWindow(p.start)) continue;
+        const ratio = patchMgPerDay(p.start, p.start + 24) / DOSE_CEILING.e2PatchPerDay;
         if (ratio > mx) mx = ratio;
     }
     return mx;
+}
+
+/**
+ * CPA per day, averaged over the days it is taken in the trailing `days`. CPA
+ * lasts long enough to be taken every 2 or 3 days (see the CPA dosage article
+ * above DOSE_CEILING), and 25 mg every other day is the same 12.5 mg/day as
+ * 12.5 mg daily, which a heaviest-day reading would flag. Every dose before
+ * the latest dose day is divided by the days from the first dose day to the
+ * latest; a single dose day counts in full.
+ */
+function _cpaPerDay(events: DoseEvent[], nowH: number, days: number): number {
+    const byDay = new Map<number, number>();
+    for (const e of events) {
+        const age = nowH - e.timeH;
+        if (e.ester === Ester.CPA && age >= 0 && age <= days * 24) {
+            const day = _localDay(e.timeH);
+            byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG);
+        }
+    }
+    const doseDays = [...byDay.keys()].sort((a, b) => a - b);
+    if (doseDays.length === 0) return 0;
+    const latest = doseDays[doseDays.length - 1];
+    if (doseDays.length === 1) return byDay.get(latest)!;
+    let before = 0;
+    for (const d of doseDays) if (d !== latest) before += byDay.get(d)!;
+    return before / (latest - doseDays[0]);
 }
 
 /**
@@ -321,6 +374,33 @@ function _mergedInjections(events: DoseEvent[], nowH: number, days: number, pred
     return merged;
 }
 
+function _median(xs: number[]): number {
+    const v = [...xs].sort((a, b) => a - b);
+    const n = v.length;
+    return n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
+}
+
+/**
+ * Cadence of one drug's doses, oldest first: the typical gap between them
+ * (the median of the last four, so a change of schedule shows within a few
+ * doses and a Monday/Thursday rhythm reads as 3.5 days), and when its latest
+ * run began. A gap over twice the usual one is a stop and restart, not part of
+ * the rhythm. With a single dose the gap is unknowable (null).
+ */
+function _cadence(times: number[]): { gapH: number | null; runStartH: number } {
+    const gaps: number[] = [];
+    for (let i = 1; i < times.length; i++) gaps.push(times[i] - times[i - 1]);
+    if (!gaps.length) return { gapH: null, runStartH: times[0] };
+    const usual = _median(gaps);
+    let runStartH = times[0];
+    const kept: number[] = [];
+    gaps.forEach((g, i) => {
+        if (g > 2 * usual) runStartH = times[i + 1];
+        else kept.push(g);
+    });
+    return { gapH: _median(kept.slice(-4)), runStartH };
+}
+
 /**
  * Weekly-equivalent dose for an injected family, inferred from the person's own
  * cadence (dose ÷ typical gap between injections). This avoids false alarms right
@@ -329,28 +409,27 @@ function _mergedInjections(events: DoseEvent[], nowH: number, days: number, pred
  *
  * Each ester is read at its own cadence, and only while it is still being
  * taken: a regimen counts until two of its gaps pass with no injection, or
- * until another ester starts after its last injection (a switch). Esters taken
- * side by side add up. An ester needs ≥2 injections to infer a gap; a lone
- * depot's schedule is unknowable and adds nothing.
+ * until another ester with a known cadence starts, or starts again, after its
+ * last injection (a switch). Esters taken side by side add up. An ester needs
+ * ≥2 injections to infer a gap; a lone depot's schedule is unknowable, so it
+ * adds nothing and does not yet replace the ester before it.
  */
 function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number {
     const merged = _mergedInjections(events, nowH, 120, pred);
-    const firstH = new Map<Ester, number>();
-    for (const m of merged) if (!firstH.has(m.ester)) firstH.set(m.ester, m.timeH);
-    let total = 0;
-    for (const ester of firstH.keys()) {
+    const regimens = new Map<Ester, { last: { timeH: number; doseMG: number }; gapH: number | null; runStartH: number }>();
+    for (const ester of new Set(merged.map(m => m.ester))) {
         const own = merged.filter(m => m.ester === ester);
-        if (own.length < 2) continue;
-        const last = own[own.length - 1];
+        regimens.set(ester, { last: own[own.length - 1], ..._cadence(own.map(m => m.timeH)) });
+    }
+    let total = 0;
+    for (const [ester, { last, gapH }] of regimens) {
+        if (gapH === null || nowH - last.timeH > 2 * gapH) continue;
         let switchedAway = false;
-        for (const [other, startH] of firstH) if (other !== ester && startH > last.timeH) switchedAway = true;
+        for (const [other, o] of regimens) {
+            if (other !== ester && o.gapH !== null && o.runStartH > last.timeH) switchedAway = true;
+        }
         if (switchedAway) continue;
-        const gaps: number[] = [];
-        for (let i = 1; i < own.length; i++) gaps.push(own[i].timeH - own[i - 1].timeH);
-        gaps.sort((a, b) => a - b);
-        const medGapH = gaps[Math.floor(gaps.length / 2)];
-        if (nowH - last.timeH > 2 * medGapH) continue;
-        total += last.doseMG / (medGapH / 168); // 168 h = 1 week
+        total += last.doseMG / (gapH / 168); // 168 h = 1 week
     }
     return total;
 }
@@ -365,10 +444,11 @@ export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() /
     const isE2 = (e: DoseEvent) => isEstradiolEster(e.ester);
     const isT = (e: DoseEvent) => isTestosteroneEster(e.ester);
 
-    // Daily-dosed families: heaviest single local day in the trailing 14 days.
-    // Testosterone patches can't be logged from the app (see DoseForm), so only
-    // gel counts for T.
-    const cpaPerDay = _maxDailyDose(events, nowH, 14, e => e.ester === Ester.CPA);
+    // Daily-dosed families: heaviest single local day in the trailing 14 days,
+    // except CPA, which is averaged over the days it is taken. Testosterone
+    // patches can't be logged from the app (see DoseForm), so only gel counts
+    // for T.
+    const cpaPerDay = _cpaPerDay(events, nowH, 14);
     const e2DailyRatio = _e2DailyRatio(events, nowH, 14);
     const tGelPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && e.route === Route.gel);
 
@@ -1120,10 +1200,11 @@ const T_CorePK = {
 // 7 days after a first 1000 mg injection, a release half-life of 90 ± 40 days,
 // and at steady state on 1000 mg every 10 weeks a peak of about 37 nmol/L and a
 // trough of about 16 nmol/L, a trough/peak ratio of 0.43. A 50 day release
-// half-life, at the low end of the label's range, gives that ratio. A
-// first-order depot alone would peak within a day, so the hydrolysis step
-// (T_EsterPK.k2) is slowed to about the injection clearance rate
-// (DEFAULT_PK_PARAMS.t_kClearInj), which moves the peak to day 7. That step stands
+// half-life, at the low end of the label's range, gives that ratio. That
+// depot on its own, or with the hydrolysis step at the other esters' 0.20/h,
+// peaks at about day 5; slowing the step (T_EsterPK.k2) to about the injection
+// clearance rate (DEFAULT_PK_PARAMS.t_kClearInj) moves the peak to day 7, the
+// label's and Aveed's median, and changes levels by under 2%. That step stands
 // for whatever delays the rise in the label data and was fitted to it, not
 // measured on its own. The older parameters peaked at about 3 days and fell to
 // a trough of 0.17 of the peak.
@@ -1178,8 +1259,17 @@ const OralPK = {
     // estradiol half-life measured after oral estradiol valerate, 14.36 h
     // fasting (Zhang et al. 2024, Table 2, PMC11246651); that study's median
     // Tmax of 10 h and Cmax/AUC of 0.034/h are what the chain then gives
-    // (10.4 h, 0.032/h). Oral EV already falls at kAbsEV (13.9 h) and is left
-    // as it was. Total exposure is unchanged: F·D/k3 whatever the rates.
+    // (10.3 h, 0.032/h). Oral EV already falls at kAbsEV (13.9 h) and is left
+    // as it was, so it peaks earlier than E2 (about 6 h). Total exposure is
+    // unchanged: F·D/k3 whatever the rates.
+    //
+    // The peak runs late against other data. 10 h is the fasting arm; the same
+    // study's fed arm peaked at 2 to 2.25 h. A single 1 mg tablet of plain E2
+    // peaks at a median of 6 h (Activella label) and was still rising at 8 h in
+    // Doll 2022, but at steady state the Angeliq label gives a median of about
+    // 2 h, where the chain peaks at 8.5 h. Sending part of the dose straight
+    // to the blood cannot fit both single-dose and steady-state data, so the
+    // shape is left to timed lab results (tests/literature.test.ts, known gaps).
     kE1Pool: Math.LN2 / 14.36,
     bioavailability: 0.03,
     kAbsSL: 1.8
@@ -1287,7 +1377,7 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     //     0.043 gives 555 ng/dL on 73.9 mg/week.
     //   - Aveed (undecanoate 750 mg at weeks 0 and 4, then every 10 weeks)
     //     label, after the third injection, N = 117: Cavg 495 ng/dL
-    //     (https://medlibrary.org/lib/rx/meds/aveed/page/6/). 0.043 gives 502.
+    //     (https://medlibrary.org/lib/rx/meds/aveed/page/6/). 0.043 gives 503.
     // 100 mg/week of cypionate or enanthate then averages about 730–750 ng/dL.
     // The old value, 0.025, put 100 mg/week at about 430 ng/dL, under the 600
     // this file used to state as its target, and gave about 0.6 of both labels.
@@ -1295,6 +1385,13 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     // baseline-corrected after a dose that suppresses the men's own
     // testosterone, which understates the dose's share; tests/literature.test.ts
     // keeps it as a lower bound.
+    // Fitting at 70 kg may read low. Aveed's label also splits by weight:
+    // Cavg 568 ng/dL at 65–100 kg and 426 at 100 kg or more, a ratio that
+    // matches the model's 1/weight scaling for group means near 85 and 113 kg.
+    // Fitted at those weights the fraction would be about 0.055–0.06, so a
+    // 70 kg person's real level may be about 1.3–1.4x what the model shows;
+    // Spratt et al. (tests/literature.test.ts) point the same way. 70 kg is
+    // kept, as for gel, until timed lab results say how far to move it.
     t_ff_TC: 0.043,
     t_ff_TE: 0.043,
     t_ff_TU: 0.043,
@@ -1360,12 +1457,26 @@ export const PK_PARAM_RANGES: Record<keyof PKCustomParams, readonly [number, num
 };
 
 /**
+ * Defaults this file used to ship. The settings page saves every field, so a
+ * stored value equal to a former default was, in all likelihood, never chosen
+ * by anyone; it is read as the current default, or a corrected default would
+ * never reach a person who once pressed Save. Such a value cannot be set by
+ * hand any more (0.0251 still can).
+ */
+const PK_FORMER_DEFAULTS: Partial<Record<keyof PKCustomParams, number[]>> = {
+    t_ff_TC: [0.025],
+    t_ff_TE: [0.025],
+    t_ff_TU: [0.025],
+};
+
+/**
  * Clamp an untrusted parameter blob into a usable model.
  *
  * Anything non-numeric, NaN, Infinity or unrecognised is dropped back to the
  * default rather than carried through: an elimination rate of 0 or a negative
  * one turns decay into growth, and a single NaN propagates to every displayed
- * concentration. Returns null when nothing usable was supplied.
+ * concentration. A former default is read as the current one (see
+ * PK_FORMER_DEFAULTS). Returns null when nothing usable was supplied.
  */
 export function sanitizePKParams(raw: unknown): PKCustomParams | null {
     if (!raw || typeof raw !== 'object') return null;
@@ -1383,9 +1494,10 @@ export function sanitizePKParams(raw: unknown): PKCustomParams | null {
             : typeof rawValue === 'string' && rawValue.trim() !== '' ? Number(rawValue)
             : NaN;
         if (!Number.isFinite(value)) continue;
+        recognised++;
+        if (PK_FORMER_DEFAULTS[key]?.includes(value)) continue;
         const [min, max] = PK_PARAM_RANGES[key];
         out[key] = Math.min(max, Math.max(min, value));
-        recognised++;
     }
     return recognised > 0 ? out : null;
 }
@@ -1561,14 +1673,19 @@ function _getTInjFF(ester: Ester): number {
 //
 // Absorbed at ka, it then leaves the blood in two phases, so the response to
 // the absorbed amount, read through the 14 L/kg volume the CPA curve uses, is
-// (wFast·e^(−αt) + wSlow·e^(−βt)) / V. Its integral, wFast/α + wSlow/β, is V/CL
+// (wFast·e^(−αt) + wSlow·e^(−βt)) / V. The integral of the bracket, wFast/α + wSlow/β, is V/CL
 // = 14 / (0.0035·60) = 66.7 h, which fixes total exposure at the label's
 // clearance. ka = 0.5/h and α = 0.25/h (a 2.8 h first phase) put the peak at 3 h,
 // and wFast is the weight that makes it 285 ng/mL; about a third of the exposure
 // is in the first phase. The model used to put the whole dose straight into the
 // slow phase with F = 0.7, which kept total exposure near (0.7x) but made the
-// 100 mg peak about 67 ng/mL. Diane-35's label reports a higher peak per mg at
-// 2 mg (15 ng/mL at 1.6 h), which a linear model fitted to 100 mg cannot follow.
+// 100 mg peak about 67 ng/mL.
+//
+// All of this is single-dose data. Low doses likely read low: the Dianette
+// (Diane-35) label gives 15 ng/mL at 1.6 h after 2 mg
+// (https://www.medicines.org.uk/emc/product/1122/smpc), where the model gives
+// about 5.7 at 70 kg, and a linear model fitted to 100 mg cannot follow both.
+// Levels on daily dosing have not been checked against multiple-dose studies.
 const CPA_ORAL = (() => {
     const alpha = 0.25;
     const beta = Math.LN2 / 43.9;
@@ -1912,12 +2029,19 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
  *     application (the old patch was on before the log started, or the change
  *     was entered in the other order) does not end the new patch;
  *   - a removal that fits no patch by its plan ends the newest patch of that
- *     hormone if that one is still unpaired, so a patch left on past its plan
- *     and taken off later is worn until the removal;
+ *     hormone if that one is still unpaired and the removal comes no more
+ *     than PATCH_MAX_OVERWEAR_H after its planned end, so the newest patch,
+ *     left on past its plan and taken off later, is worn until the removal.
+ *     An older patch left on while a newer one went on is not: a removal
+ *     that fits the newer one by its plan ends the newer one;
  *   - any other removal that fits no patch is ignored instead of consuming
- *     the next application and shifting every later pairing by one.
+ *     the next application and shifting every later pairing by one. That
+ *     includes a removal logged weeks later to close out a patch after a
+ *     pause or a change of route, which must not keep it delivering through
+ *     the gap.
  * Ties between patches applied at the same time are broken by their own
- * contents, so the result never depends on the order of the input array.
+ * contents, the same way on both paths, and removals at the same moment by
+ * hormone, so the result never depends on the order of the input array.
  *
  * Keyed on event identity rather than `id` because imported files can carry
  * duplicate ids. Memoised per event array: the caller builds one array per
@@ -1925,6 +2049,10 @@ function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
  */
 const PATCH_MIN_WEAR_H = 1;
 const PATCH_REMOVAL_GRACE_H = 24;
+// How far past its planned wear a removal can still end a patch. A twice-weekly
+// 0.1 mg/day patch holds about 15.6 days of drug at its labelled rate (Vivelle-Dot
+// label: 1.56 mg), and 84 h of planned wear plus this stays inside that.
+const PATCH_MAX_OVERWEAR_H = 240;
 
 const patchRemovalCache = new WeakMap<DoseEvent[], Map<DoseEvent, number>>();
 
@@ -1949,9 +2077,18 @@ function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
         (_plannedWearH(a) ?? Infinity) - (_plannedWearH(b) ?? Infinity) ||
         a.doseMG - b.doseMG ||
         (Number(a.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) - (Number(b.extras?.[ExtraKey.releaseRateUGPerDay]) || 0) ||
+        String(a.ester).localeCompare(String(b.ester)) ||
         String(a.id).localeCompare(String(b.id));
     const applies = allEvents.filter(e => e.route === Route.patchApply).sort(byTimeThenContent);
-    const removals = allEvents.filter(e => e.route === Route.patchRemove).sort((a, b) => a.timeH - b.timeH);
+    // A removal of either hormone goes before one that names neither, which
+    // can take a patch of any hormone.
+    const hormoneRank = (e: DoseEvent) => {
+        const h = _patchHormone(e);
+        return h === 'e2' ? 0 : h === 't' ? 1 : 2;
+    };
+    const removals = allEvents
+        .filter(e => e.route === Route.patchRemove)
+        .sort((a, b) => a.timeH - b.timeH || hormoneRank(a) - hormoneRank(b));
 
     let open: DoseEvent[] = []; // unpaired applications, oldest first
     let next = 0;
@@ -1973,18 +2110,22 @@ function patchRemovalTimes(allEvents: DoseEvent[]): Map<DoseEvent, number> {
         }
         // No patch fits by its plan. An explicit removal still ends a patch
         // worn past it (see ExtraKey.patchWearH), so it goes to the newest
-        // patch of that hormone put on before it, if that one is unpaired.
-        // An older patch is never taken: a newer one replaced it.
-        let newestH = -Infinity;
-        for (let i = next - 1; i >= 0; i--) {
+        // patch of that hormone put on before it, if that one is unpaired and
+        // within PATCH_MAX_OVERWEAR_H of its plan. An older patch is never
+        // taken: a newer one replaced it. Patches put on at the same moment are
+        // tried in the order the plan match above uses.
+        const fits = (a: DoseEvent) => hormone === null || _patchHormone(a) === hormone;
+        let last = next - 1;
+        while (last >= 0 && !fits(applies[last])) last--;
+        if (last < 0) continue;
+        let first = last;
+        while (first > 0 && applies[first - 1].timeH === applies[last].timeH) first--;
+        for (let i = first; i <= last; i++) {
             const a = applies[i];
-            if (hormone !== null && _patchHormone(a) !== hormone) continue;
-            if (a.timeH < newestH) break;
-            newestH = a.timeH;
-            if (!pairs.has(a)) {
-                pairs.set(a, r.timeH);
-                break;
-            }
+            if (!fits(a) || pairs.has(a)) continue;
+            if (r.timeH > a.timeH + (_plannedWearH(a) ?? 0) + PATCH_MAX_OVERWEAR_H) continue;
+            pairs.set(a, r.timeH);
+            break;
         }
     }
     patchRemovalCache.set(allEvents, pairs);
