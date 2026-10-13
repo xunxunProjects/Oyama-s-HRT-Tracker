@@ -5,8 +5,8 @@
  * report group means with wide spread, often without body weight, and some are
  * not baseline-corrected. Where the model falls outside the band the test is
  * marked `it.fails`: it states where the model should land and passes while
- * the gap exists. Those are reported, not fixed, because changing the model
- * needs its own evidence and review.
+ * the gap exists. A model change that closes one needs its own evidence,
+ * cited where the parameter is set in logic.ts.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -51,6 +51,28 @@ describe('oral estradiol valerate, single 1 mg tablet', () => {
         const sim = runSimulation([dose(Route.oral, Ester.EV, 1, t0)], BW)!;
         within(scan(sim, interpolateConcentration_E2, t0, t0 + 48).cmax, 18.9);
         within(trapz(sim.timeH, sim.concPGmL_E2), 563);
+    });
+});
+
+describe('oral estradiol at steady state', () => {
+    // Leinung et al. 2018, transfeminine people on oral estradiol, mean levels
+    // by dose (chemiluminescent immunoassay, draw time not stated), as tabulated
+    // in https://transfemscience.org/articles/oral-e2-leinung-2018/ Table 1.
+    // With no draw time, the model's mean over the dosing day is compared.
+    it.each([
+        [2, 62],
+        [4, 102],
+        [8, 159],
+    ])('%i mg/day averages within 1.5x of %i pg/mL', (mg, mean) => {
+        const sim = runSimulation(regimen(Route.oral, Ester.E2, mg, 24, 30, NOW_H - 24), BW)!;
+        within(scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1).mean, mean);
+    });
+
+    it('the level before the next dose stays above half the daily mean, as a 14 h half-life implies', () => {
+        // The model used to fall to under 1 pg/mL between doses of 2 mg/day.
+        const sim = runSimulation(regimen(Route.oral, Ester.E2, 2, 24, 30, NOW_H - 24), BW)!;
+        const { mean } = scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1);
+        expect(interpolateConcentration_E2(sim, NOW_H - 24 - 1e-6)! / mean).toBeGreaterThan(0.5);
     });
 });
 
@@ -106,18 +128,23 @@ describe('known gaps against published data', () => {
         within(scan(sim, interpolateConcentration_E2, t0, t0 + 12, 0.01).cmax, 144, 2);
     });
 
-    // Oral: the model peaks at about 69 pg/mL at 3 h and falls with an apparent
-    // half-life of about 2.3 h, so at steady state on 2 mg/day the trough is
-    // under 1 pg/mL. Labels report 14-26 h (e.g. Bijuva, Angeliq). The design
-    // doc lists the missing estrone/estrone sulfate reservoir as a known
-    // limitation, and the parameters match upstream PKcore, so this is a model
-    // simplification rather than a coding error.
-    it.fails('oral 1 mg peaks within 1.5x of 35 pg/mL, no earlier than 5 h', () => {
+    // Oral: the study sampled up to 8 h, and oral estradiol was still rising
+    // then. The model, which routes swallowed estradiol through an estrone pool
+    // (OralPK.kE1Pool), peaks at about 10 h, but at about 16 pg/mL at 8 h it is
+    // under half the study's 35. The baseline-corrected oral valerate study
+    // below the injections gives 24.7 pg/mL per mg of estradiol at its peak,
+    // which the model meets within 1.5x; this abstract does not say whether
+    // the participants' own estradiol was subtracted.
+    it('oral 1 mg is still rising at 8 h', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
-        const { cmax, tmaxH } = scan(sim, interpolateConcentration_E2, t0, t0 + 24);
-        within(cmax, 35);
-        expect(tmaxH).toBeGreaterThanOrEqual(5);
+        expect(interpolateConcentration_E2(sim, t0 + 8)!).toBeGreaterThan(interpolateConcentration_E2(sim, t0 + 6)!);
+    });
+
+    it.fails('oral 1 mg reaches 35 pg/mL at 8 h, within 1.5x', () => {
+        const t0 = NOW_H - 100;
+        const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
+        within(interpolateConcentration_E2(sim, t0 + 8)!, 35);
     });
 
     // Androcur 50 mg SmPC, section 5.2: "two cyproterone acetate 50 mg tablets

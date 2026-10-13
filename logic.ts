@@ -1152,6 +1152,17 @@ const EsterPK = {
 const OralPK = {
     kAbsE2: 0.32,
     kAbsEV: 0.05,
+    // Swallowed estradiol mostly reaches the blood as estrone and estrone
+    // sulfate, a large pool that turns back into estradiol over many hours, so
+    // after an oral dose estradiol peaks late and falls slowly. Without this
+    // step the model fell with the 2.2 h half-life of kAbsE2 and dropped to
+    // almost nothing between daily doses. The pool's rate is set from the
+    // estradiol half-life measured after oral estradiol valerate, 14.36 h
+    // fasting (Zhang et al. 2024, Table 2, PMC11246651); that study's median
+    // Tmax of 10 h and Cmax/AUC of 0.034/h are what the chain then gives
+    // (10.4 h, 0.032/h). Oral EV already falls at kAbsEV (13.9 h) and is left
+    // as it was. Total exposure is unchanged: F·D/k3 whatever the rates.
+    kE1Pool: Math.LN2 / 14.36,
     bioavailability: 0.03,
     kAbsSL: 1.8
 };
@@ -1583,6 +1594,9 @@ interface PKParams {
     k1_fast: number;
     k1_slow: number;
     k2: number;
+    // Second step of the slow (swallowed) sublingual branch: the oral route's
+    // estrone pool, as k2 is for an oral dose. Absent means none.
+    k2_slow?: number;
     k3: number;
     F: number;
     rateMGh: number;
@@ -1665,13 +1679,16 @@ function resolveParams(event: DoseEvent): PKParams {
                     theta = _getSLTheta(tierKey);
                 }
             }
+            // The swallowed share takes exactly the oral route's path, so θ = 0
+            // is the oral curve.
             const k1_fast = OralPK.kAbsSL;
             const k1_slow = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
             const k2 = EsterPK.k2[event.ester] ?? 0;
+            const k2_slow = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
             const F_fast = toE2;
             const F_slow = _activePKParams.e2_oral_bio * toE2;
             const F = theta * F_fast + (1 - theta) * F_slow;
-            return { Frac_fast: theta, k1_fast, k1_slow, k2, k3: defaultK3, F, rateMGh: 0, F_fast, F_slow };
+            return { Frac_fast: theta, k1_fast, k1_slow, k2, k2_slow, k3: defaultK3, F, rateMGh: 0, F_fast, F_slow };
         }
 
         case Route.gel: {
@@ -1730,8 +1747,10 @@ function resolveParams(event: DoseEvent): PKParams {
             }
             // === 针对 CPA 的特殊处理结束 ===
 
+            // EV: one step at kAbsEV. Everything else: absorption, then the
+            // estrone pool (see OralPK.kE1Pool).
             const k1Value = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
-            const k2Value = event.ester === Ester.EV ? (EsterPK.k2[Ester.EV] || 0) : 0;
+            const k2Value = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
             const F = _activePKParams.e2_oral_bio * toE2;
             return { Frac_fast: 1.0, k1_fast: k1Value, k1_slow: 0, k2: k2Value, k3: defaultK3, F, rateMGh: 0, F_fast: F, F_slow: F };
         }
@@ -1944,6 +1963,7 @@ class PrecomputedEventModel {
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
+                    if (params.k2 > 0) return _analytic3C(tau, dose, params.F, params.k1_fast, params.k2, params.k3);
                     return oneCompAmount(tau, dose, params);
                 };
                 break;
@@ -1959,8 +1979,10 @@ class PrecomputedEventModel {
                         ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
                         : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
 
-                    // Swallowed (gut) fraction follows oral simplified path, so no extra k2 hydrolysis here.
-                    const slowAmount = _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
+                    // Swallowed (gut) fraction follows the oral route's path.
+                    const slowAmount = (params.k2_slow ?? 0) > 0
+                        ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
+                        : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
 
                     return fastAmount + slowAmount;
                 };
@@ -2025,6 +2047,7 @@ function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: Dose
     if (params.k1_fast > 0) rates.push(params.k1_fast);
     if (params.k1_slow > 0) rates.push(params.k1_slow);
     if (params.k2 > 0) rates.push(params.k2);
+    if ((params.k2_slow ?? 0) > 0) rates.push(params.k2_slow!);
     if (params.k3 > 0) rates.push(params.k3);
 
     if (rates.length === 0) return Infinity;

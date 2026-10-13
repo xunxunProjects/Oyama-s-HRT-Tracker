@@ -93,19 +93,24 @@ describe('oral', () => {
         expect(relErr(e2AucFor(Route.oral, Ester.EV, 2, 200), toPgMl((2 * F) / 0.41))).toBeLessThan(0.005);
     });
 
-    it('E2 peaks 2 to 3 hours after the dose ("Algorithm Explanation.md", kAbsE2 = 0.32)', () => {
-        const t0 = NOW_H - 100;
+    it('E2 goes through the estrone pool: it peaks about 10 h after the dose, then halves every 14.4 h', () => {
+        const t0 = NOW_H - 200;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!;
-        const { tmaxH } = scan(sim, E2, t0, t0 + 24);
-        expect(tmaxH).toBeGreaterThanOrEqual(2);
-        expect(tmaxH).toBeLessThanOrEqual(3);
+        const { tmaxH } = scan(sim, E2, t0, t0 + 48);
+        expect(tmaxH).toBeGreaterThan(9);
+        expect(tmaxH).toBeLessThan(12);
+        const halfLife = (24 * Math.LN2) / Math.log(E2(sim, t0 + 48)! / E2(sim, t0 + 72)!);
+        expect(relErr(halfLife, 14.36)).toBeLessThan(0.02);
     });
 
-    it('EV is absorbed more slowly than E2', () => {
-        const t0 = NOW_H - 100;
-        const e2 = scan(runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!, E2, t0, t0 + 24);
-        const ev = scan(runSimulation([dose(Route.oral, Ester.EV, 2, t0)], BW)!, E2, t0, t0 + 24);
-        expect(ev.tmaxH).toBeGreaterThan(e2.tmaxH);
+    it('EV falls at its absorption rate (half-life 13.9 h) and peaks earlier than E2', () => {
+        const t0 = NOW_H - 200;
+        const e2 = scan(runSimulation([dose(Route.oral, Ester.E2, 2, t0)], BW)!, E2, t0, t0 + 48);
+        const evSim = runSimulation([dose(Route.oral, Ester.EV, 2, t0)], BW)!;
+        const ev = scan(evSim, E2, t0, t0 + 48);
+        expect(ev.tmaxH).toBeLessThan(e2.tmaxH);
+        const halfLife = (24 * Math.LN2) / Math.log(E2(evSim, t0 + 48)! / E2(evSim, t0 + 72)!);
+        expect(relErr(halfLife, Math.LN2 / 0.05)).toBeLessThan(0.02);
     });
 
     it('CPA lands on the CPA curve in ng/mL with F = 0.7 and k = 0.017/h, and leaves E2 at zero', () => {
@@ -384,10 +389,12 @@ describe('cross-check against upstream PKcore (estradiol)', () => {
             ester,
             upRoute: 'injection' as const,
         })),
-        { name: 'E2 oral', route: Route.oral, ester: Ester.E2, upRoute: 'oral' },
+        // Oral estradiol, and the swallowed share of sublingual estradiol, now
+        // pass through an estrone pool that upstream does not model (see
+        // OralPK.kE1Pool), so only the valerate forms are compared.
         { name: 'EV oral', route: Route.oral, ester: Ester.EV, upRoute: 'oral' },
         ...[0, 1, 2, 3].flatMap(tier =>
-            [Ester.E2, Ester.EV].map(ester => ({
+            [Ester.EV].map(ester => ({
                 name: `${ester} sublingual tier ${tier}`,
                 route: Route.sublingual,
                 ester,
