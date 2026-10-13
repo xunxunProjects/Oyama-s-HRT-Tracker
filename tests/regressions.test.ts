@@ -119,6 +119,73 @@ describe('patch removals end the patch that is actually on', () => {
         expect(relErr(E2(sim, t0 + 190)!, ONE_PATCH_100)).toBeLessThan(0.01);
     });
 
+    it('a removal weeks after the planned end is ignored', () => {
+        // Logged to close out a patch after a pause or a change of route, it
+        // used to keep the patch delivering through the whole gap.
+        const t0 = NOW_H - 2000;
+        const wear = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
+        const sim = runSimulation(
+            [dose(Route.patchApply, Ester.E2, 0, t0, wear), dose(Route.patchRemove, Ester.E2, 0, t0 + 84 + 21 * 24)],
+            BW,
+        )!;
+        expect(E2(sim, t0 + 84 + 72)!).toBeLessThan(ONE_PATCH_100 * 1e-3);
+    });
+
+    it('restarting after a break, with the old removal logged next to the new patch, does not fill the break', () => {
+        const t0 = NOW_H - 2000;
+        const wear = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
+        const restartH = t0 + 84 + 21 * 24;
+        for (const removalAfterH of [-1 / 6, 0, 1 / 6]) {
+            const sim = runSimulation(
+                [
+                    dose(Route.patchApply, Ester.E2, 0, t0, wear),
+                    dose(Route.patchApply, Ester.E2, 0, restartH, wear),
+                    dose(Route.patchRemove, Ester.E2, 0, restartH + removalAfterH),
+                ],
+                BW,
+            )!;
+            expect(E2(sim, t0 + 84 + 10 * 24)!).toBeLessThan(ONE_PATCH_100 * 1e-3);
+            expect(relErr(E2(sim, restartH + 60)!, ONE_PATCH_100)).toBeLessThan(0.01);
+        }
+    });
+
+    it('one removal for two patches put on together ends the same one however late it is logged', () => {
+        // A 100 and a 50 µg/day patch, both planned for 84 h. A removal within
+        // the day's grace and one past it used to end different patches.
+        const t0 = NOW_H - 1000;
+        const plan = { [ExtraKey.patchWearH]: 84 };
+        for (const removeH of [100, 150]) {
+            const sim = runSimulation(
+                [
+                    dose(Route.patchApply, Ester.E2, 0, t0, { ...plan, [ExtraKey.releaseRateUGPerDay]: 100 }),
+                    dose(Route.patchApply, Ester.E2, 0, t0, { ...plan, [ExtraKey.releaseRateUGPerDay]: 50 }),
+                    dose(Route.patchRemove, Ester.E2, 0, t0 + removeH),
+                ],
+                BW,
+            )!;
+            expect(relErr(E2(sim, t0 + removeH - 2)!, ONE_PATCH_100 / 2)).toBeLessThan(0.01);
+        }
+    });
+
+    it('a removal naming neither hormone gives the same curves in any input order', () => {
+        // Possible in an imported file: a removal carrying cyproterone at the same
+        // moment as an estradiol removal.
+        const t0 = NOW_H - 1000;
+        const plan = { [ExtraKey.releaseRateUGPerDay]: 100, [ExtraKey.patchWearH]: 84 };
+        const events = [
+            dose(Route.patchApply, Ester.E2, 0, t0, plan),
+            dose(Route.patchApply, Ester.T, 0, t0 + 1, plan),
+            dose(Route.patchRemove, Ester.CPA, 0, t0 + 50),
+            dose(Route.patchRemove, Ester.E2, 0, t0 + 50),
+        ];
+        const a = runSimulation(events, BW)!;
+        const b = runSimulation([...events].reverse(), BW)!;
+        for (const h of [40, 60, 80]) {
+            expect(E2(b, t0 + h)).toBe(E2(a, t0 + h));
+            expect(interpolateConcentration_T(b, t0 + h)).toBe(interpolateConcentration_T(a, t0 + h));
+        }
+    });
+
     it('a removal at the same moment as an application does not depend on list order', () => {
         // Such a removal used to pair with the application, be rejected for its
         // zero wear, and leave the patch on forever. The forecast's 120-day
@@ -391,6 +458,85 @@ describe('dose advisory reads each regimen as it is taken', () => {
         expect(getDoseAdvisory(side(12), NOW_H)).toEqual({ kind: 'e2' });
     });
 
+    it('going back to an earlier ester is not counted on top of the one in between', () => {
+        // The return was not seen as a switch, as the earlier ester had started
+        // before the other one ended, so both were summed (220 mg/week).
+        const events = [
+            ...regimen(Route.injection, Ester.TC, 110, 168, 10, NOON - 3 * 168),
+            ...regimen(Route.injection, Ester.TE, 110, 168, 2, NOON - 168),
+            dose(Route.injection, Ester.TC, 110, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('a regimen still counts until the ester replacing it has shown its own cadence', () => {
+        // 15 mg every 3.5 days (30 mg/week), then one injection of another ester.
+        // The old ester used to be dropped at once, and the new one, with no gap
+        // to read yet, added nothing.
+        const events = [
+            ...regimen(Route.injection, Ester.EV, 15, 84, 6, NOON - 84),
+            dose(Route.injection, Ester.EC, 15, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 'e2' });
+    });
+
+    it('a shorter injection interval shows within a few injections', () => {
+        // 100 mg weekly for four months, then every 3 days (about 233 mg/week).
+        // The median of every gap in 120 days took about five weeks to move.
+        const events = [
+            ...regimen(Route.injection, Ester.TE, 100, 168, 17, NOON - 4 * 72),
+            ...regimen(Route.injection, Ester.TE, 100, 72, 4, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 't' });
+    });
+
+    it('a Monday and Thursday rhythm reads as twice a week in either phase', () => {
+        // Gaps alternate 72 h and 96 h. 9 mg twice a week is 18 mg/week, under the
+        // 20 mg ceiling; when the middle gap was 72 h it read as 21.
+        const monThu = (lastGapH: number) => {
+            const times = [NOON];
+            for (let i = 0; i < 9; i++) times.unshift(times[0] - (i % 2 ? 168 - lastGapH : lastGapH));
+            return times.map(t => dose(Route.injection, Ester.EV, 9, t));
+        };
+        expect(getDoseAdvisory(monThu(72), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(monThu(96), NOW_H)).toBeNull();
+    });
+
+    it('a little jitter around the weekly day is not read as a higher dose', () => {
+        // 190 mg/week with the last four gaps at 140, 150, 168 and 214 h, a mean
+        // of 168 h. The median of those four (159 h) read as 201 mg/week.
+        const times = [NOON];
+        for (const gap of [214, 168, 150, 140, 168, 168, 168, 168]) times.unshift(times[0] - gap);
+        expect(
+            getDoseAdvisory(
+                times.map(t => dose(Route.injection, Ester.TC, 190, t)),
+                NOW_H,
+            ),
+        ).toBeNull();
+    });
+
+    it('a longer schedule shows after two of its gaps', () => {
+        // 100 mg weekly, then 250 mg every 3 weeks (83 mg/week). Each long gap
+        // used to read as a stop and restart, keeping the weekly cadence.
+        const events = [
+            ...regimen(Route.injection, Ester.TE, 100, 168, 12, NOON - 2 * 21 * 24),
+            dose(Route.injection, Ester.TE, 250, NOON - 21 * 24),
+            dose(Route.injection, Ester.TE, 250, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('one of two esters taken side by side resuming after a pause does not hide the other', () => {
+        // 120 mg of each a week, on different days (240 mg/week). The enanthate
+        // pauses for five weeks and resumes; the cypionate never stopped.
+        const events = [
+            ...regimen(Route.injection, Ester.TC, 120, 168, 12, NOON - 72),
+            ...regimen(Route.injection, Ester.TE, 120, 168, 8, NOON - 5 * 168),
+            dose(Route.injection, Ester.TE, 120, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 't' });
+    });
+
     it('a regimen stopped about 100 days ago raises no advisory', () => {
         expect(getDoseAdvisory(regimen(Route.injection, Ester.TE, 250, 168, 3, NOW_H - 100 * 24), NOW_H)).toBeNull();
     });
@@ -474,6 +620,23 @@ describe('dose advisory counts patches by what they deliver', () => {
             [ExtraKey.patchWearH]: 84,
         });
         expect(getDoseAdvisory(early, NOW_H)).toBeNull();
+    });
+
+    it('switching from tablets in the morning to a patch at night is not a full day of both', () => {
+        // 6 mg oral at 08:00 for ten days, the last on the day the first
+        // 400 µg/day patch goes on at 23:00. That day used to count its tablets
+        // plus everything the patch delivers over the next 24 h.
+        const D = NOW_H - 5 * 24; // a UTC midnight
+        const events = [
+            ...regimen(Route.oral, Ester.E2, 6, 24, 10, D + 8),
+            ...regimen(Route.patchApply, Ester.E2, 0, 84, 2, D + 23 + 84, {
+                ...rate(400),
+                [ExtraKey.patchWearH]: 84,
+            }),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+        // The same doses on one full day still add up.
+        expect(getDoseAdvisory([...events, dose(Route.oral, Ester.E2, 6, D + 24 + 8)], NOW_H)).toEqual({ kind: 'e2' });
     });
 
     it('a patch with no removal logged is not assumed to stay on', () => {
@@ -595,6 +758,16 @@ describe('small corrections', () => {
         const out = sanitizePKParams({ e2_kClear: null, e2_oral_bio: ' 0.05 ' })!;
         expect(out.e2_kClear).toBe(DEFAULT_PK_PARAMS.e2_kClear);
         expect(out.e2_oral_bio).toBe(0.05);
+    });
+
+    it('a stored former default is read as the current one', () => {
+        // The settings page saves every field, so anyone who once pressed Save
+        // kept the old testosterone injection fraction of 0.025.
+        const out = sanitizePKParams({ ...DEFAULT_PK_PARAMS, t_ff_TC: 0.025, t_ff_TE: 0.025, t_ff_TU: 0.025 })!;
+        expect(out.t_ff_TC).toBe(DEFAULT_PK_PARAMS.t_ff_TC);
+        expect(out.t_ff_TE).toBe(DEFAULT_PK_PARAMS.t_ff_TE);
+        expect(out.t_ff_TU).toBe(DEFAULT_PK_PARAMS.t_ff_TU);
+        expect(sanitizePKParams({ t_ff_TE: 0.03 })!.t_ff_TE).toBe(0.03);
     });
 
     it('a custom sublingual hold past the longest tier follows the tier model instead of a straight line', () => {

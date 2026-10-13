@@ -63,6 +63,25 @@ describe('getDoseAdvisory', () => {
         expect(getDoseAdvisory([dose(Route.oral, Ester.CPA, 25, NOON)], NOW_H)).toEqual({ kind: 'cpa' });
     });
 
+    it('reads cyproterone taken every few days as its daily average', () => {
+        // 25 mg every 2 or 3 days is 12.5 or 8.3 mg/day.
+        expect(getDoseAdvisory(regimen(Route.oral, Ester.CPA, 25, 48, 7, NOON), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(regimen(Route.oral, Ester.CPA, 25, 72, 5, NOON), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(regimen(Route.oral, Ester.CPA, 25, 24, 7, NOON), NOW_H)).toEqual({ kind: 'cpa' });
+    });
+
+    it('counts a larger latest cyproterone dose at once', () => {
+        const events = regimen(Route.oral, Ester.CPA, 12.5, 24, 13, NOON - 24);
+        expect(getDoseAdvisory([...events, dose(Route.oral, Ester.CPA, 12.5, NOON)], NOW_H)).toBeNull();
+        expect(getDoseAdvisory([...events, dose(Route.oral, Ester.CPA, 50, NOON)], NOW_H)).toEqual({ kind: 'cpa' });
+    });
+
+    it('reads oral valerate as the estradiol it carries', () => {
+        // 13 mg of valerate is 9.9 mg of estradiol, under the 12 mg ceiling.
+        expect(getDoseAdvisory([dose(Route.oral, Ester.EV, 13, NOON)], NOW_H)).toBeNull();
+        expect(getDoseAdvisory([dose(Route.oral, Ester.EV, 16, NOON)], NOW_H)).toEqual({ kind: 'e2' });
+    });
+
     it('names estradiol and cyproterone together when both run high', () => {
         expect(
             getDoseAdvisory([dose(Route.oral, Ester.E2, 20, NOON), dose(Route.oral, Ester.CPA, 25, NOON)], NOW_H),
