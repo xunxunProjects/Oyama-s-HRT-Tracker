@@ -347,7 +347,7 @@ const History: React.FC<HistoryProps> = ({
                     }}
                     onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
                     {...(selectMode ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-expanded': isEditing })}
-                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}`}
+                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start cursor-pointer -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}`}
                 >
                     {selectMode ? (
                         <span className={`check-dot inline-flex shrink-0 items-center justify-center w-4 h-4 rounded-full border ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}>
@@ -454,12 +454,15 @@ const History: React.FC<HistoryProps> = ({
 
     // `pinned` keeps the day's label under the header while its rows scroll
     // by. Not inside the planned section: that folds, and a fold clips.
+    // A pinned label paints over the rows, so it stops 4px short of them and
+    // the rows take the 4px up: the focus ring stands 4px off a row, and the
+    // label's own padding hid the top of it on each day's first row.
     const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => (
         <div key={key} className="mb-6 last:mb-0">
-            <div className={`${pinned ? 'sticky top-[80px] z-10' : ''} bg-[var(--bg)] py-2`}>
+            <div className={`${pinned ? 'sticky top-[80px] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
                 <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
             </div>
-            <div>
+            <div className="pt-1">
                 {dayEvents.map(renderRow)}
             </div>
         </div>
@@ -618,11 +621,12 @@ const History: React.FC<HistoryProps> = ({
                             <span className={`text-xs tabular-nums ${muted}`}>{plannedCount}</span>
                             <ChevronDown size={16} className={`chev ${muted} shrink-0 ms-auto ${plannedOpen ? 'rotate-180' : ''}`} />
                         </button>
-                        {/* Widened by the rows' own bleed (-mx-2), so the fold's
-                            clip does not square off their highlight or focus ring. */}
-                        <div className="disclosure -mx-2" data-open={plannedOpen} {...inertWhen(!plannedOpen)}>
+                        {/* Widened by the rows' own bleed (8px) and the 4px their
+                            focus ring stands off them, so the fold's clip neither
+                            squares off their highlight nor cuts the ring's sides. */}
+                        <div className="disclosure -mx-3" data-open={plannedOpen} {...inertWhen(!plannedOpen)}>
                             <div className="disclosure-inner">
-                                <div className="px-2 pb-3">
+                                <div className="px-3 pb-3">
                                     {plannedDays.map(day => renderDay(day, false))}
                                 </div>
                             </div>
