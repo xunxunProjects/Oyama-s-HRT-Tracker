@@ -150,7 +150,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     };
 
     // Edits only take effect on Save, so leaving with some unsaved asks first
-    // instead of dropping them without a word.
+    // instead of dropping them without a word. This covers the back arrow
+    // only: the bottom nav and the sidebar switch views in App, which does
+    // not ask the page first, so leaving that way still drops the edits.
     const handleBack = () => {
         if (!dirty) {
             onBack();
@@ -260,10 +262,11 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
                 {/* Save: the page's one primary action, above Reset, and only
                     live once something differs from what is saved. For a
-                    moment after saving it says so instead. */}
+                    moment after saving it says so instead, still disabled,
+                    since there is nothing new to save. */}
                 <button
                     onClick={handleSave}
-                    disabled={!dirty && !saved}
+                    disabled={!dirty}
                     className="btn-primary w-full mt-4"
                 >
                     {saved && !dirty ? <><Check size={14} />{t('pk.saved')}</> : t('btn.save')}
