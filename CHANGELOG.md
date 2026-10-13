@@ -10,6 +10,19 @@ Notable changes to this project. Full release notes for each version are on the
 
 ## Unreleased 未发布
 
+- Made the app friendlier to use without changing its look. The system Back
+  gesture now steps back through pages instead of leaving the app. A new dose
+  starts on the drug and route used last. Confirms say what they will delete or
+  replace, and import warns before it replaces records. History, the Overview
+  plan and empty pages use the app's own drawings to tell doses and next steps
+  apart. Tapping the running-low line opens Supplies, tapping a chart shows its
+  values, and Labs lists results above the plot. The Labs tab is now named
+  "Labs" (检查) to match its page.
+
+  在不改变外观的前提下让应用更好用：手机的返回手势会一层层退回，不再直接离开应用；新增剂量
+  沿用上一次的药物和途径；确认框写清楚要删除或替换的内容，导入覆盖记录前会先提醒；用药记录、
+  概览方案和空页面用应用自己的插画区分药物和下一步；点「快用完」那行直接进药量库存，点曲线能
+  看到数值，检查页把结果列在图的上面；底部导航的「校准」改名为「检查」，与页面标题一致。
 - Added a contributing guide, a code of conduct, issue and pull request
   templates, and a vulnerability reporting policy in `SECURITY.md`. The security
   history that used to live there moved into this file.
