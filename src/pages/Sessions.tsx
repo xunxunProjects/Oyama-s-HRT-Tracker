@@ -80,7 +80,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
             } finally {
                 setTerminating(null);
             }
-        }, { danger: true });
+        }, { danger: true, title: t('session.sign_out_device'), confirmLabel: t('account.sign_out') });
     };
 
     const handleTerminateOthers = () => {
@@ -94,7 +94,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
             } finally {
                 setTerminating(null);
             }
-        }, { danger: true });
+        }, { danger: true, title: t('account.sessions_terminate_others'), confirmLabel: t('account.sign_out') });
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
@@ -158,8 +158,9 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                         <button
                                             onClick={() => handleTerminate(s.id)}
                                             disabled={isTerminating || terminating === 'others'}
-                                            aria-label={t('account.sessions_terminate_confirm')}
-                                            className={`shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
+                                            aria-label={t('session.sign_out_device')}
+                                            title={t('session.sign_out_device')}
+                                            className={`tap-target shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {isTerminating ? <Loader2 size={15} strokeWidth={1.5} className="animate-spin" /> : <X size={15} strokeWidth={1.5} />}
                                         </button>

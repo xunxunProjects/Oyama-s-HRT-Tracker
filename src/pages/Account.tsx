@@ -181,7 +181,18 @@ const Account: React.FC<AccountProps> = ({
                 setBackupList(prev => prev.filter(b => b.id !== id));
                 setExpandedData(prev => { const n = { ...prev }; delete n[id]; return n; });
             } catch { showDialog('alert', t('account.delete_backup_failed')); }
-        }, { danger: true });
+        }, { danger: true, confirmLabel: t('btn.delete') });
+    };
+
+    // Signing out hides every record made under this account: they stay on
+    // this device, filed under it, for when it signs back in. Nothing said so,
+    // and the empty History that followed read as the records being wiped. A
+    // plain confirm rather than a red one, since nothing is destroyed.
+    const confirmSignOut = () => {
+        showDialog('confirm', t('account.sign_out_confirm'), onLogout, {
+            title: t('account.sign_out'),
+            confirmLabel: t('account.sign_out'),
+        });
     };
 
     const toggleExpand = async (b: BackupMeta) => {
@@ -790,7 +801,7 @@ const Account: React.FC<AccountProps> = ({
                         <SettingsListItem
                             icon={LogOut}
                             title={t('account.sign_out')}
-                            onClick={onLogout}
+                            onClick={confirmSignOut}
                             showChevron={false}
                         />
                     </div>
