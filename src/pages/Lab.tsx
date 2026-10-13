@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
-import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory } from '../../logic';
+import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
@@ -23,6 +23,17 @@ interface LabProps {
     lang: Lang;
 }
 
+// `inert` keeps a collapsed form's inputs out of the tab order; the 0fr row
+// only hides them visually.
+const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
+
+// The page scrolls inside the app's main column, not the window.
+const scrollParent = (el: HTMLElement | null): HTMLElement | null => {
+    let node = el?.parentElement ?? null;
+    while (node && !/(auto|scroll)/.test(getComputedStyle(node).overflowY)) node = node.parentElement;
+    return node;
+};
+
 const Lab: React.FC<LabProps> = ({
     t,
     isQuickAddLabOpen,
@@ -37,6 +48,27 @@ const Lab: React.FC<LabProps> = ({
     lang,
 }) => {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    // The add form always opens at the top of the page, so when Add is
+    // tapped from further down (where the list is) the page goes back up to
+    // it; otherwise the only visible change is the header pill turning into
+    // Cancel. Nothing is focused, so a phone keyboard doesn't cover the date
+    // row, which is often the first thing to change.
+    useEffect(() => {
+        if (!isQuickAddLabOpen) return;
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        scrollParent(rootRef.current)?.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    }, [isQuickAddLabOpen]);
+
+    // A new entry starts in the units the last lab of each hormone used.
+    const [lastE2Unit, lastTUnit] = useMemo(() => {
+        const newestFirst = labResults.slice().sort((a, b) => b.timeH - a.timeH);
+        return [
+            newestFirst.find(r => !isT_LabUnit(r.unit))?.unit,
+            newestFirst.find(r => isT_LabUnit(r.unit))?.unit,
+        ];
+    }, [labResults]);
 
     const muted = 'text-[var(--text-muted)]';
     const on = 'text-[var(--text)]';
@@ -64,7 +96,7 @@ const Lab: React.FC<LabProps> = ({
             ].filter(Boolean).join(' · ');
 
     return (
-        <div className="relative pb-32">
+        <div ref={rootRef} className="relative pb-32">
             {/* Header */}
             <PageHeader
                 title={t('lab.title')}
@@ -80,11 +112,15 @@ const Lab: React.FC<LabProps> = ({
             />
 
             {/* Expandable add form */}
-            <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} {...inertWhen(!isQuickAddLabOpen)}>
                 <div className="overflow-hidden">
                     <div className={`${PAGE_COLUMN} mb-6`}>
                         <LabResultForm
+                            // Force remount on open so the values clear and the date resets to "now" (this row never unmounts, only collapses via CSS).
+                            key={isQuickAddLabOpen ? 'open' : 'closed'}
                             resultToEdit={null}
+                            defaultE2Unit={lastE2Unit}
+                            defaultTUnit={lastTUnit}
                             onSave={(res) => {
                                 onSaveLabResult(res);
                                 setIsQuickAddLabOpen(false);
@@ -115,14 +151,21 @@ const Lab: React.FC<LabProps> = ({
                     <ChevronRight size={16} className={`${muted} shrink-0`} />
                 </button>
 
-                {/* How the labs sit against the model, before and after calibration */}
-                {hasCal && <CalibrationPlot calibration={calibration} t={t} lang={lang} />}
-
-                {/* Lab results list */}
+                {/* Lab results list. It comes before the plot: it is what the page
+                    is named for, and a result just saved lands where it can be seen. */}
                 {labResults.length === 0 ? (
-                    <div className={`flex flex-col items-center py-20 text-center ${muted}`}>
+                    <div className="flex flex-col items-center py-16 text-center">
                         <VialDoodle className="w-24 h-auto mb-6" />
-                        <p className="text-sm">{t('lab.empty')}</p>
+                        <p className={`text-base font-semibold ${on} mb-1`}>{t('lab.empty')}</p>
+                        {/* What a lab is for, in the words the intro uses. */}
+                        <p className={`text-sm ${muted} max-w-xs`}>{t('onboarding.how_calibrate_desc')}</p>
+                        {/* Adding a result is the one thing this page is waiting
+                            for. Gone while the form is open above. */}
+                        {!isQuickAddLabOpen && (
+                            <button onClick={() => setIsQuickAddLabOpen(true)} className="btn-primary mt-6">
+                                {t('lab.add_title')}
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div>
@@ -168,7 +211,7 @@ const Lab: React.FC<LabProps> = ({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                        <div className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} {...inertWhen(!isEditing)}>
                                             <div className="overflow-hidden">
                                                 <div className="pb-4 pt-1">
                                                     <LabResultForm
@@ -194,13 +237,16 @@ const Lab: React.FC<LabProps> = ({
                         <div className="flex items-center justify-end py-4">
                             <button
                                 onClick={onClearLabResults}
-                                className="text-sm font-medium text-[var(--danger)] hover:text-[var(--danger)]"
+                                className="tap-target text-sm font-medium text-[var(--danger)] hover:text-[var(--danger)]"
                             >
                                 {t('lab.clear_all')}
                             </button>
                         </div>
                     </div>
                 )}
+
+                {/* How the labs sit against the model, before and after calibration */}
+                {hasCal && <CalibrationPlot calibration={calibration} t={t} lang={lang} />}
             </div>
         </div>
     );
