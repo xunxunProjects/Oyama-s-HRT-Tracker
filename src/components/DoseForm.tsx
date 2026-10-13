@@ -127,12 +127,34 @@ interface DoseFormProps {
     quickDoses?: QuickDose[];
     onAddQuickDose?: (dose: QuickDose) => void;
     onDeleteQuickDose?: (id: string) => void;
-    /** Existing doses, used only to show whether recent use is already running high. */
+    /** Existing doses: a new dose starts on the route and drug of the last
+     *  one, and recent use shows whether it is already running high. */
     events?: DoseEvent[];
 }
 
 // A folded-away part leaves the tab order with it (as in Plan and Supplies).
 const inertWhen = (hidden: boolean) => (hidden ? ({ inert: '' } as Record<string, unknown>) : {});
+
+// A stored dose as it is put back into a field: "12.5", not "12.500". Still
+// cut at three places, so a value an older version drifted (12.499934) comes
+// back as 12.5 rather than all its digits, and parses to the same number the
+// untrimmed string did.
+const trimDose = (mg: number) => mg.toFixed(3).replace(/\.?0+$/, '');
+
+// The route menu in a fixed order, the most used first. The Route enum's own
+// order is what's stored and stays as it is. A route this list doesn't know
+// yet still shows, at the end.
+const ROUTE_MENU_ORDER = [Route.injection, Route.oral, Route.sublingual, Route.gel, Route.patchApply, Route.patchRemove];
+const menuRoutes = (isTransmasc: boolean): Route[] => {
+    const all = [...ROUTE_MENU_ORDER, ...Object.values(Route).filter(r => !ROUTE_MENU_ORDER.includes(r))];
+    if (!isTransmasc) return all;
+    // Transmasc: no oral/sublingual; no patches (T patches are uncommon and
+    // not realistically modeled with the current µg/day scheme).
+    return all.filter(r =>
+        r !== Route.oral && r !== Route.sublingual &&
+        r !== Route.patchApply && r !== Route.patchRemove
+    );
+};
 
 const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
@@ -198,6 +220,56 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         return getBioavailabilityMultiplier(route, ester, extrasForCalc);
     }, [route, ester, slExtras, gelSite]);
 
+    // Puts a saved dose back into the form: a template, or for a new dose the
+    // last one taken. withAmount: false keeps the route, drug and how it was
+    // taken (hold time, gel site, wear time) but leaves the amount empty.
+    const fillFrom = (preset: Pick<DoseTemplate, 'route' | 'ester' | 'doseMG' | 'extras'>, withAmount: boolean) => {
+        setRoute(preset.route);
+        setEster(preset.ester);
+        if (!isKnownEster(preset.ester)) setForeignDrug({ route: preset.route, ester: preset.ester });
+
+        if (withAmount) {
+            setRawDose(trimDose(preset.doseMG));
+            // Saved doses are in raw-ester mg, so mark the raw field as the
+            // source of truth — otherwise handleSave would re-derive the dose from
+            // the rounded E2-equivalent string and drift it (12.5 → 12.499934).
+            setLastEditedField(preset.ester === Ester.E2 ? 'bio' : 'raw');
+
+            const factor = getToE2Factor(preset.ester) || 1;
+            const e2Val = preset.doseMG * factor;
+            setE2Dose(trimDose(e2Val));
+
+            // A patch saved by its total dose has no rate: open it in that mode,
+            // or the dose would sit behind the empty rate field.
+            if (preset.route === Route.patchApply) {
+                const rate = preset.extras[ExtraKey.releaseRateUGPerDay];
+                setPatchMode(rate ? 'rate' : 'dose');
+                if (rate) setPatchRate(rate.toString());
+            }
+        }
+        if (preset.route === Route.patchApply) {
+            const wearH = preset.extras[ExtraKey.patchWearH];
+            setPatchWearDays(typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0 ? (wearH / 24).toString() : "");
+        }
+
+        if (preset.route === Route.sublingual) {
+            if (preset.extras[ExtraKey.sublingualTier] !== undefined) {
+                setSlTier(preset.extras[ExtraKey.sublingualTier]);
+                setUseCustomTheta(false);
+            } else if (preset.extras[ExtraKey.sublingualTheta] !== undefined) {
+                const theta = preset.extras[ExtraKey.sublingualTheta];
+                const hold = Math.max(1, Math.min(60, holdFromTheta(typeof theta === 'number' ? theta : 0.11)));
+                setCustomHoldValue(hold);
+                setCustomHoldInput(hold.toString());
+                setUseCustomTheta(true);
+            }
+        }
+
+        if (preset.route === Route.gel && preset.extras[ExtraKey.gelSite] !== undefined) {
+            setGelSite(preset.extras[ExtraKey.gelSite]);
+        }
+    };
+
     useEffect(() => {
         isInitializingRef.current = true;
         if (eventToEdit) {
@@ -217,13 +289,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 setPatchMode("dose");
                 const factor = getToE2Factor(eventToEdit.ester);
                 const e2Val = eventToEdit.doseMG * factor;
-                setE2Dose(e2Val.toFixed(3));
+                setE2Dose(trimDose(e2Val));
 
                 if (eventToEdit.ester !== Ester.E2) {
-                    setRawDose(eventToEdit.doseMG.toFixed(3));
+                    setRawDose(trimDose(eventToEdit.doseMG));
                     setLastEditedField('raw');
                 } else {
-                    setRawDose(eventToEdit.doseMG.toFixed(3));
+                    setRawDose(trimDose(eventToEdit.doseMG));
                     setLastEditedField('bio');
                 }
             }
@@ -285,6 +357,20 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
             setCustomHoldValue(10);
             setCustomHoldInput("10");
             setLastEditedField('bio');
+
+            // Most people log the same thing again, so a new dose starts on the
+            // route and drug of the last one taken rather than on one fixed
+            // pair. Not its amount: that stays a deliberate entry, which a tap
+            // on a quick dose fills. A patch removal names no drug, and a
+            // route this mode doesn't offer can't be chosen, so both are
+            // passed over.
+            const nowH = Date.now() / 3600000;
+            const routes = menuRoutes(isTransmasc);
+            const last = events.reduce<DoseEvent | null>((best, ev) => (
+                ev.timeH <= nowH && ev.route !== Route.patchRemove && routes.includes(ev.route) &&
+                (!best || ev.timeH > best.timeH) ? ev : best
+            ), null);
+            if (last) fillFrom(last, false);
         }
 
         // Use timeout to allow state to settle
@@ -375,45 +461,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     };
 
     const handleLoadTemplate = (template: DoseTemplate) => {
-        setRoute(template.route);
-        setEster(template.ester);
-        if (!isKnownEster(template.ester)) setForeignDrug({ route: template.route, ester: template.ester });
-        setRawDose(template.doseMG.toFixed(3));
-        // Templates store the raw-ester dose, so mark the raw field as the
-        // source of truth — otherwise handleSave would re-derive the dose from
-        // the rounded E2-equivalent string and drift it (12.5 → 12.499934).
-        setLastEditedField(template.ester === Ester.E2 ? 'bio' : 'raw');
-
-        const factor = getToE2Factor(template.ester) || 1;
-        const e2Val = template.doseMG * factor;
-        setE2Dose(e2Val.toFixed(3));
-
-        if (template.route === Route.patchApply && template.extras[ExtraKey.releaseRateUGPerDay]) {
-            setPatchMode('rate');
-            setPatchRate(template.extras[ExtraKey.releaseRateUGPerDay].toString());
-        }
-        if (template.route === Route.patchApply) {
-            const wearH = template.extras[ExtraKey.patchWearH];
-            setPatchWearDays(typeof wearH === 'number' && Number.isFinite(wearH) && wearH > 0 ? (wearH / 24).toString() : "");
-        }
-
-        if (template.route === Route.sublingual) {
-            if (template.extras[ExtraKey.sublingualTier] !== undefined) {
-                setSlTier(template.extras[ExtraKey.sublingualTier]);
-                setUseCustomTheta(false);
-            } else if (template.extras[ExtraKey.sublingualTheta] !== undefined) {
-                const theta = template.extras[ExtraKey.sublingualTheta];
-                const hold = Math.max(1, Math.min(60, holdFromTheta(typeof theta === 'number' ? theta : 0.11)));
-                setCustomHoldValue(hold);
-                setCustomHoldInput(hold.toString());
-                setUseCustomTheta(true);
-            }
-        }
-
-        if (template.route === Route.gel && template.extras[ExtraKey.gelSite] !== undefined) {
-            setGelSite(template.extras[ExtraKey.gelSite]);
-        }
-
+        fillFrom(template, true);
         setShowTemplateMenu(false);
         showDialog('alert', t('template.loaded'));
     };
@@ -550,17 +598,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         [knownEsters, foreignDrug, route],
     );
 
-    const availableRoutes = useMemo(() => {
-        if (isTransmasc) {
-            // Transmasc: no oral/sublingual; no patches (T patches are uncommon and
-            // not realistically modeled with the current µg/day scheme).
-            return Object.values(Route).filter(r =>
-                r !== Route.oral && r !== Route.sublingual &&
-                r !== Route.patchApply && r !== Route.patchRemove
-            );
-        }
-        return Object.values(Route);
-    }, [isTransmasc]);
+    const availableRoutes = useMemo(() => menuRoutes(isTransmasc), [isTransmasc]);
 
     useEffect(() => {
         if (!availableRoutes.includes(route)) {
@@ -624,27 +662,23 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         });
     };
     const renderLoadTemplateControl = () => {
-        if (eventToEdit) return null;
+        // Hidden rather than greyed out while there is nothing to load: a dead
+        // button gave no hint why. It appears once the bookmark button in the
+        // footer has saved a first template.
+        if (eventToEdit || templates.length === 0) return null;
 
         return (
             <div className="relative">
                 <button
-                    onClick={() => {
-                        if (templates.length === 0) return;
-                        setShowTemplateMenu(!showTemplateMenu);
-                    }}
-                    disabled={templates.length === 0}
-                    className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                        templates.length === 0
-                            ? 'text-[var(--text-muted)] opacity-40 cursor-not-allowed'
-                            : 'text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20'
-                    }`}
+                    onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                    aria-expanded={showTemplateMenu}
+                    className="px-2 py-1 text-xs font-medium rounded flex items-center gap-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20"
                     title={t('template.load_title')}
                 >
                     <Bookmark size={14} />
                     <span>{t('template.load_title')}</span>
                 </button>
-                {showTemplateMenu && templates.length > 0 && (
+                {showTemplateMenu && (
                     <div className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50">
                         <div className="py-1">
                             {templates.map((template: DoseTemplate) => (
@@ -655,7 +689,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     >
                                         <div className="text-sm font-medium text-[var(--text)]">{template.name}</div>
                                         <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                                            {t(`route.${template.route}`)} · {template.doseMG.toFixed(2)} mg
+                                            {t(`route.${template.route}`)} · {template.extras[ExtraKey.releaseRateUGPerDay]
+                                                ? `${template.extras[ExtraKey.releaseRateUGPerDay]} µg/d`
+                                                : `${trimDose(template.doseMG)} mg`}
                                         </div>
                                     </button>
                                     <button
