@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { RotateCcw, ChevronDown, AlertTriangle, Info } from 'lucide-react';
+import { RotateCcw, ChevronDown, AlertTriangle, Info, Check } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { PKCustomParams, DEFAULT_PK_PARAMS } from '../../logic';
@@ -87,6 +87,9 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
 
 const divider = "border-b border-[var(--border)]";
 
+const FIELDS = SECTIONS.flatMap(s => s.fields);
+const clampTo = (f: FieldDef, n: number) => Math.max(f.min, Math.min(f.max, n));
+
 const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
@@ -94,8 +97,14 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     const [draft, setDraft] = useState<PKCustomParams>(() =>
         pkParams ? { ...DEFAULT_PK_PARAMS, ...pkParams } : { ...DEFAULT_PK_PARAMS }
     );
+    // What a field shows while it is being typed in. The number behind it is
+    // read in, and clamped, when the field is left, so clearing a field to
+    // retype it doesn't snap back to 0 mid-edit.
+    const [text, setText] = useState<Partial<Record<keyof PKCustomParams, string>>>({});
     const [openSections, setOpenSections] = useState<Set<SectionKey>>(new Set(['e2_inj']));
     const [saved, setSaved] = useState(false);
+
+    const savedParams: PKCustomParams = pkParams ? { ...DEFAULT_PK_PARAMS, ...pkParams } : DEFAULT_PK_PARAMS;
 
     const toggleSection = (key: SectionKey) => {
         setOpenSections(prev => {
@@ -106,21 +115,57 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
         });
     };
 
-    const updateField = useCallback((key: keyof PKCustomParams, rawValue: string, min: number, max: number) => {
-        const num = parseFloat(rawValue);
-        if (!Number.isFinite(num)) return;
-        setDraft(prev => ({ ...prev, [key]: Math.max(min, Math.min(max, num)) }));
-    }, []);
+    // The draft with every half-typed field read in and clamped; a field
+    // left empty or unreadable keeps the value it had.
+    const settle = (): PKCustomParams => {
+        const next = { ...draft };
+        for (const f of FIELDS) {
+            const raw = text[f.key];
+            if (raw === undefined) continue;
+            const num = parseFloat(raw);
+            if (Number.isFinite(num)) next[f.key] = clampTo(f, num);
+        }
+        return next;
+    };
+
+    const commitField = (f: FieldDef) => {
+        if (text[f.key] === undefined) return;
+        setDraft(settle());
+        setText(prev => {
+            const next = { ...prev };
+            delete next[f.key];
+            return next;
+        });
+    };
+
+    const settled = settle();
+    const dirty = FIELDS.some(f => settled[f.key] !== savedParams[f.key]);
 
     const handleSave = () => {
-        onSave(draft);
+        setDraft(settled);
+        setText({});
+        onSave(settled);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+    };
+
+    // Edits only take effect on Save, so leaving with some unsaved asks first
+    // instead of dropping them without a word.
+    const handleBack = () => {
+        if (!dirty) {
+            onBack();
+            return;
+        }
+        showDialog('confirm', t('pk.discard_confirm'), onBack, {
+            title: t('pk.discard_title'),
+            confirmLabel: t('pk.discard'),
+        });
     };
 
     const handleReset = () => {
         showDialog('confirm', t('pk.reset_confirm'), () => {
             setDraft({ ...DEFAULT_PK_PARAMS });
+            setText({});
             onReset();
         }, { danger: true });
     };
@@ -130,7 +175,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     return (
         <div className="relative pb-32">
             <PageHeader
-                onBack={onBack}
+                onBack={handleBack}
                 title={t('pk.title')}
                 actions={pkParams && (
                     <span className="mr-2 text-xs font-medium text-[var(--warning)]">
@@ -189,8 +234,13 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                 min={field.min}
                                                 max={field.max}
                                                 step={field.step}
-                                                value={curVal}
-                                                onChange={e => updateField(field.key, e.target.value, field.min, field.max)}
+                                                value={text[field.key] ?? String(curVal)}
+                                                onChange={e => {
+                                                    const raw = e.target.value;
+                                                    setText(prev => ({ ...prev, [field.key]: raw }));
+                                                }}
+                                                onBlur={() => commitField(field)}
+                                                aria-label={t(field.labelKey)}
                                                 className="w-28 px-2.5 py-1.5 bg-[var(--field)] border border-[var(--border)] rounded-md text-[var(--text)] outline-none focus:border-[var(--accent-ink)] tabular-nums"
                                                 style={{ fontSize: '16px' }}
                                             />
@@ -208,15 +258,15 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                     <p className="text-xs text-[var(--text-muted)]">{t('pk.note')}</p>
                 </div>
 
-                {/* Save */}
+                {/* Save: the page's one primary action, above Reset, and only
+                    live once something differs from what is saved. For a
+                    moment after saving it says so instead. */}
                 <button
                     onClick={handleSave}
-                    className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
+                    disabled={!dirty && !saved}
+                    className="btn-primary w-full mt-4"
                 >
-                    <span className="text-[0.9375rem] font-medium text-[var(--text)]">{t('btn.save')}</span>
-                    {saved && (
-                        <span className="text-xs text-[var(--status-positive)] font-medium">{t('pk.saved')}</span>
-                    )}
+                    {saved && !dirty ? <><Check size={14} />{t('pk.saved')}</> : t('btn.save')}
                 </button>
 
                 {/* Reset all */}
