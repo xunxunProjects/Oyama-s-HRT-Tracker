@@ -134,6 +134,10 @@ const AppContent = () => {
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    // Set when Share opened the sign-in modal: the modal then says why it is
+    // asking, and a successful sign-in carries on to Share instead of leaving
+    // the person to find the button they had already pressed.
+    const [authForShare, setAuthForShare] = useState(false);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
@@ -494,7 +498,7 @@ const AppContent = () => {
                             onNavigateToLab={() => { setIsQuickAddLabOpen(true); handleViewChange('lab'); }}
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
-                            onAuthRequired={() => setIsAuthModalOpen(true)}
+                            onAuthRequired={() => { setAuthForShare(true); setIsAuthModalOpen(true); }}
                             regimens={regimens}
                             plan={plan}
                             onLogPlanItem={handleLogPlanItem}
@@ -852,7 +856,9 @@ const AppContent = () => {
 
             <AuthModal
                 isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
+                onClose={() => { setIsAuthModalOpen(false); setAuthForShare(false); }}
+                reason={authForShare ? 'share' : undefined}
+                onSuccess={() => { if (authForShare) handleViewChange('share'); }}
             />
 
         </div >

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
+import Point from '../components/Point';
+import { describeAuthError } from '../components/AuthModal';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -122,6 +124,7 @@ const Account: React.FC<AccountProps> = ({
     // The passkey retry button needs it too, or that sign-in leaves this
     // device without a cloud key and sync stuck on locked.
     const acceptedPasswordRef = useRef<string | null>(null);
+    const formId = useId();
     const { login, register, loginWithToken } = useAuth();
 
     // `silent` refreshes the list in place. Sync reports in on its own schedule
@@ -353,7 +356,7 @@ const Account: React.FC<AccountProps> = ({
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
-                setAuthError(err.message || t('error.generic'));
+                setAuthError(describeAuthError(err, t));
             }
         } finally {
             setAuthLoading(false);
@@ -401,6 +404,23 @@ const Account: React.FC<AccountProps> = ({
     };
 
     const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]";
+
+    const authErrorId = `${formId}-error`;
+    const authErrorLine = authError && (
+        <p id={authErrorId} role="alert" className="text-sm text-[var(--danger)]">
+            {authError}
+        </p>
+    );
+    const authSubmit = (
+        <button
+            type="submit"
+            disabled={authLoading}
+            className="btn-primary w-full"
+        >
+            {authLoading && <Loader2 size={16} className="animate-spin" />}
+            {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+        </button>
+    );
 
     const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
@@ -770,6 +790,16 @@ const Account: React.FC<AccountProps> = ({
                 </div>
             ) : (
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm [&>*]:mx-auto`}>
+                    {/* What an account is for, before the form asks for one.
+                        Bare, the form read as the app requiring it, and said
+                        nothing about what it would do with medical records.
+                        The intro's own rows and words, so the promise reads
+                        as the one made on the first day. */}
+                    <div className="mb-4">
+                        <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
+                        <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
+                    </div>
+
                     {/* Login / Register tabs */}
                     <Tabs
                         tabs={[
@@ -783,14 +813,11 @@ const Account: React.FC<AccountProps> = ({
 
                     <div key={isLogin ? 'sign-in' : 'sign-up'} className={authAnim}>
                     <form onSubmit={handleAuthSubmit} className="space-y-4">
-                        {authError && (
-                            <p className="text-sm text-[var(--danger)]">
-                                {authError}
-                            </p>
-                        )}
+                        {!needsTOTP && authErrorLine}
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
+                            <label htmlFor={`${formId}-username`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
                             <input
+                                id={`${formId}-username`}
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -798,12 +825,14 @@ const Account: React.FC<AccountProps> = ({
                                 style={{ fontSize: '16px' }}
                                 placeholder={t('auth.username_placeholder')}
                                 autoComplete="username"
+                                aria-describedby={authError && !needsTOTP ? authErrorId : undefined}
                                 required
                             />
                         </div>
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
+                            <label htmlFor={`${formId}-password`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
                             <input
+                                id={`${formId}-password`}
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -811,10 +840,24 @@ const Account: React.FC<AccountProps> = ({
                                 style={{ fontSize: '16px' }}
                                 placeholder={t('auth.password_placeholder')}
                                 autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                aria-describedby={[
+                                    !isLogin ? `${formId}-key-note` : '',
+                                    authError && !needsTOTP ? authErrorId : '',
+                                ].filter(Boolean).join(' ') || undefined}
                                 required
                             />
                         </div>
-                        {needsTOTP && isLogin && (
+                        {/* Signing up is the moment to say it: the password is
+                            what the backups are encrypted with, so no reset
+                            brings them back (see changePassword in
+                            AuthContext). */}
+                        {!isLogin && (
+                            <p id={`${formId}-key-note`} className="callout">{t('auth.password_is_key')}</p>
+                        )}
+                        {/* Only sign-in ever asks for a second factor, and
+                            switching tabs clears it, so this is the sign-in
+                            form's. */}
+                        {needsTOTP && (
                             <div className="space-y-3">
                                 <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
                                     <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
@@ -822,8 +865,9 @@ const Account: React.FC<AccountProps> = ({
                                 </div>
                                 {useBackupCode ? (
                                     <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
+                                        <label htmlFor={`${formId}-backup`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
                                         <input
+                                            id={`${formId}-backup`}
                                             type="text"
                                             value={backupCode}
                                             onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
@@ -831,35 +875,47 @@ const Account: React.FC<AccountProps> = ({
                                             style={{ fontSize: '16px' }}
                                             placeholder={t('auth.backup_code_placeholder')}
                                             autoComplete="off"
+                                            aria-describedby={authError ? authErrorId : undefined}
                                             autoFocus
                                             required={useBackupCode}
                                         />
-                                        <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                            className="text-xs text-[var(--accent-ink)] hover:underline">
-                                            ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
-                                        </button>
                                     </div>
+                                ) : twoFAMethod !== 'passkey' && (
+                                    <div className="space-y-1.5">
+                                        <label htmlFor={`${formId}-totp`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
+                                        <input
+                                            id={`${formId}-totp`}
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]{6}"
+                                            maxLength={6}
+                                            value={totpCode}
+                                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className={`${inputCls} tracking-[0.15em] font-mono text-center`}
+                                            style={{ fontSize: '16px' }}
+                                            placeholder={t('auth.totp_placeholder')}
+                                            autoComplete="one-time-code"
+                                            aria-describedby={authError ? authErrorId : undefined}
+                                            autoFocus
+                                            required={needsTOTP && !useBackupCode}
+                                        />
+                                    </div>
+                                )}
+                                {/* The error and the code's own button straight
+                                    under the field the person just typed into.
+                                    The error used to sit above Username and the
+                                    button below the passkey and backup-code
+                                    alternatives, both off screen once a phone
+                                    keyboard was up. */}
+                                {authErrorLine}
+                                {!(twoFAMethod === 'passkey' && !useBackupCode) && authSubmit}
+                                {useBackupCode ? (
+                                    <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
+                                        className="text-xs text-[var(--accent-ink)] hover:underline">
+                                        ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
+                                    </button>
                                 ) : (
                                     <>
-                                        {twoFAMethod !== 'passkey' && (
-                                            <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]{6}"
-                                                    maxLength={6}
-                                                    value={totpCode}
-                                                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                    className={`${inputCls} tracking-[0.15em] font-mono text-center`}
-                                                    style={{ fontSize: '16px' }}
-                                                    placeholder={t('auth.totp_placeholder')}
-                                                    autoComplete="one-time-code"
-                                                    autoFocus
-                                                    required={needsTOTP && !useBackupCode}
-                                                />
-                                            </div>
-                                        )}
                                         {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
                                             <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
                                         )}
@@ -891,16 +947,7 @@ const Account: React.FC<AccountProps> = ({
                                 )}
                             </div>
                         )}
-                        {!(needsTOTP && twoFAMethod === 'passkey' && !useBackupCode) && (
-                            <button
-                                type="submit"
-                                disabled={authLoading}
-                                className="btn-primary w-full"
-                            >
-                                {authLoading && <Loader2 size={16} className="animate-spin" />}
-                                {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
-                            </button>
-                        )}
+                        {!needsTOTP && authSubmit}
                         {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
                             <>
                                 <div className="flex items-center gap-2">
