@@ -178,20 +178,29 @@ const Lab: React.FC<LabProps> = ({
                                 const isEditing = editingLabId === res.id;
                                 const pt = pointById.get(res.id);
                                 const isT = isT_LabUnit(res.unit);
-                                // An estradiol lab the model has no level for (no recent
-                                // dose before the draw) is left out of calibration.
-                                // Testosterone labs never take part, which their name says.
+                                // An estradiol lab the model has no level for is left out
+                                // of calibration, and the row says so. The reason names
+                                // estradiol: in transmasc mode the doses logged are
+                                // testosterone, so "no recent dose" would be untrue.
+                                // Testosterone labs are not explained here: in transmasc
+                                // mode nearly every lab is one, and a note on each would
+                                // be noise.
                                 const unused = !pt && !isT;
                                 const pct = pt ? Math.round((pt.ratio - 1) * 100) : 0;
                                 return (
                                     <div key={res.id} className="border-b border-[var(--border)] last:border-b-0">
-                                        <div
-                                            className={`py-3.5 flex items-start gap-3 cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${isEditing ? 'bg-[var(--surface-hover)]' : ''}`}
+                                        {/* A button, so the row opens its edit form (and
+                                            with it Delete) from the keyboard too. Its parts
+                                            are spans, the only kind a button may hold. */}
+                                        <button
+                                            type="button"
+                                            aria-expanded={isEditing}
+                                            className={`w-[calc(100%+1rem)] py-3.5 flex items-start gap-3 text-start cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${isEditing ? 'bg-[var(--surface-hover)]' : ''}`}
                                             onClick={() => setEditingLabId(isEditing ? null : res.id)}
                                         >
-                                            <div className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${unused ? 'bg-[var(--border-strong)]' : 'bg-[var(--accent)]'}`} />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-1">
+                                            <span className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${unused ? 'bg-[var(--border-strong)]' : 'bg-[var(--accent)]'}`} />
+                                            <span className="flex-1 min-w-0">
+                                                <span className="flex items-center justify-between mb-1">
                                                     <span className="text-sm">
                                                         <span className={`font-medium ${on}`}>{res.concValue} {res.unit}</span>
                                                         <span className={muted}> · {t(isT ? 'label.t' : 'label.e2')}</span>
@@ -199,8 +208,8 @@ const Lab: React.FC<LabProps> = ({
                                                     <span className={`text-xs tabular-nums ${muted} shrink-0`}>
                                                         {formatTime(d)}
                                                     </span>
-                                                </div>
-                                                <div className="flex items-center justify-between gap-2">
+                                                </span>
+                                                <span className="flex items-center justify-between gap-2">
                                                     <span className={`text-xs ${muted}`}>{formatDate(d, lang)}</span>
                                                     {/* Against the raw model, named as the plot names it, and
                                                         in words: "13% above" rather than a bare ×1.13. */}
@@ -218,10 +227,10 @@ const Lab: React.FC<LabProps> = ({
                                                             </span>
                                                         </span>
                                                     )}
-                                                </div>
-                                                {unused && <p className={`text-xs ${muted} mt-1`}>{t('lab.not_used')}</p>}
-                                            </div>
-                                        </div>
+                                                </span>
+                                                {unused && <span className={`block text-xs ${muted} mt-1`}>{t('lab.not_used')}</span>}
+                                            </span>
+                                        </button>
                                         <div className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} {...inertWhen(!isEditing)}>
                                             <div className="overflow-hidden">
                                                 <div className="pb-4 pt-1">
