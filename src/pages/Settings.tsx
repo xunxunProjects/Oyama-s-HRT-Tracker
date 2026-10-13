@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronRight, Settings2, Database, Info } from 'lucide-react';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
@@ -10,6 +10,7 @@ import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
+import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -69,15 +70,21 @@ const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => 
     </button>
 );
 
-const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => (
-    <div className={`${rowBase} cursor-default`}>
-        <div>
-            <p className={rowLabel}>{label}</p>
-            <p className={`text-xs ${muted} mt-0.5`}>{desc}</p>
+// The text is the switch's <label>, so a tap on the words (the bigger, more
+// natural target on a phone) flips it too. The description is read after the
+// name rather than folded into it.
+const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, desc, checked, onChange }) => {
+    const id = React.useId();
+    return (
+        <div className={`${rowBase} cursor-default`}>
+            <label htmlFor={id} className="cursor-pointer">
+                <span className={`block ${rowLabel}`}>{label}</span>
+                <span id={`${id}-desc`} className={`block text-xs ${muted} mt-0.5`}>{desc}</span>
+            </label>
+            <Switch id={id} checked={checked} onChange={onChange} label={label} describedBy={`${id}-desc`} />
         </div>
-        <Switch checked={checked} onChange={onChange} label={label} />
-    </div>
-);
+    );
+};
 
 // Hard stops rather than a smooth blend, in equal fifths — the flag's stripes
 // are even, and anything else reads as a lopsided swatch.
@@ -95,7 +102,25 @@ const CAT_ORDER: readonly SettingsCat[] = ['general', 'data', 'about'];
 const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
 
 let _savedCat: SettingsCat = 'general';
-let _savedMobileView: MobileView = 'list';
+
+// On a phone the category drilled into is a level of its own for the system
+// Back, so it lives in the history entry pushed on the way in (navHistory)
+// rather than in a module variable. That also makes it last as long as it
+// should: Back from one of its pages lands in it again, while leaving by a
+// tab drops it, so the Settings tab opens on the list, not on whichever
+// category was open last.
+const mobileViewFromHistory = (): MobileView => {
+    const entry = readNavEntry();
+    const cat = entry?.view === 'settings' ? entry.cat : undefined;
+    return CAT_ORDER.find(c => c === cat) ?? 'list';
+};
+
+// Out of a category back through history, so the entry pushed on the way in
+// is not left behind for the next Back; popstate then shows the list.
+const leaveMobileCat = (setMobileView: (v: MobileView) => void) => {
+    if (readNavEntry()?.cat) stepBack();
+    else setMobileView('list');
+};
 
 const Settings: React.FC<SettingsProps> = ({
     t, lang, theme, languageOptions, onClearAllEvents, events,
@@ -109,7 +134,7 @@ const Settings: React.FC<SettingsProps> = ({
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
-    const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
+    const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
 
     const selectCat = (c: SettingsCat) => {
         _savedCat = c;
@@ -118,27 +143,44 @@ const Settings: React.FC<SettingsProps> = ({
 
     const enterMobileCat = (c: SettingsCat) => {
         _savedCat = c;
-        _savedMobileView = c;
         setCat(c);
         setMobileView(c);
+        const entry = readNavEntry();
+        if (entry?.cat) replaceNavEntry('settings', entry.depth, c);
+        else pushNavEntry('settings', navDepth() + 1, c);
     };
 
-    const exitMobileCat = () => {
-        _savedMobileView = 'list';
-        setMobileView('list');
-    };
+    const exitMobileCat = () => leaveMobileCat(setMobileView);
+
+    // The system Back (or Forward) moving between the list and a category,
+    // and the Settings tab tapped again while a category is open.
+    useEffect(() => {
+        const onPop = () => {
+            if (readNavEntry()?.view === 'settings') setMobileView(mobileViewFromHistory());
+        };
+        const onReselect = (e: Event) => {
+            if ((e as CustomEvent<{ view: string }>).detail?.view === 'settings') leaveMobileCat(setMobileView);
+        };
+        window.addEventListener('popstate', onPop);
+        window.addEventListener(TAB_RESELECT, onReselect);
+        return () => {
+            window.removeEventListener('popstate', onPop);
+            window.removeEventListener(TAB_RESELECT, onReselect);
+        };
+    }, []);
 
     const navTo = (fn: () => void, forCat: SettingsCat) => {
         _savedCat = forCat;
-        _savedMobileView = forCat;
         fn();
     };
 
     const catAnim = useSwitchAnimation(cat, CAT_ORDER);
     const mobileAnim = useSwitchAnimation(mobileView, MOBILE_ORDER);
 
+    // Each hint names what people come looking for in that category, so the
+    // weight and the prediction switch can be found from this first screen.
     const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('settings.hrt_mode'), t('drawer.lang'), t('settings.theme')].join(' · ') },
+        { id: 'general', label: t('settings.group.general'), Icon: Settings2, hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(' · ') },
         { id: 'data',    label: t('settings.group.data'),    Icon: Database,  hint: [t('export.title'), t('import.title')].join(' · ') },
         { id: 'about',   label: t('settings.group.about'),   Icon: Info,      hint: [t('drawer.model_title'), t('transparency.title')].join(' · ') },
     ];
@@ -257,7 +299,8 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow label={t('import.title')} onClick={() => navTo(onNavigateToImport, 'data')} />
             </div>
 
-            {/* Destructive, so it sits apart from Export and Import rather than one row under them. */}
+            {/* Destructive, so it sits apart from Export and Import rather than one row under them.
+                The count says how much goes before the tap, not only in the confirm. */}
             <div className={section}>
                 <button
                     onClick={onClearAllEvents}
@@ -267,6 +310,9 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
                         {t('drawer.clear')}
                     </span>
+                    {events.length > 0 && (
+                        <span className={`${rowValue} tabular-nums`}>{events.length} {t('timeline.records')}</span>
+                    )}
                 </button>
             </div>
         </div>

@@ -4,19 +4,25 @@ import { DoseEvent, LabResult } from '../../logic';
 import { Lock } from 'lucide-react';
 import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
+import { settingsSection, rowBleed } from './SettingsListItem';
 
 interface ExportSectionProps {
     events: DoseEvent[];
     labResults: LabResult[];
     weight: number;
     onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
-    onQuickExport?: () => void;
+    /** Copies the export to the clipboard. Resolving to false means the copy
+     *  failed; nothing returned is taken as done. */
+    onQuickExport?: () => void | boolean | Promise<void | boolean>;
 }
 
-const rowBase = "flex items-start justify-between py-[18px] border-b border-[var(--border)]";
-const rowLabel = "text-[0.9375rem] text-[var(--text)]";
-const rowDesc = "text-xs text-[var(--text-muted)] mt-0.5";
-const actionBtn = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
+// Each row is one button, so the whole row takes the tap, not only the
+// 22px-tall accent words on the right, which stay as the row's label for
+// what it does. Rows are divided the way Settings rows are.
+const rowBase = "w-full flex items-start justify-between py-[18px] text-start";
+const rowLabel = "block text-[0.9375rem] text-[var(--text)]";
+const rowDesc = "block text-xs text-[var(--text-muted)] mt-0.5";
+const action = "text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5";
 
 const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weight, onExport, onQuickExport }) => {
     const { t, lang } = useTranslation();
@@ -25,6 +31,10 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [jsonCopied, setJsonCopied] = useState(false);
+    // Which copy last failed, if any. A tick only ever means the clipboard
+    // really has it: a password shown as copied when it wasn't is a backup
+    // nobody can open.
+    const [copyFailed, setCopyFailed] = useState<'json' | 'password' | null>(null);
 
     const hasData = events.length > 0 || labResults.length > 0;
 
@@ -34,22 +44,45 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
 
     const handleEncryptedExport = async () => {
         const pw = await onExport(true, password || undefined);
-        if (pw) setGeneratedPassword(pw);
+        if (pw) {
+            setGeneratedPassword(pw);
+            setCopyFailed(null);
+        }
     };
 
-    const handleCopyPassword = () => {
+    const handleCopyPassword = async () => {
         if (!generatedPassword) return;
-        navigator.clipboard.writeText(generatedPassword);
+        setCopyFailed(null);
+        try {
+            await navigator.clipboard.writeText(generatedPassword);
+        } catch {
+            setCopied(false);
+            setCopyFailed('password');
+            return;
+        }
+        setCopyFailed(null);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleCopyJson = () => {
-        if (onQuickExport) {
-            onQuickExport();
-            setJsonCopied(true);
-            setTimeout(() => setJsonCopied(false), 2000);
+    const handleCopyJson = async () => {
+        if (!onQuickExport) return;
+        setCopyFailed(null);
+        setJsonCopied(false);
+        let ok: void | boolean;
+        try {
+            ok = await onQuickExport();
+        } catch {
+            ok = false;
         }
+        if (ok === false) {
+            setJsonCopied(false);
+            setCopyFailed('json');
+            return;
+        }
+        setCopyFailed(null);
+        setJsonCopied(true);
+        setTimeout(() => setJsonCopied(false), 2000);
     };
 
     const handleCsvExport = () => {
@@ -72,50 +105,57 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     }
 
     return (
-        <div>
-            {/* JSON */}
-            <div className={rowBase}>
-                <div>
-                    <p className={rowLabel}>JSON</p>
-                    <p className={rowDesc}>{t('drawer.save_hint')}</p>
-                </div>
-                <button onClick={handleJsonExport} className={actionBtn}>
-                    {t('export.btn_json')}
+        <>
+            <div className={settingsSection}>
+                {/* JSON */}
+                <button onClick={handleJsonExport} className={`${rowBase} ${rowBleed}`}>
+                    <span>
+                        <span className={rowLabel}>JSON</span>
+                        <span className={rowDesc}>{t('drawer.save_hint')}</span>
+                    </span>
+                    <span className={action}>{t('export.btn_json')}</span>
                 </button>
-            </div>
 
-            {/* Copy JSON */}
-            {onQuickExport && (
-                <div className={rowBase}>
-                    <div>
-                        <p className={rowLabel}>{t('export.btn_copy_json')}</p>
-                        <p className={rowDesc}>{t('export.copy_desc')}</p>
-                    </div>
-                    <button onClick={handleCopyJson} className={`${actionBtn} flex items-center gap-1`}>
-                        <CopyTick copied={jsonCopied} size={13} />
-                        {jsonCopied ? t('export.copied') : t('btn.copy')}
+                {/* Copy JSON */}
+                {onQuickExport && (
+                    <button onClick={handleCopyJson} className={`${rowBase} ${rowBleed}`}>
+                        <span>
+                            <span className={rowLabel}>{t('export.btn_copy_json')}</span>
+                            <span className={rowDesc}>
+                                {copyFailed === 'json' ? t('export.copy_failed') : t('export.copy_desc')}
+                            </span>
+                        </span>
+                        <span className={`${action} flex items-center gap-1`}>
+                            <CopyTick copied={jsonCopied} size={13} />
+                            {jsonCopied ? t('export.copied') : t('btn.copy')}
+                        </span>
                     </button>
-                </div>
-            )}
+                )}
 
-            {/* Encrypted JSON */}
-            <div className={rowBase}>
-                <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className={rowLabel}>{`JSON (${t('export.encrypt_label')})`}</p>
-                            <p className={rowDesc}>{t('export.encrypt_ask_desc')}</p>
-                        </div>
-                        <button
-                            onClick={() => { setShowEncrypted(v => !v); setGeneratedPassword(null); }}
-                            className={actionBtn}
-                        >
-                            {showEncrypted ? t('btn.cancel') : t('export.btn_encrypted')}
-                        </button>
-                    </div>
+                {/* Encrypted JSON. Once a password is on screen the row stops
+                    being a toggle: that password is the only way into the file
+                    just saved, so a stray tap on the title must not wipe it.
+                    Only the panel's own OK closes it then. */}
+                <div>
+                    <button
+                        onClick={() => { if (!generatedPassword) setShowEncrypted(v => !v); }}
+                        aria-expanded={showEncrypted}
+                        aria-disabled={generatedPassword ? true : undefined}
+                        className={`${rowBase} ${generatedPassword ? 'row-bleed cursor-default' : rowBleed}`}
+                    >
+                        <span>
+                            <span className={rowLabel}>{`JSON (${t('export.encrypt_label')})`}</span>
+                            <span className={rowDesc}>{t('export.encrypt_ask_desc')}</span>
+                        </span>
+                        {!generatedPassword && (
+                            <span className={action}>
+                                {showEncrypted ? t('btn.cancel') : t('export.btn_encrypted')}
+                            </span>
+                        )}
+                    </button>
 
                     {showEncrypted && (
-                        <div className="mt-4 space-y-3">
+                        <div className="pb-[18px] space-y-3">
                             <div className="relative">
                                 <input
                                     type="password"
@@ -153,13 +193,18 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                         <span className="font-mono text-sm text-[var(--text)] flex-1 select-all break-all">
                                             {generatedPassword}
                                         </span>
-                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="shrink-0 p-1 text-[var(--text-muted)]">
+                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="tap-target shrink-0 p-1 text-[var(--text-muted)]">
                                             <CopyTick copied={copied} size={14} />
                                         </button>
                                     </div>
+                                    {copyFailed === 'password' && (
+                                        <p className="text-xs text-[var(--text-muted)]">
+                                            {t('export.copy_failed')}
+                                        </p>
+                                    )}
                                     <button
                                         onClick={() => { setGeneratedPassword(null); setShowEncrypted(false); }}
-                                        className="w-full py-1.5 text-xs text-[var(--text-muted)]"
+                                        className="tap-target w-full py-1.5 text-xs text-[var(--text-muted)]"
                                     >
                                         {t('btn.ok')}
                                     </button>
@@ -168,33 +213,38 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* CSV */}
-            <div className={rowBase}>
-                <div>
-                    <p className={rowLabel}>CSV</p>
-                    <p className={rowDesc}>{t('export.csv_desc')}</p>
-                </div>
-                <button onClick={handleCsvExport} className={actionBtn}>
-                    {t('export.btn_csv')}
+                {/* CSV */}
+                <button onClick={handleCsvExport} className={`${rowBase} ${rowBleed}`}>
+                    <span>
+                        <span className={rowLabel}>CSV</span>
+                        <span className={rowDesc}>{t('export.csv_desc')}</span>
+                    </span>
+                    <span className={action}>{t('export.btn_csv')}</span>
                 </button>
-            </div>
 
-            {/* PDF */}
-            <div className={`${rowBase} border-b-0`}>
-                <div>
-                    <p className={rowLabel}>PDF</p>
-                    <p className={rowDesc}>{t('export.pdf_desc')}</p>
-                </div>
+                {/* PDF */}
                 <button
                     onClick={() => exportToPDF({ events, labResults, weight, lang, t })}
-                    className={actionBtn}
+                    className={`${rowBase} ${rowBleed}`}
                 >
-                    {t('export.btn_pdf')}
+                    <span>
+                        <span className={rowLabel}>PDF</span>
+                        <span className={rowDesc}>{t('export.pdf_desc')}</span>
+                    </span>
+                    <span className={action}>{t('export.btn_pdf')}</span>
                 </button>
             </div>
-        </div>
+
+            {/* Where a copy's result is announced, failed or done. It stays
+                mounted, outside the rows, because a button's contents are read
+                as its name rather than as news, and a region that appears
+                already filled is often not read at all. It is emptied before
+                each try, so a second result is heard again. */}
+            <p className="sr-only" role="status">
+                {copyFailed ? t('export.copy_failed') : jsonCopied ? t('export.copied') : ''}
+            </p>
+        </>
     );
 };
 

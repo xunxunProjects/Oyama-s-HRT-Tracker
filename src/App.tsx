@@ -11,7 +11,7 @@ import { PlanItem, planEvent } from './utils/plan';
 import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
 import { useAppData } from './hooks/useAppData';
-import { useAppNavigation, ViewKey, tabForView } from './hooks/useAppNavigation';
+import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
 import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
@@ -120,8 +120,10 @@ const AppContent = () => {
 
     const {
         currentView,
+        currentTab,
         transitionDirection,
         handleViewChange,
+        handleTabSelect,
         mainScrollRef,
         navItems,
     } = useAppNavigation(user);
@@ -134,6 +136,10 @@ const AppContent = () => {
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    // Set when Share opened the sign-in modal: the modal then says why it is
+    // asking, and a successful sign-in carries on to Share instead of leaving
+    // the person to find the button they had already pressed.
+    const [authForShare, setAuthForShare] = useState(false);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
@@ -154,6 +160,17 @@ const AppContent = () => {
     useEffect(() => {
         localStorage.setItem('app-dev-mode', String(devMode));
     }, [devMode]);
+
+    // A page whose guard below has gone false (signed out, developer mode
+    // off) renders nothing, leaving a blank screen. The browser's Forward can
+    // land on one after a sign-out, and an expired sign-in can leave one open,
+    // so step up to the page it belongs to.
+    const pageGone =
+        (!token && (currentView === 'share' || currentView === 'sessions' || currentView === 'two-factor' || currentView === 'edit-avatar')) ||
+        (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states'));
+    useEffect(() => {
+        if (pageGone) handleViewChange(tabForView(currentView));
+    }, [pageGone, currentView, handleViewChange]);
 
     // --- Site label: the host name strip above the mobile view. Switched off
     // from Settings while developer mode is on, and kept off after that. ---
@@ -204,6 +221,14 @@ const AppContent = () => {
         const applyTheme = (isDark: boolean) => {
             root.classList.remove('light', 'dark');
             root.classList.add(isDark ? 'dark' : 'light');
+            // The browser's own bar takes this colour: Android's status bar
+            // and toolbar, an installed app's title bar. index.html's white is
+            // right until the theme is applied (and for the shared view,
+            // which applies none), but it stayed white over a dark page.
+            // --bg of each theme, as hex because not every browser reads
+            // oklch() in this tag.
+            document.querySelectorAll('meta[name="theme-color"]').forEach(meta =>
+                meta.setAttribute('content', isDark ? '#181714' : '#ffffff'));
         };
 
         // Mono renders as light with a grayscale filter (see html.mono in index.css)
@@ -240,6 +265,32 @@ const AppContent = () => {
     }, [isPasswordInputOpen, isFormOpen, isDisclaimerOpen]);
 
 
+    // An import replaces the records on this device (and, with sync on, on
+    // every device), so it asks first whenever there is something to lose, in
+    // either HRT mode: a backup carries both. Restoring a backup onto an empty
+    // device stays a single step, and a file with nothing usable in it is
+    // reported as such before anything is asked. Resolves to whether the
+    // import went through, so the paste box keeps its text after a Cancel.
+    const confirmImport = (parsed: unknown): Promise<boolean> => new Promise(resolve => {
+        if (!processImportedData(parsed, { check: true })) {
+            showDialog('alert', t('drawer.import_error'));
+            resolve(false);
+            return;
+        }
+        const run = () => resolve(processImportedData(parsed));
+        const { modes } = buildExportPayload();
+        if (Object.values(modes).every(m => !m.events.length && !m.labResults.length && !m.doseTemplates.length)) {
+            run();
+            return;
+        }
+        showDialog('confirm', t('import.replace_confirm'), run, {
+            danger: true,
+            title: t('import.replace_title'),
+            confirmLabel: t('import.replace_btn'),
+            onCancel: () => resolve(false),
+        });
+    });
+
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
             let parsed = JSON.parse(text);
@@ -257,7 +308,7 @@ const AppContent = () => {
                 parsed = JSON.parse(decompressed);
             }
 
-            return processImportedData(parsed);
+            return await confirmImport(parsed);
         } catch (err) {
             console.error(err);
             showDialog('alert', t('drawer.import_error'));
@@ -276,9 +327,9 @@ const AppContent = () => {
                     const decompressed = await decompressData(parsed.c);
                     parsed = JSON.parse(decompressed);
                 }
-                processImportedData(parsed);
                 setIsPasswordInputOpen(false);
                 setPendingImportText(null);
+                confirmImport(parsed);
             } catch (e) {
                 console.error(e);
                 showDialog('alert', t('import.decrypt_error'));
@@ -307,18 +358,23 @@ const AppContent = () => {
     // Items with a tap still on record to take back. A dose deleted elsewhere is gone from here too.
     const undoableIds = planLogs.filter(l => events.some(e => e.id === l.eventId)).map(l => l.itemId);
 
-    const handleQuickExport = () => {
+    // Says whether the copy landed, and nothing more: Export shows the result
+    // in place on its Copy row, so a success alert on top only cost a tap,
+    // and a failed write used to be swallowed while the row still said "copied".
+    const handleQuickExport = async (): Promise<boolean> => {
         if (events.length === 0 && labResults.length === 0) {
             showDialog('alert', t('drawer.empty_export'));
-            return;
+            return false;
         }
         const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
-        navigator.clipboard.writeText(json).then(() => {
-            showDialog('alert', t('drawer.export_copied'));
-        }).catch(err => {
+        try {
+            await navigator.clipboard.writeText(json);
+            return true;
+        } catch (err) {
             console.error('Failed to copy: ', err);
-        });
+            return false;
+        }
     };
 
     const downloadFile = (data: string, filename: string) => {
@@ -438,8 +494,8 @@ const AppContent = () => {
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
             <Sidebar
                 navItems={navItems}
-                currentView={tabForView(currentView)}
-                onViewChange={handleViewChange}
+                currentView={currentTab}
+                onViewChange={handleTabSelect}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
 
@@ -474,17 +530,18 @@ const AppContent = () => {
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}
                             theme={theme}
-                            onNavigateToHistory={() => handleViewChange('history')}
-                            onNavigateToLab={() => handleViewChange('lab')}
+                            onNavigateToHistory={() => { setIsQuickAddOpen(true); handleViewChange('history'); }}
+                            onNavigateToLab={() => { setIsQuickAddLabOpen(true); handleViewChange('lab'); }}
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
-                            onAuthRequired={() => setIsAuthModalOpen(true)}
+                            onAuthRequired={() => { setAuthForShare(true); setIsAuthModalOpen(true); }}
                             regimens={regimens}
                             plan={plan}
                             onLogPlanItem={handleLogPlanItem}
                             undoableIds={undoableIds}
                             onUndoPlanLog={handleUndoPlanLog}
                             onNavigateToPlan={() => handleViewChange('plan')}
+                            onNavigateToSupplies={() => handleViewChange('supplies')}
                             supplies={supplies}
                             nowH={nowH}
                             onNavigateToForecast={() => handleViewChange('forecast')}
@@ -544,6 +601,10 @@ const AppContent = () => {
                             onSaveTemplate={addTemplate}
                             onDeleteTemplate={deleteTemplate}
                             groupedEvents={groupedEvents}
+                            events={events}
+                            quickDoses={quickDoses}
+                            onAddQuickDose={addQuickDose}
+                            onDeleteQuickDose={deleteQuickDose}
                         />
                     )}
 
@@ -662,6 +723,7 @@ const AppContent = () => {
                         <ImportSettings
                             onImportJson={importEventsFromJson}
                             onBack={() => handleViewChange('settings')}
+                            onNavigateToExport={() => handleViewChange('settings-export')}
                         />
                     )}
 
@@ -772,26 +834,35 @@ const AppContent = () => {
 
                 {/* Bottom Navigation — a frosted floating island. Content scrolls
                     visibly beneath it; the current tab's icon sits in a tonal
-                    terracotta pill. */}
+                    terracotta pill. Labels stay on one line: a wrapped one
+                    raised its icon above the rest and grew the island past
+                    the scroller's bottom padding. Below 340px they drop to
+                    10px rather than being cut off, and the packs keep them
+                    short enough for that. The longest, Turkish Genel Bakış,
+                    is the name that pack's other strings give the page, so
+                    it stays, and its tab takes a few pixels more than the
+                    rest. Each tab is rounded so the focus ring nests in
+                    the island instead of cutting a square into the next
+                    tab's pill. */}
                 <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
                     <div className="flex items-stretch p-1.5 gap-0.5">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
                             // Mobile reaches admin from Settings → General, so the
                             // settings tab is the one that should read as active.
-                            const activeTab = currentView === 'admin' ? 'settings' : tabForView(currentView);
+                            const activeTab = currentView === 'admin' ? 'settings' : currentTab;
                             const isActive = activeTab === id;
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => handleViewChange(id as ViewKey)}
+                                    onClick={() => handleTabSelect(id as ViewKey)}
                                     aria-current={isActive ? 'page' : undefined}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors duration-150 motion-reduce:transition-none
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-colors duration-150 motion-reduce:transition-none
                                         ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                                 >
                                     <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
                                         <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
                                     </span>
-                                    <span className="text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em]">
+                                    <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
                                         {label}
                                     </span>
                                 </button>
@@ -832,7 +903,9 @@ const AppContent = () => {
 
             <AuthModal
                 isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
+                onClose={() => { setIsAuthModalOpen(false); setAuthForShare(false); }}
+                reason={authForShare ? 'share' : undefined}
+                onSuccess={() => { if (authForShare) handleViewChange('share'); }}
             />
 
         </div >

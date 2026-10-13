@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import Tabs, { useSwitchAnimation } from '../Tabs';
+import { refusedFieldProps } from './refusedField';
 
 const MODE_ORDER = ['rate', 'dose'] as const;
 
@@ -13,6 +14,9 @@ interface PatchFieldsProps {
     onRawChange: (val: string) => void;
     patchWearDays: string;
     setPatchWearDays: (val: string) => void;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -43,6 +47,8 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
     onRawChange,
     patchWearDays,
     setPatchWearDays,
+    invalid,
+    errorId,
 }) => {
     const { t } = useTranslation();
 
@@ -54,6 +60,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
 
     const currentRate = parseFloat(patchRate);
     const currentWear = parseFloat(patchWearDays);
+    const rateId = React.useId();
+    const rawId = React.useId();
+    const wearId = React.useId();
 
     return (
         <div className="space-y-4">
@@ -68,8 +77,10 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             <div key={patchMode} className={modeAnim}>
             {patchMode === "rate" ? (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
+                    <label htmlFor={rateId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
                     <input
+                        id={rateId}
+                        {...refusedFieldProps(patchRate, invalid, errorId)}
                         type="number"
                         inputMode="decimal"
                         min="0"
@@ -80,7 +91,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         placeholder={t('patch.rate_placeholder')}
                         style={{ fontSize: '16px' }}
                     />
-                    {/* Quick presets for common patch strengths */}
+                    {/* Quick presets for common patch strengths. They are
+                        the common rates themselves, so the line that used to
+                        list the same five numbers under them is gone. */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                         {RATE_PRESETS.map(r => (
                             <button
@@ -93,16 +106,15 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-[var(--text-muted)] pl-1">
-                        {t('field.patch_rate_hint')}
-                    </p>
                 </div>
             ) : (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_raw')}
                     </label>
                     <input
+                        id={rawId}
+                        {...refusedFieldProps(rawDose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -118,8 +130,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             {/* Wear duration — applies to both input modes. Empty means the patch
                 stays on until a separate "remove" event is logged. */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_wear')}</label>
+                <label htmlFor={wearId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_wear')}</label>
                 <input
+                    id={wearId}
                     type="number"
                     inputMode="decimal"
                     min="0"

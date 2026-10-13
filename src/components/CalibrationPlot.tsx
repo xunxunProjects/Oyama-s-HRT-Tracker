@@ -107,22 +107,11 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
         ? `${X(lo)},${Y(lo * k)} ${X(hi)},${Y(hi * k)} ${X(hi)},${Y(hi / k)} ${X(lo)},${Y(lo / k)}`
         : null;
 
-    const fitsClearance = calibration.method === 'ekf' || calibration.method === 'mipd';
-    const signedPct = (p: number) => `${p >= 0 ? '+' : ''}${p.toFixed(0)}%`;
-    const stats: { label: string; value: string }[] = calibrated
-        ? [
-            { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
-            ...(fitsClearance ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }] : []),
-            ...(err !== null ? [{ label: t('cal.fit'), value: `±${err.toFixed(0)}%` }] : []),
-            { label: t('cal.labs'), value: String(calibration.n) },
-        ]
-        : [];
-
     const hp = hover !== null ? points[hover] : null;
     const r = 4.5 * ui;
 
     return (
-        <section className="py-5 border-b border-[var(--border)]">
+        <section className="py-5 border-t border-[var(--border)]">
             <h2 className={`text-sm ${muted}`}>{t('cal.plot.title')}</h2>
 
             {/* Legend — every mark on the plot, named */}
@@ -275,19 +264,10 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                 )}
             </div>
 
+            {/* No fit figures under the caption: the Calibration settings row
+                at the top of this page already reads them out, and Calibration
+                settings lists them in full under Current fit. */}
             <p className={`mt-1 text-xs leading-relaxed ${muted}`}>{t('cal.plot.caption')}</p>
-
-            {stats.length > 0 && (
-                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-                    {stats.map(s => (
-                        // Value over label, but the label comes first in the markup.
-                        <div key={s.label} className="flex flex-col-reverse">
-                            <dt className={`text-xs ${muted}`}>{s.label}</dt>
-                            <dd className={`text-xl font-light tabular-nums ${on}`}>{s.value}</dd>
-                        </div>
-                    ))}
-                </dl>
-            )}
         </section>
     );
 };

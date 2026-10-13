@@ -4,6 +4,7 @@ import { BODY_WEIGHT_KG_MAX, BODY_WEIGHT_KG_MIN, ExtraKey, Route, isPlausibleBod
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
 import Doodle, { DoodleName } from '../components/Doodle';
+import Point, { type MarkState } from '../components/Point';
 import DoseRings from '../components/DoseRings';
 import PlanWizard from '../components/PlanWizard';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
@@ -46,9 +47,6 @@ export const markOnboardingSeen = (): void => {
 
 const divider = 'border-b border-[var(--border)]';
 
-/** A row of the chart step relative to the chart: its beat still to come, playing, or played. */
-type MarkState = 'asleep' | 'playing' | 'done';
-
 /**
  * The three slots of the "how it works" step, and the only step that splits in
  * two on a wide window — because the chart is the only thing in the intro that
@@ -84,38 +82,6 @@ const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent
 
 /** Read straight out of the packs to size the greeting — see the welcome step. */
 const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
-
-interface PointProps {
-    /** One of the drawings in Doodle. */
-    mark: DoodleName;
-    title: string;
-    desc: string;
-    /**
-     * Where the chart above is relative to this row's beat — see HowStep. The
-     * drawing and the title stay grey while the beat is still to come, which
-     * is what stops the chart reading as decoration floating over an
-     * unrelated list. Omitted on the rows of steps that have no chart.
-     */
-    state?: MarkState;
-    /** Makes the row a button: the beat it names replays from the top. */
-    onClick?: () => void;
-}
-
-const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', onClick }) => {
-    const className = `flex w-full items-start gap-3.5 py-4 text-start ${divider} last:border-b-0`;
-    const body = (
-        <>
-            <Doodle name={mark} asleep={state === 'asleep'} className="-mt-0.5" />
-            <div>
-                <p className={`text-[0.9375rem] font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>{title}</p>
-                <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
-            </div>
-        </>
-    );
-    return onClick
-        ? <button type="button" onClick={onClick} aria-pressed={state === 'playing'} className={className}>{body}</button>
-        : <div className={className}>{body}</div>;
-};
 
 /** Rows of the "how it works" step, in beat order — see BEATS. */
 const HOW_ROWS: { mark: DoodleName; title: string; desc: string }[] = [
@@ -416,7 +382,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
         <div key="weight" className="pt-8">
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.weight_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
-            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider}`}>
+            {/* The field is drawn as a figure on a rule, not an .input-base
+                box, so it takes the text-field focus treatment by hand: the
+                rule turns terracotta while the figure is being edited. */}
+            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--accent-ink)]`}>
                 <input
                     type="number"
                     inputMode="decimal"
@@ -558,11 +527,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 </div>
             </div>
 
-            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)]`}>
-                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
+            {/* Both labels stay on one line. Wrapped, "Get started" spilled
+                out of its 40px button at a common phone width and the footer
+                grew under the finger on the last step. The 1fr columns widen
+                to fit an unwrapped label, and below 360px the footer takes
+                16px gutters and a closer gap so two labels and the rings
+                still fit side by side in every language. */}
+            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)] max-[360px]:px-4`}>
+                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
                     <div className="justify-self-start">
                         {step > 0 && (
-                            <button onClick={() => go(step - 1)} className="btn-secondary">
+                            <button onClick={() => go(step - 1)} className="btn-secondary whitespace-nowrap">
                                 {t('onboarding.back')}
                             </button>
                         )}
@@ -571,7 +546,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                     <DoseRings count={steps.length} at={step} />
 
                     <div className="justify-self-end">
-                        <button onClick={forward} disabled={!ready} className="btn-primary">
+                        <button onClick={forward} disabled={!ready} className="btn-primary whitespace-nowrap">
                             {t(isLast ? 'onboarding.start' : 'onboarding.next')}
                         </button>
                     </div>

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
+import { UploadCloud, LogOut, BadgeCheck, Edit2, Loader2, Trash2, Cloud, HardDrive, DownloadCloud, Merge, ChevronDown, Plus, Minus, Fingerprint, Lock, MonitorSmartphone, CloudOff, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import ShieldIcon from '../components/ShieldIcon';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
+import Point from '../components/Point';
+import { describeAuthError } from '../components/AuthModal';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -13,7 +15,8 @@ import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToke
 import { apiEndpoint } from '../services/apiClient';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
-import { formatBytes } from '../utils/helpers';
+import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
+import { useTranslation } from '../contexts/LanguageContext';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 
 interface LocalData {
@@ -95,6 +98,13 @@ const Account: React.FC<AccountProps> = ({
     const avatarUrl = apiEndpoint(`/api/user/avatar/${user?.username}?t=${avatarCacheBuster}`);
     const [backupList, setBackupList] = useState<BackupMeta[]>([]);
     const [backupsLoading, setBackupsLoading] = useState(false);
+    // The list could not be fetched. Kept apart from an empty list, which is
+    // how it used to show: "No cloud backups yet" to someone whose backups
+    // might be the only copy they have.
+    const [backupsFailed, setBackupsFailed] = useState(false);
+    // When the list was last fetched: the instant its "2h ago" labels count
+    // from, so every row measures against the same clock.
+    const [listedAt, setListedAt] = useState(() => Math.floor(Date.now() / 1000));
     const [savingCloud, setSavingCloud] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [expandedData, setExpandedData] = useState<Record<string, any>>({});
@@ -105,6 +115,8 @@ const Account: React.FC<AccountProps> = ({
     const [unlockError, setUnlockError] = useState<string | null>(null);
     const [unlockLoading, setUnlockLoading] = useState(false);
     const { showDialog } = useDialog();
+    const { lang } = useTranslation();
+    const locale = LOCALE_MAP[lang] || 'en-US';
 
     // Inline auth form state
     const [isLogin, setIsLogin] = useState(true);
@@ -122,6 +134,7 @@ const Account: React.FC<AccountProps> = ({
     // The passkey retry button needs it too, or that sign-in leaves this
     // device without a cloud key and sync stuck on locked.
     const acceptedPasswordRef = useRef<string | null>(null);
+    const formId = useId();
     const { login, register, loginWithToken } = useAuth();
 
     // `silent` refreshes the list in place. Sync reports in on its own schedule
@@ -134,7 +147,14 @@ const Account: React.FC<AccountProps> = ({
         try {
             const list = await cloudService.listMeta(token);
             setBackupList(list);
-        } catch { if (!silent) setBackupList([]); }
+            setBackupsFailed(false);
+            setListedAt(Math.floor(Date.now() / 1000));
+        } catch {
+            // A silent refresh that fails keeps the rows it already shows:
+            // they were real a moment ago, and an error line in their place
+            // would be the blinking the comment above rules out.
+            if (!silent) { setBackupList([]); setBackupsFailed(true); }
+        }
         finally { if (!silent) setBackupsLoading(false); }
     };
 
@@ -168,7 +188,18 @@ const Account: React.FC<AccountProps> = ({
                 setBackupList(prev => prev.filter(b => b.id !== id));
                 setExpandedData(prev => { const n = { ...prev }; delete n[id]; return n; });
             } catch { showDialog('alert', t('account.delete_backup_failed')); }
-        }, { danger: true });
+        }, { danger: true, confirmLabel: t('btn.delete') });
+    };
+
+    // Signing out hides every record made under this account: they stay on
+    // this device, filed under it, for when it signs back in. Nothing said so,
+    // and the empty History that followed read as the records being wiped. A
+    // plain confirm rather than a red one, since nothing is destroyed.
+    const confirmSignOut = () => {
+        showDialog('confirm', t('account.sign_out_confirm'), onLogout, {
+            title: t('account.sign_out'),
+            confirmLabel: t('account.sign_out'),
+        });
     };
 
     const toggleExpand = async (b: BackupMeta) => {
@@ -353,7 +384,7 @@ const Account: React.FC<AccountProps> = ({
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
-                setAuthError(err.message || t('error.generic'));
+                setAuthError(describeAuthError(err, t));
             }
         } finally {
             setAuthLoading(false);
@@ -402,7 +433,27 @@ const Account: React.FC<AccountProps> = ({
 
     const inputCls = "w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]";
 
+    const authErrorId = `${formId}-error`;
+    const authErrorLine = authError && (
+        <p id={authErrorId} role="alert" className="text-sm text-[var(--danger)]">
+            {authError}
+        </p>
+    );
+    const authSubmit = (
+        <button
+            type="submit"
+            disabled={authLoading}
+            className="btn-primary w-full"
+        >
+            {authLoading && <Loader2 size={16} className="animate-spin" />}
+            {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+        </button>
+    );
+
     const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
+    const backupsKept = t('account.backups_kept')
+        .replace('{n}', String(backupList.length))
+        .replace('{max}', String(MAX_CLOUD_BACKUPS));
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
 
     return (
@@ -514,7 +565,7 @@ const Account: React.FC<AccountProps> = ({
                             <SettingsListItem
                                 icon={<SyncIcon status={syncStatus} className={iconCls} />}
                                 title={t(`sync.status.${syncStatus}`)}
-                                description={(syncStatus === 'error' || showLastSynced) ? (
+                                description={(syncStatus === 'error' || syncStatus === 'off' || showLastSynced) ? (
                                     <>
                                         {/* The reason, not just the fact. Without this line a full
                                             database, an oversized payload and a dead network were
@@ -522,8 +573,20 @@ const Account: React.FC<AccountProps> = ({
                                         {syncStatus === 'error' && (
                                             <p className="text-[var(--danger)]">{describeSyncError(syncErrorCode, t)}</p>
                                         )}
+                                        {/* Off is a choice made in Settings, and this line is the
+                                            only place sync reports; without saying where the
+                                            switch is, "Sync off" was a dead end. The names come
+                                            from Settings' own keys, as on the delete page, so a
+                                            rename there can't leave this pointing nowhere. */}
+                                        {syncStatus === 'off' && (
+                                            <p>{t('account.sync_off_desc')
+                                                .replace('{path}', [t('nav.settings'), t('settings.group.data')].join(' › '))
+                                                .replace('{setting}', t('settings.auto_sync'))}</p>
+                                        )}
+                                        {/* To the minute and in the app's language, like the
+                                            backup rows below. */}
                                         {showLastSynced && (
-                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString())}</p>
+                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))}</p>
                                         )}
                                     </>
                                 ) : undefined}
@@ -546,7 +609,12 @@ const Account: React.FC<AccountProps> = ({
                             disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
                             showChevron={false}
                             trailing={backupList.length > 0 && (
-                                <span className={`${statusMuted} tabular-nums`}>{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
+                                // The bare "3/5" stays, as backupPolicy.ts promises, but
+                                // says what it counts to anyone who hovers or listens.
+                                <span className={`${statusMuted} tabular-nums`} title={backupsKept}>
+                                    <span aria-hidden="true">{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
+                                    <span className="sr-only">{backupsKept}</span>
+                                </span>
                             )}
                         />
 
@@ -554,6 +622,17 @@ const Account: React.FC<AccountProps> = ({
                         {backupsLoading ? (
                             <div className="flex justify-center py-6">
                                 <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                            </div>
+                        ) : backupsFailed ? (
+                            <div className="py-6 flex flex-col items-center gap-2 text-center">
+                                <p role="alert" className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                                    <AlertCircle size={14} className="shrink-0 text-[var(--warning)]" />
+                                    {t('account.backups_list_failed')}
+                                </p>
+                                <button type="button" onClick={() => fetchBackups()} className="btn-ghost btn-ghost-accent tap-target">
+                                    <RefreshCw size={14} />
+                                    {t('account.retry')}
+                                </button>
                             </div>
                         ) : backupList.length === 0 ? (
                             <div className="py-6 flex flex-col items-center gap-2">
@@ -563,10 +642,13 @@ const Account: React.FC<AccountProps> = ({
                         ) : (
                             backupList.map(b => (
                                 <div key={b.id}>
-                                    {/* Laid out as a SettingsListItem (18px icon, gap-3,
-                                        py-4) so its text starts on the same line as every
-                                        row above; not one, because it holds its own
-                                        delete button. */}
+                                    {/* Laid out as a SettingsListItem (20px icon, gap-3)
+                                        so its text starts on the same line as every row
+                                        above; not one, because it holds its own delete
+                                        button. Named by how long ago, which is what
+                                        "restore from before the mistake" needs, with the
+                                        stamp to the minute underneath: seconds made every
+                                        row read the same. */}
                                     <div
                                         role="button"
                                         tabIndex={0}
@@ -578,12 +660,16 @@ const Account: React.FC<AccountProps> = ({
                                             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(b); }
                                         }}
                                     >
-                                        <HardDrive size={18} className={iconCls} />
+                                        <HardDrive size={20} className={iconCls} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-[var(--text)] truncate">
-                                                {new Date(b.created_at * 1000).toLocaleString()}
+                                                {formatRelative(b.created_at, listedAt, t)}
                                             </p>
-                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">{formatBytes(b.data_size)}</p>
+                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                                                {new Date(b.created_at * 1000).toLocaleString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                {' · '}
+                                                {formatBytes(b.data_size)}
+                                            </p>
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
@@ -749,7 +835,7 @@ const Account: React.FC<AccountProps> = ({
                         <SettingsListItem
                             icon={LogOut}
                             title={t('account.sign_out')}
-                            onClick={onLogout}
+                            onClick={confirmSignOut}
                             showChevron={false}
                         />
                     </div>
@@ -770,6 +856,16 @@ const Account: React.FC<AccountProps> = ({
                 </div>
             ) : (
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm [&>*]:mx-auto`}>
+                    {/* What an account is for, before the form asks for one.
+                        Bare, the form read as the app requiring it, and said
+                        nothing about what it would do with medical records.
+                        The intro's own rows and words, so the promise reads
+                        as the one made on the first day. */}
+                    <div className="mb-4">
+                        <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
+                        <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
+                    </div>
+
                     {/* Login / Register tabs */}
                     <Tabs
                         tabs={[
@@ -783,14 +879,11 @@ const Account: React.FC<AccountProps> = ({
 
                     <div key={isLogin ? 'sign-in' : 'sign-up'} className={authAnim}>
                     <form onSubmit={handleAuthSubmit} className="space-y-4">
-                        {authError && (
-                            <p className="text-sm text-[var(--danger)]">
-                                {authError}
-                            </p>
-                        )}
+                        {!needsTOTP && authErrorLine}
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
+                            <label htmlFor={`${formId}-username`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.username')}</label>
                             <input
+                                id={`${formId}-username`}
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -798,12 +891,14 @@ const Account: React.FC<AccountProps> = ({
                                 style={{ fontSize: '16px' }}
                                 placeholder={t('auth.username_placeholder')}
                                 autoComplete="username"
+                                aria-describedby={authError && !needsTOTP ? authErrorId : undefined}
                                 required
                             />
                         </div>
                         <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
+                            <label htmlFor={`${formId}-password`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.password')}</label>
                             <input
+                                id={`${formId}-password`}
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -811,19 +906,34 @@ const Account: React.FC<AccountProps> = ({
                                 style={{ fontSize: '16px' }}
                                 placeholder={t('auth.password_placeholder')}
                                 autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                aria-describedby={[
+                                    !isLogin ? `${formId}-key-note` : '',
+                                    authError && !needsTOTP ? authErrorId : '',
+                                ].filter(Boolean).join(' ') || undefined}
                                 required
                             />
                         </div>
-                        {needsTOTP && isLogin && (
+                        {/* Signing up is the moment to say it: the password is
+                            what the backups are encrypted with, so no reset
+                            brings them back (see changePassword in
+                            AuthContext). */}
+                        {!isLogin && (
+                            <p id={`${formId}-key-note`} className="callout">{t('auth.password_is_key')}</p>
+                        )}
+                        {/* Only sign-in ever asks for a second factor, and
+                            switching tabs clears it, so this is the sign-in
+                            form's. */}
+                        {needsTOTP && (
                             <div className="space-y-3">
                                 <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
                                     <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
                                     {t('auth.needs_2fa')}
                                 </div>
                                 {useBackupCode ? (
-                                    <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
+                                    <div key="backup" className="space-y-1.5">
+                                        <label htmlFor={`${formId}-backup`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.backup_code_label')}</label>
                                         <input
+                                            id={`${formId}-backup`}
                                             type="text"
                                             value={backupCode}
                                             onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
@@ -831,35 +941,47 @@ const Account: React.FC<AccountProps> = ({
                                             style={{ fontSize: '16px' }}
                                             placeholder={t('auth.backup_code_placeholder')}
                                             autoComplete="off"
+                                            aria-describedby={authError ? authErrorId : undefined}
                                             autoFocus
                                             required={useBackupCode}
                                         />
-                                        <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
-                                            className="text-xs text-[var(--accent-ink)] hover:underline">
-                                            ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
-                                        </button>
                                     </div>
+                                ) : twoFAMethod !== 'passkey' && (
+                                    <div key="totp" className="space-y-1.5">
+                                        <label htmlFor={`${formId}-totp`} className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
+                                        <input
+                                            id={`${formId}-totp`}
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]{6}"
+                                            maxLength={6}
+                                            value={totpCode}
+                                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className={`${inputCls} tracking-[0.15em] font-mono text-center`}
+                                            style={{ fontSize: '16px' }}
+                                            placeholder={t('auth.totp_placeholder')}
+                                            autoComplete="one-time-code"
+                                            aria-describedby={authError ? authErrorId : undefined}
+                                            autoFocus
+                                            required={needsTOTP && !useBackupCode}
+                                        />
+                                    </div>
+                                )}
+                                {/* The error and the code's own button straight
+                                    under the field the person just typed into.
+                                    The error used to sit above Username and the
+                                    button below the passkey and backup-code
+                                    alternatives, both off screen once a phone
+                                    keyboard was up. */}
+                                {authErrorLine}
+                                {!(twoFAMethod === 'passkey' && !useBackupCode) && authSubmit}
+                                {useBackupCode ? (
+                                    <button type="button" onClick={() => { setUseBackupCode(false); setBackupCode(''); }}
+                                        className="text-xs text-[var(--accent-ink)] hover:underline">
+                                        ← {twoFAMethod === 'totp' ? t('auth.totp_code') : t('auth.passkey_as_2fa')}
+                                    </button>
                                 ) : (
                                     <>
-                                        {twoFAMethod !== 'passkey' && (
-                                            <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[var(--text-muted)]">{t('auth.totp_code')}</label>
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]{6}"
-                                                    maxLength={6}
-                                                    value={totpCode}
-                                                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                    className={`${inputCls} tracking-[0.15em] font-mono text-center`}
-                                                    style={{ fontSize: '16px' }}
-                                                    placeholder={t('auth.totp_placeholder')}
-                                                    autoComplete="one-time-code"
-                                                    autoFocus
-                                                    required={needsTOTP && !useBackupCode}
-                                                />
-                                            </div>
-                                        )}
                                         {twoFAMethod === 'passkey' && typeof window !== 'undefined' && !window.PublicKeyCredential && (
                                             <p className="text-xs text-[var(--danger)] text-center">{t('auth.passkey_unsupported')}</p>
                                         )}
@@ -891,16 +1013,7 @@ const Account: React.FC<AccountProps> = ({
                                 )}
                             </div>
                         )}
-                        {!(needsTOTP && twoFAMethod === 'passkey' && !useBackupCode) && (
-                            <button
-                                type="submit"
-                                disabled={authLoading}
-                                className="btn-primary w-full"
-                            >
-                                {authLoading && <Loader2 size={16} className="animate-spin" />}
-                                {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
-                            </button>
-                        )}
+                        {!needsTOTP && authSubmit}
                         {isLogin && !needsTOTP && typeof window !== 'undefined' && !!window.PublicKeyCredential && (
                             <>
                                 <div className="flex items-center gap-2">

@@ -63,10 +63,10 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
         onAddQuickDose(newDose);
     };
 
-    const handleDelete = (id: string) => {
-        showDialog('confirm', t('quickdose.delete_confirm'), () => {
-            onDeleteQuickDose(id);
-        }, { danger: true });
+    const handleDelete = (dose: QuickDose) => {
+        showDialog('confirm', `${formatValue(dose.value)} ${unit}`, () => {
+            onDeleteQuickDose(dose.id);
+        }, { danger: true, title: t('quickdose.delete_confirm'), confirmLabel: t('btn.delete') });
     };
 
     const formatValue = (val: number): string => {
@@ -79,7 +79,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
     return (
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
             {filteredDoses.map(dose => (
-                <div key={dose.id} className="group relative">
+                <div key={dose.id} className="group relative inline-flex items-center">
                     <button
                         type="button"
                         onClick={() => onSelectDose(dose.value)}
@@ -90,13 +90,21 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                     >
                         {formatValue(dose.value)} {unit}
                     </button>
+                    {/* With a mouse, a badge on the chip's corner that shows on
+                        hover. On a touch screen there is no hover, and an
+                        unseen 16px corner took taps meant for the chip, so
+                        there it sits beside the chip, always shown, muted,
+                        with a 44px-tall hit area (.tap-target, which also
+                        takes it out of absolute positioning). */}
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDelete(dose.id); }}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-md flex items-center justify-center
+                        onClick={(e) => { e.stopPropagation(); handleDelete(dose); }}
+                        aria-label={`${t('btn.delete')} ${formatValue(dose.value)} ${unit}`}
+                        className="tap-target absolute -top-1.5 -right-1.5 w-4 h-4 rounded-md flex items-center justify-center
  bg-[var(--surface-hover)]
  text-muted border border-[var(--border)]
-                            opacity-0 group-hover:opacity-100"
+                            opacity-0 group-hover:opacity-100 focus-visible:opacity-100
+                            pointer-coarse:inset-auto pointer-coarse:w-6 pointer-coarse:h-6 pointer-coarse:opacity-100 pointer-coarse:bg-transparent pointer-coarse:border-transparent"
                     >
                         <X size={10} strokeWidth={3} />
                     </button>
@@ -111,6 +119,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
  hover:border-[var(--border-strong)]
                     hover:text-[var(--text)]"
                 title={t('quickdose.add')}
+                aria-label={t('quickdose.add')}
             >
                 <Plus size={14} strokeWidth={2.5} />
             </button>
