@@ -4,14 +4,18 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+    type CalibrationResult,
+    DEFAULT_PK_PARAMS,
     Ester,
     ExtraKey,
     Route,
+    computeCalibration,
     interpolateConcentration_E2,
     interpolateConcentration_T,
     runSimulation,
+    runSimulationWithParams,
 } from '../logic';
-import { BW, NOW_H, VD_E2_ML, dose, regimen, relErr, scan } from './helpers';
+import { BW, NOW_H, VD_E2_ML, dose, lab, regimen, relErr, scan } from './helpers';
 
 const E2 = interpolateConcentration_E2;
 // Steady-state level of one 100 µg/day estradiol patch at 70 kg, ≈ 72.6 pg/mL.
@@ -197,5 +201,118 @@ describe('short-acting doses are sampled around their peaks', () => {
         const long = scan(runSimulation(events, BW)!, E2, last, last + 6, 0.01).cmax;
         const short = scan(runSimulation(events.slice(-7), BW)!, E2, last, last + 6, 0.01).cmax;
         expect(relErr(long, short)).toBeLessThan(0.01);
+    });
+});
+
+describe('lab calibration reports and draws the same thing', () => {
+    const events = regimen(Route.injection, Ester.EV, 5, 168, 10, NOW_H - 84);
+    const sim = runSimulation(events, BW)!;
+    const model = (t: number) => E2(sim, t)!;
+    const LAB_TIMES = [NOW_H - 1000, NOW_H - 800, NOW_H - 560, NOW_H - 400, NOW_H - 230, NOW_H - 100];
+    const withClearance = (mul: number) =>
+        runSimulationWithParams(events, BW, {
+            ...DEFAULT_PK_PARAMS,
+            e2_kClear: DEFAULT_PK_PARAMS.e2_kClear * mul,
+            e2_kClearInj: DEFAULT_PK_PARAMS.e2_kClearInj * mul,
+        })!;
+    const curveRmsPct = (cal: CalibrationResult) => {
+        const sse = cal.points.reduce((acc, p) => acc + Math.log(p.obs / (p.pred * cal.factorFn(p.timeH))) ** 2, 0);
+        return (Math.exp(Math.sqrt(sse / cal.points.length)) - 1) * 100;
+    };
+
+    it.each(['ekf', 'mipd'] as const)('%s reports a clearance within the range it can draw', method => {
+        // The estimate used to drift past the 0.5x-2x grid: labs from a 3x
+        // clearance gave ekf 2.41 and mipd 4.40 while both drew the 2x curve.
+        const truth = withClearance(3);
+        const cal = computeCalibration(
+            sim,
+            events,
+            BW,
+            LAB_TIMES.map(t => lab(t, E2(truth, t)!)),
+            method,
+        );
+        expect(cal.kMul).toBeLessThanOrEqual(2 + 1e-9);
+        expect(cal.kMul).toBeGreaterThanOrEqual(0.5 - 1e-9);
+        expect(cal.halfLifeDeltaPct).toBeCloseTo((1 / cal.kMul - 1) * 100, 9);
+    });
+
+    it.each(['ekf', 'mipd'] as const)('%s draws the curve of the clearance it reports', method => {
+        // The drawn curve used to snap to the nearest grid knot while the fit
+        // used the interpolated clearance. Compare with a fresh simulation at the
+        // reported clearance, which the knot interpolation approximates closely.
+        const truth = withClearance(1.37);
+        const cal = computeCalibration(
+            sim,
+            events,
+            BW,
+            LAB_TIMES.map(t => lab(t, E2(truth, t)! * 1.1)),
+            method,
+        );
+        expect(cal.kMul).toBeGreaterThan(1.05);
+        const atReported = withClearance(cal.kMul);
+        for (const t of [...LAB_TIMES, NOW_H - 300, NOW_H - 20]) {
+            const drawn = model(t) * cal.factorFn(t);
+            expect(relErr(drawn, E2(atReported, t)! * cal.scale)).toBeLessThan(0.01);
+        }
+    });
+
+    it('ekf forward: adding the third lab leaves the curve before it unchanged', () => {
+        // Clearance used to be unlocked from the total number of labs, so the
+        // third lab rewrote the segments after the first two.
+        const two = LAB_TIMES.slice(0, 2).map(t => lab(t, model(t) * 2));
+        const three = [...two, lab(LAB_TIMES[2], model(LAB_TIMES[2]) * 2)];
+        const a = computeCalibration(sim, events, BW, two, 'ekf', 'forward');
+        const b = computeCalibration(sim, events, BW, three, 'ekf', 'forward');
+        for (const t of [LAB_TIMES[0] + 10, LAB_TIMES[0] + 100, LAB_TIMES[1] + 10, LAB_TIMES[1] + 100]) {
+            expect(b.factorFn(t)).toBeCloseTo(a.factorFn(t), 9);
+        }
+    });
+
+    it('ekf leaves the curve on labs that match the model', () => {
+        // A Jensen term used to lift the curve up to about 7% above such labs.
+        for (const labs of [LAB_TIMES.slice(-1), LAB_TIMES.slice(-2), LAB_TIMES]) {
+            const cal = computeCalibration(
+                sim,
+                events,
+                BW,
+                labs.map(t => lab(t, model(t))),
+                'ekf',
+            );
+            for (const t of labs) expect(Math.abs(cal.factorFn(t) - 1)).toBeLessThan(0.005);
+        }
+    });
+
+    it('mipd: a higher single lab never gives a lower curve', () => {
+        // With one lab the robust likelihood used to discount a lab that was far
+        // from the model, so the fitted level fell as the lab rose.
+        let previous = 0;
+        for (const ratio of [0.05, 0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20]) {
+            const cal = computeCalibration(sim, events, BW, [lab(NOW_H - 100, model(NOW_H - 100) * ratio)], 'mipd');
+            expect(cal.scale).toBeGreaterThan(previous);
+            previous = cal.scale;
+        }
+    });
+
+    it.each(['ekf', 'mipd'] as const)('%s: labs drawn at the same moment do not move clearance', method => {
+        const t = NOW_H - 100;
+        const labs = [lab(t, model(t) * 1.5), lab(t + 0.5, model(t + 0.5) * 1.4), lab(t + 1, model(t + 1) * 1.6)];
+        const cal = computeCalibration(sim, events, BW, labs, method);
+        expect(cal.kMul).toBe(1);
+        expect(cal.halfLifeDeltaPct).toBe(0);
+    });
+
+    it.each([
+        ['ekf', 'forward'],
+        ['ekf', 'retrospective'],
+        ['mipd', 'forward'],
+        ['mipd', 'retrospective'],
+        ['ou_kalman', 'forward'],
+        ['ou_kalman', 'retrospective'],
+    ] as const)('%s %s: the reported fit error describes the drawn curve', (method, mode) => {
+        const truth = withClearance(1.4);
+        const labs = LAB_TIMES.map((t, i) => lab(t, E2(truth, t)! * (i % 2 ? 1.3 : 0.9)));
+        const cal = computeCalibration(sim, events, BW, labs, method, mode);
+        expect(cal.fitErrPct).not.toBeNull();
+        expect(cal.fitErrPct!).toBeCloseTo(curveRmsPct(cal), 9);
     });
 });

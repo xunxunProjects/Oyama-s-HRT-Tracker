@@ -325,17 +325,18 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
  *  - 'off'       : no calibration; raw model.
  *  - 'ekf'       : Extended Kalman Filter. Processes labs in time order, keeping
  *                  a running estimate of (log-amplitude, log-clearance) with a
- *                  covariance. Permanent memory (no forgetting); a Jensen term
- *                  corrects the log→linear mean. Amplitude and clearance update
- *                  through independent innovation channels.
+ *                  covariance. Permanent memory (no forgetting). The curve
+ *                  follows the posterior median, so labs that match the model
+ *                  leave it on them. Amplitude and clearance update through
+ *                  independent innovation channels.
  *  - 'ou_kalman' : Ornstein-Uhlenbeck Kalman smoother. Models the log-correction
  *                  as a mean-reverting process; a forward filter + RTS smoother
  *                  yield a time-varying factor that decays toward the model
  *                  between labs (information is nearly gone after ~3 weeks).
  *  - 'mipd'      : Hybrid model-informed precision dosing. MAP fit of amplitude
  *                  and clearance under a population prior with a Student-t
- *                  (robust) likelihood; shrinks to population when data is
- *                  sparse and resists single outliers.
+ *                  (robust) likelihood once there are enough labs to tell an
+ *                  outlier apart; shrinks to population when data is sparse.
  */
 export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd';
 
@@ -453,14 +454,36 @@ const CAL_MEAS_SD = 0.13;
 const CAL_PRIOR_SD_AMP = 0.50; // ≈ ±65% amplitude
 const CAL_PRIOR_SD_K = 0.35;   // ≈ ±42% clearance
 // Minimum labs before personal *clearance* (curve shape) is allowed to move.
+// Labs drawn within LAB_CLUSTER_H of each other count once: several draws at
+// the same moment say nothing about how fast the level falls, and used to
+// invent a half-life change (+27% from three same-hour labs).
 const MIN_LABS_FOR_CLEARANCE = 3;
+const LAB_CLUSTER_H = 6;
 // OU mean-reversion timescale for the dynamic (OU-Kalman) correction.
 const OU_TAU_H = 336;          // ~2 weeks; ≈63% of info decays per τ
 const OU_STAT_SD = 0.5;        // stationary SD of the log-correction
 const CAL_STUDENT_NU = 4;      // Student-t dof for the robust MIPD likelihood
 
-const clampLogFactor = (x: number) => Math.max(-4.6, Math.min(4.6, x)); // exp ∈ [0.01, 100]
 const clampFactor = (x: number) => Math.max(0.01, Math.min(100, x));
+// The fitted clearance stays on the grid the curve is drawn from. Clamping
+// only to [0.01, 100] let the estimate drift past the grid edge, where the
+// predictions stop changing, so the reported kMul and half-life change (shown
+// in CalibrationPlot, CalibrationSettings and Forecast) described a curve
+// other than the one drawn.
+const LOG_KMUL_MIN = Math.log(KMUL_MIN);
+const LOG_KMUL_MAX = Math.log(KMUL_MAX);
+const clampLogK = (k: number) => Math.max(LOG_KMUL_MIN, Math.min(LOG_KMUL_MAX, k));
+
+/** Whether the first `count` labs are numerous and spread out enough to move clearance. */
+function clearanceIdentifiable(labTimes: number[], count: number): boolean {
+    let clusters = 0;
+    let last = -Infinity;
+    for (let i = 0; i < count; i++) {
+        if (labTimes[i] - last > LAB_CLUSTER_H) clusters++;
+        last = labTimes[i];
+    }
+    return clusters >= MIN_LABS_FOR_CLEARANCE;
+}
 
 /**
  * Precomputed personal-clearance response. For a grid of clearance multipliers we
@@ -527,36 +550,55 @@ function fieldG(field: ClearanceField, i: number, k: number): number {
     return gLog[j - 1][i] * (1 - t) + gLog[j][i] * t;
 }
 
-/** dg_i/dk via local grid slope (Jacobian of the clearance channel). */
+/**
+ * dg_i/dk via local grid slope (Jacobian of the clearance channel). Zero
+ * outside the grid, where fieldG is flat, so no estimator is pushed further out.
+ */
 function fieldGSlope(field: ClearanceField, i: number, k: number): number {
     const { logK, gLog } = field;
     const n = logK.length;
+    if (k < logK[0] || k > logK[n - 1]) return 0;
     let j = 1;
-    if (k >= logK[n - 1]) j = n - 1;
-    else if (k > logK[0]) { while (j < n - 1 && logK[j] < k) j++; }
+    while (j < n - 1 && logK[j] < k) j++;
     return (gLog[j][i] - gLog[j - 1][i]) / (logK[j] - logK[j - 1]);
 }
 
-/** Nearest grid sim for a continuous log-clearance (used to build factor curves). */
-function fieldSimFor(field: ClearanceField, k: number): SimulationResult {
-    const { logK, sims, baselineSim } = field;
+/** Log E2 at `timeH` of the knot-`j` simulation, with fieldG's fallbacks. */
+function knotLogConc(field: ClearanceField, j: number, timeH: number): number {
+    const sim = field.sims[j];
+    let c = sim ? interpolateConcentration_E2(sim, timeH) : null;
+    if (c === null || Number.isNaN(c) || c < 1e-6) {
+        const b = interpolateConcentration_E2(field.baselineSim, timeH);
+        c = b === null || b < 1e-6 ? 1e-6 : b;
+    }
+    return Math.log(c);
+}
+
+/**
+ * Log E2 at any time for log-clearance k, interpolated across the knots exactly
+ * as fieldG does at the lab times. Snapping to the nearest knot instead drew a
+ * curve up to about 5% away from the one that was fitted.
+ */
+function fieldLogConcAt(field: ClearanceField, k: number, timeH: number): number {
+    const { logK } = field;
     const n = logK.length;
-    const lo = logK[0], hi = logK[n - 1];
-    const frac = (Math.max(lo, Math.min(hi, k)) - lo) / (hi - lo);
-    return sims[Math.round(frac * (n - 1))] ?? baselineSim;
+    const kc = clampLogK(k);
+    let j = 1;
+    while (j < n - 1 && logK[j] < kc) j++;
+    const w = (kc - logK[j - 1]) / (logK[j] - logK[j - 1]);
+    if (w <= 0) return knotLogConc(field, j - 1, timeH);
+    if (w >= 1) return knotLogConc(field, j, timeH);
+    return knotLogConc(field, j - 1, timeH) * (1 - w) + knotLogConc(field, j, timeH) * w;
 }
 
 /** Constant-parameter factor: calibrated = model · scale · (curve_k / baseline). */
 function constantFactor(field: ClearanceField, a: number, k: number): (timeH: number) => number {
     const scale = Math.exp(a);
-    const calSim = fieldSimFor(field, k);
-    const sameAsBaseline = calSim === field.baselineSim;
+    const atBaseline = Math.abs(k) < 1e-9;
     return (timeH: number) => {
         const b = interpolateConcentration_E2(field.baselineSim, timeH);
-        if (b === null || b < 1 || sameAsBaseline) return clampFactor(scale);
-        const c = interpolateConcentration_E2(calSim, timeH);
-        if (c === null || Number.isNaN(c)) return clampFactor(scale);
-        return clampFactor((scale * c) / b);
+        if (b === null || b < 1 || atBaseline) return clampFactor(scale);
+        return clampFactor((scale * Math.exp(fieldLogConcAt(field, k, timeH))) / b);
     };
 }
 
@@ -589,22 +631,28 @@ interface EstimatorOut {
     fitErrPct: number | null;
 }
 
-function sseAt(field: ClearanceField, logObs: number[], a: number, k: number): number {
-    let s = 0;
-    for (let i = 0; i < logObs.length; i++) {
-        const r = logObs[i] - (a + fieldG(field, i, k));
-        s += r * r;
+/**
+ * Typical deviation of the labs from the curve actually drawn (model × factor),
+ * so it agrees with the plot in every method and history mode. Forecast uses it
+ * for its uncertainty band.
+ */
+function curveFitErrPct(points: CalibrationPoint[], factorFn: (timeH: number) => number): number | null {
+    let sse = 0;
+    for (const p of points) {
+        const r = Math.log(p.obs) - Math.log(p.pred * factorFn(p.timeH));
+        sse += r * r;
     }
-    return s;
+    return logRmsePct(sse, points.length);
 }
 
 /**
  * Extended Kalman Filter over state [log-amplitude, log-clearance], processing
- * labs chronologically. Near-zero process noise = permanent memory. Returns the
- * running per-lab snapshots (for forward mode) and the final state + amplitude
- * variance (for the Jensen log→linear mean correction).
+ * the first `count` labs chronologically. Near-zero process noise = permanent
+ * memory. Returns the final state, whose amplitude is the posterior median: an
+ * earlier Jensen term (adding half the amplitude variance) moved the curve up
+ * to about 7% away from labs that matched the model exactly.
  */
-function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean) {
+function ekfFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
     let x0 = 0, x1 = 0;                                   // [a, k]
     let p00 = CAL_PRIOR_SD_AMP ** 2;
     let p11 = allowClearance ? CAL_PRIOR_SD_K ** 2 : 1e-8;
@@ -612,9 +660,8 @@ function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean
     const R = CAL_MEAS_SD ** 2;
     const q00 = Math.log(1.01) ** 2;                     // tiny amplitude drift
     const q11 = allowClearance ? Math.log(1.005) ** 2 : 0;
-    const snapshots: { a: number; k: number; paa: number }[] = [];
 
-    for (let i = 0; i < logObs.length; i++) {
+    for (let i = 0; i < count; i++) {
         p00 += q00; p11 += q11;                          // predict (random walk)
         const H0 = 1;
         const H1 = allowClearance ? fieldGSlope(field, i, x1) : 0;
@@ -624,51 +671,82 @@ function ekfFit(field: ClearanceField, logObs: number[], allowClearance: boolean
         const S = H0 * ph0 + H1 * ph1 + R;
         const kg0 = ph0 / S, kg1 = ph1 / S;              // Kalman gain
         x0 += kg0 * innov;
-        x1 = clampLogFactor(x1 + kg1 * innov);
+        x1 = clampLogK(x1 + kg1 * innov);
         // P ← (I − K·H)·P
         const a00 = 1 - kg0 * H0, a01 = -kg0 * H1, a10 = -kg1 * H0, a11 = 1 - kg1 * H1;
         const np00 = a00 * p00 + a01 * p10, np01 = a00 * p01 + a01 * p11;
         const np10 = a10 * p00 + a11 * p10, np11 = a10 * p01 + a11 * p11;
         p00 = np00; p01 = np01; p10 = np10; p11 = np11;
-        snapshots.push({ a: x0, k: x1, paa: p00 });
     }
-    return { snapshots, aFinal: x0, kFinal: x1, paaFinal: p00 };
+    return { a: x0, k: x1 };
 }
 
 /**
  * Hybrid model-informed MAP fit of [log-amplitude, log-clearance] under a Gaussian
- * population prior with a Student-t (robust) likelihood, by iteratively reweighted
- * Gauss-Newton. Uses the first `count` labs. Shrinks to the population mean (0,0)
- * when labs are scarce and downweights single outliers.
+ * population prior, by iteratively reweighted Gauss-Newton over the first
+ * `count` labs. Shrinks to the population mean (0,0) when labs are scarce.
+ *
+ * The likelihood is Student-t (downweighting an outlier) only once there are
+ * MIN_LABS_FOR_CLEARANCE labs: with one or two labs nothing can tell an outlier
+ * from a real difference, and the redescending Student-t made the fitted level
+ * fall as a single lab rose. The robust posterior can have several modes, so
+ * the fit starts from several points across the clearance grid and keeps the
+ * best.
  */
 function mipdFit(field: ClearanceField, logObs: number[], count: number, allowClearance: boolean) {
-    let a = 0, k = 0;
     const sigma = CAL_MEAS_SD, nu = CAL_STUDENT_NU;
+    const robust = count >= MIN_LABS_FOR_CLEARANCE;
     const precA = 1 / CAL_PRIOR_SD_AMP ** 2;
-    const precK = allowClearance ? 1 / CAL_PRIOR_SD_K ** 2 : 1e8;
-    let A00 = precA, A01 = 0, A11 = precK, det = 1;
+    const precK = 1 / CAL_PRIOR_SD_K ** 2;
 
-    for (let iter = 0; iter < 16; iter++) {
-        A00 = precA; A01 = 0; A11 = precK;
-        let b0 = -precA * a, b1 = -precK * k;            // prior pulls toward (0,0)
+    // Negative log posterior, up to a constant.
+    const objective = (a: number, k: number) => {
+        let f = 0.5 * precA * a * a + (allowClearance ? 0.5 * precK * k * k : 0);
         for (let i = 0; i < count; i++) {
-            const r = logObs[i] - (a + fieldG(field, i, k));
-            const u = r / sigma;
-            const w = (nu + 1) / (nu + u * u) / (sigma * sigma); // Student-t IRLS weight
-            const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
-            A00 += w; A01 += w * J1; A11 += w * J1 * J1;
-            b0 += w * r; b1 += w * J1 * r;
+            const u = (logObs[i] - (a + fieldG(field, i, k))) / sigma;
+            f += robust ? 0.5 * (nu + 1) * Math.log(1 + (u * u) / nu) : 0.5 * u * u;
         }
-        det = A00 * A11 - A01 * A01;
-        if (Math.abs(det) < 1e-12) break;
-        const d0 = (A11 * b0 - A01 * b1) / det;
-        const d1 = (A00 * b1 - A01 * b0) / det;
-        a += d0;
-        k = clampLogFactor(k + d1);
-        if (Math.abs(d0) + Math.abs(d1) < 1e-5) break;
+        return f;
+    };
+
+    const solve = (a0: number, k0: number) => {
+        let a = a0, k = allowClearance ? k0 : 0;
+        for (let iter = 0; iter < 50; iter++) {
+            let A00 = precA, A01 = 0, A11 = allowClearance ? precK : 1;
+            let b0 = -precA * a, b1 = allowClearance ? -precK * k : 0; // prior pulls toward (0,0)
+            for (let i = 0; i < count; i++) {
+                const r = logObs[i] - (a + fieldG(field, i, k));
+                const u = r / sigma;
+                const w = robust ? (nu + 1) / (nu + u * u) / (sigma * sigma) : 1 / (sigma * sigma);
+                const J1 = allowClearance ? fieldGSlope(field, i, k) : 0;
+                A00 += w; A01 += w * J1; A11 += w * J1 * J1;
+                b0 += w * r; b1 += w * J1 * r;
+            }
+            const det = A00 * A11 - A01 * A01;
+            if (Math.abs(det) < 1e-12) break;
+            const d0 = (A11 * b0 - A01 * b1) / det;
+            const d1 = allowClearance ? (A00 * b1 - A01 * b0) / det : 0;
+            // Halve the step until the posterior does not get worse.
+            const f0 = objective(a, k);
+            let t = 1;
+            while (t > 1e-4 && objective(a + t * d0, clampLogK(k + t * d1)) > f0 + 1e-12) t /= 2;
+            const na = a + t * d0, nk = clampLogK(k + t * d1);
+            const moved = Math.abs(na - a) + Math.abs(nk - k);
+            a = na; k = nk;
+            if (moved < 1e-7) break;
+        }
+        return { a, k, f: objective(a, k) };
+    };
+
+    const starts = allowClearance ? field.logK.filter((_, j) => j % 5 === 0) : [0];
+    let best = solve(0, 0);
+    for (const k0 of starts) {
+        // Start the amplitude at the median residual for this clearance.
+        const res = Array.from({ length: count }, (_, i) => logObs[i] - fieldG(field, i, k0)).sort((x, y) => x - y);
+        const cand = solve(res[Math.floor(count / 2)] ?? 0, k0);
+        if (cand.f < best.f) best = cand;
     }
-    const paa = Math.abs(det) > 1e-12 ? A11 / det : CAL_PRIOR_SD_AMP ** 2; // marginal var(a)
-    return { a, k, paa };
+    return { a: best.a, k: best.k };
 }
 
 /**
@@ -773,38 +851,28 @@ export function computeCalibration(
     // OU-Kalman models a time-varying amplitude correction; no clearance grid needed.
     if (method === 'ou_kalman') {
         const out = ouCalibrate(points, historyMode);
-        return { method, ...out, n, points };
+        return { method, ...out, fitErrPct: curveFitErrPct(points, out.factorFn), n, points };
     }
 
     // EKF and MIPD identify amplitude + clearance; both share the clearance field.
-    const allowClearance = n >= MIN_LABS_FOR_CLEARANCE;
+    // Whether clearance may move is decided per prefix of the labs, so in forward
+    // mode a later lab never changes the segments before it.
     const field = buildClearanceField(baselineSim, events, bodyWeightKG, labTimes);
+    const fit = (count: number) =>
+        method === 'ekf'
+            ? ekfFit(field, logObs, count, clearanceIdentifiable(labTimes, count))
+            : mipdFit(field, logObs, count, clearanceIdentifiable(labTimes, count));
 
     let factorFn: (timeH: number) => number;
     let aRep: number, kRep: number;
-
-    if (method === 'ekf') {
-        const fit = ekfFit(field, logObs, allowClearance);
-        aRep = fit.aFinal + 0.5 * fit.paaFinal;          // Jensen log→linear mean correction
-        kRep = fit.kFinal;
-        factorFn = historyMode === 'forward'
-            ? piecewiseFactor(field, labTimes, fit.snapshots.map(s => ({ a: s.a + 0.5 * s.paa, k: s.k })))
-            : constantFactor(field, aRep, kRep);
+    if (historyMode === 'forward') {
+        const params = Array.from({ length: n }, (_, i) => fit(i + 1));
+        factorFn = piecewiseFactor(field, labTimes, params);
+        aRep = params[n - 1].a; kRep = params[n - 1].k;
     } else {
-        // Hybrid-MIPD
-        if (historyMode === 'forward') {
-            const params: { a: number; k: number }[] = [];
-            for (let i = 0; i < n; i++) {
-                const f = mipdFit(field, logObs, i + 1, i + 1 >= MIN_LABS_FOR_CLEARANCE);
-                params.push({ a: f.a, k: f.k });
-            }
-            factorFn = piecewiseFactor(field, labTimes, params);
-            aRep = params[n - 1].a; kRep = params[n - 1].k;
-        } else {
-            const f = mipdFit(field, logObs, n, allowClearance);
-            aRep = f.a; kRep = f.k;
-            factorFn = constantFactor(field, aRep, kRep);
-        }
+        const f = fit(n);
+        aRep = f.a; kRep = f.k;
+        factorFn = constantFactor(field, aRep, kRep);
     }
 
     const kMul = Math.exp(kRep);
@@ -815,7 +883,7 @@ export function computeCalibration(
         kMul,
         halfLifeDeltaPct: (1 / kMul - 1) * 100, // half-life ∝ 1/clearance
         n,
-        fitErrPct: logRmsePct(sseAt(field, logObs, aRep, kRep), n),
+        fitErrPct: curveFitErrPct(points, factorFn),
         points,
     };
 }
