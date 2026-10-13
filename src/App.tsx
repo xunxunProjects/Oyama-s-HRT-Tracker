@@ -122,6 +122,7 @@ const AppContent = () => {
         currentView,
         transitionDirection,
         handleViewChange,
+        handleTabSelect,
         mainScrollRef,
         navItems,
     } = useAppNavigation(user);
@@ -455,7 +456,7 @@ const AppContent = () => {
             <Sidebar
                 navItems={navItems}
                 currentView={tabForView(currentView)}
-                onViewChange={handleViewChange}
+                onViewChange={handleTabSelect}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
 
@@ -803,7 +804,7 @@ const AppContent = () => {
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => handleViewChange(id as ViewKey)}
+                                    onClick={() => handleTabSelect(id as ViewKey)}
                                     aria-current={isActive ? 'page' : undefined}
                                     className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors duration-150 motion-reduce:transition-none
                                         ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
