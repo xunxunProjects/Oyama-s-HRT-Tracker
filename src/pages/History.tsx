@@ -21,6 +21,10 @@ const formatWearDays = (days: number): string =>
 
 const MAX_BATCH_COUNT = 365;
 
+// Now, in the hours every dose's time is kept in, for a handler to read at
+// the moment it runs.
+const hoursNow = () => Date.now() / 3600000;
+
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const headerBtn = headerAction;
@@ -210,8 +214,10 @@ const History: React.FC<HistoryProps> = ({
 
     const markSaved = (e: DoseEvent) => {
         // A dose saved for later lands in the planned section: open it, or
-        // there would be no row to show.
-        if (e.timeH > nowH) setPlannedOpen(true);
+        // there would be no row to show. Measured against now, not the last
+        // render's nowH: typing in the form does not re-render this page, so
+        // that could be minutes old.
+        if (e.timeH > hoursNow()) setPlannedOpen(true);
         setSavedMarkOn(false);
         setSaved({ id: e.id });
     };
