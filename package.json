@@ -13,7 +13,7 @@
     "wrangler:dev": "npm run build && wrangler dev",
     "wrangler:migrate:local": "wrangler d1 migrations apply hrt-tracker-prod --local",
     "wrangler:migrate:remote": "wrangler d1 migrations apply hrt-tracker-prod --remote",
-    "wrangler:migrate:reconcile": "wrangler d1 execute hrt-tracker-prod --remote --file=docker/mark-applied-migrations.sql",
+    "wrangler:migrate:reconcile": "node docker/reconcile.mjs hrt-tracker-prod --remote",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri": "tauri",

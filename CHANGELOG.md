@@ -10,6 +10,15 @@ Notable changes to this project. Full release notes for each version are on the
 
 ## Unreleased 未发布
 
+- Fixed Docker containers that would not start after upgrading from an image
+  older than September 2026. Such a volume often has the 2FA secret column but
+  not the newer replay-guard column, so migration `0005` failed on the column
+  that exists. The reconcile step now adds the missing column first. It is the
+  same step `npm run wrangler:migrate:reconcile` runs for Cloudflare.
+
+  修复了从 2026 年 9 月之前的镜像升级后 Docker 容器起不来的问题：这类数据卷常常已有两步验证
+  密钥那一列，却没有后来加的防重放那一列，迁移 `0005` 会因为已存在的那一列失败。对账步骤现在会
+  先补上缺的那一列；Cloudflare 部署用 `npm run wrangler:migrate:reconcile` 运行的也是同一步。
 - Made the app friendlier to use without changing its look. The system Back
   gesture now steps back through pages instead of leaving the app. A new dose
   starts on the drug and route used last. Confirms say what they will delete or
