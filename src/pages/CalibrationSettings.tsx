@@ -32,9 +32,20 @@ interface MethodDef {
 // parameters: a personal amplitude and a personal clearance.
 const METHODS: MethodDef[] = [
     { value: 'off', icon: CircleOff, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
-    { value: 'mipd', icon: Gauge, recommended: true, pros: ['cal.mipd.pro.1', 'cal.mipd.pro.2'], cons: ['cal.mipd.con.1'] },
+    {
+        value: 'mipd',
+        icon: Gauge,
+        recommended: true,
+        pros: ['cal.mipd.pro.1', 'cal.mipd.pro.2'],
+        cons: ['cal.mipd.con.1'],
+    },
     { value: 'ekf', icon: Radar, pros: ['cal.ekf.pro.1', 'cal.ekf.pro.2'], cons: ['cal.ekf.con.1'] },
-    { value: 'ou_kalman', icon: Wind, pros: ['cal.ou_kalman.pro.1', 'cal.ou_kalman.pro.2'], cons: ['cal.ou_kalman.con.1'] },
+    {
+        value: 'ou_kalman',
+        icon: Wind,
+        pros: ['cal.ou_kalman.pro.1', 'cal.ou_kalman.pro.2'],
+        cons: ['cal.ou_kalman.con.1'],
+    },
 ];
 
 // Only EKF and MIPD fit a personal clearance; OU-Kalman corrects amplitude only.
@@ -95,7 +106,14 @@ const OptionCard: React.FC<{
     </button>
 );
 
-const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMethod, historyMode, setHistoryMode, calibration, onBack }) => {
+const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
+    method,
+    setMethod,
+    historyMode,
+    setHistoryMode,
+    calibration,
+    onBack,
+}) => {
     const { t } = useTranslation();
 
     const showFit = method !== 'off' && calibration.points.length > 0;
@@ -103,15 +121,15 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
 
     const stats: { label: string; value: string }[] = showFit
         ? [
-            { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
-            ...(fitsClearance(method)
-                ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }]
-                : []),
-            ...(calibration.fitErrPct !== null
-                ? [{ label: t('cal.fit'), value: `±${calibration.fitErrPct.toFixed(0)}%` }]
-                : []),
-            { label: t('cal.labs'), value: String(calibration.n) },
-        ]
+              { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
+              ...(fitsClearance(method)
+                  ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }]
+                  : []),
+              ...(calibration.fitErrPct !== null
+                  ? [{ label: t('cal.fit'), value: `±${calibration.fitErrPct.toFixed(0)}%` }]
+                  : []),
+              { label: t('cal.labs'), value: String(calibration.n) },
+          ]
         : [];
 
     return (
@@ -130,20 +148,22 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                             badge={recommended ? t('cal.recommended') : undefined}
                             onClick={() => setMethod(value)}
                         >
-                            <p className={`text-[0.8125rem] leading-snug ${muted} mt-1`}>
-                                {t(`cal.desc.${value}`)}
-                            </p>
+                            <p className={`text-[0.8125rem] leading-snug ${muted} mt-1`}>{t(`cal.desc.${value}`)}</p>
 
                             <ul className="mt-3 space-y-1.5">
                                 {pros.map(k => (
                                     <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
-                                        <span className="icon-line"><Check size={13} className="text-[var(--status-positive)]/80" /></span>
+                                        <span className="icon-line">
+                                            <Check size={13} className="text-[var(--status-positive)]/80" />
+                                        </span>
                                         <span className={muted}>{t(k)}</span>
                                     </li>
                                 ))}
                                 {cons.map(k => (
                                     <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
-                                        <span className="icon-line"><Minus size={13} className={muted} /></span>
+                                        <span className="icon-line">
+                                            <Minus size={13} className={muted} />
+                                        </span>
                                         <span className={muted}>{t(k)}</span>
                                     </li>
                                 ))}
@@ -156,9 +176,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                     Only meaningful once a learning method is selected. */}
                 {method !== 'off' && (
                     <div className="mt-8">
-            <p className={`text-[0.8125rem] font-semibold ${muted} mb-2`}>
-                            {t('cal.history')}
-                        </p>
+                        <p className={`text-[0.8125rem] font-semibold ${muted} mb-2`}>{t('cal.history')}</p>
                         <div className="space-y-2.5">
                             {HISTORY_MODES.map(({ value: hm, icon }) => (
                                 <OptionCard
@@ -180,9 +198,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                 {/* Current fit */}
                 {showFit && (
                     <div className="mt-8">
-            <p className={`text-[0.8125rem] font-semibold ${muted} mb-1`}>
-                            {t('cal.current')}
-                        </p>
+                        <p className={`text-[0.8125rem] font-semibold ${muted} mb-1`}>{t('cal.current')}</p>
                         {stats.map(({ label, value }) => (
                             <div key={label} className={`flex items-center justify-between py-3 ${divider}`}>
                                 <span className={`text-sm ${muted}`}>{label}</span>
@@ -193,9 +209,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({ method, setMe
                 )}
 
                 {/* Attribution: the learning models mirror those on hrt.transmtf.com. */}
-                <p className={`text-[0.6875rem] leading-snug ${muted} mt-8`}>
-                    {t('cal.source')}
-                </p>
+                <p className={`text-[0.6875rem] leading-snug ${muted} mt-8`}>{t('cal.source')}</p>
             </div>
         </div>
     );

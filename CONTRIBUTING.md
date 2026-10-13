@@ -15,20 +15,20 @@ By taking part you agree to follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Ways to help 参与方式
 
-- **Report a bug**: open an issue with the *Bug report* template.
+- **Report a bug**: open an issue with the _Bug report_ template.
 
-  **报告问题**：使用 *Bug report* 模板提交 issue。
+  **报告问题**：使用 _Bug report_ 模板提交 issue。
 
 - **Ask about an estimate**: if the modelled concentration looks far from your
-  lab result, use the *Question about a concentration estimate* template. These
+  lab result, use the _Question about a concentration estimate_ template. These
   reports help us check the model.
 
   **询问浓度估算**：如果模型估算的浓度与你的化验结果差距很大，请使用
-  *Question about a concentration estimate* 模板。这类反馈能帮助我们检验模型。
+  _Question about a concentration estimate_ 模板。这类反馈能帮助我们检验模型。
 
-- **Suggest a feature**: use the *Feature request* template.
+- **Suggest a feature**: use the _Feature request_ template.
 
-  **建议新功能**：使用 *Feature request* 模板。
+  **建议新功能**：使用 _Feature request_ 模板。
 
 - **Translate**: see [Translations](#translations-翻译) below.
 
@@ -123,23 +123,23 @@ npm run tauri:dev
 
 ## Codebase map 代码结构
 
-| Path 路径 | What it is 说明 |
-| --- | --- |
-| `index.tsx`, `src/App.tsx` | Entry point and app shell (navigation, settings, language list). 入口与应用外壳（导航、设置、语言列表）。 |
-| `src/pages/` | One file per screen. 每个页面一个文件。 |
-| `src/components/` | Shared UI pieces, charts and forms. 共享的界面组件、图表与表单。 |
-| `src/contexts/`, `src/hooks/` | React state: auth, language, app data, cloud sync. React 状态：登录、语言、应用数据、云同步。 |
-| `src/services/` | Calls to the Worker API. 调用 Worker API 的代码。 |
-| `src/i18n/` | Translations (`translations.ts`) and share-page copy (`share.ts`). 界面翻译与分享页文案。 |
-| `logic.ts` | The pharmacokinetic model: dose events, parameters, simulation. See [Algorithm Explanation.md](./Algorithm%20Explanation.md). 药代动力学模型：给药事件、参数与模拟，详见算法说明。 |
-| `tests/` | Unit tests for `logic.ts` (Vitest). 针对 `logic.ts` 的单元测试（Vitest）。 |
-| `worker.ts`, `backupPolicy.ts` | Cloudflare Worker backend: API, auth, D1 database, R2 avatar storage, scheduled cleanup. Cloudflare Worker 后端：API、认证、D1 数据库、R2 头像存储与定时清理。 |
-| `migrations/` | D1 schema. Add a new numbered file; never edit one that has shipped. D1 数据库结构。新增带编号的文件，不要修改已发布的迁移。 |
-| `wrangler.toml` | Worker configuration and bindings. Worker 配置与绑定。 |
-| `src-tauri/` | Tauri desktop app (Rust). Tauri 桌面应用（Rust）。 |
-| `Dockerfile`, `docker/`, `compose.yaml` | Self-hosted image. 自托管镜像。 |
-| `scripts/set_version.py` | Keeps every version field in step. 保持各文件版本号一致。 |
-| `.github/workflows/` | CI, CodeQL, Docker publishing and releases. CI、CodeQL、Docker 发布与版本发布。 |
+| Path 路径                               | What it is 说明                                                                                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.tsx`, `src/App.tsx`              | Entry point and app shell (navigation, settings, language list). 入口与应用外壳（导航、设置、语言列表）。                                                                          |
+| `src/pages/`                            | One file per screen. 每个页面一个文件。                                                                                                                                            |
+| `src/components/`                       | Shared UI pieces, charts and forms. 共享的界面组件、图表与表单。                                                                                                                   |
+| `src/contexts/`, `src/hooks/`           | React state: auth, language, app data, cloud sync. React 状态：登录、语言、应用数据、云同步。                                                                                      |
+| `src/services/`                         | Calls to the Worker API. 调用 Worker API 的代码。                                                                                                                                  |
+| `src/i18n/`                             | Translations (`translations.ts`) and share-page copy (`share.ts`). 界面翻译与分享页文案。                                                                                          |
+| `logic.ts`                              | The pharmacokinetic model: dose events, parameters, simulation. See [Algorithm Explanation.md](./Algorithm%20Explanation.md). 药代动力学模型：给药事件、参数与模拟，详见算法说明。 |
+| `tests/`                                | Unit tests for `logic.ts` (Vitest). 针对 `logic.ts` 的单元测试（Vitest）。                                                                                                         |
+| `worker.ts`, `backupPolicy.ts`          | Cloudflare Worker backend: API, auth, D1 database, R2 avatar storage, scheduled cleanup. Cloudflare Worker 后端：API、认证、D1 数据库、R2 头像存储与定时清理。                     |
+| `migrations/`                           | D1 schema. Add a new numbered file; never edit one that has shipped. D1 数据库结构。新增带编号的文件，不要修改已发布的迁移。                                                       |
+| `wrangler.toml`                         | Worker configuration and bindings. Worker 配置与绑定。                                                                                                                             |
+| `src-tauri/`                            | Tauri desktop app (Rust). Tauri 桌面应用（Rust）。                                                                                                                                 |
+| `Dockerfile`, `docker/`, `compose.yaml` | Self-hosted image. 自托管镜像。                                                                                                                                                    |
+| `scripts/set_version.py`                | Keeps every version field in step. 保持各文件版本号一致。                                                                                                                          |
+| `.github/workflows/`                    | CI, CodeQL, Docker publishing and releases. CI、CodeQL、Docker 发布与版本发布。                                                                                                    |
 
 ---
 
@@ -156,14 +156,11 @@ npm run tauri:dev
    **Fork 并新建分支**：从 `main` 创建一个名字简短明确的分支，例如 `fix/patch-removal-time`。
 
 3. **Keep the change focused.** One pull request should do one thing. Match the
-   style of the code around it. Please don't reformat whole existing files yet,
-   by hand or with format on save: the repository-wide Prettier pass will land
-   as its own pull request. New files can be formatted with
-   `npx prettier --write <file>`.
+   style of the code around it. Run `npm run format` before you commit, or
+   turn on format on save with Prettier in your editor.
 
-   **保持修改聚焦**：一个 PR 只做一件事，并与周围代码的风格保持一致。暂时请不要整体格式化已有文件，
-   无论是手动还是保存时自动格式化：全仓库的 Prettier 格式化会单独提交。新文件可以用
-   `npx prettier --write <文件>` 格式化。
+   **保持修改聚焦**：一个 PR 只做一件事，并与周围代码的风格保持一致。提交前请运行 `npm run format`，
+   或在编辑器里开启 Prettier 保存时自动格式化。
 
 4. **Check it locally** with the same steps CI runs:
 
@@ -172,6 +169,7 @@ npm run tauri:dev
    ```bash
    npx tsc --noEmit                    # typecheck the app and worker.ts 类型检查
    npm run lint                        # ESLint: errors fail CI, please add no new warnings 代码检查：错误会让 CI 失败，请不要新增警告
+   npm run format:check                # Prettier; `npm run format` fixes it 格式检查，可用 `npm run format` 修正
    npm test                            # unit tests for the dose math 剂量计算单元测试
    npm run build                       # production build 生产构建
    python3 scripts/set_version.py --check

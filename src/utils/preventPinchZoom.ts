@@ -37,7 +37,11 @@ export function preventPinchZoom(): void {
     // (WKWebView) — and WebKit reports pinch through the gesture events above,
     // so the listener bought it nothing.
     if ('GestureEvent' in window) return;
-    window.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) e.preventDefault();
-    }, { passive: false });
+    window.addEventListener(
+        'wheel',
+        e => {
+            if (e.ctrlKey) e.preventDefault();
+        },
+        { passive: false },
+    );
 }

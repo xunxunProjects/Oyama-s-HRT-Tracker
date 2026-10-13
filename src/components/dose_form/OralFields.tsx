@@ -23,7 +23,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
     onE2Change,
     route,
     invalid,
-    errorId
+    errorId,
 }) => {
     const { t } = useTranslation();
     // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
@@ -33,16 +33,22 @@ const OralFields: React.FC<OralFieldsProps> = ({
 
     return (
         <div className="grid grid-cols-2 gap-4">
-            {(ester !== Ester.E2) && (
-                <div className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || rawOnly ? 'col-span-2' : ''}`}>
-                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+            {ester !== Ester.E2 && (
+                <div
+                    className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || rawOnly ? 'col-span-2' : ''}`}
+                >
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        {t('field.dose_raw')}
+                    </label>
                     <input
                         id={rawId}
                         {...refusedFieldProps(rawDose, invalid, errorId)}
-                        type="number" inputMode="decimal"
+                        type="number"
+                        inputMode="decimal"
                         min="0"
                         step="0.001"
-                        value={rawDose} onChange={e => onRawChange(e.target.value)}
+                        value={rawDose}
+                        onChange={e => onRawChange(e.target.value)}
                         className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
@@ -51,17 +57,19 @@ const OralFields: React.FC<OralFieldsProps> = ({
             )}
 
             {!(ester === Ester.EV && route === Route.oral) && !rawOnly && (
-                <div className={`space-y-1.5 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
+                <div className={`space-y-1.5 ${ester === Ester.E2 ? 'col-span-2' : ''}`}>
                     <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_e2')}
                     </label>
                     <input
                         id={e2Id}
                         {...refusedFieldProps(e2Dose, invalid, errorId)}
-                        type="number" inputMode="decimal"
+                        type="number"
+                        inputMode="decimal"
                         min="0"
                         step="0.001"
-                        value={e2Dose} onChange={e => onE2Change(e.target.value)}
+                        value={e2Dose}
+                        onChange={e => onE2Change(e.target.value)}
                         className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
@@ -69,7 +77,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                 </div>
             )}
 
-            {(ester === Ester.EV && route === Route.oral) && (
+            {ester === Ester.EV && route === Route.oral && (
                 <div className="col-span-2">
                     {/* No unit after the number: the label already ends in (mg). */}
                     <p className="text-xs text-[var(--text-muted)] mt-1">

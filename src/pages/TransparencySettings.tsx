@@ -20,7 +20,7 @@ interface TransparencyStats {
 
 const REFRESH_INTERVAL_MS = 30_000;
 
-const rowBase = "flex items-baseline justify-between py-[18px] border-b border-[var(--border)]";
+const rowBase = 'flex items-baseline justify-between py-[18px] border-b border-[var(--border)]';
 
 interface TransparencySettingsProps {
     onBack: () => void;
@@ -34,22 +34,25 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
     const [lastUpdated, setLastUpdated] = useState<number | null>(null);
     const timerRef = useRef<number | null>(null);
 
-    const load = useCallback(async (signal?: AbortSignal) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await fetch(apiEndpoint('/api/transparency'), { signal, cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json() as TransparencyStats;
-            setStats(data);
-            setLastUpdated(Date.now());
-        } catch (e: any) {
-            if (e.name === 'AbortError') return;
-            setError(t('transparency.load_error'));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
+    const load = useCallback(
+        async (signal?: AbortSignal) => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await fetch(apiEndpoint('/api/transparency'), { signal, cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = (await res.json()) as TransparencyStats;
+                setStats(data);
+                setLastUpdated(Date.now());
+            } catch (e: any) {
+                if (e.name === 'AbortError') return;
+                setError(t('transparency.load_error'));
+            } finally {
+                setLoading(false);
+            }
+        },
+        [t],
+    );
 
     useEffect(() => {
         const ctrl = new AbortController();
@@ -82,9 +85,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
             <div className={PAGE_COLUMN}>
                 {error && (
                     <div className="mt-2 mb-4 flex items-center justify-between gap-4">
-                        <p className="text-sm text-[var(--danger)]">
-                            {error}
-                        </p>
+                        <p className="text-sm text-[var(--danger)]">{error}</p>
                         <button onClick={() => load()} disabled={loading} className="btn-secondary shrink-0">
                             {t('transparency.retry')}
                         </button>
@@ -127,9 +128,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-[0.9375rem] text-[var(--text)]">
-                                {t('transparency.stat.self_deleted')}
-                            </p>
+                            <p className="text-[0.9375rem] text-[var(--text)]">{t('transparency.stat.self_deleted')}</p>
                             <p className="text-xs text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.self_deleted_7d))}
                             </p>
@@ -166,10 +165,11 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                         </p>
                     ) : (
                         (stats?.recent_registrations ?? []).map((r, idx) => (
-                            <div key={`${r.anon_id}-${r.created_at}-${idx}`} className="flex items-center justify-between py-3">
-                                <span className="font-mono text-sm text-[var(--text)]">
-                                    user_{r.anon_id}***
-                                </span>
+                            <div
+                                key={`${r.anon_id}-${r.created_at}-${idx}`}
+                                className="flex items-center justify-between py-3"
+                            >
+                                <span className="font-mono text-sm text-[var(--text)]">user_{r.anon_id}***</span>
                                 <span className="text-xs text-[var(--text-muted)] tabular-nums">
                                     {formatRelative(r.created_at, now, t)}
                                 </span>

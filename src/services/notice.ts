@@ -43,17 +43,17 @@ export const noticeService = {
     async get(): Promise<SiteNotice | null> {
         const res = await fetch(apiEndpoint('/api/notice'));
         if (!res.ok) throw await apiErrorFrom(res);
-        const body = await res.json() as { notice: SiteNotice | null };
+        const body = (await res.json()) as { notice: SiteNotice | null };
         return body.notice;
     },
 
     /** Admin read. Returns a queued or expired notice, which the public one hides. */
     async getStored(token: string): Promise<SiteNotice | null> {
         const res = await apiFetch(apiEndpoint('/api/admin/notice'), {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        const body = await res.json() as { notice: SiteNotice | null };
+        const body = (await res.json()) as { notice: SiteNotice | null };
         return body.notice;
     },
 
@@ -62,19 +62,19 @@ export const noticeService = {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(draft)
+            body: JSON.stringify(draft),
         });
         if (!res.ok) throw await apiErrorFrom(res);
-        const body = await res.json() as { notice: SiteNotice | null };
+        const body = (await res.json()) as { notice: SiteNotice | null };
         return body.notice;
     },
 
     async clear(token: string): Promise<void> {
         const res = await apiFetch(apiEndpoint('/api/admin/notice'), {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },

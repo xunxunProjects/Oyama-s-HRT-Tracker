@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 setUser(JSON.parse(storedUser));
             } catch (e) {
-                console.error("Failed to parse user", e);
+                console.error('Failed to parse user', e);
                 // The token itself is still live, so revoke it server-side.
                 void logout();
             }
@@ -110,7 +110,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentToken = localStorage.getItem('auth_token');
         const sid = sessionIdFromToken(currentToken);
         if (currentToken && sid) {
-            try { await authService.terminateSession(currentToken, sid); } catch { /* revoke is best-effort */ }
+            try {
+                await authService.terminateSession(currentToken, sid);
+            } catch {
+                /* revoke is best-effort */
+            }
         }
         clearLocalSession();
     };
@@ -161,7 +165,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, loginWithToken, register, logout, updateProfile, changePassword, deleteAccount }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                token,
+                login,
+                loginWithToken,
+                register,
+                logout,
+                updateProfile,
+                changePassword,
+                deleteAccount,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );

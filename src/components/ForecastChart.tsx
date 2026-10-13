@@ -11,7 +11,16 @@ const COL_PX = 2;
 const CYCLE_PX = 12;
 
 /** One column of a dense series: time-weighted sums (w, h, v), its range, the pixels it spans, and the width it may take. */
-interface Column { w: number; h: number; v: number; lo: number; hi: number; x0: number; x1: number; cw: number }
+interface Column {
+    w: number;
+    h: number;
+    v: number;
+    lo: number;
+    hi: number;
+    x0: number;
+    x1: number;
+    cw: number;
+}
 
 export interface ChartLine {
     key: string;
@@ -69,11 +78,27 @@ const ForecastChart: React.FC<{
     const pad = { l: 40 * ui, r: 8 * ui, t: 22 * ui, b: 24 * ui };
 
     const c = isDarkMode
-        // The chart-* design tokens as hex for SVG; band is chart-band, dot is
-        // chart-dot (the page colour). The target band is drawn in primary,
-        // as on the Overview chart, so the two read as the same range.
-        ? { primary: '#df8f74', second: '#838078', grid: '#2c2a26', axis: '#a7a49e', faint: '#6b6860', band: 'rgba(223,143,116,0.12)', dot: '#181714' }
-        : { primary: '#cc785c', second: '#a7a49e', grid: '#eeedea', axis: '#6b6860', faint: '#a7a49e', band: 'rgba(204,120,92,0.1)', dot: '#ffffff' };
+        ? // The chart-* design tokens as hex for SVG; band is chart-band, dot is
+          // chart-dot (the page colour). The target band is drawn in primary,
+          // as on the Overview chart, so the two read as the same range.
+          {
+              primary: '#df8f74',
+              second: '#838078',
+              grid: '#2c2a26',
+              axis: '#a7a49e',
+              faint: '#6b6860',
+              band: 'rgba(223,143,116,0.12)',
+              dot: '#181714',
+          }
+        : {
+              primary: '#cc785c',
+              second: '#a7a49e',
+              grid: '#eeedea',
+              axis: '#6b6860',
+              faint: '#a7a49e',
+              band: 'rgba(204,120,92,0.1)',
+              dot: '#ffffff',
+          };
     const tone = (t: ChartLine['tone']) => (t === 'primary' ? c.primary : c.second);
 
     const x0 = nowH - 14 * DAY_H;
@@ -105,7 +130,8 @@ const ForecastChart: React.FC<{
     const plotH = height - pad.t - pad.b;
     const X = (h: number) => pad.l + ((h - x0) / (x1 - x0)) * plotW;
     const Y = (v: number) => pad.t + plotH - (v / yMax) * plotH;
-    const path = (pts: [number, number][]) => pts.map(([h, v], i) => `${i ? 'L' : 'M'}${X(h).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+    const path = (pts: [number, number][]) =>
+        pts.map(([h, v], i) => `${i ? 'L' : 'M'}${X(h).toFixed(1)},${Y(v).toFixed(1)}`).join('');
 
     const yTicks = useMemo(() => [0, 1, 2, 3, 4].map(i => Math.round((yMax / 4) * i)), [yMax]);
     // A tick at local midnight each week from the start of the window.
@@ -123,13 +149,19 @@ const ForecastChart: React.FC<{
     // 12-week window on a phone shows every other week rather than a smear.
     const shownTicks = useMemo(() => {
         if (plotW <= 0 || xTicks.length < 2) return xTicks;
-        const spacing = plotW * (7 * DAY_H) / (x1 - x0);
+        const spacing = (plotW * (7 * DAY_H)) / (x1 - x0);
         const every = Math.max(1, Math.ceil((52 * ui) / spacing));
         return xTicks.filter((_, i) => i % every === 0);
     }, [xTicks, plotW, x0, x1, ui]);
     const locale = LOCALE_MAP[lang] ?? lang;
     const dayFmt = new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' });
-    const whenFmt = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    const whenFmt = new Intl.DateTimeFormat(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
 
     // A dose cycle a few pixels wide (sublingual twice a day over eight weeks
     // is about 2px on a phone) drew each line as a solid zigzag block, and the
@@ -149,11 +181,16 @@ const ForecastChart: React.FC<{
         // The peaks, passing over wobbles under 2% of the range (the band's
         // percentiles wobble from hour to hour); a sample's column is two of
         // the cycles around it wide when they are narrow.
-        let top = -Infinity, bottom = Infinity;
-        for (const v of hi) { top = Math.max(top, v); bottom = Math.min(bottom, v); }
+        let top = -Infinity,
+            bottom = Infinity;
+        for (const v of hi) {
+            top = Math.max(top, v);
+            bottom = Math.min(bottom, v);
+        }
         const tol = (top - bottom) * 0.02;
         const peaks: number[] = [];
-        let rising = true, ext = 0;
+        let rising = true,
+            ext = 0;
         for (let i = 1; i < n; i++) {
             if (rising ? hi[i] >= hi[ext] : hi[i] <= hi[ext]) ext = i;
             else if (rising ? hi[i] < hi[ext] - tol : hi[i] > hi[ext] + tol) {
@@ -186,8 +223,14 @@ const ForecastChart: React.FC<{
             if (cols.length < 3 || b.x1 - b.x0 >= b.cw / 2) return;
             const a = cols[cols.length - 2];
             cols.splice(-2, 2, {
-                w: a.w + b.w, h: a.h + b.h, v: a.v + b.v,
-                lo: Math.min(a.lo, b.lo), hi: Math.max(a.hi, b.hi), x0: a.x0, x1: b.x1, cw: a.cw,
+                w: a.w + b.w,
+                h: a.h + b.h,
+                v: a.v + b.v,
+                lo: Math.min(a.lo, b.lo),
+                hi: Math.max(a.hi, b.hi),
+                x0: a.x0,
+                x1: b.x1,
+                cw: a.cw,
             });
         };
         for (let i = 0; i < n; i++) {
@@ -201,8 +244,12 @@ const ForecastChart: React.FC<{
             // A wide column stops where the cycles widen again, rather than
             // smoothing over the start of an injection's rise.
             if (col && x - col.x0 < Math.min(col.cw, widthAt[i])) {
-                col.w += w; col.h += t[i] * w; col.v += mid * w;
-                col.lo = Math.min(col.lo, lo[i]); col.hi = Math.max(col.hi, hi[i]); col.x1 = x;
+                col.w += w;
+                col.h += t[i] * w;
+                col.v += mid * w;
+                col.lo = Math.min(col.lo, lo[i]);
+                col.hi = Math.max(col.hi, hi[i]);
+                col.x1 = x;
             } else {
                 if (col && x - col.x0 < col.cw) joinShort();
                 cols.push({ w, h: t[i] * w, v: mid * w, lo: lo[i], hi: hi[i], x0: x, x1: x, cw: widthAt[i] });
@@ -211,54 +258,90 @@ const ForecastChart: React.FC<{
         joinShort();
         // Each column at the centre of its time, except that the ends reach
         // the first and last sample, so a line still meets the now line.
-        const xs = cols.map((col, i) => X(i === 0 ? t[0] : i === cols.length - 1 ? t[n - 1] : col.h / col.w).toFixed(1));
+        const xs = cols.map((col, i) =>
+            X(i === 0 ? t[0] : i === cols.length - 1 ? t[n - 1] : col.h / col.w).toFixed(1),
+        );
         return { xs, cols };
     };
     const rangePath = ({ xs, cols }: { xs: string[]; cols: Column[] }) =>
-        cols.map((col, i) => `${i ? 'L' : 'M'}${xs[i]},${Y(col.hi).toFixed(1)}`).join('')
-        + cols.map((col, i) => `L${xs[i]},${Y(col.lo).toFixed(1)}`).reverse().join('') + 'Z';
+        cols.map((col, i) => `${i ? 'L' : 'M'}${xs[i]},${Y(col.hi).toFixed(1)}`).join('') +
+        cols
+            .map((col, i) => `L${xs[i]},${Y(col.lo).toFixed(1)}`)
+            .reverse()
+            .join('') +
+        'Z';
     const trace = (pts: [number, number][]): { line: string; ribbon: string | null } => {
         const t = pts.map(p => p[0]);
         const v = pts.map(p => p[1]);
         const cc = columns(t, v, v);
         if (!cc) return { line: path(pts), ribbon: null };
-        return { line: cc.cols.map((col, i) => `${i ? 'L' : 'M'}${cc.xs[i]},${Y(col.v / col.w).toFixed(1)}`).join(''), ribbon: rangePath(cc) };
+        return {
+            line: cc.cols.map((col, i) => `${i ? 'L' : 'M'}${cc.xs[i]},${Y(col.v / col.w).toFixed(1)}`).join(''),
+            ribbon: rangePath(cc),
+        };
     };
     const historyTrace = trace(historyPts);
     const lineTraces = linePts.map(l => ({ ...l, ...trace(l.pts) }));
     // The colours of the lines drawn as a range, one legend swatch each.
-    const swingTones = plotW <= 0 ? [] : [...new Set([
-        ...(historyTrace.ribbon ? [c.primary] : []),
-        ...lineTraces.filter(l => l.ribbon).map(l => tone(l.tone)),
-    ])];
+    const swingTones =
+        plotW <= 0
+            ? []
+            : [
+                  ...new Set([
+                      ...(historyTrace.ribbon ? [c.primary] : []),
+                      ...lineTraces.filter(l => l.ribbon).map(l => tone(l.tone)),
+                  ]),
+              ];
 
     const bandCols = band && plotW > 0 ? columns(band.timeH, band.lo, band.hi) : null;
-    const bandPath = band && plotW > 0
-        ? bandCols
-            ? rangePath(bandCols)
-            : band.timeH.map((h, i) => `${i ? 'L' : 'M'}${X(h).toFixed(1)},${Y(band.hi[i]).toFixed(1)}`).join('')
-              + band.timeH.slice().reverse().map((h, i) => `L${X(h).toFixed(1)},${Y(band.lo[band.lo.length - 1 - i]).toFixed(1)}`).join('') + 'Z'
-        : null;
+    const bandPath =
+        band && plotW > 0
+            ? bandCols
+                ? rangePath(bandCols)
+                : band.timeH.map((h, i) => `${i ? 'L' : 'M'}${X(h).toFixed(1)},${Y(band.hi[i]).toFixed(1)}`).join('') +
+                  band.timeH
+                      .slice()
+                      .reverse()
+                      .map((h, i) => `L${X(h).toFixed(1)},${Y(band.lo[band.lo.length - 1 - i]).toFixed(1)}`)
+                      .join('') +
+                  'Z'
+            : null;
 
     // Read every line off at the hovered hour. Left of now only the log has a
     // value; right of it every projection does.
     const at = (s: Series | null, h: number): number | null => {
         if (!s || !s.timeH.length || h < s.timeH[0] || h > s.timeH[s.timeH.length - 1]) return null;
-        let lo = 0, hi = s.timeH.length - 1;
-        while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s.timeH[m] <= h) lo = m; else hi = m; }
+        let lo = 0,
+            hi = s.timeH.length - 1;
+        while (hi - lo > 1) {
+            const m = (lo + hi) >> 1;
+            if (s.timeH[m] <= h) lo = m;
+            else hi = m;
+        }
         const u = (h - s.timeH[lo]) / (s.timeH[hi] - s.timeH[lo] || 1);
         return s.value[lo] + (s.value[hi] - s.value[lo]) * u;
     };
-    const readout = hoverH === null ? null : (
-        hoverH <= nowH
-            ? [{ key: 'history', label: labels.history, value: at(history, hoverH), color: c.primary, dash: '' }]
-            : lines.map(l => ({ key: l.key, label: l.label, value: at(l.series, hoverH), color: tone(l.tone), dash: l.dash }))
-    )?.filter(r => r.value !== null) ?? null;
+    const readout =
+        hoverH === null
+            ? null
+            : ((hoverH <= nowH
+                  ? [{ key: 'history', label: labels.history, value: at(history, hoverH), color: c.primary, dash: '' }]
+                  : lines.map(l => ({
+                        key: l.key,
+                        label: l.label,
+                        value: at(l.series, hoverH),
+                        color: tone(l.tone),
+                        dash: l.dash,
+                    }))
+              )?.filter(r => r.value !== null) ?? null);
 
     const onPointer = (e: React.PointerEvent<HTMLDivElement>) => {
         if (plotW <= 0) return;
         const px = e.clientX - e.currentTarget.getBoundingClientRect().left;
-        if (px < pad.l || px > pad.l + plotW) { setHoverH(null); return; }
+        if (px < pad.l || px > pad.l + plotW) {
+            setHoverH(null);
+            return;
+        }
         // To the hour: a projection has no minutes to speak of.
         setHoverH(Math.round(x0 + ((px - pad.l) / plotW) * (x1 - x0)));
     };
@@ -290,9 +373,22 @@ const ForecastChart: React.FC<{
     return (
         <div className="w-full">
             <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
-                <span className="flex items-center gap-1.5">{swatch(c.primary, '')}{labels.history}</span>
-                {lines.map(l => <span key={l.key} className="flex items-center gap-1.5">{swatch(tone(l.tone), l.dash)}{l.label}</span>)}
-                {band && <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm" style={{ background: c.band }} />{bandLabel}</span>}
+                <span className="flex items-center gap-1.5">
+                    {swatch(c.primary, '')}
+                    {labels.history}
+                </span>
+                {lines.map(l => (
+                    <span key={l.key} className="flex items-center gap-1.5">
+                        {swatch(tone(l.tone), l.dash)}
+                        {l.label}
+                    </span>
+                ))}
+                {band && (
+                    <span className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-4 rounded-sm" style={{ background: c.band }} />
+                        {bandLabel}
+                    </span>
+                )}
                 {/* A line drawn as its range (see columns()) carries a wash much
                     like the band's, and in a twice-daily plan the two merged into
                     one block that read as the 10–90% interval. Its swatch is the
@@ -323,19 +419,62 @@ const ForecastChart: React.FC<{
                     <svg width={width} height={height} role="img">
                         {target && (
                             <g>
-                                <rect x={pad.l} y={Y(target.high)} width={plotW} height={Y(target.low) - Y(target.high)} fill={c.primary} opacity={0.06} />
-                                <line x1={pad.l} x2={pad.l + plotW} y1={Y(target.low)} y2={Y(target.low)} stroke={c.faint} strokeWidth="1" strokeDasharray="2 4" opacity={0.6} />
-                                <line x1={pad.l} x2={pad.l + plotW} y1={Y(target.high)} y2={Y(target.high)} stroke={c.faint} strokeWidth="1" strokeDasharray="2 4" opacity={0.6} />
+                                <rect
+                                    x={pad.l}
+                                    y={Y(target.high)}
+                                    width={plotW}
+                                    height={Y(target.low) - Y(target.high)}
+                                    fill={c.primary}
+                                    opacity={0.06}
+                                />
+                                <line
+                                    x1={pad.l}
+                                    x2={pad.l + plotW}
+                                    y1={Y(target.low)}
+                                    y2={Y(target.low)}
+                                    stroke={c.faint}
+                                    strokeWidth="1"
+                                    strokeDasharray="2 4"
+                                    opacity={0.6}
+                                />
+                                <line
+                                    x1={pad.l}
+                                    x2={pad.l + plotW}
+                                    y1={Y(target.high)}
+                                    y2={Y(target.high)}
+                                    stroke={c.faint}
+                                    strokeWidth="1"
+                                    strokeDasharray="2 4"
+                                    opacity={0.6}
+                                />
                             </g>
                         )}
                         {yTicks.map(v => (
                             <g key={v}>
-                                <line x1={pad.l} x2={pad.l + plotW} y1={Y(v)} y2={Y(v)} stroke={c.grid} strokeWidth="1" />
-                                <text x={pad.l - 6 * ui} y={Y(v) + 4 * ui} fontSize={axisFont} textAnchor="end" fill={c.axis} className="tabular-nums">{v}</text>
+                                <line
+                                    x1={pad.l}
+                                    x2={pad.l + plotW}
+                                    y1={Y(v)}
+                                    y2={Y(v)}
+                                    stroke={c.grid}
+                                    strokeWidth="1"
+                                />
+                                <text
+                                    x={pad.l - 6 * ui}
+                                    y={Y(v) + 4 * ui}
+                                    fontSize={axisFont}
+                                    textAnchor="end"
+                                    fill={c.axis}
+                                    className="tabular-nums"
+                                >
+                                    {v}
+                                </text>
                             </g>
                         ))}
                         {/* From the left edge: at 12px "pg/mL" is wider than the gutter. */}
-                        <text x={0} y={11 * ui} fontSize={axisFont} fill={c.axis}>{unit}</text>
+                        <text x={0} y={11 * ui} fontSize={axisFont} fill={c.axis}>
+                            {unit}
+                        </text>
                         {shownTicks.map(h => {
                             const day = dayFmt.format(new Date(h * 3600000));
                             // Centred on a week that falls near the right edge, a date ran
@@ -343,27 +482,75 @@ const ForecastChart: React.FC<{
                             // out instead. Digits run about 0.6em.
                             if (X(h) + day.length * axisFont * 0.3 > width) return null;
                             return (
-                                <text key={h} x={X(h)} y={height - 6 * ui} fontSize={axisFont} textAnchor="middle" fill={c.axis} className="tabular-nums">
+                                <text
+                                    key={h}
+                                    x={X(h)}
+                                    y={height - 6 * ui}
+                                    fontSize={axisFont}
+                                    textAnchor="middle"
+                                    fill={c.axis}
+                                    className="tabular-nums"
+                                >
                                     {day}
                                 </text>
                             );
                         })}
                         {bandPath && <path d={bandPath} fill={c.band} stroke="none" />}
-                        {historyTrace.ribbon && <path d={historyTrace.ribbon} fill={c.primary} fillOpacity={0.18} stroke="none" />}
-                        {lineTraces.map(l => l.ribbon && <path key={l.key} d={l.ribbon} fill={tone(l.tone)} fillOpacity={0.18} stroke="none" />)}
-                        <line x1={X(nowH)} x2={X(nowH)} y1={pad.t} y2={pad.t + plotH} stroke={c.axis} strokeWidth="1" strokeDasharray="2 3" />
-                        <path d={historyTrace.line} fill="none" stroke={c.primary} strokeWidth="2" strokeLinejoin="round" />
+                        {historyTrace.ribbon && (
+                            <path d={historyTrace.ribbon} fill={c.primary} fillOpacity={0.18} stroke="none" />
+                        )}
+                        {lineTraces.map(
+                            l =>
+                                l.ribbon && (
+                                    <path
+                                        key={l.key}
+                                        d={l.ribbon}
+                                        fill={tone(l.tone)}
+                                        fillOpacity={0.18}
+                                        stroke="none"
+                                    />
+                                ),
+                        )}
+                        <line
+                            x1={X(nowH)}
+                            x2={X(nowH)}
+                            y1={pad.t}
+                            y2={pad.t + plotH}
+                            stroke={c.axis}
+                            strokeWidth="1"
+                            strokeDasharray="2 3"
+                        />
+                        <path
+                            d={historyTrace.line}
+                            fill="none"
+                            stroke={c.primary}
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                        />
                         {lineTraces.map(l => (
-                            <path key={l.key} d={l.line} fill="none" stroke={tone(l.tone)} strokeWidth={l.tone === 'primary' ? 2 : 1.5} strokeDasharray={l.dash || undefined} strokeLinejoin="round" />
+                            <path
+                                key={l.key}
+                                d={l.line}
+                                fill="none"
+                                stroke={tone(l.tone)}
+                                strokeWidth={l.tone === 'primary' ? 2 : 1.5}
+                                strokeDasharray={l.dash || undefined}
+                                strokeLinejoin="round"
+                            />
                         ))}
                         {/* The band's name goes over the lines, which cross its
                             top edge right where it sits; the halo in the page
                             colour keeps it legible there. */}
                         {target && (
                             <text
-                                x={pad.l + 4 * ui} y={Math.min(pad.t + plotH - 3 * ui, Y(target.high) + 14 * ui)}
-                                fontSize={axisFont} fill={c.axis}
-                                paintOrder="stroke" stroke={c.dot} strokeWidth={3 * ui} strokeLinejoin="round"
+                                x={pad.l + 4 * ui}
+                                y={Math.min(pad.t + plotH - 3 * ui, Y(target.high) + 14 * ui)}
+                                fontSize={axisFont}
+                                fill={c.axis}
+                                paintOrder="stroke"
+                                stroke={c.dot}
+                                strokeWidth={3 * ui}
+                                strokeLinejoin="round"
                                 pointerEvents="none"
                             >
                                 {labels.target}
@@ -371,8 +558,25 @@ const ForecastChart: React.FC<{
                         )}
                         {hoverH !== null && readout && readout.length > 0 && (
                             <g>
-                                <line x1={X(hoverH)} x2={X(hoverH)} y1={pad.t} y2={pad.t + plotH} stroke={c.faint} strokeWidth="1" />
-                                {readout.map(r => <circle key={r.key} cx={X(hoverH)} cy={Y(r.value!)} r="3.5" fill={r.color} stroke={c.dot} strokeWidth="2" />)}
+                                <line
+                                    x1={X(hoverH)}
+                                    x2={X(hoverH)}
+                                    y1={pad.t}
+                                    y2={pad.t + plotH}
+                                    stroke={c.faint}
+                                    strokeWidth="1"
+                                />
+                                {readout.map(r => (
+                                    <circle
+                                        key={r.key}
+                                        cx={X(hoverH)}
+                                        cy={Y(r.value!)}
+                                        r="3.5"
+                                        fill={r.color}
+                                        stroke={c.dot}
+                                        strokeWidth="2"
+                                    />
+                                ))}
                             </g>
                         )}
                     </svg>
@@ -384,9 +588,10 @@ const ForecastChart: React.FC<{
                         style={{
                             // Right of the line when it fits, left of it when it
                             // doesn't, and never past either edge.
-                            left: X(hoverH) + 8 + tipW > width
-                                ? Math.max(0, X(hoverH) - 8 - tipW)
-                                : Math.max(0, Math.min(X(hoverH) + 8, width - tipW)),
+                            left:
+                                X(hoverH) + 8 + tipW > width
+                                    ? Math.max(0, X(hoverH) - 8 - tipW)
+                                    : Math.max(0, Math.min(X(hoverH) + 8, width - tipW)),
                             top: 8,
                         }}
                     >
@@ -397,7 +602,9 @@ const ForecastChart: React.FC<{
                             <div key={r.key} className="flex items-center gap-1.5 whitespace-nowrap text-xs">
                                 {swatch(r.color, r.dash)}
                                 <span className="text-[var(--text-muted)]">{r.label}</span>
-                                <span className="ml-auto pl-2 font-medium tabular-nums" style={{ color: r.color }}>{Math.round(r.value!)}</span>
+                                <span className="ml-auto pl-2 font-medium tabular-nums" style={{ color: r.color }}>
+                                    {Math.round(r.value!)}
+                                </span>
                             </div>
                         ))}
                     </div>

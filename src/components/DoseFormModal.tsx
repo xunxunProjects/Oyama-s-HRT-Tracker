@@ -33,7 +33,7 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
     quickDoses = [],
     onAddQuickDose,
     onDeleteQuickDose,
-    events = []
+    events = [],
 }) => {
     const [isVisible, setIsVisible] = useState(false);
 
@@ -63,23 +63,22 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
     return (
         <div className="modal-overlay">
             <div className="modal-shell modal-shell-wide">
-            <div className="modal-card overflow-hidden p-0 w-full max-w-lg md:max-w-xl h-[92vh] md:max-h-[85vh] flex flex-col">
-
-                <DoseForm
-                    eventToEdit={eventToEdit}
-                    onSave={handleSave}
-                    onDelete={onDelete}
-                    onCancel={handleClose}
-                    templates={templates}
-                    onSaveTemplate={onSaveTemplate}
-                    onDeleteTemplate={onDeleteTemplate}
-                    quickDoses={quickDoses}
-                    onAddQuickDose={onAddQuickDose}
-                    onDeleteQuickDose={onDeleteQuickDose}
-                    isInline={false}
-                    events={events}
-                />
-            </div>
+                <div className="modal-card overflow-hidden p-0 w-full max-w-lg md:max-w-xl h-[92vh] md:max-h-[85vh] flex flex-col">
+                    <DoseForm
+                        eventToEdit={eventToEdit}
+                        onSave={handleSave}
+                        onDelete={onDelete}
+                        onCancel={handleClose}
+                        templates={templates}
+                        onSaveTemplate={onSaveTemplate}
+                        onDeleteTemplate={onDeleteTemplate}
+                        quickDoses={quickDoses}
+                        onAddQuickDose={onAddQuickDose}
+                        onDeleteQuickDose={onDeleteQuickDose}
+                        isInline={false}
+                        events={events}
+                    />
+                </div>
             </div>
         </div>
     );

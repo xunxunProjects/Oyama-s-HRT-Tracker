@@ -19,8 +19,7 @@ type ShareState =
     | { kind: 'expired' }
     | { kind: 'unavailable' };
 
-const formatWearDays = (days: number): string =>
-    (Math.round(days * 100) / 100).toString();
+const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
 const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
     const { lang, t } = useTranslation();
@@ -64,11 +63,14 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
 
         if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
             setState({ kind: 'unavailable' });
-            return () => { cancelled = true; };
+            return () => {
+                cancelled = true;
+            };
         }
 
         setState({ kind: 'loading' });
-        sharingService.open(token)
+        sharingService
+            .open(token)
             .then(result => {
                 if (cancelled) return;
                 if ('snapshot' in result) setState({ kind: 'ready', details: result });
@@ -77,7 +79,9 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
             .catch(error => {
                 if (!cancelled) setState(classifyError(error));
             });
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
         // classifyError contains no reactive state.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
@@ -158,8 +162,16 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
     if (state.kind === 'loading') {
         return (
             <PublicShell>
-                <div className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center" aria-live="polite">
-                    <Loader2 size={24} strokeWidth={1.5} className="mb-4 animate-spin text-[var(--accent-ink)]" aria-hidden="true" />
+                <div
+                    className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center"
+                    aria-live="polite"
+                >
+                    <Loader2
+                        size={24}
+                        strokeWidth={1.5}
+                        className="mb-4 animate-spin text-[var(--accent-ink)]"
+                        aria-hidden="true"
+                    />
                     <p className="text-sm text-muted">{copy.loading}</p>
                 </div>
             </PublicShell>
@@ -177,7 +189,10 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                         <h1 className="text-xl font-semibold text-body">{copy.unlockTitle}</h1>
                         <p className="mt-2 text-sm leading-relaxed text-muted">{copy.unlockDescription}</p>
                         <form onSubmit={handleUnlock} className="mt-6">
-                            <label htmlFor="shared-record-password" className="mb-1.5 block text-xs font-medium text-muted">
+                            <label
+                                htmlFor="shared-record-password"
+                                className="mb-1.5 block text-xs font-medium text-muted"
+                            >
                                 {copy.passwordLabel}
                             </label>
                             <div className="relative">
@@ -185,7 +200,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                                     id="shared-record-password"
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
-                                    onChange={(event) => {
+                                    onChange={event => {
                                         setPassword(event.target.value);
                                         setPasswordError(null);
                                     }}
@@ -208,9 +223,15 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                                 </button>
                             </div>
                             {passwordError && (
-                                <p id="share-password-error" className="mt-2 text-sm text-[var(--danger)]" role="alert">{passwordError}</p>
+                                <p id="share-password-error" className="mt-2 text-sm text-[var(--danger)]" role="alert">
+                                    {passwordError}
+                                </p>
                             )}
-                            <button type="submit" className="btn-primary mt-4 w-full" disabled={unlocking || password.length < 8}>
+                            <button
+                                type="submit"
+                                className="btn-primary mt-4 w-full"
+                                disabled={unlocking || password.length < 8}
+                            >
                                 {unlocking ? copy.unlocking : copy.unlock}
                             </button>
                         </form>
@@ -255,11 +276,12 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
     const locale = LOCALE_MAP[lang] || 'en-US';
     const timeZone = snapshot.timezone || 'UTC';
 
-    const formatDateTime = (timestamp: number) => new Intl.DateTimeFormat(locale, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone,
-    }).format(new Date(timestamp));
+    const formatDateTime = (timestamp: number) =>
+        new Intl.DateTimeFormat(locale, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone,
+        }).format(new Date(timestamp));
 
     const groups = useMemo(() => {
         const formatter = new Intl.DateTimeFormat(locale, {
@@ -278,12 +300,16 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
         return grouped;
     }, [snapshot.events, locale, timeZone]);
 
-    const timeFormatter = useMemo(() => new Intl.DateTimeFormat(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone,
-    }), [locale, timeZone]);
+    const timeFormatter = useMemo(
+        () =>
+            new Intl.DateTimeFormat(locale, {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone,
+            }),
+        [locale, timeZone],
+    );
 
     return (
         <PublicShell>
@@ -291,7 +317,9 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                 <section className="border-b border-[var(--border)] pb-8">
                     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                         <div>
-                            <h1 className="text-3xl font-medium tracking-tight text-body md:text-4xl">{copy.publicTitle}</h1>
+                            <h1 className="text-3xl font-medium tracking-tight text-body md:text-4xl">
+                                {copy.publicTitle}
+                            </h1>
                             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{copy.disclaimer}</p>
                         </div>
                         {details.passwordRequired && (
@@ -311,7 +339,9 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         {details.live && (
                             <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
                                 <dt>{copy.liveBadge}</dt>
-                                <dd>{copy.updatedOn} {formatDateTime(details.updatedAt)}</dd>
+                                <dd>
+                                    {copy.updatedOn} {formatDateTime(details.updatedAt)}
+                                </dd>
                             </div>
                         )}
                     </dl>
@@ -319,7 +349,9 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
 
                 <section className="pb-5 pt-8" aria-labelledby="shared-chart-title">
                     <div className="mb-4 flex items-center justify-between gap-4">
-                        <h2 id="shared-chart-title" className="text-lg font-semibold text-body">{copy.chartTitle}</h2>
+                        <h2 id="shared-chart-title" className="text-lg font-semibold text-body">
+                            {copy.chartTitle}
+                        </h2>
                         <span className="text-xs text-muted">{timeZone}</span>
                     </div>
                     <ResultChart
@@ -333,8 +365,12 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
 
                 <section aria-labelledby="shared-history-title">
                     <div className="mb-6 flex items-end justify-between gap-4">
-                        <h2 id="shared-history-title" className="text-lg font-semibold text-body">{copy.historyTitle}</h2>
-                        <span className="text-xs tabular-nums text-muted">{snapshot.events.length} {copy.records}</span>
+                        <h2 id="shared-history-title" className="text-lg font-semibold text-body">
+                            {copy.historyTitle}
+                        </h2>
+                        <span className="text-xs tabular-nums text-muted">
+                            {snapshot.events.length} {copy.records}
+                        </span>
                     </div>
 
                     {groups.length === 0 ? (
@@ -343,7 +379,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         <div className="grid gap-x-12 lg:grid-cols-2">
                             {groups.map(group => (
                                 <div key={group.label} className="mb-7 break-inside-avoid">
-                  <h3 className="mb-1 border-b border-[var(--border)] pb-2 text-xs font-semibold text-muted">
+                                    <h3 className="mb-1 border-b border-[var(--border)] pb-2 text-xs font-semibold text-muted">
                                         {group.label}
                                     </h3>
                                     {group.events.map(event => (
@@ -358,7 +394,6 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                         </div>
                     )}
                 </section>
-
             </main>
         </PublicShell>
     );
@@ -387,22 +422,31 @@ const DoseHistoryRow = ({ event, time }: { event: DoseEvent; time: string }) => 
                             <span aria-hidden="true">·</span>
                             <span className="font-medium text-body">{releaseRate} µg/d</span>
                         </>
-                    ) : !isRemoval && (
-                        <>
-                            <span aria-hidden="true">·</span>
-                            <span className="font-medium text-body">{event.doseMG.toFixed(2)} mg</span>
-                            {event.ester !== Ester.E2 && isEstradiolEster(event.ester) && (
-                                <span>({t('label.e2')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)} mg)</span>
-                            )}
-                            {isTestosteroneEster(event.ester) && event.ester !== Ester.T && (
-                                <span>({t('label.t')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)} mg)</span>
-                            )}
-                        </>
+                    ) : (
+                        !isRemoval && (
+                            <>
+                                <span aria-hidden="true">·</span>
+                                <span className="font-medium text-body">{event.doseMG.toFixed(2)} mg</span>
+                                {event.ester !== Ester.E2 && isEstradiolEster(event.ester) && (
+                                    <span>
+                                        ({t('label.e2')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)}{' '}
+                                        mg)
+                                    </span>
+                                )}
+                                {isTestosteroneEster(event.ester) && event.ester !== Ester.T && (
+                                    <span>
+                                        ({t('label.t')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)} mg)
+                                    </span>
+                                )}
+                            </>
+                        )
                     )}
                     {event.route === Route.patchApply && typeof wearHours === 'number' && wearHours > 0 && (
                         <>
                             <span aria-hidden="true">·</span>
-                            <span>{formatWearDays(wearHours / 24)} {t('unit.day_short')}</span>
+                            <span>
+                                {formatWearDays(wearHours / 24)} {t('unit.day_short')}
+                            </span>
                         </>
                     )}
                 </div>

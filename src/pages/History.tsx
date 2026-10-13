@@ -16,8 +16,7 @@ import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
-const formatWearDays = (days: number): string =>
-    (Math.round(days * 100) / 100).toString();
+const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
 const MAX_BATCH_COUNT = 365;
 
@@ -76,12 +75,21 @@ const Stepper: React.FC<{
         const next = Math.min(max, Math.max(min, current + dir * step(current, dir)));
         onChange(String(Math.round(next * 100) / 100));
     };
-    const btn = 'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)] disabled:opacity-35 disabled:hover:bg-transparent';
+    const btn =
+        'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)] disabled:opacity-35 disabled:hover:bg-transparent';
     return (
         <div className="space-y-1.5">
-            <label htmlFor={id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{label}</label>
+            <label htmlFor={id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                {label}
+            </label>
             <span className="flex h-11 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--field)] px-1 hover:border-[var(--border-strong)] focus-within:border-[var(--accent-ink)]">
-                <button type="button" onClick={() => nudge(-1)} disabled={current <= min} aria-label={`${label} −`} className={btn}>
+                <button
+                    type="button"
+                    onClick={() => nudge(-1)}
+                    disabled={current <= min}
+                    aria-label={`${label} −`}
+                    className={btn}
+                >
                     <Minus size={16} />
                 </button>
                 <input
@@ -95,7 +103,13 @@ const Stepper: React.FC<{
                     onChange={e => onChange(e.target.value)}
                     className="min-w-0 flex-1 bg-transparent text-center text-sm font-medium tabular-nums text-[var(--text)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <button type="button" onClick={() => nudge(1)} disabled={current >= max} aria-label={`${label} +`} className={btn}>
+                <button
+                    type="button"
+                    onClick={() => nudge(1)}
+                    disabled={current >= max}
+                    aria-label={`${label} +`}
+                    className={btn}
+                >
                     <Plus size={16} />
                 </button>
             </span>
@@ -105,7 +119,7 @@ const Stepper: React.FC<{
 
 // Whole days, but quarter days below one so a twice-daily or every-6-hours
 // schedule can still be reached from the buttons.
-const intervalStep = (v: number, dir: 1 | -1) => (dir > 0 ? v >= 1 : v > 1) ? 1 : 0.25;
+const intervalStep = (v: number, dir: 1 | -1) => ((dir > 0 ? v >= 1 : v > 1) ? 1 : 0.25);
 
 interface HistoryProps {
     t: (key: string) => string;
@@ -307,18 +321,21 @@ const History: React.FC<HistoryProps> = ({
         // All includes the planned doses: show them ticked rather than delete
         // rows that were folded away out of sight.
         if (selectedIds.size !== totalRecords) setPlannedOpen(true);
-        setSelectedIds(prev =>
-            prev.size === totalRecords ? new Set() : new Set(allEvents.map(e => e.id))
-        );
+        setSelectedIds(prev => (prev.size === totalRecords ? new Set() : new Set(allEvents.map(e => e.id))));
     };
 
     const handleDeleteSelected = () => {
         if (!selectedIds.size) return;
         const msg = t('timeline.batch_delete_confirm').replace('{n}', String(selectedIds.size));
-        showDialog('confirm', msg, () => {
-            onDeleteEvents([...selectedIds]);
-            exitSelectMode();
-        }, { danger: true, title: t('timeline.batch_delete_title'), confirmLabel: t('btn.delete') });
+        showDialog(
+            'confirm',
+            msg,
+            () => {
+                onDeleteEvents([...selectedIds]);
+                exitSelectMode();
+            },
+            { danger: true, title: t('timeline.batch_delete_title'), confirmLabel: t('btn.delete') },
+        );
     };
 
     const batchHint = t('timeline.batch_hint')
@@ -346,13 +363,23 @@ const History: React.FC<HistoryProps> = ({
                         if (isSaved) savedRowRef.current = el;
                         if (isEditing) editingRowRef.current = el;
                     }}
-                    onClick={() => selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id)}
-                    {...(selectMode ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-expanded': isEditing })}
-                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start cursor-pointer -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${(isEditing || (selectMode && isSelected)) ? 'bg-[var(--surface-hover)]' : ''}`}`}
+                    onClick={() => (selectMode ? toggleSelected(ev.id) : setEditingId(isEditing ? null : ev.id))}
+                    {...(selectMode
+                        ? { role: 'checkbox', 'aria-checked': isSelected }
+                        : { 'aria-expanded': isEditing })}
+                    className={`w-[calc(100%+1rem)] py-3.5 flex items-center gap-3 text-start cursor-pointer -mx-2 px-2 rounded-md ${isSaved ? 'row-wash' : ''} ${isMarked ? 'bg-[var(--accent-subtle)]' : `hover:bg-[var(--surface-hover)] ${isEditing || (selectMode && isSelected) ? 'bg-[var(--surface-hover)]' : ''}`}`}
                 >
                     {selectMode ? (
-                        <span className={`check-dot inline-flex shrink-0 items-center justify-center w-4 h-4 rounded-full border ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}>
-                            <Tick on={isSelected} size={11} strokeWidth={2.5} tone="current" className="text-[var(--on-accent)]" />
+                        <span
+                            className={`check-dot inline-flex shrink-0 items-center justify-center w-4 h-4 rounded-full border ${isSelected ? 'bg-[var(--accent)] border-[var(--accent-ink)]' : 'border-[var(--border-strong)]'}`}
+                        >
+                            <Tick
+                                on={isSelected}
+                                size={11}
+                                strokeWidth={2.5}
+                                tone="current"
+                                className="text-[var(--on-accent)]"
+                            />
                         </span>
                     ) : null}
                     <Doodle name={ev.route} size={1.75} asleep={isFuture} />
@@ -368,7 +395,10 @@ const History: React.FC<HistoryProps> = ({
                                 </span>
                                 {wornH !== undefined && (
                                     <span className={`shrink-0 text-xs ${muted}`}>
-                                        {t('timeline.patch_worn').replace('{d}', `${formatWearDays(wornH / 24)} ${t('unit.day_short')}`)}
+                                        {t('timeline.patch_worn').replace(
+                                            '{d}',
+                                            `${formatWearDays(wornH / 24)} ${t('unit.day_short')}`,
+                                        )}
                                     </span>
                                 )}
                             </div>
@@ -405,11 +435,13 @@ const History: React.FC<HistoryProps> = ({
                                         )}
                                     </>
                                 )}
-                                {ev.route === Route.patchApply && typeof ev.extras[ExtraKey.patchWearH] === 'number' && ev.extras[ExtraKey.patchWearH]! > 0 && (
-                                    <>
-                                        <span className="text-[var(--text)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
-                                    </>
-                                )}
+                                {ev.route === Route.patchApply &&
+                                    typeof ev.extras[ExtraKey.patchWearH] === 'number' &&
+                                    ev.extras[ExtraKey.patchWearH]! > 0 && (
+                                        <>
+                                            <span className="text-[var(--text)]">{`${formatWearDays(ev.extras[ExtraKey.patchWearH]! / 24)} ${t('unit.day_short')}`}</span>
+                                        </>
+                                    )}
                             </div>
                         )}
                     </div>
@@ -428,13 +460,13 @@ const History: React.FC<HistoryProps> = ({
                             <div className="pb-4 pt-1">
                                 <DoseForm
                                     eventToEdit={ev}
-                                    onSave={(e) => {
+                                    onSave={e => {
                                         onSaveEvent(e);
                                         setEditingId(null);
                                         markSaved(e);
                                     }}
                                     onCancel={closeEdit}
-                                    onDelete={(id) => {
+                                    onDelete={id => {
                                         // The form calls onCancel after this, and the
                                         // row is going: nothing to hand focus back to.
                                         editingRowRef.current = null;
@@ -466,9 +498,7 @@ const History: React.FC<HistoryProps> = ({
             <div className={`${pinned ? 'sticky top-[5rem] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
                 <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
             </div>
-            <div className="pt-1">
-                {dayEvents.map(renderRow)}
-            </div>
+            <div className="pt-1">{dayEvents.map(renderRow)}</div>
         </div>
     );
 
@@ -486,58 +516,69 @@ const History: React.FC<HistoryProps> = ({
                             : `${totalRecords} ${t('timeline.records')}`}
                     </span>
                 }
-                actions={selectMode ? (
-                    <>
-                        <button
-                            type="button"
-                            onClick={toggleSelectAll}
-                            aria-label={t('timeline.select_all')}
-                            className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
-                        >
-                            <ListChecks size={15} strokeWidth={1.5} />
-                            <span className={labelOnWide}>{t('timeline.select_all')}</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleDeleteSelected}
-                            disabled={!selectedIds.size}
-                            className={`${headerBtn} text-[var(--danger)] disabled:opacity-40 tap-target`}
-                        >
-                            <Trash2 size={15} strokeWidth={1.5} className={labelOnWide} />
-                            <span>{t('btn.delete')}{selectedIds.size ? ` (${selectedIds.size})` : ''}</span>
-                        </button>
-                        <button type="button" onClick={exitSelectMode} className={`${headerBtn} ${muted} tap-target`}>
-                            <span>{t('btn.cancel')}</span>
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        {totalRecords > 0 && (
+                actions={
+                    selectMode ? (
+                        <>
                             <button
                                 type="button"
-                                onClick={enterSelectMode}
-                                aria-label={t('timeline.select')}
+                                onClick={toggleSelectAll}
+                                aria-label={t('timeline.select_all')}
                                 className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
                             >
                                 <ListChecks size={15} strokeWidth={1.5} />
-                                <span className={labelOnWide}>{t('timeline.select')}</span>
+                                <span className={labelOnWide}>{t('timeline.select_all')}</span>
                             </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => (isQuickAddOpen ? closeQuickAdd() : setIsQuickAddOpen(true))}
-                            aria-expanded={isQuickAddOpen}
-                            className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
-                        >
-                            <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
-                            <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
-                        </button>
-                    </>
-                )}
+                            <button
+                                type="button"
+                                onClick={handleDeleteSelected}
+                                disabled={!selectedIds.size}
+                                className={`${headerBtn} text-[var(--danger)] disabled:opacity-40 tap-target`}
+                            >
+                                <Trash2 size={15} strokeWidth={1.5} className={labelOnWide} />
+                                <span>
+                                    {t('btn.delete')}
+                                    {selectedIds.size ? ` (${selectedIds.size})` : ''}
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={exitSelectMode}
+                                className={`${headerBtn} ${muted} tap-target`}
+                            >
+                                <span>{t('btn.cancel')}</span>
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {totalRecords > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={enterSelectMode}
+                                    aria-label={t('timeline.select')}
+                                    className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
+                                >
+                                    <ListChecks size={15} strokeWidth={1.5} />
+                                    <span className={labelOnWide}>{t('timeline.select')}</span>
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => (isQuickAddOpen ? closeQuickAdd() : setIsQuickAddOpen(true))}
+                                aria-expanded={isQuickAddOpen}
+                                className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
+                            >
+                                <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
+                                <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
+                            </button>
+                        </>
+                    )
+                }
             />
 
             {/* Said aloud when a save is marked, for anyone who cannot see the tick. */}
-            <p className="sr-only" aria-live="polite">{savedMarkOn ? t('timeline.saved') : ''}</p>
+            <p className="sr-only" aria-live="polite">
+                {savedMarkOn ? t('timeline.saved') : ''}
+            </p>
 
             {/* Inert while closed, so a keyboard does not tab through a form it cannot see. */}
             <div className="disclosure mt-4" data-open={isQuickAddOpen} {...inertWhen(!isQuickAddOpen)}>
@@ -572,7 +613,9 @@ const History: React.FC<HistoryProps> = ({
                                     />
                                 </div>
                                 <p className={`mt-3 flex items-start gap-2 text-xs ${muted}`}>
-                                    <span className="icon-line"><Repeat size={14} /></span>
+                                    <span className="icon-line">
+                                        <Repeat size={14} />
+                                    </span>
                                     <span>{batchHint}</span>
                                 </p>
                             </div>
@@ -583,7 +626,7 @@ const History: React.FC<HistoryProps> = ({
                             eventToEdit={null}
                             onSave={handleQuickSave}
                             onCancel={closeQuickAdd}
-                            onDelete={() => { }}
+                            onDelete={() => {}}
                             templates={doseTemplates}
                             onSaveTemplate={onSaveTemplate}
                             onDeleteTemplate={onDeleteTemplate}
@@ -623,28 +666,24 @@ const History: React.FC<HistoryProps> = ({
                         >
                             <span className={`text-xs font-semibold ${muted}`}>{t('timeline.future')}</span>
                             <span className={`text-xs tabular-nums ${muted}`}>{plannedCount}</span>
-                            <ChevronDown size={16} className={`chev ${muted} shrink-0 ms-auto ${plannedOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown
+                                size={16}
+                                className={`chev ${muted} shrink-0 ms-auto ${plannedOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
                         {/* Widened by the rows' own bleed (8px) and the 4px their
                             focus ring stands off them, so the fold's clip neither
                             squares off their highlight nor cuts the ring's sides. */}
                         <div className="disclosure -mx-3" data-open={plannedOpen} {...inertWhen(!plannedOpen)}>
                             <div className="disclosure-inner">
-                                <div className="px-3 pb-3">
-                                    {plannedDays.map(day => renderDay(day, false))}
-                                </div>
+                                <div className="px-3 pb-3">{plannedDays.map(day => renderDay(day, false))}</div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {pastDays.length > 0 && (
-            <div className={PAGE_COLUMN}>
-                {pastDays.map(day => renderDay(day, true))}
-            </div>
-            )}
-
+            {pastDays.length > 0 && <div className={PAGE_COLUMN}>{pastDays.map(day => renderDay(day, true))}</div>}
         </div>
     );
 };

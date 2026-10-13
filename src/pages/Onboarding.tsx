@@ -151,16 +151,21 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
                         beat={beat}
                         playKey={playKey}
                         caption={t('onboarding.how_chart_caption')}
-                        legend={{ model: t('onboarding.how_chart_legend_model'), labs: t('onboarding.how_chart_legend_labs') }}
-                        action={finished && (
-                            <button
-                                type="button"
-                                onClick={() => play(0)}
-                                className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
-                            >
-                                {t('onboarding.how_replay')}
-                            </button>
-                        )}
+                        legend={{
+                            model: t('onboarding.how_chart_legend_model'),
+                            labs: t('onboarding.how_chart_legend_labs'),
+                        }}
+                        action={
+                            finished && (
+                                <button
+                                    type="button"
+                                    onClick={() => play(0)}
+                                    className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
+                                >
+                                    {t('onboarding.how_replay')}
+                                </button>
+                            )
+                        }
                     />
                 </div>
             </Stage>
@@ -212,7 +217,15 @@ interface OnboardingProps {
  * invite tabbing away halfway through, leaving language and mode on defaults
  * that the flow exists to ask about.
  */
-const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeightChange, plan, onAddPlanItem, onDeletePlanItem, onDone }) => {
+const Onboarding: React.FC<OnboardingProps> = ({
+    languageOptions,
+    weight,
+    onWeightChange,
+    plan,
+    onAddPlanItem,
+    onDeletePlanItem,
+    onDone,
+}) => {
     const { t, lang, setLang } = useTranslation();
     const { mode, setMode, isTransmasc } = useHRTMode();
     const { showDialog } = useDialog();
@@ -234,7 +247,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
     // The plan's own questions, opened over the intro the same way the Plan page opens them.
     const [addingPlan, setAddingPlan] = useState(false);
     const canAddPlan = (Object.keys(PLAN_DRUGS[mode]) as Route[]).some(r =>
-        (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)));
+        (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)),
+    );
 
     const [step, setStep] = useState(0);
     // Only so the step change slides the way the app's view changes do.
@@ -361,7 +375,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                         className={`flex w-full items-center justify-between gap-4 py-4 text-start ${divider} last:border-b-0`}
                     >
                         <span>
-                            <span className={`block text-[0.9375rem] text-body ${mode === value ? 'font-semibold' : ''}`}>
+                            <span
+                                className={`block text-[0.9375rem] text-body ${mode === value ? 'font-semibold' : ''}`}
+                            >
                                 {t(labelKey)}
                             </span>
                             <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">
@@ -394,7 +410,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                     step="any"
                     value={weightStr}
                     onChange={e => typeWeight(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') forward(); }}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') forward();
+                    }}
                     onFocus={e => e.currentTarget.select()}
                     aria-label={t('status.weight')}
                     className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
@@ -405,7 +423,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 vanishing as a figure passes through "6" on its way to "65"
                 would bob the centred step. An empty field says nothing; Next
                 is just off. */}
-            <p className={`mt-3 text-[0.8125rem] leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}>
+            <p
+                className={`mt-3 text-[0.8125rem] leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
+            >
                 {t('error.weightRange')}
             </p>
         </div>,
@@ -430,7 +450,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                             these are rows someone has been living with. */}
                         <button
                             type="button"
-                            onClick={() => showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), { danger: true })}
+                            onClick={() =>
+                                showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), {
+                                    danger: true,
+                                })
+                            }
                             aria-label={t('btn.delete')}
                             className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
                         >
@@ -448,9 +472,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--accent-ink)]">
                             <Plus size={20} />
                         </span>
-                        <span className="text-[0.9375rem] font-medium text-[var(--accent-ink)]">
-                            {t('plan.add')}
-                        </span>
+                        <span className="text-[0.9375rem] font-medium text-[var(--accent-ink)]">{t('plan.add')}</span>
                     </button>
                 )}
             </div>
@@ -462,7 +484,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
             <div className="mt-4">
                 <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
                 <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
-                <Point mark="caution" title={t('onboarding.privacy_medical')} desc={t('onboarding.privacy_medical_desc')} />
+                <Point
+                    mark="caution"
+                    title={t('onboarding.privacy_medical')}
+                    desc={t('onboarding.privacy_medical_desc')}
+                />
             </div>
         </div>,
     ];
@@ -533,7 +559,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 to fit an unwrapped label, and below 360px the footer takes
                 16px gutters and a closer gap so two labels and the rings
                 still fit side by side in every language. */}
-            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)] max-[360px]:px-4`}>
+            <div
+                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)] max-[360px]:px-4`}
+            >
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
                     <div className="justify-self-start">
                         {step > 0 && (
@@ -556,7 +584,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
             {addingPlan && (
                 <PlanWizard
                     plan={plan}
-                    onAdd={item => { onAddPlanItem(item); setAddingPlan(false); }}
+                    onAdd={item => {
+                        onAddPlanItem(item);
+                        setAddingPlan(false);
+                    }}
                     onCancel={() => setAddingPlan(false)}
                 />
             )}

@@ -36,9 +36,16 @@ export async function apiErrorFrom(res: Response): Promise<ApiError> {
             if (typeof parsed.code === 'string') code = parsed.code;
             if (typeof parsed.message === 'string') message = parsed.message;
         }
-    } catch { /* plain-text body */ }
+    } catch {
+        /* plain-text body */
+    }
     const retryAfter = Number(res.headers.get('Retry-After'));
-    return new ApiError(res.status, code, message, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null);
+    return new ApiError(
+        res.status,
+        code,
+        message,
+        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null,
+    );
 }
 
 /** The code on an ApiError, or `NETWORK` for anything that never reached the server. */
@@ -85,9 +92,8 @@ export function apiEndpoint(path: string): string {
  * the caller untouched and never trigger a sign-out.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const target = typeof input === 'string' && input.startsWith('/') && !input.startsWith('//')
-        ? apiEndpoint(input)
-        : input;
+    const target =
+        typeof input === 'string' && input.startsWith('/') && !input.startsWith('//') ? apiEndpoint(input) : input;
     const res = await fetch(target, init);
     if (res.status === 401 && res.headers.get('X-Session-Invalid') === '1') {
         if (typeof window !== 'undefined') {

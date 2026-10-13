@@ -5,3 +5,7 @@ src-tauri/
 .wrangler/
 data/
 package-lock.json
+
+# Prettier escapes underscores inside bold inline math (**$F_{x}$** becomes
+# **$F\_{x}$**), which breaks the subscripts when GitHub renders the formulas.
+Algorithm Explanation.md

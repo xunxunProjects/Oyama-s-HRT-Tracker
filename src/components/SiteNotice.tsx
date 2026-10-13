@@ -17,8 +17,11 @@ const POLL_INTERVAL_MS = 10 * 60_000;
 const MIN_FETCH_INTERVAL_MS = 60_000;
 
 const readDismissed = (): number => {
-    try { return Number(localStorage.getItem(DISMISS_KEY)) || 0; }
-    catch { return 0; }
+    try {
+        return Number(localStorage.getItem(DISMISS_KEY)) || 0;
+    } catch {
+        return 0;
+    }
 };
 
 /**
@@ -44,7 +47,7 @@ const linkify = (text: string): React.ReactNode[] =>
             </a>
         ) : (
             <React.Fragment key={i}>{part}</React.Fragment>
-        )
+        ),
     );
 
 const SiteNoticeBanner: React.FC = () => {
@@ -74,7 +77,9 @@ const SiteNoticeBanner: React.FC = () => {
             lastFetchRef.current = Date.now();
             void load();
         };
-        const onVisibility = () => { if (!document.hidden) refreshIfDue(); };
+        const onVisibility = () => {
+            if (!document.hidden) refreshIfDue();
+        };
         const poll = window.setInterval(refreshIfDue, POLL_INTERVAL_MS);
         document.addEventListener('visibilitychange', onVisibility);
         window.addEventListener('focus', onVisibility);
@@ -88,21 +93,27 @@ const SiteNoticeBanner: React.FC = () => {
     if (!notice || notice.revision <= dismissed) return null;
 
     const dismiss = () => {
-        try { localStorage.setItem(DISMISS_KEY, String(notice.revision)); } catch { /* private mode */ }
+        try {
+            localStorage.setItem(DISMISS_KEY, String(notice.revision));
+        } catch {
+            /* private mode */
+        }
         setDismissed(notice.revision);
     };
 
     const warn = notice.level === 'warn';
-    const tone = warn
-        ? 'text-[var(--warning)]'
-        : 'text-[var(--accent-ink)]';
+    const tone = warn ? 'text-[var(--warning)]' : 'text-[var(--accent-ink)]';
     const Icon = warn ? AlertCircle : Megaphone;
 
     return (
         <div className={`shrink-0 pt-2.5 pb-1.5 text-xs ${tone}`}>
             <div className={`${PAGE_COLUMN} flex items-start gap-2`}>
-                <span className="icon-line"><Icon size={16} strokeWidth={1.75} /></span>
-                <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">{linkify(noticeText(notice, lang))}</p>
+                <span className="icon-line">
+                    <Icon size={16} strokeWidth={1.75} />
+                </span>
+                <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">
+                    {linkify(noticeText(notice, lang))}
+                </p>
                 <button
                     onClick={dismiss}
                     aria-label={t('notice.dismiss')}

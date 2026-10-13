@@ -14,7 +14,11 @@ import { Lang, TRANSLATIONS } from '../i18n/translations';
  */
 const tr = (key: string): string => {
     let lang: string | null = null;
-    try { lang = localStorage.getItem('hrt-lang'); } catch { /* private mode */ }
+    try {
+        lang = localStorage.getItem('hrt-lang');
+    } catch {
+        /* private mode */
+    }
     const packs = TRANSLATIONS as unknown as Record<string, Record<string, string>>;
     return packs[lang as Lang]?.[key] ?? packs.en[key] ?? packs.zh[key] ?? key;
 };
@@ -40,7 +44,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error("Uncaught error:", error, errorInfo);
+        console.error('Uncaught error:', error, errorInfo);
     }
 
     handleReload = () => {
@@ -56,12 +60,8 @@ class ErrorBoundary extends React.Component<Props, State> {
             return (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
                     <AlertTriangle size={32} strokeWidth={1.5} className="text-[var(--danger)] mb-4" />
-                    <h2 className="text-lg font-semibold text-[var(--text)] mb-2">
-                        {tr('error.title')}
-                    </h2>
-                    <p className="text-sm text-[var(--text-muted)] mb-6 max-w-md leading-relaxed">
-                        {tr('error.body')}
-                    </p>
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-2">{tr('error.title')}</h2>
+                    <p className="text-sm text-[var(--text-muted)] mb-6 max-w-md leading-relaxed">{tr('error.body')}</p>
                     {this.state.error && (
                         <div className="callout mb-6 text-left w-full max-w-md overflow-x-auto">
                             <code className="text-xs text-[var(--danger)] font-mono">
@@ -69,10 +69,7 @@ class ErrorBoundary extends React.Component<Props, State> {
                             </code>
                         </div>
                     )}
-                    <button
-                        onClick={this.handleReload}
-                        className="btn-primary"
-                    >
+                    <button onClick={this.handleReload} className="btn-primary">
                         <RefreshCw size={15} strokeWidth={1.5} />
                         {tr('error.reload')}
                     </button>

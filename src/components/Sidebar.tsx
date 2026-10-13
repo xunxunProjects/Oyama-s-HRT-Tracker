@@ -12,11 +12,7 @@ interface SidebarProps {
     onViewChange: (view: any) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-    navItems,
-    currentView,
-    onViewChange
-}) => {
+const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }) => {
     return (
         <nav className="hidden md:flex flex-col w-[16.25rem] h-full bg-[var(--bg-subtle)] border-e border-[var(--border)] shrink-0">
             {/* Logo: the app icon in a rounded tile, then the name. The tile's
@@ -49,12 +45,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                             onClick={() => onViewChange(item.id)}
                             aria-current={isActive ? 'page' : undefined}
                             className={`w-full h-10 flex items-center gap-3 px-3 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
-                                ${isActive
-                                    ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'
-                                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                                ${
+                                    isActive
+                                        ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
                                 }`}
                         >
-                            <Icon size={20} className={`shrink-0 ${isActive ? 'text-[var(--accent-ink)]' : ''}`} strokeWidth={isActive ? 2 : 1.75} />
+                            <Icon
+                                size={20}
+                                className={`shrink-0 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
+                                strokeWidth={isActive ? 2 : 1.75}
+                            />
                             <span>{item.label}</span>
                         </button>
                     );

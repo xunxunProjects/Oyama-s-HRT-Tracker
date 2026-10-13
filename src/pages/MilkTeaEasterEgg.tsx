@@ -55,8 +55,8 @@ function defaultIndex(cat: Category): number {
     return i >= 0 ? i : 0;
 }
 
-const on = "text-[var(--text)]";
-const muted = "text-[var(--text-muted)]";
+const on = 'text-[var(--text)]';
+const muted = 'text-[var(--text-muted)]';
 
 const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
     const { t } = useTranslation();

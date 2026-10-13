@@ -14,14 +14,14 @@ image yourself, that operator is the one holding the data described below.
 
 ## Summary
 
-| What | Where it lives | Can the server operator read it? |
-| --- | --- | --- |
-| Doses, lab results, weight, dose templates, model settings | Your browser (`localStorage`) | No, unless you turn on cloud backup or create a share link |
-| Cloud backups | D1 `content` table | No. Encrypted on your device before upload |
-| Share links | D1 `dosage_shares` table | **Yes.** Stored unencrypted so recipients can open them |
-| Account (username, password hash, 2FA) | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only) |
-| Signed-in devices | D1 `sessions` | Yes: IP address and browser user agent |
-| Avatar | R2 bucket | Yes, and it is public to anyone who knows your username |
+| What                                                       | Where it lives                         | Can the server operator read it?                           |
+| ---------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| Doses, lab results, weight, dose templates, model settings | Your browser (`localStorage`)          | No, unless you turn on cloud backup or create a share link |
+| Cloud backups                                              | D1 `content` table                     | No. Encrypted on your device before upload                 |
+| Share links                                                | D1 `dosage_shares` table               | **Yes.** Stored unencrypted so recipients can open them    |
+| Account (username, password hash, 2FA)                     | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only)               |
+| Signed-in devices                                          | D1 `sessions`                          | Yes: IP address and browser user agent                     |
+| Avatar                                                     | R2 bucket                              | Yes, and it is public to anyone who knows your username    |
 
 ## Without an account
 

@@ -10,7 +10,11 @@ const splitLead = (text: string): [string, string] => {
     return m ? [m[1], m[2]] : [text, ''];
 };
 
-const alertIcon = <span className="icon-line"><AlertCircle size={16} strokeWidth={1.75} className="text-[var(--warning)]" /></span>;
+const alertIcon = (
+    <span className="icon-line">
+        <AlertCircle size={16} strokeWidth={1.75} className="text-[var(--warning)]" />
+    </span>
+);
 const leadTone = 'font-medium text-[var(--warning)]';
 
 // Plain text — no card, no fill, no border. This app never wraps a warning in a
@@ -72,9 +76,10 @@ export const DoseAdvisoryLine: React.FC<{ advisory: Advisory; t: (k: string) => 
 
 // The lab-based estradiol+testosterone combo heads-up. Shared between Home
 // (above the chart) and the Lab page.
-export const HormoneLevelAdvisoryLine: React.FC<{ advisory: HormoneLevelAdvisory; t: (k: string) => string }> = ({ advisory, t }) => (
-    <AdvisoryText text={t(`advisory.hormone_${advisory.kind}.body`)} />
-);
+export const HormoneLevelAdvisoryLine: React.FC<{ advisory: HormoneLevelAdvisory; t: (k: string) => string }> = ({
+    advisory,
+    t,
+}) => <AdvisoryText text={t(`advisory.hormone_${advisory.kind}.body`)} />;
 
 // Plain-text lines above the chart:
 //   • dose warning — logged doses (a hard fact) running clearly high
@@ -100,14 +105,20 @@ const DoseAdvisoryNotice: React.FC<{
                     onClick={onCalibrate}
                     className="group flex items-start gap-2 text-start text-xs text-[var(--text-muted)]"
                 >
-                    <span className="icon-line"><CalibrationCurveIcon size={16} strokeWidth={1.75} className="opacity-80" /></span>
+                    <span className="icon-line">
+                        <CalibrationCurveIcon size={16} strokeWidth={1.75} className="opacity-80" />
+                    </span>
                     <span>
                         {t('advisory.calibrate.text')}{' '}
                         <span className="font-medium text-[var(--accent-ink)]">
                             <span className="underline decoration-transparent underline-offset-2 transition-colors group-hover:decoration-current">
                                 {t('advisory.calibrate.cta')}
                             </span>
-                            <ArrowRight size={14} strokeWidth={2} className="ms-0.5 inline-block align-[-2px] transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100" />
+                            <ArrowRight
+                                size={14}
+                                strokeWidth={2}
+                                className="ms-0.5 inline-block align-[-2px] transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100"
+                            />
                         </span>
                     </span>
                 </button>

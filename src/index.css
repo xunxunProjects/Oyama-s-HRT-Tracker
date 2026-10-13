@@ -3,7 +3,9 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-sans:
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC",
+        "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
 
     /* Type scale. The base is 15px (text-sm, body) with 13px captions
        (text-xs); 12px is the smallest readable size, used deliberately. */
@@ -188,39 +190,77 @@
    each dose and lab marker lands as the line reaches it, and the grid, target
    band and current reading fade up around it. */
 @keyframes chart-sweep {
-    from { transform: scaleX(0); }
-    to { transform: scaleX(1); }
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
 }
 
 @keyframes chart-mark-in {
-    from { opacity: 0; transform: scale(0.6); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 /* Motion primitives */
 @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes sheet-in {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 @keyframes menu-in {
-    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 @keyframes view-in-forward {
-    from { opacity: 0; transform: translateX(12px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 @keyframes view-in-backward {
-    from { opacity: 0; transform: translateX(-12px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 /* Prevent auto-zoom on iOS/Android when focusing small inputs.
@@ -228,7 +268,9 @@
    and do not trigger viewport zoom on iOS. `.figure-input` is a number set
    as a display figure, already well over 16px. */
 @media screen and (max-width: 768px) {
-    input:not([type="datetime-local"]):not([type="date"]):not([type="time"]):not([type="month"]):not([type="week"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.figure-input),
+    input:not([type="datetime-local"]):not([type="date"]):not([type="time"]):not([type="month"]):not([type="week"]):not(
+            [type="checkbox"]
+        ):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.figure-input),
     select,
     textarea {
         font-size: 16px !important;
@@ -240,10 +282,24 @@
    in rem, so lifting the root size scales type, spacing and the content column
    together, keeping the proportions and just rendering them larger. Phones and
    tablets stay at 16px, where the layout is already full-width. */
-:root { --ui-scale: 1; }
-@media (min-width: 1280px) { :root { --ui-scale: 1.10; } }
-@media (min-width: 1600px) { :root { --ui-scale: 1.20; } }
-@media (min-width: 1920px) { :root { --ui-scale: 1.28; } }
+:root {
+    --ui-scale: 1;
+}
+@media (min-width: 1280px) {
+    :root {
+        --ui-scale: 1.1;
+    }
+}
+@media (min-width: 1600px) {
+    :root {
+        --ui-scale: 1.2;
+    }
+}
+@media (min-width: 1920px) {
+    :root {
+        --ui-scale: 1.28;
+    }
+}
 
 /* Icons carry their size as a px width/height attribute, so unlike everything
    else they do not follow the root font size. Zoom scales the whole glyph,
@@ -272,7 +328,6 @@ svg.lucide {
     animation: chart-mark-in 260ms var(--ease-standard) both;
 }
 
-
 /* Onboarding's step area. `safe center`, not Tailwind's `items-center`: on a
    phone the step is usually taller than the space for it, so plain `center`
    would clip the top of an overflowing step against the scroller; `safe`
@@ -290,9 +345,10 @@ svg.lucide {
    ring for the step you are on grows into place rather than jumping, the same
    way the old dots stretched. */
 .onb-ring {
-    transition: r var(--duration-base) var(--ease-standard),
-                fill var(--duration-base) var(--ease-standard),
-                stroke var(--duration-base) var(--ease-standard);
+    transition:
+        r var(--duration-base) var(--ease-standard),
+        fill var(--duration-base) var(--ease-standard),
+        stroke var(--duration-base) var(--ease-standard);
 }
 
 /* ── the intro chart ──────────────────────────────────────────────────────
@@ -307,11 +363,48 @@ svg.lucide {
    beat standing rather than an empty plane. That is what makes the
    reduced-motion rule at the bottom of this file a one-liner instead of a
    second code path. */
-@keyframes oc-pop      { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
-@keyframes oc-draw     { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes oc-in       { from { opacity: 0; } to { opacity: 1; } }
-@keyframes oc-out      { from { opacity: 1; } to { opacity: 0; } }
-@keyframes oc-ghost-in { from { opacity: 0; } to { opacity: 0.28; } }
+@keyframes oc-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes oc-draw {
+    from {
+        stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes oc-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes oc-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+@keyframes oc-ghost-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.28;
+    }
+}
 
 /* Dose rings and lab diamonds. Delay is set inline, per marker. */
 .oc-pop {
@@ -359,11 +452,14 @@ svg.lucide {
 }
 
 /* A doodle (Doodle) whose turn has not come, or that can't be chosen. */
-.dd-asleep { filter: grayscale(1) opacity(0.45); }
-
+.dd-asleep {
+    filter: grayscale(1) opacity(0.45);
+}
 
 @media (prefers-reduced-motion: reduce) {
-    .onb-ring { transition: none; }
+    .onb-ring {
+        transition: none;
+    }
     .chart-sweep,
     .chart-appear,
     .chart-mark,
@@ -469,7 +565,7 @@ body {
         position: relative;
     }
     .tap-target::after {
-        content: '';
+        content: "";
         position: absolute;
         inset-inline: 0;
         top: 50%;
@@ -612,10 +708,11 @@ select:focus-visible {
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color var(--duration-quick) var(--ease-standard),
-                color var(--duration-quick) var(--ease-standard),
-                opacity var(--duration-quick) var(--ease-standard),
-                transform var(--duration-quick) var(--ease-standard);
+    transition:
+        background-color var(--duration-quick) var(--ease-standard),
+        color var(--duration-quick) var(--ease-standard),
+        opacity var(--duration-quick) var(--ease-standard),
+        transform var(--duration-quick) var(--ease-standard);
 }
 .btn-primary {
     color: var(--on-accent);
@@ -696,8 +793,9 @@ select:focus-visible {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     outline: none;
-    transition: border-color var(--duration-quick) var(--ease-standard),
-                box-shadow var(--duration-quick) var(--ease-standard);
+    transition:
+        border-color var(--duration-quick) var(--ease-standard),
+        box-shadow var(--duration-quick) var(--ease-standard);
 }
 .input-base::placeholder {
     color: var(--text-muted);
@@ -812,11 +910,12 @@ select,
 [role="tab"],
 [role="switch"],
 [role="option"] {
-    transition: background-color var(--duration-quick) var(--ease-standard),
-                border-color var(--duration-quick) var(--ease-standard),
-                color var(--duration-quick) var(--ease-standard),
-                box-shadow var(--duration-quick) var(--ease-standard),
-                opacity var(--duration-quick) var(--ease-standard);
+    transition:
+        background-color var(--duration-quick) var(--ease-standard),
+        border-color var(--duration-quick) var(--ease-standard),
+        color var(--duration-quick) var(--ease-standard),
+        box-shadow var(--duration-quick) var(--ease-standard),
+        opacity var(--duration-quick) var(--ease-standard);
 }
 
 /* Toggle switches: the knob slid instantly between its two offsets and the
@@ -830,8 +929,9 @@ select,
    `transform` animates nothing. Keeping `transform` too means this still works
    if a knob is ever positioned the older way. */
 .switch-knob {
-    transition: translate var(--duration-base) var(--ease-out),
-                transform var(--duration-base) var(--ease-out);
+    transition:
+        translate var(--duration-base) var(--ease-out),
+        transform var(--duration-base) var(--ease-out);
 }
 
 /* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
@@ -849,8 +949,9 @@ select,
 .tick-draw {
     opacity: 0;
     scale: 0.7;
-    transition: opacity 160ms linear,
-                scale var(--duration-base) var(--ease-standard);
+    transition:
+        opacity 160ms linear,
+        scale var(--duration-base) var(--ease-standard);
 }
 .tick-draw path {
     stroke-dasharray: 24;
@@ -878,8 +979,9 @@ select,
 /* A round checkbox (History's batch select). The fill eases in on the switch
    track's timing while the tick draws on top of it. */
 .check-dot {
-    transition: background-color var(--duration-base) var(--ease-standard),
-                border-color var(--duration-base) var(--ease-standard);
+    transition:
+        background-color var(--duration-base) var(--ease-standard),
+        border-color var(--duration-base) var(--ease-standard);
 }
 
 /* A History row just added or edited. Its wash comes up as the tick is
@@ -901,8 +1003,9 @@ select,
    width, so it stretches a little as it crosses items of different widths,
    which is what makes it read as one thing moving. */
 .chip-slide {
-    transition: left var(--duration-base) var(--ease-out),
-                width var(--duration-base) var(--ease-out);
+    transition:
+        left var(--duration-base) var(--ease-out),
+        width var(--duration-base) var(--ease-out);
 }
 
 /* The home reading's tick scale (components/LevelRail.tsx). The ticks rise
@@ -911,20 +1014,26 @@ select,
    status and the band's figures fade up as the wave reaches them. After that
    a new reading just re-inks the ticks and moves the tall one; nothing slides. */
 @keyframes rail-tick-in {
-    from { transform: scaleY(0); }
-    to { transform: none; }
+    from {
+        transform: scaleY(0);
+    }
+    to {
+        transform: none;
+    }
 }
 .rail-tick {
     transform-origin: bottom;
     animation: rail-tick-in 420ms var(--ease-out) both;
-    transition: height var(--duration-base) var(--ease-standard),
-                background-color var(--duration-base) var(--ease-standard);
+    transition:
+        height var(--duration-base) var(--ease-standard),
+        background-color var(--duration-base) var(--ease-standard);
 }
 .rail-label {
     animation: fade-in 320ms var(--ease-standard) both;
-    transition: left var(--duration-base) var(--ease-standard),
-                transform var(--duration-base) var(--ease-standard),
-                color var(--duration-base) var(--ease-standard);
+    transition:
+        left var(--duration-base) var(--ease-standard),
+        transform var(--duration-base) var(--ease-standard),
+        color var(--duration-base) var(--ease-standard);
 }
 
 /* The calibration plot (components/CalibrationPlot.tsx). Each calibrated lab
@@ -943,8 +1052,14 @@ select,
    Rides on top of the .disclosure height tween: the text settles down into
    the space as it opens rather than just being uncovered. Rests visible. */
 @keyframes advisory-unfold {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 .advisory-unfold {
     animation: advisory-unfold 300ms var(--ease-standard) 40ms both;
@@ -954,8 +1069,9 @@ select,
    property in Tailwind v4, so that is what has to be transitioned — see the
    note on .switch-knob. */
 .chev {
-    transition: rotate var(--duration-base) var(--ease-out),
-                transform var(--duration-base) var(--ease-out);
+    transition:
+        rotate var(--duration-base) var(--ease-out),
+        transform var(--duration-base) var(--ease-out);
 }
 
 /* Collapsible sections. grid-template-rows 0fr -> 1fr is the one way to
@@ -999,171 +1115,368 @@ select,
 
 /* ── Pixel cat (empty states) ─────────────────────────────────── */
 :root {
-    --pixel-blue: #9FD4EE;
-    --pixel-pink: #F6BFCE;
-    --pixel-white: #FFFFFF;
+    --pixel-blue: #9fd4ee;
+    --pixel-pink: #f6bfce;
+    --pixel-white: #ffffff;
     /* shade = the tail lying in front; edge = the silhouette outline */
-    --pixel-blue-shade: #7FB8D6;
-    --pixel-pink-shade: #DFA1B3;
-    --pixel-white-shade: #E2D6DA;
-    --pixel-blue-edge: #6FA8C9;
-    --pixel-pink-edge: #D191A5;
-    --pixel-white-edge: #CFBFC4;
-    --pixel-eye: #3F3238;
-    --pixel-nose: #E58BA4;
+    --pixel-blue-shade: #7fb8d6;
+    --pixel-pink-shade: #dfa1b3;
+    --pixel-white-shade: #e2d6da;
+    --pixel-blue-edge: #6fa8c9;
+    --pixel-pink-edge: #d191a5;
+    --pixel-white-edge: #cfbfc4;
+    --pixel-eye: #3f3238;
+    --pixel-nose: #e58ba4;
     /* Quilt — off the flag palette, picked up from the app's terracotta so the
        one thing on the sprite that isn't cat is obviously not cat. */
-    --pixel-quilt: #E8C0AC;
-    --pixel-quilt-shade: #D2A28C;
-    --pixel-quilt-edge: #B27F68;
+    --pixel-quilt: #e8c0ac;
+    --pixel-quilt-shade: #d2a28c;
+    --pixel-quilt-edge: #b27f68;
     /* Dinner: a salmon-orange fish, carried in the mouth. Brighter and more
        saturated than the bowl's clay so nothing on the sprite is a second
        brown; fins a step darker. */
-    --pixel-fish: #F2A868;
-    --pixel-fish-fin: #D4813F;
+    --pixel-fish: #f2a868;
+    --pixel-fish-fin: #d4813f;
     /* Sleep marks. Muted on purpose — they should read as a soft puff, not text. */
-    --pixel-zzz: #B7ADB0;
+    --pixel-zzz: #b7adb0;
 }
 
 /* Pastels this light glare against a dark surface, so knock them back. */
 .dark {
-    --pixel-blue: #7FB3CE;
-    --pixel-pink: #D69FAF;
-    --pixel-white: #E4DBDE;
-    --pixel-blue-shade: #688FA6;
-    --pixel-pink-shade: #B8848F;
-    --pixel-white-shade: #C3B7BB;
+    --pixel-blue: #7fb3ce;
+    --pixel-pink: #d69faf;
+    --pixel-white: #e4dbde;
+    --pixel-blue-shade: #688fa6;
+    --pixel-pink-shade: #b8848f;
+    --pixel-white-shade: #c3b7bb;
     --pixel-blue-edge: #547588;
-    --pixel-pink-edge: #966B76;
-    --pixel-white-edge: #A0959A;
-    --pixel-eye: #2B2226;
-    --pixel-nose: #C97488;
-    --pixel-quilt: #A9806B;
-    --pixel-quilt-shade: #8C6857;
-    --pixel-quilt-edge: #6B4E40;
+    --pixel-pink-edge: #966b76;
+    --pixel-white-edge: #a0959a;
+    --pixel-eye: #2b2226;
+    --pixel-nose: #c97488;
+    --pixel-quilt: #a9806b;
+    --pixel-quilt-shade: #8c6857;
+    --pixel-quilt-edge: #6b4e40;
     /* Knocked back less than the pastels: dimmed to match them it goes brown,
        and brown in a clay bowl is the exact thing the fish replaced. */
-    --pixel-fish: #E39B5C;
-    --pixel-fish-fin: #B96F33;
-    --pixel-zzz: #6E656A;
+    --pixel-fish: #e39b5c;
+    --pixel-fish-fin: #b96f33;
+    --pixel-zzz: #6e656a;
 }
 
 /* Steps, not tweens — the point is that it moves a whole pixel at a time. The
    cat itself never shifts; only the parts of it that a real cat would move. */
 @keyframes px-blink {
-    0%, 92%      { opacity: 0; }
-    92.01%, 96%  { opacity: 1; }
-    96.01%, 100% { opacity: 0; }
+    0%,
+    92% {
+        opacity: 0;
+    }
+    92.01%,
+    96% {
+        opacity: 1;
+    }
+    96.01%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Tail: still for most of the loop, then two quick swishes. A tail that wags
    on a metronome reads as a clock; the pause is what makes it a cat. */
 @keyframes px-tail-rest {
-    0%, 68%      { opacity: 1; }
-    68.01%, 74%  { opacity: 0; }
-    74.01%, 80%  { opacity: 1; }
-    80.01%, 86%  { opacity: 0; }
-    86.01%, 100% { opacity: 1; }
+    0%,
+    68% {
+        opacity: 1;
+    }
+    68.01%,
+    74% {
+        opacity: 0;
+    }
+    74.01%,
+    80% {
+        opacity: 1;
+    }
+    80.01%,
+    86% {
+        opacity: 0;
+    }
+    86.01%,
+    100% {
+        opacity: 1;
+    }
 }
 @keyframes px-tail-flick {
-    0%, 68%      { opacity: 0; }
-    68.01%, 74%  { opacity: 1; }
-    74.01%, 80%  { opacity: 0; }
-    80.01%, 86%  { opacity: 1; }
-    86.01%, 100% { opacity: 0; }
+    0%,
+    68% {
+        opacity: 0;
+    }
+    68.01%,
+    74% {
+        opacity: 1;
+    }
+    74.01%,
+    80% {
+        opacity: 0;
+    }
+    80.01%,
+    86% {
+        opacity: 1;
+    }
+    86.01%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Making biscuits: four alternating beats, then the paws settle again. The
    rest frame has to be hidden across the whole run, or the down paw doubles. */
 @keyframes px-paw-rest {
-    0%, 58%      { opacity: 1; }
-    58.01%, 90%  { opacity: 0; }
-    90.01%, 100% { opacity: 1; }
+    0%,
+    58% {
+        opacity: 1;
+    }
+    58.01%,
+    90% {
+        opacity: 0;
+    }
+    90.01%,
+    100% {
+        opacity: 1;
+    }
 }
 @keyframes px-paw-left {
-    0%, 58%      { opacity: 0; }
-    58.01%, 66%  { opacity: 1; }
-    66.01%, 74%  { opacity: 0; }
-    74.01%, 82%  { opacity: 1; }
-    82.01%, 100% { opacity: 0; }
+    0%,
+    58% {
+        opacity: 0;
+    }
+    58.01%,
+    66% {
+        opacity: 1;
+    }
+    66.01%,
+    74% {
+        opacity: 0;
+    }
+    74.01%,
+    82% {
+        opacity: 1;
+    }
+    82.01%,
+    100% {
+        opacity: 0;
+    }
 }
 @keyframes px-paw-right {
-    0%, 66%      { opacity: 0; }
-    66.01%, 74%  { opacity: 1; }
-    74.01%, 82%  { opacity: 0; }
-    82.01%, 90%  { opacity: 1; }
-    90.01%, 100% { opacity: 0; }
+    0%,
+    66% {
+        opacity: 0;
+    }
+    66.01%,
+    74% {
+        opacity: 1;
+    }
+    74.01%,
+    82% {
+        opacity: 0;
+    }
+    82.01%,
+    90% {
+        opacity: 1;
+    }
+    90.01%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* The loaf only has the one paw to push out, so it gets a slow two-beat
    stretch instead of the knead. */
 @keyframes px-paw-still {
-    0%, 62%      { opacity: 1; }
-    62.01%, 78%  { opacity: 0; }
-    78.01%, 100% { opacity: 1; }
+    0%,
+    62% {
+        opacity: 1;
+    }
+    62.01%,
+    78% {
+        opacity: 0;
+    }
+    78.01%,
+    100% {
+        opacity: 1;
+    }
 }
 @keyframes px-paw-stretch {
-    0%, 62%      { opacity: 0; }
-    62.01%, 78%  { opacity: 1; }
-    78.01%, 100% { opacity: 0; }
+    0%,
+    62% {
+        opacity: 0;
+    }
+    62.01%,
+    78% {
+        opacity: 1;
+    }
+    78.01%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Ear flick: mostly at rest, one quick step out and back. */
 @keyframes px-ear-rest {
-    0%, 88%      { opacity: 1; }
-    88.01%, 94%  { opacity: 0; }
-    94.01%, 100% { opacity: 1; }
+    0%,
+    88% {
+        opacity: 1;
+    }
+    88.01%,
+    94% {
+        opacity: 0;
+    }
+    94.01%,
+    100% {
+        opacity: 1;
+    }
 }
 @keyframes px-ear-twitch {
-    0%, 88%      { opacity: 0; }
-    88.01%, 94%  { opacity: 1; }
-    94.01%, 100% { opacity: 0; }
+    0%,
+    88% {
+        opacity: 0;
+    }
+    88.01%,
+    94% {
+        opacity: 1;
+    }
+    94.01%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Grooming: the paw travels to the face and back, twice a second. Faster than
    the tail or the ears because a lick is a quick, repetitive motion. */
-@keyframes px-lick-a { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
-@keyframes px-lick-b { 0%, 49.99% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes px-lick-a {
+    0%,
+    49.99% {
+        opacity: 1;
+    }
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes px-lick-b {
+    0%,
+    49.99% {
+        opacity: 0;
+    }
+    50%,
+    100% {
+        opacity: 1;
+    }
+}
 
 /* Chewing: the head-down frame flicks on and off. Held down slightly longer
    than up, which is what stops it reading as a metronome. */
 @keyframes px-chew {
-    0%, 44%      { opacity: 0; }
-    44.01%, 100% { opacity: 1; }
+    0%,
+    44% {
+        opacity: 0;
+    }
+    44.01%,
+    100% {
+        opacity: 1;
+    }
 }
 
 /* The fish a waiting cat is thinking about: two frames a pixel apart, held
    long enough that it drifts rather than twitches. Same trick as the tail,
    slowed right down. */
-@keyframes px-float-a { 0%, 53.99% { opacity: 1; } 54%, 100% { opacity: 0; } }
-@keyframes px-float-b { 0%, 53.99% { opacity: 0; } 54%, 100% { opacity: 1; } }
+@keyframes px-float-a {
+    0%,
+    53.99% {
+        opacity: 1;
+    }
+    54%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes px-float-b {
+    0%,
+    53.99% {
+        opacity: 0;
+    }
+    54%,
+    100% {
+        opacity: 1;
+    }
+}
 
 /* Sleep marks: a slow swell and fade, with a long gap so they punctuate the
    sleeping rather than blink at you. */
 @keyframes px-zzz {
-    0%, 6%       { opacity: 0; }
-    22%, 62%     { opacity: 1; }
-    82%, 100%    { opacity: 0; }
+    0%,
+    6% {
+        opacity: 0;
+    }
+    22%,
+    62% {
+        opacity: 1;
+    }
+    82%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Deliberately mismatched periods: nothing here shares a factor, so the cat
    never falls into doing two things on the same beat twice running. */
-.px-ear-rest    { animation: px-ear-rest 3.4s steps(1) infinite; }
-.px-ear-twitch  { animation: px-ear-twitch 3.4s steps(1) infinite; }
-.px-blink       { animation: px-blink 4.8s steps(1) infinite; }
-.px-tail-rest   { animation: px-tail-rest 5.6s steps(1) infinite; }
-.px-tail-flick  { animation: px-tail-flick 5.6s steps(1) infinite; }
-.px-paw-rest    { animation: px-paw-rest 6.4s steps(1) infinite; }
-.px-paw-left    { animation: px-paw-left 6.4s steps(1) infinite; }
-.px-paw-right   { animation: px-paw-right 6.4s steps(1) infinite; }
-.px-paw-still   { animation: px-paw-still 7.1s steps(1) infinite; }
-.px-paw-stretch { animation: px-paw-stretch 7.1s steps(1) infinite; }
-.px-lick-a      { animation: px-lick-a .5s steps(1) infinite; }
-.px-lick-b      { animation: px-lick-b .5s steps(1) infinite; }
-.px-chew        { animation: px-chew .62s steps(1) infinite; }
-.px-float-a     { animation: px-float-a 2.9s steps(1) infinite; }
-.px-float-b     { animation: px-float-b 2.9s steps(1) infinite; }
-.px-zzz         { animation: px-zzz 4.6s ease-in-out infinite; }
+.px-ear-rest {
+    animation: px-ear-rest 3.4s steps(1) infinite;
+}
+.px-ear-twitch {
+    animation: px-ear-twitch 3.4s steps(1) infinite;
+}
+.px-blink {
+    animation: px-blink 4.8s steps(1) infinite;
+}
+.px-tail-rest {
+    animation: px-tail-rest 5.6s steps(1) infinite;
+}
+.px-tail-flick {
+    animation: px-tail-flick 5.6s steps(1) infinite;
+}
+.px-paw-rest {
+    animation: px-paw-rest 6.4s steps(1) infinite;
+}
+.px-paw-left {
+    animation: px-paw-left 6.4s steps(1) infinite;
+}
+.px-paw-right {
+    animation: px-paw-right 6.4s steps(1) infinite;
+}
+.px-paw-still {
+    animation: px-paw-still 7.1s steps(1) infinite;
+}
+.px-paw-stretch {
+    animation: px-paw-stretch 7.1s steps(1) infinite;
+}
+.px-lick-a {
+    animation: px-lick-a 0.5s steps(1) infinite;
+}
+.px-lick-b {
+    animation: px-lick-b 0.5s steps(1) infinite;
+}
+.px-chew {
+    animation: px-chew 0.62s steps(1) infinite;
+}
+.px-float-a {
+    animation: px-float-a 2.9s steps(1) infinite;
+}
+.px-float-b {
+    animation: px-float-b 2.9s steps(1) infinite;
+}
+.px-zzz {
+    animation: px-zzz 4.6s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
     .modal-overlay,

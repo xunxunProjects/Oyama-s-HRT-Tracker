@@ -21,7 +21,12 @@ const muted = 'text-[var(--text-muted)]';
  * This is for switching whole panels of a page. A compact choice of a few
  * short options inside a form or toolbar is a Segmented control.
  */
-function Tabs<K extends string>({ tabs, value, onChange, className = '' }: {
+function Tabs<K extends string>({
+    tabs,
+    value,
+    onChange,
+    className = '',
+}: {
     tabs: readonly TabItem<K>[];
     value: K;
     onChange: (id: K) => void;
@@ -47,17 +52,15 @@ function Tabs<K extends string>({ tabs, value, onChange, className = '' }: {
     }, [value, tabs]);
 
     return (
-        <div
-            ref={rowRef}
-            role="tablist"
-            className={`relative flex gap-6 border-b border-[var(--border)] ${className}`}
-        >
+        <div ref={rowRef} role="tablist" className={`relative flex gap-6 border-b border-[var(--border)] ${className}`}>
             {tabs.map(({ id, label, icon }) => {
                 const selected = id === value;
                 return (
                     <button
                         key={id}
-                        ref={el => { tabRefs.current[id] = el; }}
+                        ref={el => {
+                            tabRefs.current[id] = el;
+                        }}
                         type="button"
                         role="tab"
                         aria-selected={selected}
@@ -66,8 +69,12 @@ function Tabs<K extends string>({ tabs, value, onChange, className = '' }: {
                     >
                         {icon}
                         <span className="grid">
-                            <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">{label}</span>
-                            <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : ''}`}>{label}</span>
+                            <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">
+                                {label}
+                            </span>
+                            <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : ''}`}>
+                                {label}
+                            </span>
                         </span>
                     </button>
                 );
@@ -94,7 +101,8 @@ export function useSwitchAnimation<K>(value: K, order: readonly K[]): string {
     const prev = useRef(value);
     const cls = useRef('');
     if (prev.current !== value) {
-        cls.current = order.indexOf(value) >= order.indexOf(prev.current) ? 'view-enter-forward' : 'view-enter-backward';
+        cls.current =
+            order.indexOf(value) >= order.indexOf(prev.current) ? 'view-enter-forward' : 'view-enter-backward';
         prev.current = value;
     }
     return cls.current;

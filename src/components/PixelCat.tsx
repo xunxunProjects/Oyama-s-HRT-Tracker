@@ -48,12 +48,7 @@ const DONUT_BODY = [
     '..........................',
 ];
 
-const DONUT_EARS_REST = [
-    '',
-    '......#.......#...........',
-    '.....###.....###..........',
-    '.....#d##...##d#..........',
-];
+const DONUT_EARS_REST = ['', '......#.......#...........', '.....###.....###..........', '.....#d##...##d#..........'];
 
 // Left ear leans a pixel outward — the whole twitch is that one step.
 const DONUT_EARS_TWITCH = [
@@ -66,7 +61,14 @@ const DONUT_EARS_TWITCH = [
 // Swings clear of the body to the right, then hooks up at the tip. It has to
 // leave the silhouette — tucked against the curl it just reads as a lump.
 const DONUT_TAIL = [
-    '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.......................tt.',
     '......................tTTt',
     '......................tTTt',
@@ -77,7 +79,14 @@ const DONUT_TAIL = [
 // Only the hook moves, a pixel to the left; the base stays put. Swing the whole
 // tail and it reads as the cat shifting its weight rather than flicking.
 const DONUT_TAIL_FLICK = [
-    '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '......................tt..',
     '.....................tTTt.',
     '.....................tTTt.',
@@ -87,7 +96,17 @@ const DONUT_TAIL_FLICK = [
 
 // Two front paws tucked under the chin. Outlined, or they vanish into the body.
 const DONUT_PAWS = [
-    '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '......PPP...PPP...........',
     '......ppp...ppp...........',
 ];
@@ -95,36 +114,58 @@ const DONUT_PAWS = [
 // Making biscuits: one paw up while the other stays down, then the reverse.
 // Lifting both at once just looks like the cat hiccuped.
 const DONUT_PAWS_LEFT = [
-    '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '......PPP.................',
     '......ppp...PPP...........',
     '............ppp...........',
 ];
 
 const DONUT_PAWS_RIGHT = [
-    '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '............PPP...........',
     '......PPP...ppp...........',
     '......ppp.................',
 ];
 
-const DONUT_BLINK = [
-    '', '', '', '', '', '',
-    '....#.......#.............',
-];
+const DONUT_BLINK = ['', '', '', '', '', '', '....#.......#.............'];
 
 // Asleep: shut eyes are wider than the open pupil, which is most of what sells
 // them at 44px — a one-pixel lid just looks like the eye went missing.
-const DONUT_SLEEP_EYES = [
-    '', '', '', '', '', '',
-    '...EEE.....EEE............',
-];
+const DONUT_SLEEP_EYES = ['', '', '', '', '', '', '...EEE.....EEE............'];
 
 // The quilt. Straight hem against a round cat is the whole trick: matched to
 // the body outline it reads as the cat being two colours, and it has to sit a
 // pixel proud of the body below the hem so it drapes rather than fits.
 const DONUT_QUILT = [
-    '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.oooooooooooooooooooo.....',
     'oBBBBBBBBBBBBBBBBBBBBo....',
     'oBBBBBBBBBBBBBBBBBBBBo....',
@@ -157,23 +198,23 @@ const LOAF_BODY = [
 
 // 1 → 3 → 4 across the three rows. A two-pixel tip on a four-pixel base is a
 // bump, not a point; dropping the tip to one pixel is what makes it a cat.
-const LOAF_EARS_REST = [
-    '...........#......#.......',
-    '..........###....###......',
-    '..........#d##..##d#......',
-];
+const LOAF_EARS_REST = ['...........#......#.......', '..........###....###......', '..........#d##..##d#......'];
 
-const LOAF_EARS_TWITCH = [
-    '..........#.......#.......',
-    '.........###.....###......',
-    '.........#d##...##d#......',
-];
+const LOAF_EARS_TWITCH = ['..........#.......#.......', '.........###.....###......', '.........#d##...##d#......'];
 
 // Draped down the near side and onto the floor, clear of the body the whole
 // way. A shape this wide swallows a tail that crosses it — the flank rows are
 // the white band, and a shaded tail on white reads as a smudge, not a tail.
 const LOAF_TAIL = [
-    '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.tt.......................',
     '.tTTt.....................',
     '.tTTt.....................',
@@ -182,7 +223,15 @@ const LOAF_TAIL = [
 ];
 
 const LOAF_TAIL_WAG = [
-    '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '..tt......................',
     '..tTTt....................',
     '.tTTt.....................',
@@ -193,7 +242,18 @@ const LOAF_TAIL_WAG = [
 // Both front paws tucked under the chest, right at the base. Outlined, or they
 // disappear into the bottom band.
 const LOAF_PAWS = [
-    '', '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '...........PPP..PPP.......',
     '...........ppp..ppp.......',
 ];
@@ -201,26 +261,38 @@ const LOAF_PAWS = [
 // One paw slides forward — the half-stretch a cat does without bothering to
 // get up.
 const LOAF_PAWS_STRETCH = [
-    '', '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '...........PPP...PPP......',
     '...........ppp...ppp......',
 ];
 
-const LOAF_BLINK = [
-    '', '', '', '', '',
-    '...........#......#.......',
-];
+const LOAF_BLINK = ['', '', '', '', '', '...........#......#.......'];
 
-const LOAF_SLEEP_EYES = [
-    '', '', '', '', '',
-    '..........EEE....EEE......',
-];
+const LOAF_SLEEP_EYES = ['', '', '', '', '', '..........EEE....EEE......'];
 
 // Starts a pixel in from the tail so the tip still shows down the near side —
 // a tail poking out from under the covers is the bit that reads as a cat in
 // bed rather than a cat behind a rectangle.
 const LOAF_QUILT = [
-    '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.....oooooooooooooooooooo.',
     '....oBBBBBBBBBBBBBBBBBBBBo',
     '....oBBBBBBBBBBBBBBBBBBBBo',
@@ -229,24 +301,25 @@ const LOAF_QUILT = [
     '.....oooooooooooooooooooo.',
 ];
 
-
 // Narrowed, not shut: two pixels where the open eye is one and the shut eye is
 // three. Drawn in eye colour — a lid painted in fur colour simply deletes the
 // eye and the cat looks faceless.
-const DONUT_EYES_DROOPY = [
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '...EE......EE.............',
-];
+const DONUT_EYES_DROOPY = ['', '', '', '', '', '', '...EE......EE.............'];
 
 // The quilt kicked down to the base overnight — still on, no longer up to the
 // chin. Same clay tones as the full quilt so it reads as the same object.
 const DONUT_QUILT_LOW = [
-    '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.oooooooooooooooooooo.....',
     'oBBBBBBBBBBBBBBBBBBBBo....',
     '.oooooooooooooooooooo.....',
@@ -294,7 +367,14 @@ const DONUT_YARN = [
 // read as exactly one thing however it is drawn. Nothing sits on the floor
 // here now. At the mouth the fish can only be dinner.
 const DONUT_FISH = [
-    '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.....FFFF.f...............',
     '....FEFFFff...............',
     '.....FFFF.f...............',
@@ -304,11 +384,7 @@ const DONUT_FISH = [
 // Off the floor it stops being an object in the room and becomes a thought,
 // which is the whole state — the cat is not eating, it is thinking about it.
 // It faces the cat, and bobs between these two rows so it drifts.
-const DONUT_FISH_MARK = [
-    '....................FFFF.f',
-    '...................FEFFFff',
-    '....................FFFF.f',
-];
+const DONUT_FISH_MARK = ['....................FFFF.f', '...................FEFFFff', '....................FFFF.f'];
 
 const DONUT_FISH_MARK_LOW = [
     '',
@@ -317,17 +393,20 @@ const DONUT_FISH_MARK_LOW = [
     '....................FFFF.f',
 ];
 
-const LOAF_EYES_DROOPY = [
-    '',
-    '',
-    '',
-    '',
-    '',
-    '..........EE.....EE.......',
-];
+const LOAF_EYES_DROOPY = ['', '', '', '', '', '..........EE.....EE.......'];
 
 const LOAF_QUILT_LOW = [
-    '', '', '', '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '.....oooooooooooooooooooo.',
     '....oBBBBBBBBBBBBBBBBBBBBo',
     '.....oooooooooooooooooooo.',
@@ -362,7 +441,14 @@ const LOAF_YARN = [
 ];
 
 const LOAF_FISH = [
-    '', '', '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '............FFFF.f........',
     '...........FEFFFff........',
     '............FFFF.f........',
@@ -370,11 +456,7 @@ const LOAF_FISH = [
 
 // Mirrored, because the loaf's free corner is the other one: head to the
 // right, so the fish still faces the cat it belongs to.
-const LOAF_FISH_MARK = [
-    'f.FFFF....................',
-    'ffFFFEF...................',
-    'f.FFFF....................',
-];
+const LOAF_FISH_MARK = ['f.FFFF....................', 'ffFFFEF...................', 'f.FFFF....................'];
 
 const LOAF_FISH_MARK_LOW = [
     '',
@@ -386,7 +468,10 @@ const LOAF_FISH_MARK_LOW = [
 // Second grooming frame: the same paw a pixel higher. Alternating the two is
 // the lick — the paw travelling to the face and back, not the cat moving.
 const DONUT_PAW_FACE_UP = [
-    '', '', '', '',
+    '',
+    '',
+    '',
+    '',
     'PP........................',
     'pp........................',
     'Pp........................',
@@ -399,7 +484,12 @@ const DONUT_PAW_FACE_UP = [
 // enjoying itself. Drawn before the fish, so the lowered nose lands behind it
 // and vanishes — the muzzle down in dinner is what sells the bite.
 const DONUT_EAT_FACE_LOW = [
-    '', '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '....#.......#.............',
     '....E..##...E.............',
     '.......NN.................',
@@ -416,14 +506,20 @@ const DONUT_ZZZ = [
 ];
 
 const LOAF_PAW_FACE_UP = [
-    '', '', '',
+    '',
+    '',
+    '',
     '....PP....................',
     '....pp....................',
     '....Pp....................',
 ];
 
 const LOAF_EAT_FACE_LOW = [
-    '', '', '', '', '',
+    '',
+    '',
+    '',
+    '',
+    '',
     '...........#......#.......',
     '...........E......E.......',
     '..............##..........',
@@ -478,20 +574,39 @@ function donutStates(): Record<CatState, Layer[]> {
         alert: [...tailIdle, ...pawsKnead, ...ears, blink],
         playing: [...tailIdle, { grid: DONUT_YARN, className: '' }, ...ears, blink],
         napping: [...tailStill, ...pawsIdle, ...ears, shut],
-        grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
+        grooming: [
+            ...tailIdle,
+            ...pawsIdle,
+            ...ears,
+            shut,
             { grid: DONUT_PAW_FACE, className: 'px-lick-a' },
-            { grid: DONUT_PAW_FACE_UP, className: 'px-lick-b' }],
+            { grid: DONUT_PAW_FACE_UP, className: 'px-lick-b' },
+        ],
         // Dinner is still only an idea, bobbing over the cat's head.
-        waiting: [...tailIdle, ...pawsIdle, ...ears, blink,
+        waiting: [
+            ...tailIdle,
+            ...pawsIdle,
+            ...ears,
+            blink,
             { grid: DONUT_FISH_MARK, className: 'px-float-a' },
-            { grid: DONUT_FISH_MARK_LOW, className: 'px-float-b' }],
+            { grid: DONUT_FISH_MARK_LOW, className: 'px-float-b' },
+        ],
         // The same fish, come down out of the air and into the mouth.
-        eating: [...tailStill, ...pawsIdle, ...ears,
+        eating: [
+            ...tailStill,
+            ...pawsIdle,
+            ...ears,
             { grid: DONUT_EAT_FACE_LOW, className: 'px-chew' },
-            { grid: DONUT_FISH, className: '' }],
+            { grid: DONUT_FISH, className: '' },
+        ],
         winding: [...tailStill, ...pawsIdle, ...ears, droopy],
-        asleep: [...tailStill, { grid: DONUT_QUILT, className: '' }, ...ears, shut,
-            { grid: DONUT_ZZZ, className: 'px-zzz' }],
+        asleep: [
+            ...tailStill,
+            { grid: DONUT_QUILT, className: '' },
+            ...ears,
+            shut,
+            { grid: DONUT_ZZZ, className: 'px-zzz' },
+        ],
     };
 }
 
@@ -519,18 +634,37 @@ function loafStates(): Record<CatState, Layer[]> {
         alert: [...tailIdle, ...pawsStretch, ...ears, blink],
         playing: [...tailIdle, { grid: LOAF_YARN, className: '' }, ...ears, blink],
         napping: [...tailStill, ...pawsIdle, ...ears, shut],
-        grooming: [...tailIdle, ...pawsIdle, ...ears, shut,
+        grooming: [
+            ...tailIdle,
+            ...pawsIdle,
+            ...ears,
+            shut,
             { grid: LOAF_PAW_FACE, className: 'px-lick-a' },
-            { grid: LOAF_PAW_FACE_UP, className: 'px-lick-b' }],
-        waiting: [...tailIdle, ...pawsIdle, ...ears, blink,
+            { grid: LOAF_PAW_FACE_UP, className: 'px-lick-b' },
+        ],
+        waiting: [
+            ...tailIdle,
+            ...pawsIdle,
+            ...ears,
+            blink,
             { grid: LOAF_FISH_MARK, className: 'px-float-a' },
-            { grid: LOAF_FISH_MARK_LOW, className: 'px-float-b' }],
-        eating: [...tailStill, ...pawsIdle, ...ears,
+            { grid: LOAF_FISH_MARK_LOW, className: 'px-float-b' },
+        ],
+        eating: [
+            ...tailStill,
+            ...pawsIdle,
+            ...ears,
             { grid: LOAF_EAT_FACE_LOW, className: 'px-chew' },
-            { grid: LOAF_FISH, className: '' }],
+            { grid: LOAF_FISH, className: '' },
+        ],
         winding: [...tailStill, ...pawsIdle, ...ears, droopy],
-        asleep: [...tailStill, { grid: LOAF_QUILT, className: '' }, ...ears, shut,
-            { grid: LOAF_ZZZ, className: 'px-zzz' }],
+        asleep: [
+            ...tailStill,
+            { grid: LOAF_QUILT, className: '' },
+            ...ears,
+            shut,
+            { grid: LOAF_ZZZ, className: 'px-zzz' },
+        ],
     };
 }
 
@@ -587,19 +721,24 @@ const BAND_EDGE: Record<Band, string> = {
 // they are drawn from overlays, otherwise an outline cuts across the joins.
 function silhouetteOf(grids: string[][]): Set<string> {
     const solid = new Set<string>();
-    grids.forEach(grid => grid.forEach((row, y) => {
-        for (let x = 0; x < row.length; x++) {
-            if (row[x] !== '.') solid.add(`${x},${y}`);
-        }
-    }));
+    grids.forEach(grid =>
+        grid.forEach((row, y) => {
+            for (let x = 0; x < row.length; x++) {
+                if (row[x] !== '.') solid.add(`${x},${y}`);
+            }
+        }),
+    );
     return solid;
 }
 
 function fillFor(ch: string, x: number, y: number, solid: Set<string>, style: CatStyle): string | null {
     const band = bandAt(y, style);
-    const onEdge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(
-        ([dx, dy]) => !solid.has(`${x + dx},${y + dy}`),
-    );
+    const onEdge = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+    ].some(([dx, dy]) => !solid.has(`${x + dx},${y + dy}`));
     switch (ch) {
         case '#':
             return onEdge ? BAND_EDGE[band] : BAND_FILL[band];
@@ -641,9 +780,7 @@ function pixels(grid: string[], keyPrefix: string, solid: Set<string>, style: Ca
         for (let x = 0; x < row.length; x++) {
             const fill = fillFor(row[x], x, y, solid, style);
             if (!fill) continue;
-            out.push(
-                <rect key={`${keyPrefix}-${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />,
-            );
+            out.push(<rect key={`${keyPrefix}-${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />);
         }
     });
     return out;
@@ -664,9 +801,7 @@ interface PixelCatProps {
     force?: boolean;
 }
 
-const PixelCat: React.FC<PixelCatProps> = ({
-    pose = 'donut', size = 150, className = '', state, force = false,
-}) => {
+const PixelCat: React.FC<PixelCatProps> = ({ pose = 'donut', size = 150, className = '', state, force = false }) => {
     const { showCats, catStyle, catState } = usePixelCats();
     const { body, silhouette, states } = POSES[pose];
     if (!showCats && !force) return null;

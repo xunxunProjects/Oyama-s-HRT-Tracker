@@ -8,7 +8,9 @@ import React from 'react';
  * ground colour the hollow rings are filled with.
  */
 const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
-    const GAP = 15, PAD = 7, MID = 9;
+    const GAP = 15,
+        PAD = 7,
+        MID = 9;
     const width = PAD * 2 + GAP * (count - 1);
     return (
         <svg
@@ -22,9 +24,9 @@ const DoseRings: React.FC<{ count: number; at: number }> = ({ count, at }) => {
             {Array.from({ length: count }, (_, i) => (
                 <circle
                     key={i}
-                    className={`onb-ring ${i <= at
-                        ? 'fill-current stroke-current'
-                        : 'fill-[var(--bg)] stroke-[var(--border-strong)]'}`}
+                    className={`onb-ring ${
+                        i <= at ? 'fill-current stroke-current' : 'fill-[var(--bg)] stroke-[var(--border-strong)]'
+                    }`}
                     cx={PAD + i * GAP}
                     cy={MID}
                     r={i === at ? 4.2 : 3}

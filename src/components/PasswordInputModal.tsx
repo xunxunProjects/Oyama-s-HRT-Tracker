@@ -14,32 +14,47 @@ interface PasswordInputModalProps {
     masked?: boolean;
 }
 
-const PasswordInputModal = ({ isOpen, onClose, onConfirm, title, description, error, loading, masked }: PasswordInputModalProps) => {
+const PasswordInputModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    description,
+    error,
+    loading,
+    masked,
+}: PasswordInputModalProps) => {
     const { t } = useTranslation();
-    const [password, setPassword] = useState("");
+    const [password, setPassword] = useState('');
 
     useEscape(onClose, isOpen);
 
     useEffect(() => {
-        if (isOpen) setPassword("");
+        if (isOpen) setPassword('');
     }, [isOpen]);
 
     if (!isOpen) return null;
 
-    const submit = () => { if (password && !loading) onConfirm(password); };
+    const submit = () => {
+        if (password && !loading) onConfirm(password);
+    };
 
     return (
         <div className="modal-overlay z-[60] p-4">
             <div className="modal-shell">
                 <div className="modal-card">
                     <h3 className="modal-title text-center">{title ?? t('import.password_title')}</h3>
-                    <p className="text-xs text-muted mb-4 text-center leading-relaxed">{description ?? t('import.password_desc')}</p>
+                    <p className="text-xs text-muted mb-4 text-center leading-relaxed">
+                        {description ?? t('import.password_desc')}
+                    </p>
 
                     <input
                         type={masked ? 'password' : 'text'}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') submit();
+                        }}
                         className="input-base font-mono text-center mb-2"
                         style={{ fontSize: '16px' }}
                         placeholder={t('auth.password')}
@@ -47,17 +62,13 @@ const PasswordInputModal = ({ isOpen, onClose, onConfirm, title, description, er
                         autoFocus
                     />
 
-                    {error && (
-                        <p className="text-xs text-[var(--danger)] mb-2 text-center">{error}</p>
-                    )}
+                    {error && <p className="text-xs text-[var(--danger)] mb-2 text-center">{error}</p>}
 
                     <div className="flex gap-2 mt-2">
-                        <button onClick={onClose} className="btn-secondary flex-1">{t('btn.cancel')}</button>
-                        <button
-                            onClick={submit}
-                            disabled={!password || loading}
-                            className="btn-primary flex-1"
-                        >
+                        <button onClick={onClose} className="btn-secondary flex-1">
+                            {t('btn.cancel')}
+                        </button>
+                        <button onClick={submit} disabled={!password || loading} className="btn-primary flex-1">
                             {t('btn.ok')}
                         </button>
                     </div>

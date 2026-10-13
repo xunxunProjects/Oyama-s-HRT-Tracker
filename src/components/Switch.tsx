@@ -28,7 +28,9 @@ const Switch: React.FC<{
         onClick={() => onChange(!checked)}
         className={`relative inline-flex switch-track h-[26px] w-11 shrink-0 items-center rounded-full ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
     >
-        <span className={`inline-block switch-knob h-[22px] w-[22px] rounded-full bg-white shadow-[var(--shadow-xs)] ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        <span
+            className={`inline-block switch-knob h-[22px] w-[22px] rounded-full bg-white shadow-[var(--shadow-xs)] ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}
+        />
     </button>
 );
 

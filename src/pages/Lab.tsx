@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
 import { Plus, ChevronRight } from 'lucide-react';
-import { LabResult, CalibrationMethod, CalibrationResult, CalibrationPoint, getHormoneLevelAdvisory, isT_LabUnit } from '../../logic';
+import {
+    LabResult,
+    CalibrationMethod,
+    CalibrationResult,
+    CalibrationPoint,
+    getHormoneLevelAdvisory,
+    isT_LabUnit,
+} from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
 import LabResultForm from '../components/LabResultForm';
@@ -67,10 +74,7 @@ const Lab: React.FC<LabProps> = ({
     // A new entry starts in the units the last lab of each hormone used.
     const [lastE2Unit, lastTUnit] = useMemo(() => {
         const newestFirst = labResults.slice().sort((a, b) => b.timeH - a.timeH);
-        return [
-            newestFirst.find(r => !isT_LabUnit(r.unit))?.unit,
-            newestFirst.find(r => isT_LabUnit(r.unit))?.unit,
-        ];
+        return [newestFirst.find(r => !isT_LabUnit(r.unit))?.unit, newestFirst.find(r => isT_LabUnit(r.unit))?.unit];
     }, [labResults]);
 
     const muted = 'text-[var(--text-muted)]';
@@ -88,15 +92,18 @@ const Lab: React.FC<LabProps> = ({
     // One-line summary of the active calibration for the settings entry row.
     // Before any usable labs exist there's no fit to show, so we fall back to
     // just the method name (a bare "×1.00" would be misleading).
-    const calSummary = calibrationMethod === 'off'
-        ? t('cal.off')
-        : !hasCal
-            ? t(`cal.${calibrationMethod}`)
-            : [
-                t(`cal.${calibrationMethod}`),
-                `×${calibration.scale.toFixed(2)}`,
-                calibration.fitErrPct !== null ? `±${calibration.fitErrPct.toFixed(0)}%` : null,
-            ].filter(Boolean).join(' · ');
+    const calSummary =
+        calibrationMethod === 'off'
+            ? t('cal.off')
+            : !hasCal
+              ? t(`cal.${calibrationMethod}`)
+              : [
+                    t(`cal.${calibrationMethod}`),
+                    `×${calibration.scale.toFixed(2)}`,
+                    calibration.fitErrPct !== null ? `±${calibration.fitErrPct.toFixed(0)}%` : null,
+                ]
+                    .filter(Boolean)
+                    .join(' · ');
 
     return (
         <div ref={rootRef} className="relative pb-32">
@@ -115,7 +122,10 @@ const Lab: React.FC<LabProps> = ({
             />
 
             {/* Expandable add form */}
-            <div className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} {...inertWhen(!isQuickAddLabOpen)}>
+            <div
+                className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                {...inertWhen(!isQuickAddLabOpen)}
+            >
                 <div className="overflow-hidden">
                     <div className={`${PAGE_COLUMN} mb-6`}>
                         <LabResultForm
@@ -124,7 +134,7 @@ const Lab: React.FC<LabProps> = ({
                             resultToEdit={null}
                             defaultE2Unit={lastE2Unit}
                             defaultTUnit={lastTUnit}
-                            onSave={(res) => {
+                            onSave={res => {
                                 onSaveLabResult(res);
                                 setIsQuickAddLabOpen(false);
                             }}
@@ -164,7 +174,9 @@ const Lab: React.FC<LabProps> = ({
                             estradiol labs calibrate the curve, so in transmasc
                             mode, where labs are testosterone, it isn't said. */}
                         {!isTransmasc && (
-                            <p className={`text-sm ${muted} max-w-xs text-balance`}>{t('onboarding.how_calibrate_desc')}</p>
+                            <p className={`text-sm ${muted} max-w-xs text-balance`}>
+                                {t('onboarding.how_calibrate_desc')}
+                            </p>
                         )}
                         {/* Adding a result is the one thing this page is waiting
                             for. Gone while the form is open above. */}
@@ -204,12 +216,19 @@ const Lab: React.FC<LabProps> = ({
                                             className={`w-[calc(100%+1rem)] py-3.5 flex items-start gap-3 text-start cursor-pointer -mx-2 px-2 rounded-md hover:bg-[var(--surface-hover)] ${isEditing ? 'bg-[var(--surface-hover)]' : ''}`}
                                             onClick={() => setEditingLabId(isEditing ? null : res.id)}
                                         >
-                                            <span className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${unused ? 'bg-[var(--border-strong)]' : 'bg-[var(--accent)]'}`} />
+                                            <span
+                                                className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${unused ? 'bg-[var(--border-strong)]' : 'bg-[var(--accent)]'}`}
+                                            />
                                             <span className="flex-1 min-w-0">
                                                 <span className="flex items-center justify-between mb-1">
                                                     <span className="text-sm">
-                                                        <span className={`font-medium ${on}`}>{res.concValue} {res.unit}</span>
-                                                        <span className={muted}> · {t(isT ? 'label.t' : 'label.e2')}</span>
+                                                        <span className={`font-medium ${on}`}>
+                                                            {res.concValue} {res.unit}
+                                                        </span>
+                                                        <span className={muted}>
+                                                            {' '}
+                                                            · {t(isT ? 'label.t' : 'label.e2')}
+                                                        </span>
                                                     </span>
                                                     <span className={`text-xs tabular-nums ${muted} shrink-0`}>
                                                         {formatTime(d)}
@@ -221,7 +240,9 @@ const Lab: React.FC<LabProps> = ({
                                                         in words: "13% above" rather than a bare ×1.13. */}
                                                     {pt && (
                                                         <span className="flex items-center gap-1.5 text-xs tabular-nums shrink-0">
-                                                            <span className={muted}>{t('cal.plot.before')} {Math.round(pt.pred)}</span>
+                                                            <span className={muted}>
+                                                                {t('cal.plot.before')} {Math.round(pt.pred)}
+                                                            </span>
                                                             <span
                                                                 className="px-1.5 py-0.5 rounded font-medium"
                                                                 style={{
@@ -229,25 +250,41 @@ const Lab: React.FC<LabProps> = ({
                                                                     background: 'var(--accent-subtle)',
                                                                 }}
                                                             >
-                                                                {pct === 0 ? '±0%' : fill(t(pct > 0 ? 'lab.ratio_above' : 'lab.ratio_below'), { pct: Math.abs(pct) })}
+                                                                {pct === 0
+                                                                    ? '±0%'
+                                                                    : fill(
+                                                                          t(
+                                                                              pct > 0
+                                                                                  ? 'lab.ratio_above'
+                                                                                  : 'lab.ratio_below',
+                                                                          ),
+                                                                          { pct: Math.abs(pct) },
+                                                                      )}
                                                             </span>
                                                         </span>
                                                     )}
                                                 </span>
-                                                {unused && <span className={`block text-xs ${muted} mt-1`}>{t('lab.not_used')}</span>}
+                                                {unused && (
+                                                    <span className={`block text-xs ${muted} mt-1`}>
+                                                        {t('lab.not_used')}
+                                                    </span>
+                                                )}
                                             </span>
                                         </button>
-                                        <div className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} {...inertWhen(!isEditing)}>
+                                        <div
+                                            className={`grid ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                                            {...inertWhen(!isEditing)}
+                                        >
                                             <div className="overflow-hidden">
                                                 <div className="pb-4 pt-1">
                                                     <LabResultForm
                                                         resultToEdit={res}
-                                                        onSave={(updated) => {
+                                                        onSave={updated => {
                                                             onSaveLabResult(updated);
                                                             setEditingLabId(null);
                                                         }}
                                                         onCancel={() => setEditingLabId(null)}
-                                                        onDelete={(id) => {
+                                                        onDelete={id => {
                                                             onDeleteLabResult(id);
                                                             setEditingLabId(null);
                                                         }}

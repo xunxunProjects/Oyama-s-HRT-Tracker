@@ -42,7 +42,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     thetaFromHold,
     route,
     invalid,
-    errorId
+    errorId,
 }) => {
     const { t } = useTranslation();
     const tierLabelId = React.useId();
@@ -62,14 +62,16 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     const tierOptions = SL_TIER_ORDER.map((tierKey, index) => ({
         value: String(index),
         label: t(`sl.tier.${tierKey}`),
-        description: `${SublingualTierParams[tierKey].hold} min`
+        description: `${SublingualTierParams[tierKey].hold} min`,
     }));
 
     return (
         <div className="space-y-4">
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                    <label id={tierLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.sl_absorption')}</label>
+                    <label id={tierLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        {t('field.sl_absorption')}
+                    </label>
                     <button
                         type="button"
                         onClick={() => setUseCustomTheta(!useCustomTheta)}
@@ -83,17 +85,25 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                     <CustomSelect
                         labelledBy={tierLabelId}
                         value={String(slTier)}
-                        onChange={(val) => setSlTier(parseInt(val, 10))}
+                        onChange={val => setSlTier(parseInt(val, 10))}
                         options={tierOptions}
                     />
                 ) : (
                     <div className="pt-2 pb-1 space-y-2">
-                        <label id={holdLabelId} htmlFor={holdId} className="text-xs font-medium text-[var(--text-muted)]">{t('sl.hold_time_min')}</label>
+                        <label
+                            id={holdLabelId}
+                            htmlFor={holdId}
+                            className="text-xs font-medium text-[var(--text-muted)]"
+                        >
+                            {t('sl.hold_time_min')}
+                        </label>
                         <div className="flex items-center gap-2">
                             <input
                                 id={holdId}
-                                type="number" inputMode="decimal"
-                                min="1" max="60"
+                                type="number"
+                                inputMode="decimal"
+                                min="1"
+                                max="60"
                                 value={customHoldInput}
                                 onChange={e => handleCustomHoldChange(e.target.value)}
                                 className="w-16 h-9 px-2 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md text-center text-sm font-medium focus:border-[var(--accent-ink)] outline-none text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -103,7 +113,8 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             <input
                                 type="range"
                                 aria-labelledby={holdLabelId}
-                                min="1" max="60"
+                                min="1"
+                                max="60"
                                 value={customHoldValue}
                                 onChange={e => {
                                     const v = parseInt(e.target.value);
@@ -113,22 +124,30 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 className="flex-1 h-1 accent-[var(--accent)]"
                             />
                         </div>
-                        <p className="text-[0.6875rem] text-[var(--text-muted)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)}</p>
+                        <p className="text-[0.6875rem] text-[var(--text-muted)]">
+                            {t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)}
+                        </p>
                     </div>
                 )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(ester !== Ester.E2) && (
-                    <div className={`space-y-2 ${(ester === Ester.EV && route === Route.sublingual) ? 'col-span-2' : ''}`}>
-                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                {ester !== Ester.E2 && (
+                    <div
+                        className={`space-y-2 ${ester === Ester.EV && route === Route.sublingual ? 'col-span-2' : ''}`}
+                    >
+                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                            {t('field.dose_raw')}
+                        </label>
                         <input
                             id={rawId}
                             {...refusedFieldProps(rawDose, invalid, errorId)}
-                            type="number" inputMode="decimal"
+                            type="number"
+                            inputMode="decimal"
                             min="0"
                             step="0.001"
-                            value={rawDose} onChange={e => onRawChange(e.target.value)}
+                            value={rawDose}
+                            onChange={e => onRawChange(e.target.value)}
                             className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
@@ -137,17 +156,19 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                 )}
 
                 {!(ester === Ester.EV && route === Route.sublingual) && ester !== Ester.CPA && (
-                    <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
+                    <div className={`space-y-2 ${ester === Ester.E2 ? 'col-span-2' : ''}`}>
                         <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                             {t('field.dose_e2')}
                         </label>
                         <input
                             id={e2Id}
                             {...refusedFieldProps(e2Dose, invalid, errorId)}
-                            type="number" inputMode="decimal"
+                            type="number"
+                            inputMode="decimal"
                             min="0"
                             step="0.001"
-                            value={e2Dose} onChange={e => onE2Change(e.target.value)}
+                            value={e2Dose}
+                            onChange={e => onE2Change(e.target.value)}
                             className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
@@ -155,7 +176,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                     </div>
                 )}
 
-                {(ester === Ester.EV && route === Route.sublingual) && (
+                {ester === Ester.EV && route === Route.sublingual && (
                     <div className="col-span-2">
                         {/* No unit after the number: the label already ends in (mg). */}
                         <p className="text-xs text-[var(--text-muted)] mt-1 pl-1">

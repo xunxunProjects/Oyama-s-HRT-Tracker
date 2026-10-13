@@ -32,7 +32,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
     onSelectDose,
     onAddQuickDose,
     onDeleteQuickDose,
-    unit = 'mg'
+    unit = 'mg',
 }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
@@ -58,15 +58,20 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
             route,
             ester,
             value: val,
-            createdAt: Date.now()
+            createdAt: Date.now(),
         };
         onAddQuickDose(newDose);
     };
 
     const handleDelete = (dose: QuickDose) => {
-        showDialog('confirm', `${formatValue(dose.value)} ${unit}`, () => {
-            onDeleteQuickDose(dose.id);
-        }, { danger: true, title: t('quickdose.delete_confirm'), confirmLabel: t('btn.delete') });
+        showDialog(
+            'confirm',
+            `${formatValue(dose.value)} ${unit}`,
+            () => {
+                onDeleteQuickDose(dose.id);
+            },
+            { danger: true, title: t('quickdose.delete_confirm'), confirmLabel: t('btn.delete') },
+        );
     };
 
     const formatValue = (val: number): string => {
@@ -98,7 +103,10 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                         takes it out of absolute positioning). */}
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDelete(dose); }}
+                        onClick={e => {
+                            e.stopPropagation();
+                            handleDelete(dose);
+                        }}
                         aria-label={`${t('btn.delete')} ${formatValue(dose.value)} ${unit}`}
                         className="tap-target absolute -top-1.5 -right-1.5 w-4 h-4 rounded-md flex items-center justify-center
  bg-[var(--surface-hover)]

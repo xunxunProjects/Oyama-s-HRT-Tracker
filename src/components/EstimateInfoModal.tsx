@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useEscape } from '../hooks/useEscape';
 
-const EstimateInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const EstimateInfoModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { t } = useTranslation();
 
     useEscape(onClose, isOpen);
@@ -17,9 +17,7 @@ const EstimateInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
                     <div className="text-sm text-muted space-y-3 mb-5 leading-relaxed">
                         <p>{t('modal.estimate.p1')}</p>
-                        <p className="callout text-body font-medium">
-                            {t('modal.estimate.p2')}
-                        </p>
+                        <p className="callout text-body font-medium">{t('modal.estimate.p2')}</p>
                         <p>{t('modal.estimate.p3')}</p>
                         <p className="text-xs pt-1">
                             {t('modal.estimate.source')}{' '}
@@ -40,7 +38,7 @@ const EstimateInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                 </div>
             </div>
         </div>,
-        document.body
+        document.body,
     );
 };
 

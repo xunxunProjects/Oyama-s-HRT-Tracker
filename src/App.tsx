@@ -64,8 +64,8 @@ const AppContent = () => {
     // --- Prediction curve: the Overview chart carried on past "now", dashed,
     // on the plan's doses. Off unless switched on in Settings; a display
     // preference, so it stays on the device. ---
-    const [showPrediction, setShowPrediction] = useState<boolean>(() =>
-        localStorage.getItem('app-show-prediction') === 'true'
+    const [showPrediction, setShowPrediction] = useState<boolean>(
+        () => localStorage.getItem('app-show-prediction') === 'true',
     );
     useEffect(() => {
         localStorage.setItem('app-show-prediction', String(showPrediction));
@@ -74,27 +74,44 @@ const AppContent = () => {
     // Use Custom Hooks
     const {
         events,
-        weight, setWeight,
+        weight,
+        setWeight,
         labResults,
         doseTemplates,
         simulation,
         calibrationFn,
-        calibrationMethod, setCalibrationMethod,
-        calibrationHistoryMode, setCalibrationHistoryMode,
+        calibrationMethod,
+        setCalibrationMethod,
+        calibrationHistoryMode,
+        setCalibrationHistoryMode,
         calibration,
         currentLevel,
         currentCPA,
-        plan, savePlanItem, deletePlanItem,
+        plan,
+        savePlanItem,
+        deletePlanItem,
         currentT,
         currentStatus,
         simulationAhead,
         groupedEvents,
-        addEvent, addEvents, updateEvent, deleteEvent, deleteEvents, clearAllEvents,
-        addLabResult, updateLabResult, deleteLabResult, clearLabResults,
-        addTemplate, deleteTemplate,
-        addQuickDose, deleteQuickDose,
+        addEvent,
+        addEvents,
+        updateEvent,
+        deleteEvent,
+        deleteEvents,
+        clearAllEvents,
+        addLabResult,
+        updateLabResult,
+        deleteLabResult,
+        clearLabResults,
+        addTemplate,
+        deleteTemplate,
+        addQuickDose,
+        deleteQuickDose,
         quickDoses,
-        pkParams, setPkParams, clearPkParams,
+        pkParams,
+        setPkParams,
+        clearPkParams,
         processImportedData,
         mergeImportedData,
         buildExportPayload,
@@ -103,12 +120,19 @@ const AppContent = () => {
         readyScope,
         currentTime,
         regimens,
-        supplies, saveSupply, deleteSupply,
+        supplies,
+        saveSupply,
+        deleteSupply,
     } = useAppData(showDialog, { withPrediction: showPrediction });
     const nowH = currentTime.getTime() / 3600000;
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
-    const [supplyLeadDays, setSupplyLeadDaysState] = useState(() => Number(localStorage.getItem('hrt-supply-lead-days')) || 14);
-    const setSupplyLeadDays = (d: number) => { setSupplyLeadDaysState(d); localStorage.setItem('hrt-supply-lead-days', String(d)); };
+    const [supplyLeadDays, setSupplyLeadDaysState] = useState(
+        () => Number(localStorage.getItem('hrt-supply-lead-days')) || 14,
+    );
+    const setSupplyLeadDays = (d: number) => {
+        setSupplyLeadDaysState(d);
+        localStorage.setItem('hrt-supply-lead-days', String(d));
+    };
 
     useLiveShareSync({
         authToken: token,
@@ -118,16 +142,8 @@ const AppContent = () => {
         calibrationFn,
     });
 
-    const {
-        currentView,
-        currentTab,
-        transitionDirection,
-        handleViewChange,
-        handleTabSelect,
-        mainScrollRef,
-        navItems,
-    } = useAppNavigation(user);
-
+    const { currentView, currentTab, transitionDirection, handleViewChange, handleTabSelect, mainScrollRef, navItems } =
+        useAppNavigation(user);
 
     // --- Local UI State (Modals & Forms) ---
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -146,17 +162,13 @@ const AppContent = () => {
     // --- Auto-sync preference ---
     // Storage key kept from when this only ever uploaded, so an existing
     // preference carries over rather than silently resetting to on.
-    const [autoSync, setAutoSync] = useState<boolean>(() =>
-        localStorage.getItem('app-auto-backup') !== 'false'
-    );
+    const [autoSync, setAutoSync] = useState<boolean>(() => localStorage.getItem('app-auto-backup') !== 'false');
 
     // --- First run ---
     const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
 
     // --- Developer mode (unlocks the milk tea easter egg) ---
-    const [devMode, setDevMode] = useState<boolean>(() =>
-        localStorage.getItem('app-dev-mode') === 'true'
-    );
+    const [devMode, setDevMode] = useState<boolean>(() => localStorage.getItem('app-dev-mode') === 'true');
     useEffect(() => {
         localStorage.setItem('app-dev-mode', String(devMode));
     }, [devMode]);
@@ -166,7 +178,11 @@ const AppContent = () => {
     // land on one after a sign-out, and an expired sign-in can leave one open,
     // so step up to the page it belongs to.
     const pageGone =
-        (!token && (currentView === 'share' || currentView === 'sessions' || currentView === 'two-factor' || currentView === 'edit-avatar')) ||
+        (!token &&
+            (currentView === 'share' ||
+                currentView === 'sessions' ||
+                currentView === 'two-factor' ||
+                currentView === 'edit-avatar')) ||
         (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states'));
     useEffect(() => {
         if (pageGone) handleViewChange(tabForView(currentView));
@@ -174,8 +190,8 @@ const AppContent = () => {
 
     // --- Site label: the host name strip above the mobile view. Switched off
     // from Settings while developer mode is on, and kept off after that. ---
-    const [hideSiteLabel, setHideSiteLabel] = useState<boolean>(() =>
-        localStorage.getItem('app-hide-site-label') === 'true'
+    const [hideSiteLabel, setHideSiteLabel] = useState<boolean>(
+        () => localStorage.getItem('app-hide-site-label') === 'true',
     );
     useEffect(() => {
         localStorage.setItem('app-hide-site-label', String(hideSiteLabel));
@@ -186,7 +202,8 @@ const AppContent = () => {
         return (saved as AppTheme) || 'system';
     });
     // Same reading as the Overview's: an explicit dark theme, or the system's under "system".
-    const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDarkMode =
+        theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
     useEffect(() => {
         localStorage.setItem('app-auto-backup', String(autoSync));
@@ -227,8 +244,9 @@ const AppContent = () => {
             // which applies none), but it stayed white over a dark page.
             // --bg of each theme, as hex because not every browser reads
             // oklch() in this tag.
-            document.querySelectorAll('meta[name="theme-color"]').forEach(meta =>
-                meta.setAttribute('content', isDark ? '#181714' : '#ffffff'));
+            document
+                .querySelectorAll('meta[name="theme-color"]')
+                .forEach(meta => meta.setAttribute('content', isDark ? '#181714' : '#ffffff'));
         };
 
         // Mono renders as light with a grayscale filter (see html.mono in index.css)
@@ -245,25 +263,28 @@ const AppContent = () => {
         }
     }, [theme]);
 
-    const languageOptions = useMemo(() => ([
-        { value: 'zh', label: '简体中文' },
-        { value: 'zh-TW', label: '正體中文' },
-        { value: 'yue', label: '廣東話' },
-        { value: 'en', label: 'English' },
-        { value: 'ja', label: '日本語' },
-        { value: 'ko', label: '한국어' },
-        { value: 'tr', label: 'Türkçe' },
-    ]), []);
-
+    const languageOptions = useMemo(
+        () => [
+            { value: 'zh', label: '简体中文' },
+            { value: 'zh-TW', label: '正體中文' },
+            { value: 'yue', label: '廣東話' },
+            { value: 'en', label: 'English' },
+            { value: 'ja', label: '日本語' },
+            { value: 'ko', label: '한국어' },
+            { value: 'tr', label: 'Türkçe' },
+        ],
+        [],
+    );
 
     // --- Modal Logic Wrappers ---
 
     useEffect(() => {
         const shouldLock = isPasswordInputOpen || isFormOpen || isDisclaimerOpen;
         document.body.style.overflow = shouldLock ? 'hidden' : '';
-        return () => { document.body.style.overflow = ''; };
+        return () => {
+            document.body.style.overflow = '';
+        };
     }, [isPasswordInputOpen, isFormOpen, isDisclaimerOpen]);
-
 
     // An import replaces the records on this device (and, with sync on, on
     // every device), so it asks first whenever there is something to lose, in
@@ -271,25 +292,26 @@ const AppContent = () => {
     // device stays a single step, and a file with nothing usable in it is
     // reported as such before anything is asked. Resolves to whether the
     // import went through, so the paste box keeps its text after a Cancel.
-    const confirmImport = (parsed: unknown): Promise<boolean> => new Promise(resolve => {
-        if (!processImportedData(parsed, { check: true })) {
-            showDialog('alert', t('drawer.import_error'));
-            resolve(false);
-            return;
-        }
-        const run = () => resolve(processImportedData(parsed));
-        const { modes } = buildExportPayload();
-        if (Object.values(modes).every(m => !m.events.length && !m.labResults.length && !m.doseTemplates.length)) {
-            run();
-            return;
-        }
-        showDialog('confirm', t('import.replace_confirm'), run, {
-            danger: true,
-            title: t('import.replace_title'),
-            confirmLabel: t('import.replace_btn'),
-            onCancel: () => resolve(false),
+    const confirmImport = (parsed: unknown): Promise<boolean> =>
+        new Promise(resolve => {
+            if (!processImportedData(parsed, { check: true })) {
+                showDialog('alert', t('drawer.import_error'));
+                resolve(false);
+                return;
+            }
+            const run = () => resolve(processImportedData(parsed));
+            const { modes } = buildExportPayload();
+            if (Object.values(modes).every(m => !m.events.length && !m.labResults.length && !m.doseTemplates.length)) {
+                run();
+                return;
+            }
+            showDialog('confirm', t('import.replace_confirm'), run, {
+                danger: true,
+                title: t('import.replace_title'),
+                confirmLabel: t('import.replace_btn'),
+                onCancel: () => resolve(false),
+            });
         });
-    });
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
@@ -339,7 +361,10 @@ const AppContent = () => {
         }
     };
 
-    const handleEditEvent = (e: DoseEvent) => { setEditingEvent(e); setIsFormOpen(true); };
+    const handleEditEvent = (e: DoseEvent) => {
+        setEditingEvent(e);
+        setIsFormOpen(true);
+    };
     // One tap on the Overview logs a plan item's dose. Every dose logged this
     // way is kept, newest last, so the taps can be taken back one at a time:
     // three doses in a day are three taps and three undos.
@@ -409,7 +434,10 @@ const AppContent = () => {
     // Works with auto-sync switched off; refuses when the cloud copy is
     // encrypted and unreadable here, rather than replacing it with plaintext.
     const handleCloudSave = async () => {
-        if (!token) { setIsAuthModalOpen(true); return; }
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
         const { outcome, errorCode } = await syncState.syncNow();
         // A locked cloud copy is not a failure to retry — it is a password this
         // device hasn't been given. Say so, rather than the flat "save failed"
@@ -419,14 +447,23 @@ const AppContent = () => {
             showDialog('alert', `${t('account.cloud_save_failed')} ${describeSyncError(errorCode, t)}`);
             return;
         }
-        showDialog('alert', t(
-            outcome === 'synced' ? 'account.cloud_save_success'
-                : outcome === 'locked' ? 'account.cloud_save_locked'
-                    : 'account.cloud_save_failed'));
+        showDialog(
+            'alert',
+            t(
+                outcome === 'synced'
+                    ? 'account.cloud_save_success'
+                    : outcome === 'locked'
+                      ? 'account.cloud_save_locked'
+                      : 'account.cloud_save_failed',
+            ),
+        );
     };
 
     const handleCloudLoad = async (backupId?: string) => {
-        if (!token) { setIsAuthModalOpen(true); return; }
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
         try {
             let parsed: any;
             let timestamp: number;
@@ -450,16 +487,24 @@ const AppContent = () => {
                 showDialog('alert', t('account.cloud_load_failed'));
                 return;
             }
-            showDialog('confirm', (t('account.load_confirm') as string).replace('{time}', new Date(timestamp * 1000).toLocaleString()), () => {
-                processImportedData(parsed);
-            }, { danger: true });
+            showDialog(
+                'confirm',
+                (t('account.load_confirm') as string).replace('{time}', new Date(timestamp * 1000).toLocaleString()),
+                () => {
+                    processImportedData(parsed);
+                },
+                { danger: true },
+            );
         } catch (e) {
             showDialog('alert', t('account.cloud_load_failed'));
         }
     };
 
     const handleCloudMerge = async (backupId: string) => {
-        if (!token) { setIsAuthModalOpen(true); return; }
+        if (!token) {
+            setIsAuthModalOpen(true);
+            return;
+        }
         try {
             const backup = await cloudService.loadOne(token, backupId);
             const parsed = await parseCloudBackup(backup.data);
@@ -485,24 +530,24 @@ const AppContent = () => {
                 plan={plan}
                 onAddPlanItem={savePlanItem}
                 onDeletePlanItem={deletePlanItem}
-                onDone={() => { markOnboardingSeen(); setShowOnboarding(false); }}
+                onDone={() => {
+                    markOnboardingSeen();
+                    setShowOnboarding(false);
+                }}
             />
         );
     }
 
     return (
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
-            <Sidebar
-                navItems={navItems}
-                currentView={currentTab}
-                onViewChange={handleTabSelect}
-            />
+            <Sidebar navItems={navItems} currentView={currentTab} onViewChange={handleTabSelect} />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
-
                 {/* Mobile site label — reflects the current deployment host. Hidden,
                     it still keeps its top padding, which is what holds the content
                     clear of a notch or status bar. */}
-                <div className={`md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${hideSiteLabel ? '' : 'pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none'}`}>
+                <div
+                    className={`md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${hideSiteLabel ? '' : 'pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none'}`}
+                >
                     {!hideSiteLabel && window.location.hostname}
                 </div>
 
@@ -530,11 +575,20 @@ const AppContent = () => {
                             onEditEvent={handleEditEvent}
                             calibrationFn={calibrationFn}
                             theme={theme}
-                            onNavigateToHistory={() => { setIsQuickAddOpen(true); handleViewChange('history'); }}
-                            onNavigateToLab={() => { setIsQuickAddLabOpen(true); handleViewChange('lab'); }}
+                            onNavigateToHistory={() => {
+                                setIsQuickAddOpen(true);
+                                handleViewChange('history');
+                            }}
+                            onNavigateToLab={() => {
+                                setIsQuickAddLabOpen(true);
+                                handleViewChange('lab');
+                            }}
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
-                            onAuthRequired={() => { setAuthForShare(true); setIsAuthModalOpen(true); }}
+                            onAuthRequired={() => {
+                                setAuthForShare(true);
+                                setIsAuthModalOpen(true);
+                            }}
                             regimens={regimens}
                             plan={plan}
                             onLogPlanItem={handleLogPlanItem}
@@ -678,9 +732,7 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'settings-hrt-mode' && (
-                        <HRTModeSettings
-                            onBack={() => handleViewChange('settings')}
-                        />
+                        <HRTModeSettings onBack={() => handleViewChange('settings')} />
                     )}
 
                     {currentView === 'settings-language' && (
@@ -737,7 +789,7 @@ const AppContent = () => {
                             onCloudLoad={handleCloudLoad}
                             onCloudMerge={handleCloudMerge}
                             localData={{ events, labResults, doseTemplates, weight }}
-                            onNavigate={(v) => handleViewChange(v as ViewKey)}
+                            onNavigate={v => handleViewChange(v as ViewKey)}
                             twoFAEnabled={twoFAEnabled}
                             onTwoFAStatusChange={setTwoFAEnabled}
                             syncStatus={syncState.status}
@@ -747,10 +799,7 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'sessions' && token && (
-                        <SessionsPage
-                            token={token}
-                            onBack={() => handleViewChange('account')}
-                        />
+                        <SessionsPage token={token} onBack={() => handleViewChange('account')} />
                     )}
 
                     {currentView === 'two-factor' && token && (
@@ -763,22 +812,14 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'change-password' && (
-                        <ChangePasswordPage
-                            onBack={() => handleViewChange('account')}
-                        />
+                        <ChangePasswordPage onBack={() => handleViewChange('account')} />
                     )}
 
                     {currentView === 'delete-account' && (
-                        <DeleteAccountPage
-                            onBack={() => handleViewChange('account')}
-                        />
+                        <DeleteAccountPage onBack={() => handleViewChange('account')} />
                     )}
 
-                    {currentView === 'edit-profile' && (
-                        <EditProfilePage
-                            onBack={() => handleViewChange('account')}
-                        />
-                    )}
+                    {currentView === 'edit-profile' && <EditProfilePage onBack={() => handleViewChange('account')} />}
 
                     {currentView === 'edit-avatar' && user && token && (
                         <EditAvatarPage
@@ -789,15 +830,11 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'settings-transparency' && (
-                        <TransparencySettings
-                            onBack={() => handleViewChange('settings')}
-                        />
+                        <TransparencySettings onBack={() => handleViewChange('settings')} />
                     )}
 
                     {currentView === 'settings-milk-tea' && devMode && (
-                        <MilkTeaEasterEgg
-                            onBack={() => handleViewChange('settings')}
-                        />
+                        <MilkTeaEasterEgg onBack={() => handleViewChange('settings')} />
                     )}
 
                     {currentView === 'settings-cat-states' && devMode && (
@@ -827,9 +864,7 @@ const AppContent = () => {
                         />
                     )}
 
-                    {currentView === 'admin' && user?.isAdmin && (
-                        <Admin />
-                    )}
+                    {currentView === 'admin' && user?.isAdmin && <Admin />}
                 </div>
 
                 {/* Bottom Navigation — a frosted floating island. Content scrolls
@@ -846,28 +881,32 @@ const AppContent = () => {
                     tab's pill. */}
                 <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
                     <div className="flex items-stretch p-1.5 gap-0.5">
-                        {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
-                            // Mobile reaches admin from Settings → General, so the
-                            // settings tab is the one that should read as active.
-                            const activeTab = currentView === 'admin' ? 'settings' : currentTab;
-                            const isActive = activeTab === id;
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() => handleTabSelect(id as ViewKey)}
-                                    aria-current={isActive ? 'page' : undefined}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-colors duration-150 motion-reduce:transition-none
+                        {navItems
+                            .filter(item => item.id !== 'admin')
+                            .map(({ id, icon: Icon, label }) => {
+                                // Mobile reaches admin from Settings → General, so the
+                                // settings tab is the one that should read as active.
+                                const activeTab = currentView === 'admin' ? 'settings' : currentTab;
+                                const isActive = activeTab === id;
+                                return (
+                                    <button
+                                        key={id}
+                                        onClick={() => handleTabSelect(id as ViewKey)}
+                                        aria-current={isActive ? 'page' : undefined}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-colors duration-150 motion-reduce:transition-none
                                         ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
-                                >
-                                    <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
-                                        <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
-                                    </span>
-                                    <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
-                                        {label}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                    >
+                                        <span
+                                            className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}
+                                        >
+                                            <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                                        </span>
+                                        <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
+                                            {label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                     </div>
                 </nav>
             </div>
@@ -896,19 +935,20 @@ const AppContent = () => {
                 events={events}
             />
 
-            <DisclaimerModal
-                isOpen={isDisclaimerOpen}
-                onClose={() => setIsDisclaimerOpen(false)}
-            />
+            <DisclaimerModal isOpen={isDisclaimerOpen} onClose={() => setIsDisclaimerOpen(false)} />
 
             <AuthModal
                 isOpen={isAuthModalOpen}
-                onClose={() => { setIsAuthModalOpen(false); setAuthForShare(false); }}
+                onClose={() => {
+                    setIsAuthModalOpen(false);
+                    setAuthForShare(false);
+                }}
                 reason={authForShare ? 'share' : undefined}
-                onSuccess={() => { if (authForShare) handleViewChange('share'); }}
+                onSuccess={() => {
+                    if (authForShare) handleViewChange('share');
+                }}
             />
-
-        </div >
+        </div>
     );
 };
 
@@ -917,10 +957,7 @@ const getShareRoute = (): { isShareRoute: boolean; token: string | null } => {
         return { isShareRoute: false, token: null };
     }
 
-    const fragmentToken = window.location.hash
-        .slice(1)
-        .replace(/^\/+/, '')
-        .split(/[/?]/, 1)[0];
+    const fragmentToken = window.location.hash.slice(1).replace(/^\/+/, '').split(/[/?]/, 1)[0];
 
     return { isShareRoute: true, token: fragmentToken || null };
 };

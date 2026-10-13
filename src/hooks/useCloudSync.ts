@@ -128,8 +128,7 @@ const byNewest = <T extends { created_at: number }>(metas: T[]): T[] =>
     [...metas].sort((a, b) => b.created_at - a.created_at);
 
 /** Id of the newest revision, whether or not it turned out to be readable. */
-const newestBackupId = (metas: { id: string }[]): string | null =>
-    metas.length ? metas[0].id : null;
+const newestBackupId = (metas: { id: string }[]): string | null => (metas.length ? metas[0].id : null);
 
 type RemoteRead =
     | { kind: 'state'; state: SyncState }
@@ -153,13 +152,25 @@ type RemoteRead =
     | { kind: 'unreadable' };
 
 export const useCloudSync = ({
-    token, userId, enabled, ready, buildPayload, applyRemote,
-    events, labResults, doseTemplates, weight, pkParams,
+    token,
+    userId,
+    enabled,
+    ready,
+    buildPayload,
+    applyRemote,
+    events,
+    labResults,
+    doseTemplates,
+    weight,
+    pkParams,
 }: Options): CloudSyncState => {
     // The reported half of the state. `syncNow` is grafted on at the end so
     // the setters below stay plain data.
-    const [state, setState] = useState<Omit<CloudSyncState, 'syncNow'>>(
-        { status: 'off', lastSyncedAt: null, errorCode: null });
+    const [state, setState] = useState<Omit<CloudSyncState, 'syncNow'>>({
+        status: 'off',
+        lastSyncedAt: null,
+        errorCode: null,
+    });
 
     // Callbacks and auth are read at fire time, not captured when a timer is
     // armed: a sync started before a render can otherwise upload a payload
@@ -208,9 +219,11 @@ export const useCloudSync = ({
      * should stop the upload that hasn't happened yet, and stop the run from
      * reporting "up to date" over the "sync off" the toggle just set.
      */
-    const stillCurrent = useCallback((account: string, authToken: string, force = false): boolean =>
-        (force || activeRef.current) && userIdRef.current === account && tokenRef.current === authToken,
-        []);
+    const stillCurrent = useCallback(
+        (account: string, authToken: string, force = false): boolean =>
+            (force || activeRef.current) && userIdRef.current === account && tokenRef.current === authToken,
+        [],
+    );
 
     /**
      * Id of the newest cloud revision this device has actually reconciled with
@@ -226,125 +239,133 @@ export const useCloudSync = ({
     const lastSeenBackupRef = useRef<string | null>(null);
 
     /** Fetch the newest backup we can actually read, plus what the newest *is*. */
-    const readRemote = useCallback(async (
-        authToken: string,
-    ): Promise<{ read: RemoteRead; newestId: string | null }> => {
-        const metas = await cloudService.listMeta(authToken);
-        if (!metas || metas.length === 0) return { read: { kind: 'empty' }, newestId: null };
+    const readRemote = useCallback(
+        async (authToken: string): Promise<{ read: RemoteRead; newestId: string | null }> => {
+            const metas = await cloudService.listMeta(authToken);
+            if (!metas || metas.length === 0) return { read: { kind: 'empty' }, newestId: null };
 
-        const ordered = byNewest(metas);
-        const newestId = newestBackupId(ordered);
-        let sawLocked = false;
-        for (const meta of ordered.slice(0, MAX_BACKUP_PROBES)) {
-            const backup = await cloudService.loadOne(authToken, meta.id);
-            const read = await readCloudBackup(backup.data);
-            if (read.status === 'ok') {
-                return { read: { kind: 'state', state: normalizeSyncState(read.data) }, newestId };
+            const ordered = byNewest(metas);
+            const newestId = newestBackupId(ordered);
+            let sawLocked = false;
+            for (const meta of ordered.slice(0, MAX_BACKUP_PROBES)) {
+                const backup = await cloudService.loadOne(authToken, meta.id);
+                const read = await readCloudBackup(backup.data);
+                if (read.status === 'ok') {
+                    return { read: { kind: 'state', state: normalizeSyncState(read.data) }, newestId };
+                }
+                if (read.status === 'locked') {
+                    sawLocked = true;
+                    break;
+                }
+                // Corrupt: a body that isn't JSON tells us nothing about the ones
+                // under it, so keep looking rather than treating the cloud as empty
+                // and overwriting readable history.
             }
-            if (read.status === 'locked') { sawLocked = true; break; }
-            // Corrupt: a body that isn't JSON tells us nothing about the ones
-            // under it, so keep looking rather than treating the cloud as empty
-            // and overwriting readable history.
-        }
-        if (!sawLocked) return { read: { kind: 'unreadable' }, newestId };
-        return { read: hasCloudKey() ? { kind: 'orphaned' } : { kind: 'locked' }, newestId };
-    }, []);
+            if (!sawLocked) return { read: { kind: 'unreadable' }, newestId };
+            return { read: hasCloudKey() ? { kind: 'orphaned' } : { kind: 'locked' }, newestId };
+        },
+        [],
+    );
 
     /**
      * `force` runs a reconcile even with auto-sync switched off — the manual
      * backup button, which is a deliberate act rather than a scheduled one.
      * It still refuses to write over a cloud copy it could not read.
      */
-    const runSync = useCallback(async (force = false): Promise<SyncOutcome> => {
-        if (!force && !activeRef.current) return 'skipped';
-        if (runningRef.current) { rerunRef.current = true; return 'skipped'; }
-
-        const authToken = tokenRef.current;
-        const account = userIdRef.current;
-        if (!authToken || !account) return 'skipped';
-
-        runningRef.current = true;
-        lastSyncAttemptRef.current = Date.now();
-        setState(prev => ({ ...prev, status: 'syncing' }));
-
-        try {
-            const { read: remote, newestId } = await readRemote(authToken);
-            if (!stillCurrent(account, authToken, force)) return 'skipped';
-
-            // `locked` covers a cloud copy this device cannot read. The
-            // `!hasCloudKey()` half covers the mirror case the write path used to
-            // paper over: no key at all — a passwordless passkey login, or a
-            // non-secure origin where the key cannot be derived. Uploading then
-            // meant sending the record in the clear, and because an account with
-            // an empty cloud reports `empty` rather than `locked`, that path fell
-            // straight through to a push and still called itself 'synced'.
-            if (remote.kind === 'locked' || !hasCloudKey()) {
-                lockedRef.current = true;
-                setState(prev => ({ ...prev, status: 'locked' }));
-                return 'locked';
+    const runSync = useCallback(
+        async (force = false): Promise<SyncOutcome> => {
+            if (!force && !activeRef.current) return 'skipped';
+            if (runningRef.current) {
+                rerunRef.current = true;
+                return 'skipped';
             }
-            if (remote.kind === 'unreadable') {
-                lastErrorCodeRef.current = 'UNREADABLE';
-                setState(prev => ({ ...prev, status: 'error', errorCode: 'UNREADABLE' }));
-                return 'error';
-            }
-            lockedRef.current = false;
 
-            const localPayload = buildPayloadRef.current();
-            const local = normalizeSyncState(localPayload);
+            const authToken = tokenRef.current;
+            const account = userIdRef.current;
+            if (!authToken || !account) return 'skipped';
 
-            if (remote.kind === 'orphaned') {
-                // Nothing to merge with — the cloud copy is ciphertext no key on
-                // earth opens. Write a readable one and stop. The fingerprint
-                // guard matters here: with two devices still holding different
-                // keys, each finds the other's copy orphaned, and without it
-                // they would take turns re-uploading on every poll.
-                const fingerprint = fingerprintState(local);
+            runningRef.current = true;
+            lastSyncAttemptRef.current = Date.now();
+            setState(prev => ({ ...prev, status: 'syncing' }));
+
+            try {
+                const { read: remote, newestId } = await readRemote(authToken);
+                if (!stillCurrent(account, authToken, force)) return 'skipped';
+
+                // `locked` covers a cloud copy this device cannot read. The
+                // `!hasCloudKey()` half covers the mirror case the write path used to
+                // paper over: no key at all — a passwordless passkey login, or a
+                // non-secure origin where the key cannot be derived. Uploading then
+                // meant sending the record in the clear, and because an account with
+                // an empty cloud reports `empty` rather than `locked`, that path fell
+                // straight through to a push and still called itself 'synced'.
+                if (remote.kind === 'locked' || !hasCloudKey()) {
+                    lockedRef.current = true;
+                    setState(prev => ({ ...prev, status: 'locked' }));
+                    return 'locked';
+                }
+                if (remote.kind === 'unreadable') {
+                    lastErrorCodeRef.current = 'UNREADABLE';
+                    setState(prev => ({ ...prev, status: 'error', errorCode: 'UNREADABLE' }));
+                    return 'error';
+                }
+                lockedRef.current = false;
+
+                const localPayload = buildPayloadRef.current();
+                const local = normalizeSyncState(localPayload);
+
+                if (remote.kind === 'orphaned') {
+                    // Nothing to merge with — the cloud copy is ciphertext no key on
+                    // earth opens. Write a readable one and stop. The fingerprint
+                    // guard matters here: with two devices still holding different
+                    // keys, each finds the other's copy orphaned, and without it
+                    // they would take turns re-uploading on every poll.
+                    const fingerprint = fingerprintState(local);
+                    lastSeenBackupRef.current = newestId;
+                    if (hasContent(local) && fingerprint !== lastPushedRef.current) {
+                        const savedId = await cloudService.save(authToken, await prepareCloudPayload(localPayload));
+                        if (!stillCurrent(account, authToken, force)) return 'skipped';
+                        lastPushedRef.current = fingerprint;
+                        lastSeenBackupRef.current = savedId;
+                    }
+                    bootstrappedForRef.current = account;
+                    setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now(), errorCode: null }));
+                    return 'synced';
+                }
+
+                const result = mergeSyncStates(local, remote.kind === 'state' ? remote.state : null);
+
+                if (result.localChanged) applyRemoteRef.current(result.merged);
+
+                const mergedFingerprint = fingerprintState(result.merged);
                 lastSeenBackupRef.current = newestId;
-                if (hasContent(local) && fingerprint !== lastPushedRef.current) {
-                    const savedId = await cloudService.save(authToken, await prepareCloudPayload(localPayload));
+                if (result.remoteStale) {
+                    // Upload the merge, not the local payload: they differ whenever
+                    // the cloud held something this device didn't, and uploading
+                    // local would drop it again.
+                    const outgoing = result.localChanged ? toPayload(localPayload, result.merged) : localPayload;
+                    const savedId = await cloudService.save(authToken, await prepareCloudPayload(outgoing));
                     if (!stillCurrent(account, authToken, force)) return 'skipped';
-                    lastPushedRef.current = fingerprint;
                     lastSeenBackupRef.current = savedId;
                 }
+                lastPushedRef.current = mergedFingerprint;
                 bootstrappedForRef.current = account;
                 setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now(), errorCode: null }));
                 return 'synced';
+            } catch (e) {
+                lastErrorCodeRef.current = apiErrorCode(e);
+                setState(prev => ({ ...prev, status: 'error', errorCode: lastErrorCodeRef.current }));
+                return 'error';
+            } finally {
+                runningRef.current = false;
+                if (rerunRef.current && activeRef.current) {
+                    rerunRef.current = false;
+                    void runSync();
+                }
             }
-
-            const result = mergeSyncStates(local, remote.kind === 'state' ? remote.state : null);
-
-            if (result.localChanged) applyRemoteRef.current(result.merged);
-
-            const mergedFingerprint = fingerprintState(result.merged);
-            lastSeenBackupRef.current = newestId;
-            if (result.remoteStale) {
-                // Upload the merge, not the local payload: they differ whenever
-                // the cloud held something this device didn't, and uploading
-                // local would drop it again.
-                const outgoing = result.localChanged
-                    ? toPayload(localPayload, result.merged)
-                    : localPayload;
-                const savedId = await cloudService.save(authToken, await prepareCloudPayload(outgoing));
-                if (!stillCurrent(account, authToken, force)) return 'skipped';
-                lastSeenBackupRef.current = savedId;
-            }
-            lastPushedRef.current = mergedFingerprint;
-            bootstrappedForRef.current = account;
-            setState(prev => ({ ...prev, status: 'synced', lastSyncedAt: Date.now(), errorCode: null }));
-            return 'synced';
-        } catch (e) {
-            lastErrorCodeRef.current = apiErrorCode(e);
-            setState(prev => ({ ...prev, status: 'error', errorCode: lastErrorCodeRef.current }));
-            return 'error';
-        } finally {
-            runningRef.current = false;
-            if (rerunRef.current && activeRef.current) {
-                rerunRef.current = false;
-                void runSync();
-            }
-        }
-    }, [readRemote, stillCurrent]);
+        },
+        [readRemote, stillCurrent],
+    );
 
     const runPush = useCallback(async (): Promise<void> => {
         // A debounced push can fire without a preceding reconcile, so it needs
@@ -356,8 +377,14 @@ export const useCloudSync = ({
 
         // Nothing has looked at the cloud for this account yet. Reconcile first
         // — pushing blind is how a fresh sign-in overwrites everything.
-        if (bootstrappedForRef.current !== account) { void runSync(); return; }
-        if (runningRef.current) { rerunRef.current = true; return; }
+        if (bootstrappedForRef.current !== account) {
+            void runSync();
+            return;
+        }
+        if (runningRef.current) {
+            rerunRef.current = true;
+            return;
+        }
 
         const payload = buildPayloadRef.current();
         const fingerprint = fingerprintState(normalizeSyncState(payload));
@@ -430,11 +457,17 @@ export const useCloudSync = ({
             if (Date.now() - lastSyncAttemptRef.current < MIN_SYNC_INTERVAL_MS) return;
             void runSync();
         };
-        const onVisibility = () => { if (!document.hidden) syncIfDue(); };
+        const onVisibility = () => {
+            if (!document.hidden) syncIfDue();
+        };
         // A reconnect means the previous attempt failed for a reason that has
         // just gone away, so it is worth acting on immediately.
-        const onOnline = () => { void runSync(); };
-        const poll = window.setInterval(() => { if (!document.hidden) syncIfDue(); }, POLL_INTERVAL_MS);
+        const onOnline = () => {
+            void runSync();
+        };
+        const poll = window.setInterval(() => {
+            if (!document.hidden) syncIfDue();
+        }, POLL_INTERVAL_MS);
 
         document.addEventListener('visibilitychange', onVisibility);
         window.addEventListener('focus', onVisibility);
@@ -459,7 +492,10 @@ export const useCloudSync = ({
             // not an unlock, and the effect above it has already reset the state.
             if (!hasCloudKey()) return;
             lockedRef.current = false;
-            if (enabled) { void runSync(); return; }
+            if (enabled) {
+                void runSync();
+                return;
+            }
             setState(prev => (prev.status === 'locked' ? { ...prev, status: 'off' } : prev));
         };
         window.addEventListener(CLOUD_KEY_CHANGED_EVENT, onKeyChange);
@@ -477,7 +513,9 @@ export const useCloudSync = ({
             return;
         }
         if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-        pushTimerRef.current = setTimeout(() => { void runPush(); }, PUSH_DEBOUNCE_MS);
+        pushTimerRef.current = setTimeout(() => {
+            void runPush();
+        }, PUSH_DEBOUNCE_MS);
         return () => {
             if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
         };
@@ -519,7 +557,11 @@ function toPayload(localPayload: any, merged: SyncState): any {
  * to the generic one.
  */
 const DESCRIBED_SYNC_ERRORS: ReadonlySet<string> = new Set([
-    'TOO_LARGE', 'RATE_LIMITED', 'STORAGE_FULL', 'NETWORK', 'UNREADABLE',
+    'TOO_LARGE',
+    'RATE_LIMITED',
+    'STORAGE_FULL',
+    'NETWORK',
+    'UNREADABLE',
 ]);
 
 /** The one-line reason for a sync failure, in the reader's language. */

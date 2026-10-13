@@ -9,7 +9,11 @@ import { decryptCloudPayload, isCloudEncrypted, deriveCloudKey, encryptCloudPayl
 export const CLOUD_KEY_CHANGED_EVENT = 'hrt-cloud-key-changed';
 
 function announceKeyChange(): void {
-    try { window.dispatchEvent(new Event(CLOUD_KEY_CHANGED_EVENT)); } catch { /* non-DOM host */ }
+    try {
+        window.dispatchEvent(new Event(CLOUD_KEY_CHANGED_EVENT));
+    } catch {
+        /* non-DOM host */
+    }
 }
 
 /** Cache a derived cloud key on this device and wake anything waiting on one. */
@@ -76,10 +80,7 @@ export interface BackupSummary {
 //  - locked:  encrypted, but this device has no working key (e.g. signed in
 //             with a passkey, or the key was cleared) — the user must unlock
 //             with their password.
-export type CloudBackupResult =
-    | { status: 'ok'; data: any }
-    | { status: 'corrupt' }
-    | { status: 'locked' };
+export type CloudBackupResult = { status: 'ok'; data: any } | { status: 'corrupt' } | { status: 'locked' };
 
 function toEnvelope(rawData: string | unknown): any | undefined {
     try {
@@ -99,8 +100,11 @@ export async function readCloudBackup(rawData: string | unknown): Promise<CloudB
     if (key) {
         const plain = await decryptCloudPayload(parsed, key);
         if (plain !== null) {
-            try { return { status: 'ok', data: JSON.parse(plain) }; }
-            catch { return { status: 'corrupt' }; }
+            try {
+                return { status: 'ok', data: JSON.parse(plain) };
+            } catch {
+                return { status: 'corrupt' };
+            }
         }
     }
     return { status: 'locked' };
@@ -123,16 +127,22 @@ export async function unlockCloudBackup(
     if (!isCloudEncrypted(parsed)) return { status: 'ok', data: parsed };
 
     let candidate: string;
-    try { candidate = await deriveCloudKey(password, userId); }
-    catch { return { status: 'locked' }; }
+    try {
+        candidate = await deriveCloudKey(password, userId);
+    } catch {
+        return { status: 'locked' };
+    }
 
     const plain = await decryptCloudPayload(parsed, candidate);
     if (plain === null) return { status: 'locked' };
 
     localStorage.setItem('enc_key', candidate);
     announceKeyChange();
-    try { return { status: 'ok', data: JSON.parse(plain) }; }
-    catch { return { status: 'corrupt' }; }
+    try {
+        return { status: 'ok', data: JSON.parse(plain) };
+    } catch {
+        return { status: 'corrupt' };
+    }
 }
 
 /** Parse a stored cloud backup string/object, decrypting when needed. */
