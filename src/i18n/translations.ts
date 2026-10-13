@@ -2468,6 +2468,7 @@ export const TRANSLATIONS = {
         "modal.dose.add_title": "新增用藥",
         "modal.dose.edit_title": "編輯用藥",
         "modal.dose.delete_confirm": "確認刪除呢條記錄？",
+        "field.gel_e2_applied": "雌二醇用量 (mg)",
 
         "field.time": "給藥時間",
         "date.select": "選擇日期",
