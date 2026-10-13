@@ -1094,13 +1094,14 @@ export function getToE2Factor(ester: Ester): number {
 // -----------------------------------------------------------------------------
 //
 // These parameters follow the structure described in `transmasc_hrt_modeling_document.md`.
-// They are empirically tuned so the simplified 3-compartment analytical solver reproduces
-// broadly realistic steady-state total‑T concentrations:
-//   - TC 100 mg/week IM  → C_avg ≈ 600 ng/dL
-//   - TE 100 mg/week IM  → C_avg ≈ 600 ng/dL
-//   - TU 1000 mg / 12 wk → C_avg ≈ 500 ng/dL
-//   - Androgel 50 mg/day → C_avg ≈ 500–700 ng/dL
+// Gel and injection levels are checked at 70 kg against the labels cited
+// where their parameters are set (tests/literature.test.ts). Label populations
+// are mostly heavier than that; one weight for every route keeps the routes
+// consistent with each other.
+//   - Androgel 50 mg/day → C_avg ≈ 555 ng/dL (AndroGel 1% label)
 //   - Androderm 5 mg/day patch → C_avg ≈ 500–700 ng/dL
+//   - TC / TE / TU injection levels: see DEFAULT_PK_PARAMS.t_ff_TE
+//   - TU curve shape: see T_DepotPK
 // These are research/teaching estimates; they are NOT for individual dosing decisions.
 //
 const T_CorePK = {
@@ -1110,18 +1111,32 @@ const T_CorePK = {
 };
 
 // Two-part depot absorption (fast + slow library), analogous to the E2 injection model.
+//
+// Undecanoate has a single depot. The Nebido label
+// (https://www.rxreasoner.com/monographs/nebido/pharmacology) gives a peak
+// 7 days after a first 1000 mg injection, a release half-life of 90 ± 40 days,
+// and at steady state on 1000 mg every 10 weeks a peak of about 37 nmol/L and a
+// trough of about 16 nmol/L, a trough/peak ratio of 0.43. A 50 day release
+// half-life, at the low end of the label's range, gives that ratio. A
+// first-order depot alone would peak within a day, so the hydrolysis step
+// (T_EsterPK.k2) is slowed to about the injection clearance rate
+// (DEFAULT_PK_PARAMS.t_kClearInj), which moves the peak to day 7. That step stands
+// for whatever delays the rise in the label data and was fitted to it, not
+// measured on its own. The older parameters peaked at about 3 days and fell to
+// a trough of 0.17 of the peak.
 const T_DepotPK = {
-    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0.10 },
+    Frac_fast: { [Ester.TC]: 0.35, [Ester.TE]: 0.40, [Ester.TU]: 0 },
     // Fast library k1 (h⁻¹) — controls Tmax/Cmax
-    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: 0.008 },
+    k1_fast:   { [Ester.TC]: 0.025, [Ester.TE]: 0.035, [Ester.TU]: Math.LN2 / (50 * 24) },
     // Slow library k1 (h⁻¹) — controls terminal tail (flip‑flop)
-    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: 0.0009 }
+    k1_slow:   { [Ester.TC]: 0.005, [Ester.TE]: 0.008, [Ester.TU]: Math.LN2 / (50 * 24) }
 };
 
 // Hydrolysis rate (k2) for T esters in the 3-compartment analytical path.
 // Kept much larger than the slow‑library k1 so terminal kinetics are flip‑flop.
+// Undecanoate: see T_DepotPK.
 const T_EsterPK = {
-    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.20 }
+    k2: { [Ester.TC]: 0.20, [Ester.TE]: 0.20, [Ester.TU]: 0.036 }
 };
 
 const T_GelPK = {
@@ -1203,9 +1218,9 @@ export interface PKCustomParams {
     t_kClear: number;        // non-injection h⁻¹ (default: 0.5)
     t_kClearInj: number;     // injection h⁻¹ (default: 0.035)
     // T injection formation fractions
-    t_ff_TC: number;         // Testosterone Cypionate (default: 0.025)
-    t_ff_TE: number;         // Testosterone Enanthate (default: 0.025)
-    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.025)
+    t_ff_TC: number;         // Testosterone Cypionate (default: 0.043)
+    t_ff_TE: number;         // Testosterone Enanthate (default: 0.043)
+    t_ff_TU: number;         // Testosterone Undecanoate (default: 0.043)
     // T gel bioavailability per site (arm/thigh ~AndroGel-like; scrotal skin is
     // markedly more permeable — see DEFAULT_PK_PARAMS comment for sources)
     t_gel_arm: number;       // Arm (default: 0.10)
@@ -1259,9 +1274,27 @@ export const DEFAULT_PK_PARAMS: PKCustomParams = {
     e2_gel_scrotal: 0.25,
     t_kClear: 0.5,
     t_kClearInj: 0.035,
-    t_ff_TC: 0.025,
-    t_ff_TE: 0.025,
-    t_ff_TU: 0.025,
+    // One formation fraction per mg of testosterone for all three esters: two
+    // labels for different esters land on the same value at 70 kg.
+    //   - Xyosted (enanthate, subcutaneous, weekly) label, week 12, N = 137:
+    //     Cavg 553 ng/dL (https://medlibrary.org/lib/rx/meds/xyosted/page/4/).
+    //     Doses were titrated; the FDA clinical pharmacology review gives
+    //     25 men on 50 mg, 93 on 75 mg and 19 on 100 mg, a mean of 73.9 mg/week
+    //     (https://www.accessdata.fda.gov/drugsatfda_docs/nda/2019/209863Orig1s000ClinPharmR.pdf).
+    //     0.043 gives 555 ng/dL on 73.9 mg/week.
+    //   - Aveed (undecanoate 750 mg at weeks 0 and 4, then every 10 weeks)
+    //     label, after the third injection, N = 117: Cavg 495 ng/dL
+    //     (https://medlibrary.org/lib/rx/meds/aveed/page/6/). 0.043 gives 502.
+    // 100 mg/week of cypionate or enanthate then averages about 730–750 ng/dL.
+    // The old value, 0.025, put 100 mg/week at about 430 ng/dL, under the 600
+    // this file used to state as its target, and gave about 0.6 of both labels.
+    // The Azmiro (cypionate 200 mg IM) label reports less, but its values are
+    // baseline-corrected after a dose that suppresses the men's own
+    // testosterone, which understates the dose's share; tests/literature.test.ts
+    // keeps it as a lower bound.
+    t_ff_TC: 0.043,
+    t_ff_TE: 0.043,
+    t_ff_TU: 0.043,
     // Arm/thigh: ~10% absolute bioavailability, matching AndroGel/Testim FDA
     // labeling. Scrotal: scrotal skin is ~5–8x more permeable to androgens than
     // arm/thigh skin (Iyer et al. 2017, Andrology; Kuhnert et al. 2005) — 0.50
@@ -1515,7 +1548,7 @@ function _getTInjFF(ester: Ester): number {
     if (ester === Ester.TC) return p.t_ff_TC;
     if (ester === Ester.TE) return p.t_ff_TE;
     if (ester === Ester.TU) return p.t_ff_TU;
-    return 0.025;
+    return DEFAULT_PK_PARAMS.t_ff_TE;
 }
 
 // Oral cyproterone acetate, from the Androcur 50 mg SmPC, section 5.2

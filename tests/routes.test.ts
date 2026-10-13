@@ -312,7 +312,7 @@ describe('testosterone routes', () => {
         '%s injection: exposure equals F·D/k3 on the T curve, nothing on E2',
         ester => {
             const sim = runSimulation([dose(Route.injection, ester, 100, NOW_H - 30_000)], BW)!;
-            const F = 0.025 * getToE2Factor(ester);
+            const F = 0.043 * getToE2Factor(ester);
             expect(relErr(trapz(sim.timeH, sim.concNGdL_T), tPerNgDl((100 * F) / 0.035))).toBeLessThan(0.005);
             expect(Math.max(...sim.concPGmL_E2)).toBe(0);
         },
