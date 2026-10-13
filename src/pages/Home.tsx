@@ -174,8 +174,16 @@ const Home: React.FC<HomeProps> = ({
     // A reading's number and unit. The slot carries the number's type size, so
     // `ch` in its min-width is one tabular digit at whatever size the breakpoint
     // picked; the rem part covers the gap and the unit after it.
-    const readingSlot =
-        'inline-flex items-baseline gap-x-2 text-[3rem] sm:text-[3.75rem] md:text-[4.5rem] font-light leading-none tracking-[-0.035em] tabular-nums';
+    const readingSlot = 'inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
+    const fullSize = 'text-[3rem] sm:text-[3.75rem] md:text-[4.5rem]';
+    // Side by side in a column narrower than 32rem (every phone), the second
+    // reading is set smaller and the first shrinks with the column below about
+    // 22rem, so a four-digit estradiol peak still clears the cyproterone figure
+    // on a 320px screen. From 32rem both take the full size again.
+    const companionSize =
+        'text-[2rem] @min-[32rem]:text-[3rem] @min-[32rem]:sm:text-[3.75rem] @min-[32rem]:md:text-[4.5rem]';
+    const pairedPrimarySize =
+        'text-[min(3rem,13.5cqw)] @min-[32rem]:text-[3rem] @min-[32rem]:sm:text-[3.75rem] @min-[32rem]:md:text-[4.5rem]';
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
@@ -272,23 +280,29 @@ const Home: React.FC<HomeProps> = ({
 
                                         {/* Readings. A grid rather than two flex columns so each row
                     lines up on its own: the labels share a baseline, and so do
-                    the two numbers. Side by side, the two slots below need
-                    about 380px at a phone's 3rem and 508px at md's 4.5rem, and
-                    neither can shrink: on a 360px phone the first ran into the
-                    second ("pg/ml" drawn under "26.6"), and a four-digit peak
-                    did so up to 414. So the second reading goes under the
-                    first and its scale, on the left with its label, until the
-                    column (not the screen: from md the sidebar takes its
-                    share) holds the pair at the largest size, 32rem. That is
-                    every phone; the pair sits side by side from about 560px
-                    wide. */}
+                    the two numbers. The second reading always sits top right,
+                    beside the first, rather than stacked under its scale, where
+                    it took a whole block of the phone's first screen. At the
+                    full size the pair needs about 380px at a phone's 3rem and
+                    508px at md's 4.5rem, so until the column (not the screen:
+                    from md the sidebar takes its share) holds 32rem, which is
+                    every phone, the second number is set smaller, and the
+                    first gives up a little size too where the column is
+                    narrower than an ordinary phone's. */}
                                         <div className="@container">
-                                            <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1.5 @min-[32rem]:grid-cols-[minmax(0,1fr)_auto]">
-                                                <p
-                                                    className={`text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-1 @min-[32rem]:row-start-1`}
-                                                >
-                                                    {primary.label}
-                                                </p>
+                                            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1.5 @min-[32rem]:gap-x-6">
+                                                {/* Beside a second reading in a phone's column the
+                            number's line has no room left for the cats, and on
+                            a line of their own under it they cost the height
+                            the move freed. So there they sit up by the label. */}
+                                                <div className="col-start-1 row-start-1 flex min-w-0 items-end gap-3">
+                                                    <p className={`text-[0.8125rem] font-medium ${muted}`}>
+                                                        {primary.label}
+                                                    </p>
+                                                    {companion && cats && (
+                                                        <span className="-mb-1 flex @min-[32rem]:hidden">{cats}</span>
+                                                    )}
+                                                </div>
 
                                                 {/* Number and unit sit in a slot wide enough for a
                             four-digit reading (two for the second column), so a
@@ -296,10 +310,14 @@ const Home: React.FC<HomeProps> = ({
                             load, doesn't shove the cats or the other column about.
                             The status rides on the tick scale, which a screen
                             reader skips, so it is said here, after the unit. */}
-                                                <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 @min-[32rem]:col-start-1 @min-[32rem]:row-start-2">
+                                                <div className="col-start-1 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                                                     <span
-                                                        className={readingSlot}
-                                                        style={{ minWidth: slotWidth(4, primary.decimals) }}
+                                                        className={`${readingSlot} ${companion ? pairedPrimarySize : fullSize}`}
+                                                        style={{
+                                                            minWidth: companion
+                                                                ? undefined
+                                                                : slotWidth(4, primary.decimals),
+                                                        }}
                                                     >
                                                         {primary.value > 0 ? (
                                                             <>
@@ -324,31 +342,24 @@ const Home: React.FC<HomeProps> = ({
                                                             <span className={dim}>--</span>
                                                         )}
                                                     </span>
-                                                    {cats}
+                                                    {companion && cats ? (
+                                                        <span className="hidden self-end @min-[32rem]:flex">
+                                                            {cats}
+                                                        </span>
+                                                    ) : (
+                                                        cats
+                                                    )}
                                                 </div>
 
-                                                {/* The scale belongs to the first reading, so stacked it
-                            comes straight after it, before the second: placed after
-                            both, its 100 and 200 sat right under the cyproterone
-                            figure and read as that figure's scale. Side by side it
-                            runs the full width under both, as before; kept to the
-                            first one's column there, it came out too short to read.
-                            Beside a second drug's reading the status also names
-                            whose it is: under the cyproterone figure, "above
-                            reference range" read as the cyproterone level. */}
+                                                {/* The scale belongs to the first reading and runs the
+                            full width under both. */}
                                                 {primary.value > 0 && (
-                                                    <div className="mt-0.5 @min-[32rem]:col-span-2 @min-[32rem]:col-start-1 @min-[32rem]:row-start-3">
+                                                    <div className="col-span-2 col-start-1 row-start-3 mt-0.5">
                                                         <LevelRail
                                                             value={primary.value}
                                                             band={primary.band}
                                                             domain={primary.domain}
-                                                            label={
-                                                                currentStatus
-                                                                    ? companion?.label
-                                                                        ? `${primary.label} · ${t(currentStatus.label)}`
-                                                                        : t(currentStatus.label)
-                                                                    : undefined
-                                                            }
+                                                            label={currentStatus ? t(currentStatus.label) : undefined}
                                                             tone={currentStatus?.color}
                                                         />
                                                     </div>
@@ -358,13 +369,13 @@ const Home: React.FC<HomeProps> = ({
                                                     <>
                                                         {companion.label && (
                                                             <p
-                                                                className={`mt-3 text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-2 @min-[32rem]:row-start-1 @min-[32rem]:mt-0 @min-[32rem]:text-right`}
+                                                                className={`col-start-2 row-start-1 text-right text-[0.8125rem] font-medium ${muted}`}
                                                             >
                                                                 {companion.label}
                                                             </p>
                                                         )}
                                                         <span
-                                                            className={`${readingSlot} whitespace-nowrap @min-[32rem]:col-start-2 @min-[32rem]:row-start-2 @min-[32rem]:justify-end`}
+                                                            className={`${readingSlot} ${companionSize} col-start-2 row-start-2 justify-end whitespace-nowrap`}
                                                             style={{ minWidth: slotWidth(2, companion.decimals) }}
                                                         >
                                                             {companion.value > 0 ? (
@@ -602,11 +613,6 @@ const Home: React.FC<HomeProps> = ({
                                                 </button>
                                             );
                                         })}
-                                        {/* Without a plan nothing here says what one is for, and
-                            everyone who logged before plans arrived is in that state. */}
-                                        {plan.length === 0 && hasReading && (
-                                            <p className={`pt-1.5 text-xs ${muted}`}>{t('plan.home_hint')}</p>
-                                        )}
                                         <div className="pt-1.5">
                                             <button
                                                 type="button"

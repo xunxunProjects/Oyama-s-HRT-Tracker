@@ -133,7 +133,6 @@ export const TRANSLATIONS_BASE = {
         'plan.rest_yesterday': '昨天{verb}过，今天不用{verb}',
         'plan.rest': '今天不用{verb}，下次是{day}',
         'plan.early_confirm': '按方案今天不用{verb}，下次是{day}。仍要记下今天这一次吗？',
-        'plan.home_hint': '设好用药方案后，每次用药在这里点一下就能记下',
         'forecast.entry': '方案试算',
         'forecast.title': '方案试算',
         'forecast.current': '当前方案',
@@ -969,7 +968,6 @@ export const TRANSLATIONS_BASE = {
         'plan.rest_yesterday': 'Done yesterday, none today',
         'plan.rest': 'None today, next {day}',
         'plan.early_confirm': 'The plan has none today; the next is {day}. Log one now anyway?',
-        'plan.home_hint': 'Set up your plan to log each dose here with one tap',
         'forecast.entry': 'What-if',
         'forecast.title': 'What-if',
         'forecast.current': 'Current',
@@ -2385,7 +2383,6 @@ const ZH_TW = {
     'plan.rest_yesterday': '昨天{verb}過，今天不用{verb}',
     'plan.rest': '今天不用{verb}，下次是{day}',
     'plan.early_confirm': '按方案今天不用{verb}，下次是{day}。仍要記下今天這一次嗎？',
-    'plan.home_hint': '設定好用藥方案後，每次用藥在這裡點一下就能記下',
     // The what-if and supplies.
     'forecast.entry': '方案試算',
     'forecast.title': '方案試算',
@@ -3037,7 +3034,6 @@ export const TRANSLATIONS = {
         'plan.rest_yesterday': '琴日{verb}咗，今日唔使{verb}',
         'plan.rest': '今日唔使{verb}，下次係{day}',
         'plan.early_confirm': '照方案今日唔使{verb}，下次係{day}。都要記低今日呢次？',
-        'plan.home_hint': '設定好用藥方案，之後每次用藥喺度撳一下就記低',
         // The what-if and supplies.
         'forecast.current': '而家嘅方案',
         'forecast.none': '近 6 個星期冇規律嘅用藥記錄',
@@ -3808,7 +3804,6 @@ export const TRANSLATIONS = {
         'plan.rest_yesterday': '昨日済み、今日はなし',
         'plan.rest': '今日はなし、次は{day}',
         'plan.early_confirm': 'プランでは今日はなし、次は{day}です。それでも今記録しますか？',
-        'plan.home_hint': 'プランを設定すると、毎回の投与をここからワンタップで記録できます',
         'products.oral.E2': 'ジュリナ、Estrofem、Femoston',
         'products.gel.E2': 'ル・エストロジェル、ディビゲル、Oestrogel',
         'products.patchApply.E2': 'エストラーナテープ、Climara、Evorel',
@@ -4618,7 +4613,6 @@ export const TRANSLATIONS = {
         'plan.rest_yesterday': '어제 완료, 오늘은 없음',
         'plan.rest': '오늘은 없음, 다음은 {day}',
         'plan.early_confirm': '계획상 오늘은 없고 다음은 {day}입니다. 그래도 지금 기록할까요?',
-        'plan.home_hint': '복용 계획을 설정하면 매번 여기서 한 번 눌러 기록할 수 있습니다',
         // The what-if and supplies.
         'chart.cal_factor': '보정 ×{n}',
         'forecast.entry': '투여 시뮬레이션',
@@ -5509,7 +5503,6 @@ export const TRANSLATIONS = {
         'plan.rest_yesterday': 'Dün yapıldı, bugün yok',
         'plan.rest': 'Bugün yok, sonraki {day}',
         'plan.early_confirm': 'Planda bugün yok, sonraki {day}. Yine de şimdi kaydedilsin mi?',
-        'plan.home_hint': 'Planını ayarla, her dozu buradan tek dokunuşla kaydet',
         // The what-if and supplies.
         'chart.cal_factor': 'Kalibrasyon ×{n}',
         'forecast.entry': 'Senaryo',
