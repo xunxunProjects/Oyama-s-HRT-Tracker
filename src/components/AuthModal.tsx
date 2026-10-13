@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { X, Loader2, Fingerprint } from 'lucide-react';
 import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,13 +54,47 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     // The passkey retry button needs it too, or that sign-in leaves this
     // device without a cloud key and sync stuck on locked.
     const acceptedPasswordRef = useRef<string | null>(null);
+    const usernameRef = useRef<HTMLInputElement>(null);
     const id = useId();
 
     const { login, register, loginWithToken } = useAuth();
     const { t, lang } = useTranslation();
 
+    // Puts the form back as it starts, for whoever opens this next: signing
+    // out and back in on a shared device must not find the last username,
+    // password or error still there, whether the modal closed on a sign-in or
+    // was dismissed after a wrong one.
+    const reset = () => {
+        setIsLogin(true);
+        setUsername('');
+        setPassword('');
+        setError(null);
+        setNeedsTOTP(false);
+        setTwoFAMethod(null);
+        setTotpCode('');
+        setUseBackupCode(false);
+        setBackupCode('');
+        acceptedPasswordRef.current = null;
+    };
+
+    const close = () => {
+        reset();
+        onClose();
+    };
+
     // Called before the early return below, so the hook order never changes.
-    useEscape(onClose, isOpen);
+    useEscape(close, isOpen);
+
+    // aria-modal tells a screen reader the page behind is inert, so focus has
+    // to come in with it: it starts on the username, the first thing to fill
+    // in, and goes back to whatever opened the modal when it closes, as the
+    // shared dialog does. The opener is read here, before the focus moves.
+    useEffect(() => {
+        if (!isOpen) return;
+        const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        usernameRef.current?.focus();
+        return () => opener?.focus();
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -72,19 +106,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         ? `${shareDesc}${/[。！？]$/.test(shareDesc) ? '' : ' '}${t('auth.share_needs_account')}`
         : null;
 
-    // Clears the form for whoever opens this next (signing out and back in on
-    // a shared device must not find the last password still typed in), then
-    // closes and hands back to the opener.
+    // Closes, clearing the form as any close does, and hands back to the
+    // opener so it can carry on.
     const succeed = () => {
-        setUsername('');
-        setPassword('');
-        setNeedsTOTP(false);
-        setTwoFAMethod(null);
-        setTotpCode('');
-        setUseBackupCode(false);
-        setBackupCode('');
-        onClose();
+        close();
         onSuccess?.();
+    };
+
+    // Tab and Shift+Tab wrap around inside the card. Without this, three Tabs
+    // from the submit button walked out into the page the scrim covers, which
+    // aria-modal has just told a screen reader is not there.
+    const keepFocusInside = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key !== 'Tab') return;
+        const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)');
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
     };
 
     // `verifiedPassword` is set only when the passkey is the second factor: the
@@ -188,6 +232,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                 aria-modal="true"
                 aria-labelledby={`${id}-title`}
                 aria-describedby={reasonText ? `${id}-reason` : undefined}
+                onKeyDown={keepFocusInside}
             >
                 <div className="px-5 pt-5 pb-2">
                     <div className="flex items-center justify-between">
@@ -196,7 +241,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                         </h2>
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={close}
                             aria-label={t('btn.cancel')}
                             title={t('btn.cancel')}
                             className="tap-target p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)]"
@@ -215,6 +260,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     <div className="space-y-1.5">
                         <label htmlFor={`${id}-username`} className="text-sm text-muted">{t('auth.username')}</label>
                         <input
+                            ref={usernameRef}
                             id={`${id}-username`}
                             type="text"
                             value={username}
