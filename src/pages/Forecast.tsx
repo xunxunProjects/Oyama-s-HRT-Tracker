@@ -201,8 +201,8 @@ const Forecast: React.FC<ForecastProps> = ({
             horizonH,
             target,
             fitErrPct: labResults.length ? calibration.fitErrPct : null,
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [
             events,
             weight,
