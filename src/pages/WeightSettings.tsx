@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { isPlausibleBodyWeightKG } from '../../logic';
+import { isPlausibleBodyWeightKG, BODY_WEIGHT_KG_MIN, BODY_WEIGHT_KG_MAX } from '../../logic';
 
 import { useTranslation } from '../contexts/LanguageContext';
-import { useDialog } from '../contexts/DialogContext';
 
 interface WeightSettingsProps {
     weight: number;
@@ -13,21 +12,27 @@ interface WeightSettingsProps {
 
 const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack }) => {
     const { t } = useTranslation();
-    const { showDialog } = useDialog();
     const [weightStr, setWeightStr] = useState(weight.toString());
+    // Set by a Save that was turned down; the message then stays only for as
+    // long as the value is still out of range.
+    const [tried, setTried] = useState(false);
 
     useEffect(() => {
         setWeightStr(weight.toString());
     }, [weight]);
 
-    const handleSave = () => {
-        const val = parseFloat(weightStr);
-        if (isPlausibleBodyWeightKG(val)) {
-            onSave(val);
-            onBack();
-        } else {
-            showDialog('alert', t('error.weightRange'));
+    const valid = isPlausibleBodyWeightKG(parseFloat(weightStr));
+    const showError = tried && !valid;
+
+    // A form, so the keyboard's Done / Go key saves as well as the button.
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!valid) {
+            setTried(true);
+            return;
         }
+        onSave(parseFloat(weightStr));
+        onBack();
     };
 
     const divider = "border-b border-[var(--border)]";
@@ -36,35 +41,45 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
         <div className="relative pb-32">
             <PageHeader onBack={onBack} title={t('status.weight')} />
 
-            <div className={`${PAGE_COLUMN} mt-4`}>
+            <form onSubmit={handleSubmit} noValidate className={`${PAGE_COLUMN} mt-4`}>
                 <div className={`flex items-center justify-between py-5 ${divider}`}>
-                    <div className="flex items-end gap-2">
-                        <input
-                            type="number"
-                            inputMode="decimal"
-                            value={weightStr}
-                            onChange={(e) => setWeightStr(e.target.value)}
-                            className="text-4xl font-light tabular-nums text-[var(--text)] w-28 bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--accent-ink)] outline-none pb-1 text-center"
-                            placeholder="0.0"
-                            style={{ fontSize: '40px' }}
-                            autoFocus
-                        />
-                        <span className="text-lg font-medium text-[var(--text-muted)] pb-1">kg</span>
+                    <div>
+                        <div className="flex items-end gap-2">
+                            <input
+                                type="number"
+                                inputMode="decimal"
+                                enterKeyHint="done"
+                                value={weightStr}
+                                onChange={(e) => setWeightStr(e.target.value)}
+                                aria-label={t('status.weight')}
+                                aria-invalid={showError}
+                                aria-describedby="weight-help"
+                                className="text-4xl font-light tabular-nums text-[var(--text)] w-28 bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--accent-ink)] outline-none pb-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                placeholder="0.0"
+                                style={{ fontSize: '40px' }}
+                                autoFocus
+                            />
+                            <span className="text-lg font-medium text-[var(--text-muted)] pb-1">kg</span>
+                        </div>
+                        {/* The range is shown from the start; a value outside it
+                            swaps in the full sentence, in place, not in a dialog. */}
+                        <p
+                            id="weight-help"
+                            aria-live="polite"
+                            className={`mt-2 text-xs ${showError ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`}
+                        >
+                            {showError ? t('error.weightRange') : `${BODY_WEIGHT_KG_MIN}–${BODY_WEIGHT_KG_MAX} kg`}
+                        </p>
                     </div>
                     <p className="text-xs text-[var(--text-muted)] max-w-[140px] text-right">
                         {t('modal.weight.desc')}
                     </p>
                 </div>
 
-                <button
-                    onClick={handleSave}
-                    className={`w-full flex items-center py-[18px] ${divider} text-start`}
-                >
-                    <span className="text-[0.9375rem] font-medium text-[var(--accent-ink)]">
-                        {t('btn.save')}
-                    </span>
+                <button type="submit" className="btn-primary w-full mt-6">
+                    {t('btn.save')}
                 </button>
-            </div>
+            </form>
         </div>
     );
 };

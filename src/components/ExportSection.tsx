@@ -10,7 +10,9 @@ interface ExportSectionProps {
     labResults: LabResult[];
     weight: number;
     onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
-    onQuickExport?: () => void;
+    /** Copies the export to the clipboard. Resolving to false means the copy
+     *  failed; nothing returned is taken as done. */
+    onQuickExport?: () => void | boolean | Promise<void | boolean>;
 }
 
 const rowBase = "flex items-start justify-between py-[18px] border-b border-[var(--border)]";
@@ -25,6 +27,10 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [jsonCopied, setJsonCopied] = useState(false);
+    // Which copy last failed, if any. A tick only ever means the clipboard
+    // really has it: a password shown as copied when it wasn't is a backup
+    // nobody can open.
+    const [copyFailed, setCopyFailed] = useState<'json' | 'password' | null>(null);
 
     const hasData = events.length > 0 || labResults.length > 0;
 
@@ -34,22 +40,42 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
 
     const handleEncryptedExport = async () => {
         const pw = await onExport(true, password || undefined);
-        if (pw) setGeneratedPassword(pw);
+        if (pw) {
+            setGeneratedPassword(pw);
+            setCopyFailed(null);
+        }
     };
 
-    const handleCopyPassword = () => {
+    const handleCopyPassword = async () => {
         if (!generatedPassword) return;
-        navigator.clipboard.writeText(generatedPassword);
+        try {
+            await navigator.clipboard.writeText(generatedPassword);
+        } catch {
+            setCopied(false);
+            setCopyFailed('password');
+            return;
+        }
+        setCopyFailed(null);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleCopyJson = () => {
-        if (onQuickExport) {
-            onQuickExport();
-            setJsonCopied(true);
-            setTimeout(() => setJsonCopied(false), 2000);
+    const handleCopyJson = async () => {
+        if (!onQuickExport) return;
+        let ok: void | boolean;
+        try {
+            ok = await onQuickExport();
+        } catch {
+            ok = false;
         }
+        if (ok === false) {
+            setJsonCopied(false);
+            setCopyFailed('json');
+            return;
+        }
+        setCopyFailed(null);
+        setJsonCopied(true);
+        setTimeout(() => setJsonCopied(false), 2000);
     };
 
     const handleCsvExport = () => {
@@ -89,7 +115,9 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                 <div className={rowBase}>
                     <div>
                         <p className={rowLabel}>{t('export.btn_copy_json')}</p>
-                        <p className={rowDesc}>{t('export.copy_desc')}</p>
+                        <p className={rowDesc} role="status">
+                            {copyFailed === 'json' ? t('export.copy_failed') : t('export.copy_desc')}
+                        </p>
                     </div>
                     <button onClick={handleCopyJson} className={`${actionBtn} flex items-center gap-1`}>
                         <CopyTick copied={jsonCopied} size={13} />
@@ -153,10 +181,15 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                         <span className="font-mono text-sm text-[var(--text)] flex-1 select-all break-all">
                                             {generatedPassword}
                                         </span>
-                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="shrink-0 p-1 text-[var(--text-muted)]">
+                                        <button onClick={handleCopyPassword} aria-label={copied ? t('export.copied') : t('btn.copy')} className="tap-target shrink-0 p-1 text-[var(--text-muted)]">
                                             <CopyTick copied={copied} size={14} />
                                         </button>
                                     </div>
+                                    {copyFailed === 'password' && (
+                                        <p className="text-xs text-[var(--text-muted)]" role="status">
+                                            {t('export.copy_failed')}
+                                        </p>
+                                    )}
                                     <button
                                         onClick={() => { setGeneratedPassword(null); setShowEncrypted(false); }}
                                         className="w-full py-1.5 text-xs text-[var(--text-muted)]"
