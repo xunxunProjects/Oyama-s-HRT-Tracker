@@ -10,7 +10,10 @@ import type { ViewKey } from './useAppNavigation';
  * own page is the base entry, replaced as tabs change. Opening a page from it
  * pushes one entry, moving to a sibling page replaces that entry, and leaving
  * by the in-app back arrow or by a tab goes back through history rather than
- * forward, so no entry is left behind for the next Back to replay.
+ * forward, so no entry is left behind for the next Back to replay. Those
+ * above it do stay as the browser's Forward, and when a tab has taken the
+ * base's place they belong to another stack; the navigation hook steps back
+ * over one rather than show it.
  *
  * Settings on a phone has a level of its own between the list and a page:
  * the category drilled into, recorded in `cat` on its own entry.
@@ -31,25 +34,38 @@ export const readNavEntry = (): NavEntry | null => {
 
 export const navDepth = (): number => readNavEntry()?.depth ?? 0;
 
+// The depth of the entry on screen, and of the one the latest popstate left.
+// popstate says only where it landed; comparing the two tells a Forward from
+// a Back. Every entry is written here, so this stays in step with history.
+let shownDepth = navDepth();
+let leftDepth = shownDepth;
+
 export const pushNavEntry = (view: ViewKey, depth: number, cat?: string) => {
     window.history.pushState({ hrtNav: 1, view, depth, cat } satisfies NavEntry, '');
+    shownDepth = depth;
 };
 
 export const replaceNavEntry = (view: ViewKey, depth: number, cat?: string) => {
     window.history.replaceState({ hrtNav: 1, view, depth, cat } satisfies NavEntry, '');
+    shownDepth = depth;
 };
+
+/** The depth of the entry the latest popstate moved away from. */
+export const depthLeft = () => leftDepth;
 
 // A step back lands a moment later, on popstate, and until it does the
 // current entry still reads as the page being left. A second tap on a back
 // arrow in that moment would step back again, and from one level down that
 // leaves the app, so only one step is ever in flight. Registered here, before
-// any component's listener, so it is cleared before they run. The timer only
-// covers a step that never lands.
+// any component's listener, so it is cleared (and the depths above moved on)
+// before they run. The timer only covers a step that never lands.
 let traversing = false;
 let traverseTimer = 0;
 window.addEventListener('popstate', () => {
     traversing = false;
     window.clearTimeout(traverseTimer);
+    leftDepth = shownDepth;
+    shownDepth = navDepth();
 });
 
 /** Go back `steps` entries, unless a step back is already on its way. Returns whether it went. */

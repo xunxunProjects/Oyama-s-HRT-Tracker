@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { Home, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
 import CalibrationCurveIcon from '../components/CalibrationCurveIcon';
 import { useTranslation } from '../contexts/LanguageContext';
-import { isSteppingBack, navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from './navHistory';
+import { depthLeft, isSteppingBack, navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from './navHistory';
 
 export type ViewKey = 'home' | 'share' | 'history' | 'lab' | 'lab-calibration' | 'settings' | 'account' | 'admin' | 'sessions' | 'two-factor' | 'change-password' | 'delete-account' | 'edit-profile' | 'edit-avatar' | 'pk-params' | 'settings-hrt-mode' | 'settings-language' | 'settings-appearance' | 'settings-weight' | 'settings-export' | 'settings-import' | 'settings-transparency' | 'settings-milk-tea' | 'settings-cat-states' | 'forecast' | 'supplies' | 'plan';
 
@@ -68,7 +68,8 @@ export const useAppNavigation = (user: any) => {
     // --- Actions ---
     const show = useCallback((view: ViewKey, direction: Direction, restore: boolean) => {
         const el = mainScrollRef.current;
-        if (el) scrollTops.current[viewRef.current] = el.scrollTop;        viewRef.current = view;
+        if (el) scrollTops.current[viewRef.current] = el.scrollTop;
+        viewRef.current = view;
         restoreScroll.current = restore;
         setTransitionDirection(direction);
         setCurrentView(view);
@@ -140,8 +141,8 @@ export const useAppNavigation = (user: any) => {
     // --- Effects ---
     // The app always opens on the Overview. A reload part-way down a stack
     // finds its pages still in history, so step back to the base entry rather
-    // than leave them there for Back to replay. `pending` doubles as the guard
-    // against Strict Mode running this twice.
+    // than leave them there for Back to replay. `pending` also keeps this from
+    // stepping back twice should it ever run twice (a remount, or Strict Mode).
     useEffect(() => {
         if (pending.current) return;
         const depth = navDepth();
@@ -170,7 +171,18 @@ export const useAppNavigation = (user: any) => {
                 land(next.view, next.direction);
                 return;
             }
-            if (entry.view !== viewRef.current) show(entry.view, directionOf(viewRef.current, entry.view), true);
+            if (entry.view === viewRef.current) return;
+            // A Forward lands only on a page opened from the one showing. Any
+            // other was left above the base entry before a tab took its place
+            // (Overview > What-if, Back, then the History tab), so shown here
+            // it would light its own tab while its back arrow led to this one.
+            // Step back over it to where this Forward started.
+            const left = depthLeft();
+            if (entry.depth > left && parentOf(entry.view) !== viewRef.current) {
+                stepBack(entry.depth - left);
+                return;
+            }
+            show(entry.view, directionOf(viewRef.current, entry.view), true);
         };
         window.addEventListener('popstate', onPop);
         return () => window.removeEventListener('popstate', onPop);
