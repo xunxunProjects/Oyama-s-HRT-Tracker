@@ -58,6 +58,15 @@ Notable changes to this project. Full release notes for each version are on the
   计算（100 mg 峰值约 285 ng/mL）；睾酮注射按 Xyosted、Aveed 与 Nebido 说明书校准（每周
   100 mg 环戊丙酸或庚酸睾酮平均约 740 ng/dL，原为 430），以前保存过模型参数页的用户也会用上
   新值。舌下吸收参数未改，但舌下雌二醇的峰值变低，含服时间越短越明显，因为吞下的部分现在上升得慢。
+- Updated dependencies so `npm audit` reports nothing, including a critical
+  advisory in the test runner (Vitest 3 to 4). React's type packages match
+  React 18 again, and `autoprefixer` is gone because Tailwind 4 adds the
+  prefixes it needs. On Safari 17 and older, glass panels now keep their
+  see-through look instead of falling back to a solid colour.
+
+  更新依赖，`npm audit` 不再报告任何问题，其中包括测试工具中的一个严重级别漏洞（Vitest 3 升到 4）。
+  React 的类型包重新与 React 18 对应；移除了 `autoprefixer`，Tailwind 4 会自行添加所需的前缀。
+  在 Safari 17 及更早版本上，半透明面板不再退回为不透明的纯色。
 
 ## 1.4.2
 
