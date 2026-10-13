@@ -2,10 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Megaphone, X } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { noticeService, noticeText, SiteNotice as Notice } from '../services/notice';
+import { PAGE_COLUMN } from './PageHeader';
 
 // Plain-text line, same treatment as DoseAdvisory: no card, no fill, no border.
 // The operator's banner is a sentence at the top of the app, colored to signal
-// how much attention it wants and nothing more.
+// how much attention it wants and nothing more. It sits in the page's own
+// column, so on a wide window it lines up with the title under it instead of
+// running from the sidebar's edge to the window's.
 
 const DISMISS_KEY = 'site-notice-dismissed';
 
@@ -96,17 +99,19 @@ const SiteNoticeBanner: React.FC = () => {
     const Icon = warn ? AlertCircle : Megaphone;
 
     return (
-        <div className={`shrink-0 flex items-start gap-2 px-6 md:px-10 pt-2.5 pb-1.5 text-xs ${tone}`}>
-            <span className="icon-line"><Icon size={16} strokeWidth={1.75} /></span>
-            <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">{linkify(noticeText(notice, lang))}</p>
-            <button
-                onClick={dismiss}
-                aria-label={t('notice.dismiss')}
-                title={t('notice.dismiss')}
-                className="-mt-[3px] -me-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
-            >
-                <X size={16} strokeWidth={1.75} />
-            </button>
+        <div className={`shrink-0 pt-2.5 pb-1.5 text-xs ${tone}`}>
+            <div className={`${PAGE_COLUMN} flex items-start gap-2`}>
+                <span className="icon-line"><Icon size={16} strokeWidth={1.75} /></span>
+                <p className="flex-1 min-w-0 max-h-[30vh] overflow-y-auto whitespace-pre-wrap break-words">{linkify(noticeText(notice, lang))}</p>
+                <button
+                    onClick={dismiss}
+                    aria-label={t('notice.dismiss')}
+                    title={t('notice.dismiss')}
+                    className="tap-target -mt-[3px] -me-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
+                >
+                    <X size={16} strokeWidth={1.75} />
+                </button>
+            </div>
         </div>
     );
 };
