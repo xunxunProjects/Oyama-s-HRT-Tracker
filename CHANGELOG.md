@@ -62,11 +62,13 @@ Notable changes to this project. Full release notes for each version are on the
   advisory in the test runner (Vitest 3 to 4). React's type packages match
   React 18 again, and `autoprefixer` is gone because Tailwind 4 adds the
   prefixes it needs. On Safari 17 and older, glass panels now keep their
-  see-through look instead of falling back to a solid colour.
+  see-through look instead of falling back to a solid colour. The icon set
+  (lucide-react) moved to 1.x, so a few icons are drawn slightly differently.
 
   更新依赖，`npm audit` 不再报告任何问题，其中包括测试工具中的一个严重级别漏洞（Vitest 3 升到 4）。
   React 的类型包重新与 React 18 对应；移除了 `autoprefixer`，Tailwind 4 会自行添加所需的前缀。
   在 Safari 17 及更早版本上，半透明面板不再退回为不透明的纯色。
+  图标库 lucide-react 升级到 1.x，个别图标的画法略有不同。
 
 ## 1.4.2
 
