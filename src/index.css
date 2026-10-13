@@ -876,6 +876,20 @@ select,
                 border-color var(--duration-base) var(--ease-standard);
 }
 
+/* A History row just added or edited. Its wash comes up as the tick is
+   written beside its time and goes back down as the tick is rubbed out, on
+   the slow timing so the row settles rather than blinks. Only the marked row
+   carries this class, so hovering the rest of the list stays immediate. It
+   outranks the reduced-motion `button` rule further down, hence its own. */
+.row-wash {
+    transition: background-color var(--duration-slow) var(--ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+    .row-wash {
+        transition: none;
+    }
+}
+
 /* The outline that follows the selected chart range, and the underline that
    follows the chosen tab (components/Tabs.tsx). It slides by position and
    width, so it stretches a little as it crosses items of different widths,
