@@ -71,8 +71,9 @@ const OralFields: React.FC<OralFieldsProps> = ({
 
             {(ester === Ester.EV && route === Route.oral) && (
                 <div className="col-span-2">
+                    {/* No unit after the number: the label already ends in (mg). */}
                     <p className="text-xs text-[var(--text-muted)] mt-1">
-                        {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
+                        {t('field.dose_e2')}: {e2Dose || '--'}
                     </p>
                 </div>
             )}

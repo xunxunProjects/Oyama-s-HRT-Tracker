@@ -389,7 +389,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (!isNaN(v)) {
             const factor = getToE2Factor(ester) || 1;
             const e2Equivalent = v * factor;
-            setE2Dose(e2Equivalent.toFixed(3));
+            // Mirrored in the same short form as the prefill (trimDose): the
+            // number parses the same, and the field reads 3.82, not 3.820.
+            setE2Dose(trimDose(e2Equivalent));
         } else {
             setE2Dose("");
         }
@@ -402,9 +404,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (!isNaN(v)) {
             const factor = getToE2Factor(ester) || 1;
             if (ester === Ester.E2) {
-                setRawDose(v.toFixed(3));
+                setRawDose(trimDose(v));
             } else {
-                setRawDose((v / factor).toFixed(3));
+                setRawDose(trimDose(v / factor));
             }
         } else {
             setRawDose("");

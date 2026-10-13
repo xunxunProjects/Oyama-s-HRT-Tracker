@@ -91,7 +91,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         placeholder={t('patch.rate_placeholder')}
                         style={{ fontSize: '16px' }}
                     />
-                    {/* Quick presets for common patch strengths */}
+                    {/* Quick presets for common patch strengths. They are
+                        the common rates themselves, so the line that used to
+                        list the same five numbers under them is gone. */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                         {RATE_PRESETS.map(r => (
                             <button
@@ -104,9 +106,6 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-[var(--text-muted)] pl-1">
-                        {t('field.patch_rate_hint')}
-                    </p>
                 </div>
             ) : (
                 <div className="space-y-1.5">

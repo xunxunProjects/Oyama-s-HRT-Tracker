@@ -113,7 +113,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 className="flex-1 h-1 accent-[var(--accent)]"
                             />
                         </div>
-                        <p className="text-[0.6875rem] text-[var(--text-muted)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)} (Keep E2)</p>
+                        <p className="text-[0.6875rem] text-[var(--text-muted)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)}</p>
                     </div>
                 )}
             </div>
@@ -157,8 +157,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {(ester === Ester.EV && route === Route.sublingual) && (
                     <div className="col-span-2">
+                        {/* No unit after the number: the label already ends in (mg). */}
                         <p className="text-xs text-[var(--text-muted)] mt-1 pl-1">
-                            {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
+                            {t('field.dose_e2')}: {e2Dose || '--'}
                         </p>
                     </div>
                 )}

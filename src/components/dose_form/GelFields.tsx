@@ -27,7 +27,9 @@ const GelFields: React.FC<GelFieldsProps> = ({
 }) => {
     const { t } = useTranslation();
     const { isTransmasc } = useHRTMode();
-    const equivLabelKey = isTransmasc ? 'field.dose_t' : 'field.dose_e2';
+    // What goes in is the estradiol in the gel, not grams of gel or pumps,
+    // and not an "equivalent" to convert to: the label says so.
+    const equivLabelKey = isTransmasc ? 'field.dose_t' : 'field.gel_e2_applied';
 
     const appliedVal = parseFloat(e2Dose);
     const hasDose = Number.isFinite(appliedVal) && appliedVal > 0;
