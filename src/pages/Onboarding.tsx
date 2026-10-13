@@ -416,7 +416,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
         <div key="weight" className="pt-8">
             <h1 className="text-2xl font-semibold text-body">{t('onboarding.weight_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
-            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider}`}>
+            {/* The field is drawn as a figure on a rule, not an .input-base
+                box, so it takes the text-field focus treatment by hand: the
+                rule turns terracotta while the figure is being edited. */}
+            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--accent-ink)]`}>
                 <input
                     type="number"
                     inputMode="decimal"
@@ -558,11 +561,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                 </div>
             </div>
 
-            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)]`}>
-                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
+            {/* Both labels stay on one line. Wrapped, "Get started" spilled
+                out of its 40px button at a common phone width and the footer
+                grew under the finger on the last step. The 1fr columns widen
+                to fit an unwrapped label, and below 360px the footer takes
+                16px gutters and a closer gap so two labels and the rings
+                still fit side by side in every language. */}
+            <div className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)] max-[360px]:px-4`}>
+                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
                     <div className="justify-self-start">
                         {step > 0 && (
-                            <button onClick={() => go(step - 1)} className="btn-secondary">
+                            <button onClick={() => go(step - 1)} className="btn-secondary whitespace-nowrap">
                                 {t('onboarding.back')}
                             </button>
                         )}
@@ -571,7 +580,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ languageOptions, weight, onWeig
                     <DoseRings count={steps.length} at={step} />
 
                     <div className="justify-self-end">
-                        <button onClick={forward} disabled={!ready} className="btn-primary">
+                        <button onClick={forward} disabled={!ready} className="btn-primary whitespace-nowrap">
                             {t(isLast ? 'onboarding.start' : 'onboarding.next')}
                         </button>
                     </div>

@@ -122,6 +122,7 @@ const AppContent = () => {
         currentView,
         transitionDirection,
         handleViewChange,
+        handleTabSelect,
         mainScrollRef,
         navItems,
     } = useAppNavigation(user);
@@ -204,6 +205,14 @@ const AppContent = () => {
         const applyTheme = (isDark: boolean) => {
             root.classList.remove('light', 'dark');
             root.classList.add(isDark ? 'dark' : 'light');
+            // The browser's own bar takes this colour: Android's status bar
+            // and toolbar, an installed app's title bar. index.html's white is
+            // right until the theme is applied (and for the shared view,
+            // which applies none), but it stayed white over a dark page.
+            // --bg of each theme, as hex because not every browser reads
+            // oklch() in this tag.
+            document.querySelectorAll('meta[name="theme-color"]').forEach(meta =>
+                meta.setAttribute('content', isDark ? '#181714' : '#ffffff'));
         };
 
         // Mono renders as light with a grayscale filter (see html.mono in index.css)
@@ -455,7 +464,7 @@ const AppContent = () => {
             <Sidebar
                 navItems={navItems}
                 currentView={tabForView(currentView)}
-                onViewChange={handleViewChange}
+                onViewChange={handleTabSelect}
             />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
 
@@ -792,7 +801,16 @@ const AppContent = () => {
 
                 {/* Bottom Navigation — a frosted floating island. Content scrolls
                     visibly beneath it; the current tab's icon sits in a tonal
-                    terracotta pill. */}
+                    terracotta pill. Labels stay on one line: a wrapped one
+                    raised its icon above the rest and grew the island past
+                    the scroller's bottom padding. Below 340px they drop to
+                    10px rather than being cut off, and the packs keep them
+                    short enough for that. The longest, Turkish Genel Bakış,
+                    is the name that pack's other strings give the page, so
+                    it stays, and its tab takes a few pixels more than the
+                    rest. Each tab is rounded so the focus ring nests in
+                    the island instead of cutting a square into the next
+                    tab's pill. */}
                 <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
                     <div className="flex items-stretch p-1.5 gap-0.5">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {
@@ -803,15 +821,15 @@ const AppContent = () => {
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => handleViewChange(id as ViewKey)}
+                                    onClick={() => handleTabSelect(id as ViewKey)}
                                     aria-current={isActive ? 'page' : undefined}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors duration-150 motion-reduce:transition-none
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-colors duration-150 motion-reduce:transition-none
                                         ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                                 >
                                     <span className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}>
                                         <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
                                     </span>
-                                    <span className="text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em]">
+                                    <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
                                         {label}
                                     </span>
                                 </button>
