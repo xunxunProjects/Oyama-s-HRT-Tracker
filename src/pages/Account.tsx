@@ -575,9 +575,13 @@ const Account: React.FC<AccountProps> = ({
                                         )}
                                         {/* Off is a choice made in Settings, and this line is the
                                             only place sync reports; without saying where the
-                                            switch is, "Sync off" was a dead end. */}
+                                            switch is, "Sync off" was a dead end. The names come
+                                            from Settings' own keys, as on the delete page, so a
+                                            rename there can't leave this pointing nowhere. */}
                                         {syncStatus === 'off' && (
-                                            <p>{t('account.sync_off_desc')}</p>
+                                            <p>{t('account.sync_off_desc')
+                                                .replace('{path}', [t('nav.settings'), t('settings.group.data')].join(' › '))
+                                                .replace('{setting}', t('settings.auto_sync'))}</p>
                                         )}
                                         {/* To the minute and in the app's language, like the
                                             backup rows below. */}

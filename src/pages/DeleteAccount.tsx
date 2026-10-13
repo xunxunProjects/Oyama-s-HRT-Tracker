@@ -48,7 +48,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             // say it happened: the page simply vanishing left people unsure
             // whether it had.
             onBack();
-            showDialog('alert', t('account.delete_done'));
+            showDialog('alert', t('account.delete_done'), undefined, { title: t('account.delete_account') });
         } catch (e: any) {
             const code = apiErrorCode(e);
             if (code === 'TWO_FACTOR_REQUIRED' || code === 'TWO_FACTOR_INVALID') {

@@ -36,7 +36,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             onBack();
             // The page just closing said nothing about whether it worked, nor
             // that every other device had been signed out by it.
-            showDialog('alert', t('account.change_password_done'));
+            showDialog('alert', t('account.change_password_done'), undefined, { title: t('account.change_password') });
         } catch (e: any) {
             // The worker's "Incorrect password" is English; say it in the
             // reader's language.
