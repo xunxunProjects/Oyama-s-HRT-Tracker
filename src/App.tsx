@@ -805,9 +805,12 @@ const AppContent = () => {
                     raised its icon above the rest and grew the island past
                     the scroller's bottom padding. Below 340px they drop to
                     10px rather than being cut off, and the packs keep them
-                    short enough for that. Each tab is rounded so the focus
-                    ring nests in the island instead of cutting a square
-                    into the next tab's pill. */}
+                    short enough for that. The longest, Turkish Genel Bakış,
+                    is the name that pack's other strings give the page, so
+                    it stays, and its tab takes a few pixels more than the
+                    rest. Each tab is rounded so the focus ring nests in
+                    the island instead of cutting a square into the next
+                    tab's pill. */}
                 <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
                     <div className="flex items-stretch p-1.5 gap-0.5">
                         {navItems.filter(item => item.id !== 'admin').map(({ id, icon: Icon, label }) => {

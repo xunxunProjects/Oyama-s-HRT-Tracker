@@ -4336,7 +4336,7 @@ export const TRANSLATIONS = {
         "settings.prediction": "Tahmin eğrisi",
         "settings.prediction_desc": "Genel bakış grafiğini, ilaç planınıza göre şu andan sonrası için kesikli çizgiyle sürdürür",
         "app.title": "HRT Tracker",
-        "nav.home": "Özet",
+        "nav.home": "Genel Bakış",
         "notice.dismiss": "Duyuruyu kapat",
         "nav.history": "Geçmiş",
         "nav.lab": "Tahliller",
