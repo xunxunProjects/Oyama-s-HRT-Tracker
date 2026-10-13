@@ -222,16 +222,18 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </>
                     ) : (
                         <>
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {/* The chosen value keeps its full width and the
+                                description (brand names) takes what is left,
+                                cut short first: the drug is what the field must
+                                confirm, and it used to be the part cut off. */}
+                            <div className="flex items-center gap-2 min-w-0">
                                 {selectedOption?.icon && <div className="text-[var(--text-muted)]">{selectedOption.icon}</div>}
                                 <span id={valueId} className="text-[var(--text)] text-sm truncate">{selectedOption?.label || value}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                {selectedOption?.description && (
-                                    <span className="text-xs text-[var(--text-muted)]">{selectedOption.description}</span>
-                                )}
-                                <ChevronDown size={18} className={`chev text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
-                            </div>
+                            {selectedOption?.description && (
+                                <span className="flex-1 min-w-0 ms-2 truncate text-end text-xs text-[var(--text-muted)]">{selectedOption.description}</span>
+                            )}
+                            <ChevronDown size={18} className={`chev shrink-0 ms-1.5 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} />
                         </>
                     )}
                 </button>
@@ -257,12 +259,18 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 className="menu-item"
                             >
                                 {opt.icon && <div className="text-[var(--text-muted)]">{opt.icon}</div>}
-                                <span className="flex-1">{opt.label}</span>
-                                {opt.description && (
-                                    <span className="text-xs font-normal text-[var(--text-muted)]">
-                                        {opt.description}
-                                    </span>
-                                )}
+                                {/* Label and description share a line when they
+                                    fit; otherwise the description drops under
+                                    the label whole, rather than both wrapping
+                                    side by side in two narrow columns. */}
+                                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
+                                    <span>{opt.label}</span>
+                                    {opt.description && (
+                                        <span className="text-xs font-normal text-[var(--text-muted)]">
+                                            {opt.description}
+                                        </span>
+                                    )}
+                                </span>
                                 <Tick on={opt.value === value} size={18} />
                             </button>
                         ))}
