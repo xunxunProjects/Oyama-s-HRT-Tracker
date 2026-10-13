@@ -16,6 +16,13 @@ Notable changes to this project. Full release notes for each version are on the
 
   新增贡献指南、行为准则、issue 与 PR 模板，并将 `SECURITY.md` 改写为漏洞报告政策；
   原先其中的安全改进记录移至本文件。
+- Added unit tests for the dose and concentration math in `logic.ts`
+  (`npm test`, run in CI). Problems they found, and gaps against published
+  data, are recorded as expected failures under `tests/`; no calculation
+  changed.
+
+  新增 `logic.ts` 剂量与浓度计算的单元测试（`npm test`，已加入 CI）。
+  测试中发现的问题以及与文献数据的差距，以预期失败的形式记录在 `tests/` 中，计算结果没有改动。
 
 ## 1.4.2
 
