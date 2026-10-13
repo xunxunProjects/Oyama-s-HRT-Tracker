@@ -15,7 +15,8 @@ import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToke
 import { apiEndpoint } from '../services/apiClient';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
-import { formatBytes } from '../utils/helpers';
+import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
+import { useTranslation } from '../contexts/LanguageContext';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 
 interface LocalData {
@@ -101,6 +102,9 @@ const Account: React.FC<AccountProps> = ({
     // how it used to show: "No cloud backups yet" to someone whose backups
     // might be the only copy they have.
     const [backupsFailed, setBackupsFailed] = useState(false);
+    // When the list was last fetched: the instant its "2h ago" labels count
+    // from, so every row measures against the same clock.
+    const [listedAt, setListedAt] = useState(() => Math.floor(Date.now() / 1000));
     const [savingCloud, setSavingCloud] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [expandedData, setExpandedData] = useState<Record<string, any>>({});
@@ -111,6 +115,8 @@ const Account: React.FC<AccountProps> = ({
     const [unlockError, setUnlockError] = useState<string | null>(null);
     const [unlockLoading, setUnlockLoading] = useState(false);
     const { showDialog } = useDialog();
+    const { lang } = useTranslation();
+    const locale = LOCALE_MAP[lang] || 'en-US';
 
     // Inline auth form state
     const [isLogin, setIsLogin] = useState(true);
@@ -142,6 +148,7 @@ const Account: React.FC<AccountProps> = ({
             const list = await cloudService.listMeta(token);
             setBackupList(list);
             setBackupsFailed(false);
+            setListedAt(Math.floor(Date.now() / 1000));
         } catch {
             // A silent refresh that fails keeps the rows it already shows:
             // they were real a moment ago, and an error line in their place
@@ -444,6 +451,9 @@ const Account: React.FC<AccountProps> = ({
     );
 
     const showLastSynced = lastSyncedAt !== null && syncStatus !== 'off';
+    const backupsKept = t('account.backups_kept')
+        .replace('{n}', String(backupList.length))
+        .replace('{max}', String(MAX_CLOUD_BACKUPS));
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
 
     return (
@@ -555,7 +565,7 @@ const Account: React.FC<AccountProps> = ({
                             <SettingsListItem
                                 icon={<SyncIcon status={syncStatus} className={iconCls} />}
                                 title={t(`sync.status.${syncStatus}`)}
-                                description={(syncStatus === 'error' || showLastSynced) ? (
+                                description={(syncStatus === 'error' || syncStatus === 'off' || showLastSynced) ? (
                                     <>
                                         {/* The reason, not just the fact. Without this line a full
                                             database, an oversized payload and a dead network were
@@ -563,8 +573,16 @@ const Account: React.FC<AccountProps> = ({
                                         {syncStatus === 'error' && (
                                             <p className="text-[var(--danger)]">{describeSyncError(syncErrorCode, t)}</p>
                                         )}
+                                        {/* Off is a choice made in Settings, and this line is the
+                                            only place sync reports; without saying where the
+                                            switch is, "Sync off" was a dead end. */}
+                                        {syncStatus === 'off' && (
+                                            <p>{t('account.sync_off_desc')}</p>
+                                        )}
+                                        {/* To the minute and in the app's language, like the
+                                            backup rows below. */}
                                         {showLastSynced && (
-                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString())}</p>
+                                            <p>{(t('sync.last_synced') as string).replace('{time}', new Date(lastSyncedAt!).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))}</p>
                                         )}
                                     </>
                                 ) : undefined}
@@ -587,7 +605,12 @@ const Account: React.FC<AccountProps> = ({
                             disabled={savingCloud || syncStatus === 'locked' || syncStatus === 'syncing'}
                             showChevron={false}
                             trailing={backupList.length > 0 && (
-                                <span className={`${statusMuted} tabular-nums`}>{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
+                                // The bare "3/5" stays, as backupPolicy.ts promises, but
+                                // says what it counts to anyone who hovers or listens.
+                                <span className={`${statusMuted} tabular-nums`} title={backupsKept}>
+                                    <span aria-hidden="true">{backupList.length}/{MAX_CLOUD_BACKUPS}</span>
+                                    <span className="sr-only">{backupsKept}</span>
+                                </span>
                             )}
                         />
 
@@ -615,10 +638,13 @@ const Account: React.FC<AccountProps> = ({
                         ) : (
                             backupList.map(b => (
                                 <div key={b.id}>
-                                    {/* Laid out as a SettingsListItem (18px icon, gap-3,
-                                        py-4) so its text starts on the same line as every
-                                        row above; not one, because it holds its own
-                                        delete button. */}
+                                    {/* Laid out as a SettingsListItem (20px icon, gap-3)
+                                        so its text starts on the same line as every row
+                                        above; not one, because it holds its own delete
+                                        button. Named by how long ago, which is what
+                                        "restore from before the mistake" needs, with the
+                                        stamp to the minute underneath: seconds made every
+                                        row read the same. */}
                                     <div
                                         role="button"
                                         tabIndex={0}
@@ -630,12 +656,16 @@ const Account: React.FC<AccountProps> = ({
                                             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(b); }
                                         }}
                                     >
-                                        <HardDrive size={18} className={iconCls} />
+                                        <HardDrive size={20} className={iconCls} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-[var(--text)] truncate">
-                                                {new Date(b.created_at * 1000).toLocaleString()}
+                                                {formatRelative(b.created_at, listedAt, t)}
                                             </p>
-                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">{formatBytes(b.data_size)}</p>
+                                            <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                                                {new Date(b.created_at * 1000).toLocaleString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                {' · '}
+                                                {formatBytes(b.data_size)}
+                                            </p>
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteBackup(b.id); }}
