@@ -27,13 +27,16 @@ const GelFields: React.FC<GelFieldsProps> = ({
     const hasDose = Number.isFinite(appliedVal) && appliedVal > 0;
     const absorbed = hasDose && bioMultiplier ? appliedVal * bioMultiplier : null;
     const bioPct = bioMultiplier ? (bioMultiplier * 100) : null;
+    const siteLabelId = React.useId();
+    const doseId = React.useId();
 
     return (
         <div className="space-y-4">
             {/* Application site */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.gel_site')}</label>
+                <label id={siteLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.gel_site')}</label>
                 <CustomSelect
+                    labelledBy={siteLabelId}
                     value={String(gelSite)}
                     onChange={(val) => setGelSite(parseInt(val, 10))}
                     options={GEL_SITE_ORDER.map((siteKey, idx) => ({
@@ -45,10 +48,11 @@ const GelFields: React.FC<GelFieldsProps> = ({
 
             {/* Applied dose */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                <label htmlFor={doseId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                     {t(equivLabelKey)}
                 </label>
                 <input
+                    id={doseId}
                     type="number" inputMode="decimal"
                     min="0"
                     step="0.001"

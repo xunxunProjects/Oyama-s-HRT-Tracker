@@ -39,6 +39,11 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     route
 }) => {
     const { t } = useTranslation();
+    const tierLabelId = React.useId();
+    const holdLabelId = React.useId();
+    const holdId = React.useId();
+    const rawId = React.useId();
+    const e2Id = React.useId();
 
     const handleCustomHoldChange = (str: string) => {
         setCustomHoldInput(str);
@@ -58,8 +63,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
         <div className="space-y-4">
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.sl_absorption')}</label>
+                    <label id={tierLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.sl_absorption')}</label>
                     <button
+                        type="button"
                         onClick={() => setUseCustomTheta(!useCustomTheta)}
                         className="text-xs font-semibold text-[var(--accent-ink)]"
                     >
@@ -69,15 +75,17 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {!useCustomTheta ? (
                     <CustomSelect
+                        labelledBy={tierLabelId}
                         value={String(slTier)}
                         onChange={(val) => setSlTier(parseInt(val, 10))}
                         options={tierOptions}
                     />
                 ) : (
                     <div className="pt-2 pb-1 space-y-2">
-                        <label className="text-xs font-medium text-[var(--text-muted)]">{t('sl.hold_time_min')}</label>
+                        <label id={holdLabelId} htmlFor={holdId} className="text-xs font-medium text-[var(--text-muted)]">{t('sl.hold_time_min')}</label>
                         <div className="flex items-center gap-2">
                             <input
+                                id={holdId}
                                 type="number" inputMode="decimal"
                                 min="1" max="60"
                                 value={customHoldInput}
@@ -88,6 +96,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             <span className="text-xs text-[var(--text-muted)]">{t('unit.min_short')}</span>
                             <input
                                 type="range"
+                                aria-labelledby={holdLabelId}
                                 min="1" max="60"
                                 value={customHoldValue}
                                 onChange={e => {
@@ -106,8 +115,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(ester !== Ester.E2) && (
                     <div className={`space-y-2 ${(ester === Ester.EV && route === Route.sublingual) ? 'col-span-2' : ''}`}>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                         <input
+                            id={rawId}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"
@@ -121,10 +131,11 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {!(ester === Ester.EV && route === Route.sublingual) && ester !== Ester.CPA && (
                     <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                             {t('field.dose_e2')}
                         </label>
                         <input
+                            id={e2Id}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"

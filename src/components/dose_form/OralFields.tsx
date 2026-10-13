@@ -22,13 +22,16 @@ const OralFields: React.FC<OralFieldsProps> = ({
     const { t } = useTranslation();
     // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
     const rawOnly = ester === Ester.CPA || isUnmodelledDrug(ester);
+    const rawId = React.useId();
+    const e2Id = React.useId();
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(ester !== Ester.E2) && (
                 <div className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || rawOnly ? 'col-span-2' : ''}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
+                        id={rawId}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -42,10 +45,11 @@ const OralFields: React.FC<OralFieldsProps> = ({
 
             {!(ester === Ester.EV && route === Route.oral) && !rawOnly && (
                 <div className={`space-y-1.5 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_e2')}
                     </label>
                     <input
+                        id={e2Id}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"

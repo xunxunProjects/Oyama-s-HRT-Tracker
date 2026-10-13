@@ -54,6 +54,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
 
     const currentRate = parseFloat(patchRate);
     const currentWear = parseFloat(patchWearDays);
+    const rateId = React.useId();
+    const rawId = React.useId();
+    const wearId = React.useId();
 
     return (
         <div className="space-y-4">
@@ -68,8 +71,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             <div key={patchMode} className={modeAnim}>
             {patchMode === "rate" ? (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
+                    <label htmlFor={rateId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
                     <input
+                        id={rateId}
                         type="number"
                         inputMode="decimal"
                         min="0"
@@ -99,10 +103,11 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                 </div>
             ) : (
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t('field.dose_raw')}
                     </label>
                     <input
+                        id={rawId}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -118,8 +123,9 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             {/* Wear duration — applies to both input modes. Empty means the patch
                 stays on until a separate "remove" event is logged. */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_wear')}</label>
+                <label htmlFor={wearId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_wear')}</label>
                 <input
+                    id={wearId}
                     type="number"
                     inputMode="decimal"
                     min="0"

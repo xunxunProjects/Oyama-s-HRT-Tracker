@@ -24,13 +24,16 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
     const equivLabelKey = isT ? 'field.dose_t' : 'field.dose_e2';
     // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
     const rawOnly = ester === Ester.CPA || isUnmodelledDrug(ester);
+    const rawId = React.useId();
+    const e2Id = React.useId();
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(ester !== Ester.E2) && (
                 <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) || rawOnly ? 'col-span-2' : ''}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
+                        id={rawId}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -43,10 +46,11 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
             )}
             {!(ester === Ester.EV && route === Route.injection) && !rawOnly && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t(equivLabelKey)}
                     </label>
                     <input
+                        id={e2Id}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"

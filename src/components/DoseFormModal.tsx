@@ -46,11 +46,10 @@ const DoseFormModal: React.FC<DoseFormModalProps> = ({
         onClose();
     };
 
-    useEscape(() => {
-        if (!document.querySelector('.z-\\[70\\]')) {
-            handleClose();
-        }
-    }, isOpen);
+    // Anything open inside the form (a select's list, the time picker) answers
+    // Escape first and stops it there (useEscapeLayer), so a press that
+    // reaches this listener is meant for the modal.
+    useEscape(handleClose, isOpen);
 
     const handleSave = (event: any) => {
         if (onSave) {

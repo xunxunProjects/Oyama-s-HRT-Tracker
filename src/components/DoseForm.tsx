@@ -17,6 +17,8 @@ import PatchFields from './dose_form/PatchFields';
 import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
+import { useEscapeLayer } from './CustomSelect';
+
 export interface DoseTemplate {
     id: string;
     name: string;
@@ -129,6 +131,9 @@ interface DoseFormProps {
     events?: DoseEvent[];
 }
 
+// A folded-away part leaves the tab order with it (as in Plan and Supplies).
+const inertWhen = (hidden: boolean) => (hidden ? ({ inert: '' } as Record<string, unknown>) : {});
+
 const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDelete, templates = [], onSaveTemplate, onDeleteTemplate, isInline = false, hideHeader = false, quickDoses, onAddQuickDose, onDeleteQuickDose, events = [] }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
@@ -137,6 +142,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false);
     const [templateName, setTemplateName] = useState('');
+    useEscapeLayer(() => setShowTemplateMenu(false), showTemplateMenu);
+    // The name field and the bookmark button take turns in one spot, and the
+    // hidden one is inert, so focus moves across with each swap instead of
+    // being dropped on the page.
+    const templateInputRef = useRef<HTMLInputElement>(null);
+    const templateButtonRef = useRef<HTMLButtonElement>(null);
+    const templateInputWasOpenRef = useRef(false);
+    useEffect(() => {
+        if (showSaveTemplateInput) templateInputRef.current?.focus();
+        else if (templateInputWasOpenRef.current) templateButtonRef.current?.focus();
+        templateInputWasOpenRef.current = showSaveTemplateInput;
+    }, [showSaveTemplateInput]);
 
     // Form State
     const [dateStr, setDateStr] = useState("");
@@ -706,7 +723,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         <span className="text-[0.9375rem] text-[var(--text)]">{t('field.time')}</span>
                         <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                             <span className="text-sm tabular-nums">
-                                {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
                             </span>
                             <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                         </div>
@@ -974,8 +991,9 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     <div className="flex items-center">
                         <div className={`overflow-hidden flex items-center ${
                             showSaveTemplateInput ? 'w-[14rem] sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
-                        }`}>
+                        }`} {...inertWhen(!showSaveTemplateInput)}>
                             <input
+                                ref={templateInputRef}
                                 type="text"
                                 value={templateName}
                                 onChange={(e) => setTemplateName(e.target.value)}
@@ -986,12 +1004,14 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <button
                                 onClick={handleSaveAsTemplate}
                                 className="p-1.5 ml-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20 rounded shrink-0"
+                                aria-label={t('template.save_title')}
                             >
                                 <Check size={18} />
                             </button>
                             <button
                                 onClick={() => { setShowSaveTemplateInput(false); setTemplateName(''); }}
                                 className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0"
+                                aria-label={t('btn.cancel')}
                             >
                                 <X size={18} />
                             </button>
@@ -999,14 +1019,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         
                         <div className={`overflow-hidden ${
                             showSaveTemplateInput ? 'w-0 opacity-0' : 'w-[2.35rem] opacity-100'
-                        }`}>
+                        }`} {...inertWhen(showSaveTemplateInput)}>
                             <button
+                                ref={templateButtonRef}
                                 onClick={() => {
                                     setShowSaveTemplateInput(true);
                                     setShowTemplateMenu(false);
                                 }}
                                 className="p-2 text-[var(--text-muted)] hover:text-[var(--accent-ink)] rounded flex items-center justify-center"
                                 title={t('template.save_title')}
+                                aria-label={t('template.save_title')}
                             >
                                 <BookmarkPlus size={18} />
                             </button>
