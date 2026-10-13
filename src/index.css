@@ -944,6 +944,22 @@ select,
     overflow: hidden;
 }
 
+/* A dose field Save was refused for (components/DoseForm.tsx, marked by
+   refusedFieldProps). The border takes the danger colour and keeps it on
+   hover and while focused, since the field is focused at once to be fixed;
+   the message under the fields says what is wrong, so colour is never the
+   only sign. Unlayered, so it outranks the fields' own border utilities. */
+.dose-fields input[aria-invalid="true"] {
+    border-color: var(--danger);
+}
+
+/* A control that sits in a box that clips (DoseForm's template buttons,
+   whose halves collapse to zero width in turn): the one focus ring is drawn
+   just inside its edge instead of outside it, where it was cut to a sliver. */
+.focus-inset:focus-visible {
+    outline-offset: -2px;
+}
+
 /* ── Pixel cat (empty states) ─────────────────────────────────── */
 :root {
     --pixel-blue: #9FD4EE;

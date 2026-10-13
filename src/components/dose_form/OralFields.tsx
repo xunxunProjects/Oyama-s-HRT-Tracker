@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route, Ester, isUnmodelledDrug } from '../../../logic';
+import { refusedFieldProps } from './refusedField';
 
 interface OralFieldsProps {
     ester: Ester;
@@ -9,6 +10,9 @@ interface OralFieldsProps {
     onRawChange: (val: string) => void;
     onE2Change: (val: string) => void;
     route: Route;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const OralFields: React.FC<OralFieldsProps> = ({
@@ -17,7 +21,9 @@ const OralFields: React.FC<OralFieldsProps> = ({
     e2Dose,
     onRawChange,
     onE2Change,
-    route
+    route,
+    invalid,
+    errorId
 }) => {
     const { t } = useTranslation();
     // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
@@ -32,6 +38,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                     <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
                         id={rawId}
+                        {...refusedFieldProps(rawDose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -50,6 +57,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                     </label>
                     <input
                         id={e2Id}
+                        {...refusedFieldProps(e2Dose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route, Ester, SL_TIER_ORDER, SublingualTierParams } from '../../../logic';
 import CustomSelect from '../CustomSelect';
+import { refusedFieldProps } from './refusedField';
 
 interface SublingualFieldsProps {
     ester: Ester;
@@ -19,6 +20,9 @@ interface SublingualFieldsProps {
     setCustomHoldValue: (val: number) => void;
     thetaFromHold: (hold: number) => number;
     route: Route;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const SublingualFields: React.FC<SublingualFieldsProps> = ({
@@ -36,7 +40,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     customHoldValue,
     setCustomHoldValue,
     thetaFromHold,
-    route
+    route,
+    invalid,
+    errorId
 }) => {
     const { t } = useTranslation();
     const tierLabelId = React.useId();
@@ -118,6 +124,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                         <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                         <input
                             id={rawId}
+                            {...refusedFieldProps(rawDose, invalid, errorId)}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"
@@ -136,6 +143,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                         </label>
                         <input
                             id={e2Id}
+                            {...refusedFieldProps(e2Dose, invalid, errorId)}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"

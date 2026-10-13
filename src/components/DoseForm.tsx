@@ -19,6 +19,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 
 import { useEscapeLayer } from './CustomSelect';
 import GuideFold from './dose_form/GuideFold';
+import Tick from './Tick';
 
 export interface DoseTemplate {
     id: string;
@@ -423,6 +424,32 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
     const [isSaving, setIsSaving] = useState(false);
     const isSavingRef = useRef(false);
 
+    // Why the last Save was refused, said under the dose fields instead of in
+    // a dialog that hid them. It stands until any of the values it was about
+    // changes, so it goes as soon as the field is fixed.
+    const valuesKey = [route, ester, patchMode, rawDose, e2Dose, patchRate, useCustomTheta, customHoldValue].join('|');
+    const [doseError, setDoseError] = useState<{ message: string; key: string } | null>(null);
+    const shownDoseError = doseError && doseError.key === valuesKey ? doseError.message : null;
+    const doseErrorId = React.useId();
+    const fieldsRef = useRef<HTMLDivElement>(null);
+    // Put the cursor in the field to fix: the first one marked, or for the
+    // hold time (not a dose) the first field there is.
+    useEffect(() => {
+        if (!doseError) return;
+        const box = fieldsRef.current;
+        const field = box?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? box?.querySelector<HTMLElement>('input');
+        field?.focus();
+    }, [doseError]);
+
+    // A template saved or loaded is confirmed by the drawn tick taking the
+    // bookmark's place for a moment, instead of a dialog to dismiss.
+    const [templateTick, setTemplateTick] = useState<'saved' | 'loaded' | null>(null);
+    useEffect(() => {
+        if (!templateTick) return;
+        const timer = window.setTimeout(() => setTemplateTick(null), 1200);
+        return () => window.clearTimeout(timer);
+    }, [templateTick]);
+
     const handleSaveAsTemplate = () => {
         if (!templateName.trim()) {
             showDialog('alert', t('template.name_required'));
@@ -458,13 +485,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         onSaveTemplate(template);
         setShowSaveTemplateInput(false);
         setTemplateName('');
-        showDialog('alert', t('template.saved'));
+        setTemplateTick('saved');
     };
 
     const handleLoadTemplate = (template: DoseTemplate) => {
         fillFrom(template, true);
         setShowTemplateMenu(false);
-        showDialog('alert', t('template.loaded'));
+        setTemplateTick('loaded');
     };
 
     const handleSave = () => {
@@ -476,7 +503,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         isSavingRef.current = true;
         setIsSaving(true);
         const failSave = (msg: string) => {
-            showDialog('alert', msg);
+            setDoseError({ message: msg, key: valuesKey });
             isSavingRef.current = false;
             setIsSaving(false);
         };
@@ -490,7 +517,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         let finalDose = 0;
 
         const extras: any = {};
-        const nonPositiveMsg = t('error.nonPositive');
+        // An empty field asks for a dose; "greater than zero" is for a 0 typed.
+        const doseMsg = (typed: string) => (typed.trim() === '' ? t('modal.dose.dose_required') : t('error.nonPositive'));
 
         if (route === Route.sublingual && useCustomTheta) {
             if (!Number.isFinite(customHoldValue) || customHoldValue < 1) {
@@ -502,7 +530,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         if (route === Route.patchApply && patchMode === "rate") {
             const rateVal = parseFloat(patchRate);
             if (!Number.isFinite(rateVal) || rateVal <= 0) {
-                failSave(nonPositiveMsg);
+                failSave(doseMsg(patchRate));
                 return;
             }
             finalDose = 0;
@@ -510,7 +538,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         } else if (route === Route.patchApply && patchMode === "dose") {
             const raw = parseFloat(rawDose);
             if (!rawDose || rawDose.trim() === '' || !Number.isFinite(raw) || raw <= 0) {
-                failSave(nonPositiveMsg);
+                failSave(doseMsg(rawDose));
                 return;
             }
             finalDose = raw;
@@ -522,13 +550,13 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 // round-tripping through the E2-equivalent string loses precision
                 // to its toFixed(3) — e.g. 12.5 mg CPA saved as 12.499934.
                 if (!rawDose || rawDose.trim() === '' || !Number.isFinite(rawVal) || rawVal <= 0) {
-                    failSave(nonPositiveMsg);
+                    failSave(doseMsg(rawDose));
                     return;
                 }
                 finalDose = rawVal;
             } else {
                 if (!e2Dose || e2Dose.trim() === '' || !Number.isFinite(e2Equivalent) || e2Equivalent <= 0) {
-                    failSave(nonPositiveMsg);
+                    failSave(doseMsg(e2Dose));
                     return;
                 }
                 const factor = getToE2Factor(ester) || 1;
@@ -649,6 +677,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         ? `${doseGuide.config.thresholds.map((threshold) => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
         : "";
     const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : "";
+    // The record a delete confirm is about, as its row reads: what, how much,
+    // and how and when it was taken. With a dozen identical CPA rows the
+    // time is what tells them apart.
+    const describeDose = (ev: DoseEvent) => {
+        const rate = ev.extras[ExtraKey.releaseRateUGPerDay];
+        const what = ev.route === Route.patchRemove
+            ? t('route.patchRemove')
+            : `${drugLabel(ev.ester, t)} · ${rate ? `${rate} µg/d` : `${trimDose(ev.doseMG)} mg`}`;
+        const when = new Date(ev.timeH * 3600000).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+        return ev.route === Route.patchRemove ? `${what}\n${when}` : `${what}\n${t(`route.${ev.route}`)} · ${when}`;
+    };
+
     const confirmAndOpenExternal = (url: string) => {
         const host = (() => {
             try {
@@ -677,7 +717,12 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     className="px-2 py-1 text-xs font-medium rounded flex items-center gap-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20"
                     title={t('template.load_title')}
                 >
-                    <Bookmark size={14} />
+                    {/* The bookmark gives way to the tick for a moment once a
+                        template is loaded, the swap CopyTick makes for Copy. */}
+                    <span className="inline-grid shrink-0 place-items-center" aria-hidden="true">
+                        <Bookmark size={14} data-hidden={templateTick === 'loaded'} className="copy-glyph col-start-1 row-start-1" />
+                        <Tick on={templateTick === 'loaded'} size={14} tone="current" className="col-start-1 row-start-1" />
+                    </span>
                     <span>{t('template.load_title')}</span>
                 </button>
                 {showTemplateMenu && (
@@ -701,12 +746,14 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            showDialog('confirm', t('template.delete_confirm'), () => {
+                                            showDialog('confirm', template.name, () => {
                                                 setShowTemplateMenu(false);
                                                 onDeleteTemplate(template.id);
-                                            }, { danger: true });
+                                            }, { danger: true, title: t('template.delete_confirm'), confirmLabel: t('btn.delete') });
                                         }}
-                                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
+                                        // Shown on hover where there is one; at rest, muted, on a
+                                        // touch screen, where it used to take taps unseen.
+                                        className="tap-target opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
                                         title={t('btn.delete')}
                                         aria-label={t('btn.delete')}
                                     >
@@ -839,7 +886,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             </div>
                         )}
 
-                        <div className="mt-2">
+                        <div ref={fieldsRef} className="dose-fields mt-2">
                             {route === Route.injection && (
                                 <InjectionFields
                                     ester={ester}
@@ -848,6 +895,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     onRawChange={handleRawChange}
                                     onE2Change={handleE2Change}
                                     route={route}
+                                    invalid={!!shownDoseError}
+                                    errorId={doseErrorId}
                                 />
                             )}
 
@@ -859,6 +908,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     onRawChange={handleRawChange}
                                     onE2Change={handleE2Change}
                                     route={route}
+                                    invalid={!!shownDoseError}
+                                    errorId={doseErrorId}
                                 />
                             )}
 
@@ -879,6 +930,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setCustomHoldValue={setCustomHoldValue}
                                     thetaFromHold={thetaFromHold}
                                     route={route}
+                                    invalid={!!shownDoseError}
+                                    errorId={doseErrorId}
                                 />
                             )}
 
@@ -889,6 +942,8 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     e2Dose={e2Dose}
                                     onE2Change={handleE2Change}
                                     bioMultiplier={bioMultiplier}
+                                    invalid={!!shownDoseError}
+                                    errorId={doseErrorId}
                                 />
                             )}
 
@@ -902,9 +957,16 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     onRawChange={handleRawChange}
                                     patchWearDays={patchWearDays}
                                     setPatchWearDays={setPatchWearDays}
+                                    invalid={!!shownDoseError}
+                                    errorId={doseErrorId}
                                 />
                             )}
                         </div>
+                        {shownDoseError && (
+                            <p id={doseErrorId} role="alert" className="mt-2 ps-1 text-xs text-[var(--danger)]">
+                                {shownDoseError}
+                            </p>
+                        )}
 
                         {/* Injection-specific guide from mtf.wiki */}
                         {route === Route.injection && !isTransmasc && isEstradiolEster(ester) && (
@@ -1045,9 +1107,15 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
             {/* Footer Buttons */}
             <div className={`flex flex-wrap gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}>
+                {/* Says what the tick shows, for anyone who can't see it. */}
+                <span role="status" className="sr-only">
+                    {templateTick === 'saved' ? t('template.saved') : templateTick === 'loaded' ? t('template.loaded') : ''}
+                </span>
                 <div className="flex gap-2 items-center flex-wrap min-h-10 w-full sm:w-auto">
 
-                    {/* Template Save Section */}
+                    {/* Template Save Section. Both halves clip, to collapse to
+                        nothing in turn, so their buttons draw the focus ring
+                        inside their own box, where it isn't cut off. */}
                     <div className="flex items-center">
                         <div className={`overflow-hidden flex items-center ${
                             showSaveTemplateInput ? 'w-[14rem] sm:w-[13.5rem] opacity-100' : 'w-0 opacity-0'
@@ -1071,7 +1139,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <button
                                 type="button"
                                 onClick={handleSaveAsTemplate}
-                                className="p-1.5 ml-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20 rounded shrink-0"
+                                className="p-1.5 ml-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20 rounded shrink-0 focus-inset"
                                 aria-label={t('template.save_title')}
                             >
                                 <Check size={18} />
@@ -1079,7 +1147,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             <button
                                 type="button"
                                 onClick={() => { setShowSaveTemplateInput(false); setTemplateName(''); }}
-                                className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0"
+                                className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0 focus-inset"
                                 aria-label={t('btn.cancel')}
                             >
                                 <X size={18} />
@@ -1096,11 +1164,14 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                     setShowSaveTemplateInput(true);
                                     setShowTemplateMenu(false);
                                 }}
-                                className="p-2 text-[var(--text-muted)] hover:text-[var(--accent-ink)] rounded flex items-center justify-center"
+                                className="p-2 text-[var(--text-muted)] hover:text-[var(--accent-ink)] rounded flex items-center justify-center focus-inset"
                                 title={t('template.save_title')}
                                 aria-label={t('template.save_title')}
                             >
-                                <BookmarkPlus size={18} />
+                                <span className="inline-grid shrink-0 place-items-center" aria-hidden="true">
+                                    <BookmarkPlus size={18} data-hidden={templateTick === 'saved'} className="copy-glyph col-start-1 row-start-1" />
+                                    <Tick on={templateTick === 'saved'} size={18} className="col-start-1 row-start-1" />
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -1112,10 +1183,10 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             onClick={() => {
                                 setShowSaveTemplateInput(false);
                                 setShowTemplateMenu(false);
-                                showDialog('confirm', t('modal.dose.delete_confirm'), () => {
+                                showDialog('confirm', describeDose(eventToEdit), () => {
                                     onDelete(eventToEdit.id);
                                     onCancel();
-                                }, { danger: true });
+                                }, { danger: true, title: t('modal.dose.delete_confirm'), confirmLabel: t('btn.delete') });
                             }}
                             className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded flex items-center justify-center"
                             title={t('btn.delete')}

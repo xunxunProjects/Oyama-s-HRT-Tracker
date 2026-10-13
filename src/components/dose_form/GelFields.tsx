@@ -3,6 +3,7 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import { GEL_SITE_ORDER } from '../../../logic';
 import { useHRTMode } from '../../contexts/HRTModeContext';
 import CustomSelect from '../CustomSelect';
+import { refusedFieldProps } from './refusedField';
 
 interface GelFieldsProps {
     gelSite: number;
@@ -10,6 +11,9 @@ interface GelFieldsProps {
     e2Dose: string;
     onE2Change: (val: string) => void;
     bioMultiplier?: number;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const GelFields: React.FC<GelFieldsProps> = ({
@@ -17,7 +21,9 @@ const GelFields: React.FC<GelFieldsProps> = ({
     setGelSite,
     e2Dose,
     onE2Change,
-    bioMultiplier
+    bioMultiplier,
+    invalid,
+    errorId
 }) => {
     const { t } = useTranslation();
     const { isTransmasc } = useHRTMode();
@@ -53,6 +59,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
                 </label>
                 <input
                     id={doseId}
+                    {...refusedFieldProps(e2Dose, invalid, errorId)}
                     type="number" inputMode="decimal"
                     min="0"
                     step="0.001"

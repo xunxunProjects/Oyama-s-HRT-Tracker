@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import Tabs, { useSwitchAnimation } from '../Tabs';
+import { refusedFieldProps } from './refusedField';
 
 const MODE_ORDER = ['rate', 'dose'] as const;
 
@@ -13,6 +14,9 @@ interface PatchFieldsProps {
     onRawChange: (val: string) => void;
     patchWearDays: string;
     setPatchWearDays: (val: string) => void;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const inputCls = "w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -43,6 +47,8 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
     onRawChange,
     patchWearDays,
     setPatchWearDays,
+    invalid,
+    errorId,
 }) => {
     const { t } = useTranslation();
 
@@ -74,6 +80,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                     <label htmlFor={rateId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.patch_rate')}</label>
                     <input
                         id={rateId}
+                        {...refusedFieldProps(patchRate, invalid, errorId)}
                         type="number"
                         inputMode="decimal"
                         min="0"
@@ -108,6 +115,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                     </label>
                     <input
                         id={rawId}
+                        {...refusedFieldProps(rawDose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
