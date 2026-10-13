@@ -63,6 +63,11 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
     const now = stats?.server_time ?? Math.floor(Date.now() / 1000);
 
+    // Until figures have actually arrived (still loading, or the load failed)
+    // every number is a dash: a 0 here would read as "nobody uses this" and
+    // could be screenshotted as fact.
+    const fig = (v: number | undefined) => (stats ? (v ?? 0).toLocaleString() : '–');
+
     return (
         <div className="pb-32">
             {/* Header */}
@@ -76,9 +81,14 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
             <div className={PAGE_COLUMN}>
                 {error && (
-                    <p className="mb-4 text-sm text-[var(--danger)]">
-                        {error}
-                    </p>
+                    <div className="mt-2 mb-4 flex items-center justify-between gap-4">
+                        <p className="text-sm text-[var(--danger)]">
+                            {error}
+                        </p>
+                        <button onClick={() => load()} disabled={loading} className="btn-secondary shrink-0">
+                            {t('transparency.retry')}
+                        </button>
+                    </div>
                 )}
 
                 {/* Stats */}
@@ -88,7 +98,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                             {t('transparency.stat.total_users')}
                         </span>
                         <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
-                            {(stats?.total_users ?? 0).toLocaleString()}
+                            {fig(stats?.total_users)}
                         </span>
                     </div>
 
@@ -97,7 +107,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                             {t('transparency.stat.total_backups')}
                         </span>
                         <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
-                            {(stats?.total_backups ?? 0).toLocaleString()}
+                            {fig(stats?.total_backups)}
                         </span>
                     </div>
 
@@ -107,11 +117,11 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                                 {t('transparency.stat.new_users_24h')}
                             </p>
                             <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                {t('transparency.stat.new_users_7d').replace('{n}', String(stats?.new_users_7d ?? 0))}
+                                {t('transparency.stat.new_users_7d').replace('{n}', fig(stats?.new_users_7d))}
                             </p>
                         </div>
                         <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
-                            {(stats?.new_users_24h ?? 0).toLocaleString()}
+                            {fig(stats?.new_users_24h)}
                         </span>
                     </div>
 
@@ -121,11 +131,11 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                                 {t('transparency.stat.self_deleted')}
                             </p>
                             <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                {t('transparency.stat.delta_7d').replace('{n}', String(stats?.self_deleted_7d ?? 0))}
+                                {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.self_deleted_7d))}
                             </p>
                         </div>
                         <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
-                            {(stats?.self_deleted_count ?? 0).toLocaleString()}
+                            {fig(stats?.self_deleted_count)}
                         </span>
                     </div>
 
@@ -135,11 +145,11 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                                 {t('transparency.stat.admin_deleted')}
                             </p>
                             <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                {t('transparency.stat.delta_7d').replace('{n}', String(stats?.admin_deleted_7d ?? 0))}
+                                {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.admin_deleted_7d))}
                             </p>
                         </div>
                         <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
-                            {(stats?.admin_deleted_count ?? 0).toLocaleString()}
+                            {fig(stats?.admin_deleted_count)}
                         </span>
                     </div>
                 </div>
@@ -150,7 +160,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                 </h2>
 
                 <div className="divide-y divide-[var(--border)]">
-                    {(stats?.recent_registrations ?? []).length === 0 && !loading ? (
+                    {stats && (stats.recent_registrations ?? []).length === 0 ? (
                         <p className="py-6 text-sm text-center text-[var(--text-muted)]">
                             {t('transparency.recent.empty')}
                         </p>

@@ -418,6 +418,7 @@ export const TRANSLATIONS_BASE = {
 
         "transparency.title": "透明度中心",
         "transparency.load_error": "加载透明度数据失败。",
+        "transparency.retry": "重试",
         "transparency.last_updated": "最后更新于 {t}",
         "transparency.stat.total_users": "总用户数",
         "transparency.stat.total_backups": "云端备份数",
@@ -1197,6 +1198,7 @@ export const TRANSLATIONS_BASE = {
 
         "transparency.title": "Transparency",
         "transparency.load_error": "Failed to load transparency data.",
+        "transparency.retry": "Try again",
         "transparency.last_updated": "Last updated {t}",
         "transparency.stat.total_users": "Total users",
         "transparency.stat.total_backups": "Cloud backups",
@@ -2276,6 +2278,7 @@ const ZH_TW = {
     "gel.absorbed": "吸收量",
     "transparency.title": "透明度中心",
     "transparency.load_error": "載入透明度資料失敗。",
+    "transparency.retry": "重試",
     "transparency.last_updated": "最後更新於 {t}",
     "transparency.stat.total_users": "總使用者數",
     "transparency.stat.total_backups": "雲端備份數",
@@ -3107,6 +3110,7 @@ export const TRANSLATIONS = {
         "settings.group.about": "このアプリについて",
         "transparency.title": "透明性センター",
         "transparency.load_error": "透明性データの読み込みに失敗しました。",
+        "transparency.retry": "再試行",
         "transparency.last_updated": "最終更新：{t}",
         "transparency.stat.total_users": "総ユーザー数",
         "transparency.stat.total_backups": "クラウドバックアップ数",
@@ -4297,6 +4301,7 @@ export const TRANSLATIONS = {
         "gel.absorbed": "흡수량",
         "transparency.title": "투명성 센터",
         "transparency.load_error": "투명성 데이터를 불러오지 못했습니다.",
+        "transparency.retry": "다시 시도",
         "transparency.last_updated": "마지막 업데이트 {t}",
         "transparency.stat.total_users": "전체 사용자",
         "transparency.stat.total_backups": "클라우드 백업",
@@ -4642,6 +4647,7 @@ export const TRANSLATIONS = {
 
         "transparency.title": "Şeffaflık",
         "transparency.load_error": "Şeffaflık verileri yüklenemedi.",
+        "transparency.retry": "Tekrar dene",
         "transparency.last_updated": "Son güncelleme {t}",
         "transparency.stat.total_users": "Toplam kullanıcı",
         "transparency.stat.total_backups": "Bulut yedekleri",
