@@ -76,6 +76,28 @@ describe('oral estradiol at steady state', () => {
     });
 });
 
+describe('cyproterone acetate, single 100 mg dose', () => {
+    // Androcur 50 mg SmPC, section 5.2: "two cyproterone acetate 50 mg tablets
+    // gives maximum serum levels of about 285 ng/ml at about 3 hours"; terminal
+    // half-life 43.9 h. https://www.medicines.org.uk/emc/product/15996/smpc/print
+    // The model used to peak at about 67 ng/mL.
+    it('peaks within 1.5x of 285 ng/mL, 2 to 4 h after the dose', () => {
+        const t0 = NOW_H - 300;
+        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
+        const { cmax, tmaxH } = scan(sim, interpolateConcentration_CPA, t0, t0 + 24);
+        within(cmax, 285);
+        expect(tmaxH).toBeGreaterThanOrEqual(2);
+        expect(tmaxH).toBeLessThanOrEqual(4);
+    });
+
+    it('falls with a half-life within 1.5x of 43.9 h after the first day', () => {
+        const t0 = NOW_H - 300;
+        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
+        const c = (h: number) => interpolateConcentration_CPA(sim, t0 + h)!;
+        within((48 * Math.LN2) / Math.log(c(48) / c(96)), 43.9);
+    });
+});
+
 describe('transdermal estradiol patch', () => {
     // Climara label, Table 2 (abdomen, single application): Cavg 41 pg/mL at
     // 0.05 mg/day and 87 pg/mL at 0.1 mg/day.
@@ -145,18 +167,6 @@ describe('known gaps against published data', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
         within(interpolateConcentration_E2(sim, t0 + 8)!, 35);
-    });
-
-    // Androcur 50 mg SmPC, section 5.2: "two cyproterone acetate 50 mg tablets
-    // gives maximum serum levels of about 285 ng/ml at about 3 hours"; absolute
-    // bioavailability 88%. https://www.medicines.org.uk/emc/product/15996/smpc/print
-    // The model peaks at about 67 ng/mL. It puts the whole dose into the
-    // terminal-phase volume (14 L/kg) with F = 0.7, so total exposure is close
-    // (about 0.7x) but the peak is about 4x low.
-    it.fails('cyproterone 100 mg peaks within 1.5x of 285 ng/mL', () => {
-        const t0 = NOW_H - 300;
-        const sim = runSimulation([dose(Route.oral, Ester.CPA, 100, t0)], BW)!;
-        within(scan(sim, interpolateConcentration_CPA, t0, t0 + 24).cmax, 285);
     });
 
     // Nebido (testosterone undecanoate 1000 mg) label: first-injection "mean

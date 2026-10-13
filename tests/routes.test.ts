@@ -11,7 +11,7 @@ import {
     runSimulation,
     SimulationResult,
 } from '../logic';
-import { BW, NOW_H, VD_CPA_ML, VD_E2_ML, VD_T_ML, dose, regimen, relErr, scan, trapz } from './helpers';
+import { BW, NOW_H, VD_E2_ML, VD_T_ML, dose, regimen, relErr, scan, trapz } from './helpers';
 import { UpstreamCompound, upstreamE2Amount } from './reference/pkcoreUpstream';
 
 const E2 = interpolateConcentration_E2;
@@ -113,10 +113,11 @@ describe('oral', () => {
         expect(relErr(halfLife, Math.LN2 / 0.05)).toBeLessThan(0.02);
     });
 
-    it('CPA lands on the CPA curve in ng/mL with F = 0.7 and k = 0.017/h, and leaves E2 at zero', () => {
+    it('CPA lands on the CPA curve in ng/mL with F = 0.88 and the Androcur clearance, and leaves E2 at zero', () => {
+        // 3.5 mL/min/kg at 70 kg is 14.7 L/h.
         const sim = runSimulation([dose(Route.oral, Ester.CPA, 10, NOW_H - 3000)], BW)!;
         const auc = trapz(sim.timeH, sim.concPGmL_CPA);
-        expect(relErr(auc, (((10 * 0.7) / 0.017) * 1e6) / VD_CPA_ML)).toBeLessThan(0.005);
+        expect(relErr(auc, ((10 * 0.88) / (0.0035 * 60 * BW)) * 1000)).toBeLessThan(0.005);
         expect(Math.max(...sim.concPGmL_E2)).toBe(0);
         expect(CPA(sim, NOW_H - 2990)!).toBeGreaterThan(0);
     });

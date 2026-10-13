@@ -518,7 +518,7 @@ describe('cyproterone is modelled by mouth only', () => {
     });
 
     it('the bioavailability shown for it matches the model, and it has no estradiol factor', () => {
-        expect(getBioavailabilityMultiplier(Route.oral, Ester.CPA)).toBe(0.7);
+        expect(getBioavailabilityMultiplier(Route.oral, Ester.CPA)).toBe(0.88);
         expect(getBioavailabilityMultiplier(Route.injection, Ester.CPA)).toBe(0);
         expect(getToE2Factor(Ester.CPA)).toBe(1);
     });

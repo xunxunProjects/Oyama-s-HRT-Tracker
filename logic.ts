@@ -1518,8 +1518,29 @@ function _getTInjFF(ester: Ester): number {
     return 0.025;
 }
 
-// Fraction of an oral cyproterone acetate dose that reaches the circulation.
-const CPA_ORAL_F = 0.7;
+// Oral cyproterone acetate, from the Androcur 50 mg SmPC, section 5.2
+// (https://www.medicines.org.uk/emc/product/15996/smpc/print): bioavailability
+// 88%; two 50 mg tablets give "maximum serum levels of about 285 ng/ml at about
+// 3 hours"; terminal half-life 43.9 h; total clearance 3.5 ml/min/kg.
+//
+// Absorbed at ka, it then leaves the blood in two phases, so the response to
+// the absorbed amount, read through the 14 L/kg volume the CPA curve uses, is
+// (wFast·e^(−αt) + wSlow·e^(−βt)) / V. Its integral, wFast/α + wSlow/β, is V/CL
+// = 14 / (0.0035·60) = 66.7 h, which fixes total exposure at the label's
+// clearance. ka = 0.5/h and α = 0.25/h (a 2.8 h first phase) put the peak at 3 h,
+// and wFast is the weight that makes it 285 ng/mL; about a third of the exposure
+// is in the first phase. The model used to put the whole dose straight into the
+// slow phase with F = 0.7, which kept total exposure near (0.7x) but made the
+// 100 mg peak about 67 ng/mL. Diane-35's label reports a higher peak per mg at
+// 2 mg (15 ng/mL at 1.6 h), which a linear model fitted to 100 mg cannot follow.
+const CPA_ORAL = (() => {
+    const alpha = 0.25;
+    const beta = Math.LN2 / 43.9;
+    const wFast = 5.2786;
+    const exposureH = 14 / (0.0035 * 60);
+    return { F: 0.88, ka: 0.5, alpha, beta, wFast, wSlow: (exposureH - wFast / alpha) * beta };
+})();
+const CPA_ORAL_F = CPA_ORAL.F;
 
 export function getBioavailabilityMultiplier(
     route: Route,
@@ -1732,13 +1753,16 @@ function resolveParams(event: DoseEvent): PKParams {
 
         case Route.oral: {
             // === 针对 CPA 的特殊处理开始 ===
+            // Only ka and the slow phase's β matter here, for how long the dose
+            // counts (computeMaxLifetimeH); the curve itself is drawn from
+            // CPA_ORAL in PrecomputedEventModel.
             if (event.ester === Ester.CPA) {
                 return {
                     Frac_fast: 1.0,
-                    k1_fast: 1.0,
+                    k1_fast: CPA_ORAL.ka,
                     k1_slow: 0,
                     k2: 0,
-                    k3: 0.017,
+                    k3: CPA_ORAL.beta,
                     F: CPA_ORAL_F,
                     rateMGh: 0,
                     F_fast: CPA_ORAL_F,
@@ -1960,6 +1984,15 @@ class PrecomputedEventModel {
                 break;
             case Route.gel:
             case Route.oral:
+                if (event.route === Route.oral && event.ester === Ester.CPA) {
+                    const { F, ka, alpha, beta, wFast, wSlow } = CPA_ORAL;
+                    this.model = (timeH: number) => {
+                        const tau = timeH - startTime;
+                        if (tau < 0) return 0;
+                        return _analytic2C(tau, dose, F * wFast, ka, alpha) + _analytic2C(tau, dose, F * wSlow, ka, beta);
+                    };
+                    break;
+                }
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
