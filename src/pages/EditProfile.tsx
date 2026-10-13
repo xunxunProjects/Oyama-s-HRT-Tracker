@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { Loader2 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -10,12 +11,16 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [username, setUsername] = useState(user?.username || '');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const id = useId();
 
-    const on = 'text-[var(--text)]';
     const muted = 'text-[var(--text-muted)]';
 
-    const handleSubmit = async () => {
-        if (!username.trim()) return;
+    const canSave = !!username.trim() && !isLoading && username !== user?.username;
+
+    // A form, so Enter in the field saves.
+    const handleSubmit = async (ev: React.FormEvent) => {
+        ev.preventDefault();
+        if (!canSave) return;
         setIsLoading(true);
         setError('');
         try {
@@ -35,31 +40,35 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
                 <p className={`text-sm leading-relaxed ${muted}`}>{t('account.edit_profile_desc')}</p>
 
-                {error && (
-                    <div className="p-3 text-[var(--danger)] text-sm rounded-lg">
-                        {error}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {error && (
+                        <p id={`${id}-error`} role="alert" className="text-sm text-[var(--danger)]">{error}</p>
+                    )}
+
+                    <div>
+                        <label htmlFor={`${id}-username`} className={`block text-xs font-medium mb-1.5 ${muted}`}>{t('account.new_username')}</label>
+                        <input
+                            id={`${id}-username`}
+                            type="text"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            className="input-base"
+                            placeholder={t('account.new_username')}
+                            autoComplete="username"
+                            aria-describedby={error ? `${id}-error` : undefined}
+                            autoFocus
+                        />
                     </div>
-                )}
 
-                <div>
-                    <label className={`block text-xs font-medium mb-1.5 ${muted}`}>{t('account.new_username')}</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                        className={`w-full px-4 py-3 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg focus:border-[var(--accent-ink)] outline-none transition-colors ${on} placeholder-[var(--text-muted)]`}
-                        placeholder={t('account.new_username')}
-                        autoFocus
-                    />
-                </div>
-
-                <button
-                    onClick={handleSubmit}
-                    disabled={!username.trim() || isLoading || username === user?.username}
-                    className="btn-primary w-full"
-                >
-                    {isLoading ? '...' : t('btn.save')}
-                </button>
+                    <button
+                        type="submit"
+                        disabled={!canSave}
+                        className="btn-primary w-full"
+                    >
+                        {isLoading && <Loader2 size={16} className="animate-spin" />}
+                        {t('btn.save')}
+                    </button>
+                </form>
             </div>
         </div>
     );

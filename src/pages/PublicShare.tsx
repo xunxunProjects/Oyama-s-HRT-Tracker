@@ -23,7 +23,7 @@ const formatWearDays = (days: number): string =>
     (Math.round(days * 100) / 100).toString();
 
 const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
-    const { lang } = useTranslation();
+    const { lang, t } = useTranslation();
     const copy = getShareCopy(lang);
     const [state, setState] = useState<ShareState>({ kind: 'loading' });
     const [password, setPassword] = useState('');
@@ -202,7 +202,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                                     type="button"
                                     onClick={() => setShowPassword(value => !value)}
                                     className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    aria-label={showPassword ? t('auth.hide_password') : t('auth.show_password')}
                                 >
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                 </button>
