@@ -118,7 +118,11 @@ const History: React.FC<HistoryProps> = ({
     onDeleteEvents,
     onSaveTemplate,
     onDeleteTemplate,
-    groupedEvents
+    groupedEvents,
+    events,
+    quickDoses,
+    onAddQuickDose,
+    onDeleteQuickDose,
 }) => {
     const { showDialog } = useDialog();
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -172,6 +176,14 @@ const History: React.FC<HistoryProps> = ({
         return wornH;
     }, [allEvents]);
 
+    // Batch add is a choice for one save, not a mode the form stays in: left
+    // on, the next single dose quietly went in seven times. Every way the form
+    // closes turns it off; the interval and count are kept for next time.
+    const closeQuickAdd = () => {
+        setIsQuickAddOpen(false);
+        setBatchOn(false);
+    };
+
     const handleQuickSave = (e: DoseEvent) => {
         const interval = parseFloat(batchIntervalDays);
         const count = Math.min(MAX_BATCH_COUNT, Math.floor(parseFloat(batchCount)));
@@ -189,14 +201,14 @@ const History: React.FC<HistoryProps> = ({
         } else {
             onSaveEvent(e);
         }
-        setIsQuickAddOpen(false);
+        closeQuickAdd();
     };
 
     const enterSelectMode = () => {
         setSelectMode(true);
         setSelectedIds(new Set());
         setEditingId(null);
-        if (isQuickAddOpen) setIsQuickAddOpen(false);
+        if (isQuickAddOpen) closeQuickAdd();
     };
 
     const exitSelectMode = () => {
@@ -413,7 +425,7 @@ const History: React.FC<HistoryProps> = ({
                         )}
                         <button
                             type="button"
-                            onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                            onClick={() => (isQuickAddOpen ? closeQuickAdd() : setIsQuickAddOpen(true))}
                             aria-expanded={isQuickAddOpen}
                             className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
                         >
@@ -467,22 +479,31 @@ const History: React.FC<HistoryProps> = ({
                             key={isQuickAddOpen ? 'open' : 'closed'}
                             eventToEdit={null}
                             onSave={handleQuickSave}
-                            onCancel={() => setIsQuickAddOpen(false)}
+                            onCancel={closeQuickAdd}
                             onDelete={() => { }}
                             templates={doseTemplates}
                             onSaveTemplate={onSaveTemplate}
                             onDeleteTemplate={onDeleteTemplate}
                             isInline={true}
-                            events={allEvents}
+                            events={events ?? allEvents}
+                            quickDoses={quickDoses}
+                            onAddQuickDose={onAddQuickDose}
+                            onDeleteQuickDose={onDeleteQuickDose}
                         />
                     </div>
                 </div>
             </div>
 
-            {groupedEvents.length === 0 && (
-                <div className={`${PAGE_COLUMN} flex flex-col items-center text-center py-20 text-[var(--text-muted)]`}>
+            {/* The same empty state the Overview has, ending in the one thing
+                to do here. Not while the form is open: it is already doing it. */}
+            {groupedEvents.length === 0 && !isQuickAddOpen && (
+                <div className={`${PAGE_COLUMN} flex flex-col items-center text-center py-16`}>
                     <LogDoodle className="w-24 h-auto mb-6" />
-                    <p className="text-sm">{t('timeline.empty')}</p>
+                    <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
+                    <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
+                    <button type="button" onClick={() => setIsQuickAddOpen(true)} className="btn-primary">
+                        {t('home.empty_cta')}
+                    </button>
                 </div>
             )}
 
