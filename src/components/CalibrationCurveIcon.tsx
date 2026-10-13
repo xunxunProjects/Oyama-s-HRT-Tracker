@@ -10,10 +10,16 @@ interface CalibrationCurveIconProps extends React.SVGProps<SVGSVGElement> {
  * with an × cross marker beside the dashed curve representing a measured
  * lab data point. Drawn in the lucide style (24×24, currentColor, round
  * caps) so it sits seamlessly among the other nav icons.
+ *
+ * A caller's className is added to `lucide`, not put in its place: that class
+ * is what scales every icon with --ui-scale, and the sidebar passing its own
+ * classes left this one 2px smaller than its neighbours and its label out of
+ * line with theirs.
  */
 const CalibrationCurveIcon: React.FC<CalibrationCurveIconProps> = ({
     size = 24,
     strokeWidth = 2,
+    className,
     ...props
 }) => (
     <svg
@@ -26,7 +32,7 @@ const CalibrationCurveIcon: React.FC<CalibrationCurveIconProps> = ({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="lucide"
+        className={className ? `lucide ${className}` : 'lucide'}
         {...props}
     >
         {/* Solid model curve — starts high, bends down through the dashed curve */}

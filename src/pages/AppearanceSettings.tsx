@@ -30,6 +30,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ theme, setTheme
                     <button
                         key={value}
                         onClick={() => setTheme(value)}
+                        aria-pressed={theme === value}
                         className="w-full flex items-center justify-between py-4 border-b border-[var(--border)] last:border-b-0 text-start"
                     >
                         <span className={`text-[0.9375rem] ${theme === value

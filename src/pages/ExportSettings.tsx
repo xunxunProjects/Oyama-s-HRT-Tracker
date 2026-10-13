@@ -10,7 +10,8 @@ interface ExportSettingsProps {
     labResults: LabResult[];
     weight: number;
     onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
-    onQuickExport: () => void;
+    /** Resolves to false when the clipboard write failed (see ExportSection). */
+    onQuickExport: () => void | boolean | Promise<void | boolean>;
     onBack: () => void;
 }
 

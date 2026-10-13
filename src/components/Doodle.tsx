@@ -78,6 +78,23 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M31 23.2 C 28.4 22.8, 25.6 23.2, 24.2 24.4 C 23 25.8, 22.9 28.4, 23.2 31" w={1.5} />
         </g>
     ),
+    // The same patch coming off: smaller, tipped the other way and lifted
+    // clear, its cut corner curled right back, and a loose stroke underneath
+    // where it came away. The wash is the backing the curl turns up. Drawn
+    // from the one above so that on and off read as a pair down the list.
+    [Route.patchRemove]: (
+        <>
+            <g transform="rotate(14 20 15)">
+                <path className={WASH} stroke="none" d="M29 14.6 C 25.4 13.6, 21.6 14, 20 16.2 C 18.6 18.6, 18.9 21.4, 19.5 24.1 C 22.6 21, 25.8 17.8, 29 14.6 Z" />
+                {/* Outline, cut across the corner the curl starts from */}
+                <Line d="M15.4 6 C 18.4 5.7, 21.6 6.4, 24.8 6 C 27.5 5.9, 29.1 7.6, 29 10.2 C 28.7 11.8, 29.1 13.2, 29 14.6 C 25.8 17.8, 22.6 21, 19.5 24.1 C 18 24.2, 16.6 23.7, 15.2 24 C 12.6 24.1, 10.9 22.4, 11 19.8 C 11.4 16.6, 10.7 13.4, 11 10.2 C 10.9 7.6, 12.5 5.9, 15.7 6" />
+                {/* The corner, curled back over itself */}
+                <Line d="M29 14.6 C 25.4 13.6, 21.6 14, 20 16.2 C 18.6 18.6, 18.9 21.4, 19.5 24.1" w={1.5} />
+            </g>
+            {/* Where it came away */}
+            <Line d="M13.2 33.6 C 16.6 32.8, 20.6 33.8, 24.6 32.9 C 25.8 32.7, 26.8 32.8, 27.8 32.5" w={1.5} />
+        </>
+    ),
 
     // ── The intro's rows ──────────────────────────────────────────────────
 

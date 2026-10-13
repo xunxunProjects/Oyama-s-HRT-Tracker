@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route, Ester, isTestosteroneEster, isUnmodelledDrug } from '../../../logic';
+import { refusedFieldProps } from './refusedField';
 
 interface InjectionFieldsProps {
     ester: Ester;
@@ -9,6 +10,9 @@ interface InjectionFieldsProps {
     onRawChange: (val: string) => void;
     onE2Change: (val: string) => void;
     route: Route;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const InjectionFields: React.FC<InjectionFieldsProps> = ({
@@ -17,20 +21,26 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
     e2Dose,
     onRawChange,
     onE2Change,
-    route
+    route,
+    invalid,
+    errorId
 }) => {
     const { t } = useTranslation();
     const isT = isTestosteroneEster(ester);
     const equivLabelKey = isT ? 'field.dose_t' : 'field.dose_e2';
     // Cyproterone and the unmodelled drugs have no estradiol equivalent: their own dose is all there is.
     const rawOnly = ester === Ester.CPA || isUnmodelledDrug(ester);
+    const rawId = React.useId();
+    const e2Id = React.useId();
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(ester !== Ester.E2) && (
                 <div className={`space-y-2 ${(ester === Ester.EV && (route === Route.injection)) || rawOnly ? 'col-span-2' : ''}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                     <input
+                        id={rawId}
+                        {...refusedFieldProps(rawDose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -43,10 +53,12 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
             )}
             {!(ester === Ester.EV && route === Route.injection) && !rawOnly && (
                 <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                         {t(equivLabelKey)}
                     </label>
                     <input
+                        id={e2Id}
+                        {...refusedFieldProps(e2Dose, invalid, errorId)}
                         type="number" inputMode="decimal"
                         min="0"
                         step="0.001"
@@ -60,8 +72,9 @@ const InjectionFields: React.FC<InjectionFieldsProps> = ({
 
             {(ester === Ester.EV && route === Route.injection) && (
                 <div className="col-span-2">
+                    {/* No unit after the number: the label already ends in (mg). */}
                     <p className="text-xs text-[var(--text-muted)] mt-1 pl-1">
-                        {t(equivLabelKey)}: {e2Dose ? `${e2Dose} mg` : '--'}
+                        {t(equivLabelKey)}: {e2Dose || '--'}
                     </p>
                 </div>
             )}

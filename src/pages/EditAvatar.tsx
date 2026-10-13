@@ -68,10 +68,10 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
             <PageHeader onBack={onBack} title={t('avatar.title')} />
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>
+                {/* On the same edge as everything under it: the padded box
+                    it used to sit in indented the red text off that line. */}
                 {error && (
-                    <div className="p-3 text-[var(--danger)] text-sm rounded-lg">
-                        {error}
-                    </div>
+                    <p role="alert" className="text-sm text-[var(--danger)]">{error}</p>
                 )}
 
                 {!imageSrc ? (

@@ -8,20 +8,23 @@ import React from 'react';
  * same way wherever it sits.
  *
  * Give it `label` when nothing on screen names it, or `id` when a <label
- * htmlFor> beside it already does.
+ * htmlFor> beside it already does. `describedBy` points at a line that says
+ * what the switch does, read after its name.
  */
 const Switch: React.FC<{
     checked: boolean;
     onChange: (next: boolean) => void;
     label?: string;
     id?: string;
-}> = ({ checked, onChange, label, id }) => (
+    describedBy?: string;
+}> = ({ checked, onChange, label, id, describedBy }) => (
     <button
         id={id}
         type="button"
         role="switch"
         aria-checked={checked}
         aria-label={label}
+        aria-describedby={describedBy}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex switch-track h-[26px] w-11 shrink-0 items-center rounded-full ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
     >

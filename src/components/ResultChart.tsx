@@ -15,6 +15,46 @@ const DAY = 24 * HOUR;
 
 type RangeKey = '7d' | '30d' | 'all';
 
+/**
+ * The midnight that starts the day `ms` falls in, and that day's number
+ * counted from 1970-01-01, in `timeZone` (a shared chart's) or the device's
+ * own. What the x-axis ticks step along.
+ */
+const dayOf = (ms: number, timeZone?: string): { start: number; n: number } => {
+    if (!timeZone) {
+        const d = new Date(ms);
+        d.setHours(0, 0, 0, 0);
+        return { start: d.getTime(), n: Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) };
+    }
+    const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
+    });
+    // The date on the wall clock at `at`, as a day number, and how long the
+    // clock says it has been since that date's midnight.
+    const wall = (at: number) => {
+        const parts = fmt.formatToParts(new Date(at));
+        const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(p => p.type === type)?.value ?? 0);
+        return {
+            n: Math.round(Date.UTC(get('year'), get('month') - 1, get('day')) / DAY),
+            since: ((get('hour') * 60 + get('minute')) * 60 + get('second')) * 1000 + (at % 1000),
+        };
+    };
+    const here = wall(ms);
+    // Stepping back by the clock's time since midnight is out by the size of
+    // any clock change earlier that day: after a spring-forward it lands on
+    // 23:00 the day before, after a fall-back on 01:00. Reading the clock
+    // again where it landed and taking up the difference finds the midnight
+    // itself.
+    const guess = ms - here.since;
+    const there = wall(guess);
+    let start = there.n === here.n ? guess - there.since : guess + DAY - there.since;
+    // A clock that goes back across midnight (Cuba's does) shows 00:00
+    // twice, and the day starts at the first of them.
+    const before = wall(start - 1);
+    if (before.n === here.n) start -= 1 + before.since;
+    return { start, n: here.n };
+};
+
 // Pick a "nice" rounding step (1/2/5 × 10^n) near the requested magnitude.
 const niceStep = (raw: number): number => {
     if (!(raw > 0)) return 1;
@@ -93,7 +133,11 @@ const useEasedPair = (target: [number, number], instant: boolean): [number, numb
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [target[0], target[1], instant]);
 
-    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+    // Clearing the id as well as cancelling the frame: StrictMode in
+    // development runs this cleanup and then the effect above again, which
+    // took the stale id for an ease in flight and never started one, so the
+    // drawn window stayed on 7d whatever range was picked.
+    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); rafRef.current = 0; }, []);
 
     return shown;
 };
@@ -205,6 +249,8 @@ const ResultChart = ({
     const [panOffset, setPanOffset] = useState(0); // ms the window is dragged from its centered base
     const [dragging, setDragging] = useState(false);
     const dragRef = useRef<{ startX: number; startY: number; startOffset: number; moved: boolean; pointerId: number } | null>(null);
+    // Where the current press went down, pan or no pan, so lifting can tell a tap from a swipe.
+    const pressRef = useRef<{ x: number; y: number } | null>(null);
 
     const selectRange = (r: RangeKey) => { setRange(r); setPanOffset(0); };
 
@@ -524,17 +570,35 @@ const ResultChart = ({
         return d;
     };
 
+    // Ticks on the start of a day, a whole number of days apart, so equal
+    // gaps on the axis are equal stretches of time. Evenly spaced moments
+    // labelled with whatever day they fell in skipped a day here and there
+    // (9, 12, 14, 16), which read as a gap in the record. Steps count from a
+    // fixed day (weeks from a Monday), so panning slides the ticks along
+    // rather than reshuffling which days get one.
     const xTicks = useMemo(() => {
         if (plotW <= 0) return [];
-        const count = Math.max(2, Math.min(6, Math.floor(plotW / (90 * ui))));
+        const span = (t1 - t0) / DAY;
+        // The shortest step that keeps neighbouring dates a label and a gap
+        // apart. Rationing the step by a label count instead left every range
+        // on a phone with two dates, and a 7-day desktop axis with three.
+        const minGap = 64 * ui;
+        const step = [1, 2, 3, 7, 14, 28, 56, 91, 182, 364].find(s => (plotW * s) / span >= minGap)
+            ?? Math.ceil((span * minGap) / plotW);
+        const phase = step % 7 === 0 ? 3 : 0;
         const seen = new Set<string>();
         const out: { time: number; label: string }[] = [];
-        for (let i = 0; i <= count; i++) {
-            const time = t0 + ((t1 - t0) * i) / count;
-            const label = formatDate(new Date(time), lang, timeZone);
+        // Half a day past a midnight, then back to it, so a 23- or 25-hour
+        // day at a clock change still lands on the right date.
+        let day = dayOf(t0, timeZone);
+        if (day.start < t0) day = dayOf(day.start + 1.5 * DAY, timeZone);
+        const ahead = (step - ((day.n + phase) % step)) % step;
+        if (ahead) day = dayOf(day.start + (ahead + 0.5) * DAY, timeZone);
+        for (; day.start <= t1; day = dayOf(day.start + (step + 0.5) * DAY, timeZone)) {
+            const label = formatDate(new Date(day.start), lang, timeZone);
             if (seen.has(label)) continue;
             seen.add(label);
-            out.push({ time, label });
+            out.push({ time: day.start, label });
         }
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -584,6 +648,7 @@ const ResultChart = ({
     };
 
     const onPointerDown = (e: React.PointerEvent) => {
+        pressRef.current = { x: e.clientX, y: e.clientY };
         if (!canPan) return;
         dragRef.current = { startX: e.clientX, startY: e.clientY, startOffset: panOffset, moved: false, pointerId: e.pointerId };
     };
@@ -603,7 +668,11 @@ const ResultChart = ({
                     // Capture so the pan keeps tracking even if the finger leaves the SVG.
                     try { e.currentTarget.setPointerCapture(drag.pointerId); } catch { /* ignore */ }
                 } else if (Math.abs(dy) > 6) {
-                    dragRef.current = null; // vertical scroll — bail out of the drag
+                    // Vertical scroll: bail out of the drag, and drop the press
+                    // too, so the moves until the browser takes over don't
+                    // scrub a readout (see onPointerUp).
+                    dragRef.current = null;
+                    pressRef.current = null;
                     return;
                 }
             }
@@ -614,6 +683,7 @@ const ResultChart = ({
             }
             return;
         }
+        if (e.pointerType === 'touch' && !pressRef.current) return;
         updateHover(e.clientX);
     };
 
@@ -621,10 +691,54 @@ const ResultChart = ({
         const drag = dragRef.current;
         if (drag && e) { try { e.currentTarget.releasePointerCapture(drag.pointerId); } catch { /* ignore */ } }
         dragRef.current = null;
+        pressRef.current = null;
         if (dragging) setDragging(false);
     };
 
-    const onPointerLeave = (e: React.PointerEvent) => { endDrag(e); setHover(null); };
+    // A finger has no hover: every press on a pannable window starts a drag,
+    // which keeps the readout away, and the "leave" a lifting finger fires
+    // cleared whatever was left. So on touch the chart could only be looked
+    // at. Now a tap that didn't turn into a pan or a scroll puts the readout
+    // where it landed, and it stays until the next press outside the plot,
+    // the way the heatmap's tooltip does. A tap on a dose marker that opens
+    // the dose does only that; where nothing opens (a shared chart) it reads
+    // the level like any other tap.
+    const onPointerUp = (e: React.PointerEvent) => {
+        const press = pressRef.current;
+        const panned = !!dragRef.current?.moved;
+        endDrag(e);
+        if (e.pointerType === 'mouse' || !press || panned) return;
+        if (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10) return;
+        if (onPointClick && (e.target as Element).closest?.('[data-dose-marker]')) { setHover(null); return; }
+        updateHover(e.clientX);
+    };
+
+    // A press that turns into a page scroll ends in a cancel, not a lift, and
+    // the leave that used to clear the readout is now mouse-only, so the
+    // cancel clears it: scrolling past the chart leaves no readout behind.
+    const onPointerCancel = (e: React.PointerEvent) => {
+        endDrag(e);
+        if (e.pointerType !== 'mouse') setHover(null);
+    };
+
+    // Only a mouse leaving means "done looking"; see onPointerUp.
+    const onPointerLeave = (e: React.PointerEvent) => {
+        endDrag(e);
+        if (e.pointerType === 'mouse') setHover(null);
+    };
+
+    // A tapped readout is dismissed by the next press anywhere outside the
+    // plot. Capture phase, so a press on the plot itself is seen here first
+    // and left alone for the tap above to move the readout.
+    const hovering = hover != null;
+    useEffect(() => {
+        if (!hovering || !plotEl) return;
+        const dismiss = (e: PointerEvent) => {
+            if (!plotEl.contains(e.target as Node)) setHover(null);
+        };
+        window.addEventListener('pointerdown', dismiss, true);
+        return () => window.removeEventListener('pointerdown', dismiss, true);
+    }, [hovering, plotEl]);
 
     const hoverPt = hover != null ? data[hover] : null;
     const showHover = !dragging && hoverPt != null && hoverPt.t >= t0 && hoverPt.t <= t1 && plotW > 0;
@@ -642,6 +756,16 @@ const ResultChart = ({
     if (!sim || sim.timeH.length === 0) {
         return <div className="h-72 md:h-96" aria-hidden="true" />;
     }
+
+    // The target band as drawn, clamped to the plot; null while it is entirely off-screen.
+    const band = (() => {
+        if (!primaryTarget) return null;
+        const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
+        const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
+        if (yLo - yHi < 0.5) return null;
+        const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
+        return { yHi, yLo, lowEdge: inView(YP(primaryTarget.low)), highEdge: inView(YP(primaryTarget.high)) };
+    })();
 
     return (
         <div className="w-full">
@@ -706,8 +830,8 @@ const ResultChart = ({
                         className="block"
                         onPointerDown={onPointerDown}
                         onPointerMove={onPointerMove}
-                        onPointerUp={endDrag}
-                        onPointerCancel={endDrag}
+                        onPointerUp={onPointerUp}
+                        onPointerCancel={onPointerCancel}
                         onPointerLeave={onPointerLeave}
                         style={{ touchAction: 'pan-y', cursor: canPan ? (dragging ? 'grabbing' : 'grab') : 'default' }}
                     >
@@ -721,22 +845,13 @@ const ResultChart = ({
                         </defs>
 
                         {/* Target reference band — quiet wash marking the typical range */}
-                        {primaryTarget && (() => {
-                            const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
-                            const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
-                            if (yLo - yHi < 0.5) return null; // band entirely off-screen
-                            const rawLo = YP(primaryTarget.low);
-                            const rawHi = YP(primaryTarget.high);
-                            const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
-                            return (
-                                <g className="chart-appear" style={{ animationDelay: '120ms' }}>
-                                    <rect x={mL} y={yHi} width={plotW} height={yLo - yHi} fill={c.primary} opacity={0.06} />
-                                    {inView(rawLo) && <line x1={mL} y1={yLo} x2={mL + plotW} y2={yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    {inView(rawHi) && <line x1={mL} y1={yHi} x2={mL + plotW} y2={yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
-                                    <text x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, yHi + 14 * ui)} fontSize={axisFont} fill={c.axis}>{t('chart.target')}</text>
-                                </g>
-                            );
-                        })()}
+                        {band && (
+                            <g className="chart-appear" style={{ animationDelay: '120ms' }}>
+                                <rect x={mL} y={band.yHi} width={plotW} height={band.yLo - band.yHi} fill={c.primary} opacity={0.06} />
+                                {band.lowEdge && <line x1={mL} y1={band.yLo} x2={mL + plotW} y2={band.yLo} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                                {band.highEdge && <line x1={mL} y1={band.yHi} x2={mL + plotW} y2={band.yHi} stroke={c.faint} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />}
+                            </g>
+                        )}
 
                         {/* Horizontal grid + primary axis labels. The outgoing
                             set is kept alongside the incoming one and both are
@@ -816,6 +931,23 @@ const ResultChart = ({
                                 )}
                             </g>
 
+                            {/* The band's name, over the curves rather than under
+                                them with the wash: the curve crosses the band's top
+                                edge right where it sits, and drew through it. The
+                                halo in the page colour keeps it legible there; the
+                                marks drawn after it still sit on top. */}
+                            {band && (
+                                <text
+                                    className="chart-appear" style={{ animationDelay: '120ms' }}
+                                    x={mL + 4 * ui} y={Math.min(mT + plotH - 3 * ui, band.yHi + 14 * ui)}
+                                    fontSize={axisFont} fill={c.axis}
+                                    paintOrder="stroke" stroke={c.dot} strokeWidth={3 * ui} strokeLinejoin="round"
+                                    pointerEvents="none"
+                                >
+                                    {t('chart.target')}
+                                </text>
+                            )}
+
                             {/* "Now" line + dot */}
                             {now >= t0 && now <= t1 && (
                                 <line className="chart-appear" style={{ animationDelay: sweepDelay(X(now)) }} x1={X(now)} y1={mT} x2={X(now)} y2={mT + plotH} stroke={c.axis} strokeWidth={1} strokeDasharray="2 4" />
@@ -835,6 +967,7 @@ const ResultChart = ({
                                 return (
                                     <g
                                         key={`m-${i}`}
+                                        data-dose-marker=""
                                         className={`chart-mark${onPointClick ? ' cursor-pointer' : ''}`}
                                         style={{ animationDelay: sweepDelay(cx) }}
                                         onClick={() => onPointClick?.(m.event)}

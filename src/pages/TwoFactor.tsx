@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
 import { Loader2, Check, AlertCircle, Eye, EyeOff, Fingerprint, X, Plus, KeyRound, Download, RefreshCw } from 'lucide-react';
@@ -81,6 +81,7 @@ const BackupCodesBlock: React.FC<{
 const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusChange, onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
+    const id = useId();
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('totp');
     const tabAnim = useSwitchAnimation(activeTab, TAB_ORDER);
@@ -388,8 +389,10 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setPasskeyError(null);
             setPwError(null);
             setPwPrompt({ kind: 'passkey', passkey: pk });
-        }, { danger: true });
+        }, { danger: true, confirmLabel: t('btn.delete') });
     };
+
+    const lowOnCodes = backupRemaining !== null && backupRemaining <= 2;
 
     return (
         <div className="relative pb-32">
@@ -399,7 +402,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             <div className={PAGE_COLUMN}>
                 <Tabs<ActiveTab>
                     tabs={[
-                        { id: 'totp', label: 'TOTP', icon: <KeyRound size={14} strokeWidth={1.5} /> },
+                        // Named for what the person installs, as every line under
+                        // it does; "TOTP" was the only place the jargon showed.
+                        { id: 'totp', label: t('account.2fa_app'), icon: <KeyRound size={14} strokeWidth={1.5} /> },
                         { id: 'passkey', label: t('account.passkey'), icon: <Fingerprint size={14} strokeWidth={1.5} /> },
                     ]}
                     value={activeTab}
@@ -427,14 +432,14 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                 <form onSubmit={handleDisable} className="space-y-4">
                                     <ErrLine msg={disableError} />
                                     <div>
-                                        <label className={labelCls}>{t('account.current_password')}</label>
-                                        <input type="password" value={disablePassword} onChange={e => setDisablePassword(e.target.value)}
+                                        <label htmlFor={`${id}-disable-password`} className={labelCls}>{t('account.current_password')}</label>
+                                        <input id={`${id}-disable-password`} type="password" value={disablePassword} onChange={e => setDisablePassword(e.target.value)}
                                             className={inputCls} required autoComplete="current-password"
                                             style={{ fontSize: '16px' }} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>{t('account.2fa_code')}</label>
-                                        <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                                        <label htmlFor={`${id}-disable-code`} className={labelCls}>{t('account.2fa_code')}</label>
+                                        <input id={`${id}-disable-code`} type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
                                             value={disableCode} onChange={e => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                             className={`${inputCls} tracking-[0.4em] font-mono text-center`}
                                             placeholder="000000" required autoComplete="one-time-code"
@@ -471,8 +476,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                 {step === 'scan' && (
                                     <div className="space-y-4">
                                         <ErrLine msg={error} />
+                                        {/* The apps are named in this line already; a second
+                                            line listing them again only said it twice. */}
                                         <p className={`text-sm ${muted}`}>{t('account.2fa_scan_qr')}</p>
-                                        <p className={`text-xs ${muted} opacity-70`}>{t('account.2fa_recommended_apps')}</p>
                                         {setupLoading ? (
                                             <div className="flex justify-center py-8"><Loader2 className={`animate-spin ${muted}`} size={24} /></div>
                                         ) : uri ? (
@@ -487,8 +493,32 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <p className={`text-xs ${muted} mb-1.5`}>{t('account.2fa_secret')}</p>
                                                 <div className={`flex items-center gap-2 bg-[var(--surface-hover)] rounded-md px-3 py-2`}>
                                                     <code className={`flex-1 text-xs font-mono ${on} tracking-widest break-all ${!secretVisible ? 'blur-sm select-none' : ''}`}>{secret}</code>
-                                                    <button onClick={() => setSecretVisible(v => !v)} className={muted}>{secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}</button>
-                                                    <button onClick={handleCopySecret} className={secretCopied ? on : muted}><CopyTick copied={secretCopied} size={14} strokeWidth={1.5} /></button>
+                                                    {/* tap-target makes a hit area tall, not wide, so
+                                                        each icon carries its own padding, as the passkey
+                                                        X below does. The two sit in one group so their
+                                                        areas meet instead of overlapping, and the
+                                                        group's negative margin keeps the row's height
+                                                        and the icons where they were drawn. */}
+                                                    <div className="flex shrink-0 -m-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSecretVisible(v => !v)}
+                                                            aria-label={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
+                                                            title={secretVisible ? t('account.2fa_hide_secret') : t('account.2fa_show_secret')}
+                                                            className={`tap-target p-1.5 rounded-md ${muted}`}
+                                                        >
+                                                            {secretVisible ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCopySecret}
+                                                            aria-label={t('btn.copy')}
+                                                            title={t('btn.copy')}
+                                                            className={`tap-target p-1.5 rounded-md ${secretCopied ? on : muted}`}
+                                                        >
+                                                            <CopyTick copied={secretCopied} size={14} strokeWidth={1.5} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -503,8 +533,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         <p className={`text-sm ${muted}`}>{t('account.2fa_verify')}</p>
                                         <ErrLine msg={error} />
                                         <div>
-                                            <label className={labelCls}>{t('account.2fa_code')}</label>
-                                            <input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                                            <label htmlFor={`${id}-code`} className={labelCls}>{t('account.2fa_code')}</label>
+                                            <input id={`${id}-code`} type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
                                                 value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                                 className={`${inputCls} text-center tracking-[0.6em] font-mono text-xl py-3`}
                                                 placeholder="000000" autoComplete="one-time-code" autoFocus
@@ -580,9 +610,12 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             <p className={`text-xs ${muted}`}>{formatRelative(pk.created_at, Math.floor(Date.now() / 1000), t)}</p>
                                         </div>
                                         <button
+                                            type="button"
                                             onClick={() => handleDeletePasskey(pk)}
                                             disabled={deleteLoadingId === pk.id}
-                                            className={`shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
+                                            aria-label={t('btn.delete')}
+                                            title={t('btn.delete')}
+                                            className={`tap-target shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {deleteLoadingId === pk.id ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" /> : <X size={14} strokeWidth={1.5} />}
                                         </button>
@@ -610,10 +643,17 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             <KeyRound size={15} strokeWidth={1.5} className={muted} />
                             <h3 className={`text-sm font-medium ${on}`}>{t('account.backup_codes')}</h3>
                         </div>
-                        <p className={`text-xs ${muted} mb-4`}>
-                            {backupRemaining !== null
-                                ? t('account.backup_codes_remaining').replace('{n}', String(backupRemaining))
-                                : t('account.backup_codes_none')}
+                        {/* Two or fewer left is the time to make more, before a
+                            lost phone meets an empty list. The count turns amber
+                            and, from one up, says why in words, so colour is
+                            never the whole message. */}
+                        <p className={`text-xs mb-4 ${lowOnCodes ? 'font-medium text-[var(--warning)]' : muted}`}>
+                            {backupRemaining === null
+                                ? t('account.backup_codes_none')
+                                : backupRemaining === 1
+                                    ? t('account.backup_codes_remaining_one')
+                                    : t('account.backup_codes_remaining').replace('{n}', String(backupRemaining))}
+                            {lowOnCodes && !!backupRemaining && <span className="block mt-0.5">{t('account.backup_codes_low')}</span>}
                         </p>
                         <p className={`text-xs ${muted} mb-4`}>{t('account.backup_codes_generate_hint')}</p>
 

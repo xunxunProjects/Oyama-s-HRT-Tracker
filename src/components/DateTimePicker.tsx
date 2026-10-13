@@ -2,8 +2,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { CalendarDays, Clock3, ChevronDown } from 'lucide-react';
 import Tick from './Tick';
+import { useEscapeLayer } from './CustomSelect';
 import { useTranslation } from '../contexts/LanguageContext';
-import { useEscape } from '../hooks/useEscape';
 import { LOCALE_MAP } from '../utils/helpers';
 
 interface DateTimePickerProps {
@@ -81,11 +81,25 @@ const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange
         };
     }, [isOpen]);
 
-    useEffect(() => {
-        if (!isOpen) return;
-        const el = listRef.current?.querySelector('[data-selected="true"]') as HTMLElement | null;
-        el?.scrollIntoView({ block: 'center' });
-    }, [isOpen]);
+    // Open on the chosen value, centred. This waits for the positioning above:
+    // until the list has its maxHeight it is as tall as all its rows, nothing
+    // scrolls, and every list used to open at its top (minute 00, year 2015).
+    // Once per opening, since scrolling the list repositions it as well.
+    const scrolledRef = useRef(false);
+    useLayoutEffect(() => {
+        if (!isOpen) {
+            scrolledRef.current = false;
+            return;
+        }
+        const list = listRef.current;
+        const el = list?.querySelector<HTMLElement>('[data-selected="true"]');
+        if (scrolledRef.current || positionStyle.maxHeight === undefined || !list || !el) return;
+        list.scrollTop = el.offsetTop - (list.clientHeight - el.offsetHeight) / 2;
+        scrolledRef.current = true;
+    }, [isOpen, positionStyle]);
+
+    // Escape closes this list and leaves the picker around it open.
+    useEscapeLayer(() => setIsOpen(false), isOpen);
 
     const selected = options.find(option => option.value === value);
 
@@ -150,7 +164,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     inline = false,
 }) => {
     const { t, lang } = useTranslation();
-    useEscape(onClose, isOpen);
+    // A layer rather than a plain window listener: inline, the picker sits in
+    // a form whose modal closes on Escape too, and the press should only fold
+    // the picker away (an open list inside it goes first).
+    useEscapeLayer(onClose, isOpen);
     const locale = LOCALE_MAP[lang] || 'en-US';
 
     const [selectedDate, setSelectedDate] = useState(initialDate || new Date());

@@ -77,6 +77,10 @@
     --surface-hover: var(--neutral-100);
     --surface-pressed: var(--neutral-200);
     --surface-glass: rgba(255, 255, 255, 0.72);
+    /* The sticky page header's glass. At rest it is the page itself, so the
+       bar only shows once rows pass under it. --surface-glass is the glass of
+       what floats, the nav island, and in dark it is lighter than the page. */
+    --surface-glass-bar: rgba(255, 255, 255, 0.72);
     --control-thumb: var(--neutral-0);
     --field: var(--neutral-0);
     --text: var(--neutral-950);
@@ -141,6 +145,7 @@
     --surface-hover: var(--neutral-850);
     --surface-pressed: var(--neutral-800);
     --surface-glass: rgba(35, 33, 30, 0.72);
+    --surface-glass-bar: color-mix(in oklch, var(--bg) 72%, transparent);
     --control-thumb: var(--neutral-800);
     --field: var(--neutral-900);
     --text: var(--neutral-25);
@@ -424,10 +429,16 @@ body {
 .scroll-pb-nav {
     /* floating nav: bar height + bottom gap + breathing room */
     padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    /* Where the browser stops when it scrolls a focused element into view:
+       clear of the sticky page header and History's day label under it
+       (5rem + 2.75rem), and of the floating nav. */
+    scroll-padding-top: 7.75rem;
+    scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 }
 @media (min-width: 768px) {
     .scroll-pb-nav {
         padding-bottom: 0;
+        scroll-padding-bottom: 0;
     }
 }
 
@@ -507,6 +518,18 @@ select:focus-visible {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass {
         background-color: var(--surface);
+    }
+}
+
+/* The sticky page header (PageHeader), on top of .glass: the same blur over
+   the page's own colour, so in dark it no longer sits as a lighter band
+   before anything has scrolled beneath it. Unblurred, it is the page. */
+.glass-bar {
+    background-color: var(--surface-glass-bar);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-bar {
+        background-color: var(--bg);
     }
 }
 
@@ -859,6 +882,20 @@ select,
                 border-color var(--duration-base) var(--ease-standard);
 }
 
+/* A History row just added or edited. Its wash comes up as the tick is
+   written beside its time and goes back down as the tick is rubbed out, on
+   the slow timing so the row settles rather than blinks. Only the marked row
+   carries this class, so hovering the rest of the list stays immediate. It
+   outranks the reduced-motion `button` rule further down, hence its own. */
+.row-wash {
+    transition: background-color var(--duration-slow) var(--ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+    .row-wash {
+        transition: none;
+    }
+}
+
 /* The outline that follows the selected chart range, and the underline that
    follows the chosen tab (components/Tabs.tsx). It slides by position and
    width, so it stretches a little as it crosses items of different widths,
@@ -942,6 +979,22 @@ select,
    fade bought nothing and risked hiding the panel outright. */
 .disclosure-inner {
     overflow: hidden;
+}
+
+/* A dose field Save was refused for (components/DoseForm.tsx, marked by
+   refusedFieldProps). The border takes the danger colour and keeps it on
+   hover and while focused, since the field is focused at once to be fixed;
+   the message under the fields says what is wrong, so colour is never the
+   only sign. Unlayered, so it outranks the fields' own border utilities. */
+.dose-fields input[aria-invalid="true"] {
+    border-color: var(--danger);
+}
+
+/* A control that sits in a box that clips (DoseForm's template buttons,
+   whose halves collapse to zero width in turn): the one focus ring is drawn
+   just inside its edge instead of outside it, where it was cut to a sliver. */
+.focus-inset:focus-visible {
+    outline-offset: -2px;
 }
 
 /* ── Pixel cat (empty states) ─────────────────────────────────── */

@@ -1,21 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
-import { LabResult, isT_LabUnit } from '../../logic';
+import { LabResult, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
 import { Check, Trash2, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
 
+type LabUnit = LabResult['unit'];
+
 interface LabResultFormProps {
     resultToEdit?: LabResult | null;
     onSave: (result: LabResult) => void;
     onCancel: () => void;
     onDelete?: (id: string) => void;
+    /** Units a new entry starts in: the ones the person's last lab of each
+     *  hormone used, so a clinic that reports pg/mL isn't met with pmol/L on
+     *  every entry. Without a past lab, pmol/L and ng/dL. */
+    defaultE2Unit?: LabUnit;
+    defaultTUnit?: LabUnit;
 }
-
-type LabUnit = 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
 
 const divider = "border-b border-[var(--border)]";
 
@@ -28,6 +33,24 @@ const UNIT_LABELS: Record<LabUnit, string> = {
     'nmol/l': 'nmol/L',
 };
 
+// A lab value worth saving: a real number above zero. Calibration drops a zero
+// anyway, so Save stays disabled rather than accepting one and doing nothing.
+const parseLabValue = (s: string): number | null => {
+    const n = parseFloat(s);
+    return s.trim() !== '' && Number.isFinite(n) && n > 0 ? n : null;
+};
+
+// The same value in the hormone's other unit, for display only. A number in
+// the wrong unit is 3.67× (estradiol) or 29× (testosterone) off, and seeing
+// "≈ 41 pg/mL" beside a 150 meant as pg/mL is what catches the slip.
+const fmtApprox = (v: number) => (v >= 100 ? String(Math.round(v)) : v >= 1 ? v.toFixed(1) : v.toFixed(2));
+const otherUnitReading = (value: number, unit: LabUnit, units: LabUnit[]): string | null => {
+    const other = units.find(u => u !== unit);
+    if (!other) return null;
+    const toBase = isT_LabUnit(unit) ? convertToNgDl : convertToPgMl;
+    return `≈ ${fmtApprox(toBase(value, unit) / toBase(1, other))} ${UNIT_LABELS[other]}`;
+};
+
 // One hormone's value + unit toggle. Reused for the estradiol row, the
 // testosterone row, and (in edit mode) the single row matching whichever
 // hormone the record being edited already belongs to.
@@ -38,27 +61,44 @@ const HormoneValueField: React.FC<{
     onUnitChange: (u: LabUnit) => void;
     value: string;
     onValueChange: (v: string) => void;
-}> = ({ label, units, unit, onUnitChange, value, onValueChange }) => (
-    <div>
-        <div className="flex items-center justify-between mb-3">
-            <span className="text-[0.9375rem] text-[var(--text)]">
-                {label}
-            </span>
-            <Segmented options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} />
+}> = ({ label, units, unit, onUnitChange, value, onValueChange }) => {
+    const id = useId();
+    const parsed = parseLabValue(value);
+    const reading = parsed !== null ? otherUnitReading(parsed, unit, units) : null;
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-3">
+                <label htmlFor={id} className="text-[0.9375rem] text-[var(--text)]">
+                    {label}
+                </label>
+                <Segmented options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))} value={unit} onChange={onUnitChange} aria-label={label} />
+            </div>
+            {/* The other-unit reading sits inside the field, so it appears
+                as you type without pushing the rows below it down. */}
+            <div className="relative">
+                <input
+                    id={id}
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    placeholder="0.0"
+                    value={value}
+                    onChange={e => onValueChange(e.target.value)}
+                    aria-invalid={value.trim() !== '' && parsed === null}
+                    className="w-full bg-[var(--field)] border border-[var(--border)] rounded-md px-3 py-2 outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)] tabular-nums"
+                    style={{ fontSize: '16px', paddingInlineEnd: reading ? '7.5rem' : undefined }}
+                />
+                {reading && (
+                    <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-xs text-[var(--text-muted)] tabular-nums">
+                        {reading}
+                    </span>
+                )}
+            </div>
         </div>
-        <input
-            type="number"
-            inputMode="decimal"
-            placeholder="0.0"
-            value={value}
-            onChange={e => onValueChange(e.target.value)}
-            className="w-full bg-[var(--field)] border border-[var(--border)] rounded-md px-3 py-2 outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)] tabular-nums"
-            style={{ fontSize: '16px' }}
-        />
-    </div>
-);
+    );
+};
 
-const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete }) => {
+const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onCancel, onDelete, defaultE2Unit = 'pmol/l', defaultTUnit = 'ng/dl' }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
     const [dateStr, setDateStr] = useState("");
@@ -70,10 +110,11 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
 
     // Adding new: estradiol and testosterone are independent fields, so one
     // blood draw covering both markers can be logged as a single entry at a
-    // single timestamp instead of two separate saves.
-    const [e2Unit, setE2Unit] = useState<LabUnit>('pmol/l');
+    // single timestamp instead of two separate saves. The add form is
+    // remounted each time it opens, so the starting units are read once here.
+    const [e2Unit, setE2Unit] = useState<LabUnit>(defaultE2Unit);
     const [e2Value, setE2Value] = useState("");
-    const [tUnit, setTUnit] = useState<LabUnit>('ng/dl');
+    const [tUnit, setTUnit] = useState<LabUnit>(defaultTUnit);
     const [tValue, setTValue] = useState("");
 
     useEffect(() => {
@@ -89,10 +130,16 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
             setDateStr(iso);
             setE2Value("");
             setTValue("");
-            setE2Unit('pmol/l');
-            setTUnit('ng/dl');
         }
     }, [resultToEdit]);
+
+    const editNum = parseLabValue(editValue);
+    const e2Num = parseLabValue(e2Value);
+    const tNum = parseLabValue(tValue);
+    // A field left empty is fine; one holding something that isn't a value
+    // keeps Save disabled, rather than saving the other field and silently
+    // dropping this one.
+    const addFieldsOk = (e2Value.trim() === '' || e2Num !== null) && (tValue.trim() === '' || tNum !== null);
 
     const handleSave = () => {
         if (!dateStr) return;
@@ -100,22 +147,18 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
         if (isNaN(timeH)) return;
 
         if (resultToEdit) {
-            const numValue = parseFloat(editValue);
-            if (!editValue || isNaN(numValue) || numValue < 0) return;
-            onSave({ id: resultToEdit.id, timeH, concValue: numValue, unit: editUnit });
+            if (editNum === null) return;
+            onSave({ id: resultToEdit.id, timeH, concValue: editNum, unit: editUnit });
             return;
         }
 
-        const e2Num = parseFloat(e2Value);
-        const tNum = parseFloat(tValue);
-        const hasE2 = e2Value.trim() !== '' && Number.isFinite(e2Num) && e2Num >= 0;
-        const hasT = tValue.trim() !== '' && Number.isFinite(tNum) && tNum >= 0;
-        if (!hasE2 && !hasT) return;
-        if (hasE2) onSave({ id: uuidv4(), timeH, concValue: e2Num, unit: e2Unit });
-        if (hasT) onSave({ id: uuidv4(), timeH, concValue: tNum, unit: tUnit });
+        if (!addFieldsOk || (e2Num === null && tNum === null)) return;
+        if (e2Num !== null) onSave({ id: uuidv4(), timeH, concValue: e2Num, unit: e2Unit });
+        if (tNum !== null) onSave({ id: uuidv4(), timeH, concValue: tNum, unit: tUnit });
     };
 
-    const canSave = resultToEdit ? !!editValue : (!!e2Value || !!tValue);
+    const canSave = resultToEdit ? editNum !== null : addFieldsOk && (e2Num !== null || tNum !== null);
+    const formatWhen = (d: Date) => d.toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const editIsT = isT_LabUnit(editUnit);
 
     return (
@@ -132,7 +175,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                     </span>
                     <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">
-                            {dateStr ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            {dateStr ? formatWhen(new Date(dateStr)) : '—'}
                         </span>
                         <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                     </div>
@@ -195,11 +238,13 @@ const LabResultForm: React.FC<LabResultFormProps> = ({ resultToEdit, onSave, onC
                 <div className="flex items-center gap-2">
                     {resultToEdit && onDelete && (
                         <button
-                            onClick={() => showDialog('confirm', t('lab.delete_confirm'), () => {
+                            // The question is the heading; the body names the one
+                            // result going, as saved, so the right row is deleted.
+                            onClick={() => showDialog('confirm', `${resultToEdit.concValue} ${UNIT_LABELS[resultToEdit.unit]} · ${formatWhen(new Date(resultToEdit.timeH * 3600000))}`, () => {
                                 onDelete(resultToEdit.id);
                                 onCancel();
-                            }, { danger: true })}
-                            className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded"
+                            }, { danger: true, title: t('lab.delete_confirm'), confirmLabel: t('btn.delete') })}
+                            className="tap-target p-2 text-[var(--text-muted)] hover:text-[var(--danger)] rounded"
                             title={t('btn.delete')}
                             aria-label={t('btn.delete')}
                         >

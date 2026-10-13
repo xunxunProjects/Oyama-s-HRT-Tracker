@@ -47,6 +47,9 @@ const HISTORY_MODES: { value: CalibrationHistoryMode; icon: LucideIcon }[] = [
 
 // Shared selectable card (icon + title + radio) used for both the estimator
 // methods and the history modes so the two lists render identically.
+// aria-pressed is what tells a screen reader which card is chosen: the tick
+// is aria-hidden, and radio roles would promise arrow-key movement these
+// cards don't have.
 const OptionCard: React.FC<{
     selected: boolean;
     icon: LucideIcon;
@@ -57,6 +60,7 @@ const OptionCard: React.FC<{
 }> = ({ selected, icon: Icon, title, badge, onClick, children }) => (
     <button
         onClick={onClick}
+        aria-pressed={selected}
         className="w-full text-start rounded-lg border p-4 outline-none focus:outline-none focus-visible:outline-none transition-colors"
         style={{
             borderColor: selected ? 'var(--accent-ink)' : 'var(--border)',

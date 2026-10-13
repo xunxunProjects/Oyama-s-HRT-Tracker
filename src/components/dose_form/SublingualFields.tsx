@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { Route, Ester, SL_TIER_ORDER, SublingualTierParams } from '../../../logic';
 import CustomSelect from '../CustomSelect';
+import { refusedFieldProps } from './refusedField';
 
 interface SublingualFieldsProps {
     ester: Ester;
@@ -19,6 +20,9 @@ interface SublingualFieldsProps {
     setCustomHoldValue: (val: number) => void;
     thetaFromHold: (hold: number) => number;
     route: Route;
+    /** Save was refused for an empty or zero dose; see refusedFieldProps. */
+    invalid?: boolean;
+    errorId?: string;
 }
 
 const SublingualFields: React.FC<SublingualFieldsProps> = ({
@@ -36,9 +40,16 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
     customHoldValue,
     setCustomHoldValue,
     thetaFromHold,
-    route
+    route,
+    invalid,
+    errorId
 }) => {
     const { t } = useTranslation();
+    const tierLabelId = React.useId();
+    const holdLabelId = React.useId();
+    const holdId = React.useId();
+    const rawId = React.useId();
+    const e2Id = React.useId();
 
     const handleCustomHoldChange = (str: string) => {
         setCustomHoldInput(str);
@@ -58,8 +69,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
         <div className="space-y-4">
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                    <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.sl_absorption')}</label>
+                    <label id={tierLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.sl_absorption')}</label>
                     <button
+                        type="button"
                         onClick={() => setUseCustomTheta(!useCustomTheta)}
                         className="text-xs font-semibold text-[var(--accent-ink)]"
                     >
@@ -69,15 +81,17 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {!useCustomTheta ? (
                     <CustomSelect
+                        labelledBy={tierLabelId}
                         value={String(slTier)}
                         onChange={(val) => setSlTier(parseInt(val, 10))}
                         options={tierOptions}
                     />
                 ) : (
                     <div className="pt-2 pb-1 space-y-2">
-                        <label className="text-xs font-medium text-[var(--text-muted)]">{t('sl.hold_time_min')}</label>
+                        <label id={holdLabelId} htmlFor={holdId} className="text-xs font-medium text-[var(--text-muted)]">{t('sl.hold_time_min')}</label>
                         <div className="flex items-center gap-2">
                             <input
+                                id={holdId}
                                 type="number" inputMode="decimal"
                                 min="1" max="60"
                                 value={customHoldInput}
@@ -88,6 +102,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             <span className="text-xs text-[var(--text-muted)]">{t('unit.min_short')}</span>
                             <input
                                 type="range"
+                                aria-labelledby={holdLabelId}
                                 min="1" max="60"
                                 value={customHoldValue}
                                 onChange={e => {
@@ -98,7 +113,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 className="flex-1 h-1 accent-[var(--accent)]"
                             />
                         </div>
-                        <p className="text-[0.6875rem] text-[var(--text-muted)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)} (Keep E2)</p>
+                        <p className="text-[0.6875rem] text-[var(--text-muted)]">{t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)}</p>
                     </div>
                 )}
             </div>
@@ -106,8 +121,10 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(ester !== Ester.E2) && (
                     <div className={`space-y-2 ${(ester === Ester.EV && route === Route.sublingual) ? 'col-span-2' : ''}`}>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
+                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">{t('field.dose_raw')}</label>
                         <input
+                            id={rawId}
+                            {...refusedFieldProps(rawDose, invalid, errorId)}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"
@@ -121,10 +138,12 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {!(ester === Ester.EV && route === Route.sublingual) && ester !== Ester.CPA && (
                     <div className={`space-y-2 ${(ester === Ester.E2) ? "col-span-2" : ""}`}>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
                             {t('field.dose_e2')}
                         </label>
                         <input
+                            id={e2Id}
+                            {...refusedFieldProps(e2Dose, invalid, errorId)}
                             type="number" inputMode="decimal"
                             min="0"
                             step="0.001"
@@ -138,8 +157,9 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {(ester === Ester.EV && route === Route.sublingual) && (
                     <div className="col-span-2">
+                        {/* No unit after the number: the label already ends in (mg). */}
                         <p className="text-xs text-[var(--text-muted)] mt-1 pl-1">
-                            {t('field.dose_e2')}: {e2Dose ? `${e2Dose} mg` : '--'}
+                            {t('field.dose_e2')}: {e2Dose || '--'}
                         </p>
                     </div>
                 )}
