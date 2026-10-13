@@ -167,33 +167,118 @@ export interface DoseAdvisory {
     kind: 'e2' | 't' | 'cpa' | 'e2_cpa';
 }
 
-// Ceilings sit at the high end of typical GAHT dosing, so only clearly excessive
-// use trips them — not merely a high-normal dose. Sources: transfemscience.org
-// (E2/CPA ranges), UCSF masculinizing-therapy guidance (T ranges).
+// Ceilings sit at about 1.5× the top of the usual range for each route, so only
+// clearly excessive use trips them, not merely a high-normal dose. Usual ranges:
+// transfemscience.org "An Introduction to Transfeminine Hormone Therapy",
+// Table 5 (E2, CPA); UCSF masculinizing-therapy guidance (T).
 const DOSE_CEILING = {
-    cpaPerDay: 12.5,   // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
-    e2DailyPerDay: 12, // mg/day — oral/sublingual/gel/patch estradiol
-    e2InjPerWeek: 20,  // mg/week — injected estradiol esters (5–10 mg/wk is high-normal)
-    e2InjSingle: 50,   // mg — a single injected-E2 dose this large is excessive
-    tDailyPerDay: 150, // mg/day — transdermal testosterone
-    tInjPerWeek: 200,  // mg/week — injected testosterone (50–100 mg/wk is typical)
+    cpaPerDay: 12.5,        // mg/day — CPA adds no extra blockade above ~10–12.5 mg/day
+    e2OralPerDay: 12,       // mg/day — usual 2–8
+    e2SublingualPerDay: 9,  // mg/day — usual 0.5–6
+    e2GelPerDay: 9,         // mg/day — usual 1.5–6
+    e2PatchPerDay: 0.6,     // mg/day delivered — usual 0.05–0.4 (50–400 µg/day)
+    // Injected estradiol, in mg of the ester. Table 5's usual ranges for the
+    // valerate, cypionate, enanthate, benzoate and undecylate all top out
+    // around 6 mg of ester a week (EB 2.25 mg/3 d, EU 24 mg/28 d), so one
+    // weekly ceiling in ester mg fits every ester once each is read at its own
+    // cadence (see _injectionWeeklyRate).
+    e2InjPerWeek: 20,
+    e2InjSingle: 50,        // mg — a single injected-E2 dose this large is excessive
+    tGelPerDay: 150,        // mg/day — testosterone gel
+    tInjPerWeek: 200,       // mg/week — injected testosterone (50–100 mg/wk is typical)
 } as const;
 
-const _isDailyRoute = (r: Route) =>
-    r === Route.oral || r === Route.sublingual || r === Route.gel || r === Route.patchApply;
+// Injections closer together than this are one dose split across sites.
+const SPLIT_INJECTION_H = 12;
+// How long a patch with neither a removal nor a planned wear time is assumed
+// to be on. Short on purpose: a forgotten removal must not read as patches
+// piling up.
+const PATCH_UNKNOWN_WEAR_H = 24;
 
 /**
- * Largest single-day total dose (mg) within the trailing `days` window for events
- * matching `pred` — i.e. "how much did you take on your heaviest recent day". Used
- * for daily-dosed routes; robust to how much history exists and to window edges (a
- * trailing average would over/under-count depending on where dose times fall).
+ * Calendar day in the device's own time zone, as a day number. People think in
+ * local days: two evening doses an hour apart must not land on different days
+ * just because UTC midnight falls between them.
+ */
+function _localDay(timeH: number): number {
+    const offsetH = new Date(timeH * 3600 * 1000).getTimezoneOffset() / 60;
+    return Math.floor((timeH - offsetH) / 24);
+}
+
+/** Labelled release rate of a patch in mg/day, or null when only a reservoir dose was logged. */
+function _patchRateMgPerDay(e: DoseEvent): number | null {
+    const ug = e.extras?.[ExtraKey.releaseRateUGPerDay];
+    return typeof ug === 'number' && Number.isFinite(ug) && ug > 0 ? ug / 1000 : null;
+}
+
+/**
+ * Heaviest recent estradiol day, as a fraction of the ceiling (1 = at the
+ * ceiling). Oral, sublingual and gel doses count by what was taken on each
+ * local day; patches count by what the patches on at that moment deliver per
+ * day. Routes add up as fractions of their own ceilings, so 6 mg oral plus a
+ * 300 µg/day patch is half of one plus half of the other.
+ *
+ * A patch logged by reservoir dose only has no known daily delivery (its
+ * reservoir is several times what it releases) and is left out, as the
+ * per-dose guide in the dose form does.
+ */
+function _e2DailyRatio(events: DoseEvent[], nowH: number, days: number): number {
+    const inWindow = (t: number) => nowH - t >= 0 && nowH - t <= days * 24;
+    const byDay = new Map<number, number>();
+    const times: number[] = [];
+    for (const e of events) {
+        if (!isEstradiolEster(e.ester) || !inWindow(e.timeH)) continue;
+        const ceiling =
+            e.route === Route.oral ? DOSE_CEILING.e2OralPerDay
+            : e.route === Route.sublingual ? DOSE_CEILING.e2SublingualPerDay
+            : e.route === Route.gel ? DOSE_CEILING.e2GelPerDay
+            : null;
+        if (ceiling === null) continue;
+        const day = _localDay(e.timeH);
+        byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG / ceiling);
+        times.push(e.timeH);
+    }
+
+    const removals = patchRemovalTimes(events);
+    const patches: { start: number; end: number; rate: number }[] = [];
+    for (const e of events) {
+        if (e.route !== Route.patchApply || !isEstradiolEster(e.ester)) continue;
+        const rate = _patchRateMgPerDay(e);
+        if (rate === null) continue;
+        const removeAt = removals.get(e);
+        const wear = removeAt !== undefined && removeAt > e.timeH
+            ? removeAt - e.timeH
+            : _plannedWearH(e) ?? PATCH_UNKNOWN_WEAR_H;
+        patches.push({ start: e.timeH, end: e.timeH + wear, rate });
+        if (inWindow(e.timeH)) times.push(e.timeH);
+    }
+
+    // The patch total only rises when a patch goes on, so checking it at every
+    // application (and at every other dose, to pair it with that day) finds
+    // the heaviest moment of each day.
+    let mx = 0;
+    for (const t of times) {
+        let rate = 0;
+        for (const p of patches) if (p.start <= t && t < p.end) rate += p.rate;
+        const ratio = (byDay.get(_localDay(t)) ?? 0) + rate / DOSE_CEILING.e2PatchPerDay;
+        if (ratio > mx) mx = ratio;
+    }
+    return mx;
+}
+
+/**
+ * Largest single local-day total dose (mg) within the trailing `days` window for
+ * events matching `pred` — i.e. "how much did you take on your heaviest recent
+ * day". Used for daily-dosed routes; robust to how much history exists and to
+ * window edges (a trailing average would over/under-count depending on where
+ * dose times fall).
  */
 function _maxDailyDose(events: DoseEvent[], nowH: number, days: number, pred: (e: DoseEvent) => boolean): number {
     const byDay = new Map<number, number>();
     for (const e of events) {
         const age = nowH - e.timeH;
         if (age >= 0 && age <= days * 24 && pred(e)) {
-            const day = Math.floor(e.timeH / 24);
+            const day = _localDay(e.timeH);
             byDay.set(day, (byDay.get(day) ?? 0) + e.doseMG);
         }
     }
@@ -202,24 +287,58 @@ function _maxDailyDose(events: DoseEvent[], nowH: number, days: number, pred: (e
     return mx;
 }
 
+/** Injections in the trailing window, with doses split across sites merged into one. */
+function _mergedInjections(events: DoseEvent[], nowH: number, days: number, pred: (e: DoseEvent) => boolean) {
+    const injections = events
+        .filter(e => e.route === Route.injection && pred(e) && nowH - e.timeH >= 0 && nowH - e.timeH <= days * 24)
+        .sort((a, b) => a.timeH - b.timeH);
+    const merged: { ester: Ester; timeH: number; doseMG: number }[] = [];
+    const latest = new Map<Ester, { ester: Ester; timeH: number; doseMG: number }>();
+    for (const e of injections) {
+        const prev = latest.get(e.ester);
+        if (prev && e.timeH - prev.timeH < SPLIT_INJECTION_H) {
+            prev.doseMG += e.doseMG;
+        } else {
+            const m = { ester: e.ester, timeH: e.timeH, doseMG: e.doseMG };
+            merged.push(m);
+            latest.set(e.ester, m);
+        }
+    }
+    return merged;
+}
+
 /**
  * Weekly-equivalent dose for an injected family, inferred from the person's own
  * cadence (dose ÷ typical gap between injections). This avoids false alarms right
  * after a long-interval depot (e.g. undecanoate every 10–12 weeks), which a fixed
- * trailing window would wrongly read as a huge weekly rate. Needs ≥2 injections to
- * infer a gap; returns null otherwise (a lone depot's schedule is unknowable).
+ * trailing window would wrongly read as a huge weekly rate.
+ *
+ * Each ester is read at its own cadence, and only while it is still being
+ * taken: a regimen counts until two of its gaps pass with no injection, or
+ * until another ester starts after its last injection (a switch). Esters taken
+ * side by side add up. An ester needs ≥2 injections to infer a gap; a lone
+ * depot's schedule is unknowable and adds nothing.
  */
-function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number | null {
-    const fam = events
-        .filter(e => pred(e) && nowH - e.timeH >= 0 && nowH - e.timeH <= 120 * 24)
-        .sort((a, b) => a.timeH - b.timeH);
-    if (fam.length < 2) return null;
-    const gaps: number[] = [];
-    for (let i = 1; i < fam.length; i++) gaps.push(fam[i].timeH - fam[i - 1].timeH);
-    gaps.sort((a, b) => a - b);
-    const medGapH = gaps[Math.floor(gaps.length / 2)];
-    if (medGapH <= 0) return null;
-    return fam[fam.length - 1].doseMG / (medGapH / 168); // 168 h = 1 week
+function _injectionWeeklyRate(events: DoseEvent[], nowH: number, pred: (e: DoseEvent) => boolean): number {
+    const merged = _mergedInjections(events, nowH, 120, pred);
+    const firstH = new Map<Ester, number>();
+    for (const m of merged) if (!firstH.has(m.ester)) firstH.set(m.ester, m.timeH);
+    let total = 0;
+    for (const ester of firstH.keys()) {
+        const own = merged.filter(m => m.ester === ester);
+        if (own.length < 2) continue;
+        const last = own[own.length - 1];
+        let switchedAway = false;
+        for (const [other, startH] of firstH) if (other !== ester && startH > last.timeH) switchedAway = true;
+        if (switchedAway) continue;
+        const gaps: number[] = [];
+        for (let i = 1; i < own.length; i++) gaps.push(own[i].timeH - own[i - 1].timeH);
+        gaps.sort((a, b) => a - b);
+        const medGapH = gaps[Math.floor(gaps.length / 2)];
+        if (nowH - last.timeH > 2 * medGapH) continue;
+        total += last.doseMG / (medGapH / 168); // 168 h = 1 week
+    }
+    return total;
 }
 
 /**
@@ -232,24 +351,24 @@ export function getDoseAdvisory(events: DoseEvent[], nowH: number = Date.now() /
     const isE2 = (e: DoseEvent) => isEstradiolEster(e.ester);
     const isT = (e: DoseEvent) => isTestosteroneEster(e.ester);
 
-    // Daily-dosed families: heaviest single-day total in the trailing 14 days.
+    // Daily-dosed families: heaviest single local day in the trailing 14 days.
+    // Testosterone patches can't be logged from the app (see DoseForm), so only
+    // gel counts for T.
     const cpaPerDay = _maxDailyDose(events, nowH, 14, e => e.ester === Ester.CPA);
-    const e2DailyPerDay = _maxDailyDose(events, nowH, 14, e => isE2(e) && _isDailyRoute(e.route));
-    const tDailyPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && (e.route === Route.gel || e.route === Route.patchApply));
+    const e2DailyRatio = _e2DailyRatio(events, nowH, 14);
+    const tGelPerDay = _maxDailyDose(events, nowH, 14, e => isT(e) && e.route === Route.gel);
 
     // Injected families: cadence-inferred weekly rate, plus a single-dose guard for E2.
-    const e2InjWk = _injectionWeeklyRate(events, nowH, e => isE2(e) && e.route === Route.injection) ?? 0;
-    const tInjWk = _injectionWeeklyRate(events, nowH, e => isT(e) && e.route === Route.injection) ?? 0;
+    const e2InjWk = _injectionWeeklyRate(events, nowH, isE2);
+    const tInjWk = _injectionWeeklyRate(events, nowH, isT);
     let e2InjSingle = 0;
-    for (const e of events) {
-        if (isE2(e) && e.route === Route.injection && nowH - e.timeH >= 0 && nowH - e.timeH <= 30 * 24) {
-            if (e.doseMG > e2InjSingle) e2InjSingle = e.doseMG;
-        }
+    for (const m of _mergedInjections(events, nowH, 30, isE2)) {
+        if (m.doseMG > e2InjSingle) e2InjSingle = m.doseMG;
     }
 
     const cpaRatio = cpaPerDay / DOSE_CEILING.cpaPerDay;
-    const e2Ratio = Math.max(e2DailyPerDay / DOSE_CEILING.e2DailyPerDay, e2InjWk / DOSE_CEILING.e2InjPerWeek, e2InjSingle / DOSE_CEILING.e2InjSingle);
-    const tRatio = Math.max(tDailyPerDay / DOSE_CEILING.tDailyPerDay, tInjWk / DOSE_CEILING.tInjPerWeek);
+    const e2Ratio = Math.max(e2DailyRatio, e2InjWk / DOSE_CEILING.e2InjPerWeek, e2InjSingle / DOSE_CEILING.e2InjSingle);
+    const tRatio = Math.max(tGelPerDay / DOSE_CEILING.tGelPerDay, tInjWk / DOSE_CEILING.tInjPerWeek);
 
     // Both estrogen and antiandrogen running high at once is a real combination
     // (they're routinely dosed together in transfem regimens) and each carries
@@ -280,24 +399,37 @@ const HORMONE_LEVEL_THRESHOLDS = {
     tHighNgDl: 300,  // adult male reference range lower bound
 } as const;
 
+// The latest E2 and T labs are read together only when drawn this close in time;
+// further apart, they describe two different moments.
+const HORMONE_PAIR_MAX_GAP_H = 30 * 24;
+
 export interface HormoneLevelAdvisory {
     kind: 'both_low' | 'both_high';
+}
+
+/** The latest lab of one hormone, averaged over every lab logged at that same moment. */
+function _latestLab(labs: LabResult[], convert: (r: LabResult) => number): { timeH: number; value: number } {
+    const timeH = labs.reduce((mx, r) => Math.max(mx, r.timeH), -Infinity);
+    const same = labs.filter(r => r.timeH === timeH);
+    return { timeH, value: same.reduce((s, r) => s + convert(r), 0) / same.length };
 }
 
 /**
  * Compares the most recent estradiol lab against the most recent testosterone
  * lab (independently latest per hormone) and flags when both are low or both
- * are high at once. Requires at least one lab of each hormone. Not medical advice.
+ * are high at once. Requires at least one lab of each hormone, drawn within 30
+ * days of each other. Not medical advice.
  */
 export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvisory | null {
     const e2Labs = results.filter(r => !isT_LabUnit(r.unit));
     const tLabs = results.filter(r => isT_LabUnit(r.unit));
     if (!e2Labs.length || !tLabs.length) return null;
 
-    const latestE2 = e2Labs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
-    const latestT = tLabs.reduce((a, b) => (b.timeH > a.timeH ? b : a));
-    const e2 = convertToPgMl(latestE2.concValue, latestE2.unit);
-    const t = convertToNgDl(latestT.concValue, latestT.unit);
+    const latestE2 = _latestLab(e2Labs, r => convertToPgMl(r.concValue, r.unit));
+    const latestT = _latestLab(tLabs, r => convertToNgDl(r.concValue, r.unit));
+    if (Math.abs(latestE2.timeH - latestT.timeH) > HORMONE_PAIR_MAX_GAP_H) return null;
+    const e2 = latestE2.value;
+    const t = latestT.value;
 
     const { e2LowPgMl, e2HighPgMl, tLowNgDl, tHighNgDl } = HORMONE_LEVEL_THRESHOLDS;
     if (e2 < e2LowPgMl && t < tLowNgDl) return { kind: 'both_low' };

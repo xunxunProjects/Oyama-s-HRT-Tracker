@@ -2,7 +2,7 @@
  * Problems found while writing these tests and since fixed. Each test pins the
  * corrected behaviour, so the problem cannot come back unnoticed.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
     type CalibrationResult,
     DEFAULT_PK_PARAMS,
@@ -10,6 +10,8 @@ import {
     ExtraKey,
     Route,
     computeCalibration,
+    getDoseAdvisory,
+    getHormoneLevelAdvisory,
     interpolateConcentration_E2,
     interpolateConcentration_T,
     runSimulation,
@@ -314,5 +316,153 @@ describe('lab calibration reports and draws the same thing', () => {
         const cal = computeCalibration(sim, events, BW, labs, method, mode);
         expect(cal.fitErrPct).not.toBeNull();
         expect(cal.fitErrPct!).toBeCloseTo(curveRmsPct(cal), 9);
+    });
+});
+
+describe('dose advisory reads each regimen as it is taken', () => {
+    const NOON = NOW_H - 12;
+
+    it('switching from weekly cypionate to undecanoate is not read as 1000 mg/week', () => {
+        // The weekly rate used to divide the latest injection, whatever its
+        // ester, by the median gap of every injection of that hormone.
+        const events = [
+            ...regimen(Route.injection, Ester.TC, 100, 168, 16, NOON - 168),
+            dose(Route.injection, Ester.TU, 1000, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('switching esters at the same weekly dose is not counted twice', () => {
+        const events = [
+            ...regimen(Route.injection, Ester.TE, 150, 168, 8, NOON - 2 * 168),
+            ...regimen(Route.injection, Ester.TC, 150, 168, 2, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('esters taken side by side add up', () => {
+        const side = (mg: number) => [
+            ...regimen(Route.injection, Ester.EV, mg, 168, 4, NOON),
+            ...regimen(Route.injection, Ester.EC, mg, 168, 4, NOON - 84),
+        ];
+        expect(getDoseAdvisory(side(8), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(side(12), NOW_H)).toEqual({ kind: 'e2' });
+    });
+
+    it('a regimen stopped about 100 days ago raises no advisory', () => {
+        expect(getDoseAdvisory(regimen(Route.injection, Ester.TE, 250, 168, 3, NOW_H - 100 * 24), NOW_H)).toBeNull();
+    });
+
+    it('a regimen still counts after one late injection, not after two missed ones', () => {
+        expect(getDoseAdvisory(regimen(Route.injection, Ester.TE, 250, 168, 6, NOW_H - 10 * 24), NOW_H)).toEqual({
+            kind: 't',
+        });
+        expect(getDoseAdvisory(regimen(Route.injection, Ester.TE, 250, 168, 6, NOW_H - 15 * 24), NOW_H)).toBeNull();
+    });
+
+    it('one dose split across two sites counts once', () => {
+        // Two 50 mg shots an hour apart every week used to give a median gap of
+        // one hour, read as 8400 mg/week.
+        const split = (mg: number) =>
+            Array.from({ length: 6 }, (_, i) => [
+                dose(Route.injection, Ester.TC, mg, NOON - 168 * i - 1),
+                dose(Route.injection, Ester.TC, mg, NOON - 168 * i),
+            ]).flat();
+        expect(getDoseAdvisory(split(50), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(split(150), NOW_H)).toEqual({ kind: 't' });
+        // The single-dose guard sees the whole split dose too.
+        expect(
+            getDoseAdvisory(
+                [dose(Route.injection, Ester.EU, 30, NOON - 1), dose(Route.injection, Ester.EU, 30, NOON)],
+                NOW_H,
+            ),
+        ).toEqual({ kind: 'e2' });
+    });
+});
+
+describe('dose advisory counts patches by what they deliver', () => {
+    const NOON = NOW_H - 12;
+    const rate = (ug: number) => ({ [ExtraKey.releaseRateUGPerDay]: ug });
+
+    it('a patch logged by its reservoir is not added to oral milligrams', () => {
+        // Two patches holding 7.6 mg each deliver about 200 µg/day; their
+        // reservoirs used to count as 15.2 mg of estradiol taken that day.
+        const events = [
+            dose(Route.oral, Ester.E2, 6, NOON),
+            dose(Route.patchApply, Ester.E2, 7.6, NOON),
+            dose(Route.patchApply, Ester.E2, 7.6, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('flags patches delivering more than 600 µg/day at once', () => {
+        const patches = (n: number) =>
+            Array.from({ length: n }, () => dose(Route.patchApply, Ester.E2, 0, NOON, rate(100)));
+        expect(getDoseAdvisory(patches(6), NOW_H)).toBeNull();
+        expect(getDoseAdvisory(patches(7), NOW_H)).toEqual({ kind: 'e2' });
+    });
+
+    it('a patch change is not counted as two patches', () => {
+        // 400 µg/day changed twice a week, each removal logged at the moment
+        // the next patch goes on.
+        const events = Array.from({ length: 5 }, (_, i) => {
+            const t = NOON - 84 * (4 - i);
+            return [dose(Route.patchRemove, Ester.E2, 0, t), dose(Route.patchApply, Ester.E2, 0, t, rate(400))];
+        })
+            .flat()
+            .slice(1);
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('a patch with no removal logged is not assumed to stay on', () => {
+        // Twice-weekly 400 µg/day patches with no removals in the log.
+        expect(getDoseAdvisory(regimen(Route.patchApply, Ester.E2, 0, 84, 5, NOON, rate(400)), NOW_H)).toBeNull();
+    });
+
+    it('oral and patch doses add up as shares of their own ceilings', () => {
+        const events = [
+            dose(Route.patchApply, Ester.E2, 0, NOON - 48, { ...rate(400), [ExtraKey.patchWearH]: 84 }),
+            dose(Route.oral, Ester.E2, 8, NOON),
+        ];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 'e2' });
+        expect(getDoseAdvisory([events[0], dose(Route.oral, Ester.E2, 4, NOON)], NOW_H)).toBeNull();
+    });
+});
+
+describe('dose advisory groups doses by local calendar day', () => {
+    const DAY = NOW_H - 48; // a UTC midnight
+
+    afterEach(() => {
+        process.env.TZ = 'UTC';
+    });
+
+    it('two doses on one UTC day but different local days are not summed', () => {
+        process.env.TZ = 'Asia/Shanghai';
+        // 22:00 and 07:00 the next morning in Shanghai.
+        const events = [dose(Route.oral, Ester.E2, 8, DAY + 14), dose(Route.oral, Ester.E2, 8, DAY + 23)];
+        expect(getDoseAdvisory(events, NOW_H)).toBeNull();
+    });
+
+    it('two doses on one local evening are summed across UTC midnight', () => {
+        process.env.TZ = 'America/New_York';
+        // 19:00 and 21:00 the same evening in New York (UTC−4 in October).
+        const events = [dose(Route.oral, Ester.E2, 7, DAY + 23), dose(Route.oral, Ester.E2, 7, DAY + 25)];
+        expect(getDoseAdvisory(events, NOW_H)).toEqual({ kind: 'e2' });
+    });
+});
+
+describe('lab advisory pairs the two hormones deterministically', () => {
+    it('labs logged at the same moment are averaged, whatever their order', () => {
+        // The latest lab used to be whichever same-time lab came first in the list.
+        const e2 = [lab(10, 20), lab(10, 50)];
+        const t = lab(10, 30, 'ng/dl');
+        expect(getHormoneLevelAdvisory([...e2, t])).toBeNull();
+        expect(getHormoneLevelAdvisory([e2[1], e2[0], t])).toBeNull();
+        expect(getHormoneLevelAdvisory([lab(10, 20), lab(10, 30), t])).toEqual({ kind: 'both_low' });
+    });
+
+    it('labs drawn more than 30 days apart are not read as one moment', () => {
+        expect(getHormoneLevelAdvisory([lab(0, 20), lab(29 * 24, 30, 'ng/dl')])).toEqual({ kind: 'both_low' });
+        expect(getHormoneLevelAdvisory([lab(0, 20), lab(31 * 24, 30, 'ng/dl')])).toBeNull();
     });
 });
