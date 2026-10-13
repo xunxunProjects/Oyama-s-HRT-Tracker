@@ -26,12 +26,33 @@ const dayOf = (ms: number, timeZone?: string): { start: number; n: number } => {
         d.setHours(0, 0, 0, 0);
         return { start: d.getTime(), n: Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) };
     }
-    const parts = new Intl.DateTimeFormat('en-US', {
+    const fmt = new Intl.DateTimeFormat('en-US', {
         timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
-    }).formatToParts(new Date(ms));
-    const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(p => p.type === type)?.value ?? 0);
-    const sinceMidnight = ((get('hour') * 60 + get('minute')) * 60 + get('second')) * 1000 + (ms % 1000);
-    return { start: ms - sinceMidnight, n: Math.round(Date.UTC(get('year'), get('month') - 1, get('day')) / DAY) };
+    });
+    // The date on the wall clock at `at`, as a day number, and how long the
+    // clock says it has been since that date's midnight.
+    const wall = (at: number) => {
+        const parts = fmt.formatToParts(new Date(at));
+        const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(p => p.type === type)?.value ?? 0);
+        return {
+            n: Math.round(Date.UTC(get('year'), get('month') - 1, get('day')) / DAY),
+            since: ((get('hour') * 60 + get('minute')) * 60 + get('second')) * 1000 + (at % 1000),
+        };
+    };
+    const here = wall(ms);
+    // Stepping back by the clock's time since midnight is out by the size of
+    // any clock change earlier that day: after a spring-forward it lands on
+    // 23:00 the day before, after a fall-back on 01:00. Reading the clock
+    // again where it landed and taking up the difference finds the midnight
+    // itself.
+    const guess = ms - here.since;
+    const there = wall(guess);
+    let start = there.n === here.n ? guess - there.since : guess + DAY - there.since;
+    // A clock that goes back across midnight (Cuba's does) shows 00:00
+    // twice, and the day starts at the first of them.
+    const before = wall(start - 1);
+    if (before.n === here.n) start -= 1 + before.since;
+    return { start, n: here.n };
 };
 
 // Pick a "nice" rounding step (1/2/5 × 10^n) near the requested magnitude.
@@ -557,9 +578,13 @@ const ResultChart = ({
     // rather than reshuffling which days get one.
     const xTicks = useMemo(() => {
         if (plotW <= 0) return [];
-        const count = Math.max(2, Math.min(6, Math.floor(plotW / (90 * ui))));
         const span = (t1 - t0) / DAY;
-        const step = [1, 2, 3, 7, 14, 28, 56, 91, 182, 364].find(s => span / s <= count) ?? Math.ceil(span / count);
+        // The shortest step that keeps neighbouring dates a label and a gap
+        // apart. Rationing the step by a label count instead left every range
+        // on a phone with two dates, and a 7-day desktop axis with three.
+        const minGap = 64 * ui;
+        const step = [1, 2, 3, 7, 14, 28, 56, 91, 182, 364].find(s => (plotW * s) / span >= minGap)
+            ?? Math.ceil((span * minGap) / plotW);
         const phase = step % 7 === 0 ? 3 : 0;
         const seen = new Set<string>();
         const out: { time: number; label: string }[] = [];
