@@ -1754,16 +1754,20 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
     const stepSize = (endTime - startTime) / (steps - 1);
     const gridTimes = Array.from({ length: steps }, (_, i) => startTime + i * stepSize);
 
-    // Add dense peri-event sampling points around each dose event for better peak/trough capture.
-    // Only add for events whose contribution is still active at endTime to avoid O(n) blowup
-    // with hundreds of events (e.g. daily recording for a year).
+    // Add dense sampling points after every dose, so peaks and the first hours
+    // after a dose are drawn from the model rather than from a straight line
+    // across a coarse grid. This used to be limited to doses still contributing
+    // at the end of the grid, which always excluded short-acting doses (the
+    // grid ends at least 14 days after the last dose): with a long history the
+    // base grid is about one point per hour, so a sublingual peak was drawn up
+    // to about 7% low and the level read shortly after a dose about half the
+    // model's value. Offsets past a dose's own lifetime add nothing and are
+    // skipped.
     const periEventOffsets = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
     const periEventTimes: number[] = [];
     for (const pc of precomputed) {
-        // Skip peri-event sampling for events whose contribution has fully decayed;
-        // their curves are smooth/zero and don't need dense peak capture.
-        if (pc.maxLifetimeH !== Infinity && endTime - pc.startTimeH > 2 * pc.maxLifetimeH) continue;
         for (const offset of periEventOffsets) {
+            if (offset > pc.maxLifetimeH) break;
             const t = pc.startTimeH + offset;
             if (t >= startTime && t <= endTime) {
                 periEventTimes.push(t);
@@ -1771,8 +1775,14 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
         }
     }
 
+    // The current time is a sample point too, so the "current level" read off
+    // the result is the model's value rather than an interpolation.
+    const nowTimes = nowH >= startTime && nowH <= endTime ? [nowH] : [];
+
     const eventTimes = sortedEvents.map(e => e.timeH);
-    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes])).sort((a, b) => a - b);
+    const allTimes = Array.from(new Set([...gridTimes, ...eventTimes, ...periEventTimes, ...nowTimes])).sort(
+        (a, b) => a - b,
+    );
 
     // `precomputed` and `allTimes` are both sorted ascending by time, so which
     // events can contribute at a given t forms a sliding window: events

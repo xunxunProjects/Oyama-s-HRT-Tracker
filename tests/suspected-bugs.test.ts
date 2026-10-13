@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_PK_PARAMS,
     Ester,
-    ExtraKey,
     Route,
     computeCalibration,
     getDoseAdvisory,
@@ -17,51 +16,9 @@ import {
     runSimulation,
     runSimulationWithParams,
 } from '../logic';
-import { BW, NOW_H, VD_E2_ML, dose, lab, regimen, relErr, scan } from './helpers';
-import { upstreamE2Amount } from './reference/pkcoreUpstream';
+import { BW, NOW_H, dose, lab, regimen, relErr, scan } from './helpers';
 
 const E2 = interpolateConcentration_E2;
-
-describe('suspected: dense sampling around dose peaks never applies to short-acting doses', () => {
-    // runSimulation() adds extra sample points 0.25-48 h after a dose, but only
-    // for doses that are still contributing at the END of the grid
-    // (`endTime - startTimeH > 2 * maxLifetimeH` skips the rest). The grid always
-    // ends at least 14 days after the last dose, so oral and sublingual
-    // estradiol doses (lifetimes of a day or two) never get the extra points;
-    // gel, ester and cyproterone doses last long enough and do. With a long
-    // history the grid is about one point per hour, so a sublingual peak (Tmax
-    // about 1 h) is drawn up to about 7% low, and the level read off shortly
-    // after a dose can be half of what the model itself says.
-    const sublingualYear = (last: number) =>
-        regimen(Route.sublingual, Ester.E2, 2, 24, 365, last, { [ExtraKey.sublingualTier]: 2 });
-
-    it.fails('the most recent sublingual dose has sample points around its peak', () => {
-        const last = NOW_H - 10;
-        const sim = runSimulation(sublingualYear(last), BW)!;
-        for (const offset of [0.25, 0.5, 1, 2]) expect(sim.timeH).toContain(last + offset);
-    });
-
-    it.fails('the current level 15 minutes after a sublingual dose matches the model', () => {
-        const events = sublingualYear(NOW_H - 0.25);
-        // The model's own value, summed dose by dose with the independent port of
-        // upstream PKcore (tests/reference), which routes.test.ts shows agrees
-        // with logic.ts to 0.1% on its grid points.
-        const exact =
-            (events.reduce(
-                (sum, d) =>
-                    sum +
-                    upstreamE2Amount(
-                        { route: 'sublingual', compound: 'E2', doseE2MG: d.doseMG, timeH: d.timeH, tier: 2 },
-                        NOW_H,
-                    ),
-                0,
-            ) *
-                1e9) /
-            VD_E2_ML;
-        // Today this reads about 285 pg/mL against 568.
-        expect(relErr(E2(runSimulation(events, BW)!, NOW_H)!, exact)).toBeLessThan(0.05);
-    });
-});
 
 describe('suspected: testosterone injections run below their documented targets', () => {
     // The comment above T_CorePK in logic.ts says the parameters reproduce
