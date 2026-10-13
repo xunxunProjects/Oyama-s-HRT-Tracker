@@ -44,7 +44,7 @@ const ForecastChart: React.FC<{
     unit: string;
     isDarkMode: boolean;
     lang: Lang;
-    labels: { history: string; target: string };
+    labels: { history: string; target: string; swing: string };
 }> = ({ history, lines, band, bandLabel, nowH, horizonH, target, unit, isDarkMode, lang, labels }) => {
     const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
     const { width } = useElementSize(plotEl);
@@ -221,6 +221,11 @@ const ForecastChart: React.FC<{
     };
     const historyTrace = trace(historyPts);
     const lineTraces = linePts.map(l => ({ ...l, ...trace(l.pts) }));
+    // The colours of the lines drawn as a range, one legend swatch each.
+    const swingTones = plotW <= 0 ? [] : [...new Set([
+        ...(historyTrace.ribbon ? [c.primary] : []),
+        ...lineTraces.filter(l => l.ribbon).map(l => tone(l.tone)),
+    ])];
 
     const bandCols = band && plotW > 0 ? columns(band.timeH, band.lo, band.hi) : null;
     const bandPath = band && plotW > 0
@@ -283,6 +288,22 @@ const ForecastChart: React.FC<{
                 <span className="flex items-center gap-1.5">{swatch(c.primary, '')}{labels.history}</span>
                 {lines.map(l => <span key={l.key} className="flex items-center gap-1.5">{swatch(tone(l.tone), l.dash)}{l.label}</span>)}
                 {band && <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm" style={{ background: c.band }} />{bandLabel}</span>}
+                {/* A line drawn as its range (see columns()) carries a wash much
+                    like the band's, and in a twice-daily plan the two merged into
+                    one block that read as the 10–90% interval. Its swatch is the
+                    wash with the line through it, in each colour that has one,
+                    and says what the wash is. */}
+                {swingTones.length > 0 && (
+                    <span className="flex items-center gap-1.5">
+                        {swingTones.map(col => (
+                            <svg key={col} width="18" height="10" aria-hidden="true" className="shrink-0">
+                                <rect x="0" y="1" width="18" height="8" fill={col} fillOpacity={0.18} />
+                                <line x1="0" y1="5" x2="18" y2="5" stroke={col} strokeWidth="1.75" />
+                            </svg>
+                        ))}
+                        {labels.swing}
+                    </span>
+                )}
             </div>
             <div
                 ref={setPlotEl}
@@ -310,11 +331,18 @@ const ForecastChart: React.FC<{
                         ))}
                         {/* From the left edge: at 12px "pg/mL" is wider than the gutter. */}
                         <text x={0} y={11 * ui} fontSize={axisFont} fill={c.axis}>{unit}</text>
-                        {shownTicks.map(h => (
-                            <text key={h} x={X(h)} y={height - 6 * ui} fontSize={axisFont} textAnchor="middle" fill={c.axis} className="tabular-nums">
-                                {dayFmt.format(new Date(h * 3600000))}
-                            </text>
-                        ))}
+                        {shownTicks.map(h => {
+                            const day = dayFmt.format(new Date(h * 3600000));
+                            // Centred on a week that falls near the right edge, a date ran
+                            // past the narrow right gutter and was cut to "12/"; it is left
+                            // out instead. Digits run about 0.6em.
+                            if (X(h) + day.length * axisFont * 0.3 > width) return null;
+                            return (
+                                <text key={h} x={X(h)} y={height - 6 * ui} fontSize={axisFont} textAnchor="middle" fill={c.axis} className="tabular-nums">
+                                    {day}
+                                </text>
+                            );
+                        })}
                         {bandPath && <path d={bandPath} fill={c.band} stroke="none" />}
                         {historyTrace.ribbon && <path d={historyTrace.ribbon} fill={c.primary} fillOpacity={0.18} stroke="none" />}
                         {lineTraces.map(l => l.ribbon && <path key={l.key} d={l.ribbon} fill={tone(l.tone)} fillOpacity={0.18} stroke="none" />)}

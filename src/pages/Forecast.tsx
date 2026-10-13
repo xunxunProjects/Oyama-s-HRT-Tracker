@@ -341,7 +341,7 @@ const Forecast: React.FC<ForecastProps> = ({
                         unit={unit}
                         isDarkMode={isDarkMode}
                         lang={lang}
-                        labels={{ history: t('forecast.legend.history'), target: t('chart.target') }}
+                        labels={{ history: t('forecast.legend.history'), target: t('chart.target'), swing: t('forecast.legend.swing') }}
                     />
                     <p className={`mt-1 h-4 text-xs ${muted} transition-opacity ${busy ? 'opacity-100' : 'opacity-0'}`}>{t('forecast.computing')}</p>
                 </section>
