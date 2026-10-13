@@ -458,11 +458,6 @@ const Home: React.FC<HomeProps> = ({
                                 </button>
                             );
                         })}
-                        {/* Without a plan nothing here says what one is for, and
-                            everyone who logged before plans arrived is in that state. */}
-                        {plan.length === 0 && hasReading && (
-                            <p className={`pt-1.5 text-xs ${muted}`}>{t('plan.home_hint')}</p>
-                        )}
                         <div className="pt-1.5">
                             <button
                                 type="button"
