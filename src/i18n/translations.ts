@@ -495,6 +495,9 @@ export const TRANSLATIONS_BASE = {
         "lab.dual_hint": "两项都可以填，会用同一个时间点分别保存。",
         "lab.empty": "暂无检查记录",
         "lab.delete_confirm": "确定删除这条检查记录吗？",
+        "lab.not_used": "未用于校准：抽血前没有近期的用药记录",
+        "lab.ratio_above": "高 {pct}%",
+        "lab.ratio_below": "低 {pct}%",
         "lab.clear_all": "删除全部检查结果",
         "lab.clear_confirm": "删除全部检查结果？此操作不可撤销。如果只是不想再用它们校准，可以在校准设置里选“关闭”，结果会保留。",
 
@@ -1266,6 +1269,9 @@ export const TRANSLATIONS_BASE = {
         "lab.dual_hint": "You can fill in either or both, they're saved as separate entries with the same timestamp.",
         "lab.empty": "No lab results yet",
         "lab.delete_confirm": "Delete this lab result?",
+        "lab.not_used": "Not used for calibration: no recent dose logged before this draw",
+        "lab.ratio_above": "{pct}% above",
+        "lab.ratio_below": "{pct}% below",
         "lab.clear_all": "Delete all lab results",
         "lab.clear_confirm": "Delete every lab result? This cannot be undone. To stop calibrating and keep them, choose Off in Calibration settings instead.",
 
@@ -1851,6 +1857,9 @@ const ZH_TW = {
     "lab.dual_hint": "兩項都可以填，會用同一個時間點分別儲存。",
     "lab.empty": "暫無檢驗結果",
     "lab.delete_confirm": "確定要刪除這筆檢驗嗎？",
+    "lab.not_used": "未用於校準：抽血前沒有近期的用藥紀錄",
+    "lab.ratio_above": "高 {pct}%",
+    "lab.ratio_below": "低 {pct}%",
     "lab.clear_all": "刪除全部檢驗結果",
     "lab.clear_confirm": "確定要刪除全部檢驗結果？此操作無法復原。如果只是不想再用它們校準，可以在校準設定裡選「關閉」，結果會保留。",
 
@@ -2604,6 +2613,7 @@ export const TRANSLATIONS = {
         "lab.dual_hint": "兩項都可以填，會用同一個時間點分別儲存。",
         "lab.empty": "暫時未有檢驗結果",
         "lab.delete_confirm": "要刪除呢條檢驗嗎？",
+        "lab.not_used": "冇用嚟校準：抽血之前冇近期嘅用藥記錄",
         "cal.settings": "校準設定",
         "cal.current": "目前擬合",
         "cal.off": "閂咗",
@@ -3132,6 +3142,9 @@ export const TRANSLATIONS = {
         "lab.dual_hint": "どちらか一方でも両方でも入力できます。同じ日時で別々に保存されます。",
         "lab.empty": "検査結果はまだありません",
         "lab.delete_confirm": "この検査記録を削除しますか？",
+        "lab.not_used": "補正には使われていません：採血前の最近の投与記録がありません",
+        "lab.ratio_above": "{pct}% 高い",
+        "lab.ratio_below": "{pct}% 低い",
         "lab.clear_all": "検査結果をすべて削除",
         "lab.clear_confirm": "検査結果をすべて削除しますか？元に戻せません。補正に使わないだけなら、削除せずに補正の設定で「オフ」を選んでください。",
 
@@ -3907,6 +3920,9 @@ export const TRANSLATIONS = {
         "lab.dual_hint": "둘 다 입력해도 되고 하나만 입력해도 돼요. 같은 시각으로 각각 저장돼요.",
         "lab.empty": "아직 검사 결과가 없습니다",
         "lab.delete_confirm": "이 검사 결과를 삭제하시겠습니까?",
+        "lab.not_used": "보정에 사용되지 않음: 채혈 전 최근 투약 기록이 없습니다",
+        "lab.ratio_above": "{pct}% 높음",
+        "lab.ratio_below": "{pct}% 낮음",
         "lab.clear_all": "검사 결과 모두 삭제",
         "lab.clear_confirm": "모든 검사 결과를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다. 보정만 멈추려면 삭제하지 말고 보정 설정에서 '끄기'를 선택하세요.",
 
@@ -4691,6 +4707,9 @@ export const TRANSLATIONS = {
         "lab.dual_hint": "İkisini de doldurabilirsin ya da sadece birini; aynı zaman damgasıyla ayrı ayrı kaydedilir.",
         "lab.empty": "Henüz laboratuvar sonucu yok",
         "lab.delete_confirm": "Bu laboratuvar sonucunu sil?",
+        "lab.not_used": "Kalibrasyonda kullanılmadı: bu kan alımından önce yakın zamanda kayıtlı doz yok",
+        "lab.ratio_above": "%{pct} üstünde",
+        "lab.ratio_below": "%{pct} altında",
         "lab.clear_all": "Tüm lab sonuçlarını sil",
         "lab.clear_confirm": "Tüm lab sonuçları silinsin mi? Bu işlem geri alınamaz. Sonuçları tutup yalnızca kalibrasyonu durdurmak istiyorsan Kalibrasyon ayarlarında Kapalı'yı seç.",
 
