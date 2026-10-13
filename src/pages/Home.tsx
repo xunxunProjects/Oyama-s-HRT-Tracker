@@ -229,13 +229,18 @@ const Home: React.FC<HomeProps> = ({
 
                 {/* Readings. A grid rather than two flex columns so each row
                     lines up on its own: the labels share a baseline, and so do
-                    the two numbers. On a 375px screen the first column is the
-                    one that gives — minmax(0,…) lets it shrink and its number
-                    line wraps, so the cats drop under the reading instead of
-                    shoving the second reading off the edge. */}
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1.5">
-                    <p className={`text-[0.8125rem] font-medium ${muted}`}>{primary.label}</p>
-                    <p className={`text-right text-[0.8125rem] font-medium ${muted}`}>{companion?.label}</p>
+                    the two numbers. Side by side, the two slots below need
+                    about 380px at a phone's 3rem and 508px at md's 4.5rem, and
+                    neither can shrink: on a 360px phone the first ran into the
+                    second ("pg/ml" drawn under "26.6"), and a four-digit peak
+                    did so up to 414. So the second reading goes under the
+                    first, on the left with its label, until the column (not
+                    the screen: from md the sidebar takes its share) holds the
+                    pair at the largest size, 32rem. That is every phone; the
+                    pair sits side by side from about 560px wide. */}
+                <div className="@container">
+                <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-1.5 @min-[32rem]:grid-cols-[minmax(0,1fr)_auto]">
+                    <p className={`text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-1 @min-[32rem]:row-start-1`}>{primary.label}</p>
 
                     {/* Number and unit sit in a slot wide enough for a
                         four-digit reading (two for the second column), so a
@@ -243,7 +248,7 @@ const Home: React.FC<HomeProps> = ({
                         load, doesn't shove the cats or the other column about.
                         The status rides on the tick scale, which a screen
                         reader skips, so it is said here, after the unit. */}
-                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 @min-[32rem]:col-start-1 @min-[32rem]:row-start-2">
                         <span className={readingSlot} style={{ minWidth: slotWidth(4, primary.decimals) }}>
                             {primary.value > 0 ? (
                                 <>
@@ -258,33 +263,42 @@ const Home: React.FC<HomeProps> = ({
                         {cats}
                     </div>
 
-                    {companion ? (
-                        <span className={`${readingSlot} justify-end whitespace-nowrap`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
-                            {companion.value > 0 ? (
-                                <>
-                                    <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
-                                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
-                                </>
-                            ) : (
-                                <span className={dim}>--</span>
+                    {companion && (
+                        <>
+                            {companion.label && (
+                                <p className={`mt-3 text-[0.8125rem] font-medium ${muted} @min-[32rem]:col-start-2 @min-[32rem]:row-start-1 @min-[32rem]:mt-0 @min-[32rem]:text-right`}>{companion.label}</p>
                             )}
-                        </span>
-                    ) : <span />}
+                            <span className={`${readingSlot} whitespace-nowrap @min-[32rem]:col-start-2 @min-[32rem]:row-start-2 @min-[32rem]:justify-end`} style={{ minWidth: slotWidth(2, companion.decimals) }}>
+                                {companion.value > 0 ? (
+                                    <>
+                                        <span className={on}><AnimatedNumber value={companion.value} decimals={companion.decimals} /></span>
+                                        <span className={`text-sm font-normal tracking-normal ${muted}`}>{companion.unit}</span>
+                                    </>
+                                ) : (
+                                    <span className={dim}>--</span>
+                                )}
+                            </span>
+                        </>
+                    )}
 
                     {/* The scale runs the full width under both readings. Kept
                         to the first one's column beside a second reading, it
-                        came out too short to read. */}
+                        came out too short to read. It describes the first
+                        reading only, so beside a second drug's reading the
+                        status names whose it is: under the cyproterone figure,
+                        "above reference range" read as the cyproterone level. */}
                     {primary.value > 0 && (
-                        <div className="col-span-2 mt-0.5">
+                        <div className="mt-0.5 @min-[32rem]:col-span-2">
                             <LevelRail
                                 value={primary.value}
                                 band={primary.band}
                                 domain={primary.domain}
-                                label={currentStatus ? t(currentStatus.label) : undefined}
+                                label={currentStatus ? (companion?.label ? `${primary.label} · ${t(currentStatus.label)}` : t(currentStatus.label)) : undefined}
                                 tone={currentStatus?.color}
                             />
                         </div>
                     )}
+                </div>
                 </div>
                 </>
                 )}
@@ -463,7 +477,9 @@ const Home: React.FC<HomeProps> = ({
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />
                         <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
-                        <p className={`text-sm ${muted} mb-6 max-w-xs`}>{t('home.empty_subtitle')}</p>
+                        {/* Balanced, so short centred copy breaks evenly rather
+                            than leaving one character alone on a second line. */}
+                        <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
                         {/* Logging a dose is the one thing this page is waiting
                             for, so it is the one terracotta button on it. */}
                         <button
