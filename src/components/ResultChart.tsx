@@ -15,6 +15,25 @@ const DAY = 24 * HOUR;
 
 type RangeKey = '7d' | '30d' | 'all';
 
+/**
+ * The midnight that starts the day `ms` falls in, and that day's number
+ * counted from 1970-01-01, in `timeZone` (a shared chart's) or the device's
+ * own. What the x-axis ticks step along.
+ */
+const dayOf = (ms: number, timeZone?: string): { start: number; n: number } => {
+    if (!timeZone) {
+        const d = new Date(ms);
+        d.setHours(0, 0, 0, 0);
+        return { start: d.getTime(), n: Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) };
+    }
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
+    }).formatToParts(new Date(ms));
+    const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(p => p.type === type)?.value ?? 0);
+    const sinceMidnight = ((get('hour') * 60 + get('minute')) * 60 + get('second')) * 1000 + (ms % 1000);
+    return { start: ms - sinceMidnight, n: Math.round(Date.UTC(get('year'), get('month') - 1, get('day')) / DAY) };
+};
+
 // Pick a "nice" rounding step (1/2/5 × 10^n) near the requested magnitude.
 const niceStep = (raw: number): number => {
     if (!(raw > 0)) return 1;
@@ -93,7 +112,11 @@ const useEasedPair = (target: [number, number], instant: boolean): [number, numb
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [target[0], target[1], instant]);
 
-    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+    // Clearing the id as well as cancelling the frame: StrictMode in
+    // development runs this cleanup and then the effect above again, which
+    // took the stale id for an ease in flight and never started one, so the
+    // drawn window stayed on 7d whatever range was picked.
+    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); rafRef.current = 0; }, []);
 
     return shown;
 };
@@ -526,17 +549,31 @@ const ResultChart = ({
         return d;
     };
 
+    // Ticks on the start of a day, a whole number of days apart, so equal
+    // gaps on the axis are equal stretches of time. Evenly spaced moments
+    // labelled with whatever day they fell in skipped a day here and there
+    // (9, 12, 14, 16), which read as a gap in the record. Steps count from a
+    // fixed day (weeks from a Monday), so panning slides the ticks along
+    // rather than reshuffling which days get one.
     const xTicks = useMemo(() => {
         if (plotW <= 0) return [];
         const count = Math.max(2, Math.min(6, Math.floor(plotW / (90 * ui))));
+        const span = (t1 - t0) / DAY;
+        const step = [1, 2, 3, 7, 14, 28, 56, 91, 182, 364].find(s => span / s <= count) ?? Math.ceil(span / count);
+        const phase = step % 7 === 0 ? 3 : 0;
         const seen = new Set<string>();
         const out: { time: number; label: string }[] = [];
-        for (let i = 0; i <= count; i++) {
-            const time = t0 + ((t1 - t0) * i) / count;
-            const label = formatDate(new Date(time), lang, timeZone);
+        // Half a day past a midnight, then back to it, so a 23- or 25-hour
+        // day at a clock change still lands on the right date.
+        let day = dayOf(t0, timeZone);
+        if (day.start < t0) day = dayOf(day.start + 1.5 * DAY, timeZone);
+        const ahead = (step - ((day.n + phase) % step)) % step;
+        if (ahead) day = dayOf(day.start + (ahead + 0.5) * DAY, timeZone);
+        for (; day.start <= t1; day = dayOf(day.start + (step + 0.5) * DAY, timeZone)) {
+            const label = formatDate(new Date(day.start), lang, timeZone);
             if (seen.has(label)) continue;
             seen.add(label);
-            out.push({ time, label });
+            out.push({ time: day.start, label });
         }
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps
