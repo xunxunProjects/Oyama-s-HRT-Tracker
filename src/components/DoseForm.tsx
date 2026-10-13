@@ -18,6 +18,7 @@ import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 import { useEscapeLayer } from './CustomSelect';
+import GuideFold from './dose_form/GuideFold';
 
 export interface DoseTemplate {
     id: string;
@@ -670,6 +671,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         return (
             <div className="relative">
                 <button
+                    type="button"
                     onClick={() => setShowTemplateMenu(!showTemplateMenu)}
                     aria-expanded={showTemplateMenu}
                     className="px-2 py-1 text-xs font-medium rounded flex items-center gap-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20"
@@ -684,6 +686,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                             {templates.map((template: DoseTemplate) => (
                                 <div key={template.id} className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b border-[var(--border)] last:border-b-0">
                                     <button
+                                        type="button"
                                         onClick={() => { handleLoadTemplate(template); setShowTemplateMenu(false); }}
                                         className="flex-1 text-left"
                                     >
@@ -695,6 +698,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                         </div>
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             showDialog('confirm', t('template.delete_confirm'), () => {
@@ -717,8 +721,18 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
         );
     };
 
+    // A real form, so Enter in a field (or Go on a phone keyboard) saves.
+    // noValidate: the browser's own bubbles would block a save over a step
+    // mismatch the dose fields don't care about; handleSave checks the values.
     return (
-        <div className="flex flex-col h-full">
+        <form
+            className="flex flex-col h-full"
+            noValidate
+            onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+            }}
+        >
 
             {/* Save Template Dialog Overlay */}
             {/* Save Template Dialog Overlay (Removed) */}
@@ -731,7 +745,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     </h3>
                     <div className="flex gap-2 items-center">
                         {renderLoadTemplateControl()}
-                        <button onClick={onCancel} className="p-1.5 hover:bg-[var(--surface-hover)] rounded-lg">
+                        <button type="button" onClick={onCancel} className="p-1.5 hover:bg-[var(--surface-hover)] rounded-lg" aria-label={t('btn.cancel')}>
                             <X size={18} className="text-[var(--text-muted)]" />
                         </button>
                     </div>
@@ -894,93 +908,103 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
 
                         {/* Injection-specific guide from mtf.wiki */}
                         {route === Route.injection && !isTransmasc && isEstradiolEster(ester) && (
-                            <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
-                                {/* Safety Warning */}
-                                <div className="flex gap-2">
-                                    <span className="icon-line text-sm"><AlertTriangle className="w-4 h-4 text-[var(--warning)]" /></span>
-                                    <div>
-                                        <span className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.title')}</span>
-                                        <p className="text-sm text-[var(--warning)] mt-0.5">{t('inj.guide.safety')}</p>
-                                    </div>
-                                </div>
-
-                                {/* Usage & Dosage */}
-                                <div className="space-y-1.5 pl-6">
-                                    <p className="text-sm text-[var(--text-muted)]">{t('inj.guide.route_methods')}</p>
-                                    <p className="text-xs font-medium text-[var(--danger)]">{t('inj.guide.route_warn')}</p>
-                                    <p className="text-sm font-semibold text-[var(--text)] mt-1">{t('inj.guide.dosage_title')}</p>
-                                    <ul className="text-sm text-[var(--text-muted)] space-y-0.5 list-disc list-inside">
-                                        <li>{t('inj.guide.dosage_ev')}</li>
-                                        <li>{t('inj.guide.dosage_ec')}</li>
-                                    </ul>
-                                    <a
-                                        href="https://transfemscience.org/misc/injectable-e2-simulator/"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            confirmAndOpenExternal('https://transfemscience.org/misc/injectable-e2-simulator/');
-                                        }}
-                                        className="inline-flex items-center gap-1 text-sm text-[var(--accent-ink)] hover:underline mt-0.5"
-                                    >
-                                        {t('inj.guide.sim_link')}
-                                        <ExternalLink size={13} />
-                                    </a>
-                                </div>
-
-                                {/* Precautions */}
-                                <div className="pl-6 space-y-1">
-                                    <p className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.notes_title')}</p>
-                                    <ul className="text-xs text-[var(--text-muted)] space-y-1.5 list-disc list-inside leading-relaxed">
-                                        <li>{t('inj.guide.note_1')}</li>
-                                        <li>{t('inj.guide.note_2')}</li>
-                                        <li className="font-semibold text-[var(--danger)]">{t('inj.guide.note_3')}</li>
-                                        <li><span className="font-semibold text-[var(--warning)]">{t('inj.guide.note_4')}</span></li>
-                                        <li>{t('inj.guide.note_5')}</li>
-                                        <li>{t('inj.guide.note_6')}</li>
-                                        <li>{t('inj.guide.note_7')}</li>
-                                        <li>{t('inj.guide.note_8')}</li>
-                                        <li>{t('inj.guide.note_9')}</li>
-                                    </ul>
-                                </div>
-
-                                {/* Source */}
-                                <a
-                                    href="https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        confirmAndOpenExternal('https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection');
-                                    }}
-                                    className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent-ink)]"
+                            <div className="mt-3 border-t border-[var(--border)] pt-3">
+                                {/* The safety warning stays in view; the rest folds. */}
+                                <GuideFold
+                                    icon={<span className="icon-line text-sm"><AlertTriangle className="w-4 h-4 text-[var(--warning)]" /></span>}
+                                    heading={<span className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.title')}</span>}
+                                    lead={<span className="block text-sm text-[var(--warning)] mt-0.5">{t('inj.guide.safety')}</span>}
                                 >
-                                    {t('inj.guide.source')}
-                                    <ExternalLink size={12} />
-                                </a>
+                                    <div className="pt-3 space-y-3">
+                                        {/* Usage & Dosage */}
+                                        <div className="space-y-1.5 pl-6">
+                                            <p className="text-sm text-[var(--text-muted)]">{t('inj.guide.route_methods')}</p>
+                                            <p className="text-xs font-medium text-[var(--danger)]">{t('inj.guide.route_warn')}</p>
+                                            <p className="text-sm font-semibold text-[var(--text)] mt-1">{t('inj.guide.dosage_title')}</p>
+                                            <ul className="text-sm text-[var(--text-muted)] space-y-0.5 list-disc list-inside">
+                                                <li>{t('inj.guide.dosage_ev')}</li>
+                                                <li>{t('inj.guide.dosage_ec')}</li>
+                                            </ul>
+                                            <a
+                                                href="https://transfemscience.org/misc/injectable-e2-simulator/"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    confirmAndOpenExternal('https://transfemscience.org/misc/injectable-e2-simulator/');
+                                                }}
+                                                className="inline-flex items-center gap-1 text-sm text-[var(--accent-ink)] hover:underline mt-0.5"
+                                            >
+                                                {t('inj.guide.sim_link')}
+                                                <ExternalLink size={13} />
+                                            </a>
+                                        </div>
+
+                                        {/* Precautions */}
+                                        <div className="pl-6 space-y-1">
+                                            <p className="text-sm font-semibold text-[var(--text)]">{t('inj.guide.notes_title')}</p>
+                                            <ul className="text-xs text-[var(--text-muted)] space-y-1.5 list-disc list-inside leading-relaxed">
+                                                <li>{t('inj.guide.note_1')}</li>
+                                                <li>{t('inj.guide.note_2')}</li>
+                                                <li className="font-semibold text-[var(--danger)]">{t('inj.guide.note_3')}</li>
+                                                <li><span className="font-semibold text-[var(--warning)]">{t('inj.guide.note_4')}</span></li>
+                                                <li>{t('inj.guide.note_5')}</li>
+                                                <li>{t('inj.guide.note_6')}</li>
+                                                <li>{t('inj.guide.note_7')}</li>
+                                                <li>{t('inj.guide.note_8')}</li>
+                                                <li>{t('inj.guide.note_9')}</li>
+                                            </ul>
+                                        </div>
+
+                                        {/* Source */}
+                                        <a
+                                            href="https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                confirmAndOpenExternal('https://mtf.wiki/zh-cn/docs/medicine/estrogen/injection');
+                                            }}
+                                            className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent-ink)]"
+                                        >
+                                            {t('inj.guide.source')}
+                                            <ExternalLink size={12} />
+                                        </a>
+                                    </div>
+                                </GuideFold>
                             </div>
                         )}
 
-                        {/* CPA dosage hint */}
+                        {/* CPA dosage hint: the recommended dose stays in view, the two other regimens fold. */}
                         {ester === Ester.CPA && (
-                            <div className="mt-3 p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] flex gap-3">
-                                <span className="icon-line text-sm"><Info className="w-5 h-5 text-[var(--text-muted)]" /></span>
-                                <div className="space-y-1.5">
-                                    <span className="text-sm font-bold text-[var(--text)]">{t('dose.guide.title')}</span>
-                                    <ul className="space-y-1 mt-1">
-                                        {(['rec', 'combo', 'ultralow'] as const).map(key => (
+                            <div className="mt-3 p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)]">
+                                <GuideFold
+                                    icon={<span className="icon-line text-sm me-1"><Info className="w-5 h-5 text-[var(--text-muted)]" /></span>}
+                                    heading={<span className="text-sm font-bold text-[var(--text)]">{t('dose.guide.title')}</span>}
+                                    lead={
+                                        <span className="mt-2.5 flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
+                                            <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
+                                            {t('dose.guide.cpa_hint.rec')}
+                                        </span>
+                                    }
+                                >
+                                    {/* Hangs under the heading, clear of the icon (20px + 12px). */}
+                                    <ul className="ps-8 pt-1 space-y-1">
+                                        {(['combo', 'ultralow'] as const).map(key => (
                                             <li key={key} className="flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
                                                 <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
                                                 {t(`dose.guide.cpa_hint.${key}`)}
                                             </li>
                                         ))}
                                     </ul>
-                                </div>
+                                </GuideFold>
                             </div>
                         )}
 
-                        {/* Dose guide for non-injection routes */}
-                        {doseGuide && (
+                        {/* Dose guide for non-injection routes. Only once there is a
+                            dose to place: before that it was three lines of
+                            "enter a dose" and bare thresholds on every new form. */}
+                        {doseGuide && (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
                             <div className="mt-2 pt-2 border-t border-[var(--border)] flex gap-2">
                                 <span className="icon-line text-xs"><Info className="w-3.5 h-3.5 text-[var(--text-muted)]" /></span>
                                 <div className="space-y-0.5 min-w-0">
@@ -1033,11 +1057,19 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 type="text"
                                 value={templateName}
                                 onChange={(e) => setTemplateName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    // Enter here names the template; it must not save the dose.
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSaveAsTemplate();
+                                    }
+                                }}
                                 placeholder={t('template.name_placeholder')}
                                 className="flex-1 min-w-0 px-2.5 py-1.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)]"
                                 style={{ fontSize: '16px' }}
                             />
                             <button
+                                type="button"
                                 onClick={handleSaveAsTemplate}
                                 className="p-1.5 ml-1 text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]/20 rounded shrink-0"
                                 aria-label={t('template.save_title')}
@@ -1045,6 +1077,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                                 <Check size={18} />
                             </button>
                             <button
+                                type="button"
                                 onClick={() => { setShowSaveTemplateInput(false); setTemplateName(''); }}
                                 className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0"
                                 aria-label={t('btn.cancel')}
@@ -1058,6 +1091,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         }`} {...inertWhen(showSaveTemplateInput)}>
                             <button
                                 ref={templateButtonRef}
+                                type="button"
                                 onClick={() => {
                                     setShowSaveTemplateInput(true);
                                     setShowTemplateMenu(false);
@@ -1074,6 +1108,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     {/* Delete Event (only when editing) */}
                     {eventToEdit && (
                         <button
+                            type="button"
                             onClick={() => {
                                 setShowSaveTemplateInput(false);
                                 setShowTemplateMenu(false);
@@ -1094,6 +1129,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                 <div className="flex gap-2 ml-auto shrink-0 w-full sm:w-auto justify-end">
                     {hideHeader && (
                         <button
+                            type="button"
                             onClick={onCancel}
                             className="flex-1 sm:flex-none sm:min-w-[88px] flex items-center justify-center px-4 py-2 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded-md text-sm"
                         >
@@ -1101,7 +1137,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                         </button>
                     )}
                     <button
-                        onClick={handleSave}
+                        type="submit"
                         disabled={isSaving}
                         className="btn-primary flex-1 sm:flex-none sm:min-w-[88px]"
                     >
@@ -1116,7 +1152,7 @@ const DoseForm: React.FC<DoseFormProps> = ({ eventToEdit, onSave, onCancel, onDe
                     </button>
                 </div>
             </div>
-        </div>
+        </form>
     );
 };
 
