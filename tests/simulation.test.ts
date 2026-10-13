@@ -164,7 +164,7 @@ describe('runSimulation: hormones are kept apart', () => {
         expect(interpolateConcentration_T(sim, t)).toBeCloseTo(interpolateConcentration_T(tOnly, t)!, 9);
     });
 
-    it('concPGmL is E2 plus CPA converted from ng/mL to pg/mL, and the AUC integrates that sum', () => {
+    it('concPGmL is E2 plus CPA converted from ng/mL to pg/mL, and the AUC integrates E2 alone', () => {
         const sim = runSimulation(
             [dose(Route.oral, Ester.E2, 2, NOW_H - 20), dose(Route.oral, Ester.CPA, 10, NOW_H - 20)],
             BW,
@@ -172,7 +172,7 @@ describe('runSimulation: hormones are kept apart', () => {
         sim.timeH.forEach((_, i) => {
             expect(sim.concPGmL[i]).toBeCloseTo(sim.concPGmL_E2[i] + sim.concPGmL_CPA[i] * 1000, 6);
         });
-        expect(relErr(sim.auc, trapz(sim.timeH, sim.concPGmL))).toBeLessThan(1e-9);
+        expect(relErr(sim.auc, trapz(sim.timeH, sim.concPGmL_E2))).toBeLessThan(1e-9);
     });
 });
 

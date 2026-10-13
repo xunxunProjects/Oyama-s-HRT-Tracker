@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { Ester, Route, getDoseAdvisory, getHormoneLevelAdvisory } from '../logic';
 import { NOW_H, dose, lab, regimen } from './helpers';
 
-// Day boundaries in getDoseAdvisory are UTC days (floor(timeH / 24)). NOW_H is
-// a multiple of 24, so NOW_H - 12 is noon UTC of the previous day.
+// Day boundaries in getDoseAdvisory are local days, and the suite runs in UTC
+// (tests/setup.ts). NOW_H is a multiple of 24, so NOW_H - 12 is noon of the
+// previous day.
 const NOON = NOW_H - 12;
 
 describe('getDoseAdvisory', () => {
