@@ -9,13 +9,19 @@ import {
     Ester,
     ExtraKey,
     Route,
+    applyPKOverrides,
     computeCalibration,
+    getBioavailabilityMultiplier,
     getDoseAdvisory,
     getHormoneLevelAdvisory,
+    getToE2Factor,
     interpolateConcentration_E2,
     interpolateConcentration_T,
     runSimulation,
     runSimulationWithParams,
+    sanitizePKParams,
+    sublingualHoldFromTheta,
+    sublingualThetaFromHold,
 } from '../logic';
 import { BW, NOW_H, VD_E2_ML, dose, lab, regimen, relErr, scan } from './helpers';
 
@@ -464,5 +470,96 @@ describe('lab advisory pairs the two hormones deterministically', () => {
     it('labs drawn more than 30 days apart are not read as one moment', () => {
         expect(getHormoneLevelAdvisory([lab(0, 20), lab(29 * 24, 30, 'ng/dl')])).toEqual({ kind: 'both_low' });
         expect(getHormoneLevelAdvisory([lab(0, 20), lab(31 * 24, 30, 'ng/dl')])).toBeNull();
+    });
+});
+
+describe('the dose kernels stay exact when two rates meet', () => {
+    // The three-exponential closed form divides by differences of rates. It used
+    // to nudge equal rates a millionth apart, which kept it finite but off by up
+    // to about 1e-4 of the value: more than the curve moves when the rate itself
+    // changes by 1e-4. Testosterone enanthate's absorption and elimination rates
+    // are equal by default; the other two cases need a custom elimination rate.
+    afterEach(() => applyPKOverrides(null));
+
+    const at = (events: ReturnType<typeof dose>[], read: typeof E2, hours: number[]) => {
+        const sim = runSimulation(events, BW)!;
+        return hours.map(h => read(sim, events[0].timeH + h)!);
+    };
+    const HOURS = [0.25, 0.5, 1, 2, 4, 8, 24, 72];
+
+    it.each([
+        ['testosterone enanthate at the default elimination rate', Ester.TE, 't_kClearInj', 0.035],
+        ['estradiol benzoate with elimination set to its hydrolysis rate', Ester.EB, 'e2_kClearInj', 0.09],
+        ['estradiol valerate with elimination set to its absorption rate', Ester.EV, 'e2_kClearInj', 0.0216],
+    ] as const)('%s lies between its neighbours', (_label, ester, key, k) => {
+        const read = ester === Ester.TE ? interpolateConcentration_T : E2;
+        const events = [dose(Route.injection, ester, 5, NOW_H - 200)];
+        const curve = (kk: number) => {
+            applyPKOverrides({ ...DEFAULT_PK_PARAMS, [key]: kk });
+            return at(events, read, HOURS);
+        };
+        const lo = curve(k * (1 - 1e-4));
+        const mid = curve(k);
+        const hi = curve(k * (1 + 1e-4));
+        mid.forEach((v, i) => {
+            expect(v).toBeGreaterThan(0);
+            expect(v).toBeLessThanOrEqual(Math.max(lo[i], hi[i]) * (1 + 1e-12));
+            expect(v).toBeGreaterThanOrEqual(Math.min(lo[i], hi[i]) * (1 - 1e-12));
+        });
+    });
+});
+
+describe('cyproterone is modelled by mouth only', () => {
+    it.each([Route.injection, Route.sublingual, Route.gel])('a %s dose adds nothing to any curve', route => {
+        const sim = runSimulation([dose(route, Ester.CPA, 10, NOW_H - 20)], BW);
+        for (const arr of [sim?.concPGmL_CPA ?? [], sim?.concPGmL_E2 ?? [], sim?.concNGdL_T ?? []]) {
+            for (const v of arr) expect(v).toBe(0);
+        }
+    });
+
+    it('the bioavailability shown for it matches the model, and it has no estradiol factor', () => {
+        expect(getBioavailabilityMultiplier(Route.oral, Ester.CPA)).toBe(0.7);
+        expect(getBioavailabilityMultiplier(Route.injection, Ester.CPA)).toBe(0);
+        expect(getToE2Factor(Ester.CPA)).toBe(1);
+    });
+});
+
+describe('small corrections', () => {
+    afterEach(() => applyPKOverrides(null));
+
+    it('the AUC covers estradiol only', () => {
+        const e2 = dose(Route.oral, Ester.E2, 2, NOW_H - 20);
+        const withCpa = runSimulation([e2, dose(Route.oral, Ester.CPA, 10, NOW_H - 20)], BW)!;
+        expect(withCpa.auc).toBeCloseTo(runSimulation([e2], BW)!.auc, 9);
+    });
+
+    it('sanitizePKParams reads null, empty strings, booleans and arrays as missing, not as 0', () => {
+        expect(sanitizePKParams({ e2_kClear: null })).toBeNull();
+        expect(sanitizePKParams({ e2_kClear: '', e2_oral_bio: false, e2_ff_EV: [], t_kClear: true })).toBeNull();
+        const out = sanitizePKParams({ e2_kClear: null, e2_oral_bio: ' 0.05 ' })!;
+        expect(out.e2_kClear).toBe(DEFAULT_PK_PARAMS.e2_kClear);
+        expect(out.e2_oral_bio).toBe(0.05);
+    });
+
+    it('a custom sublingual hold past the longest tier follows the tier model instead of a straight line', () => {
+        // The straight line through the two longest tiers used to run on to
+        // θ = 0.81 at 60 minutes.
+        expect(sublingualThetaFromHold(10)).toBeCloseTo(0.11, 12);
+        expect(sublingualThetaFromHold(12.5)).toBeCloseTo(0.145, 12);
+        expect(sublingualThetaFromHold(15)).toBeCloseTo(0.18, 12);
+        expect(sublingualThetaFromHold(30)).toBeCloseTo(0.343, 3);
+        expect(sublingualThetaFromHold(60)).toBeCloseTo(0.453, 3);
+        expect(sublingualThetaFromHold(1)).toBe(0);
+        for (const h of [2, 5, 10, 15, 20, 30, 45, 60]) {
+            expect(sublingualHoldFromTheta(sublingualThetaFromHold(h))).toBeCloseTo(h, 6);
+        }
+        // A θ saved while the line still ran on shows the longest hold offered.
+        expect(sublingualHoldFromTheta(0.81)).toBe(60);
+    });
+
+    it('a custom sublingual hold reads the tiers in effect, custom ones included', () => {
+        applyPKOverrides({ ...DEFAULT_PK_PARAMS, e2_sl_standard: 0.15 });
+        expect(sublingualThetaFromHold(10)).toBeCloseTo(0.15, 12);
+        expect(sublingualHoldFromTheta(0.15)).toBeCloseTo(10, 12);
     });
 });

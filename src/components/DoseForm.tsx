@@ -4,7 +4,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import CustomSelect from './CustomSelect';
 import DateTimePicker from './DateTimePicker';
-import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory, isEstradiolEster, isKnownEster } from '../../logic';
+import { Route, Ester, ExtraKey, DoseEvent, SL_TIER_ORDER, SublingualTierParams, getBioavailabilityMultiplier, getToE2Factor, getDoseAdvisory, isEstradiolEster, isKnownEster, sublingualThetaFromHold as thetaFromHold, sublingualHoldFromTheta as holdFromTheta } from '../../logic';
 import { Save, Trash2, Info, Bookmark, BookmarkPlus, X, ChevronDown, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -54,62 +54,6 @@ const formatGuideNumber = (val: number) => {
     if (Number.isInteger(val)) return val.toString();
     const rounded = val < 1 ? val.toFixed(2) : val.toFixed(1);
     return rounded.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-};
-
-const SL_POINTS = SL_TIER_ORDER
-    .map((k, idx) => ({ idx, key: k, hold: SublingualTierParams[k].hold, theta: SublingualTierParams[k].theta }))
-    .sort((a, b) => a.hold - b.hold);
-
-const thetaFromHold = (holdMin: number): number => {
-    if (holdMin <= 0) return 0;
-    if (SL_POINTS.length === 0) return 0.11;
-    const h = Math.max(1, holdMin);
-    // Linear interpolation with endpoint extrapolation
-    for (let i = 0; i < SL_POINTS.length - 1; i++) {
-        const p1 = SL_POINTS[i];
-        const p2 = SL_POINTS[i + 1];
-        if (h >= p1.hold && h <= p2.hold) {
-            const t = (h - p1.hold) / (p2.hold - p1.hold || 1);
-            return Math.min(1, Math.max(0, p1.theta + (p2.theta - p1.theta) * t));
-        }
-    }
-    // Extrapolate below first or above last segment
-    if (h < SL_POINTS[0].hold) {
-        const p1 = SL_POINTS[0];
-        const p2 = SL_POINTS[1];
-        const slope = (p2.theta - p1.theta) / (p2.hold - p1.hold || 1);
-        return Math.min(1, Math.max(0, p1.theta + (h - p1.hold) * slope));
-    }
-    const pLast = SL_POINTS[SL_POINTS.length - 1];
-    const pPrev = SL_POINTS[SL_POINTS.length - 2];
-    const slope = (pLast.theta - pPrev.theta) / (pLast.hold - pPrev.hold || 1);
-    return Math.min(1, Math.max(0, pLast.theta + (h - pLast.hold) * slope));
-};
-
-const holdFromTheta = (thetaVal: number): number => {
-    if (SL_POINTS.length === 0) return 10;
-    const th = thetaVal;
-    for (let i = 0; i < SL_POINTS.length - 1; i++) {
-        const p1 = SL_POINTS[i];
-        const p2 = SL_POINTS[i + 1];
-        const minTh = Math.min(p1.theta, p2.theta);
-        const maxTh = Math.max(p1.theta, p2.theta);
-        if (th >= minTh && th <= maxTh) {
-            const t = (th - p1.theta) / (p2.theta - p1.theta || 1);
-            return p1.hold + (p2.hold - p1.hold) * t;
-        }
-    }
-    // Extrapolate
-    if (th < SL_POINTS[0].theta) {
-        const p1 = SL_POINTS[0];
-        const p2 = SL_POINTS[1];
-        const slope = (p2.hold - p1.hold) / (p2.theta - p1.theta || 1);
-        return Math.max(1, p1.hold + (th - p1.theta) * slope);
-    }
-    const pLast = SL_POINTS[SL_POINTS.length - 1];
-    const pPrev = SL_POINTS[SL_POINTS.length - 2];
-    const slope = (pLast.hold - pPrev.hold) / (pLast.theta - pPrev.theta || 1);
-    return Math.max(1, pLast.hold + (th - pLast.theta) * slope);
 };
 
 interface DoseFormProps {

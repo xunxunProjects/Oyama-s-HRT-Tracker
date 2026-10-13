@@ -118,6 +118,9 @@ export interface SimulationResult {
     concPGmL_CPA: number[];
     // Transmasculine: total testosterone concentration in ng/dL
     concNGdL_T: number[];
+    // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
+    // adds CPA converted to pg/mL, a different drug in a unit a thousand times
+    // larger, which would swamp it.
     auc: number;
 }
 
@@ -1070,10 +1073,15 @@ export function activeCompoundName(ester: Ester): string {
     return EsterInfo[ester].name;
 }
 
+/**
+ * mg of estradiol per mg of the dose as logged (for a testosterone ester, mg of
+ * testosterone), from molecular weights. 1 for estradiol itself and for drugs
+ * with no estradiol in them, cyproterone included.
+ */
 export function getToE2Factor(ester: Ester): number {
     if (ester === Ester.E2) return 1.0;
     // No estradiol in these (or nothing known about them): a dose stays the number it was typed as.
-    if (isUnmodelledDrug(ester)) return 1.0;
+    if (isUnmodelledDrug(ester) || ester === Ester.CPA) return 1.0;
     if (isTestosteroneEster(ester)) {
         // "to‑T" factor: mg of ester → mg of free testosterone
         return EsterInfo[Ester.T].mw / EsterInfo[ester].mw;
@@ -1319,7 +1327,14 @@ export function sanitizePKParams(raw: unknown): PKCustomParams | null {
     let recognised = 0;
     for (const key of Object.keys(PK_PARAM_RANGES) as (keyof PKCustomParams)[]) {
         if (!(key in src)) continue;
-        const value = Number(src[key]);
+        // Only a number, or a string spelling one. Number() alone reads null,
+        // '', false and [] as 0, which the clamp below would turn into each
+        // parameter's minimum (an elimination rate 400 times too slow).
+        const rawValue = src[key];
+        const value =
+            typeof rawValue === 'number' ? rawValue
+            : typeof rawValue === 'string' && rawValue.trim() !== '' ? Number(rawValue)
+            : NaN;
         if (!Number.isFinite(value)) continue;
         const [min, max] = PK_PARAM_RANGES[key];
         out[key] = Math.min(max, Math.max(min, value));
@@ -1367,6 +1382,96 @@ function _getSLTheta(tierKey: string): number {
     return p.e2_sl_standard;
 }
 
+/**
+ * θ for a custom sublingual hold time in minutes, interpolated between the
+ * tiers as currently in effect (custom PK parameters included). Below the
+ * shortest tier the line runs on down to θ = 0. Past the longest tier θ follows
+ * the dissolution-and-swallowing model the tiers were computed from, which
+ * levels off as the dissolved drug runs out (about 0.34 at 30 minutes and 0.45
+ * at 60 with the default tiers); the straight line used to run on to 0.81 at
+ * 60 minutes.
+ */
+export function sublingualThetaFromHold(holdMin: number): number {
+    if (!(holdMin > 0)) return 0;
+    const pts = _slHoldPoints();
+    const h = Math.max(1, holdMin);
+    const last = pts[pts.length - 1];
+    if (h >= last.hold) return _slThetaPastTiers(h, last);
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        if (h >= p1.hold && h <= p2.hold) {
+            const t = (h - p1.hold) / (p2.hold - p1.hold || 1);
+            return Math.min(1, Math.max(0, p1.theta + (p2.theta - p1.theta) * t));
+        }
+    }
+    const slope = (pts[1].theta - pts[0].theta) / (pts[1].hold - pts[0].hold || 1);
+    return Math.min(1, Math.max(0, pts[0].theta + (h - pts[0].hold) * slope));
+}
+
+/**
+ * The hold time in minutes behind a stored custom θ, for showing it again: the
+ * inverse of sublingualThetaFromHold, up to the 60 minutes the dose form
+ * offers. A θ no hold of 60 minutes or less reaches (one saved while the
+ * straight line still ran on) shows as 60.
+ */
+export function sublingualHoldFromTheta(theta: number): number {
+    const pts = _slHoldPoints();
+    const last = pts[pts.length - 1];
+    if (theta > last.theta) {
+        if (theta >= _slThetaPastTiers(SL_MAX_HOLD_MIN, last)) return SL_MAX_HOLD_MIN;
+        let lo = last.hold;
+        let hi = SL_MAX_HOLD_MIN;
+        for (let i = 0; i < 60; i++) {
+            const mid = (lo + hi) / 2;
+            if (_slThetaPastTiers(mid, last) < theta) lo = mid;
+            else hi = mid;
+        }
+        return (lo + hi) / 2;
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        if (theta >= Math.min(p1.theta, p2.theta) && theta <= Math.max(p1.theta, p2.theta)) {
+            const t = (theta - p1.theta) / (p2.theta - p1.theta || 1);
+            return p1.hold + (p2.hold - p1.hold) * t;
+        }
+    }
+    const slope = (pts[1].hold - pts[0].hold) / (pts[1].theta - pts[0].theta || 1);
+    return Math.max(1, pts[0].hold + (theta - pts[0].theta) * slope);
+}
+
+const SL_MAX_HOLD_MIN = 60;
+
+/**
+ * Fraction of a sublingual dose absorbed through the mucosa within a hold of
+ * `holdMin` minutes, from the model in Algorithm Explanation §6.2 (middle
+ * scenario): the tablet dissolves with a 5-minute half-life, and dissolved
+ * drug is absorbed at k_SL = 1.8 h⁻¹ or swallowed at 1.8 h⁻¹. It gives 0.007,
+ * 0.038, 0.112 and 0.189 at the tiers' 2, 5, 10 and 15 minutes (the tiers round
+ * these to 0.01, 0.04, 0.11 and 0.18) and tends to k_SL / (k_SL + k_sw) = 0.5.
+ */
+function _slThetaModel(holdMin: number): number {
+    const kDiss = Math.LN2 / (5 / 60);
+    const kOut = OralPK.kAbsSL + 1.8;
+    const T = holdMin / 60;
+    return (
+        ((OralPK.kAbsSL * kDiss) / (kDiss - kOut)) *
+        ((1 - Math.exp(-kOut * T)) / kOut - (1 - Math.exp(-kDiss * T)) / kDiss)
+    );
+}
+
+/** θ past the longest tier: the model's curve, scaled to meet that tier's θ as in effect. */
+function _slThetaPastTiers(holdMin: number, last: { hold: number; theta: number }): number {
+    return Math.min(1, (last.theta * _slThetaModel(holdMin)) / _slThetaModel(last.hold));
+}
+
+function _slHoldPoints(): { hold: number; theta: number }[] {
+    return SL_TIER_ORDER.map(k => ({ hold: SublingualTierParams[k].hold, theta: _getSLTheta(k) })).sort(
+        (a, b) => a.hold - b.hold,
+    );
+}
+
 function _getE2InjFF(ester: Ester): number {
     const p = _activePKParams;
     if (ester === Ester.EB) return p.e2_ff_EB;
@@ -1402,12 +1507,18 @@ function _getTInjFF(ester: Ester): number {
     return 0.025;
 }
 
+// Fraction of an oral cyproterone acetate dose that reaches the circulation.
+const CPA_ORAL_F = 0.7;
+
 export function getBioavailabilityMultiplier(
     route: Route,
     ester: Ester,
     extras: Partial<Record<ExtraKey, number>> = {}
 ): number {
     const mwFactor = getToE2Factor(ester);
+
+    // Cyproterone: what resolveParams uses, by mouth only.
+    if (ester === Ester.CPA) return route === Route.oral ? CPA_ORAL_F : 0;
 
     // Transmasculine (testosterone) path
     if (isTestosteroneEster(ester)) {
@@ -1523,6 +1634,12 @@ function resolveParams(event: DoseEvent): PKParams {
         }
     }
 
+    // Cyproterone is modelled by mouth only. Any other route (it can only arrive
+    // by import) used to fall through to the estradiol parameters below.
+    if (event.ester === Ester.CPA && event.route !== Route.oral) {
+        return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+    }
+
     switch (event.route) {
         case Route.injection: {
             const Frac_fast = TwoPartDepotPK.Frac_fast[event.ester] ?? 0.5;
@@ -1605,10 +1722,10 @@ function resolveParams(event: DoseEvent): PKParams {
                     k1_slow: 0,
                     k2: 0,
                     k3: 0.017,
-                    F: 0.7,
+                    F: CPA_ORAL_F,
                     rateMGh: 0,
-                    F_fast: 0.7,
-                    F_slow: 0.7
+                    F_fast: CPA_ORAL_F,
+                    F_slow: CPA_ORAL_F
                 };
             }
             // === 针对 CPA 的特殊处理结束 ===
@@ -1624,61 +1741,73 @@ function resolveParams(event: DoseEvent): PKParams {
 }
 
 /**
- * Separate near-coincident first-order rate constants by a sub-permille amount so
- * the triple-exponential kernel below stays clear of its removable singularities.
- * The kernel is analytic in (k1, k2, k3): evaluated at a nudge of ~1e-6·max(k) it
- * equals the exact l'Hôpital limit to full display precision, while the tiny offset
- * avoids the catastrophic cancellation that appears as two rates collide. k1
- * (absorption) is held fixed; k2 and k3 are moved minimally and deterministically.
- * A few passes suffice to pull all three apart, even when all three coincide.
+ * First divided difference of s ↦ e^(−sτ) at x and y, (e^(−xτ) − e^(−yτ)) / (x − y),
+ * taken without cancellation when x and y are close: it tends to −τ·e^(−xτ).
  */
-function _separateRates(k1: number, k2: number, k3: number): [number, number, number] {
-    const eps = 1e-6 * Math.max(k1, k2, k3);
-    if (!(eps > 0)) return [k1, k2, k3];
-    if (Math.abs(k2 - k1) < eps) k2 = k1 + eps;
-    for (let i = 0; i < 6; i++) {
-        let moved = false;
-        if (Math.abs(k3 - k1) < eps) { k3 = k1 + (k3 >= k1 ? eps : -eps); moved = true; }
-        if (Math.abs(k3 - k2) < eps) { k3 = k2 + (k3 >= k2 ? eps : -eps); moved = true; }
-        if (!moved) break;
+function _expDivDiff1(x: number, y: number, tau: number): number {
+    const z = (Math.abs(y - x) * tau) / 2;
+    if (z > 1) return (Math.exp(-x * tau) - Math.exp(-y * tau)) / (x - y);
+    const sinhc = z === 0 ? 1 : Math.sinh(z) / z;
+    return -tau * Math.exp((-(x + y) / 2) * tau) * sinhc;
+}
+
+/**
+ * Second divided difference of s ↦ e^(−sτ) at a, b and c. Written as the usual
+ * sum of three exponentials over products of rate differences, it loses every
+ * significant digit as two or three rates meet (testosterone enanthate's
+ * absorption and elimination rates are equal by default). Here the outer
+ * difference is taken across the widest pair of rates, and when all three sit
+ * within 0.5/τ of each other a Taylor series about their mean is used instead:
+ *   τ²·e^(−mτ) · Σ_j H_j(u) / (j + 2)!,   u_i = (m − k_i)·τ,
+ * with H_j the complete homogeneous symmetric polynomial of degree j.
+ */
+function _expDivDiff2(a: number, b: number, c: number, tau: number): number {
+    if (a > b) [a, b] = [b, a];
+    if (b > c) [b, c] = [c, b];
+    if (a > b) [a, b] = [b, a];
+    if ((c - a) * tau >= 0.5) return (_expDivDiff1(b, c, tau) - _expDivDiff1(a, b, tau)) / (c - a);
+    const mean = (a + b + c) / 3;
+    const ua = (mean - a) * tau;
+    const ub = (mean - b) * tau;
+    const uc = (mean - c) * tau;
+    // H_j over {ua}, {ua, ub} and {ua, ub, uc}, built up one degree at a time.
+    let h1 = 1;
+    let h2 = 1;
+    let h3 = 1;
+    let fact = 2;
+    let sum = 0.5;
+    for (let j = 1; j < 20; j++) {
+        h1 *= ua;
+        h2 = h1 + ub * h2;
+        h3 = h2 + uc * h3;
+        fact *= j + 2;
+        sum += h3 / fact;
     }
-    return [k1, k2, k3];
+    return tau * tau * Math.exp(-mean * tau) * sum;
+}
+
+// 2-Compartment (Bateman) solution: absorption k_a → elimination k_e, no
+// hydrolysis step. Used wherever there is no ester to cleave — the 3C form is
+// multiplied by k2 throughout, so feeding it k2 = 0 returns a flat zero.
+//   amount = dose·F·k_a·(e^(−k_e·τ) − e^(−k_a·τ)) / (k_a − k_e)
+function _analytic2C(tau: number, doseMG: number, F: number, ka: number, ke: number): number {
+    if (ka <= 0 || doseMG <= 0) return 0;
+    return -doseMG * F * ka * _expDivDiff1(ka, ke, tau);
 }
 
 // 3-Compartment Analytical Solution (sequential first-order: absorption k1 → ester
 // hydrolysis k2 → central-compartment elimination k3). Returns the central-compartment
-// amount for a unit bolus, scaled by dose·F. Coincident rates are separated first so
-// the closed form reproduces the correct removable-singularity limit instead of a
-// zero dropout or a numerically unstable value.
-// 2-Compartment (Bateman) solution: absorption k_a → elimination k_e, no
-// hydrolysis step. Used wherever there is no ester to cleave — the 3C form is
-// multiplied by k2 throughout, so feeding it k2 = 0 returns a flat zero.
-function _analytic2C(tau: number, doseMG: number, F: number, ka: number, ke: number): number {
-    if (ka <= 0 || doseMG <= 0) return 0;
-    if (Math.abs(ka - ke) < 1e-9) return doseMG * F * ka * tau * Math.exp(-ke * tau);
-    return doseMG * F * ka / (ka - ke) * (Math.exp(-ke * tau) - Math.exp(-ka * tau));
-}
-
+// amount for a bolus, scaled by dose·F:
+//   amount = dose·F·k1·k2·Σ_i e^(−k_i·τ) / Π_(j≠i) (k_j − k_i)
+// which is k1·k2 times the second divided difference of e^(−sτ) at the three
+// rates, so coincident rates take their exact limit.
 function _analytic3C(tau: number, doseMG: number, F: number, k1: number, k2: number, k3: number): number {
     if (k1 <= 0 || doseMG <= 0) return 0;
-    [k1, k2, k3] = _separateRates(k1, k2, k3);
-    const k1_k2 = k1 - k2;
-    const k1_k3 = k1 - k3;
-    const k2_k3 = k2 - k3;
-
-    const term1 = Math.exp(-k1 * tau) / (k1_k2 * k1_k3);
-    const term2 = Math.exp(-k2 * tau) / (-k1_k2 * k2_k3);
-    const term3 = Math.exp(-k3 * tau) / (k1_k3 * k2_k3);
-
-    return doseMG * F * k1 * k2 * (term1 + term2 + term3);
+    return doseMG * F * k1 * k2 * _expDivDiff2(k1, k2, k3, tau);
 }
 
 function oneCompAmount(tau: number, doseMG: number, p: PKParams): number {
-    const k1 = p.k1_fast;
-    if (Math.abs(k1 - p.k3) < 1e-9) {
-        return doseMG * p.F * k1 * tau * Math.exp(-p.k3 * tau);
-    }
-    return doseMG * p.F * k1 / (k1 - p.k3) * (Math.exp(-p.k3 * tau) - Math.exp(-k1 * tau));
+    return _analytic2C(tau, doseMG, p.F, p.k1_fast, p.k3);
 }
 
 /**
@@ -2046,7 +2175,7 @@ export function runSimulation(events: DoseEvent[], bodyWeightKG: number): Simula
 
         if (i > 0) {
             const dt = t - allTimes[i - 1];
-            auc += 0.5 * (currentConc + concPGmL[i - 1]) * dt;
+            auc += 0.5 * (currentConc_E2 + concPGmL_E2[i - 1]) * dt;
         }
     }
 
