@@ -41,8 +41,8 @@ export function hasCloudKey(): boolean {
  * and the server, which never sees the password, reads none of them.
  *
  * A derivation that throws clears the cached key rather than leaving whatever
- * was there: `crypto.subtle` is missing on a non-secure origin, and a key that
- * could not be derived is not one to keep encrypting with. Every read path
+ * was there: a key that could not be derived is not one to keep encrypting
+ * with. Every read path
  * already knows how to report `locked`.
  */
 export async function deriveAndCacheCloudKey(password: string, userId: string): Promise<boolean> {
@@ -60,8 +60,7 @@ export async function deriveAndCacheCloudKey(password: string, userId: string): 
  * key, rather than uploading the record in the clear.
  *
  * Returning the payload as-is was a silent downgrade: on a passwordless passkey
- * login, or on a non-secure origin where `deriveCloudKey` cannot run at all, no
- * key is ever cached — so the full dose/lab history went to the server as
+ * login, or when `deriveCloudKey` fails, no key is ever cached — so the full dose/lab history went to the server as
  * plaintext JSON while the UI reported a successful sync. The read path already
  * refuses to act without a key (`locked`); the write path has to fail the same
  * way. Callers gate on `hasCloudKey()` and surface `locked` instead.

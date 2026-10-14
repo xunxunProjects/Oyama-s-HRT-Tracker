@@ -20,6 +20,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
+import { copyText } from '../utils/clipboard';
 
 interface ShareSettingsProps {
     onBack: () => void;
@@ -172,7 +173,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     const handleCopy = async () => {
         if (!createdShare) return;
         try {
-            await navigator.clipboard.writeText(createdShare.url);
+            await copyText(createdShare.url);
         } catch {
             linkInputRef.current?.select();
             document.execCommand('copy');

@@ -1,3 +1,5 @@
+import { aesGcmDecrypt, aesGcmEncrypt, pbkdf2Sha256, randomBytes } from './src/utils/cryptoCompat';
+
 // --- Types & Enums ---
 
 export enum Route {
@@ -2742,24 +2744,11 @@ export function interpolateConcentration_T(sim: SimulationResult, hour: number):
 }
 
 // --- Encryption Utils ---
+// Web Crypto where the page has it, the @noble fallback on a plain-http
+// self-host (see src/utils/cryptoCompat.ts). Output is identical either way.
 
 async function generateKey(password: string, salt: Uint8Array, iterations: number = 600000) {
-    const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, [
-        'deriveKey',
-    ]);
-    return window.crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: salt as any,
-            iterations: iterations,
-            hash: 'SHA-256',
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt'],
-    );
+    return pbkdf2Sha256(new TextEncoder().encode(password), salt, iterations, 32);
 }
 
 function buffToBase64(buff: Uint8Array): string {
@@ -2773,20 +2762,19 @@ function base64ToBuff(b64: string): Uint8Array {
 }
 
 export async function encryptData(text: string, customPassword?: string): Promise<{ data: string; password: string }> {
-    const password = customPassword || buffToBase64(window.crypto.getRandomValues(new Uint8Array(12)));
-    const salt = window.crypto.getRandomValues(new Uint8Array(16));
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const password = customPassword || buffToBase64(randomBytes(12));
+    const salt = randomBytes(16);
+    const iv = randomBytes(12);
     const iterations = 600000;
     const key = await generateKey(password, salt, iterations);
-    const enc = new TextEncoder();
-    const encrypted = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as any }, key, enc.encode(text));
+    const encrypted = await aesGcmEncrypt(key, iv, new TextEncoder().encode(text));
 
     const bundle = {
         encrypted: true,
         iv: buffToBase64(iv),
         salt: buffToBase64(salt),
         iter: iterations,
-        data: buffToBase64(new Uint8Array(encrypted)),
+        data: buffToBase64(encrypted),
     };
     return {
         data: JSON.stringify(bundle),
@@ -2817,7 +2805,7 @@ export async function decryptData(jsonString: string, password: string): Promise
                 : 100000;
 
         const key = await generateKey(password, salt, iterations);
-        const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as any }, key, data as any);
+        const decrypted = await aesGcmDecrypt(key, iv, data);
         return new TextDecoder().decode(decrypted);
     } catch (e) {
         console.error(e);
@@ -2837,36 +2825,14 @@ export interface CloudBundle {
     data: string;
 }
 
-async function importRawAesKey(rawKeyB64: string): Promise<CryptoKey> {
-    return window.crypto.subtle.importKey('raw', base64ToBuff(rawKeyB64) as any, { name: 'AES-GCM' }, false, [
-        'encrypt',
-        'decrypt',
-    ]);
-}
-
-// Derive an extractable AES-GCM key from the password + a stable per-user salt,
+// Derive the AES-GCM key from the password + a stable per-user salt,
 // returning the raw key bytes (base64) for caching on this device. The raw key
 // can decrypt backups but cannot be used to authenticate, so caching it is
 // strictly safer than caching the password itself.
 export async function deriveCloudKey(password: string, userId: string): Promise<string> {
     const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, [
-        'deriveKey',
-    ]);
-    const key = await window.crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: enc.encode(`hrt-cloud-v1:${userId}`) as any,
-            iterations: 600000,
-            hash: 'SHA-256',
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        true,
-        ['encrypt', 'decrypt'],
-    );
-    const raw = await window.crypto.subtle.exportKey('raw', key);
-    return buffToBase64(new Uint8Array(raw));
+    const raw = await pbkdf2Sha256(enc.encode(password), enc.encode(`hrt-cloud-v1:${userId}`), 600000, 32);
+    return buffToBase64(raw);
 }
 
 export function isCloudEncrypted(obj: any): obj is CloudBundle {
@@ -2874,28 +2840,23 @@ export function isCloudEncrypted(obj: any): obj is CloudBundle {
 }
 
 export async function encryptCloudPayload(plaintext: string, rawKeyB64: string): Promise<CloudBundle> {
-    const key = await importRawAesKey(rawKeyB64);
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder();
-    const encrypted = await window.crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv: iv as any },
-        key,
-        enc.encode(plaintext),
-    );
+    const iv = randomBytes(12);
+    const encrypted = await aesGcmEncrypt(base64ToBuff(rawKeyB64), iv, new TextEncoder().encode(plaintext));
     return {
         cloud: 1,
         iv: buffToBase64(iv),
-        data: buffToBase64(new Uint8Array(encrypted)),
+        data: buffToBase64(encrypted),
     };
 }
 
 export async function decryptCloudPayload(bundle: any, rawKeyB64: string): Promise<string | null> {
     try {
         if (!isCloudEncrypted(bundle)) return null;
-        const key = await importRawAesKey(rawKeyB64);
-        const iv = base64ToBuff(bundle.iv);
-        const data = base64ToBuff(bundle.data);
-        const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as any }, key, data as any);
+        const decrypted = await aesGcmDecrypt(
+            base64ToBuff(rawKeyB64),
+            base64ToBuff(bundle.iv),
+            base64ToBuff(bundle.data),
+        );
         return new TextDecoder().decode(decrypted);
     } catch (e) {
         return null;

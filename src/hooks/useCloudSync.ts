@@ -295,7 +295,7 @@ export const useCloudSync = ({
                 // `locked` covers a cloud copy this device cannot read. The
                 // `!hasCloudKey()` half covers the mirror case the write path used to
                 // paper over: no key at all — a passwordless passkey login, or a
-                // non-secure origin where the key cannot be derived. Uploading then
+                // derivation that failed. Uploading then
                 // meant sending the record in the clear, and because an account with
                 // an empty cloud reports `empty` rather than `locked`, that path fell
                 // straight through to a push and still called itself 'synced'.

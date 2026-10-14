@@ -24,6 +24,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
 import PasswordInputModal from '../components/PasswordInputModal';
+import { copyText } from '../utils/clipboard';
 
 interface TwoFactorPageProps {
     token: string;
@@ -189,7 +190,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     }, []);
 
     const handleCopySecret = () => {
-        navigator.clipboard.writeText(secret).then(() => {
+        copyText(secret).then(() => {
             if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
             setSecretCopied(true);
             copyTimerRef.current = setTimeout(() => setSecretCopied(false), 2000);
@@ -312,7 +313,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     };
 
     const handleCopyBackupCodes = () => {
-        navigator.clipboard.writeText(backupCodes.join('\n')).then(() => {
+        copyText(backupCodes.join('\n')).then(() => {
             if (backupCopyTimerRef.current) clearTimeout(backupCopyTimerRef.current);
             setBackupCopied(true);
             backupCopyTimerRef.current = setTimeout(() => setBackupCopied(false), 2000);
