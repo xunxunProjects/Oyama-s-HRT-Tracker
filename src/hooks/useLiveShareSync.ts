@@ -1,7 +1,75 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
-import { LIVE_SHARES_CHANGED_EVENT, ShareApiError, sharingService } from '../services/sharing';
+import {
+    LIVE_SHARES_CHANGED_EVENT,
+    sealSnapshotForLink,
+    ShareApiError,
+    SharedDosageSnapshot,
+    ShareSummary,
+    sharingService,
+} from '../services/sharing';
+import { unwrapShareKey } from '../services/shareCrypto';
+import { CLOUD_KEY_CHANGED_EVENT, getCloudKey } from '../utils/cloudBackup';
+
+/** The owner's live links for one mode, split by how each one is updated. */
+interface LiveTargets {
+    /** Encrypted links whose key this device could unwrap. */
+    encrypted: { id: string; key: string }[];
+    /** Links made before share encryption shipped. */
+    legacy: boolean;
+}
+
+const NO_TARGETS: LiveTargets = { encrypted: [], legacy: false };
+
+const findLiveTargets = async (shares: ShareSummary[], mode: HRTMode): Promise<LiveTargets> => {
+    const live = shares.filter(share => !share.expired && share.live);
+    const legacy = live.some(share => !share.encrypted && share.mode === mode);
+    const cloudKey = getCloudKey();
+    const encrypted: LiveTargets['encrypted'] = [];
+    if (cloudKey) {
+        for (const share of live) {
+            if (!share.encrypted || !share.wrappedKey) continue;
+            // A link sealed under an older password, or opened on a device
+            // that only signed in with a passkey, stays as it was last synced.
+            const opened = await unwrapShareKey(share.wrappedKey, cloudKey);
+            if (opened && opened.mode === mode) encrypted.push({ id: share.id, key: opened.key });
+        }
+    }
+    return { encrypted, legacy };
+};
+
+// Each request stays under the worker's 2 MiB body limit.
+const MAX_LIVE_BATCH_CHARS = 1_800_000;
+
+const syncTargets = async (
+    authToken: string,
+    targets: LiveTargets,
+    snapshot: SharedDosageSnapshot,
+    signal: AbortSignal,
+): Promise<number> => {
+    let updated = 0;
+    if (targets.legacy) {
+        updated += (await sharingService.syncLegacyLive(authToken, snapshot, signal)).updated;
+    }
+    let batch: Parameters<typeof sharingService.syncEncryptedLive>[1] = [];
+    let batchChars = 0;
+    const flush = async () => {
+        if (batch.length === 0) return;
+        updated += (await sharingService.syncEncryptedLive(authToken, batch, signal)).updated;
+        batch = [];
+        batchChars = 0;
+    };
+    for (const target of targets.encrypted) {
+        const encryptedSnapshot = await sealSnapshotForLink(snapshot, target.key);
+        const size = encryptedSnapshot.data.length + 200;
+        if (batchChars + size > MAX_LIVE_BATCH_CHARS) await flush();
+        batch.push({ id: target.id, encryptedSnapshot });
+        batchChars += size;
+    }
+    await flush();
+    return updated;
+};
 
 interface LiveShareSyncOptions {
     authToken: string | null;
@@ -18,7 +86,8 @@ export const useLiveShareSync = ({
     simulation,
     calibrationFn,
 }: LiveShareSyncOptions): void => {
-    const [hasLiveShare, setHasLiveShare] = useState(false);
+    const [targets, setTargets] = useState<LiveTargets>(NO_TARGETS);
+    const hasLiveShare = targets.legacy || targets.encrypted.length > 0;
     const [refreshTick, setRefreshTick] = useState(0);
     const baselineSnapshotRef = useRef<ReturnType<typeof buildSharedDosageSnapshot> | null>(null);
     const pendingSnapshotRef = useRef<ReturnType<typeof buildSharedDosageSnapshot> | null>(null);
@@ -34,7 +103,7 @@ export const useLiveShareSync = ({
     useEffect(() => {
         baselineSnapshotRef.current = dataReady ? snapshot : null;
         pendingSnapshotRef.current = null;
-        setHasLiveShare(false);
+        setTargets(NO_TARGETS);
         if (!authToken || !dataReady) return;
 
         let cancelled = false;
@@ -42,10 +111,12 @@ export const useLiveShareSync = ({
         const refresh = () => {
             sharingService
                 .list(authToken)
-                .then(shares => {
+                .then(shares => findLiveTargets(shares, mode))
+                .then(next => {
                     if (!cancelled) {
-                        const found = shares.some(share => !share.expired && share.live && share.mode === mode);
-                        setHasLiveShare(found);
+                        const found = next.legacy || next.encrypted.length > 0;
+                        // A fresh object on every poll would restart the pending sync.
+                        setTargets(previous => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
                         if (found && !previouslyFound) {
                             // Refresh an existing live link when the owner opens
                             // the app, including changes made before this tab
@@ -64,6 +135,7 @@ export const useLiveShareSync = ({
         };
         refresh();
         window.addEventListener(LIVE_SHARES_CHANGED_EVENT, refresh);
+        window.addEventListener(CLOUD_KEY_CHANGED_EVENT, refresh);
         window.addEventListener('focus', refresh);
         document.addEventListener('visibilitychange', onVisibilityChange);
         const refreshTimer = window.setInterval(refresh, 5 * 60_000);
@@ -71,6 +143,7 @@ export const useLiveShareSync = ({
             cancelled = true;
             window.clearInterval(refreshTimer);
             window.removeEventListener(LIVE_SHARES_CHANGED_EVENT, refresh);
+            window.removeEventListener(CLOUD_KEY_CHANGED_EVENT, refresh);
             window.removeEventListener('focus', refresh);
             document.removeEventListener('visibilitychange', onVisibilityChange);
         };
@@ -96,10 +169,10 @@ export const useLiveShareSync = ({
 
         const run = async () => {
             try {
-                const result = await sharingService.syncLive(authToken, snapshotToSync, controller.signal);
+                const updated = await syncTargets(authToken, targets, snapshotToSync, controller.signal);
                 if (cancelled) return;
-                if (result.updated === 0) {
-                    setHasLiveShare(false);
+                if (updated === 0) {
+                    setTargets(NO_TARGETS);
                     return;
                 }
                 if (pendingSnapshotRef.current === snapshotToSync) {
@@ -123,5 +196,5 @@ export const useLiveShareSync = ({
             if (timer !== null) window.clearTimeout(timer);
             controller.abort();
         };
-    }, [authToken, dataReady, hasLiveShare, mode, refreshTick, snapshot]);
+    }, [authToken, dataReady, hasLiveShare, targets, mode, refreshTick, snapshot]);
 };

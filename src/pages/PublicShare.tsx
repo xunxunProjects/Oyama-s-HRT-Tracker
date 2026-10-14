@@ -6,10 +6,12 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
 import { LOCALE_MAP } from '../utils/helpers';
 import { drugLabel } from '../utils/regimenText';
-import { LockedShare, ShareApiError, ShareDetails, sharingService } from '../services/sharing';
+import { LockedShare, SHARE_KEY_INVALID, ShareApiError, ShareDetails, sharingService } from '../services/sharing';
 
 interface PublicShareProps {
     token: string | null;
+    /** The decryption key from the link's fragment. Never sent anywhere. */
+    shareKey: string | null;
 }
 
 type ShareState =
@@ -17,11 +19,12 @@ type ShareState =
     | { kind: 'locked'; meta: LockedShare }
     | { kind: 'ready'; details: ShareDetails }
     | { kind: 'expired' }
-    | { kind: 'unavailable' };
+    | { kind: 'unavailable' }
+    | { kind: 'badKey' };
 
 const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
-const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
+const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     const { lang, t } = useTranslation();
     const copy = getShareCopy(lang);
     const [state, setState] = useState<ShareState>({ kind: 'loading' });
@@ -35,6 +38,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         if (error instanceof ShareApiError && (error.status === 410 || error.code === 'SHARE_EXPIRED')) {
             return { kind: 'expired' };
         }
+        if (error instanceof ShareApiError && error.code === SHARE_KEY_INVALID) return { kind: 'badKey' };
         return { kind: 'unavailable' };
     };
 
@@ -70,7 +74,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
 
         setState({ kind: 'loading' });
         sharingService
-            .open(token)
+            .open(token, shareKey)
             .then(result => {
                 if (cancelled) return;
                 if ('snapshot' in result) setState({ kind: 'ready', details: result });
@@ -84,7 +88,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         };
         // classifyError contains no reactive state.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token]);
+    }, [token, shareKey]);
 
     const handleUnlock = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -92,7 +96,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         setUnlocking(true);
         setPasswordError(null);
         try {
-            const details = await sharingService.unlock(token, password);
+            const details = await sharingService.unlock(token, shareKey, password);
             unlockedPasswordRef.current = password;
             setState({ kind: 'ready', details });
             setPassword('');
@@ -119,8 +123,8 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
             refreshing = true;
             try {
                 const result = unlockedPasswordRef.current
-                    ? await sharingService.unlock(token, unlockedPasswordRef.current)
-                    : await sharingService.open(token);
+                    ? await sharingService.unlock(token, shareKey, unlockedPasswordRef.current)
+                    : await sharingService.open(token, shareKey);
                 if (!cancelled && 'snapshot' in result) {
                     setState({ kind: 'ready', details: result });
                 }
@@ -157,7 +161,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
             window.removeEventListener('pageshow', refresh);
             document.removeEventListener('visibilitychange', onVisibilityChange);
         };
-    }, [token, liveReady]);
+    }, [token, shareKey, liveReady]);
 
     if (state.kind === 'loading') {
         return (
@@ -241,7 +245,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
         );
     }
 
-    if (state.kind === 'expired' || state.kind === 'unavailable') {
+    if (state.kind === 'expired' || state.kind === 'unavailable' || state.kind === 'badKey') {
         const expired = state.kind === 'expired';
         return (
             <PublicShell>
@@ -252,7 +256,11 @@ const PublicShare: React.FC<PublicShareProps> = ({ token }) => {
                             {expired ? copy.expiredTitle : copy.unavailableTitle}
                         </h1>
                         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
-                            {expired ? copy.expiredDescription : copy.unavailableDescription}
+                            {expired
+                                ? copy.expiredDescription
+                                : state.kind === 'badKey'
+                                  ? copy.keyInvalidDescription
+                                  : copy.unavailableDescription}
                         </p>
                     </div>
                 </main>

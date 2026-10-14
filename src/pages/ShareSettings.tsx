@@ -9,10 +9,13 @@ import { getShareCopy } from '../i18n/share';
 import {
     CreatedShare,
     notifyLiveSharesChanged,
+    sealSnapshotForLink,
     ShareApiError,
     ShareSummary,
     sharingService,
 } from '../services/sharing';
+import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
+import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
@@ -114,11 +117,27 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 setError(copy.invalidExpiry);
                 return;
             }
-            const result = await sharingService.create(authToken, shareSnapshot, {
+            // The link's key is made here and never sent to the server. A live
+            // link also needs it on the owner's other devices, so it is sealed
+            // with the same key that seals their cloud backups.
+            const key = generateShareKey();
+            let wrappedKey: WrappedShareKey | undefined;
+            if (liveEnabled) {
+                const cloudKey = getCloudKey();
+                if (!cloudKey) {
+                    setError(copy.liveNeedsKey);
+                    return;
+                }
+                wrappedKey = await wrapShareKey(key, mode, cloudKey);
+            }
+            const encryptedSnapshot = await sealSnapshotForLink(shareSnapshot, key);
+            const created = await sharingService.create(authToken, encryptedSnapshot, {
                 password: passwordEnabled ? password : undefined,
                 expiresAt,
                 live: liveEnabled,
+                wrappedKey,
             });
+            const result = { ...created, url: shareUrlWithKey(created.url, key) };
             setCreatedShare(result);
             if (result.live) notifyLiveSharesChanged();
             setShares(previous => [
@@ -131,6 +150,8 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                     mode: result.mode,
                     updatedAt: result.updatedAt,
                     expired: false,
+                    encrypted: result.encrypted,
+                    wrappedKey: result.wrappedKey,
                 },
                 ...previous.filter(item => item.id !== result.id),
             ]);
@@ -371,6 +392,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 <div className="pb-6 pt-5">
                     <h3 className="text-[0.9375rem] font-medium text-body">{copy.manageTitle}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted">{copy.manageDescription}</p>
+                    {shares.some(share => !share.encrypted) && (
+                        <p className="mt-2 text-sm leading-relaxed text-muted">{copy.legacyHint}</p>
+                    )}
                     {sharesLoading ? (
                         <div className="flex items-center gap-2 py-4 text-sm text-muted">
                             <Loader2 size={14} className="animate-spin" /> {copy.loading}
@@ -395,6 +419,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                                     <LockKeyhole size={12} />
                                                     {copy.protected}
                                                 </span>
+                                            )}
+                                            {!share.encrypted && (
+                                                <span className={metaBadgeClass}>{copy.notEncrypted}</span>
                                             )}
                                         </div>
                                         <p className="mt-1 truncate text-xs text-muted">

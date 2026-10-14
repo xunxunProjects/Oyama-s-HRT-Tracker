@@ -51,6 +51,7 @@ import Credits from './pages/Credits';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
+import { parseShareFragment } from './services/shareCrypto';
 import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 import SiteNoticeBanner from './components/SiteNotice';
@@ -958,14 +959,18 @@ const AppContent = () => {
     );
 };
 
-const getShareRoute = (): { isShareRoute: boolean; token: string | null } => {
+const getShareRoute = (): { isShareRoute: boolean; token: string | null; shareKey: string | null } => {
     if (!/^\/share\/?$/.test(window.location.pathname)) {
-        return { isShareRoute: false, token: null };
+        return { isShareRoute: false, token: null, shareKey: null };
     }
 
-    const fragmentToken = window.location.hash.slice(1).replace(/^\/+/, '').split(/[/?]/, 1)[0];
+    // `#<token>.<key>`: the token finds the link on the server, the key
+    // decrypts it and never leaves this page. Links made before share
+    // encryption have a token only.
+    const fragment = window.location.hash.slice(1).replace(/^\/+/, '').split(/[/?]/, 1)[0];
+    const { token, key } = parseShareFragment(fragment);
 
-    return { isShareRoute: true, token: fragmentToken || null };
+    return { isShareRoute: true, token, shareKey: key };
 };
 
 const App = () => {
@@ -984,7 +989,7 @@ const App = () => {
             <HRTModeProvider>
                 {shareRoute.isShareRoute ? (
                     <ErrorBoundary>
-                        <PublicShare token={shareRoute.token} />
+                        <PublicShare token={shareRoute.token} shareKey={shareRoute.shareKey} />
                     </ErrorBoundary>
                 ) : (
                     <DialogProvider>

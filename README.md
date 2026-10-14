@@ -59,9 +59,9 @@ This project has since adjusted and extended the model: it adds testosterone (in
 
   **药量库存**：记录每种药物的存量。应用会扣除已记录的用量，按当前用药频率估算用完的日期，并提前在概览页提醒。
 
-- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and unlike backups they are stored unencrypted on the server. See the [privacy notice](./PRIVACY.md) for details.
+- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and like backups they are end-to-end encrypted: the key is only in the link. See the [privacy notice](./PRIVACY.md) for details.
 
-  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据，但与云备份不同，分享内容在服务器上未加密。详见[隐私说明](./PRIVACY.zh-CN.md)。
+  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据，并且和云备份一样是端到端加密的，密钥只在链接里。详见[隐私说明](./PRIVACY.zh-CN.md)。
 
 - **Internationalization**: Interface in **Simplified Chinese**, **Traditional Chinese**, **Cantonese**, **English**, **Japanese**, **Korean** and **Turkish**.
 

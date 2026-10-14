@@ -1,6 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES, selectBackupsToKeep } from './backupPolicy';
+import {
+    DosageShareSnapshot,
+    isJsonObject,
+    sanitizeEncryptedShareSnapshot,
+    sanitizeShareSnapshot,
+} from './shareSnapshotSchema';
 
 export interface Env {
     DB: D1Database;
@@ -143,213 +149,33 @@ const isStorageFullError = (err: unknown): boolean =>
     err instanceof Error && /Exceeded maximum DB size/i.test(err.message);
 
 // Dosage shares are deliberately minimal snapshots. Static shares are
-// immutable; live shares may replace this sanitized payload when the owner
-// syncs their current dosage data. The server reconstructs the shape instead
-// of storing the submitted object verbatim so accidental account/profile
-// fields can never be exposed by a public link.
+// immutable; live shares may replace their payload when the owner syncs their
+// current dosage data.
+//
+// New shares are end-to-end encrypted: the browser seals the snapshot with a
+// key that exists only in the link's fragment, so this worker stores and
+// returns ciphertext it cannot read. Shares made before that (`encrypted = 0`)
+// still hold a plaintext snapshot, which the server rebuilds field by field
+// instead of storing verbatim, so accidental account or profile fields can
+// never be exposed by a public link. Those keep working until they expire.
 const MAX_SHARE_REQUEST_BYTES = 2 * 1024 * 1024;
-const MAX_SHARE_EVENTS = 10_000;
-const MAX_SHARE_SIMULATION_POINTS = 100_000;
 const MAX_ACTIVE_SHARES_PER_USER = 20;
 const MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER = 20;
 const MAX_SHARE_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/; // 32 random bytes, base64url
-const SHARE_ROUTES = new Set(['sublingual', 'injection', 'patchApply', 'patchRemove', 'gel', 'oral']);
-const SHARE_ESTERS = new Set([
-    'E2',
-    'EB',
-    'EV',
-    'EC',
-    'EN',
-    'EU',
-    'CPA',
-    'SPIRO',
-    'BICA',
-    'MPA',
-    'LEUP',
-    'TRIP',
-    'RLX',
-    'T',
-    'TC',
-    'TE',
-    'TU',
-]);
-const TRANSFEM_ESTERS = new Set([
-    'E2',
-    'EB',
-    'EV',
-    'EC',
-    'EN',
-    'EU',
-    'CPA',
-    'SPIRO',
-    'BICA',
-    'MPA',
-    'LEUP',
-    'TRIP',
-    'RLX',
-]);
-const TRANSMASC_ESTERS = new Set(['T', 'TC', 'TE', 'TU']);
-const SHARE_EXTRA_KEYS = new Set([
-    'concentrationMGmL',
-    'areaCM2',
-    'releaseRateUGPerDay',
-    'sublingualTheta',
-    'sublingualTier',
-    'gelSite',
-    'patchWearH',
-]);
+// A live share's link key, sealed with the owner's cloud backup key so any of
+// their devices that can read their backups can keep the link updated. Holds a
+// 43-character key and the mode, so a few hundred bytes is plenty.
+const MAX_WRAPPED_SHARE_KEY_BYTES = 1024;
+const MAX_LIVE_UPDATES_PER_REQUEST = MAX_ACTIVE_SHARES_PER_USER;
 
-interface DosageShareSnapshot {
-    version: 1;
-    mode: 'transfem' | 'transmasc';
-    timezone: string;
-    createdAt: number;
-    events: Array<{
-        id: string;
-        route: string;
-        timeH: number;
-        doseMG: number;
-        ester: string;
-        extras: Record<string, number>;
-    }>;
-    simulation: null | {
-        timeH: number[];
-        concPGmL: number[];
-        concPGmL_E2: number[];
-        concPGmL_CPA: number[];
-        concNGdL_T: number[];
-        auc: number;
-    };
-}
-
-function isJsonObject(value: unknown): value is Record<string, any> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isValidIanaTimezone(value: unknown): value is string {
-    if (typeof value !== 'string' || value.length < 1 || value.length > 100) return false;
-    try {
-        new Intl.DateTimeFormat('en-US', { timeZone: value }).format(0);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function sanitizeShareSnapshot(raw: unknown): { snapshot?: DosageShareSnapshot; error?: string } {
-    if (!isJsonObject(raw)) return { error: 'snapshot must be an object' };
-    if (raw.version !== 1) return { error: 'snapshot.version must be 1' };
-    if (raw.mode !== 'transfem' && raw.mode !== 'transmasc') return { error: 'snapshot.mode is invalid' };
-    if (!isValidIanaTimezone(raw.timezone)) return { error: 'snapshot.timezone must be a valid IANA timezone' };
-    if (
-        typeof raw.createdAt !== 'number' ||
-        !Number.isSafeInteger(raw.createdAt) ||
-        raw.createdAt <= 0 ||
-        raw.createdAt > 8_640_000_000_000_000
-    ) {
-        return { error: 'snapshot.createdAt must be a valid epoch-millisecond timestamp' };
-    }
-    if (!Array.isArray(raw.events)) return { error: 'snapshot.events must be an array' };
-    if (raw.events.length > MAX_SHARE_EVENTS)
-        return { error: `snapshot.events may contain at most ${MAX_SHARE_EVENTS} entries` };
-
-    const modeEsters = raw.mode === 'transfem' ? TRANSFEM_ESTERS : TRANSMASC_ESTERS;
-    const eventIds = new Set<string>();
-    const events: DosageShareSnapshot['events'] = [];
-    for (let i = 0; i < raw.events.length; i++) {
-        const event = raw.events[i];
-        const path = `snapshot.events[${i}]`;
-        if (!isJsonObject(event)) return { error: `${path} must be an object` };
-        if (typeof event.id !== 'string' || event.id.length < 1 || event.id.length > 128)
-            return { error: `${path}.id is invalid` };
-        if (eventIds.has(event.id)) return { error: `${path}.id must be unique` };
-        eventIds.add(event.id);
-        if (typeof event.route !== 'string' || !SHARE_ROUTES.has(event.route))
-            return { error: `${path}.route is invalid` };
-        if (typeof event.ester !== 'string' || !SHARE_ESTERS.has(event.ester) || !modeEsters.has(event.ester))
-            return { error: `${path}.ester is invalid for this mode` };
-        if (typeof event.timeH !== 'number' || !Number.isFinite(event.timeH) || Math.abs(event.timeH) > 100_000_000)
-            return { error: `${path}.timeH is invalid` };
-        if (
-            typeof event.doseMG !== 'number' ||
-            !Number.isFinite(event.doseMG) ||
-            event.doseMG < 0 ||
-            event.doseMG > 1_000_000
-        )
-            return { error: `${path}.doseMG is invalid` };
-        if (!isJsonObject(event.extras)) return { error: `${path}.extras must be an object` };
-
-        const extras: Record<string, number> = {};
-        for (const [key, value] of Object.entries(event.extras)) {
-            if (!SHARE_EXTRA_KEYS.has(key)) return { error: `${path}.extras contains an unsupported field` };
-            if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > 1_000_000_000)
-                return { error: `${path}.extras.${key} is invalid` };
-            extras[key] = value;
-        }
-        events.push({
-            id: event.id,
-            route: event.route,
-            timeH: event.timeH,
-            doseMG: event.doseMG,
-            ester: event.ester,
-            extras,
-        });
-    }
-
-    let simulation: DosageShareSnapshot['simulation'] = null;
-    if (raw.simulation !== null) {
-        if (!isJsonObject(raw.simulation)) return { error: 'snapshot.simulation must be an object or null' };
-        const arrayFields = ['timeH', 'concPGmL', 'concPGmL_E2', 'concPGmL_CPA', 'concNGdL_T'] as const;
-        const arrays: Record<(typeof arrayFields)[number], number[]> = {} as any;
-        let pointCount: number | null = null;
-        for (const field of arrayFields) {
-            const values = raw.simulation[field];
-            if (!Array.isArray(values)) return { error: `snapshot.simulation.${field} must be an array` };
-            if (values.length > MAX_SHARE_SIMULATION_POINTS)
-                return { error: `snapshot.simulation may contain at most ${MAX_SHARE_SIMULATION_POINTS} points` };
-            if (pointCount === null) pointCount = values.length;
-            if (values.length !== pointCount) return { error: 'snapshot.simulation arrays must have equal lengths' };
-            const clean: number[] = [];
-            for (let i = 0; i < values.length; i++) {
-                const value = values[i];
-                if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > 1e20) {
-                    return { error: `snapshot.simulation.${field}[${i}] is invalid` };
-                }
-                clean.push(value);
-            }
-            arrays[field] = clean;
-        }
-        for (let i = 1; i < arrays.timeH.length; i++) {
-            if (arrays.timeH[i] < arrays.timeH[i - 1]) return { error: 'snapshot.simulation.timeH must be sorted' };
-        }
-        if (
-            typeof raw.simulation.auc !== 'number' ||
-            !Number.isFinite(raw.simulation.auc) ||
-            Math.abs(raw.simulation.auc) > 1e30
-        ) {
-            return { error: 'snapshot.simulation.auc is invalid' };
-        }
-        simulation = {
-            timeH: arrays.timeH,
-            concPGmL: arrays.concPGmL,
-            concPGmL_E2: arrays.concPGmL_E2,
-            concPGmL_CPA: arrays.concPGmL_CPA,
-            concNGdL_T: arrays.concNGdL_T,
-            auc: raw.simulation.auc,
-        };
-    }
-
-    return {
-        snapshot: {
-            version: 1,
-            mode: raw.mode,
-            timezone: raw.timezone,
-            createdAt: raw.createdAt,
-            events,
-            simulation,
-        },
-    };
+/** Same envelope as an encrypted cloud backup: `{ cloud: 1, iv, data }`. */
+function sanitizeWrappedShareKey(raw: unknown): string | null {
+    if (!isJsonObject(raw) || raw.cloud !== 1) return null;
+    if (typeof raw.iv !== 'string' || !/^[A-Za-z0-9+/]{16}$/.test(raw.iv)) return null;
+    if (typeof raw.data !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(raw.data)) return null;
+    const json = JSON.stringify({ cloud: 1, iv: raw.iv, data: raw.data });
+    return json.length <= MAX_WRAPPED_SHARE_KEY_BYTES ? json : null;
 }
 
 const WEAK_SECRETS = new Set([
@@ -648,9 +474,9 @@ async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string
 async function sweepExpiredShares(env: Env): Promise<void> {
     try {
         await env.DB.prepare(
-            `UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL
+            `UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL, key_wrapped = NULL
        WHERE expires_at IS NOT NULL AND expires_at <= ?
-         AND (snapshot_json != 'null' OR password_hash IS NOT NULL)`,
+         AND (snapshot_json != 'null' OR password_hash IS NOT NULL OR key_wrapped IS NOT NULL)`,
         )
             .bind(Math.floor(Date.now() / 1000))
             .run();
@@ -1569,7 +1395,7 @@ export default {
                     // explicit expired status, but discard the sensitive payload.
                     ctx.waitUntil(
                         env.DB.prepare(
-                            "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL WHERE token_hash = ?",
+                            "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL, key_wrapped = NULL WHERE token_hash = ?",
                         )
                             .bind(tokenHash)
                             .run(),
@@ -1623,19 +1449,24 @@ export default {
 
                 // Fetch the potentially large snapshot only after expiry and password
                 // checks have succeeded, limiting unauthenticated DB/memory work.
-                const snapshotRow = await env.DB.prepare('SELECT snapshot_json FROM dosage_shares WHERE token_hash = ?')
+                const snapshotRow = await env.DB.prepare(
+                    'SELECT snapshot_json, encrypted FROM dosage_shares WHERE token_hash = ?',
+                )
                     .bind(tokenHash)
-                    .first<{ snapshot_json: string }>();
+                    .first<{ snapshot_json: string; encrypted: number }>();
                 if (!snapshotRow || snapshotRow.snapshot_json === 'null') {
                     return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
                 }
+                const stored = JSON.parse(snapshotRow.snapshot_json);
                 return shareJson({
                     passwordRequired: share.password_hash !== null,
                     live: share.is_live === 1,
                     createdAt,
                     updatedAt,
                     expiresAt,
-                    snapshot: JSON.parse(snapshotRow.snapshot_json),
+                    // Ciphertext for an encrypted share; the viewer decrypts it
+                    // with the key from the link's fragment.
+                    ...(snapshotRow.encrypted === 1 ? { encryptedSnapshot: stored } : { snapshot: stored }),
                 });
             }
 
@@ -1732,18 +1563,47 @@ export default {
                     if (!isJsonObject(body))
                         return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
 
-                    const sanitized = sanitizeShareSnapshot(body.snapshot);
-                    if (!sanitized.snapshot) {
-                        return shareJson(
-                            { code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' },
-                            400,
-                        );
-                    }
-
                     if (body.live !== undefined && typeof body.live !== 'boolean') {
                         return shareJson({ code: 'INVALID_REQUEST', message: 'live must be a boolean' }, 400);
                     }
                     const live = body.live === true;
+
+                    // Current clients send `encryptedSnapshot`, sealed in the browser.
+                    // A plaintext `snapshot` is still accepted from app versions cached
+                    // before encryption shipped, so their share button keeps working
+                    // until they update.
+                    const encrypted = body.encryptedSnapshot !== undefined;
+                    let sealedSnapshotJson: string | null = null;
+                    let keyWrapped: string | null = null;
+                    let legacySnapshot: DosageShareSnapshot | null = null;
+                    if (encrypted) {
+                        const sealed = sanitizeEncryptedShareSnapshot(body.encryptedSnapshot);
+                        if (!sealed.envelope) {
+                            return shareJson(
+                                { code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' },
+                                400,
+                            );
+                        }
+                        sealedSnapshotJson = JSON.stringify(sealed.envelope);
+                        if (live) {
+                            keyWrapped = sanitizeWrappedShareKey(body.wrappedKey);
+                            if (!keyWrapped) {
+                                return shareJson(
+                                    { code: 'INVALID_REQUEST', message: 'A live encrypted share needs wrappedKey' },
+                                    400,
+                                );
+                            }
+                        }
+                    } else {
+                        const sanitized = sanitizeShareSnapshot(body.snapshot);
+                        if (!sanitized.snapshot) {
+                            return shareJson(
+                                { code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' },
+                                400,
+                            );
+                        }
+                        legacySnapshot = sanitized.snapshot;
+                    }
 
                     let password: string | null = null;
                     if (body.password !== undefined && body.password !== null && body.password !== '') {
@@ -1785,9 +1645,10 @@ export default {
                     }
 
                     // Treat the server receipt time as the snapshot provenance time;
-                    // clients cannot backdate or future-date a public snapshot.
-                    sanitized.snapshot.createdAt = nowSeconds * 1000;
-                    const snapshotJson = JSON.stringify(sanitized.snapshot);
+                    // clients cannot backdate or future-date a public snapshot. For an
+                    // encrypted share the page shows the row's own created_at instead.
+                    if (legacySnapshot) legacySnapshot.createdAt = nowSeconds * 1000;
+                    const snapshotJson = legacySnapshot ? JSON.stringify(legacySnapshot) : sealedSnapshotJson!;
                     if (new TextEncoder().encode(snapshotJson).byteLength > MAX_SHARE_REQUEST_BYTES) {
                         return shareJson(
                             { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
@@ -1828,7 +1689,7 @@ export default {
                     const tokenHash = await sha256Hex(rawShareToken);
                     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
                     await env.DB.prepare(
-                        'INSERT INTO dosage_shares (id, user_id, token_hash, snapshot_json, password_hash, expires_at, is_live, share_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        'INSERT INTO dosage_shares (id, user_id, token_hash, snapshot_json, password_hash, expires_at, is_live, share_mode, created_at, updated_at, encrypted, key_wrapped) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     )
                         .bind(
                             id,
@@ -1838,9 +1699,12 @@ export default {
                             passwordHash,
                             expiresAtSeconds,
                             live ? 1 : 0,
-                            sanitized.snapshot.mode,
+                            // The mode of an encrypted share stays inside its wrapped key.
+                            legacySnapshot?.mode ?? null,
                             nowSeconds,
                             nowSeconds,
+                            encrypted ? 1 : 0,
+                            keyWrapped,
                         )
                         .run();
 
@@ -1850,7 +1714,9 @@ export default {
                             token: rawShareToken,
                             url: `${(env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/+$/, '')}/share/#${rawShareToken}`,
                             live,
-                            mode: sanitized.snapshot.mode,
+                            mode: legacySnapshot?.mode ?? null,
+                            encrypted,
+                            wrappedKey: keyWrapped ? JSON.parse(keyWrapped) : null,
                             createdAt: nowSeconds * 1000,
                             updatedAt: nowSeconds * 1000,
                             expiresAt: expiresAtSeconds * 1000,
@@ -1893,6 +1759,55 @@ export default {
                     if (!isJsonObject(body)) {
                         return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
                     }
+
+                    // Encrypted live shares: the browser seals the snapshot once per
+                    // link, with that link's own key, and names the link it is for.
+                    // Only the owner's still-active encrypted live links are touched.
+                    if (body.updates !== undefined) {
+                        if (!Array.isArray(body.updates) || body.updates.length > MAX_LIVE_UPDATES_PER_REQUEST) {
+                            return shareJson({ code: 'INVALID_REQUEST', message: 'updates must be an array' }, 400);
+                        }
+                        const nowSeconds = Math.floor(Date.now() / 1000);
+                        const seenIds = new Set<string>();
+                        const statements: D1PreparedStatement[] = [];
+                        for (const update of body.updates) {
+                            if (
+                                !isJsonObject(update) ||
+                                typeof update.id !== 'string' ||
+                                update.id.length < 1 ||
+                                update.id.length > 64 ||
+                                seenIds.has(update.id)
+                            ) {
+                                return shareJson(
+                                    { code: 'INVALID_REQUEST', message: 'Each update needs a unique id' },
+                                    400,
+                                );
+                            }
+                            seenIds.add(update.id);
+                            const sealed = sanitizeEncryptedShareSnapshot(update.encryptedSnapshot);
+                            if (!sealed.envelope) {
+                                return shareJson(
+                                    { code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' },
+                                    400,
+                                );
+                            }
+                            statements.push(
+                                env.DB.prepare(
+                                    `UPDATE dosage_shares
+               SET snapshot_json = ?, updated_at = ?
+               WHERE id = ? AND user_id = ? AND is_live = 1 AND encrypted = 1
+                 AND (expires_at IS NULL OR expires_at > ?)`,
+                                ).bind(JSON.stringify(sealed.envelope), nowSeconds, update.id, userId, nowSeconds),
+                            );
+                        }
+                        const results = statements.length > 0 ? await env.DB.batch(statements) : [];
+                        const updated = results.reduce((count, result) => count + (result.meta.changes ?? 0), 0);
+                        return shareJson({ updated, updatedAt: nowSeconds * 1000 });
+                    }
+
+                    // Plaintext live shares made before encryption shipped. Never
+                    // touches an encrypted row, so an app version cached from before
+                    // cannot overwrite a sealed link with a readable snapshot.
                     const sanitized = sanitizeShareSnapshot(body.snapshot);
                     if (!sanitized.snapshot) {
                         return shareJson(
@@ -1913,7 +1828,7 @@ export default {
 
                     const activeLiveShares = await env.DB.prepare(
                         `SELECT id FROM dosage_shares
-             WHERE user_id = ? AND is_live = 1
+             WHERE user_id = ? AND is_live = 1 AND encrypted = 0
                AND share_mode = ?
                AND (expires_at IS NULL OR expires_at > ?)`,
                     )
@@ -1935,7 +1850,7 @@ export default {
                         return env.DB.prepare(
                             `UPDATE dosage_shares
                SET snapshot_json = ?, updated_at = ?
-               WHERE id = ? AND user_id = ? AND is_live = 1
+               WHERE id = ? AND user_id = ? AND is_live = 1 AND encrypted = 0
                  AND share_mode = ?
                  AND (expires_at IS NULL OR expires_at > ?)`,
                         ).bind(
@@ -1955,10 +1870,47 @@ export default {
                     });
                 }
 
+                // Re-seal live link keys after a password change. The cloud key that
+                // seals them comes from the password, so without this every live
+                // link would stop updating from the owner's devices.
+                if (url.pathname === '/api/shares/keys' && request.method === 'PUT') {
+                    if (!(await checkRateLimit(env, `share-live-update:${userId}`, 30))) {
+                        return shareJson(
+                            { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+                            429,
+                            { 'Retry-After': '60' },
+                        );
+                    }
+                    const body = (await request.json().catch(() => null)) as unknown;
+                    if (
+                        !isJsonObject(body) ||
+                        !Array.isArray(body.keys) ||
+                        body.keys.length > MAX_LIVE_UPDATES_PER_REQUEST
+                    ) {
+                        return shareJson({ code: 'INVALID_REQUEST', message: 'keys must be an array' }, 400);
+                    }
+                    const statements: D1PreparedStatement[] = [];
+                    for (const entry of body.keys) {
+                        const wrapped = isJsonObject(entry) ? sanitizeWrappedShareKey(entry.wrappedKey) : null;
+                        if (!wrapped || typeof entry.id !== 'string' || entry.id.length < 1 || entry.id.length > 64) {
+                            return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid key entry' }, 400);
+                        }
+                        statements.push(
+                            env.DB.prepare(
+                                `UPDATE dosage_shares SET key_wrapped = ?
+               WHERE id = ? AND user_id = ? AND is_live = 1 AND encrypted = 1 AND key_wrapped IS NOT NULL`,
+                            ).bind(wrapped, entry.id, userId),
+                        );
+                    }
+                    const results = statements.length > 0 ? await env.DB.batch(statements) : [];
+                    const updated = results.reduce((count, result) => count + (result.meta.changes ?? 0), 0);
+                    return shareJson({ updated });
+                }
+
                 if (url.pathname === '/api/shares' && request.method === 'GET') {
                     const nowSeconds = Math.floor(Date.now() / 1000);
                     await env.DB.prepare(
-                        "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (snapshot_json != 'null' OR password_hash IS NOT NULL)",
+                        "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL, key_wrapped = NULL WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (snapshot_json != 'null' OR password_hash IS NOT NULL OR key_wrapped IS NOT NULL)",
                     )
                         .bind(userId, nowSeconds)
                         .run();
@@ -1972,7 +1924,7 @@ export default {
                         .bind(userId, nowSeconds, MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER)
                         .run();
                     const rows = await env.DB.prepare(
-                        'SELECT id, password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE user_id = ? ORDER BY created_at DESC',
+                        'SELECT id, password_hash, expires_at, is_live, share_mode, created_at, updated_at, encrypted, key_wrapped FROM dosage_shares WHERE user_id = ? ORDER BY created_at DESC',
                     )
                         .bind(userId)
                         .all();
@@ -1985,6 +1937,10 @@ export default {
                         expiresAt: share.expires_at == null ? null : share.expires_at * 1000,
                         passwordRequired: share.password_hash !== null,
                         expired: share.expires_at != null && share.expires_at <= nowSeconds,
+                        encrypted: share.encrypted === 1,
+                        // Sealed with the owner's cloud key; only their own devices
+                        // can open it to keep the link updated.
+                        wrappedKey: share.key_wrapped ? JSON.parse(share.key_wrapped) : null,
                     }));
                     return shareJson({ shares });
                 }
@@ -2223,6 +2179,18 @@ export default {
                             }),
                         );
                     }
+                }
+
+                // Avatar DELETE. Avatars are served publicly by username, so the
+                // owner needs a way to take theirs down, not only replace it.
+                if (url.pathname === '/api/user/avatar' && request.method === 'DELETE') {
+                    await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`);
+                    return withSecurityHeaders(
+                        new Response(JSON.stringify({ message: 'Avatar deleted' }), {
+                            status: 200,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        }),
+                    );
                 }
 
                 // Avatar PUT

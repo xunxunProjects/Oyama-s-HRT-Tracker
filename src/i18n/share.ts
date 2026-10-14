@@ -49,6 +49,10 @@ export interface ShareCopy {
     revoke: string;
     revokeConfirm: string;
     revokeError: string;
+    liveNeedsKey: string;
+    notEncrypted: string;
+    legacyHint: string;
+    keyInvalidDescription: string;
 }
 
 const en: ShareCopy = {
@@ -56,9 +60,9 @@ const en: ShareCopy = {
     modalTitle: 'Share dosage details',
     modalDescription: 'Create a read-only snapshot of your dosage chart and history.',
     snapshotNote:
-        'A copy of your dosage records, modelled curve, and timezone is uploaded to this service and kept until the link expires. Later changes will not appear. Lab results, weight, profile details, and account data are not included.',
+        'Your dosage records, modelled curve, and timezone are encrypted on this device before upload and kept until the link expires. The key is part of the link, so the service cannot read them. Later changes will not appear. Lab results, weight, profile details, and account data are not included.',
     liveSnapshotNote:
-        'While you are signed in with HRT Tracker open, later dosage changes are copied to this link. Lab results, weight, profile details, and account data are not included.',
+        'While you are signed in with HRT Tracker open, later dosage changes are encrypted and copied to this link. The key is part of the link, so the service cannot read them. Lab results, weight, profile details, and account data are not included.',
     liveToggle: 'Keep this link updated',
     liveBadge: 'Live',
     updatedOn: 'Updated',
@@ -103,6 +107,12 @@ const en: ShareCopy = {
     revoke: 'Revoke',
     revokeConfirm: 'Revoke this share link? Anyone using it will immediately lose access.',
     revokeError: 'Could not revoke the link. Please try again.',
+    liveNeedsKey: 'To keep a link updated, first unlock cloud sync with your account password on the Account page.',
+    notEncrypted: 'Not encrypted',
+    legacyHint:
+        'Links marked “Not encrypted” were made before links were encrypted and can be read by the service. Revoke them and create new ones to encrypt them.',
+    keyInvalidDescription:
+        'The link looks incomplete. Make sure the whole link was copied, including everything after the #.',
 };
 
 const copy: Record<Lang, ShareCopy> = {
@@ -113,9 +123,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: '分享用药详情',
         modalDescription: '创建一个仅可查看的快照，包含您的剂量图表和用药记录。',
         snapshotNote:
-            '您的用药记录、模型曲线和时区副本会上传至本服务，并保存到链接过期。之后的修改不会同步；检查结果、体重、个人资料和账户数据不会被包含。',
+            '您的用药记录、模型曲线和时区会先在本设备上加密再上传，并保存到链接过期。密钥只在链接里，服务端无法读取。之后的修改不会同步；检查结果、体重、个人资料和账户数据不会被包含。',
         liveSnapshotNote:
-            '登录并打开 HRT Tracker 时，后续用药修改会自动同步至此链接；检查结果、体重、个人资料和账户数据不会被包含。',
+            '登录并打开 HRT Tracker 时，后续用药修改会加密后同步至此链接，密钥只在链接里，服务端无法读取；检查结果、体重、个人资料和账户数据不会被包含。',
         liveToggle: '实时同步',
         liveBadge: '实时',
         updatedOn: '更新于',
@@ -159,6 +169,10 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: '撤销',
         revokeConfirm: '撤销此分享链接？所有使用者将立即失去访问权限。',
         revokeError: '无法撤销链接，请重试。',
+        liveNeedsKey: '要让链接保持同步，请先在账户页面用账户密码解锁云同步。',
+        notEncrypted: '未加密',
+        legacyHint: '标着“未加密”的链接是在分享加密上线之前创建的，服务端可以读取。撤销后重新创建即可加密。',
+        keyInvalidDescription: '链接好像不完整，请确认复制了完整的链接，包括 # 后面的全部内容。',
     },
     'zh-TW': {
         ...en,
@@ -166,9 +180,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: '分享用藥詳情',
         modalDescription: '建立一個僅供檢視的快照，包含劑量圖表與用藥紀錄。',
         snapshotNote:
-            '您的用藥紀錄、模型曲線與時區副本會上傳至本服務，並保存到連結到期。之後的修改不會同步；檢查結果、體重、個人資料與帳戶資料不會被包含。',
+            '您的用藥紀錄、模型曲線與時區會先在本裝置上加密再上傳，並保存到連結到期。金鑰只在連結裡，服務端無法讀取。之後的修改不會同步；檢查結果、體重、個人資料與帳戶資料不會被包含。',
         liveSnapshotNote:
-            '登入並開啟 HRT Tracker 時，之後的用藥修改會自動同步至此連結；檢查結果、體重、個人資料與帳戶資料不會被包含。',
+            '登入並開啟 HRT Tracker 時，之後的用藥修改會加密後同步至此連結，金鑰只在連結裡，服務端無法讀取；檢查結果、體重、個人資料與帳戶資料不會被包含。',
         liveToggle: '即時同步',
         liveBadge: '即時',
         updatedOn: '更新於',
@@ -212,6 +226,10 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: '撤銷',
         revokeConfirm: '撤銷此分享連結？所有使用者將立即失去存取權。',
         revokeError: '無法撤銷連結，請再試一次。',
+        liveNeedsKey: '要讓連結保持同步，請先在帳戶頁面用帳戶密碼解鎖雲端同步。',
+        notEncrypted: '未加密',
+        legacyHint: '標示「未加密」的連結是在分享加密上線之前建立的，服務端可以讀取。撤銷後重新建立即可加密。',
+        keyInvalidDescription: '連結似乎不完整，請確認複製了完整的連結，包括 # 後面的全部內容。',
     },
     yue: {
         ...en,
@@ -219,9 +237,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: '分享用藥詳情',
         modalDescription: '建立一個只可以睇嘅快照，包含劑量圖表同用藥紀錄。',
         snapshotNote:
-            '您嘅用藥紀錄、模型曲線同時區副本會上傳到本服務，保存到連結到期。之後嘅修改唔會同步；檢查結果、體重、個人資料同帳戶資料唔會包括。',
+            '您嘅用藥紀錄、模型曲線同時區會先喺呢部裝置加密先上傳，保存到連結到期。金鑰只喺連結入面，伺服器睇唔到。之後嘅修改唔會同步；檢查結果、體重、個人資料同帳戶資料唔會包括。',
         liveSnapshotNote:
-            '登入並開住 HRT Tracker 時，之後嘅用藥修改會自動同步到呢條連結；檢查結果、體重、個人資料同帳戶資料唔會包括。',
+            '登入並開住 HRT Tracker 時，之後嘅用藥修改會加密後同步到呢條連結，金鑰只喺連結入面，伺服器睇唔到；檢查結果、體重、個人資料同帳戶資料唔會包括。',
         liveToggle: '即時同步',
         liveBadge: '即時',
         updatedOn: '更新於',
@@ -265,6 +283,10 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: '撤銷',
         revokeConfirm: '撤銷呢條分享連結？所有使用者會即時失去存取權。',
         revokeError: '撤銷唔到連結，請再試。',
+        liveNeedsKey: '想連結保持同步，請先喺帳戶頁面用帳戶密碼解鎖雲端同步。',
+        notEncrypted: '未加密',
+        legacyHint: '標住「未加密」嘅連結係分享加密推出之前建立嘅，伺服器睇得到。撤銷之後再建立就會加密。',
+        keyInvalidDescription: '連結好似唔完整，請確認複製咗成條連結，包括 # 後面嘅全部內容。',
     },
     ja: {
         ...en,
@@ -272,9 +294,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: '投与情報を共有',
         modalDescription: '投与量グラフと履歴の閲覧専用スナップショットを作成します。',
         snapshotNote:
-            '投与記録、モデル曲線、タイムゾーンのコピーが本サービスへアップロードされ、リンクの期限まで保存されます。後の変更は反映されず、検査結果、体重、プロフィール、アカウント情報は含まれません。',
+            '投与記録、モデル曲線、タイムゾーンはこの端末で暗号化してからアップロードされ、リンクの期限まで保存されます。鍵はリンクの中にだけあり、サービス側は読めません。後の変更は反映されず、検査結果、体重、プロフィール、アカウント情報は含まれません。',
         liveSnapshotNote:
-            'HRT Trackerにログインして開いている間、以後の投与変更がこのリンクへ自動同期されます。検査結果、体重、プロフィール、アカウント情報は含まれません。',
+            'HRT Trackerにログインして開いている間、以後の投与変更は暗号化されてこのリンクへ同期されます。鍵はリンクの中にだけあり、サービス側は読めません。検査結果、体重、プロフィール、アカウント情報は含まれません。',
         liveToggle: 'リアルタイム同期',
         liveBadge: 'ライブ',
         updatedOn: '更新',
@@ -319,6 +341,12 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: '取り消す',
         revokeConfirm: 'この共有リンクを取り消しますか？利用者はすぐにアクセスできなくなります。',
         revokeError: 'リンクを取り消せませんでした。もう一度お試しください。',
+        liveNeedsKey:
+            'リンクを同期し続けるには、先にアカウントページでアカウントのパスワードを使ってクラウド同期のロックを解除してください。',
+        notEncrypted: '暗号化なし',
+        legacyHint:
+            '「暗号化なし」のリンクは共有の暗号化が始まる前に作成されたもので、サービス側から読めます。取り消して作り直すと暗号化されます。',
+        keyInvalidDescription: 'リンクが不完全なようです。# 以降も含めてリンク全体をコピーしたか確認してください。',
     },
     ko: {
         ...en,
@@ -326,9 +354,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: '복용 정보 공유',
         modalDescription: '복용량 차트와 기록의 읽기 전용 스냅샷을 만듭니다.',
         snapshotNote:
-            '복용 기록, 모델 곡선 및 시간대 사본이 이 서비스에 업로드되어 링크 만료 시점까지 보관됩니다. 이후 변경 사항은 반영되지 않으며 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
+            '복용 기록, 모델 곡선 및 시간대는 이 기기에서 암호화된 뒤 업로드되어 링크 만료 시점까지 보관됩니다. 키는 링크 안에만 있어 서비스는 읽을 수 없습니다. 이후 변경 사항은 반영되지 않으며 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
         liveSnapshotNote:
-            'HRT Tracker에 로그인한 상태로 앱을 열어 두면 이후 복용 변경 사항이 이 링크에 자동 동기화됩니다. 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
+            'HRT Tracker에 로그인한 상태로 앱을 열어 두면 이후 복용 변경 사항이 암호화되어 이 링크에 동기화됩니다. 키는 링크 안에만 있어 서비스는 읽을 수 없습니다. 검사 결과, 체중, 프로필 및 계정 정보는 포함되지 않습니다.',
         liveToggle: '실시간 동기화',
         liveBadge: '실시간',
         updatedOn: '업데이트',
@@ -373,6 +401,12 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: '취소',
         revokeConfirm: '이 공유 링크를 취소할까요? 모든 사용자가 즉시 접근할 수 없게 됩니다.',
         revokeError: '링크를 취소할 수 없습니다. 다시 시도해 주세요.',
+        liveNeedsKey:
+            '링크를 계속 동기화하려면 먼저 계정 페이지에서 계정 비밀번호로 클라우드 동기화 잠금을 해제하세요.',
+        notEncrypted: '암호화 안 됨',
+        legacyHint:
+            '“암호화 안 됨” 링크는 공유 암호화 이전에 만들어져 서비스가 읽을 수 있습니다. 취소하고 새로 만들면 암호화됩니다.',
+        keyInvalidDescription: '링크가 불완전한 것 같습니다. # 뒤의 내용까지 링크 전체를 복사했는지 확인하세요.',
     },
     tr: {
         ...en,
@@ -380,9 +414,9 @@ const copy: Record<Lang, ShareCopy> = {
         modalTitle: 'Doz bilgilerini paylaş',
         modalDescription: 'Doz grafiğinizin ve geçmişinizin salt okunur bir anlık görüntüsünü oluşturun.',
         snapshotNote:
-            'Doz kayıtlarınızın, modellenmiş eğrinin ve saat diliminin bir kopyası bu hizmete yüklenir ve bağlantı sona erene kadar saklanır. Sonraki değişiklikler yansımaz; test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
+            'Doz kayıtlarınız, modellenmiş eğri ve saat dilimi yüklenmeden önce bu cihazda şifrelenir ve bağlantı sona erene kadar saklanır. Anahtar yalnızca bağlantının içindedir, bu yüzden hizmet bunları okuyamaz. Sonraki değişiklikler yansımaz; test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
         liveSnapshotNote:
-            'HRT Tracker açık ve oturumunuz etkin olduğu sürece sonraki doz değişiklikleri bu bağlantıya otomatik eşitlenir. Test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
+            'HRT Tracker açık ve oturumunuz etkin olduğu sürece sonraki doz değişiklikleri şifrelenerek bu bağlantıya eşitlenir. Anahtar yalnızca bağlantının içindedir, bu yüzden hizmet bunları okuyamaz. Test sonuçları, kilo, profil ve hesap verileri dahil edilmez.',
         liveToggle: 'Canlı eşitleme',
         liveBadge: 'Canlı',
         updatedOn: 'Güncellendi',
@@ -428,6 +462,13 @@ const copy: Record<Lang, ShareCopy> = {
         revoke: 'İptal et',
         revokeConfirm: 'Bu paylaşım bağlantısı iptal edilsin mi? Kullanan herkes erişimini hemen kaybeder.',
         revokeError: 'Bağlantı iptal edilemedi. Lütfen yeniden deneyin.',
+        liveNeedsKey:
+            'Bir bağlantıyı güncel tutmak için önce Hesap sayfasında hesap parolanızla bulut eşitlemenin kilidini açın.',
+        notEncrypted: 'Şifrelenmemiş',
+        legacyHint:
+            '“Şifrelenmemiş” bağlantılar, paylaşım şifrelemesinden önce oluşturuldu ve hizmet tarafından okunabilir. Şifrelemek için iptal edip yenilerini oluşturun.',
+        keyInvalidDescription:
+            'Bağlantı eksik görünüyor. # işaretinden sonrası dahil bağlantının tamamını kopyaladığınızdan emin olun.',
     },
 };
 
