@@ -1,6 +1,9 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+// Bundled with the app, so the page still loads nothing from other sites.
+import maintainerAvatar from '../assets/maintainer-avatar.webp';
+import laozhongAvatar from '../assets/laozhong-avatar.webp';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -17,9 +20,17 @@ interface Entry {
     desc?: string;
     /** Shown as is, for things like a license name. */
     note?: string;
+    /** A picture shown before the name. */
+    image?: string;
 }
 
 const ORIGINAL: Entry[] = [
+    {
+        name: 'LaoZhong-Mihari',
+        href: 'https://github.com/LaoZhong-Mihari',
+        desc: 'Original author',
+        image: laozhongAvatar,
+    },
     {
         name: 'HRT-Recorder-online',
         href: 'https://github.com/LaoZhong-Mihari/HRT-Recorder-online',
@@ -35,6 +46,35 @@ const ORIGINAL: Entry[] = [
 // Everyone in the repository's contributor list except the maintainer, the
 // original author (credited above) and automated accounts, in the order
 // GitHub lists them.
+// Other trackers built on the same pharmacokinetic work.
+const SISTER_PROJECTS: Entry[] = [
+    {
+        name: "Kira's HRT Tracker",
+        href: 'https://github.com/xingqimiao/Kira-s-HRT-Tracker',
+        desc: 'hrt.kiramyao.com',
+    },
+    {
+        name: 'Transmtf HRT Tracker',
+        href: 'https://github.com/TransmtfTeam/Transmtf-HRT-Tracker',
+        desc: 'hrt.transmtf.com',
+    },
+    {
+        name: 'HRT-Recorder',
+        href: 'https://apps.apple.com/app/hrt-recorder/id6753167763',
+        desc: 'An iOS app on the App Store',
+    },
+    {
+        name: 'HRT-Tracker by Yuuki-Sakura',
+        href: 'https://github.com/Yuuki-Sakura/HRT-Tracker',
+        desc: 'For iOS, watchOS and macOS',
+    },
+    {
+        name: 'Featherline',
+        href: 'https://github.com/MAO-NIANG/Featherline',
+        desc: 'For Android',
+    },
+];
+
 const CONTRIBUTORS = [
     'TianmoFu06',
     'Zikinn',
@@ -79,7 +119,16 @@ const row =
 const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
     return (
         <a href={entry.href} target="_blank" rel="noopener noreferrer" className={row}>
-            <span className="min-w-0">
+            {entry.image && (
+                <img
+                    src={entry.image}
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)]"
+                />
+            )}
+            <span className="min-w-0 flex-1">
                 <span className="block text-[0.9375rem] text-[var(--text)] break-words">{entry.name}</span>
                 {entry.desc && <span className="block text-xs text-[var(--text-muted)] mt-0.5">{entry.desc}</span>}
             </span>
@@ -111,7 +160,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
 
                 <h2 className={heading}>Original work</h2>
                 <p className="text-xs text-[var(--text-muted)]">
-                    This project was first created by LaoZhong-Mihari, and its dose and level estimates come from their
+                    This project was first created by LaoZhong-Mihari, and its dose and level estimates come from her
                     work.
                 </p>
                 <div>
@@ -126,7 +175,8 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         entry={{
                             name: 'SmirnovaOyama',
                             href: 'https://github.com/SmirnovaOyama',
-                            desc: 'Current maintainer',
+                            desc: 'Current maintainer (2025 - )',
+                            image: maintainerAvatar,
                         }}
                     />
                 </div>
@@ -147,6 +197,13 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </p>
                 <div>
                     <LinkRow entry={{ name: 'See all contributors on GitHub', href: `${REPO}/graphs/contributors` }} />
+                </div>
+
+                <h2 className={heading}>Sister projects</h2>
+                <div>
+                    {SISTER_PROJECTS.map(entry => (
+                        <LinkRow key={entry.href} entry={entry} />
+                    ))}
                 </div>
 
                 <h2 className={heading}>References</h2>
