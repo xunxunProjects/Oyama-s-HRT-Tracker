@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Link preview</title>
+        <style>
+            @font-face {
+                font-family: 'Caveat';
+                font-weight: 600;
+                src: url(fonts/Caveat-600-normal.woff2) format('woff2');
+            }
+            @font-face {
+                font-family: 'Newsreader';
+                font-weight: 400;
+                src: url(fonts/Newsreader-400-normal.woff2) format('woff2');
+            }
+            @font-face {
+                font-family: 'Newsreader';
+                font-style: italic;
+                font-weight: 400;
+                src: url(fonts/Newsreader-400-italic.woff2) format('woff2');
+            }
+            :root {
+                --paper: #f6f2eb;
+                --ink: #1c1a17;
+                --muted: #6b6860;
+                --line: #cc785c;
+                --line-deep: #ac573d;
+                --wash: #fbe9e0;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                width: 1200px;
+                height: 630px;
+                overflow: hidden;
+                background: var(--paper);
+                color: var(--ink);
+                font-family: -apple-system, 'Helvetica Neue', Inter, system-ui, sans-serif;
+                -webkit-font-smoothing: antialiased;
+            }
+            .card {
+                position: relative;
+                width: 1200px;
+                height: 630px;
+            }
+            .grain,
+            .art {
+                position: absolute;
+                inset: 0;
+            }
+            .grain {
+                opacity: 0.5;
+                mix-blend-mode: multiply;
+            }
+            .art {
+                fill: none;
+                stroke: var(--line);
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+            .art .w {
+                fill: var(--wash);
+                stroke: none;
+            }
+            .art .p {
+                fill: var(--paper);
+                stroke: none;
+            }
+            .words {
+                position: absolute;
+                left: 92px;
+                top: 64px;
+            }
+            .kicker {
+                display: inline-block;
+                font-family: Caveat;
+                font-weight: 600;
+                font-size: 38px;
+                color: var(--line-deep);
+                transform: rotate(-2deg);
+            }
+            h1 {
+                font-family: Newsreader;
+                font-weight: 400;
+                font-size: 112px;
+                line-height: 1;
+                letter-spacing: -2.5px;
+                margin-top: 6px;
+            }
+            .lede em {
+                font-family: Newsreader;
+                font-size: 29px;
+                color: var(--line-deep);
+            }
+            .lede {
+                font-size: 26px;
+                line-height: 1.4;
+                color: var(--muted);
+                margin-top: 18px;
+                max-width: 560px;
+            }
+            .site {
+                position: absolute;
+                right: 56px;
+                top: 54px;
+                font-family: Newsreader;
+                font-style: italic;
+                font-size: 26px;
+                color: var(--muted);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <svg class="grain" width="1200" height="630">
+                <filter id="n">
+                    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch" />
+                    <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .35  0 0 0 0 .25  0 0 0 .09 0" />
+                </filter>
+                <rect width="100%" height="100%" filter="url(#n)" />
+            </svg>
+
+            <svg class="art" viewBox="0 0 1200 630" width="1200" height="630">
+                <!-- The estimate: four doses, each lifting the line a little higher. -->
+                <path
+                    d="M117.8 499.4 C121.6 494.8 133.1 479.6 140.6 471.7 C148.1 463.8 155.6 457.7 162.9 452.0 C170.3 446.4 177.4 441.9 184.8 437.8 C192.2 433.7 199.7 430.5 207.2 427.6 C214.7 424.7 222.1 422.0 229.7 420.3 C237.2 418.6 245.0 418.6 252.5 417.6 C260.0 416.6 267.1 414.8 274.6 414.4 C282.1 414.0 290.1 415.1 297.6 415.1 C305.2 415.2 312.5 414.6 320.0 414.7 C327.6 414.7 335.4 419.5 342.9 415.4 C350.5 411.4 357.9 397.5 365.2 390.3 C372.5 383.1 379.4 377.0 386.8 372.2 C394.2 367.5 401.9 364.7 409.4 361.7 C416.9 358.7 424.2 356.1 431.7 354.1 C439.2 352.2 447.1 351.0 454.7 350.0 C462.2 349.1 469.7 348.5 477.0 348.5 C484.4 348.4 491.4 349.0 498.9 349.7 C506.4 350.3 514.5 351.4 522.0 352.5 C529.6 353.6 536.6 355.0 544.0 356.3 C551.5 357.5 559.1 363.0 566.6 360.0 C574.2 356.9 582.0 344.1 589.5 337.9 C596.9 331.7 603.8 326.6 611.3 322.6 C618.7 318.6 626.5 316.3 634.0 313.9 C641.6 311.5 649.1 309.4 656.7 308.1 C664.3 306.9 672.0 306.4 679.4 306.5 C686.9 306.6 693.9 308.0 701.2 308.8 C708.5 309.7 715.9 310.2 723.3 311.4 C730.7 312.7 738.0 314.5 745.6 316.2 C753.2 317.9 761.3 319.6 768.9 321.5 C776.6 323.3 784.0 329.5 791.5 327.1 C799.0 324.6 806.3 312.2 813.7 306.5 C821.1 300.8 828.5 296.2 836.0 292.8 C843.5 289.4 851.3 287.8 858.8 286.0 C866.2 284.3 873.4 282.9 880.8 282.3 C888.1 281.7 895.2 281.9 902.7 282.4 C910.2 283.0 918.2 284.5 925.8 285.5 C933.5 286.5 941.0 287.0 948.5 288.6 C955.9 290.2 963.1 292.8 970.4 294.9 C977.7 297.0 984.9 299.0 992.4 301.1 C999.8 303.2 1007.5 305.1 1015.0 307.6 C1022.5 310.2 1029.8 313.7 1037.3 316.3 C1044.8 318.9 1052.3 320.5 1059.8 323.1 C1067.4 325.7 1075.1 329.3 1082.6 331.9 C1090.0 334.6 1097.1 336.3 1104.6 338.9 C1112.1 341.4 1120.0 344.6 1127.6 347.2 C1135.3 349.8 1146.6 353.3 1150.4 354.6"
+                    stroke-width="3.4"
+                />
+
+                <!-- The ground the doses stand on -->
+                <path d="M56 595 C 240 592.4, 420 596.6, 600 593.8 S 900 595.6, 1144 593.2" stroke-width="2" />
+
+                <!-- The doses, drawn from Doodle.tsx at 2.2 times its 40 by 40 grid -->
+                <g transform="translate(74 519) scale(2.2)" stroke-width="1.5">
+                    <g transform="rotate(-8 20 20)">
+                        <path
+                            class="w"
+                            d="M14.8 23.8 C 18 23.4, 22 24, 25.2 23.6 C 25 26, 25.4 28.6, 25.2 30.4 C 25 32.4, 22.8 33.2, 20 33 C 17.2 33.2, 15 32.4, 14.8 30.4 C 14.6 28.6, 15 26, 14.8 23.8 Z"
+                        />
+                        <path
+                            d="M17.2 9.6 C 16.4 7.2, 17.6 5.8, 20 5.8 C 22.4 5.8, 23.6 7.2, 22.8 9.6 C 23 11.4, 22.6 13.2, 22.8 15 C 25.2 16.2, 26.6 18, 26.6 20.2 C 26.4 24, 26.8 28, 26.4 30.4 C 26.2 33.2, 23.6 34.4, 20 34.2 C 16.4 34.4, 13.8 33.2, 13.6 30.4 C 13.2 28, 13.6 24, 13.4 20.2 C 13.4 18, 14.8 16.2, 17.2 15 C 17.4 13.2, 17 11.4, 17.1 9.2"
+                        />
+                        <path d="M16.4 13 C 18 12.6, 21.2 13.2, 23.6 12.8" stroke-width="1.5" />
+                        <path d="M14.4 24 C 18 23.4, 22 24.2, 25.6 23.6" stroke-width="1.5" />
+                        <path d="M16.6 26.4 C 16.4 27.8, 16.8 29.4, 17.1 30.8" stroke-width="1.5" />
+                    </g>
+                </g>
+                <g transform="translate(298 519) scale(2.2)" stroke-width="1.5">
+                    <g transform="translate(20 20) scale(0.58) rotate(-28) translate(-48.8 -37.4)" stroke-width="2.4">
+                        <path
+                            class="w"
+                            d="M34.6 27.2 C 29 26.6, 23.6 30.6, 23 37.6 C 22.6 43.4, 27 47, 34 46.6 C 39 46.4, 43.6 46.8, 46 46.4 C 46.8 40, 45.6 33.4, 46.2 27.6 C 42 27.4, 38.4 27.6, 34.6 27.2 Z"
+                        />
+                        <path
+                            d="M34 25.6 C 47 24.4, 62 26, 65 25.2 C 73.4 24.4, 78.8 30.6, 78 37.6 C 77.2 45, 71.6 50, 64.6 49.2 C 52.6 50.4, 40.4 48.8, 32.8 49.6 C 24.6 50.2, 19.4 44.4, 19.8 37.2 C 20.2 30, 26 25.4, 35.2 25.5"
+                        />
+                        <path d="M47 25.6 C 45.8 31.4, 48.2 43, 46.6 49.4" />
+                        <path d="M56 31.4 C 60 30.6, 64 31, 67.4 30.4" stroke-width="2.4" />
+                    </g>
+                </g>
+                <g transform="translate(523 519) scale(2.2)" stroke-width="1.5">
+                    <g transform="rotate(-6 20 20)">
+                        <path
+                            class="w"
+                            d="M13.6 13.8 C 16 13.4, 19 13.9, 21.6 13.5 C 21.3 16, 21.8 19, 21.5 21.6 C 19 21.9, 16 21.4, 13.5 21.8 C 13.8 19, 13.3 16, 13.6 13.8 Z"
+                        />
+                        <path
+                            d="M14.2 8.8 C 18 8.4, 22 9.2, 26 8.8 C 29.4 8.6, 31.4 10.8, 31.2 14 C 30.8 17, 31.4 20, 31 23.2 C 28.4 25.8, 25.8 28.4, 23.2 31 C 20 31.4, 17 30.8, 14 31.2 C 10.8 31.4, 8.6 29.2, 8.8 26 C 9.2 22, 8.4 18, 8.8 14 C 8.6 10.8, 10.6 8.6, 14.6 8.7"
+                        />
+                        <path
+                            d="M31 23.2 C 28.4 22.8, 25.6 23.2, 24.2 24.4 C 23 25.8, 22.9 28.4, 23.2 31"
+                            stroke-width="1.5"
+                        />
+                    </g>
+                </g>
+                <g transform="translate(747 519) scale(2.2)" stroke-width="1.5">
+                    <g transform="translate(21.6 18.6) rotate(-40)">
+                        <path
+                            class="w"
+                            d="M-11.6 -0.2 C -12.8 -2.6, -16.6 -2.8, -17.6 -0.2 C -18.2 2.2, -15.8 3.6, -13.8 2.8 C -12.4 2.2, -11.2 1.2, -11.6 -0.2 Z"
+                        />
+                        <path
+                            d="M14 -7.2 C 8 -6.6, 0 -5.6, -6.2 -4.6 C -6.6 -1.6, -5.9 1.8, -6.3 4.7 C 0 5.7, 8 6.5, 14.2 7.2 C 13.7 2.4, 14.4 -2.6, 13.9 -7.7"
+                        />
+                        <path d="M10.8 -6.7 C 10.4 -2, 11.1 2.4, 10.7 6.7" stroke-width="1.5" />
+                        <path
+                            d="M-6.2 -2.2 C -7.4 -2.4, -8.4 -2.1, -9.4 -2.3 C -9.7 -0.6, -9.2 0.8, -9.5 2.3 C -8.4 2.5, -7.4 2.1, -6.3 2.3"
+                        />
+                        <path
+                            d="M-11.6 -0.2 C -12.8 -2.6, -16.6 -2.8, -17.6 -0.2 C -18.2 2.2, -15.8 3.6, -13.8 2.8 C -12.4 2.2, -11.2 1.2, -11.7 -0.6"
+                            stroke-width="1.5"
+                        />
+                    </g>
+                </g>
+
+                <!-- The cat from the privacy poster, asleep on the top of the curve -->
+                <g transform="translate(731 125) scale(1.35)" stroke-width="2.7">
+                    <path
+                        class="p"
+                        d="M92 126 C 82 114, 86 90, 108 84 C 130 78, 160 84, 168 104 C 172 116, 166 124, 158 125 C 136 128, 112 128, 92 126 Z"
+                    />
+                    <path
+                        d="M92 126 C 82 114, 86 90, 108 84 C 130 78, 160 84, 168 104 C 172 116, 166 124, 158 125 C 136 128, 112 128, 91 126.4"
+                    />
+                    <path d="M128 84 C 130 88, 131 91, 130.4 94" stroke-width="1.8" />
+                    <path d="M142 85.6 C 143.6 89, 144 92, 143.2 95" stroke-width="1.8" />
+                    <path d="M100 126 C 104 121, 112 120, 118 123 C 120 125, 119.6 126.6, 118.4 127" stroke-width="2" />
+                    <path
+                        class="p"
+                        d="M66 104 C 64 92, 66 77, 72 66 C 77 72, 81 77, 88 78 C 95 78, 100 73, 105 65 C 110 76, 113 92, 110 104 C 108 116, 98 122, 88 122 C 77 122, 68 116, 66 104 Z"
+                    />
+                    <path
+                        d="M66 104 C 64 92, 66 77, 72 66 C 77 72, 81 77, 88 78 C 95 78, 100 73, 105 65 C 110 76, 113 92, 110 104 C 108 116, 98 122, 88 122 C 77 122, 68 116, 65.4 102.6"
+                    />
+                    <path d="M72.4 72.6 C 73.6 74.4, 75 76, 76.6 77" stroke-width="1.6" />
+                    <path d="M104.2 72 C 103 74, 101.6 75.6, 100 76.6" stroke-width="1.6" />
+                    <path d="M75.6 97 C 77.6 99.6, 81 99.8, 83 97.2" stroke-width="2.2" />
+                    <path d="M93.4 97 C 95.4 99.6, 98.8 99.8, 100.8 97.2" stroke-width="2.2" />
+                    <path d="M87 104 C 88 104.6, 89.2 104.6, 90.2 104" stroke-width="2.2" />
+                    <path
+                        d="M88.6 105 C 88.4 107, 86.4 108.4, 84.6 107.6 M88.6 105 C 88.8 107, 90.8 108.4, 92.6 107.6"
+                        stroke-width="1.6"
+                    />
+                    <path
+                        d="M70 105 C 66 104.4, 62 104.8, 58.4 105.6 M70.6 109 C 67 109.6, 63.6 111, 60.6 112.6"
+                        stroke-width="1.4"
+                    />
+                    <path d="M106 105 C 110 104.4, 114 104.8, 117.6 105.6" stroke-width="1.4" />
+                    <!-- Tail, laid down the far side of the curve -->
+                    <path d="M166 113 C 176 117, 186 124, 199 129 C 207 132, 212 127, 207 122.6" stroke-width="2.8" />
+                    <!-- Sleep marks -->
+                    <path
+                        d="M54 62 C 58 61.6, 62 62.2, 66 61.8 C 62 66, 58 70, 54 74.4 C 58 74, 62 74.6, 66.4 74.2"
+                        stroke-width="2"
+                    />
+                    <path
+                        d="M38 40 C 41 39.7, 44 40.1, 47 39.8 C 44 43, 41 46, 38 49.2 C 41 49, 44 49.4, 47.2 49"
+                        stroke-width="1.8"
+                    />
+                </g>
+            </svg>
+
+            <div class="words">
+                <span class="kicker">a little notebook for your doses</span>
+                <h1>HRT Tracker</h1>
+                <p class="lede">Log doses and labs, see your estimated levels, and keep it all <em>yours</em>.</p>
+            </div>
+            <div class="site">hrt.mahiro.uk</div>
+        </div>
+    </body>
+</html>
