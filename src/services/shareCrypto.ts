@@ -1,5 +1,6 @@
 import { HRTMode } from '../../logic';
 import { EncryptedShareSnapshot, sanitizeShareSnapshot } from '../../shareSnapshotSchema';
+import { aesGcmDecrypt, aesGcmEncrypt, randomBytes } from '../utils/cryptoCompat';
 
 // End-to-end encryption for dosage share links.
 //
@@ -10,13 +11,8 @@ import { EncryptedShareSnapshot, sanitizeShareSnapshot } from '../../shareSnapsh
 // ("wrapped") with the owner's cloud backup key and stored next to the link:
 // readable by any device that can read their backups, and by nothing else.
 
-const subtle = (): SubtleCrypto => {
-    const s = globalThis.crypto?.subtle;
-    // Missing on a non-secure origin. Sharing stops rather than falling back
-    // to a link the server could read.
-    if (!s) throw new Error('SHARE_CRYPTO_UNAVAILABLE');
-    return s;
-};
+// AES-GCM comes from cryptoCompat, so this also works on a plain-http
+// self-host where the browser hides Web Crypto.
 
 // Domain separation: the owner's cloud key also seals their backups, and a
 // wrapped share key must never be mistaken for one, or the other way round.
@@ -41,15 +37,12 @@ const toBase64Url = (bytes: Uint8Array): string =>
 const fromBase64Url = (value: string): Uint8Array =>
     base64ToBytes(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4));
 
-const importAesKey = (raw: Uint8Array): Promise<CryptoKey> =>
-    subtle().importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-
 const pipeThrough = async (bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> =>
     new Uint8Array(await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(stream)).arrayBuffer());
 
 /** A fresh link key, base64url so it sits in a URL fragment untouched. */
 export function generateShareKey(): string {
-    return toBase64Url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+    return toBase64Url(randomBytes(32));
 }
 
 export const isShareKey = (value: unknown): value is string => typeof value === 'string' && SHARE_KEY_REGEX.test(value);
@@ -71,13 +64,9 @@ export async function encryptShareSnapshot(snapshot: unknown, key: string): Prom
         plain = await pipeThrough(plain, new CompressionStream('gzip'));
         z = 1;
     }
-    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-    const sealed = await subtle().encrypt(
-        { name: 'AES-GCM', iv: iv as BufferSource, additionalData: SNAPSHOT_AAD },
-        await importAesKey(fromBase64Url(key)),
-        plain as BufferSource,
-    );
-    return { e2ee: 1, z, iv: bytesToBase64(iv), data: bytesToBase64(new Uint8Array(sealed)) };
+    const iv = randomBytes(12);
+    const sealed = await aesGcmEncrypt(fromBase64Url(key), iv, plain, SNAPSHOT_AAD);
+    return { e2ee: 1, z, iv: bytesToBase64(iv), data: bytesToBase64(sealed) };
 }
 
 /**
@@ -88,12 +77,12 @@ export async function encryptShareSnapshot(snapshot: unknown, key: string): Prom
 export async function decryptShareSnapshot(envelope: EncryptedShareSnapshot, key: string) {
     if (!isShareKey(key)) return null;
     try {
-        const opened = await subtle().decrypt(
-            { name: 'AES-GCM', iv: base64ToBytes(envelope.iv) as BufferSource, additionalData: SNAPSHOT_AAD },
-            await importAesKey(fromBase64Url(key)),
-            base64ToBytes(envelope.data) as BufferSource,
+        let plain: Uint8Array = await aesGcmDecrypt(
+            fromBase64Url(key),
+            base64ToBytes(envelope.iv),
+            base64ToBytes(envelope.data),
+            SNAPSHOT_AAD,
         );
-        let plain: Uint8Array = new Uint8Array(opened);
         if (envelope.z === 1) plain = await pipeThrough(plain, new DecompressionStream('gzip'));
         return sanitizeShareSnapshot(JSON.parse(new TextDecoder().decode(plain))).snapshot ?? null;
     } catch {
@@ -109,13 +98,14 @@ export interface WrappedShareKey {
 
 /** Seal a live link's key, and the mode it follows, with the owner's cloud key. */
 export async function wrapShareKey(key: string, mode: HRTMode, cloudKeyB64: string): Promise<WrappedShareKey> {
-    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-    const sealed = await subtle().encrypt(
-        { name: 'AES-GCM', iv: iv as BufferSource, additionalData: WRAP_AAD },
-        await importAesKey(base64ToBytes(cloudKeyB64)),
-        new TextEncoder().encode(JSON.stringify({ k: key, mode })) as BufferSource,
+    const iv = randomBytes(12);
+    const sealed = await aesGcmEncrypt(
+        base64ToBytes(cloudKeyB64),
+        iv,
+        new TextEncoder().encode(JSON.stringify({ k: key, mode })),
+        WRAP_AAD,
     );
-    return { cloud: 1, iv: bytesToBase64(iv), data: bytesToBase64(new Uint8Array(sealed)) };
+    return { cloud: 1, iv: bytesToBase64(iv), data: bytesToBase64(sealed) };
 }
 
 /** Null when this device's cloud key is not the one the link key was sealed with. */
@@ -124,10 +114,11 @@ export async function unwrapShareKey(
     cloudKeyB64: string,
 ): Promise<{ key: string; mode: HRTMode } | null> {
     try {
-        const opened = await subtle().decrypt(
-            { name: 'AES-GCM', iv: base64ToBytes(wrapped.iv) as BufferSource, additionalData: WRAP_AAD },
-            await importAesKey(base64ToBytes(cloudKeyB64)),
-            base64ToBytes(wrapped.data) as BufferSource,
+        const opened = await aesGcmDecrypt(
+            base64ToBytes(cloudKeyB64),
+            base64ToBytes(wrapped.iv),
+            base64ToBytes(wrapped.data),
+            WRAP_AAD,
         );
         const parsed = JSON.parse(new TextDecoder().decode(opened));
         if (!isShareKey(parsed?.k) || (parsed.mode !== 'transfem' && parsed.mode !== 'transmasc')) return null;

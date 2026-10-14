@@ -134,6 +134,24 @@ git pull
 docker compose up -d --build
 ```
 
+### Plain http and https 关于 http 与 https
+
+Opening the app over plain http from another device (for example
+`http://192.168.1.5:8787`) works, and backups, exports and share links stay
+end-to-end encrypted there too. Browsers do hold back a few features until the
+page is served over https (or opened as `localhost`): installing it as an app,
+offline use, and passkey sign-in. To get those, put the container behind any
+https reverse proxy, such as [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
+(`caddy reverse-proxy --from your.domain --to localhost:8787`) or
+[Tailscale Serve](https://tailscale.com/kb/1312/serve).
+
+在其他设备上通过 http 访问（例如 `http://192.168.1.5:8787`）也能正常使用，备份、导出和分享链接
+依然是端到端加密的。不过浏览器只在 https（或 `localhost`）下开放少数功能：安装为应用、离线使用和
+通行密钥登录。需要这些功能时，可以在容器前面加一个 https 反向代理，例如
+[Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
+（`caddy reverse-proxy --from 你的域名 --to localhost:8787`）或
+[Tailscale Serve](https://tailscale.com/kb/1312/serve)。
+
 ### Database schema 数据库结构
 
 The schema is defined only by the files in `migrations/`. The container applies

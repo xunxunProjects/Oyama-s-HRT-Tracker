@@ -56,6 +56,7 @@ import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 import SiteNoticeBanner from './components/SiteNotice';
 import UpdatePrompt from './components/UpdatePrompt';
+import { copyText } from './utils/clipboard';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -397,7 +398,7 @@ const AppContent = () => {
         const exportData = buildExportPayload();
         const json = JSON.stringify(exportData, null, 2);
         try {
-            await navigator.clipboard.writeText(json);
+            await copyText(json);
             return true;
         } catch (err) {
             console.error('Failed to copy: ', err);

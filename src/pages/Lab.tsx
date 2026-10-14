@@ -23,6 +23,7 @@ import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 import { fill } from '../utils/regimenText';
 import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labReport';
 import { useHRTMode } from '../contexts/HRTModeContext';
+import { copyText } from '../utils/clipboard';
 
 interface LabProps {
     t: (key: string) => string;
@@ -107,7 +108,7 @@ const Lab: React.FC<LabProps> = ({
     }, [copied]);
     const copyDetails = async () => {
         try {
-            await navigator.clipboard.writeText(labDetailsText(labResults, events, simulation));
+            await copyText(labDetailsText(labResults, events, simulation));
             setCopied(true);
         } catch {
             /* the clipboard was refused; the button stays as it was */

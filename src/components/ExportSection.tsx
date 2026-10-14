@@ -5,6 +5,7 @@ import { Lock } from 'lucide-react';
 import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 import { settingsSection, rowBleed } from './SettingsListItem';
+import { copyText } from '../utils/clipboard';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -54,7 +55,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
         if (!generatedPassword) return;
         setCopyFailed(null);
         try {
-            await navigator.clipboard.writeText(generatedPassword);
+            await copyText(generatedPassword);
         } catch {
             setCopied(false);
             setCopyFailed('password');
