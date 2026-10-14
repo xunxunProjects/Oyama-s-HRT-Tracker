@@ -70,7 +70,7 @@ const SISTER_PROJECTS: Entry[] = [
     },
     {
         name: 'Featherline',
-        href: 'https://github.com/MAO-NIANG/Featherline',
+        href: 'https://github.com/mkx173/Featherline',
         desc: 'For Android',
     },
 ];
