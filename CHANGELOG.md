@@ -8,7 +8,7 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
-## Unreleased 未发布
+## 1.5.0
 
 - Share links are now end-to-end encrypted. The app encrypts the copy in your
   browser with a key that exists only in the link, after the `#`, so the server
