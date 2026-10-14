@@ -6,7 +6,9 @@ a link to hrt.mahiro.uk is shared (the `og:image` and `twitter:image` tags in
 
 It follows the app's design system: the white page, the system type stack,
 `text` and `text-muted` for the words, axes and figures, `chart-grid` lines, and
-the chart line in `brand` with hollow dose rings, as on the Overview. The curve
+the chart line in `brand` with hollow dose rings, as on the Overview. Three route doodles from
+`src/components/Doodle.tsx` sit on `surface-muted` tiles, as in the app's rows.
+The curve
 is real model output: weekly 5 mg estradiol valerate injections at 70 kg, run
 through `runSimulation` in `logic.ts` and sampled every 6 hours for 42 days.
 

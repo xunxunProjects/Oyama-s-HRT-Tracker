@@ -6,6 +6,8 @@
         <style>
             /* Colours and type are the app's design tokens (src/index.css, light theme). */
             :root {
+                --surface-muted: oklch(97.3% 0.004 90);
+                --illustration-wash: oklch(97.5% 0.012 45);
                 --bg: #ffffff;
                 --text: oklch(20.5% 0.006 90);
                 --text-muted: oklch(51.7% 0.013 90);
@@ -53,6 +55,14 @@
                 font-size: 18px;
                 font-weight: 400;
                 font-variant-numeric: tabular-nums;
+            }
+            svg.art .w {
+                fill: var(--illustration-wash);
+                stroke: none;
+            }
+            svg.art .tile {
+                fill: var(--surface-muted);
+                stroke: none;
             }
             svg.art .axis {
                 stroke: var(--text-muted);
@@ -141,6 +151,57 @@
                 <circle class="ring" cx="756.7" cy="486.6" r="6" />
                 <circle class="ring" cx="908.3" cy="486.6" r="6" />
                 <circle class="ring" cx="1060.0" cy="486.6" r="6" />
+                <!-- The other routes, drawn from Doodle.tsx on surface-muted tiles as in the app's rows -->
+                <rect class="tile" x="838" y="150" width="84" height="84" rx="20" />
+                <g transform="translate(848 160) scale(1.6)" stroke-width="1.9">
+                    <g transform="translate(20 20) scale(0.58) rotate(-28) translate(-48.8 -37.4)" stroke-width="2.4">
+                        <path
+                            class="w"
+                            d="M34.6 27.2 C 29 26.6, 23.6 30.6, 23 37.6 C 22.6 43.4, 27 47, 34 46.6 C 39 46.4, 43.6 46.8, 46 46.4 C 46.8 40, 45.6 33.4, 46.2 27.6 C 42 27.4, 38.4 27.6, 34.6 27.2 Z"
+                        />
+                        <path
+                            d="M34 25.6 C 47 24.4, 62 26, 65 25.2 C 73.4 24.4, 78.8 30.6, 78 37.6 C 77.2 45, 71.6 50, 64.6 49.2 C 52.6 50.4, 40.4 48.8, 32.8 49.6 C 24.6 50.2, 19.4 44.4, 19.8 37.2 C 20.2 30, 26 25.4, 35.2 25.5"
+                        />
+                        <path d="M47 25.6 C 45.8 31.4, 48.2 43, 46.6 49.4" />
+                        <path d="M56 31.4 C 60 30.6, 64 31, 67.4 30.4" stroke-width="2.4" />
+                    </g>
+                </g>
+                <rect class="tile" x="942" y="150" width="84" height="84" rx="20" />
+                <g transform="translate(952 160) scale(1.6)" stroke-width="1.9">
+                    <g transform="rotate(-6 20 20)">
+                        <path
+                            class="w"
+                            d="M13.6 13.8 C 16 13.4, 19 13.9, 21.6 13.5 C 21.3 16, 21.8 19, 21.5 21.6 C 19 21.9, 16 21.4, 13.5 21.8 C 13.8 19, 13.3 16, 13.6 13.8 Z"
+                        />
+                        <path
+                            d="M14.2 8.8 C 18 8.4, 22 9.2, 26 8.8 C 29.4 8.6, 31.4 10.8, 31.2 14 C 30.8 17, 31.4 20, 31 23.2 C 28.4 25.8, 25.8 28.4, 23.2 31 C 20 31.4, 17 30.8, 14 31.2 C 10.8 31.4, 8.6 29.2, 8.8 26 C 9.2 22, 8.4 18, 8.8 14 C 8.6 10.8, 10.6 8.6, 14.6 8.7"
+                        />
+                        <path
+                            d="M31 23.2 C 28.4 22.8, 25.6 23.2, 24.2 24.4 C 23 25.8, 22.9 28.4, 23.2 31"
+                            stroke-width="1.5"
+                        />
+                    </g>
+                </g>
+                <rect class="tile" x="1046" y="150" width="84" height="84" rx="20" />
+                <g transform="translate(1056 160) scale(1.6)" stroke-width="1.9">
+                    <g transform="translate(21.6 18.6) rotate(-40)">
+                        <path
+                            class="w"
+                            d="M-11.6 -0.2 C -12.8 -2.6, -16.6 -2.8, -17.6 -0.2 C -18.2 2.2, -15.8 3.6, -13.8 2.8 C -12.4 2.2, -11.2 1.2, -11.6 -0.2 Z"
+                        />
+                        <path
+                            d="M14 -7.2 C 8 -6.6, 0 -5.6, -6.2 -4.6 C -6.6 -1.6, -5.9 1.8, -6.3 4.7 C 0 5.7, 8 6.5, 14.2 7.2 C 13.7 2.4, 14.4 -2.6, 13.9 -7.7"
+                        />
+                        <path d="M10.8 -6.7 C 10.4 -2, 11.1 2.4, 10.7 6.7" stroke-width="1.5" />
+                        <path
+                            d="M-6.2 -2.2 C -7.4 -2.4, -8.4 -2.1, -9.4 -2.3 C -9.7 -0.6, -9.2 0.8, -9.5 2.3 C -8.4 2.5, -7.4 2.1, -6.3 2.3"
+                        />
+                        <path
+                            d="M-11.6 -0.2 C -12.8 -2.6, -16.6 -2.8, -17.6 -0.2 C -18.2 2.2, -15.8 3.6, -13.8 2.8 C -12.4 2.2, -11.2 1.2, -11.7 -0.6"
+                            stroke-width="1.5"
+                        />
+                    </g>
+                </g>
             </svg>
             <div class="words">
                 <h1>HRT Tracker</h1>
