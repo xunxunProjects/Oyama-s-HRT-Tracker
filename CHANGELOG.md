@@ -10,6 +10,20 @@ Notable changes to this project. Full release notes for each version are on the
 
 ## 1.5.0
 
+- Labs on the chart now say how they compare with the model: tap or hover a
+  lab's diamond and the readout adds the lab and how far above or below the
+  model, before calibration, it is. Each lab in the Labs list shows how many
+  hours after the last dose it was drawn, labs can note their test method
+  (immunoassay or LC-MS/MS), and "Copy as table" copies every lab with its
+  dose, sublingual hold time, timing, method and the model's estimate, to paste
+  into a spreadsheet or an issue; nothing is sent anywhere. Testosterone labs
+  get the same comparison in Masculinizing HRT.
+
+  曲线上的化验点现在会显示和模型的对照：点一下或悬停在菱形上，读数会加上化验值，以及它比校准前的模型
+  高或低多少。检查列表里每条化验会写出是用药后多少小时抽的血，还可以记下检测方法（免疫法或质谱法
+  LC-MS/MS）。“复制为表格”会把每条化验连同剂量、舌下含服时间、间隔、检测方法和模型估算一起复制，
+  方便贴到表格或 issue 里，不会发送到任何地方。男性化 HRT 下睾酮化验也有同样的对照。
+
 - Share links are now end-to-end encrypted. The app encrypts the copy in your
   browser with a key that exists only in the link, after the `#`, so the server
   stores data it cannot read. Live links keep updating from any of your devices

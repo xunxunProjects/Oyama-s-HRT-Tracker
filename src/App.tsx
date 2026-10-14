@@ -672,6 +672,8 @@ const AppContent = () => {
                             isQuickAddLabOpen={isQuickAddLabOpen}
                             setIsQuickAddLabOpen={setIsQuickAddLabOpen}
                             labResults={labResults}
+                            events={events}
+                            simulation={simulation}
                             onSaveLabResult={r => {
                                 if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
                                 else addLabResult(r);

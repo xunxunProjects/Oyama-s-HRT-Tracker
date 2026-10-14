@@ -242,7 +242,7 @@ export function normalizeSyncState(payload: unknown): SyncState {
  */
 const CONTENT_FIELDS: Record<RecordKind, readonly string[]> = {
     events: ['route', 'ester', 'doseMG', 'timeH', 'extras'],
-    labResults: ['unit', 'concValue', 'timeH'],
+    labResults: ['unit', 'concValue', 'timeH', 'assay'],
     doseTemplates: ['name', 'route', 'ester', 'doseMG', 'extras'],
 };
 

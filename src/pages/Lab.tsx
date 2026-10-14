@@ -1,13 +1,18 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
-import { Plus, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Check } from 'lucide-react';
 import {
     LabResult,
     CalibrationMethod,
     CalibrationResult,
     CalibrationPoint,
+    DoseEvent,
+    SimulationResult,
     getHormoneLevelAdvisory,
     isT_LabUnit,
+    labDoseContext,
+    labInModelUnit,
+    rawModelAtLab,
 } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
@@ -16,6 +21,7 @@ import VialDoodle from '../components/VialDoodle';
 import CalibrationPlot from '../components/CalibrationPlot';
 import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 import { fill } from '../utils/regimenText';
+import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labReport';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface LabProps {
@@ -23,6 +29,9 @@ interface LabProps {
     isQuickAddLabOpen: boolean;
     setIsQuickAddLabOpen: (isOpen: boolean) => void;
     labResults: LabResult[];
+    /** The dose log and the model run, for each lab's timing and the copied details. */
+    events: DoseEvent[];
+    simulation: SimulationResult | null;
     onSaveLabResult: (res: LabResult) => void;
     onDeleteLabResult: (id: string) => void;
     onClearLabResults: () => void;
@@ -48,6 +57,8 @@ const Lab: React.FC<LabProps> = ({
     isQuickAddLabOpen,
     setIsQuickAddLabOpen,
     labResults,
+    events,
+    simulation,
     onSaveLabResult,
     onDeleteLabResult,
     onClearLabResults,
@@ -76,6 +87,32 @@ const Lab: React.FC<LabProps> = ({
         const newestFirst = labResults.slice().sort((a, b) => b.timeH - a.timeH);
         return [newestFirst.find(r => !isT_LabUnit(r.unit))?.unit, newestFirst.find(r => isT_LabUnit(r.unit))?.unit];
     }, [labResults]);
+
+    const lastAssay = useMemo(
+        () =>
+            labResults
+                .slice()
+                .sort((a, b) => b.timeH - a.timeH)
+                .find(r => r.assay)?.assay,
+        [labResults],
+    );
+
+    // Copying the details: a tick while it worked, nothing on failure but the
+    // button staying as it was. Nothing leaves the device but the clipboard.
+    const [copied, setCopied] = useState(false);
+    useEffect(() => {
+        if (!copied) return;
+        const id = setTimeout(() => setCopied(false), 2000);
+        return () => clearTimeout(id);
+    }, [copied]);
+    const copyDetails = async () => {
+        try {
+            await navigator.clipboard.writeText(labDetailsText(labResults, events, simulation));
+            setCopied(true);
+        } catch {
+            /* the clipboard was refused; the button stays as it was */
+        }
+    };
 
     const muted = 'text-[var(--text-muted)]';
     const on = 'text-[var(--text)]';
@@ -134,6 +171,7 @@ const Lab: React.FC<LabProps> = ({
                             resultToEdit={null}
                             defaultE2Unit={lastE2Unit}
                             defaultTUnit={lastTUnit}
+                            defaultAssay={lastAssay}
                             onSave={res => {
                                 onSaveLabResult(res);
                                 setIsQuickAddLabOpen(false);
@@ -204,7 +242,17 @@ const Lab: React.FC<LabProps> = ({
                                 // mode nearly every lab is one, and a note on each would
                                 // be noise.
                                 const unused = !pt && !isT;
-                                const pct = pt ? Math.round((pt.ratio - 1) * 100) : 0;
+                                // Estradiol compares through calibration's own points;
+                                // testosterone, which nothing calibrates, against the
+                                // model directly, so a transmasc lab reads the same way.
+                                const tModel = isT ? rawModelAtLab(simulation, res) : null;
+                                const cmp = pt
+                                    ? { pred: pt.pred, pct: Math.round((pt.ratio - 1) * 100) }
+                                    : tModel != null
+                                      ? { pred: tModel, pct: labVsModelPct(labInModelUnit(res), tModel) }
+                                      : null;
+                                const pct = cmp?.pct ?? 0;
+                                const timing = labDoseContext(res, events);
                                 return (
                                     <div key={res.id} className="border-b border-[var(--border)] last:border-b-0">
                                         {/* A button, so the row opens its edit form (and
@@ -235,13 +283,19 @@ const Lab: React.FC<LabProps> = ({
                                                     </span>
                                                 </span>
                                                 <span className="flex items-center justify-between gap-2">
-                                                    <span className={`text-xs ${muted}`}>{formatDate(d, lang)}</span>
+                                                    {/* How long after the dose it was drawn rides on the
+                                                        date: what makes a lab comparable with the curve. */}
+                                                    <span className={`text-xs ${muted}`}>
+                                                        {formatDate(d, lang)}
+                                                        {timing &&
+                                                            ` · ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}
+                                                    </span>
                                                     {/* Against the raw model, named as the plot names it, and
                                                         in words: "13% above" rather than a bare ×1.13. */}
-                                                    {pt && (
+                                                    {cmp && (
                                                         <span className="flex items-center gap-1.5 text-xs tabular-nums shrink-0">
                                                             <span className={muted}>
-                                                                {t('cal.plot.before')} {Math.round(pt.pred)}
+                                                                {t('cal.plot.before')} {Math.round(cmp.pred)}
                                                             </span>
                                                             <span
                                                                 className="px-1.5 py-0.5 rounded font-medium"
@@ -297,7 +351,14 @@ const Lab: React.FC<LabProps> = ({
                             })}
 
                         {/* Clear all — the last result row's border-b is the divider above this */}
-                        <div className="flex items-center justify-end py-4">
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <button
+                                onClick={copyDetails}
+                                className="tap-target inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-ink)]"
+                            >
+                                {copied ? <Check size={14} /> : <Copy size={14} />}
+                                {copied ? t('lab.copied') : t('lab.copy_details')}
+                            </button>
                             <button
                                 onClick={onClearLabResults}
                                 className="tap-target text-sm font-medium text-[var(--danger)] hover:text-[var(--danger)]"

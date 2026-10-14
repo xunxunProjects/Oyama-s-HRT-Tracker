@@ -17,6 +17,7 @@ import {
     normalizeCalibrationMethod,
     isTestosteroneEster,
     isT_LabUnit,
+    isLabAssay,
     PKCustomParams,
     applyPKOverrides,
     sanitizePKParams,
@@ -752,6 +753,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     timeH: timeNum,
                     concValue: valNum,
                     unit: unitVal,
+                    ...(isLabAssay(item.assay) ? { assay: item.assay } : {}),
                     updatedAt: keepStamp(item),
                 } as LabResult;
             })
