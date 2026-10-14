@@ -395,7 +395,7 @@ const Settings: React.FC<SettingsProps> = ({
                     }
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
-                <NavRow label={t('credits.title')} onClick={() => navTo(onNavigateToCredits, 'about')} />
+                <NavRow label="Credits" onClick={() => navTo(onNavigateToCredits, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}

@@ -1,20 +1,20 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { useTranslation } from '../contexts/LanguageContext';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
-// third party who is looking. Names stay as people write them; only the
-// headings and descriptions are translated.
+// third party who is looking. The page is in English in every language, as
+// credits pages usually are, so names and project titles read the same for
+// everyone.
 
 const REPO = 'https://github.com/xunxunProjects/Oyama-s-HRT-Tracker';
 
 interface Entry {
     name: string;
     href: string;
-    /** Translation key for a one-line description. */
-    descKey?: string;
+    /** A one-line description. */
+    desc?: string;
     /** Shown as is, for things like a license name. */
     note?: string;
 }
@@ -23,12 +23,12 @@ const ORIGINAL: Entry[] = [
     {
         name: 'HRT-Recorder-online',
         href: 'https://github.com/LaoZhong-Mihari/HRT-Recorder-online',
-        descKey: 'credits.original.app',
+        desc: 'The repository this project is forked from',
     },
     {
         name: 'HRT-Recorder-PKcomponent-Test',
         href: 'https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test',
-        descKey: 'credits.original.pk',
+        desc: 'Where the level estimation algorithm comes from',
     },
 ];
 
@@ -77,14 +77,11 @@ const row =
     'group flex items-center justify-between gap-4 py-3.5 border-b border-[var(--border)] last:border-b-0 text-start';
 
 const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
-    const { t } = useTranslation();
     return (
         <a href={entry.href} target="_blank" rel="noopener noreferrer" className={row}>
             <span className="min-w-0">
                 <span className="block text-[0.9375rem] text-[var(--text)] break-words">{entry.name}</span>
-                {entry.descKey && (
-                    <span className="block text-xs text-[var(--text-muted)] mt-0.5">{t(entry.descKey)}</span>
-                )}
+                {entry.desc && <span className="block text-xs text-[var(--text-muted)] mt-0.5">{entry.desc}</span>}
             </span>
             <span className="flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]">
                 {entry.note}
@@ -103,35 +100,38 @@ interface CreditsProps {
 }
 
 const Credits: React.FC<CreditsProps> = ({ onBack }) => {
-    const { t } = useTranslation();
-
     return (
-        <div className="pb-32">
-            <PageHeader onBack={onBack} title={t('credits.title')} />
+        <div lang="en" dir="ltr" className="pb-32">
+            <PageHeader onBack={onBack} title="Credits" />
 
             <div className={PAGE_COLUMN}>
-                <p className="text-sm text-[var(--text-muted)]">{t('credits.intro')}</p>
+                <p className="text-sm text-[var(--text-muted)]">
+                    This app is built on the work of many people. Thank you.
+                </p>
 
-                <h2 className={heading}>{t('credits.original')}</h2>
-                <p className="text-xs text-[var(--text-muted)]">{t('credits.original_desc')}</p>
+                <h2 className={heading}>Original work</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                    This project was first created by LaoZhong-Mihari, and its dose and level estimates come from their
+                    work.
+                </p>
                 <div>
                     {ORIGINAL.map(entry => (
                         <LinkRow key={entry.href} entry={entry} />
                     ))}
                 </div>
 
-                <h2 className={heading}>{t('credits.maintainer')}</h2>
+                <h2 className={heading}>Maintainer</h2>
                 <div>
                     <LinkRow
                         entry={{
-                            name: '寻寻 Smirnova',
+                            name: 'SmirnovaOyama',
                             href: 'https://github.com/SmirnovaOyama',
-                            descKey: 'credits.maintainer_desc',
+                            desc: 'Current maintainer',
                         }}
                     />
                 </div>
 
-                <h2 className={heading}>{t('credits.contributors')}</h2>
+                <h2 className={heading}>Contributors</h2>
                 <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-[0.9375rem]">
                     {CONTRIBUTORS.map(login => (
                         <a
@@ -146,24 +146,26 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </p>
                 <div>
-                    <LinkRow entry={{ name: t('credits.contributors_all'), href: `${REPO}/graphs/contributors` }} />
+                    <LinkRow entry={{ name: 'See all contributors on GitHub', href: `${REPO}/graphs/contributors` }} />
                 </div>
 
-                <h2 className={heading}>{t('credits.references')}</h2>
-                <p className="text-xs text-[var(--text-muted)]">{t('credits.references_desc')}</p>
+                <h2 className={heading}>References</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                    The estimation model draws on these community resources, along with papers and drug labels.
+                </p>
                 <div>
                     {REFERENCES.map(entry => (
                         <LinkRow key={entry.href} entry={entry} />
                     ))}
                     <LinkRow
                         entry={{
-                            name: t('credits.references_all'),
+                            name: 'See the full reference list',
                             href: `${REPO}/blob/main/Algorithm%20Explanation.md`,
                         }}
                     />
                 </div>
 
-                <h2 className={heading}>{t('credits.libraries')}</h2>
+                <h2 className={heading}>Open source software</h2>
                 <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 pt-2 text-[0.9375rem]">
                     {LIBRARIES.map(entry => (
                         <li key={entry.href} className="min-w-0">
@@ -175,7 +177,9 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </ul>
 
-                <p className="mt-8 text-sm text-[var(--text-muted)]">{t('credits.thanks')}</p>
+                <p className="mt-8 text-sm text-[var(--text-muted)]">
+                    And thank you to everyone who uses this app, reports problems and shares ideas.
+                </p>
             </div>
         </div>
     );

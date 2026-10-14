@@ -13,10 +13,10 @@ Notable changes to this project. Full release notes for each version are on the
 - Added a Credits page under Settings, About. It credits LaoZhong-Mihari's
   original projects, the maintainer, contributors, the community resources the
   model draws on, and the open source software the app uses. It loads nothing
-  from other sites.
+  from other sites, and it is in English in every language.
 
   在设置的「关于」里加了致谢页面：致谢小中（LaoZhong-Mihari）的原作、维护者、各位贡献者、模型参考的
-  社区资料，以及应用用到的开源软件。页面本身不从其他网站加载任何内容。
+  社区资料，以及应用用到的开源软件。页面本身不从其他网站加载任何内容，并且在所有语言下都显示英文。
 
 - The app now tells you when a new version is out. It checks when it opens,
   when you come back to the tab, and every half hour, and shows a small line at
