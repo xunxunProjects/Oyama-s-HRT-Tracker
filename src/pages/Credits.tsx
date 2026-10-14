@@ -1,6 +1,8 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+// Bundled with the app, so the page still loads nothing from other sites.
+import maintainerAvatar from '../assets/maintainer-avatar.webp';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -17,6 +19,8 @@ interface Entry {
     desc?: string;
     /** Shown as is, for things like a license name. */
     note?: string;
+    /** A picture shown before the name. */
+    image?: string;
 }
 
 const ORIGINAL: Entry[] = [
@@ -79,7 +83,16 @@ const row =
 const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
     return (
         <a href={entry.href} target="_blank" rel="noopener noreferrer" className={row}>
-            <span className="min-w-0">
+            {entry.image && (
+                <img
+                    src={entry.image}
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)]"
+                />
+            )}
+            <span className="min-w-0 flex-1">
                 <span className="block text-[0.9375rem] text-[var(--text)] break-words">{entry.name}</span>
                 {entry.desc && <span className="block text-xs text-[var(--text-muted)] mt-0.5">{entry.desc}</span>}
             </span>
@@ -126,7 +139,8 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         entry={{
                             name: 'SmirnovaOyama',
                             href: 'https://github.com/SmirnovaOyama',
-                            desc: 'Current maintainer',
+                            desc: 'Current maintainer (2025 - )',
+                            image: maintainerAvatar,
                         }}
                     />
                 </div>
