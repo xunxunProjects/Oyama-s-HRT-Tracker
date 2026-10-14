@@ -47,12 +47,14 @@ import WeightSettings from './pages/WeightSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
+import Credits from './pages/Credits';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 import SiteNoticeBanner from './components/SiteNotice';
+import UpdatePrompt from './components/UpdatePrompt';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -554,6 +556,7 @@ const AppContent = () => {
                 {/* Operator banner. Outside the scroller and keyed off nothing in
                     this component, so it stays put across view changes. */}
                 <SiteNoticeBanner />
+                <UpdatePrompt />
 
                 <div
                     ref={mainScrollRef}
@@ -704,6 +707,7 @@ const AppContent = () => {
                             setIsDisclaimerOpen={setIsDisclaimerOpen}
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
+                            onNavigateToCredits={() => handleViewChange('settings-credits')}
                             weight={weight}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
@@ -832,6 +836,8 @@ const AppContent = () => {
                     {currentView === 'settings-transparency' && (
                         <TransparencySettings onBack={() => handleViewChange('settings')} />
                     )}
+
+                    {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
 
                     {currentView === 'settings-milk-tea' && devMode && (
                         <MilkTeaEasterEgg onBack={() => handleViewChange('settings')} />
