@@ -1350,31 +1350,28 @@ const ResultChart = ({
                                 )}
                             </div>
                         )}
+                        {/* One line: the lab, and how it sits against the raw model. */}
                         {hoverLab && (
-                            <div className="mt-1 pt-1 border-t border-[var(--border)] text-[0.75rem] whitespace-nowrap">
-                                <div className="flex items-center gap-1.5">
-                                    <svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true">
-                                        <path
-                                            d="M0 -3.5L3.5 0L0 3.5L-3.5 0Z"
-                                            fill={c.dot}
-                                            stroke={c.lab}
-                                            strokeWidth={1.5}
-                                        />
-                                    </svg>
-                                    <span className="text-[var(--text-muted)]">{t('cal.plot.lab')}</span>
-                                    <span className="font-medium tabular-nums text-[var(--text)]">{hoverLab.raw}</span>
-                                    <span className="text-[var(--text-muted)]">{hoverLab.unit}</span>
-                                </div>
-                                {hoverLab.model != null && hoverLab.pct != null && (
-                                    <div className="text-[var(--text-muted)] tabular-nums">
-                                        {t('cal.plot.before')} {hoverLab.model.toFixed(primaryMeta.decimals)}{' '}
-                                        {primaryMeta.unit} ·{' '}
+                            <div className="mt-1 pt-1 border-t border-[var(--border)] flex items-center gap-1.5 text-[0.75rem] whitespace-nowrap tabular-nums">
+                                <svg width="10" height="10" viewBox="-5 -5 10 10" aria-label={t('cal.plot.lab')}>
+                                    <path
+                                        d="M0 -3.5L3.5 0L0 3.5L-3.5 0Z"
+                                        fill={c.dot}
+                                        stroke={c.lab}
+                                        strokeWidth={1.5}
+                                    />
+                                </svg>
+                                <span className="font-medium text-[var(--text)]">{hoverLab.raw}</span>
+                                <span className="text-[var(--text-muted)]">{hoverLab.unit}</span>
+                                {hoverLab.pct != null && (
+                                    <span className="text-[var(--text-muted)]">
+                                        ·{' '}
                                         {hoverLab.pct === 0
                                             ? '±0%'
                                             : fill(t(hoverLab.pct > 0 ? 'lab.ratio_above' : 'lab.ratio_below'), {
                                                   pct: Math.abs(hoverLab.pct),
                                               })}
-                                    </div>
+                                    </span>
                                 )}
                             </div>
                         )}

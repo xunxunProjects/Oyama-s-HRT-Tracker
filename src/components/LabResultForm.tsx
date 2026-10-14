@@ -269,7 +269,6 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                             aria-label={t('lab.assay')}
                         />
                     </div>
-                    <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.assay_hint')}</p>
                 </div>
                 {!resultToEdit && <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.dual_hint')}</p>}
             </div>

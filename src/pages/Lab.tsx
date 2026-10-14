@@ -21,7 +21,7 @@ import VialDoodle from '../components/VialDoodle';
 import CalibrationPlot from '../components/CalibrationPlot';
 import { HormoneLevelAdvisoryLine } from '../components/DoseAdvisory';
 import { fill } from '../utils/regimenText';
-import { labDetailsText, labTimingLabel, labVsModelPct } from '../utils/labReport';
+import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labReport';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
 interface LabProps {
@@ -283,7 +283,13 @@ const Lab: React.FC<LabProps> = ({
                                                     </span>
                                                 </span>
                                                 <span className="flex items-center justify-between gap-2">
-                                                    <span className={`text-xs ${muted}`}>{formatDate(d, lang)}</span>
+                                                    {/* How long after the dose it was drawn rides on the
+                                                        date: what makes a lab comparable with the curve. */}
+                                                    <span className={`text-xs ${muted}`}>
+                                                        {formatDate(d, lang)}
+                                                        {timing &&
+                                                            ` · ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}
+                                                    </span>
                                                     {/* Against the raw model, named as the plot names it, and
                                                         in words: "13% above" rather than a bare ×1.13. */}
                                                     {cmp && (
@@ -312,19 +318,6 @@ const Lab: React.FC<LabProps> = ({
                                                         </span>
                                                     )}
                                                 </span>
-                                                {/* When it was drawn against the dose before it,
-                                                    and how it was measured: what makes a lab
-                                                    comparable with the curve at all. */}
-                                                {(timing || res.assay) && (
-                                                    <span className={`block text-xs ${muted} mt-1`}>
-                                                        {[
-                                                            timing ? labTimingLabel(timing, t) : null,
-                                                            res.assay ? t(`lab.assay.${res.assay}`) : null,
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(' · ')}
-                                                    </span>
-                                                )}
                                                 {unused && (
                                                     <span className={`block text-xs ${muted} mt-1`}>
                                                         {t('lab.not_used')}

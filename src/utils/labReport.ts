@@ -1,6 +1,5 @@
 import {
     DoseEvent,
-    LabDoseContext,
     LabResult,
     SimulationResult,
     isT_LabUnit,
@@ -8,7 +7,7 @@ import {
     labInModelUnit,
     rawModelAtLab,
 } from '../../logic';
-import { fill, regimenLabel } from './regimenText';
+import { fill } from './regimenText';
 
 type T = (key: string) => string;
 
@@ -17,15 +16,6 @@ const trim1 = (n: number) => String(Number(n.toFixed(1)));
 /** "5.2 小时", "3 天": how long before the draw, in hours up to two days, in days past that. */
 export const sinceDoseLabel = (hours: number, t: T) =>
     hours < 48 ? fill(t('lab.hours'), { n: trim1(hours) }) : fill(t('lab.days'), { n: trim1(hours / 24) });
-
-/** "雌二醇 2 mg 舌下 后 5.2 小时 · 含服 10 分钟": the dose a lab reads after, and how long after. */
-export function labTimingLabel(ctx: LabDoseContext, t: T): string {
-    const line = fill(t('lab.after_dose'), {
-        when: sinceDoseLabel(ctx.hoursBefore, t),
-        dose: regimenLabel(ctx.event, t),
-    });
-    return ctx.holdMin != null ? `${line} · ${fill(t('lab.held'), { n: ctx.holdMin })}` : line;
-}
 
 /** Lab vs model in percent: +29 is the lab 29% above the model. */
 export const labVsModelPct = (lab: number, model: number) => Math.round((lab / model - 1) * 100);

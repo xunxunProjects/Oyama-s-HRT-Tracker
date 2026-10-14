@@ -530,14 +530,11 @@ export const TRANSLATIONS_BASE = {
         'lab.assay.unknown': '不确定',
         'lab.assay.immuno': '免疫法',
         'lab.assay.lcms': '质谱法',
-        'lab.assay_hint':
-            '化验单上一般会写。浓度低的时候免疫法测出的雌二醇常常偏高，质谱法（LC-MS/MS）更准，知道方法和模型对照时更有参考价值。',
-        'lab.after_dose': '{dose} 后 {when}',
+        'lab.after_dose': '用药后 {when}',
         'lab.hours': '{n} 小时',
         'lab.days': '{n} 天',
-        'lab.held': '含服 {n} 分钟',
-        'lab.copy_details': '复制化验和用药时间',
-        'lab.copied': '已复制，可以粘贴到表格里',
+        'lab.copy_details': '复制为表格',
+        'lab.copied': '已复制',
         'lab.clear_confirm':
             '删除全部检查结果？此操作不可撤销。如果只是不想再用它们校准，可以在校准设置里选“关闭”，结果会保留。',
 
@@ -1391,14 +1388,11 @@ export const TRANSLATIONS_BASE = {
         'lab.assay.unknown': 'Not sure',
         'lab.assay.immuno': 'Immunoassay',
         'lab.assay.lcms': 'LC-MS/MS',
-        'lab.assay_hint':
-            'Usually printed on the lab report. At low levels immunoassays often read estradiol high, and LC-MS/MS is more exact, so knowing which makes the comparison with the model fairer.',
-        'lab.after_dose': '{when} after {dose}',
+        'lab.after_dose': '{when} after dose',
         'lab.hours': '{n} h',
         'lab.days': '{n} d',
-        'lab.held': 'held {n} min',
-        'lab.copy_details': 'Copy labs with dose timing',
-        'lab.copied': 'Copied, ready to paste into a spreadsheet',
+        'lab.copy_details': 'Copy as table',
+        'lab.copied': 'Copied',
         'lab.clear_confirm':
             'Delete every lab result? This cannot be undone. To stop calibrating and keep them, choose Off in Calibration settings instead.',
 
@@ -2070,14 +2064,11 @@ const ZH_TW = {
     'lab.assay.unknown': '不確定',
     'lab.assay.immuno': '免疫法',
     'lab.assay.lcms': '質譜法',
-    'lab.assay_hint':
-        '檢驗單上通常會寫。濃度低的時候免疫法測出的雌二醇常常偏高，質譜法（LC-MS/MS）更準，知道方法和模型對照時更有參考價值。',
-    'lab.after_dose': '{dose} 後 {when}',
+    'lab.after_dose': '用藥後 {when}',
     'lab.hours': '{n} 小時',
     'lab.days': '{n} 天',
-    'lab.held': '含服 {n} 分鐘',
-    'lab.copy_details': '複製檢驗和用藥時間',
-    'lab.copied': '已複製，可以貼到表格裡',
+    'lab.copy_details': '複製為表格',
+    'lab.copied': '已複製',
     'lab.clear_confirm':
         '確定要刪除全部檢驗結果？此操作無法復原。如果只是不想再用它們校準，可以在校準設定裡選「關閉」，結果會保留。',
 
@@ -2940,14 +2931,11 @@ export const TRANSLATIONS = {
         'lab.assay.unknown': '唔確定',
         'lab.assay.immuno': '免疫法',
         'lab.assay.lcms': '質譜法',
-        'lab.assay_hint':
-            '化驗單通常會寫。濃度低嘅時候免疫法量到嘅雌二醇成日偏高，質譜法（LC-MS/MS）準啲，知道用咩方法同模型對照會更有參考價值。',
-        'lab.after_dose': '{dose} 之後 {when}',
+        'lab.after_dose': '用藥之後 {when}',
         'lab.hours': '{n} 個鐘',
         'lab.days': '{n} 日',
-        'lab.held': '含咗 {n} 分鐘',
-        'lab.copy_details': '複製檢驗同用藥時間',
-        'lab.copied': '複製咗，可以貼落試算表',
+        'lab.copy_details': '複製做表格',
+        'lab.copied': '複製咗',
         'lab.clear_confirm':
             '真係要刪晒所有檢驗結果？呢步唔可以還原。如果只係唔想再用佢哋校準，可以喺校準設定揀「閂咗」，結果會留低。',
 
@@ -3499,14 +3487,11 @@ export const TRANSLATIONS = {
         'lab.assay.unknown': '不明',
         'lab.assay.immuno': '免疫測定',
         'lab.assay.lcms': 'LC-MS/MS',
-        'lab.assay_hint':
-            '多くの検査報告書に記載されています。低濃度では免疫測定法はエストラジオールを高めに測りがちで、LC-MS/MS の方が正確です。方法がわかるとモデルとの比較がより公平になります。',
-        'lab.after_dose': '{dose} の {when}後',
+        'lab.after_dose': '服用 {when}後',
         'lab.hours': '{n} 時間',
         'lab.days': '{n} 日',
-        'lab.held': '{n} 分間保持',
-        'lab.copy_details': '検査と服用時刻をコピー',
-        'lab.copied': 'コピーしました。表計算に貼り付けられます',
+        'lab.copy_details': '表としてコピー',
+        'lab.copied': 'コピーしました',
         'lab.clear_confirm':
             '検査結果をすべて削除しますか？元に戻せません。補正に使わないだけなら、削除せずに補正の設定で「オフ」を選んでください。',
 
@@ -4386,14 +4371,11 @@ export const TRANSLATIONS = {
         'lab.assay.unknown': '모름',
         'lab.assay.immuno': '면역측정',
         'lab.assay.lcms': 'LC-MS/MS',
-        'lab.assay_hint':
-            '대부분 검사 결과지에 적혀 있어요. 농도가 낮을 때 면역측정법은 에스트라디올을 높게 읽는 경우가 많고 LC-MS/MS가 더 정확해서, 방법을 알면 모델과 더 공정하게 비교할 수 있어요.',
-        'lab.after_dose': '{dose} 후 {when}',
+        'lab.after_dose': '복용 {when} 후',
         'lab.hours': '{n}시간',
         'lab.days': '{n}일',
-        'lab.held': '{n}분 유지',
-        'lab.copy_details': '검사와 복용 시간 복사',
-        'lab.copied': '복사했어요. 스프레드시트에 붙여넣을 수 있어요',
+        'lab.copy_details': '표로 복사',
+        'lab.copied': '복사했어요',
         'lab.clear_confirm':
             "모든 검사 결과를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다. 보정만 멈추려면 삭제하지 말고 보정 설정에서 '끄기'를 선택하세요.",
 
@@ -5277,14 +5259,11 @@ export const TRANSLATIONS = {
         'lab.assay.unknown': 'Emin değilim',
         'lab.assay.immuno': 'İmmünoassay',
         'lab.assay.lcms': 'LC-MS/MS',
-        'lab.assay_hint':
-            'Genellikle lab raporunda yazar. Düşük düzeylerde immünoassay estradiolü çoğu zaman yüksek ölçer, LC-MS/MS daha kesindir; yöntemi bilmek modelle karşılaştırmayı daha adil yapar.',
-        'lab.after_dose': '{dose} sonrası {when}',
+        'lab.after_dose': 'dozdan {when} sonra',
         'lab.hours': '{n} sa',
         'lab.days': '{n} gün',
-        'lab.held': '{n} dk tutuldu',
-        'lab.copy_details': 'Lab ve doz zamanlarını kopyala',
-        'lab.copied': 'Kopyalandı, tabloya yapıştırabilirsin',
+        'lab.copy_details': 'Tablo olarak kopyala',
+        'lab.copied': 'Kopyalandı',
         'lab.clear_confirm':
             "Tüm lab sonuçları silinsin mi? Bu işlem geri alınamaz. Sonuçları tutup yalnızca kalibrasyonu durdurmak istiyorsan Kalibrasyon ayarlarında Kapalı'yı seç.",
 
