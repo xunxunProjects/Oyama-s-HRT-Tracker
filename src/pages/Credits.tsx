@@ -131,7 +131,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
 
                 <h2 className={heading}>Original work</h2>
                 <p className="text-xs text-[var(--text-muted)]">
-                    This project was first created by LaoZhong-Mihari, and its dose and level estimates come from their
+                    This project was first created by LaoZhong-Mihari, and its dose and level estimates come from her
                     work.
                 </p>
                 <div>
