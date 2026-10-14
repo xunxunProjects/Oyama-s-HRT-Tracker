@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 // Bundled with the app, so the page still loads nothing from other sites.
 import maintainerAvatar from '../assets/maintainer-avatar.webp';
+import laozhongAvatar from '../assets/laozhong-avatar.webp';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -24,6 +25,12 @@ interface Entry {
 }
 
 const ORIGINAL: Entry[] = [
+    {
+        name: 'LaoZhong-Mihari',
+        href: 'https://github.com/LaoZhong-Mihari',
+        desc: 'Original author',
+        image: laozhongAvatar,
+    },
     {
         name: 'HRT-Recorder-online',
         href: 'https://github.com/LaoZhong-Mihari/HRT-Recorder-online',
