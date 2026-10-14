@@ -104,22 +104,35 @@ This project is built with **React** and **TypeScript**, bundled with [Vite](htt
 
 The Docker image runs the complete app locally, including the Worker API, D1
 database, and R2-compatible avatar storage. Data is kept in the project's `./data`
-directory and survives container restarts.
+directory and survives container restarts. The image is built from source on
+your machine, so you need Git and Docker with Compose.
 
 Docker 镜像会在本地运行完整应用，包括 Worker API、D1 数据库和兼容 R2 的头像存储。
-数据直接保存在项目目录的 `./data` 中，容器重启不会丢失。
+数据直接保存在项目目录的 `./data` 中，容器重启不会丢失。镜像会在你的机器上从源码构建，
+需要先安装 Git 和带 Compose 的 Docker。
 
 ```bash
+git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
+cd Oyama-s-HRT-Tracker
 cp .env.docker.example .env
 # Replace JWT_SECRET in .env with the output of:
 openssl rand -base64 48
 mkdir -p ./data
 sudo chown 1000:1000 ./data
-docker compose pull
-docker compose up -d
+docker compose up -d --build
 ```
 
 Then open <http://localhost:8787>. / 然后访问 <http://localhost:8787>。
+
+The first build takes a few minutes. To update later, pull the new code and
+rebuild; your data in `./data` is kept:
+
+第一次构建需要几分钟。以后更新时，拉取新代码并重新构建即可，`./data` 中的数据会保留：
+
+```bash
+git pull
+docker compose up -d --build
+```
 
 ### Database schema 数据库结构
 
@@ -150,14 +163,15 @@ To stop the app without deleting its data: / 停止应用但保留数据：
 docker compose down
 ```
 
-To use the image published by GitHub Actions: / 使用 GitHub Actions 发布的镜像：
+Without Compose, build and run the image with plain Docker: / 不使用 Compose 时，可以直接用 Docker 构建并运行：
 
 ```bash
+docker build -t hrt-tracker:local .
 docker run -d --name hrt-tracker \
   -p 8787:8787 \
   --env-file .env \
   -v "$(pwd)/data:/data" \
-  ghcr.io/xunxunprojects/oyama-s-hrt-tracker:latest
+  hrt-tracker:local
 ```
 
 `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. When used, set both. The
@@ -170,10 +184,12 @@ Cloudflare 生产数据库或存储桶。
 
 The workflow in `.github/workflows/docker-publish.yml` validates pull requests
 and publishes `linux/amd64` and `linux/arm64` images to GitHub Container Registry
-for `main`, version tags, and manual runs.
+for `main`, version tags, and manual runs. That package is private for now, so
+pulling it without access fails; build from source as shown above.
 
 `.github/workflows/docker-publish.yml` 会在 PR 中验证构建，并在 `main`、版本标签或
 手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。
+该镜像包目前是私有的，没有权限时无法拉取，请按上面的步骤从源码构建。
 
 ---
 
