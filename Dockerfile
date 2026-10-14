@@ -27,6 +27,7 @@ COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/dist ./dist
 COPY docker/mark-applied-migrations.sql ./docker/mark-applied-migrations.sql
 COPY docker/reconcile.mjs ./docker/reconcile.mjs
+COPY docker/rename-local-database.mjs ./docker/rename-local-database.mjs
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN mkdir -p /data \

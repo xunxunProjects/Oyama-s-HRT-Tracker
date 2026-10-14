@@ -171,6 +171,17 @@ npm run wrangler:migrate:reconcile
 npm run wrangler:migrate:remote
 ```
 
+`wrangler.toml` carries no D1 database IDs. A Cloudflare Workers Builds deploy
+needs two build variables, `PRODUCTION_D1_DATABASE_ID` and
+`PREVIEW_D1_DATABASE_ID` (Worker settings, Build, Variables and secrets);
+`npm run build` writes them into `wrangler.toml` and stops if one is missing.
+Branch builds only get the preview database. See `scripts/cloudflare-ids.mjs`.
+
+`wrangler.toml` 中不保存 D1 数据库 ID。通过 Cloudflare Workers Builds 部署时，需要在
+Worker 设置的 Build 中添加两个构建变量 `PRODUCTION_D1_DATABASE_ID` 与
+`PREVIEW_D1_DATABASE_ID`；`npm run build` 会把它们写入 `wrangler.toml`，缺少任何一个都会
+直接停止构建。非 main 分支的构建只会拿到预览数据库。详见 `scripts/cloudflare-ids.mjs`。
+
 Web and Docker builds use same-origin `/api` requests by default. Desktop and
 other custom-protocol builds should set `VITE_API_ORIGIN` to their Worker/API
 origin at build time; the release workflow supplies the hosted origin.

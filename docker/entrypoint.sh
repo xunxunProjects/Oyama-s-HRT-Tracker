@@ -17,6 +17,10 @@ port="${PORT:-8787}"
 
 mkdir -p "$persist_dir"
 
+# wrangler.toml no longer carries the database ID, so Wrangler names the local
+# database file differently; move a volume's existing file to the new name.
+node ./docker/rename-local-database.mjs "$persist_dir"
+
 # The schema comes from migrations/ and nowhere else. A volume created by an
 # older image got its tables from docker/schema.sql plus DDL the worker ran on
 # demand, so wrangler's migration ledger is empty although the effects are
