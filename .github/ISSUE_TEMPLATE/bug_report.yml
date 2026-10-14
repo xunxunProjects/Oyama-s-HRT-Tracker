@@ -50,7 +50,7 @@ body:
     attributes:
       label: App version 应用版本
       description: The release you installed. Leave blank if you use the website. 填写你安装的版本；使用网页版可留空。
-      placeholder: e.g. 1.4.2
+      placeholder: e.g. 1.5.0
   - type: dropdown
     id: language
     attributes:

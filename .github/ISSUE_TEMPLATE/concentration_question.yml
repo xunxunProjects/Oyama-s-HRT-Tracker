@@ -61,7 +61,7 @@ body:
     attributes:
       label: App version 应用版本
       description: Leave blank if you use the website. 使用网页版可留空。
-      placeholder: e.g. 1.4.2
+      placeholder: e.g. 1.5.0
   - type: textarea
     id: extra
     attributes:
