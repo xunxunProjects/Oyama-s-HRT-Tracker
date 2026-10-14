@@ -46,6 +46,25 @@ const ORIGINAL: Entry[] = [
 // Everyone in the repository's contributor list except the maintainer, the
 // original author (credited above) and automated accounts, in the order
 // GitHub lists them.
+// Other trackers built on the same pharmacokinetic work.
+const SISTER_PROJECTS: Entry[] = [
+    {
+        name: "Kira's HRT Tracker",
+        href: 'https://github.com/xingqimiao/Kira-s-HRT-Tracker',
+        desc: 'hrt.kiramyao.com',
+    },
+    {
+        name: 'Transmtf HRT Tracker',
+        href: 'https://github.com/TransmtfTeam/Transmtf-HRT-Tracker',
+        desc: 'hrt.transmtf.com',
+    },
+    {
+        name: 'HRT-Recorder',
+        href: 'https://apps.apple.com/app/hrt-recorder/id6753167763',
+        desc: 'An iOS app on the App Store',
+    },
+];
+
 const CONTRIBUTORS = [
     'TianmoFu06',
     'Zikinn',
@@ -168,6 +187,13 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </p>
                 <div>
                     <LinkRow entry={{ name: 'See all contributors on GitHub', href: `${REPO}/graphs/contributors` }} />
+                </div>
+
+                <h2 className={heading}>Sister projects</h2>
+                <div>
+                    {SISTER_PROJECTS.map(entry => (
+                        <LinkRow key={entry.href} entry={entry} />
+                    ))}
                 </div>
 
                 <h2 className={heading}>References</h2>
