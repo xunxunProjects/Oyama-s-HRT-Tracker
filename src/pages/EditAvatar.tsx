@@ -1,13 +1,15 @@
 import React, { useState, useRef, useCallback } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Cropper from 'react-easy-crop';
-import { ImagePlus, Check } from 'lucide-react';
+import { ImagePlus, Check, Loader2, Trash2 } from 'lucide-react';
 import getCroppedImg from '../utils/cropImage';
 import { useTranslation } from '../contexts/LanguageContext';
 import { apiEndpoint, apiErrorFrom, apiFetch } from '../services/apiClient';
+import { useDialog } from '../contexts/DialogContext';
 
 const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void }> = ({ username, token, onBack }) => {
     const { t } = useTranslation();
+    const { showDialog } = useDialog();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -15,6 +17,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [avatarError, setAvatarError] = useState(false);
     const [cacheBuster] = useState(() => Date.now());
@@ -69,6 +72,32 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
         }
     };
 
+    // The avatar is served to anyone who knows the username, so taking it
+    // down has to be possible, not only replacing it.
+    const handleRemove = () => {
+        showDialog(
+            'confirm',
+            t('avatar.remove_confirm'),
+            async () => {
+                setIsRemoving(true);
+                setError(null);
+                try {
+                    const res = await apiFetch('/api/user/avatar', {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) throw await apiErrorFrom(res);
+                    setAvatarError(true);
+                } catch {
+                    setError(t('avatar.remove_failed'));
+                } finally {
+                    setIsRemoving(false);
+                }
+            },
+            { danger: true },
+        );
+    };
+
     return (
         <div className="relative pb-32">
             <PageHeader onBack={onBack} title={t('avatar.title')} />
@@ -104,6 +133,17 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                             <ImagePlus size={16} />
                             {t('avatar.change')}
                         </button>
+                        {!avatarError && (
+                            <button
+                                type="button"
+                                onClick={handleRemove}
+                                disabled={isRemoving}
+                                className="-mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                            >
+                                {isRemoving ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                {t('avatar.remove')}
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>

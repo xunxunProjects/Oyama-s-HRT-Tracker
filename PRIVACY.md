@@ -14,14 +14,14 @@ image yourself, that operator is the one holding the data described below.
 
 ## Summary
 
-| What                                                       | Where it lives                         | Can the server operator read it?                           |
-| ---------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------- |
-| Doses, lab results, weight, dose templates, model settings | Your browser (`localStorage`)          | No, unless you turn on cloud backup or create a share link |
-| Cloud backups                                              | D1 `content` table                     | No. Encrypted on your device before upload                 |
-| Share links                                                | D1 `dosage_shares` table               | **Yes.** Stored unencrypted so recipients can open them    |
-| Account (username, password hash, 2FA)                     | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only)               |
-| Signed-in devices                                          | D1 `sessions`                          | Yes: IP address and browser user agent                     |
-| Avatar                                                     | R2 bucket                              | Yes, and it is public to anyone who knows your username    |
+| What                                                       | Where it lives                         | Can the server operator read it?                                       |
+| ---------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| Doses, lab results, weight, dose templates, model settings | Your browser (`localStorage`)          | No, unless you turn on cloud backup or create a share link             |
+| Cloud backups                                              | D1 `content` table                     | No. Encrypted on your device before upload                             |
+| Share links                                                | D1 `dosage_shares` table               | No. Encrypted on your device; the key is only in the link              |
+| Account (username, password hash, 2FA)                     | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only)                           |
+| Signed-in devices                                          | D1 `sessions`                          | Yes: IP address and browser user agent                                 |
+| Avatar                                                     | R2 bucket                              | Yes, and public to anyone who knows your username, until you delete it |
 
 ## Without an account
 
@@ -106,8 +106,24 @@ your old backups from the Account page removes any such copy.
 ## Share links
 
 A share link lets someone see your dosage history without an account. Share
-links are **not end-to-end encrypted**: the server must be able to hand the
-data to whoever opens the link, so it stores the data in readable form.
+links are **end-to-end encrypted**: your browser encrypts the copy before
+uploading it, and the key exists only in the link itself, so the server stores
+data it cannot read.
+
+**Encryption.** Each link gets its own random 256-bit key, made in your browser.
+The copy is compressed and encrypted with AES-256-GCM before upload. The key is
+placed after `#` in the link, which browsers never send to a server, so only
+someone holding the whole link can decrypt the copy. If the part after the last
+`.` is missing, the share page says the link is incomplete instead of showing
+anything. Because the server can no longer check the copy itself, your browser
+removes everything but the fields listed below before encrypting, and the share
+page checks the decrypted copy the same way before showing it.
+
+**Links made before encryption.** Links created before this change were stored
+unencrypted, and the server can read them. They keep working until they expire
+or you revoke them, and the share page marks them "Not encrypted". To encrypt
+one, revoke it and create a new link. The server still accepts unencrypted
+links from app versions cached before this change, until those update.
 
 **What a link contains.** Your HRT mode, your time zone, every dose in that
 mode (route, time, amount, ester and route-specific details such as patch wear
@@ -117,36 +133,49 @@ included. The estradiol curve is the calibrated one, so it reflects your lab
 results indirectly, but the lab values themselves are not sent.
 
 **How the link works.** The server makes a random 32-byte token and stores only
-its SHA-256 hash. The token is placed after `#` in the link, so browsers do not
-send it in requests or `Referer` headers; the share page posts it in a request
-body. Anyone who has the link can view the share. If you set a password, it is
-stored as a bcrypt hash and viewers must enter it; wrong guesses are rate
-limited.
+its SHA-256 hash. The token and the key are placed after `#` in the link, so
+browsers do not send them in requests or `Referer` headers; the share page posts
+the token in a request body and keeps the key to itself. Anyone who has the link
+can view the share. If you set a password, it is stored as a bcrypt hash and
+viewers must enter it before the server hands over the encrypted copy; wrong
+guesses are rate limited.
 
-**Who can see it.** Anyone with the link (and password, if set), and the server
-operator, who can read the stored copy in the database.
+**Who can see it.** Anyone with the whole link (and password, if set). The
+server operator can see that a link exists, when it was made, updated and
+expires, whether it is live or has a password, and how large the encrypted copy
+is, but not the doses, mode or time zone inside it.
 
 **Expiry and deletion.** Every link must have an expiry, at most 365 days
 ahead. When it expires, the scheduled job (every 6 hours) or the next visit
 erases the dose data and password hash. A small record of the link's existence
 stays so visitors see "expired" rather than "not found": its id, your user id,
-the token hash, mode, live flag, and creation, update and expiry times. The 20
+the token hash, live and encrypted flags, and creation, update and expiry
+times. The 20
 most recent expired records per account are kept; older ones are deleted.
 Deleting a link yourself removes its whole row immediately. You can have at
 most 20 active links.
 
 **Live links.** A live link is refreshed with your latest doses while you are
-signed in and the app is open. Each refresh updates the server copy and its
-"last updated" time, which anyone with the link and password can see. People
-who hold the link but not the password cannot see that time.
+signed in and the app is open. Each refresh encrypts a new copy with the link's
+key and updates its "last updated" time, which anyone with the link and
+password can see. People who hold the link but not the password cannot see
+that time. So that your other devices can keep the link updated too, its key is
+stored next to it encrypted with your cloud backup key, which comes from your
+account password; the server cannot open it. Creating a live link therefore
+needs that key on the device: after signing in with a passkey only, unlock
+cloud sync with your password first. Changing your password from the app
+re-encrypts these keys with the new password's key. After an administrator
+resets your password, live links stop updating; they still open with what they
+last showed.
 
 ## Avatar
 
 If you upload an avatar (JPEG or PNG, up to 5 MiB), it is stored in R2 under
 your user id. It is served **publicly** at `/api/user/avatar/<username>` to
-anyone who knows your username, without signing in. The app has no button to
-remove an avatar without deleting the account; you can replace it, and an
-administrator can delete it.
+anyone who knows your username, without signing in. You can delete it at any
+time with "Remove" on the avatar page under Account, which removes it from
+storage; an administrator can delete it too. Copies a browser cached in the
+hour before may still show until they expire.
 
 ## What the administrator can see and do
 
@@ -158,7 +187,8 @@ total size and last backup time. The admin can rename users, reset passwords
 announcement. The admin panel never shows TOTP secrets or backup contents.
 
 Anyone with direct access to the database (the operator) can additionally read
-everything the tables hold, including share link contents and session IPs.
+everything the tables hold, including session IPs and the contents of share links made before
+encryption. Encrypted share links and cloud backups stay unreadable to them.
 
 ## Public statistics
 

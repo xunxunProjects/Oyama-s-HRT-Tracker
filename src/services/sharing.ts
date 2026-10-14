@@ -1,5 +1,14 @@
+import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
+import { EncryptedShareSnapshot, sanitizeShareSnapshot } from '../../shareSnapshotSchema';
 import { apiEndpoint, apiFetch } from './apiClient';
+import {
+    decryptShareSnapshot,
+    encryptShareSnapshot,
+    unwrapShareKey,
+    WrappedShareKey,
+    wrapShareKey,
+} from './shareCrypto';
 
 export interface SharedDosageSnapshot {
     version: 1;
@@ -19,16 +28,25 @@ export interface ShareDetails {
     snapshot: SharedDosageSnapshot;
 }
 
+/** What the access endpoint returns before the viewer decrypts anything. */
+type RawShareDetails = Omit<ShareDetails, 'snapshot'> & {
+    snapshot?: SharedDosageSnapshot;
+    encryptedSnapshot?: EncryptedShareSnapshot;
+};
+
 export interface CreatedShare {
     id: string;
     token: string;
+    /** The full link, key included. Exists only on this device; the server never had it. */
     url: string;
     createdAt: number;
     expiresAt: number | null;
     passwordRequired: boolean;
     live: boolean;
-    mode: HRTMode;
+    mode: HRTMode | null;
     updatedAt: number;
+    encrypted: boolean;
+    wrappedKey: WrappedShareKey | null;
 }
 
 export interface LockedShare {
@@ -48,6 +66,9 @@ export interface ShareSummary {
     mode: HRTMode | null;
     updatedAt: number;
     expired: boolean;
+    /** False only for links made before share encryption shipped. */
+    encrypted: boolean;
+    wrappedKey: WrappedShareKey | null;
 }
 
 export class ShareApiError extends Error {
@@ -61,6 +82,38 @@ export class ShareApiError extends Error {
         this.name = 'ShareApiError';
     }
 }
+
+/** Thrown when a link's key is missing or does not open what the server sent. */
+export const SHARE_KEY_INVALID = 'SHARE_KEY_INVALID';
+
+/**
+ * Prepare a snapshot for one link and seal it with that link's key. The
+ * server used to rebuild every snapshot field by field so nothing but dosage
+ * data could reach a public link; it cannot see inside a sealed one, so the
+ * same check runs here first. Each link also gets its own event IDs, so
+ * recipients of two links cannot match records across them.
+ */
+export async function sealSnapshotForLink(
+    snapshot: SharedDosageSnapshot,
+    key: string,
+): Promise<EncryptedShareSnapshot> {
+    const sanitized = sanitizeShareSnapshot({
+        ...snapshot,
+        events: snapshot.events.map(event => ({ ...event, id: uuidv4() })),
+    });
+    if (!sanitized.snapshot) throw new ShareApiError(400, 'INVALID_SNAPSHOT', sanitized.error ?? 'Invalid snapshot');
+    return encryptShareSnapshot(sanitized.snapshot, key);
+}
+
+const openDetails = async (raw: RawShareDetails, key: string | null): Promise<ShareDetails> => {
+    if (raw.encryptedSnapshot) {
+        const snapshot = key ? await decryptShareSnapshot(raw.encryptedSnapshot, key) : null;
+        if (!snapshot) throw new ShareApiError(400, SHARE_KEY_INVALID, 'The link key is missing or wrong');
+        return { ...raw, snapshot: snapshot as unknown as SharedDosageSnapshot };
+    }
+    if (!raw.snapshot) throw new ShareApiError(404, 'SHARE_NOT_FOUND', 'Share not found');
+    return { ...raw, snapshot: raw.snapshot };
+};
 
 const readError = async (response: Response): Promise<ShareApiError> => {
     let body: { code?: string; message?: string } | null = null;
@@ -81,8 +134,8 @@ const readError = async (response: Response): Promise<ShareApiError> => {
 export const sharingService = {
     async create(
         authToken: string,
-        snapshot: SharedDosageSnapshot,
-        options: { password?: string; expiresAt: number; live?: boolean },
+        encryptedSnapshot: EncryptedShareSnapshot,
+        options: { password?: string; expiresAt: number; live?: boolean; wrappedKey?: WrappedShareKey },
     ): Promise<CreatedShare> {
         const response = await apiFetch(apiEndpoint('/api/shares'), {
             method: 'POST',
@@ -91,7 +144,8 @@ export const sharingService = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                snapshot,
+                encryptedSnapshot,
+                wrappedKey: options.wrappedKey,
                 password: options.password || undefined,
                 expiresAt: options.expiresAt,
                 live: options.live ?? false,
@@ -101,7 +155,7 @@ export const sharingService = {
         return (await response.json()) as CreatedShare;
     },
 
-    async open(token: string): Promise<ShareDetails | LockedShare> {
+    async open(token: string, key: string | null): Promise<ShareDetails | LockedShare> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
@@ -116,10 +170,10 @@ export const sharingService = {
             if (body.code === 'PASSWORD_REQUIRED' || body.passwordRequired) return body;
         }
         if (!response.ok) throw await readError(response);
-        return (await response.json()) as ShareDetails;
+        return openDetails((await response.json()) as RawShareDetails, key);
     },
 
-    async unlock(token: string, password: string): Promise<ShareDetails> {
+    async unlock(token: string, key: string | null, password: string): Promise<ShareDetails> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
@@ -130,7 +184,7 @@ export const sharingService = {
             body: JSON.stringify({ token, password }),
         });
         if (!response.ok) throw await readError(response);
-        return (await response.json()) as ShareDetails;
+        return openDetails((await response.json()) as RawShareDetails, key);
     },
 
     async list(authToken: string): Promise<ShareSummary[]> {
@@ -146,7 +200,27 @@ export const sharingService = {
         return body.shares;
     },
 
-    async syncLive(
+    /** Push freshly sealed snapshots to the owner's encrypted live links, one per link. */
+    async syncEncryptedLive(
+        authToken: string,
+        updates: { id: string; encryptedSnapshot: EncryptedShareSnapshot }[],
+        signal?: AbortSignal,
+    ): Promise<{ updated: number; updatedAt: number }> {
+        const response = await apiFetch(apiEndpoint('/api/shares/live'), {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ updates }),
+            signal,
+        });
+        if (!response.ok) throw await readError(response);
+        return (await response.json()) as { updated: number; updatedAt: number };
+    },
+
+    /** Live links made before share encryption shipped still take a plaintext snapshot. */
+    async syncLegacyLive(
         authToken: string,
         snapshot: SharedDosageSnapshot,
         signal?: AbortSignal,
@@ -164,6 +238,18 @@ export const sharingService = {
         return (await response.json()) as { updated: number; updatedAt: number };
     },
 
+    async replaceWrappedKeys(authToken: string, keys: { id: string; wrappedKey: WrappedShareKey }[]): Promise<void> {
+        const response = await apiFetch(apiEndpoint('/api/shares/keys'), {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ keys }),
+        });
+        if (!response.ok) throw await readError(response);
+    },
+
     async revoke(authToken: string, shareId: string): Promise<void> {
         const response = await apiFetch(apiEndpoint(`/api/shares/${encodeURIComponent(shareId)}`), {
             method: 'DELETE',
@@ -178,3 +264,19 @@ export const LIVE_SHARES_CHANGED_EVENT = 'hrt-live-shares-changed';
 export const notifyLiveSharesChanged = (): void => {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(LIVE_SHARES_CHANGED_EVENT));
 };
+
+/**
+ * After a password change, re-seal every live link key from the old cloud key
+ * to the new one, so this account's devices can keep those links updated.
+ * Keys this device cannot open are left as they are.
+ */
+export async function rewrapLiveShareKeys(authToken: string, oldCloudKey: string, newCloudKey: string): Promise<void> {
+    const shares = await sharingService.list(authToken);
+    const keys: { id: string; wrappedKey: WrappedShareKey }[] = [];
+    for (const share of shares) {
+        if (share.expired || !share.wrappedKey) continue;
+        const opened = await unwrapShareKey(share.wrappedKey, oldCloudKey);
+        if (opened) keys.push({ id: share.id, wrappedKey: await wrapShareKey(opened.key, opened.mode, newCloudKey) });
+    }
+    if (keys.length > 0) await sharingService.replaceWrappedKeys(authToken, keys);
+}

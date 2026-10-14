@@ -10,6 +10,20 @@ Notable changes to this project. Full release notes for each version are on the
 
 ## Unreleased 未发布
 
+- Share links are now end-to-end encrypted. The app encrypts the copy in your
+  browser with a key that exists only in the link, after the `#`, so the server
+  stores data it cannot read. Live links keep updating from any of your devices
+  that can read your cloud backups. Links made before this keep working until
+  they expire and are marked "Not encrypted" in the list; revoke and recreate
+  one to encrypt it. You can also remove your avatar now, from the avatar page
+  under Account. Self-hosters and the Cloudflare deployment need migration
+  `0006` (the Docker image applies it on start).
+
+  分享链接现在是端到端加密的。应用在浏览器里用一把只存在于链接 `#` 之后的密钥加密副本，服务器
+  保存的是它读不了的数据。实时链接仍能从任何一台能读取你云备份的设备上继续更新。之前创建的链接
+  在过期前照常可用，并在列表里标为“未加密”，撤销后重新创建即可加密。另外现在可以在“账户”的
+  头像页面删除头像。自行部署和 Cloudflare 部署需要执行迁移 `0006`（Docker 镜像启动时会自动执行）。
+
 - Fixed Docker containers that would not start after upgrading from an image
   older than September 2026. Such a volume often has the 2FA secret column but
   not the newer replay-guard column, so migration `0005` failed on the column

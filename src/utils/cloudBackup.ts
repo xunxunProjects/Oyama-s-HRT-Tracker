@@ -23,6 +23,11 @@ export function cacheCloudKey(rawKeyB64: string | null): void {
     announceKeyChange();
 }
 
+/** This device's cached cloud key, if it has one. */
+export function getCloudKey(): string | null {
+    return localStorage.getItem('enc_key');
+}
+
 /** Whether this device holds a key at all — distinct from holding the right one. */
 export function hasCloudKey(): boolean {
     return !!localStorage.getItem('enc_key');

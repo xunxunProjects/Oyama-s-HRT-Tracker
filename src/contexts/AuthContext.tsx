@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService, User, AuthResponse, sessionIdFromToken } from '../services/auth';
-import { cacheCloudKey, deriveAndCacheCloudKey } from '../utils/cloudBackup';
+import { cacheCloudKey, deriveAndCacheCloudKey, getCloudKey } from '../utils/cloudBackup';
+import { rewrapLiveShareKeys } from '../services/sharing';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
 import { useDialog } from './DialogContext';
 import { useTranslation } from './LanguageContext';
@@ -150,11 +151,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const changePassword = async (current: string, newPass: string) => {
         if (!token) return;
+        const oldCloudKey = getCloudKey();
         await authService.changePassword(token, current, newPass);
         // Re-derive the cloud key for the new password. Backups made under the
         // old password become unreadable (this is what also stops an admin who
         // resets the password from decrypting them).
         if (user) await deriveAndCacheCloudKey(newPass, user.id);
+        // Live share link keys are sealed with the cloud key too. Carry them
+        // over, or every live link would stop updating. Best effort: the
+        // password has already changed either way.
+        const newCloudKey = getCloudKey();
+        if (oldCloudKey && newCloudKey && oldCloudKey !== newCloudKey) {
+            await rewrapLiveShareKeys(token, oldCloudKey, newCloudKey).catch(() => undefined);
+        }
     };
 
     const deleteAccount = async (password: string, code?: string, backupCode?: string) => {
