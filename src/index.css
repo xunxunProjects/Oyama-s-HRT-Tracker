@@ -451,6 +451,54 @@ svg.lucide {
     animation: oc-in 500ms linear 1800ms both;
 }
 
+/* UpdateDoodle: the cat peeks up out of its parcel when a new version
+   arrives, blinks now and then, and hops out when refresh is tapped. */
+.ud-peek {
+    animation: ud-peek 700ms cubic-bezier(0.34, 1.4, 0.64, 1) 200ms both;
+}
+.ud-leap {
+    animation: ud-leap 600ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.ud-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ud-blink 4s linear 1.2s infinite;
+}
+.ud-sparks {
+    animation: fade-in 300ms ease-out 700ms both;
+}
+@keyframes ud-peek {
+    from {
+        transform: translateY(9px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+@keyframes ud-leap {
+    0% {
+        transform: translateY(0);
+    }
+    45% {
+        transform: translateY(-6px);
+    }
+    100% {
+        transform: translateY(-3px);
+    }
+}
+@keyframes ud-blink {
+    0%,
+    94% {
+        transform: scaleY(1);
+    }
+    97% {
+        transform: scaleY(0.1);
+    }
+    100% {
+        transform: scaleY(1);
+    }
+}
+
 /* A doodle (Doodle) whose turn has not come, or that can't be chosen. */
 .dd-asleep {
     filter: grayscale(1) opacity(0.45);
@@ -465,7 +513,11 @@ svg.lucide {
     .chart-mark,
     .rail-tick,
     .rail-label,
-    .advisory-unfold {
+    .advisory-unfold,
+    .ud-peek,
+    .ud-leap,
+    .ud-blink,
+    .ud-sparks {
         animation: none;
     }
     /* Every one of these rests on its final frame, so switching them off
