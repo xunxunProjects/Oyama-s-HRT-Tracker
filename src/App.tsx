@@ -53,6 +53,7 @@ import PublicShare from './pages/PublicShare';
 import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 import SiteNoticeBanner from './components/SiteNotice';
+import UpdatePrompt from './components/UpdatePrompt';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -554,6 +555,7 @@ const AppContent = () => {
                 {/* Operator banner. Outside the scroller and keyed off nothing in
                     this component, so it stays put across view changes. */}
                 <SiteNoticeBanner />
+                <UpdatePrompt />
 
                 <div
                     ref={mainScrollRef}

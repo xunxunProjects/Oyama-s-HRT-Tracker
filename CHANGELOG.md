@@ -10,6 +10,16 @@ Notable changes to this project. Full release notes for each version are on the
 
 ## Unreleased 未发布
 
+- The app now tells you when a new version is out. It checks when it opens,
+  when you come back to the tab, and every half hour, and shows a small line at
+  the top with a Refresh button. It no longer reloads on its own, so nothing you
+  are typing gets lost. Installs without a service worker (the desktop app, or
+  a Docker install opened over plain http) behave as before.
+
+  应用有新版本时会提示你了：打开时、切回页面时和每半小时检查一次，有新版本就在顶部显示一行提示和
+  刷新按钮。它不会再自己刷新页面，正在填写的内容不会丢。没有 service worker 的环境（桌面版，或用
+  普通 http 打开的 Docker 部署）和以前一样。
+
 - Fixed Docker containers that would not start after upgrading from an image
   older than September 2026. Such a volume often has the 2FA secret column but
   not the newer replay-guard column, so migration `0005` failed on the column

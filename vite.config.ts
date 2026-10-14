@@ -18,7 +18,10 @@ export default defineConfig(() => {
         plugins: [
             react(),
             VitePWA({
-                registerType: 'autoUpdate',
+                // A new build waits until the user taps refresh in the update
+                // prompt (src/utils/swUpdate.ts registers the worker itself).
+                registerType: 'prompt',
+                injectRegister: false,
                 includeAssets: ['favicon.png', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
                 manifest: {
                     name: 'HRT Tracker',
