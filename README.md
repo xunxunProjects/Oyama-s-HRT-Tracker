@@ -265,6 +265,113 @@ We want this tool to be accessible to everyone who needs it. You do not need exp
 
 我们希望所有需要这款工具的人都能方便地使用它。你无需额外获得授权即可自行托管与部署。
 
+The simplest way is [Docker](#docker). To run it on your own Cloudflare
+account instead, see below.
+
+最简单的方式是 [Docker](#docker)。如果想部署到自己的 Cloudflare 账号，请看下面的步骤。
+
+### Deploy to your own Cloudflare 部署到自己的 Cloudflare
+
+`wrangler.toml` points at the maintainer's own database and bucket. Those IDs
+only work inside the maintainer's Cloudflare account, so replace them with
+resources you create in yours. Everything below runs from your clone of the
+repository.
+
+`wrangler.toml` 里写的是维护者自己的数据库和存储桶，这些 ID 只在维护者的 Cloudflare
+账号里有效，所以需要换成你在自己账号里创建的资源。下面的命令都在你克隆下来的仓库里运行。
+
+1. **Sign in 登录**
+
+   ```bash
+   npm install
+   npx wrangler login
+   ```
+
+2. **Create the database 创建数据库**
+
+   ```bash
+   npx wrangler d1 create hrt-tracker-prod
+   ```
+
+   Copy the `database_id` it prints into the `[[d1_databases]]` block of
+   `wrangler.toml`, replacing the one there. Keep the name `hrt-tracker-prod`:
+   the npm scripts below use it.
+
+   把命令输出的 `database_id` 填进 `wrangler.toml` 的 `[[d1_databases]]` 中，替换原来的值。
+   请保留 `hrt-tracker-prod` 这个名字，下面的 npm 脚本会用到它。
+
+3. **Create the avatar bucket 创建头像存储桶**
+
+   ```bash
+   npx wrangler r2 bucket create hrt-tracker-avatars
+   ```
+
+   Set `bucket_name` in the `[[r2_buckets]]` block to `hrt-tracker-avatars`
+   (or whatever name you chose). R2 has to be enabled once in the Cloudflare
+   dashboard before the first bucket can be created.
+
+   把 `[[r2_buckets]]` 中的 `bucket_name` 改成 `hrt-tracker-avatars`（或你取的名字）。第一次创建
+   存储桶之前，需要先在 Cloudflare 控制台里开通一次 R2。
+
+4. **Remove the preview blocks 删除预览配置**
+
+   Delete every `[[previews.*]]` block at the end of `wrangler.toml`. They point
+   at the maintainer's preview database and are only used by pull request
+   previews in Workers Builds. If you want previews too, create a second
+   database and bucket and put their names and ID there instead.
+
+   删除 `wrangler.toml` 末尾所有 `[[previews.*]]` 开头的配置。它们指向维护者的预览数据库，
+   只给 Workers Builds 的拉取请求预览使用。如果你也需要预览，可以再建一个数据库和存储桶，把它们的
+   名字和 ID 填在那里。
+
+5. **Create the tables 创建数据表**
+
+   ```bash
+   npm run wrangler:migrate:remote
+   ```
+
+   Run this again after pulling updates that add files to `migrations/`.
+
+   以后拉取的更新如果在 `migrations/` 里加了新文件，请再运行一次。
+
+6. **Deploy 部署**
+
+   ```bash
+   npm run build
+   npx wrangler deploy
+   ```
+
+   Wrangler prints a `workers.dev` address. To use your own domain, add it under
+   the Worker's Settings, Domains & Routes in the Cloudflare dashboard. If share
+   links should use a different address than the one people open, set the
+   variable `PUBLIC_APP_ORIGIN` (for example `https://hrt.example.com`).
+
+   Wrangler 会输出一个 `workers.dev` 地址。想使用自己的域名，可以在 Cloudflare 控制台的 Worker
+   设置里的 Domains & Routes 添加。如果分享链接需要使用与访问地址不同的域名，可以设置变量
+   `PUBLIC_APP_ORIGIN`（例如 `https://hrt.example.com`）。
+
+7. **Set the secrets 设置密钥**
+
+   Sign-in needs `JWT_SECRET`, so set it right after the first deploy.
+
+   登录功能需要 `JWT_SECRET`，请在第一次部署后马上设置。
+
+   ```bash
+   openssl rand -base64 48 | npx wrangler secret put JWT_SECRET
+   # Optional built-in admin account, set both or neither
+   # 可选的内置管理员账号，要么都设置，要么都不设置
+   npx wrangler secret put ADMIN_USERNAME
+   npx wrangler secret put ADMIN_PASSWORD
+   ```
+
+To deploy on every push instead, connect your fork in the Worker's Settings,
+Builds, with build command `npm run build` and deploy command
+`npx wrangler deploy`, after committing the `wrangler.toml` changes above to
+your fork.
+
+如果希望每次推送都自动部署，先把上面对 `wrangler.toml` 的修改提交到你的分叉仓库，再在 Worker
+设置的 Builds 里连接仓库，构建命令填 `npm run build`，部署命令填 `npx wrangler deploy`。
+
 **Attribution Requirement 署名要求**
 
 If you deploy this app publicly, please: / 如果你将该应用公开部署，请：
