@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
-import { LabResult, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
+import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
 import { Check, Trash2, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
@@ -20,7 +20,15 @@ interface LabResultFormProps {
      *  every entry. Without a past lab, pmol/L and ng/dL. */
     defaultE2Unit?: LabUnit;
     defaultTUnit?: LabUnit;
+    /** The test method a new entry starts with: the last lab's, since a
+     *  clinic tends to use the same one every time. */
+    defaultAssay?: LabAssay;
 }
+
+// "Not sure" is stored as no assay at all.
+type AssayChoice = LabAssay | 'unknown';
+const ASSAY_CHOICES: AssayChoice[] = ['unknown', ...LAB_ASSAYS];
+const withAssay = (choice: AssayChoice) => (choice === 'unknown' ? {} : { assay: choice });
 
 const divider = 'border-b border-[var(--border)]';
 
@@ -110,6 +118,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
     onDelete,
     defaultE2Unit = 'pmol/l',
     defaultTUnit = 'ng/dl',
+    defaultAssay,
 }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
@@ -128,6 +137,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
     const [e2Value, setE2Value] = useState('');
     const [tUnit, setTUnit] = useState<LabUnit>(defaultTUnit);
     const [tValue, setTValue] = useState('');
+    const [assay, setAssay] = useState<AssayChoice>(defaultAssay ?? 'unknown');
 
     useEffect(() => {
         if (resultToEdit) {
@@ -136,6 +146,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
             setDateStr(iso);
             setEditValue(resultToEdit.concValue.toString());
             setEditUnit(resultToEdit.unit);
+            setAssay(resultToEdit.assay ?? 'unknown');
         } else {
             const now = new Date();
             const iso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -160,13 +171,13 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
 
         if (resultToEdit) {
             if (editNum === null) return;
-            onSave({ id: resultToEdit.id, timeH, concValue: editNum, unit: editUnit });
+            onSave({ id: resultToEdit.id, timeH, concValue: editNum, unit: editUnit, ...withAssay(assay) });
             return;
         }
 
         if (!addFieldsOk || (e2Num === null && tNum === null)) return;
-        if (e2Num !== null) onSave({ id: uuidv4(), timeH, concValue: e2Num, unit: e2Unit });
-        if (tNum !== null) onSave({ id: uuidv4(), timeH, concValue: tNum, unit: tUnit });
+        if (e2Num !== null) onSave({ id: uuidv4(), timeH, concValue: e2Num, unit: e2Unit, ...withAssay(assay) });
+        if (tNum !== null) onSave({ id: uuidv4(), timeH, concValue: tNum, unit: tUnit, ...withAssay(assay) });
     };
 
     const canSave = resultToEdit ? editNum !== null : addFieldsOk && (e2Num !== null || tNum !== null);
@@ -243,9 +254,24 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                                 onValueChange={setTValue}
                             />
                         </div>
-                        <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.dual_hint')}</p>
                     </>
                 )}
+
+                {/* How it was measured. Optional, and for both hormones of a
+                    draw at once: one blood sample goes through one lab. */}
+                <div className={`py-[18px] ${divider}`}>
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.assay')}</span>
+                        <Segmented<AssayChoice>
+                            options={ASSAY_CHOICES.map(a => ({ id: a, label: t(`lab.assay.${a}`) }))}
+                            value={assay}
+                            onChange={setAssay}
+                            aria-label={t('lab.assay')}
+                        />
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.assay_hint')}</p>
+                </div>
+                {!resultToEdit && <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.dual_hint')}</p>}
             </div>
 
             {/* Footer */}

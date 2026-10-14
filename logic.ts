@@ -138,9 +138,17 @@ export interface LabResult {
     concValue: number; // Value in the user's unit
     // E2 units (transfem) or T units (transmasc). Kept in one field for storage simplicity.
     unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l';
+    // How the lab measured it, when the person knows. Immunoassays read
+    // estradiol higher than LC-MS/MS at low levels, so a lab compared with the
+    // model means more when the method is known. Absent means not sure.
+    assay?: LabAssay;
     // Epoch ms of the last edit — see DoseEvent.updatedAt.
     updatedAt?: number;
 }
+
+export type LabAssay = 'lcms' | 'immuno';
+export const LAB_ASSAYS: readonly LabAssay[] = ['immuno', 'lcms'];
+export const isLabAssay = (v: unknown): v is LabAssay => v === 'lcms' || v === 'immuno';
 
 export function convertToPgMl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l'): number {
     if (unit === 'pg/ml') return val;
@@ -2892,4 +2900,70 @@ export async function decryptCloudPayload(bundle: any, rawKeyB64: string): Promi
     } catch (e) {
         return null;
     }
+}
+
+// --- Lab timing ---
+
+/** A lab drawn more than this long after the last dose is not tied to one dose. */
+const LAB_DOSE_LOOKBACK_H = 30 * 24;
+
+export interface LabDoseContext {
+    /** The newest dose of the lab's hormone at or before the draw. */
+    event: DoseEvent;
+    /** Hours from that dose to the draw. */
+    hoursBefore: number;
+    /** For a sublingual dose, the hold time in minutes it was logged with. */
+    holdMin: number | null;
+}
+
+/** The hold time a sublingual dose was logged with: a custom one, its tier's, or the standard tier's. */
+export function sublingualHoldMin(e: DoseEvent): number | null {
+    if (e.route !== Route.sublingual) return null;
+    const theta = e.extras[ExtraKey.sublingualTheta];
+    if (typeof theta === 'number' && Number.isFinite(theta)) return Math.round(sublingualHoldFromTheta(theta));
+    const tier = e.extras[ExtraKey.sublingualTier];
+    const idx =
+        typeof tier === 'number' && Number.isFinite(tier)
+            ? Math.min(SL_TIER_ORDER.length - 1, Math.max(0, Math.round(tier)))
+            : SL_TIER_ORDER.indexOf('standard');
+    return SublingualTierParams[SL_TIER_ORDER[idx]].hold;
+}
+
+/**
+ * The dose a lab reads after: the newest dose of the lab's hormone (estradiol
+ * for an E2 lab, testosterone for a T lab) logged at or before the draw, and
+ * how long before it. This is the timing a lab needs to be compared with the
+ * model, and what a sublingual calibration (issue #22) asks for. Null when no
+ * such dose falls in the 30 days before the draw.
+ */
+export function labDoseContext(lab: LabResult, events: DoseEvent[]): LabDoseContext | null {
+    const isT = isT_LabUnit(lab.unit);
+    let best: DoseEvent | null = null;
+    for (const e of events) {
+        if (e.route === Route.patchRemove || e.timeH > lab.timeH) continue;
+        if (lab.timeH - e.timeH > LAB_DOSE_LOOKBACK_H) continue;
+        if (isT ? !T_ESTERS.has(e.ester) : !isEstradiolEster(e.ester)) continue;
+        if (!best || e.timeH > best.timeH) best = e;
+    }
+    if (!best) return null;
+    return { event: best, hoursBefore: lab.timeH - best.timeH, holdMin: sublingualHoldMin(best) };
+}
+
+/**
+ * What the model, before any calibration, says for the lab's hormone at the
+ * draw: estradiol in pg/mL or total testosterone in ng/dL, the units the lab
+ * is converted to for comparing. Null where the model has nothing to say
+ * (no dose yet, or a level too small to compare with).
+ */
+export function rawModelAtLab(sim: SimulationResult | null, lab: LabResult): number | null {
+    if (!sim) return null;
+    const v = isT_LabUnit(lab.unit)
+        ? interpolateConcentration_T(sim, lab.timeH)
+        : interpolateConcentration_E2(sim, lab.timeH);
+    return v != null && Number.isFinite(v) && v >= 1 ? v : null;
+}
+
+/** The lab converted to the unit the model uses for its hormone (pg/mL E2, ng/dL T). */
+export function labInModelUnit(lab: LabResult): number {
+    return isT_LabUnit(lab.unit) ? convertToNgDl(lab.concValue, lab.unit) : convertToPgMl(lab.concValue, lab.unit);
 }

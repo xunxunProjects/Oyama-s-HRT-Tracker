@@ -1,6 +1,8 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatDate, formatTime } from '../utils/helpers';
+import { fill } from '../utils/regimenText';
+import { labVsModelPct } from '../utils/labReport';
 import {
     SimulationResult,
     DoseEvent,
@@ -864,6 +866,24 @@ const ResultChart = ({
     const showHover = !dragging && hoverPt != null && hoverPt.t >= t0 && hoverPt.t <= t1 && plotW > 0;
     const calFactor = calibrationFn(now / HOUR);
 
+    // A lab within a fingertip of the readout joins it, beside what the model
+    // said for that moment before calibration: the line drawn is calibrated
+    // onto the labs, so only the raw model tells whether it reads high or low.
+    const hoverLab = (() => {
+        if (!showHover || !sim) return null;
+        const hx = X(hoverPt!.t);
+        let best: (typeof labPoints)[number] | null = null;
+        for (const l of labPoints) {
+            const d = Math.abs(X(l.t) - hx);
+            if (d <= 14 * ui && (!best || d < Math.abs(X(best.t) - hx))) best = l;
+        }
+        if (!best) return null;
+        const h = best.t / HOUR;
+        const m = isTransmasc ? interpolateConcentration_T(sim, h) : interpolateConcentration_E2(sim, h);
+        const model = m != null && Number.isFinite(m) && m >= 1 ? m : null;
+        return { ...best, model, pct: model != null ? labVsModelPct(best.v, model) : null };
+    })();
+
     const rangeOpts: { key: RangeKey; label: string }[] = [
         { key: '7d', label: t('chart.range_7d') },
         { key: '30d', label: t('chart.range_30d') },
@@ -1327,6 +1347,34 @@ const ResultChart = ({
                                 </span>
                                 {hoverPt!.s != null && (
                                     <span className="text-[0.75rem] text-[var(--text-muted)]">ng/ml</span>
+                                )}
+                            </div>
+                        )}
+                        {hoverLab && (
+                            <div className="mt-1 pt-1 border-t border-[var(--border)] text-[0.75rem] whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                    <svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true">
+                                        <path
+                                            d="M0 -3.5L3.5 0L0 3.5L-3.5 0Z"
+                                            fill={c.dot}
+                                            stroke={c.lab}
+                                            strokeWidth={1.5}
+                                        />
+                                    </svg>
+                                    <span className="text-[var(--text-muted)]">{t('cal.plot.lab')}</span>
+                                    <span className="font-medium tabular-nums text-[var(--text)]">{hoverLab.raw}</span>
+                                    <span className="text-[var(--text-muted)]">{hoverLab.unit}</span>
+                                </div>
+                                {hoverLab.model != null && hoverLab.pct != null && (
+                                    <div className="text-[var(--text-muted)] tabular-nums">
+                                        {t('cal.plot.before')} {hoverLab.model.toFixed(primaryMeta.decimals)}{' '}
+                                        {primaryMeta.unit} ·{' '}
+                                        {hoverLab.pct === 0
+                                            ? '±0%'
+                                            : fill(t(hoverLab.pct > 0 ? 'lab.ratio_above' : 'lab.ratio_below'), {
+                                                  pct: Math.abs(hoverLab.pct),
+                                              })}
+                                    </div>
                                 )}
                             </div>
                         )}
