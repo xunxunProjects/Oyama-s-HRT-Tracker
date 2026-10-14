@@ -63,6 +63,16 @@ const SISTER_PROJECTS: Entry[] = [
         href: 'https://apps.apple.com/app/hrt-recorder/id6753167763',
         desc: 'An iOS app on the App Store',
     },
+    {
+        name: 'HRT-Tracker by Yuuki-Sakura',
+        href: 'https://github.com/Yuuki-Sakura/HRT-Tracker',
+        desc: 'For iOS, watchOS and macOS',
+    },
+    {
+        name: 'Featherline',
+        href: 'https://github.com/MAO-NIANG/Featherline',
+        desc: 'For Android',
+    },
 ];
 
 const CONTRIBUTORS = [
