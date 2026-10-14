@@ -95,10 +95,10 @@ backend together.
 
 To run the complete app the way self-hosters do, follow the Docker section of
 the [README](./README.md#docker). To test your own changes in a container,
-build the image from your checkout instead of pulling it:
+build the image from your checkout:
 
 如果想像自托管用户那样运行完整应用，请参考 [README](./README.md#docker) 中的 Docker 一节。
-若要在容器中测试你自己的修改，请从本地代码构建镜像，而不是拉取已发布的镜像：
+若要在容器中测试你自己的修改，请从本地代码构建镜像：
 
 ```bash
 cp .env.docker.example .env      # then set JWT_SECRET 然后填写 JWT_SECRET

@@ -1,7 +1,10 @@
 services:
   hrt-tracker:
-    image: ghcr.io/xunxunprojects/oyama-s-hrt-tracker:latest
+    # Built from this checkout. To run a published image instead, replace these
+    # three lines with: image: ghcr.io/xunxunprojects/oyama-s-hrt-tracker:latest
     build: .
+    image: hrt-tracker:local
+    pull_policy: build
     container_name: hrt-tracker
     init: true
     restart: unless-stopped
