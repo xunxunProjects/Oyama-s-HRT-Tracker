@@ -4,10 +4,12 @@
 a link to hrt.mahiro.uk is shared (the `og:image` and `twitter:image` tags in
 `index.html`).
 
-The drawings are copied from the app's own: the four doses from
-`src/components/Doodle.tsx` and the sleeping cat from the privacy poster. The
-curve is four doses of a simple absorb and clear model, so it climbs the way the
-Overview does; it is a picture, not a real estimate.
+It follows the app's design system: the white page, the system type stack,
+`text` and `text-muted` for the words, the 2px-style chart line in `brand` with
+hollow dose rings, and the route doodles from `src/components/Doodle.tsx` on
+`surface-muted` tiles, as in the app's rows. The sleeping cat is the one from
+the privacy poster, in the same pen. The curve is four doses of a simple absorb
+and clear model; it is a picture, not a real estimate.
 
 To regenerate after an edit:
 
@@ -15,7 +17,5 @@ To regenerate after an edit:
 npx -p playwright node design/og/render.cjs
 ```
 
-That overwrites `public/og.png`. Opening `og.html` in a browser at 1200 by 630
-shows the same thing.
-
-Caveat and Newsreader are under the SIL Open Font License, in `fonts/OFL.txt`.
+That overwrites `public/og.png`. On a Mac the title renders in SF Pro; on a
+machine without it, Inter or Helvetica stands in.

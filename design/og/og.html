@@ -4,29 +4,14 @@
         <meta charset="utf-8" />
         <title>Link preview</title>
         <style>
-            @font-face {
-                font-family: 'Caveat';
-                font-weight: 600;
-                src: url(fonts/Caveat-600-normal.woff2) format('woff2');
-            }
-            @font-face {
-                font-family: 'Newsreader';
-                font-weight: 400;
-                src: url(fonts/Newsreader-400-normal.woff2) format('woff2');
-            }
-            @font-face {
-                font-family: 'Newsreader';
-                font-style: italic;
-                font-weight: 400;
-                src: url(fonts/Newsreader-400-italic.woff2) format('woff2');
-            }
+            /* Colours and type are the app's design tokens (src/index.css, light theme). */
             :root {
-                --paper: #f6f2eb;
-                --ink: #1c1a17;
-                --muted: #6b6860;
-                --line: #cc785c;
-                --line-deep: #ac573d;
-                --wash: #fbe9e0;
+                --bg: #ffffff;
+                --text: oklch(20.5% 0.006 90);
+                --text-muted: oklch(51.7% 0.013 90);
+                --surface-muted: oklch(97.3% 0.004 90);
+                --brand: #cc785c;
+                --illustration-wash: oklch(97.5% 0.012 45);
             }
             * {
                 box-sizing: border-box;
@@ -37,9 +22,13 @@
                 width: 1200px;
                 height: 630px;
                 overflow: hidden;
-                background: var(--paper);
-                color: var(--ink);
-                font-family: -apple-system, 'Helvetica Neue', Inter, system-ui, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                /* The app's system stack; Inter stands in where none of it is installed. */
+                font-family:
+                    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', ui-sans-serif, system-ui,
+                    'PingFang SC', 'Hiragino Sans', 'Apple SD Gothic Neo', 'Segoe UI', Inter, Helvetica, Arial,
+                    sans-serif;
                 -webkit-font-smoothing: antialiased;
             }
             .card {
@@ -47,96 +36,76 @@
                 width: 1200px;
                 height: 630px;
             }
-            .grain,
-            .art {
+            svg.art {
                 position: absolute;
                 inset: 0;
-            }
-            .grain {
-                opacity: 0.5;
-                mix-blend-mode: multiply;
-            }
-            .art {
                 fill: none;
-                stroke: var(--line);
+                stroke: var(--brand);
                 stroke-width: 1.9;
                 stroke-linecap: round;
                 stroke-linejoin: round;
             }
-            .art .w {
-                fill: var(--wash);
+            svg.art .w {
+                fill: var(--illustration-wash);
                 stroke: none;
             }
-            .art .p {
-                fill: var(--paper);
+            svg.art .fill {
+                fill: var(--bg);
                 stroke: none;
+            }
+            svg.art .tile {
+                fill: var(--surface-muted);
+                stroke: none;
+            }
+            svg.art .ring {
+                fill: var(--bg);
+                stroke-width: 3;
             }
             .words {
                 position: absolute;
-                left: 92px;
-                top: 64px;
-            }
-            .kicker {
-                display: inline-block;
-                font-family: Caveat;
-                font-weight: 600;
-                font-size: 38px;
-                color: var(--line-deep);
-                transform: rotate(-2deg);
+                left: 88px;
+                top: 76px;
             }
             h1 {
-                font-family: Newsreader;
-                font-weight: 400;
-                font-size: 112px;
-                line-height: 1;
-                letter-spacing: -2.5px;
-                margin-top: 6px;
-            }
-            .lede em {
-                font-family: Newsreader;
-                font-size: 29px;
-                color: var(--line-deep);
+                font-size: 88px;
+                line-height: 1.05;
+                font-weight: 600;
+                letter-spacing: -0.02em;
             }
             .lede {
-                font-size: 26px;
+                font-size: 28px;
                 line-height: 1.4;
-                color: var(--muted);
+                color: var(--text-muted);
                 margin-top: 18px;
-                max-width: 560px;
+                max-width: 600px;
             }
             .site {
                 position: absolute;
-                right: 56px;
-                top: 54px;
-                font-family: Newsreader;
-                font-style: italic;
-                font-size: 26px;
-                color: var(--muted);
+                right: 64px;
+                top: 64px;
+                font-size: 22px;
+                font-weight: 500;
+                color: var(--text-muted);
             }
         </style>
     </head>
     <body>
         <div class="card">
-            <svg class="grain" width="1200" height="630">
-                <filter id="n">
-                    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch" />
-                    <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .35  0 0 0 0 .25  0 0 0 .09 0" />
-                </filter>
-                <rect width="100%" height="100%" filter="url(#n)" />
-            </svg>
-
-            <svg class="art" viewBox="0 0 1200 630" width="1200" height="630">
-                <!-- The estimate: four doses, each lifting the line a little higher. -->
+            <svg class="art" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden="true">
+                <!-- The modelled level: four doses, each lifting it a little higher -->
                 <path
-                    d="M117.8 499.4 C121.6 494.8 133.1 479.6 140.6 471.7 C148.1 463.8 155.6 457.7 162.9 452.0 C170.3 446.4 177.4 441.9 184.8 437.8 C192.2 433.7 199.7 430.5 207.2 427.6 C214.7 424.7 222.1 422.0 229.7 420.3 C237.2 418.6 245.0 418.6 252.5 417.6 C260.0 416.6 267.1 414.8 274.6 414.4 C282.1 414.0 290.1 415.1 297.6 415.1 C305.2 415.2 312.5 414.6 320.0 414.7 C327.6 414.7 335.4 419.5 342.9 415.4 C350.5 411.4 357.9 397.5 365.2 390.3 C372.5 383.1 379.4 377.0 386.8 372.2 C394.2 367.5 401.9 364.7 409.4 361.7 C416.9 358.7 424.2 356.1 431.7 354.1 C439.2 352.2 447.1 351.0 454.7 350.0 C462.2 349.1 469.7 348.5 477.0 348.5 C484.4 348.4 491.4 349.0 498.9 349.7 C506.4 350.3 514.5 351.4 522.0 352.5 C529.6 353.6 536.6 355.0 544.0 356.3 C551.5 357.5 559.1 363.0 566.6 360.0 C574.2 356.9 582.0 344.1 589.5 337.9 C596.9 331.7 603.8 326.6 611.3 322.6 C618.7 318.6 626.5 316.3 634.0 313.9 C641.6 311.5 649.1 309.4 656.7 308.1 C664.3 306.9 672.0 306.4 679.4 306.5 C686.9 306.6 693.9 308.0 701.2 308.8 C708.5 309.7 715.9 310.2 723.3 311.4 C730.7 312.7 738.0 314.5 745.6 316.2 C753.2 317.9 761.3 319.6 768.9 321.5 C776.6 323.3 784.0 329.5 791.5 327.1 C799.0 324.6 806.3 312.2 813.7 306.5 C821.1 300.8 828.5 296.2 836.0 292.8 C843.5 289.4 851.3 287.8 858.8 286.0 C866.2 284.3 873.4 282.9 880.8 282.3 C888.1 281.7 895.2 281.9 902.7 282.4 C910.2 283.0 918.2 284.5 925.8 285.5 C933.5 286.5 941.0 287.0 948.5 288.6 C955.9 290.2 963.1 292.8 970.4 294.9 C977.7 297.0 984.9 299.0 992.4 301.1 C999.8 303.2 1007.5 305.1 1015.0 307.6 C1022.5 310.2 1029.8 313.7 1037.3 316.3 C1044.8 318.9 1052.3 320.5 1059.8 323.1 C1067.4 325.7 1075.1 329.3 1082.6 331.9 C1090.0 334.6 1097.1 336.3 1104.6 338.9 C1112.1 341.4 1120.0 344.6 1127.6 347.2 C1135.3 349.8 1146.6 353.3 1150.4 354.6"
-                    stroke-width="3.4"
+                    d="M150.0 470.0 C151.8 467.6 157.2 460.3 160.8 455.9 C164.3 451.5 167.9 447.5 171.5 443.8 C175.1 440.0 178.7 436.6 182.3 433.4 C185.9 430.2 189.5 427.3 193.0 424.5 C196.6 421.8 200.2 419.3 203.8 417.0 C207.4 414.7 211.0 412.7 214.6 410.7 C218.2 408.8 221.7 407.1 225.3 405.5 C228.9 403.9 232.5 402.5 236.1 401.1 C239.7 399.8 243.3 398.7 246.8 397.6 C250.4 396.6 254.0 395.6 257.6 394.8 C261.2 393.9 264.8 393.2 268.4 392.6 C272.0 391.9 275.5 391.4 279.1 390.9 C282.7 390.4 286.3 390.0 289.9 389.7 C293.5 389.4 297.1 389.1 300.7 388.9 C304.2 388.7 307.8 388.6 311.4 388.5 C315.0 388.4 318.6 388.4 322.2 388.4 C325.8 388.4 329.3 388.4 332.9 388.5 C336.5 388.6 340.1 388.7 343.7 388.9 C347.3 389.1 350.9 389.3 354.5 389.5 C358.0 389.7 361.6 392.3 365.2 390.2 C368.8 388.1 372.4 381.1 376.0 377.0 C379.6 372.9 383.2 369.3 386.7 365.9 C390.3 362.5 393.9 359.4 397.5 356.6 C401.1 353.8 404.7 351.3 408.3 348.9 C411.8 346.6 415.4 344.6 419.0 342.7 C422.6 340.8 426.2 339.2 429.8 337.7 C433.4 336.2 437.0 335.0 440.5 333.8 C444.1 332.7 447.7 331.7 451.3 330.9 C454.9 330.0 458.5 329.3 462.1 328.7 C465.7 328.2 469.2 327.7 472.8 327.4 C476.4 327.0 480.0 326.8 483.6 326.6 C487.2 326.4 490.8 326.4 494.3 326.4 C497.9 326.4 501.5 326.5 505.1 326.6 C508.7 326.8 512.3 327.0 515.9 327.3 C519.5 327.6 523.0 327.9 526.6 328.3 C530.2 328.7 533.8 329.1 537.4 329.6 C541.0 330.1 544.6 330.6 548.2 331.1 C551.7 331.7 555.3 332.3 558.9 332.9 C562.5 333.5 566.1 334.2 569.7 334.9 C573.3 335.5 576.8 338.6 580.4 336.9 C584.0 335.3 587.6 328.7 591.2 325.1 C594.8 321.4 598.4 318.2 602.0 315.2 C605.5 312.3 609.1 309.6 612.7 307.2 C616.3 304.8 619.9 302.7 623.5 300.8 C627.1 298.9 630.7 297.3 634.2 295.8 C637.8 294.4 641.4 293.1 645.0 292.1 C648.6 291.0 652.2 290.1 655.8 289.3 C659.3 288.6 662.9 288.0 666.5 287.5 C670.1 287.1 673.7 286.8 677.3 286.6 C680.9 286.4 684.5 286.3 688.0 286.3 C691.6 286.3 695.2 286.4 698.8 286.6 C702.4 286.8 706.0 287.1 709.6 287.4 C713.2 287.8 716.7 288.2 720.3 288.7 C723.9 289.2 727.5 289.8 731.1 290.4 C734.7 291.0 738.3 291.6 741.8 292.3 C745.4 293.1 749.0 293.8 752.6 294.6 C756.2 295.4 759.8 296.2 763.4 297.1 C767.0 298.0 770.5 298.8 774.1 299.8 C777.7 300.7 781.3 301.6 784.9 302.6 C788.5 303.6 792.1 306.9 795.7 305.6 C799.2 304.2 802.8 297.8 806.4 294.5 C810.0 291.2 813.6 288.2 817.2 285.5 C820.8 282.8 824.3 280.4 827.9 278.3 C831.5 276.2 835.1 274.3 838.7 272.7 C842.3 271.0 845.9 269.7 849.5 268.4 C853.0 267.2 856.6 266.2 860.2 265.4 C863.8 264.6 867.4 263.9 871.0 263.4 C874.6 262.9 878.2 262.5 881.7 262.3 C885.3 262.1 888.9 262.0 892.5 262.0 C896.1 262.0 899.7 262.2 903.3 262.4 C906.8 262.6 910.4 262.9 914.0 263.3 C917.6 263.7 921.2 264.2 924.8 264.8 C928.4 265.4 932.0 266.0 935.5 266.7 C939.1 267.4 942.7 268.1 946.3 268.9 C949.9 269.7 953.5 270.6 957.1 271.5 C960.7 272.4 964.2 273.4 967.8 274.3 C971.4 275.3 975.0 276.3 978.6 277.4 C982.2 278.4 985.8 279.5 989.3 280.6 C992.9 281.7 996.5 282.8 1000.1 283.9 C1003.7 285.1 1007.3 286.2 1010.9 287.4 C1014.5 288.5 1018.0 289.7 1021.6 290.9 C1025.2 292.1 1028.8 293.3 1032.4 294.5 C1036.0 295.7 1039.6 297.0 1043.2 298.2 C1046.7 299.4 1050.3 300.6 1053.9 301.9 C1057.5 303.1 1061.1 304.3 1064.7 305.6 C1068.3 306.8 1071.8 308.0 1075.4 309.2 C1079.0 310.5 1082.6 311.7 1086.2 312.9 C1089.8 314.1 1093.4 315.4 1097.0 316.6 C1100.5 317.8 1104.1 319.0 1107.7 320.2 C1111.3 321.4 1114.9 322.6 1118.5 323.8 C1122.1 325.0 1125.7 326.2 1129.2 327.3 C1132.8 328.5 1138.2 330.2 1140.0 330.8"
+                    stroke-width="3.5"
                 />
+                <!-- Hollow dose rings, as on the Overview chart -->
+                <circle class="ring" cx="150.0" cy="470.0" r="7" />
+                <circle class="ring" cx="365.2" cy="390.2" r="7" />
+                <circle class="ring" cx="580.4" cy="336.9" r="7" />
+                <circle class="ring" cx="795.7" cy="305.6" r="7" />
 
-                <!-- The ground the doses stand on -->
-                <path d="M56 595 C 240 592.4, 420 596.6, 600 593.8 S 900 595.6, 1144 593.2" stroke-width="2" />
-
-                <!-- The doses, drawn from Doodle.tsx at 2.2 times its 40 by 40 grid -->
-                <g transform="translate(74 519) scale(2.2)" stroke-width="1.5">
+                <!-- Each dose's route, drawn from Doodle.tsx and set on a surface-muted tile as in the app's rows -->
+                <rect class="tile" x="108.0" y="516" width="84" height="84" rx="20" />
+                <g transform="translate(118.0 526) scale(1.6)" stroke-width="1.9">
                     <g transform="rotate(-8 20 20)">
                         <path
                             class="w"
@@ -150,7 +119,8 @@
                         <path d="M16.6 26.4 C 16.4 27.8, 16.8 29.4, 17.1 30.8" stroke-width="1.5" />
                     </g>
                 </g>
-                <g transform="translate(298 519) scale(2.2)" stroke-width="1.5">
+                <rect class="tile" x="323.2" y="516" width="84" height="84" rx="20" />
+                <g transform="translate(333.2 526) scale(1.6)" stroke-width="1.9">
                     <g transform="translate(20 20) scale(0.58) rotate(-28) translate(-48.8 -37.4)" stroke-width="2.4">
                         <path
                             class="w"
@@ -163,7 +133,8 @@
                         <path d="M56 31.4 C 60 30.6, 64 31, 67.4 30.4" stroke-width="2.4" />
                     </g>
                 </g>
-                <g transform="translate(523 519) scale(2.2)" stroke-width="1.5">
+                <rect class="tile" x="538.4" y="516" width="84" height="84" rx="20" />
+                <g transform="translate(548.4 526) scale(1.6)" stroke-width="1.9">
                     <g transform="rotate(-6 20 20)">
                         <path
                             class="w"
@@ -178,7 +149,8 @@
                         />
                     </g>
                 </g>
-                <g transform="translate(747 519) scale(2.2)" stroke-width="1.5">
+                <rect class="tile" x="753.7" y="516" width="84" height="84" rx="20" />
+                <g transform="translate(763.7 526) scale(1.6)" stroke-width="1.9">
                     <g transform="translate(21.6 18.6) rotate(-40)">
                         <path
                             class="w"
@@ -199,9 +171,9 @@
                 </g>
 
                 <!-- The cat from the privacy poster, asleep on the top of the curve -->
-                <g transform="translate(731 125) scale(1.35)" stroke-width="2.7">
+                <g transform="translate(748 111) scale(1.25)" stroke-width="2.7">
                     <path
-                        class="p"
+                        class="fill"
                         d="M92 126 C 82 114, 86 90, 108 84 C 130 78, 160 84, 168 104 C 172 116, 166 124, 158 125 C 136 128, 112 128, 92 126 Z"
                     />
                     <path
@@ -211,7 +183,7 @@
                     <path d="M142 85.6 C 143.6 89, 144 92, 143.2 95" stroke-width="1.8" />
                     <path d="M100 126 C 104 121, 112 120, 118 123 C 120 125, 119.6 126.6, 118.4 127" stroke-width="2" />
                     <path
-                        class="p"
+                        class="fill"
                         d="M66 104 C 64 92, 66 77, 72 66 C 77 72, 81 77, 88 78 C 95 78, 100 73, 105 65 C 110 76, 113 92, 110 104 C 108 116, 98 122, 88 122 C 77 122, 68 116, 66 104 Z"
                     />
                     <path
@@ -232,7 +204,7 @@
                     />
                     <path d="M106 105 C 110 104.4, 114 104.8, 117.6 105.6" stroke-width="1.4" />
                     <!-- Tail, laid down the far side of the curve -->
-                    <path d="M166 113 C 176 117, 186 124, 199 129 C 207 132, 212 127, 207 122.6" stroke-width="2.8" />
+                    <path d="M166 113 C 178 118, 188 128, 201 137 C 208 141, 213 136, 208 131" stroke-width="2.8" />
                     <!-- Sleep marks -->
                     <path
                         d="M54 62 C 58 61.6, 62 62.2, 66 61.8 C 62 66, 58 70, 54 74.4 C 58 74, 62 74.6, 66.4 74.2"
@@ -244,11 +216,9 @@
                     />
                 </g>
             </svg>
-
             <div class="words">
-                <span class="kicker">a little notebook for your doses</span>
                 <h1>HRT Tracker</h1>
-                <p class="lede">Log doses and labs, see your estimated levels, and keep it all <em>yours</em>.</p>
+                <p class="lede">Log your doses and lab results and see your estimated hormone levels</p>
             </div>
             <div class="site">hrt.mahiro.uk</div>
         </div>
