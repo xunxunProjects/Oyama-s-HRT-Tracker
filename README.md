@@ -1,28 +1,123 @@
-# Oyama's HRT Tracker
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/hero-dark.png" />
+    <img src="./docs/images/hero-light.png" alt="Oyama's HRT Tracker on a phone: the current estimated estradiol level, today's dose and the hormone level timeline, next to a month of estradiol levels" />
+  </picture>
+</p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/hero-dark.png" />
-  <img src="./docs/images/hero-light.png" alt="Oyama's HRT Tracker on a phone: the current estimated estradiol level, today's dose and the hormone level timeline, next to a month of estradiol levels" />
-</picture>
+<p align="center">
+  Log your HRT doses and see the hormone levels they produce. Private, open and free.
+  <br />
+  记录 HRT 用药，看见它们带来的激素水平。私密、开源、免费。
+</p>
 
-**Oyama's HRT Tracker** is a privacy-focused tool for logging Hormone Replacement Therapy (HRT) and simulating the hormone levels your doses produce. It has a feminizing mode (estradiol, plus cyproterone acetate) and a masculinizing mode (testosterone), and it can also log other adjunct drugs.
+<p align="center">
+  <a href="https://hrt.mahiro.uk"><b>Open in your browser 在浏览器中打开</b></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/releases/latest"><b>macOS and Windows 桌面版</b></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="#docker"><b>Self-host with Docker 自行部署</b></a>
+</p>
 
-**Oyama's HRT Tracker**（HRT 记录工具）是一个注重隐私的工具，用于记录激素替代疗法（HRT）用药，并模拟这些剂量带来的激素水平。它提供女性化模式（雌二醇，以及醋酸环丙孕酮）和男性化模式（睾酮），也可以记录其他辅助用药。
+# Table of Contents 目录
 
-It runs in the browser and can be installed as a PWA, as a desktop app for macOS and Windows built with Tauri, or as a self-hosted Docker image. Cloud backup (end-to-end encrypted) and share links are optional.
+- [Introduction 介绍](#introduction-介绍)
+- [Features 功能](#features-功能)
+  - [Why it is different 有什么不同](#why-it-is-different-有什么不同)
+  - [Hormone levels 激素水平](#hormone-levels-激素水平)
+  - [Doses and plans 用药与方案](#doses-and-plans-用药与方案)
+  - [Lab results 检查结果](#lab-results-检查结果)
+  - [Supplies 药量库存](#supplies-药量库存)
+  - [Backup and sharing 备份与分享](#backup-and-sharing-备份与分享)
+  - [Where the model comes from 模型来源](#where-the-model-comes-from-模型来源)
+- [Self-hosting 自行部署](#self-hosting-自行部署)
+- [Contributing 参与贡献](#contributing-参与贡献)
+- [Support 支持](#support-支持)
+- [Legal 法律信息](#legal-法律信息)
 
-它可以在浏览器中运行并安装为 PWA，也可以作为基于 Tauri 的 macOS 与 Windows 桌面应用使用，或通过 Docker 镜像自行部署。云备份（端到端加密）与分享链接均为可选功能。
+# Introduction 介绍
+
+**Oyama's HRT Tracker** is a privacy-focused tool for logging hormone replacement therapy and simulating the hormone levels your doses produce. It has a feminizing mode (estradiol, plus cyproterone acetate) and a masculinizing mode (testosterone), and it can log other adjunct drugs too.
+
+**Oyama's HRT Tracker**（HRT 记录工具）是一个注重隐私的工具，用于记录激素替代疗法用药，并模拟这些剂量带来的激素水平。它提供女性化模式（雌二醇，以及醋酸环丙孕酮）和男性化模式（睾酮），也可以记录其他辅助用药。
+
+**Runs in the browser, as an installable app, on macOS and Windows, or on your own server.**
+
+**可以在浏览器中使用，也可以安装为应用、在 macOS 与 Windows 上运行，或部署到你自己的服务器。**
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/gallery-dark.png" />
+    <img src="./docs/images/gallery-light.png" alt="Six screens of the app: overview, hormone level timeline, what-if, dose history, lab results and logging a dose" />
+  </picture>
+</p>
+
+From left to right: the overview with the current estimate, a month of estradiol levels, the what-if planner, the dose history, lab results next to the model, and logging a new dose. The screenshots use sample records; to make them again, see [design/readme](./design/readme/README.md).
+
+从左到右依次是：当前估算浓度的概览、一个月的雌二醇曲线、方案试算、用药记录、与模型对照的检查结果，以及记录新的剂量。截图使用的是示例数据，重新生成的方法见 [design/readme](./design/readme/README.md)。
 
 > [!WARNING]
 > **Not medical advice.** This app shows estimates from a pharmacokinetic model. They can differ a lot from your real hormone levels and are no substitute for blood tests or a clinician. Do not start, stop or change any medication based on this app alone.
 >
 > **不构成医疗建议。** 本应用展示的是药代动力学模型的估算值，可能与你真实的激素水平相差很大，不能替代抽血检查或医生的判断。请勿仅凭本应用开始、停止或调整任何用药。
 
-**Privacy 隐私说明:** [English](./PRIVACY.md) · [中文](./PRIVACY.zh-CN.md)
+# Features 功能
 
----
+## Why it is different 有什么不同
 
-## Algorithm & Core Logic 算法逻辑
+- **Private by default**: your records stay in your browser unless you turn on cloud backup or make a share link, and both are end-to-end encrypted.\
+  **默认私密**：记录保存在你的浏览器里，只有在你开启云备份或创建分享链接时才会上传，而且两者都是端到端加密的。
+- **Open source**: every line is public under the MIT License, so anyone can check how the estimates are made.\
+  **开源**：全部代码以 MIT 许可公开，任何人都可以查看估算是怎么算出来的。
+- **Free**: no subscriptions, no paid features, no ads.\
+  **免费**：没有订阅，没有付费功能，也没有广告。
+- **Speaks your language**: Simplified Chinese, Traditional Chinese, Cantonese, English, Japanese, Korean and Turkish.\
+  **多语言**：简体中文、繁体中文、粤语、英语、日语、韩语和土耳其语。
+
+## Hormone levels 激素水平
+
+- See the estimated level over time: estradiol in pg/mL, cyproterone acetate in ng/mL, total testosterone in ng/dL\
+  查看随时间变化的估算浓度：雌二醇 pg/mL、醋酸环丙孕酮 ng/mL、总睾酮 ng/dL
+- Estradiol by injection (benzoate, valerate, cypionate, enanthate, and undecylate in beta), oral, sublingual, gel and patch\
+  雌二醇支持注射（苯甲酸酯、戊酸酯、环戊丙酸酯、庚酸酯，以及 Beta 阶段的十一酸酯）、口服、舌下、凝胶与贴片
+- Testosterone by injection (cypionate, enanthate, undecanoate) and gel\
+  睾酮支持注射（环戊丙酸酯、庚酸酯、十一酸酯）与凝胶
+- For sublingual doses, pick how long you hold the tablet (2 to 15 minutes) or enter your own time\
+  舌下给药时，可以选择含服时间（2 到 15 分钟）或自行填写
+
+## Doses and plans 用药与方案
+
+- Write down what you take and how often; the overview shows what is due today and logs it with one tap\
+  记下你使用的药物与频率，概览页会显示今天待用的剂量，一键即可记录
+- Compare carrying on as now with a planned change in the what-if view\
+  在方案试算中对比维持现状与计划中的调整
+- Log spironolactone, bicalutamide, medroxyprogesterone acetate, raloxifene, leuprorelin and triptorelin as well; they have no level model, so they draw no curve\
+  也可以记录螺内酯、比卡鲁胺、醋酸甲羟孕酮、雷洛昔芬、亮丙瑞林与曲普瑞林；它们没有浓度模型，因此不会绘制曲线
+
+## Lab results 检查结果
+
+- Log blood test results and see them on the curve next to the estimate\
+  记录抽血检查结果，并在曲线上与估算值对照
+- Calibrate the estradiol model to you with EKF, OU-Kalman or MIPD, or edit its parameters by hand\
+  用 EKF、OU-Kalman 或 MIPD 按你的情况校准雌二醇模型，也可以手动编辑参数
+
+## Supplies 药量库存
+
+- Keep track of how much of each medicine you have\
+  记录每种药物的存量
+- Logged doses are subtracted automatically, and the overview warns you before you run out\
+  记录的用量会自动扣除，快用完时概览页会提前提醒
+
+## Backup and sharing 备份与分享
+
+- Back up to the cloud with end-to-end encryption, or export a file\
+  使用端到端加密的云备份，或导出为文件
+- Share a read-only link to your dose history and curve; the key lives only in the link, and lab results, weight and account details are never included\
+  分享一个只读链接，包含用药记录与曲线；密钥只在链接里，检查结果、体重和账户信息都不会包含在内
+- Read the [privacy notice](./PRIVACY.md) ([中文](./PRIVACY.zh-CN.md)) for every detail\
+  完整细节见[隐私说明](./PRIVACY.zh-CN.md)（[English](./PRIVACY.md)）
+
+## Where the model comes from 模型来源
 
 The estradiol pharmacokinetic model is based on `PKcore.swift` and `PKparameter.swift` by **@LaoZhong-Mihari**, from the **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** repository. Its three-compartment structure, two-part injection depot kinetics and sublingual absorption tiers come from there.
 
@@ -32,95 +127,11 @@ This project has since adjusted and extended the model: it adds testosterone (in
 
 此后本项目对模型做了调整和扩展：为男性化模式加入了睾酮（注射用酯、凝胶与贴片），为醋酸环丙孕酮加入了单独的曲线，并新增了十一酸雌二醇注射；调整了凝胶与舌下给药的处理；还可以用你的检查结果校准雌二醇曲线。详情见 [Algorithm Explanation.md](./Algorithm%20Explanation.md)。
 
----
+# Self-hosting 自行部署
 
-## Features 功能
+You are **very welcome** to run this app on your own website or server, and you do not need to ask first. The simplest way is Docker; to use your own Cloudflare account instead, see [Cloudflare](#cloudflare).
 
-- **Feminizing and masculinizing modes**: in feminizing mode, estradiol by injection (benzoate, valerate, cypionate, enanthate, and undecylate in beta), oral, sublingual, gel and patch, with oral cyproterone acetate on its own curve. In masculinizing mode, testosterone injection (cypionate, enanthate, undecanoate) and gel; a testosterone patch can also be added to the medication plan and supplies.
-
-  **女性化与男性化模式**：女性化模式支持雌二醇的注射（苯甲酸酯、戊酸酯、环戊丙酸酯、庚酸酯，以及 Beta 阶段的十一酸酯）、口服、舌下、凝胶与贴片，口服醋酸环丙孕酮以单独的曲线显示。男性化模式支持睾酮注射（环戊丙酸酯、庚酸酯、十一酸酯）与凝胶；睾酮贴片也可以加入用药方案与药量库存。
-
-- **Other drugs**: in feminizing mode, spironolactone, bicalutamide, medroxyprogesterone acetate, raloxifene and the GnRH agonists leuprorelin and triptorelin can be logged, planned and stocked. They have no level model, so they draw no curve and do not change any estimate.
-
-  **其他药物**：在女性化模式中，螺内酯、比卡鲁胺、醋酸甲羟孕酮、雷洛昔芬，以及 GnRH 激动剂亮丙瑞林与曲普瑞林，可以记录、加入用药方案并管理库存。它们没有浓度模型，因此不会绘制曲线，也不影响任何估算值。
-
-- **Charts**: interactive charts of the estimated level over time (estradiol in pg/mL, cyproterone acetate in ng/mL, total testosterone in ng/dL), with your lab results plotted alongside.
-
-  **图表**：交互式图表展示随时间变化的估算浓度（雌二醇 pg/mL、醋酸环丙孕酮 ng/mL、总睾酮 ng/dL），并在图上标出你的检查结果。
-
-- **Sublingual hold time**: pick one of four hold-time tiers (2 to 15 minutes) or enter your own; the model turns it into the share of the dose absorbed through the lining of the mouth (θ).
-
-  **舌下含服时间**：从四档含服时间（2 到 15 分钟）中选择，或自行填写；模型据此估算经口腔黏膜吸收的剂量比例（θ）。
-
-- **Lab calibration**: log blood test results. Estradiol results can calibrate the model to you, with a choice of estimator (EKF, OU-Kalman or MIPD), and the model parameters can also be edited by hand.
-
-  **模型校准**：记录抽血检查结果。雌二醇结果可用于按你的情况校准模型，可选 EKF、OU-Kalman 或 MIPD 三种方式；也可以手动编辑模型参数。
-
-- **Medication plan**: list what you take and how often. The overview shows what is due today and logs a dose with one tap, and a what-if view compares carrying on as now with a planned change.
-
-  **用药方案**：记下你使用的药物与频率。概览页会显示今天待用的剂量，一键即可记录；方案试算页面可以对比维持现状与计划中的调整。
-
-- **Supplies**: record how much of each medicine you have. The app subtracts the doses you log, estimates when it will run out at your current rate and warns on the overview ahead of time.
-
-  **药量库存**：记录每种药物的存量。应用会扣除已记录的用量，按当前用药频率估算用完的日期，并提前在概览页提醒。
-
-- **Privacy by Default**: Dosage data stays in your browser unless you explicitly use cloud backup or create a share link. Cloud backups are end-to-end encrypted. A share link uploads a read-only copy of the dosage history, modelled curve, and timezone until its expiration; optional live links refresh that copy when the signed-in app is open. Share links never include lab results, weight, profile details, or account data, and like backups they are end-to-end encrypted: the key is only in the link. See the [privacy notice](./PRIVACY.md) for details.
-
-  **默认保护隐私**：用药数据默认保存在浏览器中，只有在你主动使用云备份或创建分享链接时才会上传。云备份采用端到端加密。分享链接会保存一份只读的用药记录、模型曲线和时区副本，直到链接过期；其中不会包含检查结果、体重、个人资料或账户数据，并且和云备份一样是端到端加密的，密钥只在链接里。详见[隐私说明](./PRIVACY.zh-CN.md)。
-
-- **Internationalization**: Interface in **Simplified Chinese**, **Traditional Chinese**, **Cantonese**, **English**, **Japanese**, **Korean** and **Turkish**.
-
-  **多语言支持**：界面支持简体中文、繁体中文、粤语、英语、日语、韩语和土耳其语。
-
----
-
-## Screenshots 截图
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/gallery-dark.png" />
-  <img src="./docs/images/gallery-light.png" alt="Six screens of the app: overview, hormone level timeline, what-if, dose history, lab results and logging a dose" />
-</picture>
-
-From left to right: the overview with the current estimate, a month of estradiol levels, the what-if planner, the dose history, lab results next to the model, and logging a new dose.
-
-从左到右依次是：当前估算浓度的概览、一个月的雌二醇曲线、方案试算、用药记录、与模型对照的检查结果，以及记录新的剂量。
-
-The screenshots use sample records. To make them again, see [design/readme](./design/readme/README.md).
-
-截图中使用的是示例数据。重新生成的方法见 [design/readme](./design/readme/README.md)。
-
----
-
-## Run Locally 本地运行
-
-This project is built with **React** and **TypeScript**, bundled with [Vite](https://vitejs.dev/).
-
-本项目基于 **React** 与 **TypeScript** 构建，使用 [Vite](https://vitejs.dev/) 打包。
-
-1. **Clone the repository 克隆仓库**
-
-   ```bash
-   git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
-   cd Oyama-s-HRT-Tracker
-   ```
-
-2. **Install dependencies 安装依赖**
-
-   ```bash
-   npm install
-   ```
-
-3. **Start the dev server 运行项目**
-
-   ```bash
-   npm run dev
-   ```
-
-   Then open <http://localhost:3000> in your browser.
-
-   然后在浏览器中打开 <http://localhost:3000>。
-
----
+我们**非常欢迎**你把这个应用部署到自己的网站或服务器上，无需事先询问。最简单的方式是 Docker；如果想部署到自己的 Cloudflare 账号，请看 [Cloudflare](#cloudflare)。
 
 ## Docker
 
@@ -231,68 +242,7 @@ pulling it without access fails; build from source as shown above.
 手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。
 该镜像包目前是私有的，没有权限时无法拉取，请按上面的步骤从源码构建。
 
----
-
-## Releases 发布版本
-
-Every pull request and push to `main` runs CI: a typecheck, a production build
-and a check that every file carries the same version. Dependabot opens weekly
-update pull requests for npm, Cargo, GitHub Actions and the Docker base image.
-
-每个 PR 与推送到 `main` 的提交都会运行 CI：类型检查、生产构建，以及检查各文件中的
-版本号是否一致。Dependabot 每周为 npm、Cargo、GitHub Actions 与 Docker 基础镜像
-提交更新 PR。
-
-To release, set the version, commit it on `main`, and push a matching tag:
-/ 发布新版本时，先设置版本号并提交到 `main`，再推送对应的标签：
-
-```bash
-python3 scripts/set_version.py 1.5.0
-git commit -am "Release 1.5.0"
-git tag v1.5.0
-git push origin main v1.5.0
-```
-
-The tag starts `.github/workflows/release.yml`, which checks that the tag is on
-`main` and matches the version files, drafts a GitHub release with generated
-notes, builds the macOS (universal `.dmg`) and Windows (`.msi`) installers,
-attaches them and publishes the release. The same tag publishes the matching
-Docker image.
-
-标签会触发 `.github/workflows/release.yml`：确认标签位于 `main` 且与版本号一致，
-生成带更新说明的 GitHub Release 草稿，构建 macOS（通用 `.dmg`）与 Windows（`.msi`）
-安装包并上传，然后正式发布。同一标签也会发布对应版本的 Docker 镜像。
-
-macOS only opens apps without a warning when they are signed with an Apple
-Developer ID and notarized. Add these repository secrets and releases are
-signed and notarized automatically: `APPLE_CERTIFICATE` (base64 of the
-Developer ID Application `.p12`), `APPLE_CERTIFICATE_PASSWORD`,
-`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (an app-specific
-password) and `APPLE_TEAM_ID`. Without them the app is ad-hoc signed, and the
-release notes tell users how to allow it once.
-
-macOS 只会直接打开使用 Apple Developer ID 签名并经过公证的应用。添加上述仓库
-Secrets 后，发布版本会自动签名并公证；未添加时应用仅做临时（ad-hoc）签名，
-发布说明中会附上首次打开的方法。
-
----
-
-## Deployment & Hosting 部署与托管
-
-You are **very welcome** to deploy this application to your own personal website, blog, or server!
-
-我们**非常欢迎**你将此应用部署到自己的个人网站、博客或服务器上！
-
-We want this tool to be accessible to everyone who needs it. You do not need explicit permission to host it.
-
-我们希望所有需要这款工具的人都能方便地使用它。你无需额外获得授权即可自行托管与部署。
-
-The simplest way is [Docker](#docker). To run it on your own Cloudflare
-account instead, see below.
-
-最简单的方式是 [Docker](#docker)。如果想部署到自己的 Cloudflare 账号，请看下面的步骤。
-
-### Deploy to your own Cloudflare 部署到自己的 Cloudflare
+## Cloudflare
 
 `wrangler.toml` points at the maintainer's own database and bucket. Those IDs
 only work inside the maintainer's Cloudflare account, so replace them with
@@ -394,7 +344,7 @@ your fork.
 如果希望每次推送都自动部署，先把上面对 `wrangler.toml` 的修改提交到你的分叉仓库，再在 Worker
 设置的 Builds 里连接仓库，构建命令填 `npm run build`，部署命令填 `npx wrangler deploy`。
 
-**Attribution Requirement 署名要求**
+## Attribution 署名要求
 
 If you deploy this app publicly, please: / 如果你将该应用公开部署，请：
 
@@ -406,32 +356,45 @@ If you deploy this app publicly, please: / 如果你将该应用公开部署，�
 
    **遵守许可协议**：确保你遵循原始算法代码所适用的全部许可条款。
 
----
+# Contributing 参与贡献
+
+Contributions are welcome, and you do not need to be a programmer to help. See [CONTRIBUTING.md](./CONTRIBUTING.md) for running the app locally, a map of the code, adding a translation and making a release, and please follow the [Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, see [SECURITY.md](./SECURITY.md).
+
+欢迎参与贡献，不会写代码也一样可以帮忙。本地运行、代码结构、新增翻译与发布新版本的方法见 [CONTRIBUTING.md](./CONTRIBUTING.md)，请遵守[行为准则](./CODE_OF_CONDUCT.md)。报告安全问题请参阅 [SECURITY.md](./SECURITY.md)。
+
+# Support 支持
+
+<p align="center">
+  <b>Maintainer 维护者</b>
+  <br />
+  <a href="https://github.com/SmirnovaOyama">@SmirnovaOyama</a>
+  <br />
+  <br />
+  <b>Original model 原始模型</b>
+  <br />
+  <a href="https://github.com/LaoZhong-Mihari">@LaoZhong-Mihari</a>
+  <br />
+  <br />
+  <b><a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/graphs/contributors">Contributors 贡献者</a></b>
+  <br />
+  <br />
+  <a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=xunxunProjects/Oyama-s-HRT-Tracker" alt="Contributors 贡献者" />
+  </a>
+</p>
+
+Found a bug or have an idea? [Open an issue](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/issues/new/choose).
+
+发现问题或有新想法？欢迎[提交 issue](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/issues/new/choose)。
 
 Wishing steady progress and good health to everyone who uses this tool.
 
----
+# Legal 法律信息
 
-## Contributing 参与贡献
+**Oyama's HRT Tracker is for information only and is not medical advice. Its estimates come from a model and can be far from your real levels. Use it at your own risk, and talk to a clinician about any change to your treatment.**
 
-Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,
-a map of the code and how to add a translation, and please follow the
-[Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, see
-[SECURITY.md](./SECURITY.md).
+**Oyama's HRT Tracker 仅供参考，不构成医疗建议。估算值来自模型，可能与你真实的激素水平相差很大。使用风险由你自行承担，任何治疗调整请先咨询医生。**
 
-欢迎参与贡献。开发环境、代码结构与新增翻译的方法见 [CONTRIBUTING.md](./CONTRIBUTING.md)，
-请遵守[行为准则](./CODE_OF_CONDUCT.md)。报告安全问题请参阅 [SECURITY.md](./SECURITY.md)。
+This project is released under the MIT License; see [LICENSE](./LICENSE). How your data is handled is described in the [privacy notice](./PRIVACY.md) ([中文](./PRIVACY.zh-CN.md)).
 
-Thanks to everyone who has contributed 感谢每一位贡献者:
-
-<a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=xunxunProjects/Oyama-s-HRT-Tracker" alt="Contributors 贡献者" />
-</a>
-
-Made with [contrib.rocks](https://contrib.rocks).
-
----
-
-## License 许可
-
-本项目遵守 MIT License。See [LICENSE](./LICENSE) for details.
+本项目遵守 MIT License，详见 [LICENSE](./LICENSE)。数据的处理方式见[隐私说明](./PRIVACY.zh-CN.md)（[English](./PRIVACY.md)）。

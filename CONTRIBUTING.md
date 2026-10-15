@@ -292,6 +292,50 @@ The typechecker points out any `Record<Lang, …>` you missed, so run
 
 ---
 
+## Releases 发布版本
+
+Every pull request and push to `main` runs CI: a typecheck, a production build
+and a check that every file carries the same version. Dependabot opens weekly
+update pull requests for npm, Cargo, GitHub Actions and the Docker base image.
+
+每个 PR 与推送到 `main` 的提交都会运行 CI：类型检查、生产构建，以及检查各文件中的
+版本号是否一致。Dependabot 每周为 npm、Cargo、GitHub Actions 与 Docker 基础镜像
+提交更新 PR。
+
+To release, set the version, commit it on `main`, and push a matching tag:
+/ 发布新版本时，先设置版本号并提交到 `main`，再推送对应的标签：
+
+```bash
+python3 scripts/set_version.py 1.5.0
+git commit -am "Release 1.5.0"
+git tag v1.5.0
+git push origin main v1.5.0
+```
+
+The tag starts `.github/workflows/release.yml`, which checks that the tag is on
+`main` and matches the version files, drafts a GitHub release with generated
+notes, builds the macOS (universal `.dmg`) and Windows (`.msi`) installers,
+attaches them and publishes the release. The same tag publishes the matching
+Docker image.
+
+标签会触发 `.github/workflows/release.yml`：确认标签位于 `main` 且与版本号一致，
+生成带更新说明的 GitHub Release 草稿，构建 macOS（通用 `.dmg`）与 Windows（`.msi`）
+安装包并上传，然后正式发布。同一标签也会发布对应版本的 Docker 镜像。
+
+macOS only opens apps without a warning when they are signed with an Apple
+Developer ID and notarized. Add these repository secrets and releases are
+signed and notarized automatically: `APPLE_CERTIFICATE` (base64 of the
+Developer ID Application `.p12`), `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (an app-specific
+password) and `APPLE_TEAM_ID`. Without them the app is ad-hoc signed, and the
+release notes tell users how to allow it once.
+
+macOS 只会直接打开使用 Apple Developer ID 签名并经过公证的应用。添加上述仓库
+Secrets 后，发布版本会自动签名并公证；未添加时应用仅做临时（ad-hoc）签名，
+发布说明中会附上首次打开的方法。
+
+---
+
 ## Questions 有疑问？
 
 If anything here is unclear or out of date, open an issue or ask in your pull
