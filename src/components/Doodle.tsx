@@ -232,17 +232,6 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M24.6 14.4 C 25.6 15.8, 26.8 17, 27.8 18.4 C 26.8 19.8, 25.6 21, 24.4 22.2" w={1.6} />
         </>
     ),
-    // A four-pointed twinkle.
-    sparkle: (
-        <>
-            <path
-                className={WASH}
-                stroke="none"
-                d="M20 6 C 21 15, 24 18.6, 34 20 C 24 21.4, 21 25, 20 34 C 19 25, 16 21.4, 6 20 C 16 18.6, 19 15, 20 6 Z"
-            />
-            <Line d="M20 6 C 21 15, 24 18.6, 34 20 C 24 21.4, 21 25, 20 34 C 19 25, 16 21.4, 6 20 C 16 18.6, 19 15, 20.4 5.4" />
-        </>
-    ),
     // A heart, the left lobe a little rounder than the right.
     heart: (
         <>
