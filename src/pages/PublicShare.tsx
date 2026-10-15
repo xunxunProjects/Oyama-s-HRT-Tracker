@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Clock3, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
 import { DoseEvent, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster, Route } from '../../logic';
+import Doodle from '../components/Doodle';
 import ResultChart from '../components/ResultChart';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
@@ -291,22 +292,45 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
             timeZone,
         }).format(new Date(timestamp));
 
+    // Grouped as the History tab groups: one section per day in the record's
+    // own time zone, keyed apart from its label, with the same short month.
     const groups = useMemo(() => {
-        const formatter = new Intl.DateTimeFormat(locale, {
+        const label = new Intl.DateTimeFormat(locale, {
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric',
             timeZone,
         });
-        const grouped: { label: string; events: DoseEvent[] }[] = [];
+        const dayKey = new Intl.DateTimeFormat('en-CA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            timeZone,
+        });
+        const grouped: { key: string; label: string; events: DoseEvent[] }[] = [];
         for (const event of [...snapshot.events].sort((a, b) => b.timeH - a.timeH)) {
-            const label = formatter.format(new Date(event.timeH * 3_600_000));
+            const at = new Date(event.timeH * 3_600_000);
+            const key = dayKey.format(at);
             const current = grouped[grouped.length - 1];
-            if (current?.label === label) current.events.push(event);
-            else grouped.push({ label, events: [event] });
+            if (current?.key === key) current.events.push(event);
+            else grouped.push({ key, label: label.format(at), events: [event] });
         }
         return grouped;
     }, [snapshot.events, locale, timeZone]);
+
+    // How long each removed patch was worn, as the History tab says it.
+    const wornBeforeRemoval = useMemo(() => {
+        const wornH = new Map<DoseEvent, number>();
+        const onSkin: DoseEvent[] = [];
+        for (const event of [...snapshot.events].sort((a, b) => a.timeH - b.timeH)) {
+            if (event.route === Route.patchApply) onSkin.push(event);
+            else if (event.route === Route.patchRemove) {
+                const applied = onSkin.shift();
+                if (applied && event.timeH > applied.timeH) wornH.set(event, event.timeH - applied.timeH);
+            }
+        }
+        return wornH;
+    }, [snapshot.events]);
 
     const timeFormatter = useMemo(
         () =>
@@ -371,8 +395,12 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                     />
                 </section>
 
-                <section aria-labelledby="shared-history-title">
-                    <div className="mb-6 flex items-end justify-between gap-4">
+                {/* One column, as the History tab has it: the old two columns
+                    paired unrelated days side by side and left gaps under the
+                    shorter one. On a wide screen the date moves into a gutter
+                    of its own, so each day still reads as one line across. */}
+                <section aria-labelledby="shared-history-title" className="max-w-3xl">
+                    <div className="mb-4 flex items-end justify-between gap-4">
                         <h2 id="shared-history-title" className="text-lg font-semibold text-body">
                             {copy.historyTitle}
                         </h2>
@@ -384,22 +412,28 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                     {groups.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted">{t('timeline.empty')}</p>
                     ) : (
-                        <div className="grid gap-x-12 lg:grid-cols-2">
+                        <ol>
                             {groups.map(group => (
-                                <div key={group.label} className="mb-7 break-inside-avoid">
-                                    <h3 className="mb-1 border-b border-[var(--border)] pb-2 text-xs font-semibold text-muted">
+                                <li
+                                    key={group.key}
+                                    className="mb-6 last:mb-0 lg:mb-0 lg:grid lg:grid-cols-[9rem_minmax(0,1fr)] lg:gap-x-10 lg:border-t lg:border-[var(--border)]"
+                                >
+                                    <h3 className="pb-1 pt-2 text-xs font-semibold text-muted lg:pt-[1.1rem]">
                                         {group.label}
                                     </h3>
-                                    {group.events.map(event => (
-                                        <DoseHistoryRow
-                                            key={event.id}
-                                            event={event}
-                                            time={timeFormatter.format(new Date(event.timeH * 3_600_000))}
-                                        />
-                                    ))}
-                                </div>
+                                    <div>
+                                        {group.events.map(event => (
+                                            <DoseHistoryRow
+                                                key={event.id}
+                                                event={event}
+                                                wornH={wornBeforeRemoval.get(event)}
+                                                time={timeFormatter.format(new Date(event.timeH * 3_600_000))}
+                                            />
+                                        ))}
+                                    </div>
+                                </li>
                             ))}
-                        </div>
+                        </ol>
                     )}
                 </section>
             </main>
@@ -407,57 +441,63 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
     );
 };
 
-const DoseHistoryRow = ({ event, time }: { event: DoseEvent; time: string }) => {
+/** A record as the History tab shows it, without the editing. */
+const DoseHistoryRow = ({ event, time, wornH }: { event: DoseEvent; time: string; wornH?: number }) => {
     const { t } = useTranslation();
     const isRemoval = event.route === Route.patchRemove;
     const releaseRate = event.extras[ExtraKey.releaseRateUGPerDay];
     const wearHours = event.extras[ExtraKey.patchWearH];
 
     return (
-        <div className="flex items-start gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
-            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+        <div className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
+            <Doodle name={event.route} size={1.75} />
             <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                    <p className="truncate text-sm font-medium text-body">
-                        {isRemoval ? t('route.patchRemove') : drugLabel(event.ester, t)}
-                    </p>
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                        <p className="text-sm font-medium text-body [overflow-wrap:anywhere]">
+                            {isRemoval ? t('route.patchRemove') : drugLabel(event.ester, t)}
+                        </p>
+                        {wornH !== undefined && (
+                            <span className="shrink-0 text-xs text-muted">
+                                {t('timeline.patch_worn').replace(
+                                    '{d}',
+                                    `${formatWearDays(wornH / 24)} ${t('unit.day_short')}`,
+                                )}
+                            </span>
+                        )}
+                    </div>
                     <time className="shrink-0 text-xs tabular-nums text-muted">{time}</time>
                 </div>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-muted">
-                    <span>{t(`route.${event.route}`)}</span>
-                    {releaseRate ? (
-                        <>
-                            <span aria-hidden="true">·</span>
-                            <span className="font-medium text-body">{releaseRate} µg/d</span>
-                        </>
-                    ) : (
-                        !isRemoval && (
+                {/* A removal is the one line: its route is its name, and it
+                    has no amount of its own. */}
+                {!isRemoval && (
+                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-muted">
+                        <span>{t(`route.${event.route}`)}</span>
+                        {releaseRate ? (
+                            <span className="text-body">{releaseRate} µg/d</span>
+                        ) : (
                             <>
-                                <span aria-hidden="true">·</span>
                                 <span className="font-medium text-body">{event.doseMG.toFixed(2)} mg</span>
                                 {event.ester !== Ester.E2 && isEstradiolEster(event.ester) && (
-                                    <span>
+                                    <span className="opacity-70">
                                         ({t('label.e2')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)}{' '}
                                         mg)
                                     </span>
                                 )}
                                 {isTestosteroneEster(event.ester) && event.ester !== Ester.T && (
-                                    <span>
+                                    <span className="opacity-70">
                                         ({t('label.t')} eq: {(event.doseMG * getToE2Factor(event.ester)).toFixed(2)} mg)
                                     </span>
                                 )}
                             </>
-                        )
-                    )}
-                    {event.route === Route.patchApply && typeof wearHours === 'number' && wearHours > 0 && (
-                        <>
-                            <span aria-hidden="true">·</span>
-                            <span>
+                        )}
+                        {event.route === Route.patchApply && typeof wearHours === 'number' && wearHours > 0 && (
+                            <span className="text-body">
                                 {formatWearDays(wearHours / 24)} {t('unit.day_short')}
                             </span>
-                        </>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
