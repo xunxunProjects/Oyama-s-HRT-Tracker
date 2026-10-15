@@ -1,4 +1,4 @@
-// Makes the README pictures in docs/images: four app screenshots and the
+// Makes the README pictures in docs/images: six app screenshots and the
 // hero picture, each in a light and a dark version.
 //
 // Start the app first (npm run dev), then, on a Mac so the words are in SF Pro:
@@ -30,6 +30,15 @@ async function screenshots(browser, theme) {
     await page.goto(APP, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2500);
     await shot('overview');
+    await page.locator('button:visible', { hasText: '30d' }).first().click();
+    await page.getByText('Hormone level timeline').evaluate(e => e.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(1000);
+    await shot('timeline');
+    await page.locator('button:visible', { hasText: 'What-if' }).first().click();
+    await page.waitForTimeout(1500);
+    await page.getByText('Save as template').evaluate(e => e.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(1000);
+    await shot('whatif');
     await tab('History');
     await shot('history');
     await tab('Labs');
@@ -37,6 +46,11 @@ async function screenshots(browser, theme) {
     await tab('History');
     await page.getByText('Add Dose').first().click();
     await page.waitForTimeout(1200);
+    const dose = page
+        .locator('input:visible')
+        .filter({ has: page.locator('xpath=self::*[@inputmode="decimal" or @type="number"]') });
+    await dose.first().fill('4');
+    await page.waitForTimeout(600);
     await shot('dose');
     await context.close();
 }

@@ -7,12 +7,12 @@ design system: the white page (warm near-black in dark), the system type stack,
 `src/components/Doodle.tsx` on `surface-muted` tiles, and real app screenshots
 in frames with a `border` hairline and `shadow-md`.
 
-`render.cjs` also takes the four screenshots in `docs/images`
+`render.cjs` also takes the six screenshots in `docs/images`
 (`screenshot-<page>-<theme>.png`), at phone size (393 by 852, twice the
 pixels), in English. Before the app loads it writes the sample records in
-`seed.js`: weekly 4 mg estradiol valerate injections and a quarter tablet of
-cyproterone acetate a day for twelve weeks, with two trough lab results. The
-curve and figures on screen are the app's own model output for those records.
+`seed.js`: weekly 4 mg estradiol valerate injections for twelve weeks, with
+two trough lab results. The curve and figures on screen are the app's own model
+output for those records.
 
 To regenerate, start the app and run:
 

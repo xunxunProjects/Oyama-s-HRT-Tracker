@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/hero-dark.png" />
-  <img src="./docs/images/hero-light.png" alt="Oyama's HRT Tracker on a phone: the current estimated estradiol level, today's doses and the hormone level timeline, next to the lab results page" />
+  <img src="./docs/images/hero-light.png" alt="Oyama's HRT Tracker on a phone: the current estimated estradiol level, today's dose and the hormone level timeline, next to a month of estradiol levels" />
 </picture>
 
 **Oyama's HRT Tracker** is a privacy-focused tool for logging Hormone Replacement Therapy (HRT) and simulating the hormone levels your doses produce. It has a feminizing mode (estradiol, plus cyproterone acetate) and a masculinizing mode (testosterone), and it can also log other adjunct drugs.
@@ -78,33 +78,49 @@ This project has since adjusted and extended the model: it adds testosterone (in
 
 <table>
   <tr>
-    <td width="25%" valign="top">
+    <td width="33%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-overview-dark.png" />
         <img src="./docs/images/screenshot-overview-light.png" alt="Overview screen" />
       </picture>
       <br /><b>Overview 概览</b><br />The current estimate, today's doses and the level timeline
     </td>
-    <td width="25%" valign="top">
+    <td width="33%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-timeline-dark.png" />
+        <img src="./docs/images/screenshot-timeline-light.png" alt="Hormone level timeline screen" />
+      </picture>
+      <br /><b>Timeline 浓度曲线</b><br />A month of estradiol levels and a calendar of doses
+    </td>
+    <td width="33%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-whatif-dark.png" />
+        <img src="./docs/images/screenshot-whatif-light.png" alt="What-if screen" />
+      </picture>
+      <br /><b>What-if 方案试算</b><br />Compare carrying on as now with a planned change
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-history-dark.png" />
         <img src="./docs/images/screenshot-history-light.png" alt="History screen" />
       </picture>
       <br /><b>History 记录</b><br />Every dose, grouped by day
     </td>
-    <td width="25%" valign="top">
+    <td width="33%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-labs-dark.png" />
         <img src="./docs/images/screenshot-labs-light.png" alt="Lab results screen" />
       </picture>
       <br /><b>Labs 检查</b><br />Lab results next to the model, used to calibrate it
     </td>
-    <td width="25%" valign="top">
+    <td width="33%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-dose-dark.png" />
         <img src="./docs/images/screenshot-dose-light.png" alt="Log a dose screen" />
       </picture>
-      <br /><b>Log a dose 记录剂量</b><br />Route, compound and dose, with guidance
+      <br /><b>Log a dose 记录剂量</b><br />Route, compound and dose, with its estradiol equivalent
     </td>
   </tr>
 </table>
