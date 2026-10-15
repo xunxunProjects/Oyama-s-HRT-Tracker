@@ -14,7 +14,8 @@ const Line: React.FC<{ d: string; w?: number }> = ({ d, w }) => <path d={d} stro
  * so there is no ground line, and the wash is what the row is about: the
  * liquid, half the capsule, the tablet, the gel, the pad, the sample.
  */
-export type DoodleName = Route | 'syringe' | 'chart' | 'vial' | 'lock' | 'cloud' | 'caution';
+export type DoodleName =
+    Route | 'syringe' | 'chart' | 'vial' | 'lock' | 'cloud' | 'caution' | 'code' | 'sparkle' | 'heart';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // An ampoule: the drawn-out tip, the ring it snaps at, liquid in the body.
@@ -215,6 +216,42 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M20 8.6 C 24 15, 28.4 22.6, 33 30.4 C 24.4 30.8, 15.6 30.2, 7 30.6 C 11.4 23, 15.8 15.6, 19.7 8.2" />
             <Line d="M20 15.6 C 19.8 18, 20.2 21, 20 23.2" w={2} />
             <Line d="M20 26.6 L 20.1 26.8" w={2.6} />
+        </>
+    ),
+    // A speech bubble with a tag in it: the picture on Credits, talking code.
+    code: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M9 9.6 C 16 9, 25 9.4, 31.4 9 C 33.6 9.2, 34.6 10.6, 34.4 12.8 C 34.6 17, 34.2 21, 34.4 24.4 C 34.4 26.6, 33 27.6, 31 27.6 C 26 27.4, 21 27.8, 17 27.6 L 11.6 32.6 L 12.4 27.6 C 10.6 27.8, 6.6 27.4, 5.8 25 C 5.6 20, 6 15, 5.7 12.6 C 5.8 10.6, 7 9.6, 9 9.6 Z"
+            />
+            <Line d="M9 9.6 C 16 9, 25 9.4, 31.4 9 C 33.6 9.2, 34.6 10.6, 34.4 12.8 C 34.6 17, 34.2 21, 34.4 24.4 C 34.4 26.6, 33 27.6, 31 27.6 C 26 27.4, 21 27.8, 17 27.6 L 11.6 32.6 L 12.4 27.6 C 10.6 27.8, 6.6 27.4, 5.8 25 C 5.6 20, 6 15, 5.7 12.6 C 5.8 10.6, 7 9.4, 9.8 9.3" />
+            <Line d="M15.4 14.4 C 14.4 15.8, 13.2 17, 12.2 18.4 C 13.2 19.8, 14.4 21, 15.6 22.2" w={1.6} />
+            <Line d="M21.4 13.6 C 20.4 16.8, 19.6 19.8, 18.6 23" w={1.6} />
+            <Line d="M24.6 14.4 C 25.6 15.8, 26.8 17, 27.8 18.4 C 26.8 19.8, 25.6 21, 24.4 22.2" w={1.6} />
+        </>
+    ),
+    // A four-pointed twinkle.
+    sparkle: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M20 6 C 21 15, 24 18.6, 34 20 C 24 21.4, 21 25, 20 34 C 19 25, 16 21.4, 6 20 C 16 18.6, 19 15, 20 6 Z"
+            />
+            <Line d="M20 6 C 21 15, 24 18.6, 34 20 C 24 21.4, 21 25, 20 34 C 19 25, 16 21.4, 6 20 C 16 18.6, 19 15, 20.4 5.4" />
+        </>
+    ),
+    // A heart, the left lobe a little rounder than the right.
+    heart: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M20 31 C 14 26.6, 8.4 22.4, 8.6 16.4 C 8.8 12, 12.4 9.4, 15.8 9.8 C 18 10, 19.4 11.6, 20 13.4 C 20.8 11.4, 22.4 9.8, 24.8 9.8 C 28.4 9.8, 31.6 12.6, 31.2 17 C 30.8 22.6, 25.6 26.8, 20 31 Z"
+            />
+            <Line d="M20 31 C 14 26.6, 8.4 22.4, 8.6 16.4 C 8.8 12, 12.4 9.4, 15.8 9.8 C 18 10, 19.4 11.6, 20 13.4 C 20.8 11.4, 22.4 9.8, 24.8 9.8 C 28.4 9.8, 31.6 12.6, 31.2 17 C 30.8 22.6, 25.6 26.8, 19.6 31.4" />
         </>
     ),
 };
