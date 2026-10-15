@@ -76,54 +76,14 @@ This project has since adjusted and extended the model: it adds testosterone (in
 
 ## Screenshots 截图
 
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-overview-dark.png" />
-        <img src="./docs/images/screenshot-overview-light.png" alt="Overview screen" />
-      </picture>
-      <br /><b>Overview 概览</b><br />The current estimate, today's doses and the level timeline
-    </td>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-timeline-dark.png" />
-        <img src="./docs/images/screenshot-timeline-light.png" alt="Hormone level timeline screen" />
-      </picture>
-      <br /><b>Timeline 浓度曲线</b><br />A month of estradiol levels and a calendar of doses
-    </td>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-whatif-dark.png" />
-        <img src="./docs/images/screenshot-whatif-light.png" alt="What-if screen" />
-      </picture>
-      <br /><b>What-if 方案试算</b><br />Compare carrying on as now with a planned change
-    </td>
-  </tr>
-  <tr>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-history-dark.png" />
-        <img src="./docs/images/screenshot-history-light.png" alt="History screen" />
-      </picture>
-      <br /><b>History 记录</b><br />Every dose, grouped by day
-    </td>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-labs-dark.png" />
-        <img src="./docs/images/screenshot-labs-light.png" alt="Lab results screen" />
-      </picture>
-      <br /><b>Labs 检查</b><br />Lab results next to the model, used to calibrate it
-    </td>
-    <td width="33%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-dose-dark.png" />
-        <img src="./docs/images/screenshot-dose-light.png" alt="Log a dose screen" />
-      </picture>
-      <br /><b>Log a dose 记录剂量</b><br />Route, compound and dose, with its estradiol equivalent
-    </td>
-  </tr>
-</table>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/gallery-dark.png" />
+  <img src="./docs/images/gallery-light.png" alt="Six screens of the app: overview, hormone level timeline, what-if, dose history, lab results and logging a dose" />
+</picture>
+
+From left to right: the overview with the current estimate, a month of estradiol levels, the what-if planner, the dose history, lab results next to the model, and logging a new dose.
+
+从左到右依次是：当前估算浓度的概览、一个月的雌二醇曲线、方案试算、用药记录、与模型对照的检查结果，以及记录新的剂量。
 
 The screenshots use sample records. To make them again, see [design/readme](./design/readme/README.md).
 
