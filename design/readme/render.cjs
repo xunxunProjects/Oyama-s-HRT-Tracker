@@ -1,5 +1,5 @@
-// Makes the README pictures in docs/images: six app screenshots and the
-// hero picture, each in a light and a dark version.
+// Makes the README pictures in docs/images: six app screenshots, the hero
+// picture and the screenshot gallery, each in a light and a dark version.
 //
 // Start the app first (npm run dev), then, on a Mac so the words are in SF Pro:
 //   npm install --no-save playwright && npx playwright install chromium
@@ -55,12 +55,12 @@ async function screenshots(browser, theme) {
     await context.close();
 }
 
-async function hero(browser, theme) {
-    const page = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1.5 });
-    await page.goto('file://' + path.join(__dirname, 'hero.html') + '?theme=' + theme);
+async function picture(browser, name, height, theme) {
+    const page = await browser.newPage({ viewport: { width: 1600, height }, deviceScaleFactor: 1.5 });
+    await page.goto('file://' + path.join(__dirname, `${name}.html`) + '?theme=' + theme);
     await page.evaluate('document.fonts.ready');
     await page.waitForLoadState('networkidle');
-    await page.screenshot({ path: path.join(OUT, `hero-${theme}.png`) });
+    await page.screenshot({ path: path.join(OUT, `${name}-${theme}.png`) });
     await page.close();
 }
 
@@ -69,7 +69,8 @@ async function hero(browser, theme) {
     const browser = await chromium.launch();
     for (const theme of ['light', 'dark']) {
         await screenshots(browser, theme);
-        await hero(browser, theme);
+        await picture(browser, 'hero', 900, theme);
+        await picture(browser, 'gallery', 680, theme);
     }
     await browser.close();
 })();

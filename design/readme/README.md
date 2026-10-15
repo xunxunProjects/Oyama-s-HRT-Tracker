@@ -14,6 +14,10 @@ pixels), in English. Before the app loads it writes the sample records in
 two trough lab results. The curve and figures on screen are the app's own model
 output for those records.
 
+`gallery.html` lays those six screenshots out side by side, slightly staggered,
+in the same frames as the hero; it becomes `gallery-light.png` and
+`gallery-dark.png` in the README's Screenshots section.
+
 To regenerate, start the app and run:
 
 ```sh

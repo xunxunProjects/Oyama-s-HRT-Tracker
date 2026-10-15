@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>README screenshots</title>
+        <style>
+            /* Colours and shadows are the app's design tokens (src/index.css). */
+            :root {
+                --bg: oklch(100% 0 0);
+                --surface-muted: oklch(97.3% 0.004 90);
+                --text: oklch(20.5% 0.006 90);
+                --text-muted: oklch(51.7% 0.013 90);
+                --border: oklch(91% 0.007 89);
+                --brand: oklch(65.8% 0.1131 39.15);
+                --illustration-wash: oklch(97.5% 0.012 45);
+                --shadow-md: 0 2px 4px rgba(24, 23, 20, 0.04), 0 8px 24px rgba(24, 23, 20, 0.08);
+            }
+            .dark {
+                --bg: oklch(20.5% 0.006 90);
+                --surface-muted: oklch(28.5% 0.008 87);
+                --text: oklch(98.7% 0.002 89);
+                --text-muted: oklch(72% 0.01 88);
+                --border: oklch(33% 0.009 88);
+                --brand: oklch(72.5% 0.105 39);
+                --illustration-wash: oklch(24.5% 0.04 40);
+                --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                width: 1600px;
+                height: 680px;
+                overflow: hidden;
+                background: var(--bg);
+                display: flex;
+                justify-content: center;
+                gap: 24px;
+                padding: 48px 48px 0;
+            }
+            /* Every other phone sits lower, so the row reads as a loose spread. */
+            .phone {
+                width: 230px;
+                flex: none;
+                align-self: flex-start;
+                border-radius: 32px;
+                overflow: hidden;
+                border: 1px solid var(--border);
+                box-shadow: var(--shadow-md);
+                background: var(--bg);
+            }
+            .phone:nth-child(even) {
+                margin-top: 72px;
+            }
+            .phone img {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="phone"><img data-shot="overview" alt="" /></div>
+        <div class="phone"><img data-shot="timeline" alt="" /></div>
+        <div class="phone"><img data-shot="whatif" alt="" /></div>
+        <div class="phone"><img data-shot="history" alt="" /></div>
+        <div class="phone"><img data-shot="labs" alt="" /></div>
+        <div class="phone"><img data-shot="dose" alt="" /></div>
+        <script>
+            // render.cjs opens this page as gallery.html?theme=dark for the dark picture.
+            const theme = new URLSearchParams(location.search).get('theme') || 'light';
+            document.documentElement.className = theme;
+            for (const img of document.querySelectorAll('img[data-shot]'))
+                img.src = `../../docs/images/screenshot-${img.dataset.shot}-${theme}.png`;
+        </script>
+    </body>
+</html>
