@@ -18,7 +18,9 @@ To regenerate, start the app and run:
 
 ```sh
 npm run dev
-npx -p playwright node design/readme/render.cjs http://localhost:5173/
+npm install --no-save playwright
+npx playwright install chromium
+node design/readme/render.cjs http://localhost:5173/
 ```
 
 Run it on a Mac, so the words are set in SF Pro like the app; elsewhere another

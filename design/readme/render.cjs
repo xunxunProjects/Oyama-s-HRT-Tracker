@@ -2,7 +2,8 @@
 // hero picture, each in a light and a dark version.
 //
 // Start the app first (npm run dev), then, on a Mac so the words are in SF Pro:
-//   npx -p playwright node design/readme/render.cjs [app url]
+//   npm install --no-save playwright && npx playwright install chromium
+//   node design/readme/render.cjs [app url]
 // The app url defaults to http://localhost:5173.
 const fs = require('fs');
 const path = require('path');
