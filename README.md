@@ -1,5 +1,10 @@
 # Oyama's HRT Tracker
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/hero-dark.png" />
+  <img src="./docs/images/hero-light.png" alt="Oyama's HRT Tracker on a phone: the current estimated estradiol level, today's doses and the hormone level timeline, next to the lab results page" />
+</picture>
+
 **Oyama's HRT Tracker** is a privacy-focused tool for logging Hormone Replacement Therapy (HRT) and simulating the hormone levels your doses produce. It has a feminizing mode (estradiol, plus cyproterone acetate) and a masculinizing mode (testosterone), and it can also log other adjunct drugs.
 
 **Oyama's HRT Tracker**（HRT 记录工具）是一个注重隐私的工具，用于记录激素替代疗法（HRT）用药，并模拟这些剂量带来的激素水平。它提供女性化模式（雌二醇，以及醋酸环丙孕酮）和男性化模式（睾酮），也可以记录其他辅助用药。
@@ -66,6 +71,47 @@ This project has since adjusted and extended the model: it adds testosterone (in
 - **Internationalization**: Interface in **Simplified Chinese**, **Traditional Chinese**, **Cantonese**, **English**, **Japanese**, **Korean** and **Turkish**.
 
   **多语言支持**：界面支持简体中文、繁体中文、粤语、英语、日语、韩语和土耳其语。
+
+---
+
+## Screenshots 截图
+
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-overview-dark.png" />
+        <img src="./docs/images/screenshot-overview-light.png" alt="Overview screen" />
+      </picture>
+      <br /><b>Overview 概览</b><br />The current estimate, today's doses and the level timeline
+    </td>
+    <td width="25%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-history-dark.png" />
+        <img src="./docs/images/screenshot-history-light.png" alt="History screen" />
+      </picture>
+      <br /><b>History 记录</b><br />Every dose, grouped by day
+    </td>
+    <td width="25%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-labs-dark.png" />
+        <img src="./docs/images/screenshot-labs-light.png" alt="Lab results screen" />
+      </picture>
+      <br /><b>Labs 检查</b><br />Lab results next to the model, used to calibrate it
+    </td>
+    <td width="25%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./docs/images/screenshot-dose-dark.png" />
+        <img src="./docs/images/screenshot-dose-light.png" alt="Log a dose screen" />
+      </picture>
+      <br /><b>Log a dose 记录剂量</b><br />Route, compound and dose, with guidance
+    </td>
+  </tr>
+</table>
+
+The screenshots use sample records. To make them again, see [design/readme](./design/readme/README.md).
+
+截图中使用的是示例数据。重新生成的方法见 [design/readme](./design/readme/README.md)。
 
 ---
 
