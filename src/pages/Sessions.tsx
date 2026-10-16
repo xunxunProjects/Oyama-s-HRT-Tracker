@@ -135,7 +135,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                     <div>
                         {sessions.map(s => {
                             const { browser, os, isMobile } = parseDevice(s.device_info || '');
-                            const label = [browser ?? t('session.unknown_browser'), os].filter(Boolean).join(' · ');
+                            const browserLabel = browser ?? t('session.unknown_browser');
                             const isTerminating = terminating === s.id;
                             const DeviceIcon = isMobile ? Smartphone : Monitor;
 
@@ -143,24 +143,29 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                 <div key={s.id} className={`flex items-start gap-3 py-4 ${divider}`}>
                                     <SettingsIconBox icon={DeviceIcon} />
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <p className={`text-sm font-medium ${settingsOn} truncate`}>{label}</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className={`min-w-0 truncate text-sm font-medium ${settingsOn}`}>
+                                                {browserLabel}
+                                            </p>
                                             {s.is_current && (
-                                                <span
-                                                    className={`shrink-0 text-[0.6875rem] font-medium ${settingsMuted} px-1.5 py-0.5 rounded bg-[var(--surface-hover)]`}
-                                                >
+                                                <span className="shrink-0 text-xs font-medium text-[var(--accent-ink)]">
                                                     {t('account.sessions_current')}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className={`text-xs ${settingsMuted} mt-1 font-mono tracking-wide`}>
+                                        {os && <p className={`mt-0.5 text-xs ${settingsMuted}`}>{os}</p>}
+                                        <p className={`mt-1 font-mono text-xs tracking-wide ${settingsMuted}`}>
                                             {maskIpAddress(s.ip)}
                                         </p>
-                                        <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                            {t('account.sessions_last_used')}{' '}
-                                            {formatRelative(s.last_used_at, nowSec, t)}
-                                            {' · '}
-                                            {t('account.sessions_created')} {formatRelative(s.created_at, nowSec, t)}
+                                        <p className={`mt-0.5 text-xs ${settingsMuted}`}>
+                                            <span className="block">
+                                                {t('account.sessions_last_used')}{' '}
+                                                {formatRelative(s.last_used_at, nowSec, t)}
+                                            </span>
+                                            <span className="block">
+                                                {t('account.sessions_created')}{' '}
+                                                {formatRelative(s.created_at, nowSec, t)}
+                                            </span>
                                         </p>
                                     </div>
                                     {!s.is_current && (

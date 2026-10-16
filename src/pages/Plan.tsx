@@ -164,7 +164,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                                             <p className={`text-xs mt-0.5 leading-relaxed ${muted}`}>
                                                 {frequencyLabel(item, t)}
                                                 {item.route === Route.gel &&
-                                                    ` · ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
+                                                    `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                                             </p>
                                         </div>
                                         <ChevronDown

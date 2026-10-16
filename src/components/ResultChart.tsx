@@ -337,10 +337,10 @@ const ResultChart = ({
     const hasSecondary = hasE2 && hasCPA;
 
     const primaryMeta = isTransmasc
-        ? { label: t('label.total_t'), unit: 'ng/dl', decimals: 0 }
+        ? { label: t('label.total_t'), unit: 'ng/dL', decimals: 0 }
         : primaryIsCPA
-          ? { label: t('label.cpa_chart'), unit: 'ng/ml', decimals: 2 }
-          : { label: t('label.e2'), unit: 'pg/ml', decimals: 1 };
+          ? { label: t('label.cpa_chart'), unit: 'ng/mL', decimals: 2 }
+          : { label: t('label.e2'), unit: 'pg/mL', decimals: 1 };
 
     // Typical target band, matching the reference ranges the app uses for its
     // status labels (see useAppData currentStatus): transmasc total-T sits in
@@ -1328,8 +1328,8 @@ const ResultChart = ({
                         }}
                     >
                         <div className="text-[0.75rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
-                            {formatDate(new Date(hoverPt!.t), lang, timeZone)} ·{' '}
-                            {formatTime(new Date(hoverPt!.t), timeZone)}
+                            <span className="block">{formatDate(new Date(hoverPt!.t), lang, timeZone)}</span>
+                            <span className="block">{formatTime(new Date(hoverPt!.t), timeZone)}</span>
                         </div>
                         {/* A curve too low to show reads "--", and has no unit. */}
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
@@ -1346,7 +1346,7 @@ const ResultChart = ({
                                     {hoverPt!.s != null ? hoverPt!.s.toFixed(2) : '--'}
                                 </span>
                                 {hoverPt!.s != null && (
-                                    <span className="text-[0.75rem] text-[var(--text-muted)]">ng/ml</span>
+                                    <span className="text-[0.75rem] text-[var(--text-muted)]">ng/mL</span>
                                 )}
                             </div>
                         )}

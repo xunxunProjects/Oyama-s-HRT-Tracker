@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
+import { clinicalUnit } from '../utils/clinicalUnit';
 
 type LabUnit = LabResult['unit'];
 
@@ -34,12 +35,6 @@ const divider = 'border-b border-[var(--border)]';
 
 const E2_UNITS: LabUnit[] = ['pmol/l', 'pg/ml'];
 const T_UNITS: LabUnit[] = ['ng/dl', 'nmol/l'];
-const UNIT_LABELS: Record<LabUnit, string> = {
-    'pmol/l': 'pmol/L',
-    'pg/ml': 'pg/mL',
-    'ng/dl': 'ng/dL',
-    'nmol/l': 'nmol/L',
-};
 
 // A lab value worth saving: a real number above zero. Calibration drops a zero
 // anyway, so Save stays disabled rather than accepting one and doing nothing.
@@ -56,7 +51,7 @@ const otherUnitReading = (value: number, unit: LabUnit, units: LabUnit[]): strin
     const other = units.find(u => u !== unit);
     if (!other) return null;
     const toBase = isT_LabUnit(unit) ? convertToNgDl : convertToPgMl;
-    return `≈ ${fmtApprox(toBase(value, unit) / toBase(1, other))} ${UNIT_LABELS[other]}`;
+    return `≈ ${fmtApprox(toBase(value, unit) / toBase(1, other))} ${clinicalUnit(other)}`;
 };
 
 // One hormone's value + unit toggle. Reused for the estradiol row, the
@@ -80,7 +75,7 @@ const HormoneValueField: React.FC<{
                     {label}
                 </label>
                 <Segmented
-                    options={units.map(u => ({ id: u, label: UNIT_LABELS[u] }))}
+                    options={units.map(u => ({ id: u, label: clinicalUnit(u) }))}
                     value={unit}
                     onChange={onUnitChange}
                     aria-label={label}
@@ -285,7 +280,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                             onClick={() =>
                                 showDialog(
                                     'confirm',
-                                    `${resultToEdit.concValue} ${UNIT_LABELS[resultToEdit.unit]} · ${formatWhen(new Date(resultToEdit.timeH * 3600000))}`,
+                                    `${resultToEdit.concValue} ${clinicalUnit(resultToEdit.unit)}\n${formatWhen(new Date(resultToEdit.timeH * 3600000))}`,
                                     () => {
                                         onDelete(resultToEdit.id);
                                         onCancel();

@@ -47,9 +47,8 @@ const formatStamp = (timestamp: number, lang: string): string =>
         minute: '2-digit',
     });
 
-const badgeBase = 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium leading-none';
-const liveBadgeClass = `${badgeBase} bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]`;
-const metaBadgeClass = `${badgeBase} bg-[var(--surface-hover)] text-muted`;
+const liveMarkClass = 'shrink-0 text-xs font-medium text-[var(--accent-ink)]';
+const metaMarkClass = 'inline-flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]';
 
 const ShareSettings: React.FC<ShareSettingsProps> = ({
     onBack,
@@ -216,9 +215,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 <Check size={14} strokeWidth={2.25} />
                             </span>
                             <p className="text-[0.9375rem] font-medium">{copy.created}</p>
-                            {createdShare.live && <span className={liveBadgeClass}>{copy.liveBadge}</span>}
+                            {createdShare.live && <span className={liveMarkClass}>{copy.liveBadge}</span>}
                             {createdShare.passwordRequired && (
-                                <span className={metaBadgeClass}>
+                                <span className={metaMarkClass}>
                                     <LockKeyhole size={12} />
                                     {copy.protected}
                                 </span>
@@ -414,15 +413,15 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             <p className="text-sm font-medium text-body">
                                                 {copy.sharedOn} {formatStamp(share.createdAt, lang)}
                                             </p>
-                                            {share.live && <span className={liveBadgeClass}>{copy.liveBadge}</span>}
+                                            {share.live && <span className={liveMarkClass}>{copy.liveBadge}</span>}
                                             {share.passwordRequired && (
-                                                <span className={metaBadgeClass}>
+                                                <span className={metaMarkClass}>
                                                     <LockKeyhole size={12} />
                                                     {copy.protected}
                                                 </span>
                                             )}
                                             {!share.encrypted && (
-                                                <span className={metaBadgeClass}>{copy.notEncrypted}</span>
+                                                <span className={metaMarkClass}>{copy.notEncrypted}</span>
                                             )}
                                         </div>
                                         <p className="mt-1 truncate text-xs text-muted">
