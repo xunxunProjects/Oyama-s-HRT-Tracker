@@ -370,12 +370,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                         <div className="mt-2.5">
                                             <div className="flex items-baseline justify-between gap-3">
                                                 <span className="text-xs text-muted">{copy.entropyLabel}</span>
-                                                <span className="font-mono text-xs tabular-nums text-body">
+                                                <span className="shrink-0 font-mono text-xs tabular-nums text-body">
                                                     {Math.round(entropy)} {copy.entropyUnit}
                                                 </span>
                                             </div>
                                             <div
-                                                className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--accent-subtle)]"
+                                                className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[var(--border)] bg-[var(--accent-subtle)]"
                                                 role="progressbar"
                                                 aria-label={copy.entropyLabel}
                                                 aria-valuemin={0}
@@ -383,29 +383,28 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                                 aria-valuenow={Math.min(Math.round(entropy), 80)}
                                             >
                                                 <div
-                                                    className="h-full rounded-full transition-[width] duration-300 ease-[var(--ease-out)]"
+                                                    className={`h-full rounded-full transition-[width,background-color] duration-300 ease-[var(--ease-out)] ${
+                                                        entropy < WEAK_BITS
+                                                            ? 'bg-[color-mix(in_srgb,var(--danger)_80%,var(--surface))]'
+                                                            : entropy < STRONG_BITS
+                                                              ? 'bg-[color-mix(in_srgb,var(--warning)_80%,var(--surface))]'
+                                                              : 'bg-[color-mix(in_srgb,var(--accent-ink)_85%,var(--surface))]'
+                                                    }`}
                                                     style={{
                                                         width: `${Math.min(100, (entropy / 80) * 100)}%`,
-                                                        backgroundColor:
-                                                            entropy < WEAK_BITS
-                                                                ? 'var(--danger)'
-                                                                : entropy < STRONG_BITS
-                                                                  ? 'var(--warning)'
-                                                                  : 'var(--accent-ink)',
+                                                        backgroundImage:
+                                                            'linear-gradient(180deg, color-mix(in srgb, #ffffff 20%, transparent), transparent 65%)',
                                                     }}
                                                 />
                                             </div>
-                                            <p
-                                                className="mt-1.5 text-[11px] leading-relaxed text-muted"
-                                                aria-live="polite"
-                                            >
+                                            <p className="mt-1.5 text-xs leading-relaxed text-muted" aria-live="polite">
                                                 {copy.entropyFormula
                                                     .replace('{length}', String(theory.length))
                                                     .replace('{charset}', String(theory.charsetSize))
                                                     .replace('{bits}', String(Math.round(theory.bits)))
                                                     .replace('{unit}', copy.entropyUnit)}
                                             </p>
-                                            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                                            <p className="mt-1 text-xs leading-relaxed text-muted">
                                                 {copy.entropyAssumptions}
                                             </p>
                                         </div>
