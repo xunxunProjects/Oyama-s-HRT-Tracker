@@ -136,8 +136,7 @@ export function estimatePasswordBits(password: string): number {
     const lower = password.toLowerCase();
     const core = lower.replace(/[\d!-/:-@[-`{-~ ]+$/, '').replace(/^[\d!-/:-@[-`{-~ ]+/, '');
     if (COMMON.has(lower) || (core && COMMON.has(core) && lower.length - core.length <= 6)) return 10;
-    if (/^\d+$/.test(password) && (looksLikeDate(password) || /^(520|1314|5201314|1314520)+\d{0,4}$/.test(password)))
-        return 10;
+    if (/^\d+$/.test(password) && (looksLikeDate(password) || /^(?:520|1314)+\d{0,4}$/.test(password))) return 10;
     return effectiveLength(password) * Math.log2(poolSize(password));
 }
 
