@@ -5,8 +5,11 @@
 
 @theme {
     --font-sans:
-        -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC",
-        "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
+        "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-display:
+        "SF Pro Display", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
+        "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
 
     /* Type scale. The base is 15px (text-sm, body) with 13px captions
        (text-xs); 12px is the smallest readable size, used deliberately. */
@@ -419,8 +422,24 @@ html.mono {
     filter: grayscale(1);
 }
 
+/* Apple draws SF Pro Text for UI copy and SF Pro Display from 20px up.
+   Chinese, Japanese and Korean take the system face for the page language. */
+:lang(zh-TW) {
+    --font-cjk: "PingFang TC", "PingFang HK", "PingFang SC", "Hiragino Sans";
+}
+:lang(zh-HK) {
+    --font-cjk: "PingFang HK", "PingFang TC", "PingFang SC", "Hiragino Sans";
+}
+:lang(ja) {
+    --font-cjk: "Hiragino Sans", "PingFang SC", "Apple SD Gothic Neo";
+}
+:lang(ko) {
+    --font-cjk: "Apple SD Gothic Neo", "PingFang SC", "Hiragino Sans";
+}
+
 body {
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
     color: var(--text);
     background: var(--bg);
     height: 100%;
@@ -428,6 +447,17 @@ body {
     overscroll-behavior-y: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+.font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+}
+
+/* The sidebar wordmark is 17px, under the 20px line where Display takes over. */
+h1.font-sans {
+    font-family: var(--font-sans);
 }
 
 #root {

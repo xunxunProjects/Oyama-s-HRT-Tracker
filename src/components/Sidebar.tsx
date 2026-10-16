@@ -18,7 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
             {/* Logo: the app icon in a rounded tile, then the name. The tile's
                 left edge lines up with the nav icons below it. */}
             <div className="px-6 pt-7 pb-6">
-                <h1 className="flex items-center gap-2.5 text-[1.0625rem] leading-none tracking-[-0.02em]">
+                <h1 className="flex items-center gap-2.5 font-sans text-[1.0625rem] leading-none tracking-[-0.02em]">
                     <img
                         src="/pwa-192x192.png"
                         alt=""

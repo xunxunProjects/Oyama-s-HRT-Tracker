@@ -66,7 +66,7 @@ const PageHeader: React.FC<{
                             >
                                 <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
                                 <span
-                                    className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
+                                    className={`font-display text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
                                 >
                                     {title}
                                 </span>

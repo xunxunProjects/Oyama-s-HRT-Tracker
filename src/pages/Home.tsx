@@ -174,7 +174,8 @@ const Home: React.FC<HomeProps> = ({
     // A reading's number and unit. The slot carries the number's type size, so
     // `ch` in its min-width is one tabular digit at whatever size the breakpoint
     // picked; the rem part covers the gap and the unit after it.
-    const readingSlot = 'inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
+    const readingSlot =
+        'font-display inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
     const fullSize =
         'text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)]';
     // Side by side in a column narrower than 32rem (every phone), the second

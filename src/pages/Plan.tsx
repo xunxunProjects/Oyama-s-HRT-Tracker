@@ -161,13 +161,10 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete }) => {
                                         <Doodle name={item.route} />
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm font-medium ${on}`}>{regimenLabel(item, t)}</p>
-                                            <p className={`mt-0.5 text-xs leading-relaxed ${muted}`}>
-                                                <span className="block">{frequencyLabel(item, t)}</span>
-                                                {item.route === Route.gel && (
-                                                    <span className="block">
-                                                        {gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}
-                                                    </span>
-                                                )}
+                                            <p className={`text-xs mt-0.5 leading-relaxed ${muted}`}>
+                                                {frequencyLabel(item, t)}
+                                                {item.route === Route.gel &&
+                                                    `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                                             </p>
                                         </div>
                                         <ChevronDown

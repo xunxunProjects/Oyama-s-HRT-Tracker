@@ -41,7 +41,8 @@ alwaysApply: true
 
 ## 字体
 
-- 只用系统字体，`var(--font-sans)`，不引入字体文件
+- 只用系统字体，不引入字体文件。正文用 `var(--font-sans)`（SF Pro Text），20px 以上的标题和读数用 `var(--font-display)`（SF Pro Display）
+- 中文按页面语言选苹方：简体 PingFang SC，繁体 PingFang TC，粤语 PingFang HK；日文 Hiragino Sans，韩文 Apple SD Gothic Neo
 - 正文基准 15px，行高 22px；最小可读文字 12px；11px 只给分组小标题、导航标签和刻度数字
 - 读数是主角：64px，字重 300，字距 -0.035em，等宽数字
 - 字重：读数 300，正文 400，标签和按钮 500，标题和选中状态 600

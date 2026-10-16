@@ -131,16 +131,18 @@ const Lab: React.FC<LabProps> = ({
     // One-line summary of the active calibration for the settings entry row.
     // Before any usable labs exist there's no fit to show, so we fall back to
     // just the method name (a bare "×1.00" would be misleading).
-    const calParts =
+    const calSummary =
         calibrationMethod === 'off'
-            ? [t('cal.off')]
+            ? t('cal.off')
             : !hasCal
-              ? [t(`cal.${calibrationMethod}`)]
+              ? t(`cal.${calibrationMethod}`)
               : [
                     t(`cal.${calibrationMethod}`),
                     `×${calibration.scale.toFixed(2)}`,
                     calibration.fitErrPct !== null ? `±${calibration.fitErrPct.toFixed(0)}%` : null,
-                ].filter((part): part is string => part !== null);
+                ]
+                    .filter(Boolean)
+                    .join(', ');
 
     return (
         <div ref={rootRef} className="relative pb-32">
@@ -197,11 +199,7 @@ const Lab: React.FC<LabProps> = ({
                 >
                     <div className="min-w-0">
                         <p className={`text-[0.9375rem] ${on}`}>{t('cal.settings')}</p>
-                        <p className={`mt-0.5 flex flex-wrap gap-x-3 text-xs tabular-nums ${muted}`}>
-                            {calParts.map(part => (
-                                <span key={part}>{part}</span>
-                            ))}
-                        </p>
+                        <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{calSummary}</p>
                     </div>
                     <ChevronRight size={16} className={`${muted} shrink-0`} />
                 </button>
@@ -272,29 +270,27 @@ const Lab: React.FC<LabProps> = ({
                                                 className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${unused ? 'bg-[var(--border-strong)]' : 'bg-[var(--accent)]'}`}
                                             />
                                             <span className="flex-1 min-w-0">
-                                                <span className="mb-1 flex items-baseline justify-between gap-2">
-                                                    <span className={`text-sm font-medium ${on}`}>
-                                                        {res.concValue} {clinicalUnit(res.unit)}
+                                                <span className="flex items-center justify-between mb-1">
+                                                    <span className="text-sm">
+                                                        <span className={`font-medium ${on}`}>
+                                                            {res.concValue} {clinicalUnit(res.unit)}
+                                                        </span>
+                                                        <span className={muted}>
+                                                            {', '}
+                                                            {t(isT ? 'label.t' : 'label.e2')}
+                                                        </span>
                                                     </span>
-                                                    <span className={`shrink-0 text-xs tabular-nums ${muted}`}>
+                                                    <span className={`text-xs tabular-nums ${muted} shrink-0`}>
                                                         {formatTime(d)}
                                                     </span>
                                                 </span>
-                                                <span className={`block text-xs ${muted}`}>
-                                                    {t(isT ? 'label.t' : 'label.e2')}
-                                                </span>
-                                                <span className="mt-0.5 flex items-end justify-between gap-2">
-                                                    {/* How long after the dose it was drawn sits under the
+                                                <span className="flex items-center justify-between gap-2">
+                                                    {/* How long after the dose it was drawn rides on the
                                                         date: what makes a lab comparable with the curve. */}
                                                     <span className={`text-xs ${muted}`}>
-                                                        <span className="block">{formatDate(d, lang)}</span>
-                                                        {timing && (
-                                                            <span className="block">
-                                                                {fill(t('lab.after_dose'), {
-                                                                    when: sinceDoseLabel(timing.hoursBefore, t),
-                                                                })}
-                                                            </span>
-                                                        )}
+                                                        {formatDate(d, lang)}
+                                                        {timing &&
+                                                            `, ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}
                                                     </span>
                                                     {/* Against the raw model, named as the plot names it, and
                                                         in words: "13% above" rather than a bare ×1.13. */}
@@ -303,7 +299,13 @@ const Lab: React.FC<LabProps> = ({
                                                             <span className={muted}>
                                                                 {t('cal.plot.before')} {Math.round(cmp.pred)}
                                                             </span>
-                                                            <span className="font-medium text-[var(--accent-ink)]">
+                                                            <span
+                                                                className="px-1.5 py-0.5 rounded font-medium"
+                                                                style={{
+                                                                    color: 'var(--accent-ink)',
+                                                                    background: 'var(--accent-subtle)',
+                                                                }}
+                                                            >
                                                                 {pct === 0
                                                                     ? '±0%'
                                                                     : fill(
