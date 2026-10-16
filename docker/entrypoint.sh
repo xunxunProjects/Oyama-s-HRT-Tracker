@@ -34,7 +34,10 @@ node ./docker/reconcile.mjs "$database_name" \
 # --var arguments: a command line is readable through /proc, so the values
 # used to show up in `ps` for anything else running in this container. The
 # file is written fresh on every start and trimmed of line breaks; values are
-# double-quoted with backslashes and quotes escaped for dotenv.
+# double-quoted with backslashes and quotes escaped for dotenv. Plain
+# environment variables are not bindings for the worker, so every setting the
+# worker reads from Env (TRUSTED_IP_SOURCE, for instance) has to be forwarded
+# into this file explicitly.
 escape_dotenv() {
     printf '%s' "$1" | tr -d '\n\r' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
@@ -48,6 +51,11 @@ umask 077
     fi
     if [ -n "${ADMIN_PASSWORD:-}" ]; then
         printf 'ADMIN_PASSWORD="%s"\n' "$(escape_dotenv "$ADMIN_PASSWORD")"
+    fi
+    # Optional rate-limit IP source: 'cf' (default), 'x-forwarded-for' behind
+    # exactly one trusted proxy, or 'none' on a mirror without client IPs.
+    if [ -n "${TRUSTED_IP_SOURCE:-}" ]; then
+        printf 'TRUSTED_IP_SOURCE="%s"\n' "$(escape_dotenv "$TRUSTED_IP_SOURCE")"
     fi
 } > "$vars_file"
 chmod 600 "$vars_file"

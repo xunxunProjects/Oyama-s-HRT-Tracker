@@ -177,8 +177,13 @@ function shareOriginFor(url: URL, env: Env): string {
  * runtime before we see it. Malformed JSON and invalid UTF-8 are reported as
  * request errors instead of letting them reach the outer catch as a 500.
  * Bigger payloads have their own dedicated limits and do not use this.
+ * Callers with a tighter budget than MAX_JSON_BODY_BYTES can pass their own
+ * cap (the share-access body, for example, is limited to 1 KiB).
  */
-export async function readSmallJsonBody(request: Request): Promise<{ ok: boolean; value: any; tooLarge: boolean }> {
+export async function readSmallJsonBody(
+    request: Request,
+    maxBytes: number = MAX_JSON_BODY_BYTES,
+): Promise<{ ok: boolean; value: any; tooLarge: boolean }> {
     if (!request.body) {
         return { ok: true, value: {}, tooLarge: false };
     }
@@ -194,7 +199,7 @@ export async function readSmallJsonBody(request: Request): Promise<{ ok: boolean
             if (!value) continue;
 
             totalBytes += value.byteLength;
-            if (totalBytes > MAX_JSON_BODY_BYTES) {
+            if (totalBytes > maxBytes) {
                 try {
                     await reader.cancel();
                 } catch {
@@ -1449,17 +1454,13 @@ export default {
                 if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
                     return jsonError('TOO_LARGE', 'Request body is too large', 413);
                 }
-                const rawVerifyBody = await request.text();
-                if (new TextEncoder().encode(rawVerifyBody).byteLength > MAX_JSON_BODY_BYTES) {
-                    return jsonError('TOO_LARGE', 'Request body is too large', 413);
+                const parsedVerifyBody = await readSmallJsonBody(request);
+                if (!parsedVerifyBody.ok) {
+                    return parsedVerifyBody.tooLarge
+                        ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                        : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                 }
-                let verifyBody: any;
-                try {
-                    verifyBody = JSON.parse(rawVerifyBody);
-                } catch {
-                    return jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                }
-                const { challengeToken, credential } = verifyBody ?? {};
+                const { challengeToken, credential } = parsedVerifyBody.value ?? {};
                 if (!challengeToken || !credential?.id || !credential?.response) {
                     return jsonError('INVALID_REQUEST', 'Missing data', 400);
                 }
@@ -1560,16 +1561,13 @@ export default {
                 if (Number.isFinite(declaredLength) && declaredLength > 1024) {
                     return shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413);
                 }
-                const rawBody = await request.text();
-                if (new TextEncoder().encode(rawBody).byteLength > 1024) {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413);
+                const parsedAccessBody = await readSmallJsonBody(request, 1024);
+                if (!parsedAccessBody.ok) {
+                    return parsedAccessBody.tooLarge
+                        ? shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413)
+                        : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
                 }
-                let body: unknown;
-                try {
-                    body = rawBody.length > 0 ? JSON.parse(rawBody) : {};
-                } catch {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
-                }
+                const body: unknown = parsedAccessBody.value;
                 if (!isJsonObject(body))
                     return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
                 if (typeof body.token !== 'string')
@@ -3377,17 +3375,18 @@ export default {
 
                     // POST /api/user/passkey/register — verify attestation and save passkey
                     if (url.pathname === '/api/user/passkey/register' && request.method === 'POST') {
-                        const rawRegBody = await request.text();
-                        if (new TextEncoder().encode(rawRegBody).byteLength > MAX_JSON_BODY_BYTES) {
-                            return jsonError('TOO_LARGE', 'Request body is too large', 413);
+                        const parsedRegBody = await readSmallJsonBody(request);
+                        if (!parsedRegBody.ok) {
+                            return parsedRegBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
-                        let regBody: any;
-                        try {
-                            regBody = JSON.parse(rawRegBody);
-                        } catch {
-                            return jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { challengeToken, credential, deviceName, password: pkRegPassword } = regBody ?? {};
+                        const {
+                            challengeToken,
+                            credential,
+                            deviceName,
+                            password: pkRegPassword,
+                        } = parsedRegBody.value ?? {};
                         if (!challengeToken || !credential?.response) {
                             return jsonError('INVALID_REQUEST', 'Missing data', 400);
                         }

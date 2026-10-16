@@ -184,6 +184,11 @@ Tor/I2P 守护进程）。
 容器使用 Wrangler 的本地 workerd 运行时以及本地持久化 D1/R2 资源，不会连接
 Cloudflare 生产数据库或存储桶。
 
+`TRUSTED_IP_SOURCE` 也是可选项：容器前只有一层你自己控制的反向代理时设为
+`x-forwarded-for`（否则 worker 看不到客户端地址，所有访客共用同一个限流桶），
+Tor/I2P 镜像等完全没有客户端地址的场景设为 `none`；默认 `cf`，读取
+Cloudflare 的 `CF-Connecting-IP` 头。
+
 `.github/workflows/docker-publish.yml` 会在 PR 中验证构建，并在 `main`、版本标签或
 手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。
 该镜像包目前是私有的，没有权限时无法拉取，请按上面的步骤从源码构建。
