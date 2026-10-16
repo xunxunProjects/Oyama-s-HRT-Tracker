@@ -15,6 +15,13 @@ import {
     sharingService,
 } from '../services/sharing';
 import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
+import {
+    STRONG_BITS,
+    WEAK_BITS,
+    estimatePasswordBits,
+    passwordStrength,
+    theoreticalPasswordBits,
+} from '../../passwordStrength';
 import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -101,9 +108,20 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         [mode, events, simulation, calibrationFn],
     );
 
+    // The server re-checks this on the share create endpoint; blocking it here
+    // just keeps the person from losing a round trip to a 400.
+    const strength = password.length >= 8 ? passwordStrength(password) : null;
+    const passwordBlocked = passwordEnabled && (password.length < 8 || strength === 'weak');
+
+    // Live readouts for the password field, from the same module the gate uses:
+    // the guess-model estimate in bits, and the theoretical search-space entropy
+    // H = L x log2(N) under the uniform-random assumption.
+    const entropy = password.length > 0 ? estimatePasswordBits(password) : null;
+    const theory = password.length > 0 ? theoreticalPasswordBits(password) : null;
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (submitting || !events.length) return;
+        if (submitting || !events.length || passwordBlocked) return;
 
         setError(null);
         setSubmitting(true);
@@ -160,6 +178,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 if (requestError.code === 'SNAPSHOT_TOO_LARGE') setError(copy.tooLarge);
                 else if (requestError.code === 'SHARE_LIMIT_REACHED') setError(copy.limitReached);
                 else if (requestError.code === 'INVALID_EXPIRATION') setError(copy.invalidExpiry);
+                else if (requestError.code === 'RATE_LIMITED') setError(copy.rateLimitedDescription);
                 else setError(copy.createError);
             } else {
                 setError(copy.createError);
@@ -329,6 +348,67 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {strength && (
+                                        <p
+                                            className={`mt-1.5 text-xs ${
+                                                strength === 'weak'
+                                                    ? 'text-[var(--danger)]'
+                                                    : strength === 'strong'
+                                                      ? 'text-[var(--accent-ink)]'
+                                                      : 'text-muted'
+                                            }`}
+                                            aria-live="polite"
+                                        >
+                                            {strength === 'weak'
+                                                ? copy.passwordWeak
+                                                : strength === 'strong'
+                                                  ? copy.passwordStrong
+                                                  : copy.passwordFair}
+                                        </p>
+                                    )}
+                                    {entropy !== null && theory !== null && (
+                                        <div className="mt-2.5">
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <span className="text-xs text-muted">{copy.entropyLabel}</span>
+                                                <span className="shrink-0 font-mono text-xs tabular-nums text-body">
+                                                    {Math.round(entropy)} {copy.entropyUnit}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[var(--border)] bg-[var(--accent-subtle)]"
+                                                role="progressbar"
+                                                aria-label={copy.entropyLabel}
+                                                aria-valuemin={0}
+                                                aria-valuemax={80}
+                                                aria-valuenow={Math.min(Math.round(entropy), 80)}
+                                            >
+                                                <div
+                                                    className={`h-full rounded-full transition-[width,background-color] duration-300 ease-[var(--ease-out)] ${
+                                                        entropy < WEAK_BITS
+                                                            ? 'bg-[color-mix(in_srgb,var(--danger)_80%,var(--surface))]'
+                                                            : entropy < STRONG_BITS
+                                                              ? 'bg-[color-mix(in_srgb,var(--warning)_80%,var(--surface))]'
+                                                              : 'bg-[color-mix(in_srgb,var(--accent-ink)_85%,var(--surface))]'
+                                                    }`}
+                                                    style={{
+                                                        width: `${Math.min(100, (entropy / 80) * 100)}%`,
+                                                        backgroundImage:
+                                                            'linear-gradient(180deg, color-mix(in srgb, #ffffff 20%, transparent), transparent 65%)',
+                                                    }}
+                                                />
+                                            </div>
+                                            <p className="mt-1.5 text-xs leading-relaxed text-muted" aria-live="polite">
+                                                {copy.entropyFormula
+                                                    .replace('{length}', String(theory.length))
+                                                    .replace('{charset}', String(theory.charsetSize))
+                                                    .replace('{bits}', String(Math.round(theory.bits)))
+                                                    .replace('{unit}', copy.entropyUnit)}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-relaxed text-muted">
+                                                {copy.entropyAssumptions}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -379,7 +459,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
+                                disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
                                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}

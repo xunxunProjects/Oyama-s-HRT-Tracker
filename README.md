@@ -123,7 +123,10 @@ sudo chown 1000:1000 ./data
 docker compose up -d --build
 ```
 
-Then open <http://localhost:8787>.
+Then open <http://localhost:8787>. The port is published on `127.0.0.1` only,
+so the app is not reachable from the LAN by default. Keep it that way unless a
+reverse proxy sits in front, or deliberately change the mapping in
+`compose.yaml` to `"8787:8787"`.
 
 The first build takes a few minutes. To update later, pull the new code and
 rebuild; your data in `./data` is kept:
@@ -135,9 +138,11 @@ docker compose up -d --build
 
 ### Plain http and https
 
-Opening the app over plain http from another device (for example
-`http://192.168.1.5:8787`) works, and backups, exports and share links stay
-end-to-end encrypted there too. Browsers do hold back a few features until the
+To open the app over plain http from another device (for example
+`http://192.168.1.5:8787`), publish the port on your LAN interface — change
+the compose mapping to `"8787:8787"` — or put the container behind a reverse
+proxy first. Backups, exports and share links stay end-to-end encrypted over
+plain http too. Browsers do hold back a few features until the
 page is served over https (or opened as `localhost`): installing it as an app,
 offline use, and passkey sign-in. To get those, put the container behind any
 https reverse proxy, such as [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
@@ -175,15 +180,25 @@ Without Compose, build and run the image with plain Docker:
 ```bash
 docker build -t hrt-tracker:local .
 docker run -d --name hrt-tracker \
-  -p 8787:8787 \
+  -p 127.0.0.1:8787:8787 \
   --env-file .env \
   -v "$(pwd)/data:/data" \
   hrt-tracker:local
 ```
 
+The mapping above is loopback-only. Use `-p 8787:8787` only if you intend to
+expose the container to the LAN, and never expose it directly to the internet:
+put a TLS-terminating reverse proxy (or a Tor/I2P daemon) in front instead.
+
 `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. When used, set both. The
 container uses Wrangler's local workerd runtime and local persistent D1/R2
 resources; it does not connect to the Cloudflare production database or bucket.
+
+`TRUSTED_IP_SOURCE` is optional too. Set it to `x-forwarded-for` when exactly
+one reverse proxy you control sits in front of the container (otherwise the
+worker sees no client address and every viewer shares one rate-limit bucket),
+or to `none` on a Tor/I2P mirror that has no client addresses at all. The
+default is `cf`, which reads Cloudflare's `CF-Connecting-IP` header.
 
 The workflow in `.github/workflows/docker-publish.yml` validates pull requests
 and publishes `linux/amd64` and `linux/arm64` images to GitHub Container Registry

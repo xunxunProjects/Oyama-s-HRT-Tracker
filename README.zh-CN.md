@@ -122,7 +122,9 @@ sudo chown 1000:1000 ./data
 docker compose up -d --build
 ```
 
-然后访问 <http://localhost:8787>。
+然后访问 <http://localhost:8787>。端口只发布在 `127.0.0.1` 上，默认局域网内无法
+访问；除非前面有反向代理，或者你确实需要，否则不要改成 `compose.yaml` 里的
+`"8787:8787"`。
 
 第一次构建需要几分钟。以后更新时，拉取新代码并重新构建即可，`./data` 中的数据会保留：
 
@@ -133,8 +135,10 @@ docker compose up -d --build
 
 ### 关于 http 与 https
 
-在其他设备上通过 http 访问（例如 `http://192.168.1.5:8787`）也能正常使用，备份、导出和分享链接
-依然是端到端加密的。不过浏览器只在 https（或 `localhost`）下开放少数功能：安装为应用、离线使用和
+在其他设备上通过 http 访问（例如 `http://192.168.1.5:8787`）时，需要先把端口发布到
+局域网接口——把 compose 里的映射改成 `"8787:8787"`——或在前面加一个反向代理。
+通过普通 http 访问时，备份、导出和分享链接依然是端到端加密的。不过浏览器只在
+https（或 `localhost`）下开放少数功能：安装为应用、离线使用和
 通行密钥登录。需要这些功能时，可以在容器前面加一个 https 反向代理，例如
 [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
 （`caddy reverse-proxy --from 你的域名 --to localhost:8787`）或
@@ -166,15 +170,24 @@ docker compose down
 ```bash
 docker build -t hrt-tracker:local .
 docker run -d --name hrt-tracker \
-  -p 8787:8787 \
+  -p 127.0.0.1:8787:8787 \
   --env-file .env \
   -v "$(pwd)/data:/data" \
   hrt-tracker:local
 ```
 
+上面的映射只绑定本机回环地址。确实需要暴露到局域网时再用 `-p 8787:8787`，
+并且永远不要把端口直接暴露到公网：请在前面放一个负责 TLS 的反向代理（或
+Tor/I2P 守护进程）。
+
 `ADMIN_USERNAME` 与 `ADMIN_PASSWORD` 是可选项；如需管理员账号，请同时设置。
 容器使用 Wrangler 的本地 workerd 运行时以及本地持久化 D1/R2 资源，不会连接
 Cloudflare 生产数据库或存储桶。
+
+`TRUSTED_IP_SOURCE` 也是可选项：容器前只有一层你自己控制的反向代理时设为
+`x-forwarded-for`（否则 worker 看不到客户端地址，所有访客共用同一个限流桶），
+Tor/I2P 镜像等完全没有客户端地址的场景设为 `none`；默认 `cf`，读取
+Cloudflare 的 `CF-Connecting-IP` 头。
 
 `.github/workflows/docker-publish.yml` 会在 PR 中验证构建，并在 `main`、版本标签或
 手动运行时向 GitHub Container Registry 发布 `linux/amd64` 与 `linux/arm64` 镜像。

@@ -7,6 +7,7 @@ import { authService, serializeAssertionCredential, b64url2ab } from '../service
 import { apiErrorCode } from '../services/apiClient';
 import { useEscape } from '../hooks/useEscape';
 import { getShareCopy } from '../i18n/share';
+import { passwordStrength } from '../../passwordStrength';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -56,6 +57,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     const acceptedPasswordRef = useRef<string | null>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
     const id = useId();
+
+    // Registering is when a weak password becomes permanent: no reset brings
+    // back the backups it encrypts. The worker refuses the same passwords;
+    // this hint says why before the round trip.
+    const strength = !isLogin && password.length >= 8 ? passwordStrength(password) : null;
 
     const { login, register, loginWithToken } = useAuth();
     const { t, lang } = useTranslation();
@@ -189,6 +195,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
             } else {
+                if (strength === 'weak') {
+                    setError(t('pw.too_weak'));
+                    return;
+                }
                 await register(username, password);
             }
             succeed();
@@ -220,7 +230,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         </p>
     );
     const submitButton = (
-        <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
+        <button type="submit" disabled={loading || strength === 'weak'} className="btn-primary w-full mt-1">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -293,12 +303,35 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                                 placeholder={t('auth.password_placeholder')}
                                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                                 aria-describedby={
-                                    [!isLogin ? `${id}-key-note` : '', error && !needsTOTP ? errorId : '']
+                                    [
+                                        !isLogin ? `${id}-key-note` : '',
+                                        strength ? `${id}-pw-strength` : '',
+                                        error && !needsTOTP ? errorId : '',
+                                    ]
                                         .filter(Boolean)
                                         .join(' ') || undefined
                                 }
                                 required
                             />
+                            {strength && (
+                                <p
+                                    id={`${id}-pw-strength`}
+                                    className={`text-xs ${
+                                        strength === 'weak'
+                                            ? 'text-[var(--danger)]'
+                                            : strength === 'strong'
+                                              ? 'text-[var(--accent-ink)]'
+                                              : 'text-muted'
+                                    }`}
+                                    aria-live="polite"
+                                >
+                                    {strength === 'weak'
+                                        ? t('pw.strength_weak')
+                                        : strength === 'strong'
+                                          ? t('pw.strength_strong')
+                                          : t('pw.strength_fair')}
+                                </p>
+                            )}
                         </div>
 
                         {/* Signing up is the moment to say it: the password is
