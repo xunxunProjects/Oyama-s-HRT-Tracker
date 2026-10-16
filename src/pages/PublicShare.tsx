@@ -362,7 +362,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                             </div>
                         )}
                     </div>
-                    <dl className="mt-6 flex flex-wrap gap-x-7 gap-y-2 text-xs text-muted">
+                    <dl className="mt-6 flex flex-wrap gap-x-7 gap-y-2 text-xs tabular-nums text-muted">
                         <div className="flex items-center gap-1.5">
                             <Clock3 size={13} />
                             <dt>{copy.sharedOn}</dt>
@@ -471,7 +471,7 @@ const DoseHistoryRow = ({ event, time, wornH }: { event: DoseEvent; time: string
                 {/* A removal is the one line: its route is its name, and it
                     has no amount of its own. */}
                 {!isRemoval && (
-                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-muted">
+                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs tabular-nums text-muted">
                         <span>{t(`route.${event.route}`)}</span>
                         {releaseRate ? (
                             <span className="text-body">{releaseRate} µg/d</span>

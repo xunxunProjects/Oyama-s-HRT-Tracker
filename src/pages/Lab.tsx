@@ -272,7 +272,7 @@ const Lab: React.FC<LabProps> = ({
                                             <span className="flex-1 min-w-0">
                                                 <span className="flex items-center justify-between mb-1">
                                                     <span className="text-sm">
-                                                        <span className={`font-medium ${on}`}>
+                                                        <span className={`font-medium tabular-nums ${on}`}>
                                                             {res.concValue} {clinicalUnit(res.unit)}
                                                         </span>
                                                         <span className={muted}>
@@ -287,7 +287,7 @@ const Lab: React.FC<LabProps> = ({
                                                 <span className="flex items-center justify-between gap-2">
                                                     {/* How long after the dose it was drawn rides on the
                                                         date: what makes a lab comparable with the curve. */}
-                                                    <span className={`text-xs ${muted}`}>
+                                                    <span className={`text-xs tabular-nums ${muted}`}>
                                                         {formatDate(d, lang)}
                                                         {timing &&
                                                             `, ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}

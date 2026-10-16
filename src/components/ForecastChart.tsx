@@ -416,7 +416,7 @@ const ForecastChart: React.FC<{
                 onPointerCancel={() => setHoverH(null)}
             >
                 {plotW > 0 && (
-                    <svg width={width} height={height} role="img">
+                    <svg width={width} height={height} role="img" className="tabular-nums">
                         {target && (
                             <g>
                                 <rect
