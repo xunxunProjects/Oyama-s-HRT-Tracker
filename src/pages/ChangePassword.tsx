@@ -6,6 +6,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { apiErrorCode } from '../services/apiClient';
 import { settingsMuted } from '../components/SettingsListItem';
+import { passwordStrength } from '../../passwordStrength';
 
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -21,6 +22,10 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const muted = settingsMuted;
     const labelCls = `block text-xs font-medium mb-1.5 ${muted}`;
 
+    // The server enforces the same rule; checking here keeps the feedback
+    // local and worded in the reader's language.
+    const strength = newPass.length >= 8 ? passwordStrength(newPass) : null;
+
     // A form, so Enter in the last field submits and password managers see
     // which field is which.
     const handleSubmit = async (ev: React.FormEvent) => {
@@ -32,6 +37,10 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }
         if (newPass.length < 8) {
             setError(t('pw.too_short'));
+            return;
+        }
+        if (strength === 'weak') {
+            setError(t('pw.too_weak'));
             return;
         }
 
@@ -112,6 +121,24 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <p id={`${id}-rule`} className={`mt-1.5 text-xs ${muted}`}>
                                 {t('pw.too_short')}
                             </p>
+                            {strength && (
+                                <p
+                                    className={`mt-1 text-xs ${
+                                        strength === 'weak'
+                                            ? 'text-[var(--danger)]'
+                                            : strength === 'strong'
+                                              ? 'text-[var(--accent-ink)]'
+                                              : muted
+                                    }`}
+                                    aria-live="polite"
+                                >
+                                    {strength === 'weak'
+                                        ? t('pw.strength_weak')
+                                        : strength === 'strong'
+                                          ? t('pw.strength_strong')
+                                          : t('pw.strength_fair')}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor={`${id}-confirm`} className={labelCls}>
@@ -131,7 +158,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                     <button
                         type="submit"
-                        disabled={!current || !newPass || !confirm || isLoading}
+                        disabled={!current || !newPass || !confirm || isLoading || strength === 'weak'}
                         className="btn-primary w-full"
                     >
                         {isLoading && <Loader2 size={16} className="animate-spin" />}

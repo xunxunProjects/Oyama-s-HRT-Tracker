@@ -6,6 +6,7 @@ import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 import { settingsSection, rowBleed } from './SettingsListItem';
 import { copyText } from '../utils/clipboard';
+import { passwordStrength } from '../../passwordStrength';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -38,6 +39,12 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     const [copyFailed, setCopyFailed] = useState<'json' | 'password' | null>(null);
 
     const hasData = events.length > 0 || labResults.length > 0;
+
+    // The file this password protects is downloaded and attacked offline, so
+    // it gets the same floor the account password does. An empty field means
+    // "generate one for me" and stays allowed.
+    const strength = password.length >= 8 ? passwordStrength(password) : null;
+    const passwordBlocked = password.length > 0 && (password.length < 8 || strength === 'weak');
 
     const handleJsonExport = async () => {
         await onExport(false);
@@ -174,7 +181,33 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                 />
                             </div>
                             <p className="text-xs text-[var(--text-muted)]">{t('export.password_hint_random')}</p>
-                            <button onClick={handleEncryptedExport} className="btn-primary w-full">
+                            {password.length > 0 && password.length < 8 ? (
+                                <p className="text-xs text-[var(--danger)]">{t('pw.too_short')}</p>
+                            ) : (
+                                strength && (
+                                    <p
+                                        className={`text-xs ${
+                                            strength === 'weak'
+                                                ? 'text-[var(--danger)]'
+                                                : strength === 'strong'
+                                                  ? 'text-[var(--accent-ink)]'
+                                                  : 'text-[var(--text-muted)]'
+                                        }`}
+                                        aria-live="polite"
+                                    >
+                                        {strength === 'weak'
+                                            ? t('pw.strength_weak')
+                                            : strength === 'strong'
+                                              ? t('pw.strength_strong')
+                                              : t('pw.strength_fair')}
+                                    </p>
+                                )
+                            )}
+                            <button
+                                onClick={handleEncryptedExport}
+                                disabled={passwordBlocked}
+                                className="btn-primary w-full"
+                            >
                                 {t('export.btn_encrypted')}
                             </button>
 

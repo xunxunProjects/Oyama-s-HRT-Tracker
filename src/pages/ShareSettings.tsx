@@ -15,6 +15,7 @@ import {
     sharingService,
 } from '../services/sharing';
 import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
+import { passwordStrength } from '../../passwordStrength';
 import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -101,9 +102,14 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         [mode, events, simulation, calibrationFn],
     );
 
+    // The server re-checks this on the share create endpoint; blocking it here
+    // just keeps the person from losing a round trip to a 400.
+    const strength = password.length >= 8 ? passwordStrength(password) : null;
+    const passwordBlocked = passwordEnabled && (password.length < 8 || strength === 'weak');
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (submitting || !events.length) return;
+        if (submitting || !events.length || passwordBlocked) return;
 
         setError(null);
         setSubmitting(true);
@@ -160,6 +166,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 if (requestError.code === 'SNAPSHOT_TOO_LARGE') setError(copy.tooLarge);
                 else if (requestError.code === 'SHARE_LIMIT_REACHED') setError(copy.limitReached);
                 else if (requestError.code === 'INVALID_EXPIRATION') setError(copy.invalidExpiry);
+                else if (requestError.code === 'RATE_LIMITED') setError(copy.rateLimitedDescription);
                 else setError(copy.createError);
             } else {
                 setError(copy.createError);
@@ -329,6 +336,24 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {strength && (
+                                        <p
+                                            className={`mt-1.5 text-xs ${
+                                                strength === 'weak'
+                                                    ? 'text-[var(--danger)]'
+                                                    : strength === 'strong'
+                                                      ? 'text-[var(--accent-ink)]'
+                                                      : 'text-muted'
+                                            }`}
+                                            aria-live="polite"
+                                        >
+                                            {strength === 'weak'
+                                                ? copy.passwordWeak
+                                                : strength === 'strong'
+                                                  ? copy.passwordStrong
+                                                  : copy.passwordFair}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -379,7 +404,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
+                                disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
                                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}

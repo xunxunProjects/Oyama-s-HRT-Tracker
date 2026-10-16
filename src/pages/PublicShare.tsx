@@ -21,7 +21,8 @@ type ShareState =
     | { kind: 'ready'; details: ShareDetails }
     | { kind: 'expired' }
     | { kind: 'unavailable' }
-    | { kind: 'badKey' };
+    | { kind: 'badKey' }
+    | { kind: 'rateLimited'; retryAfterMs: number | null };
 
 const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
@@ -33,6 +34,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [unlocking, setUnlocking] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [retryNonce, setRetryNonce] = useState(0);
     const unlockedPasswordRef = useRef('');
 
     const classifyError = (error: unknown): ShareState => {
@@ -40,6 +42,11 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             return { kind: 'expired' };
         }
         if (error instanceof ShareApiError && error.code === SHARE_KEY_INVALID) return { kind: 'badKey' };
+        // A 429 is a budget problem, not a missing record. Showing the
+        // unavailable text here made rate limiting look like a dead link.
+        if (error instanceof ShareApiError && (error.status === 429 || error.code === 'RATE_LIMITED')) {
+            return { kind: 'rateLimited', retryAfterMs: error.retryAfterMs };
+        }
         return { kind: 'unavailable' };
     };
 
@@ -89,7 +96,19 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
         };
         // classifyError contains no reactive state.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, shareKey]);
+    }, [token, shareKey, retryNonce]);
+
+    // After a 429, wait out the server's Retry-After (or a minute if it did
+    // not say) and try the link again on our own, so a hit limit reads as a
+    // pause instead of a broken link.
+    useEffect(() => {
+        if (state.kind !== 'rateLimited') return;
+        const timer = window.setTimeout(
+            () => setRetryNonce(nonce => nonce + 1),
+            Math.min(state.retryAfterMs ?? 60_000, 5 * 60_000),
+        );
+        return () => window.clearTimeout(timer);
+    }, [state]);
 
     const handleUnlock = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -240,6 +259,26 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
                                 {unlocking ? copy.unlocking : copy.unlock}
                             </button>
                         </form>
+                    </div>
+                </main>
+            </PublicShell>
+        );
+    }
+
+    if (state.kind === 'rateLimited') {
+        const seconds = Math.max(1, Math.ceil((state.retryAfterMs ?? 60_000) / 1000));
+        return (
+            <PublicShell>
+                <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16 text-center">
+                    <div className="w-full">
+                        <Clock3 size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
+                        <h1 className="text-xl font-semibold text-body">{copy.rateLimitedTitle}</h1>
+                        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                            {copy.rateLimitedDescription}
+                        </p>
+                        <p className="mt-2 text-sm text-muted" aria-live="polite">
+                            {copy.rateLimitedRetry.replace('{seconds}', String(seconds))}
+                        </p>
                     </div>
                 </main>
             </PublicShell>

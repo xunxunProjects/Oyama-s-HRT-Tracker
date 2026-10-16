@@ -30,18 +30,42 @@ node ./docker/reconcile.mjs "$database_name" \
     --local \
     --persist-to "$persist_dir"
 
+# Secrets go into a 0600 .dev.vars (wrangler's own dev-vars file) instead of
+# --var arguments: a command line is readable through /proc, so the values
+# used to show up in `ps` for anything else running in this container. The
+# file is written fresh on every start and trimmed of line breaks; values are
+# double-quoted with backslashes and quotes escaped for dotenv.
+escape_dotenv() {
+    printf '%s' "$1" | tr -d '\n\r' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+vars_file="./.dev.vars"
+umask 077
+{
+    printf 'JWT_SECRET="%s"\n' "$(escape_dotenv "$JWT_SECRET")"
+    if [ -n "${ADMIN_USERNAME:-}" ]; then
+        printf 'ADMIN_USERNAME="%s"\n' "$(escape_dotenv "$ADMIN_USERNAME")"
+    fi
+    if [ -n "${ADMIN_PASSWORD:-}" ]; then
+        printf 'ADMIN_PASSWORD="%s"\n' "$(escape_dotenv "$ADMIN_PASSWORD")"
+    fi
+} > "$vars_file"
+chmod 600 "$vars_file"
+
+# Listen on the container's interfaces by default. Docker's port forwarding
+# delivers published traffic to the container network interface, not to the
+# container's own loopback, so binding 127.0.0.1 here would leave the service
+# unreachable through `ports:`/`-p` no matter what the host side publishes.
+# Exposure is controlled on the host side instead: compose.yaml and the
+# documented docker run command publish on 127.0.0.1 only, and nothing is
+# reachable from the LAN or the internet until that is changed deliberately.
+# Set BIND_HOST=127.0.0.1 when this process shares a network namespace with
+# the proxy in front of it (for example with --network host).
+bind_host="${BIND_HOST:-0.0.0.0}"
+
 set -- ./node_modules/.bin/wrangler dev \
-    --ip 0.0.0.0 \
+    --ip "$bind_host" \
     --port "$port" \
-    --persist-to "$persist_dir" \
-    --var "JWT_SECRET:$JWT_SECRET"
-
-if [ -n "${ADMIN_USERNAME:-}" ]; then
-    set -- "$@" --var "ADMIN_USERNAME:$ADMIN_USERNAME"
-fi
-
-if [ -n "${ADMIN_PASSWORD:-}" ]; then
-    set -- "$@" --var "ADMIN_PASSWORD:$ADMIN_PASSWORD"
-fi
+    --persist-to "$persist_dir"
 
 exec "$@"
