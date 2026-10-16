@@ -675,7 +675,7 @@ const Account: React.FC<AccountProps> = ({
                                                 {/* To the minute and in the app's language, like the
                                             backup rows below. */}
                                                 {showLastSynced && (
-                                                    <p>
+                                                    <p className="tabular-nums">
                                                         {(t('sync.last_synced') as string).replace(
                                                             '{time}',
                                                             new Date(lastSyncedAt!).toLocaleTimeString(locale, {
@@ -781,7 +781,7 @@ const Account: React.FC<AccountProps> = ({
                                                 <p className="text-sm font-medium text-[var(--text)] truncate">
                                                     {formatRelative(b.created_at, listedAt, t)}
                                                 </p>
-                                                <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                                                <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5 leading-relaxed">
                                                     {new Date(b.created_at * 1000).toLocaleString(locale, {
                                                         year: 'numeric',
                                                         month: 'short',

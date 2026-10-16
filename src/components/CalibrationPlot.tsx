@@ -163,7 +163,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                     <svg
                         width={width}
                         height={height}
-                        className="block overflow-visible"
+                        className="block overflow-visible tabular-nums"
                         onPointerLeave={() => setHover(null)}
                     >
                         <defs>

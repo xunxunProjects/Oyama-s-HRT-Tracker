@@ -965,7 +965,7 @@ const ResultChart = ({
                     <svg
                         width={width}
                         height={height}
-                        className="block"
+                        className="block tabular-nums"
                         onPointerDown={onPointerDown}
                         onPointerMove={onPointerMove}
                         onPointerUp={onPointerUp}
