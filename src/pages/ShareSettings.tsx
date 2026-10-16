@@ -15,7 +15,13 @@ import {
     sharingService,
 } from '../services/sharing';
 import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
-import { passwordStrength } from '../../passwordStrength';
+import {
+    STRONG_BITS,
+    WEAK_BITS,
+    estimatePasswordBits,
+    passwordStrength,
+    theoreticalPasswordBits,
+} from '../../passwordStrength';
 import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -106,6 +112,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     // just keeps the person from losing a round trip to a 400.
     const strength = password.length >= 8 ? passwordStrength(password) : null;
     const passwordBlocked = passwordEnabled && (password.length < 8 || strength === 'weak');
+
+    // Live readouts for the password field, from the same module the gate uses:
+    // the guess-model estimate in bits, and the theoretical search-space entropy
+    // H = L x log2(N) under the uniform-random assumption.
+    const entropy = password.length > 0 ? estimatePasswordBits(password) : null;
+    const theory = password.length > 0 ? theoreticalPasswordBits(password) : null;
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -353,6 +365,50 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                                   ? copy.passwordStrong
                                                   : copy.passwordFair}
                                         </p>
+                                    )}
+                                    {entropy !== null && theory !== null && (
+                                        <div className="mt-2.5">
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <span className="text-xs text-muted">{copy.entropyLabel}</span>
+                                                <span className="font-mono text-xs tabular-nums text-body">
+                                                    {Math.round(entropy)} {copy.entropyUnit}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--accent-subtle)]"
+                                                role="progressbar"
+                                                aria-label={copy.entropyLabel}
+                                                aria-valuemin={0}
+                                                aria-valuemax={80}
+                                                aria-valuenow={Math.min(Math.round(entropy), 80)}
+                                            >
+                                                <div
+                                                    className="h-full rounded-full transition-[width] duration-300 ease-[var(--ease-out)]"
+                                                    style={{
+                                                        width: `${Math.min(100, (entropy / 80) * 100)}%`,
+                                                        backgroundColor:
+                                                            entropy < WEAK_BITS
+                                                                ? 'var(--danger)'
+                                                                : entropy < STRONG_BITS
+                                                                  ? 'var(--warning)'
+                                                                  : 'var(--accent-ink)',
+                                                    }}
+                                                />
+                                            </div>
+                                            <p
+                                                className="mt-1.5 text-[11px] leading-relaxed text-muted"
+                                                aria-live="polite"
+                                            >
+                                                {copy.entropyFormula
+                                                    .replace('{length}', String(theory.length))
+                                                    .replace('{charset}', String(theory.charsetSize))
+                                                    .replace('{bits}', String(Math.round(theory.bits)))
+                                                    .replace('{unit}', copy.entropyUnit)}
+                                            </p>
+                                            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                                                {copy.entropyAssumptions}
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             )}

@@ -59,6 +59,10 @@ export interface ShareCopy {
     rateLimitedTitle: string;
     rateLimitedDescription: string;
     rateLimitedRetry: string;
+    entropyLabel: string;
+    entropyUnit: string;
+    entropyFormula: string;
+    entropyAssumptions: string;
 }
 
 const en: ShareCopy = {
@@ -125,6 +129,11 @@ const en: ShareCopy = {
     rateLimitedTitle: 'Too many requests',
     rateLimitedDescription: 'Too many attempts from this network. Please wait a moment and try again.',
     rateLimitedRetry: 'Try again in {seconds} seconds',
+    entropyLabel: 'Entropy estimate',
+    entropyUnit: 'bit',
+    entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+    entropyAssumptions:
+        'Theory assumes uniform randomness; the estimate also weighs common words and patterns. Neither is a crack-time guarantee.',
 };
 
 const copy: Record<Lang, ShareCopy> = {
@@ -191,6 +200,10 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: '请求太频繁',
         rateLimitedDescription: '尝试次数过多，请稍等片刻再试。',
         rateLimitedRetry: '请在 {seconds} 秒后重试',
+        entropyLabel: '估算熵值',
+        entropyUnit: '比特',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理论值假设字符均匀随机；估算值同时考虑常见词组与重复模式。两者都不等同于破解时间。',
     },
     'zh-TW': {
         ...en,
@@ -254,6 +267,10 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: '請求太頻繁',
         rateLimitedDescription: '嘗試次數過多，請稍等片刻再試。',
         rateLimitedRetry: '請在 {seconds} 秒後重試',
+        entropyLabel: '估算熵值',
+        entropyUnit: '位元',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見片語與重複模式。兩者都不等同於破解時間。',
     },
     yue: {
         ...en,
@@ -317,6 +334,10 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: '請求太頻密',
         rateLimitedDescription: '試得太多喇，請等一陣再試。',
         rateLimitedRetry: '請喺 {seconds} 秒後再試',
+        entropyLabel: '估算熵值',
+        entropyUnit: '位元',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見字詞同重複模式。兩者都唔等同破解時間。',
     },
     ja: {
         ...en,
@@ -383,6 +404,11 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: 'リクエストが多すぎます',
         rateLimitedDescription: '試行回数が多すぎます。しばらく待ってからもう一度お試しください。',
         rateLimitedRetry: '{seconds} 秒後に再試行してください',
+        entropyLabel: '推定エントロピー',
+        entropyUnit: 'ビット',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            '理論値は文字が一様ランダムという仮定に基づきます。推定値はよくある語句や繰り返しパターンも考慮します。どちらも解読時間の保証ではありません。',
     },
     ko: {
         ...en,
@@ -449,6 +475,11 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: '요청이 너무 많아요',
         rateLimitedDescription: '시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
         rateLimitedRetry: '{seconds}초 후에 다시 시도하세요',
+        entropyLabel: '추정 엔트로피',
+        entropyUnit: '비트',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            '이론값은 문자가 균일하게 무작위라고 가정합니다. 추정값은 흔한 단어와 반복 패턴도 고려합니다. 둘 다 해독 시간을 보장하지 않습니다.',
     },
     tr: {
         ...en,
@@ -517,6 +548,11 @@ const copy: Record<Lang, ShareCopy> = {
         rateLimitedTitle: 'Çok fazla istek',
         rateLimitedDescription: 'Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.',
         rateLimitedRetry: '{seconds} saniye sonra yeniden deneyin',
+        entropyLabel: 'Tahmini entropi',
+        entropyUnit: 'bit',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            'Kuramsal değer karakterlerin tekdüze rastgele olduğunu varsayar; tahmin ayrıca yaygın sözcükleri ve tekrar desenlerini hesaba katar. İkisi de kırılma süresi garantisi değildir.',
     },
 };
 

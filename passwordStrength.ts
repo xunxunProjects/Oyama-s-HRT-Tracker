@@ -83,17 +83,51 @@ const COMMON = new Set([
 
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm', '1234567890', 'abcdefghijklmnopqrstuvwxyz'];
 
-const poolSize = (password: string): number => {
-    let pool = 0;
-    if (/[a-z]/.test(password)) pool += 26;
-    if (/[A-Z]/.test(password)) pool += 26;
-    if (/[0-9]/.test(password)) pool += 10;
-    if (/[!-/:-@[-`{-~ ]/.test(password)) pool += 33;
-    // Anything outside ASCII (CJK, accented letters, emoji) draws from a far
-    // larger alphabet, but people pick common characters, so count it modestly.
-    if (/[^\x20-\x7e]/.test(password)) pool += 100;
-    return Math.max(pool, 10);
-};
+// Character classes the estimator reasons about. These are model parameters
+// (how many choices each class offers), not results: every value derived below
+// comes from the password actually typed.
+export interface PasswordCharset {
+    lower: boolean;
+    upper: boolean;
+    digits: boolean;
+    symbols: boolean;
+    nonAscii: boolean;
+}
+
+const LOWER = /[a-z]/;
+const UPPER = /[A-Z]/;
+const DIGITS = /[0-9]/;
+const SYMBOLS = /[!-/:-@[-`{-~ ]/;
+const NON_ASCII = /[^\x20-\x7e]/;
+
+/** Which character classes the password actually uses. */
+export function analyzePasswordCharset(password: string): PasswordCharset {
+    return {
+        lower: LOWER.test(password),
+        upper: UPPER.test(password),
+        digits: DIGITS.test(password),
+        symbols: SYMBOLS.test(password),
+        nonAscii: NON_ASCII.test(password),
+    };
+}
+
+/**
+ * Alphabet size behind the observed classes: 26 lower + 26 upper + 10 digits
+ * + 33 ASCII symbols (space included) + 100 for anything non-ASCII. People
+ * pick common CJK, accented and emoji characters, so the real alphabet is far
+ * larger, but counting it modestly keeps the estimate pessimistic.
+ */
+export function charsetSize(charset: PasswordCharset): number {
+    let size = 0;
+    if (charset.lower) size += 26;
+    if (charset.upper) size += 26;
+    if (charset.digits) size += 10;
+    if (charset.symbols) size += 33;
+    if (charset.nonAscii) size += 100;
+    return size;
+}
+
+const poolSize = (password: string): number => Math.max(charsetSize(analyzePasswordCharset(password)), 10);
 
 const isStep = (a: string, b: string): boolean => {
     const lowerA = a.toLowerCase();
@@ -155,4 +189,33 @@ export function passwordStrength(password: string): PasswordStrength {
     if (bits < WEAK_BITS) return 'weak';
     if (bits < STRONG_BITS) return 'fair';
     return 'strong';
+}
+
+export interface TheoreticalEntropy {
+    /** Code points, not UTF-16 units: an astral character counts once. */
+    length: number;
+    charsetSize: number;
+    bits: number;
+}
+
+/**
+ * Theoretical search-space entropy, H = L x log2(N), under the explicit
+ * assumption that every position drew independently and uniformly from an
+ * alphabet of N characters. N is taken from the classes the password actually
+ * uses unless the caller knows better (a generator's real alphabet,
+ * deduplicated, or a chosen charset): observed classes bound what the
+ * password could have been drawn from, they do not say how it was made.
+ *
+ * This is the uniform-random model only. It is not the guess-model estimate
+ * above, it is not a crack-time promise, and it must not be presented as
+ * "this password is safe". Returns null for an empty password or an alphabet
+ * under 2 choices: there is nothing to estimate and inventing a number would
+ * fake precision.
+ */
+export function theoreticalPasswordBits(password: string, allowedCharsetSize?: number): TheoreticalEntropy | null {
+    const length = Array.from(password).length;
+    if (length === 0) return null;
+    const size = allowedCharsetSize ?? charsetSize(analyzePasswordCharset(password));
+    if (!Number.isFinite(size) || size < 2) return null;
+    return { length, charsetSize: size, bits: length * Math.log2(size) };
 }
