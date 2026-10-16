@@ -21,6 +21,7 @@ import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
 import { copyText } from '../utils/clipboard';
+import { passwordStrength } from '../utils/passwordStrength';
 
 interface ShareSettingsProps {
     onBack: () => void;
@@ -75,6 +76,8 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     const [sharesLoading, setSharesLoading] = useState(false);
     const [revokingId, setRevokingId] = useState<string | null>(null);
     const linkInputRef = useRef<HTMLInputElement>(null);
+    const strength = password.length >= 8 ? passwordStrength(password) : null;
+    const passwordBlocked = passwordEnabled && (password.length < 8 || strength === 'weak');
 
     useEffect(() => {
         setPasswordEnabled(false);
@@ -103,7 +106,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (submitting || !events.length) return;
+        if (submitting || !events.length || passwordBlocked) return;
 
         setError(null);
         setSubmitting(true);
@@ -329,6 +332,24 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {strength && (
+                                        <p
+                                            className={`mt-1.5 text-xs ${
+                                                strength === 'weak'
+                                                    ? 'text-[var(--danger)]'
+                                                    : strength === 'strong'
+                                                      ? 'text-[var(--accent-ink)]'
+                                                      : 'text-muted'
+                                            }`}
+                                            aria-live="polite"
+                                        >
+                                            {strength === 'weak'
+                                                ? copy.passwordWeak
+                                                : strength === 'strong'
+                                                  ? copy.passwordStrong
+                                                  : copy.passwordFair}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -379,7 +400,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
+                                disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
                                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}

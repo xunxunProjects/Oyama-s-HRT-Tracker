@@ -13,6 +13,9 @@ export interface ShareCopy {
     passwordLabel: string;
     passwordPlaceholder: string;
     passwordHint: string;
+    passwordWeak: string;
+    passwordFair: string;
+    passwordStrong: string;
     expiryLabel: string;
     expiryHint: string;
     create: string;
@@ -70,6 +73,9 @@ const en: ShareCopy = {
     passwordLabel: 'Link password',
     passwordPlaceholder: 'At least 8 characters',
     passwordHint: 'Send the password separately from the link.',
+    passwordWeak: 'Easy to guess, try something longer or less regular',
+    passwordFair: 'Okay, a little longer would be safer',
+    passwordStrong: 'Strong password',
     expiryLabel: 'Expiration date',
     expiryHint: 'The link stops working after this time.',
     create: 'Create link',
@@ -133,6 +139,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: '链接密码',
         passwordPlaceholder: '至少 8 个字符',
         passwordHint: '请将密码和链接分开发送。',
+        passwordWeak: '太容易被猜到了，换一个更长、更没有规律的吧',
+        passwordFair: '还可以，再长一点会更安全',
+        passwordStrong: '密码够强了',
         expiryLabel: '过期时间',
         expiryHint: '超过此时间后，链接将无法访问。',
         create: '创建链接',
@@ -190,6 +199,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: '連結密碼',
         passwordPlaceholder: '至少 8 個字元',
         passwordHint: '請將密碼與連結分開傳送。',
+        passwordWeak: '太容易被猜到了，換一個更長、更沒有規律的吧',
+        passwordFair: '還可以，再長一點會更安全',
+        passwordStrong: '密碼夠強了',
         expiryLabel: '到期時間',
         expiryHint: '超過此時間後，連結將無法存取。',
         create: '建立連結',
@@ -247,6 +259,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: '連結密碼',
         passwordPlaceholder: '最少 8 個字元',
         passwordHint: '請將密碼同連結分開傳送。',
+        passwordWeak: '太易俾人估到喇，換個長啲、冇咁有規律嘅啦',
+        passwordFair: '都OK，再長啲會更安全',
+        passwordStrong: '密碼夠強喇',
         expiryLabel: '到期時間',
         expiryHint: '過咗呢個時間，連結就唔可以再用。',
         create: '建立連結',
@@ -304,6 +319,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: 'リンクのパスワード',
         passwordPlaceholder: '8文字以上',
         passwordHint: 'パスワードはリンクとは別に送ってください。',
+        passwordWeak: '推測されやすいパスワードです。もっと長く、規則性のないものにしてください',
+        passwordFair: 'まずまずです。もう少し長いとより安全です',
+        passwordStrong: '十分に強いパスワードです',
         expiryLabel: '有効期限',
         expiryHint: 'この日時を過ぎるとリンクは開けなくなります。',
         create: 'リンクを作成',
@@ -364,6 +382,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: '링크 비밀번호',
         passwordPlaceholder: '8자 이상',
         passwordHint: '비밀번호는 링크와 별도로 보내세요.',
+        passwordWeak: '추측하기 쉬운 비밀번호예요. 더 길고 규칙 없는 것으로 바꿔 주세요',
+        passwordFair: '괜찮아요. 조금 더 길면 더 안전해요',
+        passwordStrong: '충분히 강한 비밀번호예요',
         expiryLabel: '만료 날짜',
         expiryHint: '이 시간이 지나면 링크가 열리지 않습니다.',
         create: '링크 만들기',
@@ -424,6 +445,9 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLabel: 'Bağlantı parolası',
         passwordPlaceholder: 'En az 8 karakter',
         passwordHint: 'Parolayı bağlantıdan ayrı gönderin.',
+        passwordWeak: 'Tahmin etmesi kolay, daha uzun ve düzensiz bir parola deneyin',
+        passwordFair: 'Fena değil, biraz daha uzun olursa daha güvenli',
+        passwordStrong: 'Güçlü parola',
         expiryLabel: 'Son kullanma tarihi',
         expiryHint: 'Bu saatten sonra bağlantı açılmaz.',
         create: 'Bağlantı oluştur',
