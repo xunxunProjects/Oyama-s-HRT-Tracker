@@ -268,7 +268,7 @@ const Forecast: React.FC<ForecastProps> = ({
         if (!spec) return;
         onSaveTemplate({
             id: uuidv4(),
-            name: `${regimenLabel(spec, t)} · ${intervalLabel(spec.intervalH, t)}`,
+            name: `${regimenLabel(spec, t)}\n${intervalLabel(spec.intervalH, t)}`,
             route: spec.route,
             ester: spec.ester,
             doseMG: spec.doseMG,
@@ -281,7 +281,7 @@ const Forecast: React.FC<ForecastProps> = ({
     const habits = main ? adherenceOf(main, events) : { missRate: 0, jitterSdH: 0 };
     const jitter =
         habits.jitterSdH < 1 ? `${Math.round(habits.jitterSdH * 60)} min` : `${habits.jitterSdH.toFixed(1)} h`;
-    const calText = `×${calibration.scale.toFixed(2)}${Math.abs(calibration.halfLifeDeltaPct) >= 1 ? ` · t½ ${calibration.halfLifeDeltaPct > 0 ? '+' : ''}${calibration.halfLifeDeltaPct.toFixed(0)}%` : ''}`;
+    const calText = `×${calibration.scale.toFixed(2)}${Math.abs(calibration.halfLifeDeltaPct) >= 1 ? ` (t½ ${calibration.halfLifeDeltaPct > 0 ? '+' : ''}${calibration.halfLifeDeltaPct.toFixed(0)}%)` : ''}`;
     const hasCal = !isTransmasc && labResults.length > 0 && calibration.fitErrPct !== null;
     const runs = (results[active.id] ?? current)?.runs ?? 48;
     const methodText = hasCal
@@ -344,8 +344,8 @@ const Forecast: React.FC<ForecastProps> = ({
     const statRow = (name: string, sub: string, sc: Scenario | null, isPlan: boolean) => (
         <React.Fragment key={name}>
             <span className={`col-span-4 pt-3 pb-1 text-sm ${isPlan ? on : muted}`}>
-                {name}
-                {sub && <span className={`text-xs ${muted}`}> · {sub}</span>}
+                <span className="block">{name}</span>
+                {sub && <span className={`block text-xs ${muted}`}>{sub}</span>}
             </span>
             {statCell(sc, 'trough')}
             {statCell(sc, 'peak')}
@@ -373,7 +373,8 @@ const Forecast: React.FC<ForecastProps> = ({
                     <p className={`text-xs font-semibold mb-2 ${muted}`}>{t('forecast.current')}</p>
                     {main ? (
                         <p className={`text-[0.9375rem] ${on}`}>
-                            {regimenLabel(main, t)} <span className={muted}>· {intervalLabel(main.intervalH, t)}</span>
+                            <span className="block">{regimenLabel(main, t)}</span>
+                            <span className={`block text-xs ${muted}`}>{intervalLabel(main.intervalH, t)}</span>
                         </p>
                     ) : (
                         <p className={`text-sm ${muted}`}>{t('forecast.none')}</p>
@@ -532,7 +533,8 @@ const Forecast: React.FC<ForecastProps> = ({
 
                 <section>
                     <p className={`text-xs font-semibold ${muted}`}>
-                        {fill(t('forecast.steady_header'), { n: horizonWeeks })} · {unit}
+                        <span className="block">{fill(t('forecast.steady_header'), { n: horizonWeeks })}</span>
+                        <span className="block font-normal">{unit}</span>
                     </p>
                     <div className="grid grid-cols-4 gap-x-3 text-sm">
                         <span className={`${cell} text-xs ${muted}`}>{t('forecast.trough')}</span>

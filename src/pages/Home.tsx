@@ -175,15 +175,17 @@ const Home: React.FC<HomeProps> = ({
     // `ch` in its min-width is one tabular digit at whatever size the breakpoint
     // picked; the rem part covers the gap and the unit after it.
     const readingSlot = 'inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
-    const fullSize = 'text-[3rem] sm:text-[3.75rem] md:text-[4.5rem]';
+    const fullSize =
+        'text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)]';
     // Side by side in a column narrower than 32rem (every phone), the second
-    // reading is set smaller and the first shrinks with the column below about
-    // 22rem, so a four-digit estradiol peak still clears the cyproterone figure
-    // on a 320px screen. From 32rem both take the full size again.
+    // reading stays at 2rem and the first shrinks with the column below about
+    // 18.5rem, so a four-digit estradiol peak still clears the cyproterone
+    // figure on a 320px screen. From 32rem both take the reading scale again:
+    // 40px, then 52px, then 64px.
     const companionSize =
-        'text-[2rem] @min-[32rem]:text-[3rem] @min-[32rem]:sm:text-[3.75rem] @min-[32rem]:md:text-[4.5rem]';
+        'text-[2rem] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
     const pairedPrimarySize =
-        'text-[min(3rem,13.5cqw)] @min-[32rem]:text-[3rem] @min-[32rem]:sm:text-[3.75rem] @min-[32rem]:md:text-[4.5rem]';
+        'text-[min(var(--text-reading-sm-size),13.5cqw)] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
@@ -195,7 +197,7 @@ const Home: React.FC<HomeProps> = ({
               label: t('label.total_t'),
               value: currentT,
               decimals: 0,
-              unit: 'ng/dl',
+              unit: 'ng/dL',
               band: { low: 300, high: 1000 },
               domain: [30, 3000] as [number, number],
           }
@@ -203,7 +205,7 @@ const Home: React.FC<HomeProps> = ({
               label: t('label.e2'),
               value: currentLevel,
               decimals: 1,
-              unit: 'pg/ml',
+              unit: 'pg/mL',
               band: { low: 100, high: 200 },
               domain: [10, 1000] as [number, number],
           };
@@ -216,14 +218,14 @@ const Home: React.FC<HomeProps> = ({
     const hasCPA = !isTransmasc && events.some(e => e.ester === Ester.CPA);
     const companion = isTransmasc
         ? currentT > 0
-            ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/l' }
+            ? { label: '', value: currentT / 28.842, decimals: 1, unit: 'nmol/L' }
             : null
         : hasCPA
           ? {
                 label: t('label.cpa_chart'),
                 value: currentCPA >= CPA_MIN_NGML ? currentCPA : 0,
                 decimals: 1,
-                unit: 'ng/ml',
+                unit: 'ng/mL',
             }
           : null;
 
@@ -283,12 +285,12 @@ const Home: React.FC<HomeProps> = ({
                     the two numbers. The second reading always sits top right,
                     beside the first, rather than stacked under its scale, where
                     it took a whole block of the phone's first screen. At the
-                    full size the pair needs about 380px at a phone's 3rem and
-                    508px at md's 4.5rem, so until the column (not the screen:
-                    from md the sidebar takes its share) holds 32rem, which is
-                    every phone, the second number is set smaller, and the
-                    first gives up a little size too where the column is
-                    narrower than an ordinary phone's. */}
+                    reading scale the pair needs about 320px at 40px and 450px
+                    at 64px, so until the column (not the screen: from md the
+                    sidebar takes its share) holds 32rem, which is every phone,
+                    the second number is set smaller, and the first gives up a
+                    little size too where the column is narrower than an
+                    ordinary phone's. */}
                                         <div className="@container">
                                             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1.5 @min-[32rem]:gap-x-6">
                                                 {/* Beside a second reading in a phone's column the

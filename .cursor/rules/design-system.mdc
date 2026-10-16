@@ -1,0 +1,97 @@
+---
+description: Oyama Tracker 设计系统 v2，写或改任何界面、样式、组件时都要遵守
+globs: src/**/*.{tsx,ts,css}
+alwaysApply: true
+---
+
+# Oyama Tracker 设计系统
+
+整体感觉是一件安静、精确的仪器：白色页面，暖调中性色，唯一的强调色是陶土橘，读数用大号细字，几何形状柔和，浮在上面的界面用毛玻璃，内容本身保持平面
+
+## Token 在哪里
+
+所有颜色、间距、圆角、阴影、字号都定义在 `src/styles/oyama-tokens.css`，用 CSS 变量引用，比如 `var(--accent)`、`var(--space-4)`、`var(--radius-md)`
+深色主题的值写在 `.dark` 下面，组件里不要为深色单独写颜色
+
+## 硬性规则
+
+1. 复用已有 token 和组件，不要硬写色值、间距、圆角、阴影
+2. 组件只用语义 token（`bg`、`surface`、`text`、`text-muted`、`border`、`accent` 等），`clay-*` 和 `neutral-*` 色阶只用来定义新的语义 token
+3. 陶土橘是唯一的强调色，分三档：`accent` 用于实心填充，`accent-subtle` 用于浅色填充，`accent-ink` 用于橘色文字和图标；`brand` 只给图表线条、涂鸦和封面用
+4. 状态颜色永远要配文字说明，不能只靠颜色表达
+5. 警告不加框，一句带颜色的文字就够了
+6. 所有文案都走 `t()`，使用逻辑属性（`ms-`、`ps-`、`text-start`、`inset-inline-*`），保证 RTL 正常
+
+## 坚决不要的样式
+
+- 全部大写字母的标题
+- 用一个圆点开头再接文字的标题样式
+- 项目之间用 `x · y` 这种中间点分隔
+- 花哨的渐变阴影
+- 胶囊形状的小标签或小徽章
+- UI 文案里的 emoji
+
+## 颜色用法
+
+- 页面背景 `bg`，侧边栏这类贴着页面的界面 `bg-subtle`
+- 浮起来的东西 `surface`，配 `border` 细线和阴影
+- 嵌在页面里的安静填充 `surface-muted`，悬停 `surface-hover`，按下 `surface-pressed`
+- 正文 `text`，次要内容（说明、单位、占位符、图标、坐标轴数字）一律 `text-muted`
+- 装饰性细线 `border`，需要被找到的边（输入框边缘、关闭状态的开关、空心圆环）用 `border-strong`
+
+## 字体
+
+- 只用系统字体，`var(--font-sans)`，不引入字体文件
+- 正文基准 15px，行高 22px；最小可读文字 12px；11px 只给分组小标题、导航标签和刻度数字
+- 读数是主角：64px，字重 300，字距 -0.035em，等宽数字
+- 字重：读数 300，正文 400，标签和按钮 500，标题和选中状态 600
+- 会变化或需要对齐的数字一律加 `tabular-nums`
+- 所有标签、按钮、标题用句首大写（Sentence case），说明文字是一个短句，不加句号
+- 单位跟在数字后面，用临床写法并用 `text-muted`：`pg/mL`、`pmol/L`、`nmol/L`、`ng/mL`、`mg`
+
+## 间距和布局
+
+- 4px 网格，用 `space-*`
+- 页面内容居中，宽度 `page-column`（42rem），手机两侧 24px，768px 以上 32px
+- 桌面用 Sidebar，手机用浮动的 BottomNav，每个页面底部留出 `nav-clearance`
+- 尺寸用 rem，因为 1280px 以上根字号会随 `--ui-scale` 变大
+
+## 形状
+
+- 按钮、输入框、下拉框、导航项：`radius-md` 12px
+- 菜单和面板：`radius-lg` 16px
+- 弹窗、底部抽屉、导航岛：`radius-xl` 24px
+- 开关、分段控件、圆环：`radius-full`
+- 圆角容器里的行用 `radius-sm` 10px，让圆角嵌套自然
+
+## 层次
+
+- 内容平面，只有浮起来的界面才有阴影
+- 列表保持细线分隔的行，不要做成卡片
+- 阴影只用 `shadow-xs`、`shadow-sm`、`shadow-md`、`shadow-lg`，深色主题下浮起的表面还要加 `border` 细线
+- 只有内容会滚到下面的界面（BottomNav、吸顶 PageHeader）用 `surface-glass` 加 `blur-glass`，其他地方都不透明
+
+## 交互状态
+
+- 悬停填充 `surface-hover`，强调色的幽灵按钮悬停用 `accent-subtle`
+- 按下时按钮缩放到 0.97，禁用用 `opacity-disabled`
+- 焦点统一一种：2px `focus-ring`，偏移 2px，用 `:focus-visible`
+
+## 动效
+
+- 颜色变化用 `--ease-standard`，位移用 `--ease-out`，让东西稳稳停下而不是急停
+- 时长：`--duration-quick` 150ms，`--duration-base` 220ms，`--duration-slow` 320ms，图表线条 `--duration-sweep` 900ms
+- 不要弹跳、不要回弹、不要过冲
+- 支持 `prefers-reduced-motion`，开启时所有动效关闭，直接停在最后一帧
+
+## 图标和插画
+
+- 图标用 lucide-react 描边风格，线宽 1.75（激活时 2）；行内 20px，底部导航 22px，按钮里 18px，跟 13 到 15px 文字同行时 16px
+- 图标默认 `text-muted`，代表状态时才用 `accent-ink`、`warning`、`danger`
+- 插画只用手绘涂鸦和 32px 像素猫，不用照片、素材图或 emoji
+
+## 文案语气
+
+- 平实、温柔、用第二人称，先说看到了什么，再说为什么重要，最后说可以做什么
+- 数值一律叫估计值，不能当成测量结果，也不能让人自己改剂量，要引导去验血或问医生
+- 空状态写清楚缺了什么和该做的那一件事

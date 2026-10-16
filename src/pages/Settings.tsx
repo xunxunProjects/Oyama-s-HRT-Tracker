@@ -219,24 +219,24 @@ const Settings: React.FC<SettingsProps> = ({
 
     // Each hint names what people come looking for in that category, so the
     // weight and the prediction switch can be found from this first screen.
-    const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
+    const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string[] }[] = [
         {
             id: 'general',
             label: t('settings.group.general'),
             Icon: Settings2,
-            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(' · '),
+            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')],
         },
         {
             id: 'data',
             label: t('settings.group.data'),
             Icon: Database,
-            hint: [t('export.title'), t('import.title')].join(' · '),
+            hint: [t('export.title'), t('import.title')],
         },
         {
             id: 'about',
             label: t('settings.group.about'),
             Icon: Info,
-            hint: [t('drawer.model_title'), t('transparency.title')].join(' · '),
+            hint: [t('drawer.model_title'), t('transparency.title')],
         },
     ];
 
@@ -460,7 +460,11 @@ const Settings: React.FC<SettingsProps> = ({
                                             </div>
                                             <div className="text-start">
                                                 <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
-                                                <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
+                                                <p className={`mt-0.5 flex flex-wrap gap-x-3 text-xs ${muted}`}>
+                                                    {hint.map(item => (
+                                                        <span key={item}>{item}</span>
+                                                    ))}
+                                                </p>
                                             </div>
                                         </div>
                                         <ChevronRight
