@@ -1633,11 +1633,22 @@ export default {
                     .setIssuedAt()
                     .setExpirationTime('7d')
                     .sign(secret);
+                // A passkey proves the owner as well as a password does: clear the
+                // account's failed sign-ins and mark this device as one it uses,
+                // so a later password sign-in here is not held back by a lock.
+                const passkeyAccount = String(userRow.username).toLowerCase();
+                await env.DB.prepare('DELETE FROM login_backoff WHERE account = ?').bind(passkeyAccount).run();
+                const passkeyDevicePass = await signLoginDevicePass(
+                    jwtSecret,
+                    passkeyAccount,
+                    `user:${userRow.password_hash}`,
+                );
                 return withSecurityHeaders(
                     new Response(
                         JSON.stringify({
                             token: jwtToken,
                             user: { id: userRow.id, username: userRow.username, isAdmin: false },
+                            devicePass: passkeyDevicePass,
                         }),
                         {
                             status: 200,
