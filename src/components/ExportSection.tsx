@@ -8,6 +8,7 @@ import { settingsSection, rowBleed } from './SettingsListItem';
 import { copyText } from '../utils/clipboard';
 import { MIN_PASSWORD_LENGTH, newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from './PasswordStrengthHint';
+import PgpBackupRow from './PgpBackupRow';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -17,6 +18,8 @@ interface ExportSectionProps {
     /** Copies the export to the clipboard. Resolving to false means the copy
      *  failed; nothing returned is taken as done. */
     onQuickExport?: () => void | boolean | Promise<void | boolean>;
+    /** Encrypts the export to an OpenPGP public key and downloads it. */
+    onPgpBackup?: (armoredKey: string) => Promise<void>;
 }
 
 // Each row is one button, so the whole row takes the tap, not only the
@@ -27,7 +30,14 @@ const rowLabel = 'block text-[0.9375rem] text-[var(--text)]';
 const rowDesc = 'block text-xs text-[var(--text-muted)] mt-0.5';
 const action = 'text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5';
 
-const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weight, onExport, onQuickExport }) => {
+const ExportSection: React.FC<ExportSectionProps> = ({
+    events,
+    labResults,
+    weight,
+    onExport,
+    onQuickExport,
+    onPgpBackup,
+}) => {
     const { t, lang } = useTranslation();
     const [showEncrypted, setShowEncrypted] = useState(false);
     const [password, setPassword] = useState('');
@@ -227,6 +237,8 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                         </div>
                     )}
                 </div>
+
+                {onPgpBackup && <PgpBackupRow onBackup={onPgpBackup} />}
 
                 {/* CSV */}
                 <button onClick={handleCsvExport} className={`${rowBase} ${rowBleed}`}>

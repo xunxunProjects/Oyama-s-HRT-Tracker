@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { PlanItem, planEvent } from './utils/plan';
 import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
+import { encryptBackup, isPgpMessage, unwrapEnvelope } from './utils/pgpBackup';
+import { version as appVersion } from '../package.json';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
@@ -318,8 +320,32 @@ const AppContent = () => {
         });
 
     const importEventsFromJson = async (text: string): Promise<boolean> => {
+        // An OpenPGP backup still locked: this site never has the private key,
+        // so say how to open it rather than "can't read this file".
+        if (isPgpMessage(text)) {
+            showDialog('alert', t('pgp.import_locked'));
+            return false;
+        }
         try {
             let parsed = JSON.parse(text);
+
+            // A decrypted OpenPGP backup: check it is whole before anything
+            // is replaced, then import the export it carries.
+            let inner: string | null;
+            try {
+                inner = unwrapEnvelope(parsed);
+            } catch (err) {
+                showDialog(
+                    'alert',
+                    t(
+                        err instanceof Error && err.message === 'backup-version'
+                            ? 'pgp.import_version'
+                            : 'pgp.import_damaged',
+                    ),
+                );
+                return false;
+            }
+            if (inner !== null) parsed = JSON.parse(inner);
 
             // Handle Encryption
             if (parsed.encrypted && parsed.iv && parsed.salt && parsed.data) {
@@ -430,6 +456,18 @@ const AppContent = () => {
             downloadFile(json, `hrt-dosages-${new Date().toISOString().split('T')[0]}.json`);
         }
         return null;
+    };
+
+    const handlePgpBackup = async (armoredKey: string) => {
+        const json = JSON.stringify(buildExportPayload(), null, 2);
+        const armored = await encryptBackup(json, armoredKey, appVersion);
+        const blob = new Blob([armored], { type: 'application/pgp-encrypted' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hrt-backup-${new Date().toISOString().split('T')[0]}.json.asc`;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     // Reconcile, then upload — not a plain upload. Every save inserts a new
@@ -775,6 +813,7 @@ const AppContent = () => {
                             weight={weight}
                             onExport={handleExportConfirm}
                             onQuickExport={handleQuickExport}
+                            onPgpBackup={handlePgpBackup}
                             onBack={() => handleViewChange('settings')}
                         />
                     )}

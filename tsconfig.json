@@ -11,6 +11,7 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "noEmit": true
   },
   "exclude": ["node_modules", "dist", "src-tauri"]

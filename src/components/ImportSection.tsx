@@ -94,7 +94,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
             <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/json"
+                accept="application/json,.json,.asc"
                 className="hidden"
                 onChange={handleFileChange}
             />
