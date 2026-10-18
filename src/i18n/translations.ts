@@ -564,6 +564,12 @@ export const TRANSLATIONS_BASE = {
         'auth.password_is_key': '密码也是解开加密云端备份的钥匙。一旦遗失，任何人都无法再打开这些备份，服务器也不行。',
         'auth.share_needs_account': '分享链接保存在账户下，所以需要先登录。登录后会直接回到分享。',
         'auth.invalid_credentials': '用户名或密码不正确。',
+        'auth.account_locked': '这个账户登录失败次数太多，请在 {time} 之后再试。',
+        'auth.too_many_attempts': '尝试次数太多，请等一分钟再试。',
+        'account.weak_password_title': '你的密码太容易被猜到了',
+        'account.weak_password_body':
+            '这个密码也是云备份的密钥，换一个更强的密码能同时保护两者。可以在账户页面修改密码。',
+        'account.weak_password_hint': '密码太容易被猜到了，建议在这里修改',
         'auth.show_password': '显示密码',
         'auth.hide_password': '隐藏密码',
         'account.backup_cloud': '备份到云端',
@@ -1432,6 +1438,12 @@ export const TRANSLATIONS_BASE = {
         'auth.share_needs_account':
             "Share links are kept with an account, so sign in first. You'll go straight on to Share.",
         'auth.invalid_credentials': 'Wrong username or password.',
+        'auth.account_locked': 'Too many failed sign-ins for this account. Try again after {time}.',
+        'auth.too_many_attempts': 'Too many attempts. Wait a minute and try again.',
+        'account.weak_password_title': 'Your password is easy to guess',
+        'account.weak_password_body':
+            'It is also the key to your cloud backups, so a stronger one protects both. You can change it on the Account page.',
+        'account.weak_password_hint': 'Your password is easy to guess, change it here',
         'auth.show_password': 'Show password',
         'auth.hide_password': 'Hide password',
         'account.backup_cloud': 'Backup to Cloud',
@@ -2109,6 +2121,12 @@ const ZH_TW = {
     'auth.password_is_key': '密碼也是解開加密雲端備份的鑰匙。一旦遺失，任何人都無法再打開這些備份，伺服器也不行。',
     'auth.share_needs_account': '分享連結儲存在帳戶下，所以需要先登入。登入後會直接回到分享。',
     'auth.invalid_credentials': '使用者名稱或密碼不正確。',
+    'auth.account_locked': '這個帳戶登入失敗次數太多，請在 {time} 之後再試。',
+    'auth.too_many_attempts': '嘗試次數太多，請等一分鐘再試。',
+    'account.weak_password_title': '你的密碼太容易被猜到了',
+    'account.weak_password_body':
+        '這個密碼也是雲端備份的金鑰，換一個更強的密碼能同時保護兩者。可以在帳戶頁面修改密碼。',
+    'account.weak_password_hint': '密碼太容易被猜到了，建議在這裡修改',
     'auth.show_password': '顯示密碼',
     'auth.hide_password': '隱藏密碼',
     'account.backup_cloud': '備份至雲端',
@@ -2984,6 +3002,12 @@ export const TRANSLATIONS = {
         'auth.password_is_key': '密碼亦都係解開加密雲端備份嘅鎖匙。一旦唔見咗，邊個都打唔開啲備份，連伺服器都唔得。',
         'auth.share_needs_account': '分享連結係跟帳戶儲存嘅，所以要先登入。登入之後會直接返去分享。',
         'auth.invalid_credentials': '用戶名或者密碼唔啱。',
+        'auth.account_locked': '呢個帳戶登入失敗太多次喇，請喺 {time} 之後再試。',
+        'auth.too_many_attempts': '試得太多喇，等一分鐘再試啦。',
+        'account.weak_password_title': '你個密碼太易俾人估到喇',
+        'account.weak_password_body':
+            '呢個密碼亦係雲端備份嘅鎖匙，換個強啲嘅密碼可以兩樣都保護到。可以喺帳戶頁改密碼。',
+        'account.weak_password_hint': '密碼太易俾人估到，建議喺度改',
         'account.backup_cloud': '備份到雲端',
         'account.backup_cloud_desc': '將目前數據保存到你嘅帳戶',
         'account.sync_off_desc': '喺「{path}」度打開「{setting}」就會自動備份。',
@@ -3550,6 +3574,12 @@ export const TRANSLATIONS = {
         'auth.share_needs_account':
             '共有リンクはアカウントに保存されるため、先にサインインしてください。サインインすると、そのまま共有に進みます。',
         'auth.invalid_credentials': 'ユーザー名またはパスワードが正しくありません。',
+        'auth.account_locked': 'このアカウントへのサインインの失敗が多すぎます。{time} 以降にもう一度お試しください。',
+        'auth.too_many_attempts': '試行回数が多すぎます。1 分ほど待ってからもう一度お試しください。',
+        'account.weak_password_title': 'パスワードが推測されやすいです',
+        'account.weak_password_body':
+            'このパスワードはクラウドバックアップの鍵でもあるため、強いものに変えると両方を守れます。アカウントページから変更できます。',
+        'account.weak_password_hint': 'パスワードが推測されやすいです。ここで変更してください',
         'auth.show_password': 'パスワードを表示',
         'auth.hide_password': 'パスワードを隠す',
         'account.backup_cloud': 'クラウドにバックアップ',
@@ -4441,6 +4471,12 @@ export const TRANSLATIONS = {
         'auth.share_needs_account':
             '공유 링크는 계정에 저장되므로 먼저 로그인하세요. 로그인하면 바로 공유로 이어집니다.',
         'auth.invalid_credentials': '사용자 이름 또는 비밀번호가 올바르지 않습니다.',
+        'auth.account_locked': '이 계정의 로그인 실패가 너무 많아요. {time} 이후에 다시 시도해 주세요.',
+        'auth.too_many_attempts': '시도가 너무 많아요. 1분 후에 다시 시도해 주세요.',
+        'account.weak_password_title': '비밀번호가 추측하기 쉬워요',
+        'account.weak_password_body':
+            '이 비밀번호는 클라우드 백업의 키이기도 해서, 더 강한 비밀번호로 바꾸면 둘 다 보호할 수 있어요. 계정 페이지에서 바꿀 수 있어요.',
+        'account.weak_password_hint': '비밀번호가 추측하기 쉬워요. 여기서 바꿔 주세요',
         'auth.show_password': '비밀번호 표시',
         'auth.hide_password': '비밀번호 숨기기',
         'account.backup_cloud': '클라우드 백업',
@@ -5337,6 +5373,13 @@ export const TRANSLATIONS = {
         'auth.share_needs_account':
             "Paylaşım bağlantıları bir hesapta saklanır, bu yüzden önce giriş yap. Ardından doğrudan Paylaş'a geçersin.",
         'auth.invalid_credentials': 'Kullanıcı adı ya da parola yanlış.',
+        'auth.account_locked':
+            'Bu hesapta çok fazla başarısız giriş denemesi oldu. Saat {time} itibarıyla yeniden deneyin.',
+        'auth.too_many_attempts': 'Çok fazla deneme yapıldı. Bir dakika bekleyip yeniden deneyin.',
+        'account.weak_password_title': 'Parolanız kolay tahmin edilebilir',
+        'account.weak_password_body':
+            'Bu parola aynı zamanda bulut yedeklerinizin anahtarı; daha güçlü bir parola ikisini birden korur. Hesap sayfasından değiştirebilirsiniz.',
+        'account.weak_password_hint': 'Parolanız kolay tahmin edilebilir, buradan değiştirin',
         'auth.show_password': 'Parolayı göster',
         'auth.hide_password': 'Parolayı gizle',
         'account.backup_cloud': 'Buluta Yedekle',

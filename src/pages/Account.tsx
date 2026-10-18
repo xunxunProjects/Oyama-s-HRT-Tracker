@@ -168,7 +168,7 @@ const Account: React.FC<AccountProps> = ({
     // device without a cloud key and sync stuck on locked.
     const acceptedPasswordRef = useRef<string | null>(null);
     const formId = useId();
-    const { login, register, loginWithToken } = useAuth();
+    const { login, register, loginWithToken, weakPassword } = useAuth();
     // The worker refuses the same passwords on register; this says why before
     // the round trip, in the reader's language.
     const newPassword = isLogin ? null : newPasswordLevel(password);
@@ -466,7 +466,7 @@ const Account: React.FC<AccountProps> = ({
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
-                setAuthError(describeAuthError(err, t));
+                setAuthError(describeAuthError(err, t, lang));
             }
         } finally {
             setAuthLoading(false);
@@ -598,7 +598,13 @@ const Account: React.FC<AccountProps> = ({
                             <SettingsListItem
                                 icon={Lock}
                                 title={t('account.change_password')}
-                                description={t('account.change_password_desc')}
+                                description={
+                                    weakPassword ? (
+                                        <span className="text-[var(--warning)]">{t('account.weak_password_hint')}</span>
+                                    ) : (
+                                        t('account.change_password_desc')
+                                    )
+                                }
                                 onClick={() => onNavigate('change-password')}
                             />
                             <SettingsListItem
