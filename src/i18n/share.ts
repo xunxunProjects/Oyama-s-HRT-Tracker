@@ -53,12 +53,10 @@ export interface ShareCopy {
     notEncrypted: string;
     legacyHint: string;
     keyInvalidDescription: string;
-    passwordWeak: string;
-    passwordFair: string;
-    passwordStrong: string;
     rateLimitedTitle: string;
     rateLimitedDescription: string;
     rateLimitedRetry: string;
+    passwordLocked: string;
     entropyLabel: string;
     entropyUnit: string;
     entropyFormula: string;
@@ -123,12 +121,10 @@ const en: ShareCopy = {
         'Links marked “Not encrypted” were made before links were encrypted and can be read by the service. Revoke them and create new ones to encrypt them.',
     keyInvalidDescription:
         'The link looks incomplete. Make sure the whole link was copied, including everything after the #.',
-    passwordWeak: 'Easy to guess, try something longer or less regular',
-    passwordFair: 'Okay, a little longer would be safer',
-    passwordStrong: 'Strong password',
     rateLimitedTitle: 'Too many requests',
-    rateLimitedDescription: 'Too many attempts from this network. Please wait a moment and try again.',
-    rateLimitedRetry: 'Try again in {seconds} seconds',
+    rateLimitedDescription: 'Too many attempts. Please wait a moment and try again.',
+    rateLimitedRetry: 'Try again after {time}',
+    passwordLocked: 'Too many wrong passwords for this link. Try again after {time}.',
     entropyLabel: 'Entropy estimate',
     entropyUnit: 'bit',
     entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -194,12 +190,10 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '标着“未加密”的链接是在分享加密上线之前创建的，服务端可以读取。撤销后重新创建即可加密。',
         keyInvalidDescription: '链接好像不完整，请确认复制了完整的链接，包括 # 后面的全部内容。',
-        passwordWeak: '太容易被猜到了，换一个更长、更没有规律的吧',
-        passwordFair: '还可以，再长一点会更安全',
-        passwordStrong: '密码够强了',
         rateLimitedTitle: '请求太频繁',
         rateLimitedDescription: '尝试次数过多，请稍等片刻再试。',
-        rateLimitedRetry: '请在 {seconds} 秒后重试',
+        rateLimitedRetry: '请在 {time} 之后重试',
+        passwordLocked: '这个链接的密码输错太多次了，请在 {time} 之后再试。',
         entropyLabel: '估算熵值',
         entropyUnit: '比特',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -261,12 +255,10 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '標示「未加密」的連結是在分享加密上線之前建立的，服務端可以讀取。撤銷後重新建立即可加密。',
         keyInvalidDescription: '連結似乎不完整，請確認複製了完整的連結，包括 # 後面的全部內容。',
-        passwordWeak: '太容易被猜到了，換一個更長、更沒有規律的吧',
-        passwordFair: '還可以，再長一點會更安全',
-        passwordStrong: '密碼夠強了',
         rateLimitedTitle: '請求太頻繁',
         rateLimitedDescription: '嘗試次數過多，請稍等片刻再試。',
-        rateLimitedRetry: '請在 {seconds} 秒後重試',
+        rateLimitedRetry: '請在 {time} 之後重試',
+        passwordLocked: '這個連結的密碼輸錯太多次了，請在 {time} 之後再試。',
         entropyLabel: '估算熵值',
         entropyUnit: '位元',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -328,12 +320,10 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '標住「未加密」嘅連結係分享加密推出之前建立嘅，伺服器睇得到。撤銷之後再建立就會加密。',
         keyInvalidDescription: '連結好似唔完整，請確認複製咗成條連結，包括 # 後面嘅全部內容。',
-        passwordWeak: '太易俾人估到喇，換個長啲、冇咁有規律嘅啦',
-        passwordFair: '都OK，再長啲會更安全',
-        passwordStrong: '密碼夠強喇',
         rateLimitedTitle: '請求太頻密',
         rateLimitedDescription: '試得太多喇，請等一陣再試。',
-        rateLimitedRetry: '請喺 {seconds} 秒後再試',
+        rateLimitedRetry: '請喺 {time} 之後再試',
+        passwordLocked: '呢條連結嘅密碼輸錯太多次喇，請喺 {time} 之後再試。',
         entropyLabel: '估算熵值',
         entropyUnit: '位元',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -398,12 +388,10 @@ const copy: Record<Lang, ShareCopy> = {
         legacyHint:
             '「暗号化なし」のリンクは共有の暗号化が始まる前に作成されたもので、サービス側から読めます。取り消して作り直すと暗号化されます。',
         keyInvalidDescription: 'リンクが不完全なようです。# 以降も含めてリンク全体をコピーしたか確認してください。',
-        passwordWeak: '推測されやすいパスワードです。もっと長く、規則性のないものにしてください',
-        passwordFair: 'まずまずです。もう少し長いとより安全です',
-        passwordStrong: '十分に強いパスワードです',
         rateLimitedTitle: 'リクエストが多すぎます',
         rateLimitedDescription: '試行回数が多すぎます。しばらく待ってからもう一度お試しください。',
-        rateLimitedRetry: '{seconds} 秒後に再試行してください',
+        rateLimitedRetry: '{time} 以降に再試行してください',
+        passwordLocked: 'このリンクのパスワードの誤りが多すぎます。{time} 以降にもう一度お試しください。',
         entropyLabel: '推定エントロピー',
         entropyUnit: 'ビット',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -469,12 +457,10 @@ const copy: Record<Lang, ShareCopy> = {
         legacyHint:
             '“암호화 안 됨” 링크는 공유 암호화 이전에 만들어져 서비스가 읽을 수 있습니다. 취소하고 새로 만들면 암호화됩니다.',
         keyInvalidDescription: '링크가 불완전한 것 같습니다. # 뒤의 내용까지 링크 전체를 복사했는지 확인하세요.',
-        passwordWeak: '추측하기 쉬운 비밀번호예요. 더 길고 규칙 없는 것으로 바꿔 주세요',
-        passwordFair: '괜찮아요. 조금 더 길면 더 안전해요',
-        passwordStrong: '충분히 강한 비밀번호예요',
         rateLimitedTitle: '요청이 너무 많아요',
         rateLimitedDescription: '시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
-        rateLimitedRetry: '{seconds}초 후에 다시 시도하세요',
+        rateLimitedRetry: '{time} 이후에 다시 시도하세요',
+        passwordLocked: '이 링크의 비밀번호가 너무 많이 틀렸어요. {time} 이후에 다시 시도해 주세요.',
         entropyLabel: '추정 엔트로피',
         entropyUnit: '비트',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
@@ -542,12 +528,10 @@ const copy: Record<Lang, ShareCopy> = {
             '“Şifrelenmemiş” bağlantılar, paylaşım şifrelemesinden önce oluşturuldu ve hizmet tarafından okunabilir. Şifrelemek için iptal edip yenilerini oluşturun.',
         keyInvalidDescription:
             'Bağlantı eksik görünüyor. # işaretinden sonrası dahil bağlantının tamamını kopyaladığınızdan emin olun.',
-        passwordWeak: 'Tahmin etmesi kolay, daha uzun ve düzensiz bir parola deneyin',
-        passwordFair: 'Fena değil, biraz daha uzun olursa daha güvenli',
-        passwordStrong: 'Güçlü parola',
         rateLimitedTitle: 'Çok fazla istek',
         rateLimitedDescription: 'Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.',
-        rateLimitedRetry: '{seconds} saniye sonra yeniden deneyin',
+        rateLimitedRetry: 'Saat {time} itibarıyla yeniden deneyin',
+        passwordLocked: 'Bu bağlantı için çok fazla yanlış parola girildi. Saat {time} itibarıyla yeniden deneyin.',
         entropyLabel: 'Tahmini entropi',
         entropyUnit: 'bit',
         entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',

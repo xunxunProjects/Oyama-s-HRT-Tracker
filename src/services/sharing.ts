@@ -26,6 +26,8 @@ export interface ShareDetails {
     updatedAt: number;
     expiresAt: number | null;
     snapshot: SharedDosageSnapshot;
+    /** Proof this browser gave the right password; sent back on later reads instead of re-checking it. */
+    viewerPass?: string;
 }
 
 /** What the access endpoint returns before the viewer decrypts anything. */
@@ -173,7 +175,7 @@ export const sharingService = {
         return openDetails((await response.json()) as RawShareDetails, key);
     },
 
-    async unlock(token: string, key: string | null, password: string): Promise<ShareDetails> {
+    async unlock(token: string, key: string | null, password: string, viewerPass?: string): Promise<ShareDetails> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
@@ -181,7 +183,7 @@ export const sharingService = {
                 'Content-Type': 'application/json',
             },
             cache: 'no-store',
-            body: JSON.stringify({ token, password }),
+            body: JSON.stringify({ token, password, viewerPass }),
         });
         if (!response.ok) throw await readError(response);
         return openDetails((await response.json()) as RawShareDetails, key);

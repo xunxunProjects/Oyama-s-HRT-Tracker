@@ -16,12 +16,14 @@ import {
 } from '../services/sharing';
 import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
 import {
+    MIN_PASSWORD_LENGTH,
     STRONG_BITS,
     WEAK_BITS,
     estimatePasswordBits,
-    passwordStrength,
+    newPasswordLevel,
     theoreticalPasswordBits,
 } from '../../passwordStrength';
+import PasswordStrengthHint from '../components/PasswordStrengthHint';
 import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -110,8 +112,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
 
     // The server re-checks this on the share create endpoint; blocking it here
     // just keeps the person from losing a round trip to a 400.
-    const strength = password.length >= 8 ? passwordStrength(password) : null;
-    const passwordBlocked = passwordEnabled && (password.length < 8 || strength === 'weak');
+    const level = newPasswordLevel(password);
+    const passwordBlocked =
+        passwordEnabled && (password.length < MIN_PASSWORD_LENGTH || level === 'weak' || level === 'tooLong');
 
     // Live readouts for the password field, from the same module the gate uses:
     // the guess-model estimate in bits, and the theoretical search-space entropy
@@ -348,29 +351,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
-                                    {strength && (
-                                        <p
-                                            className={`mt-1.5 text-xs ${
-                                                strength === 'weak'
-                                                    ? 'text-[var(--danger)]'
-                                                    : strength === 'strong'
-                                                      ? 'text-[var(--accent-ink)]'
-                                                      : 'text-muted'
-                                            }`}
-                                            aria-live="polite"
-                                        >
-                                            {strength === 'weak'
-                                                ? copy.passwordWeak
-                                                : strength === 'strong'
-                                                  ? copy.passwordStrong
-                                                  : copy.passwordFair}
-                                        </p>
-                                    )}
+                                    <PasswordStrengthHint level={level} className="mt-1.5 empty:mt-0" />
                                     {entropy !== null && theory !== null && (
                                         <div className="mt-2.5">
                                             <div className="flex items-baseline justify-between gap-3">
                                                 <span className="text-xs text-muted">{copy.entropyLabel}</span>
-                                                <span className="shrink-0 font-mono text-xs tabular-nums text-body">
+                                                <span className="shrink-0 text-xs tabular-nums text-body">
                                                     {Math.round(entropy)} {copy.entropyUnit}
                                                 </span>
                                             </div>
@@ -383,18 +369,14 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                                 aria-valuenow={Math.min(Math.round(entropy), 80)}
                                             >
                                                 <div
-                                                    className={`h-full rounded-full transition-[width,background-color] duration-300 ease-[var(--ease-out)] ${
+                                                    className={`h-full rounded-full transition-[width,background-color] duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
                                                         entropy < WEAK_BITS
-                                                            ? 'bg-[color-mix(in_srgb,var(--danger)_80%,var(--surface))]'
+                                                            ? 'bg-[var(--danger)]'
                                                             : entropy < STRONG_BITS
-                                                              ? 'bg-[color-mix(in_srgb,var(--warning)_80%,var(--surface))]'
-                                                              : 'bg-[color-mix(in_srgb,var(--accent-ink)_85%,var(--surface))]'
+                                                              ? 'bg-[var(--warning)]'
+                                                              : 'bg-[var(--accent)]'
                                                     }`}
-                                                    style={{
-                                                        width: `${Math.min(100, (entropy / 80) * 100)}%`,
-                                                        backgroundImage:
-                                                            'linear-gradient(180deg, color-mix(in srgb, #ffffff 20%, transparent), transparent 65%)',
-                                                    }}
+                                                    style={{ width: `${Math.min(100, (entropy / 80) * 100)}%` }}
                                                 />
                                             </div>
                                             <p className="mt-1.5 text-xs leading-relaxed text-muted" aria-live="polite">

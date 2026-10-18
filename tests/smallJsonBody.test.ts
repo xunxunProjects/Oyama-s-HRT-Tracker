@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_JSON_BODY_BYTES, readSmallJsonBody } from '../worker';
+import { MAX_JSON_BODY_BYTES, readSmallJsonBody } from '../requestInput';
 
 // readSmallJsonBody must stop reading once the body passes MAX_JSON_BODY_BYTES
 // instead of buffering first and checking after. The chunked cases below fail

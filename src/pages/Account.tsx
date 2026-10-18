@@ -26,6 +26,8 @@ import { SettingsListItem, settingsSection } from '../components/SettingsListIte
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import Point from '../components/Point';
+import PasswordStrengthHint from '../components/PasswordStrengthHint';
+import { newPasswordLevel } from '../../passwordStrength';
 import { describeAuthError } from '../components/AuthModal';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -167,6 +169,10 @@ const Account: React.FC<AccountProps> = ({
     const acceptedPasswordRef = useRef<string | null>(null);
     const formId = useId();
     const { login, register, loginWithToken } = useAuth();
+    // The worker refuses the same passwords on register; this says why before
+    // the round trip, in the reader's language.
+    const newPassword = isLogin ? null : newPasswordLevel(password);
+    const newPasswordBlocked = newPassword === 'weak' || newPassword === 'tooLong';
 
     // `silent` refreshes the list in place. Sync reports in on its own schedule
     // — including a poll every few minutes — and swapping the whole list for a
@@ -435,6 +441,10 @@ const Account: React.FC<AccountProps> = ({
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
             } else {
+                if (newPasswordBlocked) {
+                    setAuthError(t(newPassword === 'tooLong' ? 'pw.too_long' : 'pw.too_weak'));
+                    return;
+                }
                 await register(username, password);
                 return;
             }
@@ -516,7 +526,7 @@ const Account: React.FC<AccountProps> = ({
         </p>
     );
     const authSubmit = (
-        <button type="submit" disabled={authLoading} className="btn-primary w-full">
+        <button type="submit" disabled={authLoading || newPasswordBlocked} className="btn-primary w-full">
             {authLoading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -1209,6 +1219,7 @@ const Account: React.FC<AccountProps> = ({
                                     aria-describedby={
                                         [
                                             !isLogin ? `${formId}-key-note` : '',
+                                            newPassword ? `${formId}-pw-strength` : '',
                                             authError && !needsTOTP ? authErrorId : '',
                                         ]
                                             .filter(Boolean)
@@ -1216,6 +1227,7 @@ const Account: React.FC<AccountProps> = ({
                                     }
                                     required
                                 />
+                                {!isLogin && <PasswordStrengthHint id={`${formId}-pw-strength`} level={newPassword} />}
                             </div>
                             {/* Signing up is the moment to say it: the password is
                             what the backups are encrypted with, so no reset

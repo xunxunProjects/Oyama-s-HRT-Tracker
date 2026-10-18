@@ -25,8 +25,33 @@ describe('password strength', () => {
         'abcabcabcabc',
         '1212121212',
         'iloveyou',
+        // Dates with separators, and a date tacked onto a word
+        '2000-01-01',
+        '01.01.2000',
+        '1990.12.25',
+        'hrt20240101',
+        // A common word repeated, or with a long predictable tail
+        'password password',
+        'passwordpassword1',
+        'Password1Password2',
+        'iloveyou iloveyou',
+        'dragon!@#$%^&',
+        // Keyboard columns and zigzags
+        '1qaz2wsx3edc',
+        '1q2w3e4r5t',
+        // Letter swaps and two common words run together
+        'Pa$$w0rd',
+        'helloworld',
     ])('refuses %s', password => {
         expect(passwordStrength(password)).toBe('weak');
+    });
+
+    it('does not count a single space as the whole symbol alphabet', () => {
+        expect(passwordStrength('correct horse')).not.toBe('strong');
+    });
+
+    it('counts a chunk typed twice once, wherever it repeats', () => {
+        expect(estimatePasswordBits('Kf8mKf8m')).toBeLessThan(estimatePasswordBits('Kf8mz2Qw'));
     });
 
     it('treats a long random mixed password as strong', () => {

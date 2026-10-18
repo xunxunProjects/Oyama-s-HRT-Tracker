@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import worker, { type Env } from '../worker';
 
 // Lockout policy under test: the fifth consecutive miss locks for 15 minutes,
-// every further miss doubles that, capped at a day; a successful unlock clears
-// the run. The counting runs inside the storage engine (single UPDATE with
+// every further miss doubles that, capped at an hour; a successful unlock clears
+// the run and hands back a viewer pass that later reads use to skip the lock. The counting runs inside the storage engine (single UPDATE with
 // `failed_attempts = failed_attempts + 1`), so concurrent misses must not lose
 // each other's increments. The fake below executes the statements the handler
 // really prepares (it throws on anything else, so drift is loud) and applies
@@ -134,7 +134,7 @@ class FakeD1 {
         const previous = row.failed_attempts;
         row.failed_attempts = previous + 1;
         if (row.failed_attempts >= 5) {
-            const lockSeconds = Math.min(900 * 2 ** Math.min(previous - 4, 7), 86400);
+            const lockSeconds = Math.min(900 * 2 ** Math.min(previous - 4, 2), 3600);
             row.locked_until = Math.max(row.locked_until ?? 0, nowSeconds + lockSeconds);
         }
     }
@@ -159,12 +159,12 @@ function currentRow(): ShareRow {
     return fake.rows.get(TOKEN_HASH)!;
 }
 
-function access(token: string, password?: string): Promise<Response> {
+function access(token: string, password?: string, viewerPass?: string): Promise<Response> {
     return worker.fetch(
         new Request('https://example.com/api/shares/access', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(password === undefined ? { token } : { token, password }),
+            body: JSON.stringify(password === undefined ? { token, viewerPass } : { token, password, viewerPass }),
         }),
         env,
         ctx,
@@ -229,6 +229,41 @@ describe('share password lockout', () => {
         expect(currentRow().locked_until).toBe(lockedUntil);
     });
 
+    it('lets a reader who already unlocked keep reading through a lock', async () => {
+        const unlocked = await access(TOKEN, PASSWORD);
+        expect(unlocked.status).toBe(200);
+        const { viewerPass } = (await unlocked.json()) as { viewerPass?: string };
+        expect(viewerPass).toEqual(expect.any(String));
+
+        for (let i = 0; i < 5; i++) await access(TOKEN, WRONG);
+        expect(currentRow().locked_until).toBe(nowSeconds() + 900);
+
+        const withPass = await access(TOKEN, PASSWORD, viewerPass);
+        expect(withPass.status).toBe(200);
+        // The pass skips the password check, so it neither counts nor clears misses.
+        expect(currentRow().failed_attempts).toBe(5);
+        expect((await access(TOKEN, PASSWORD)).status).toBe(429);
+    });
+
+    it('refuses a viewer pass once the share has a different password', async () => {
+        const { viewerPass } = (await (await access(TOKEN, PASSWORD)).json()) as { viewerPass?: string };
+        currentRow().password_hash = bcrypt.hashSync('a different password 42', 4);
+
+        const response = await access(TOKEN, undefined, viewerPass);
+        expect(response.status).toBe(401);
+        expect(((await response.json()) as { code: string }).code).toBe('PASSWORD_REQUIRED');
+    });
+
+    it('does not accept a viewer pass as a sign-in token', async () => {
+        const { viewerPass } = (await (await access(TOKEN, PASSWORD)).json()) as { viewerPass?: string };
+        const response = await worker.fetch(
+            new Request('https://example.com/api/shares', { headers: { Authorization: `Bearer ${viewerPass}` } }),
+            env,
+            ctx,
+        );
+        expect(response.status).toBe(401);
+    });
+
     it('doubles the lock for a miss after the lock has expired', async () => {
         for (let i = 0; i < 5; i++) await access(TOKEN, WRONG);
         vi.setSystemTime(T0 + 901_000);
@@ -239,14 +274,14 @@ describe('share password lockout', () => {
         expect(currentRow().locked_until).toBe(nowSeconds() + 1800);
     });
 
-    it('caps the backoff at 24 hours', async () => {
+    it('caps the backoff at an hour', async () => {
         currentRow().failed_attempts = 11;
         currentRow().locked_until = nowSeconds() - 1;
 
         const response = await access(TOKEN, WRONG);
         expect(response.status).toBe(403);
         expect(currentRow().failed_attempts).toBe(12);
-        expect(currentRow().locked_until).toBe(nowSeconds() + 24 * 60 * 60);
+        expect(currentRow().locked_until).toBe(nowSeconds() + 60 * 60);
     });
 
     it('clears the failure run after a successful unlock', async () => {
@@ -298,8 +333,8 @@ describe('share password lockout', () => {
         const failureSql = fake.capturedSql.find(sql => sql.includes('failed_attempts = failed_attempts + 1'));
         expect(failureSql, 'failure counter statement').toBeDefined();
         expect(failureSql).toContain('CASE');
-        expect(failureSql).toContain('1 << MIN(failed_attempts - 4, 7)');
-        expect(failureSql).toContain('86400');
+        expect(failureSql).toContain('1 << MIN(failed_attempts - 4, 2)');
+        expect(failureSql).toContain('3600');
         expect(failureSql).toContain('MAX(COALESCE(locked_until, 0)');
         expect(failureSql).not.toContain('failed_attempts = ?');
 
@@ -386,7 +421,7 @@ describe.skipIf(!sqliteModule || !fsModule)('generated SQL on a real SQLite engi
             .prepare('SELECT failed_attempts, locked_until FROM dosage_shares WHERE token_hash = ?')
             .get(TOKEN_HASH) as { failed_attempts: number; locked_until: number | null };
         expect(atCap.failed_attempts).toBe(100);
-        expect(atCap.locked_until).toBe(now + 86400);
+        expect(atCap.locked_until).toBe(now + 3600);
 
         db.prepare(resetSql!).run(TOKEN_HASH);
         const afterReset = db

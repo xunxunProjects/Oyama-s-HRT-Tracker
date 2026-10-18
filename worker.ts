@@ -7,7 +7,8 @@ import {
     sanitizeEncryptedShareSnapshot,
     sanitizeShareSnapshot,
 } from './shareSnapshotSchema';
-import { MAX_PASSWORD_BYTES, passwordByteLength, passwordStrength } from './passwordStrength';
+import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
+import { getClientIP, MAX_JSON_BODY_BYTES, readSmallJsonBody } from './requestInput';
 
 export interface Env {
     DB: D1Database;
@@ -21,14 +22,20 @@ export interface Env {
     ENVIRONMENT?: string;
     /**
      * Which header carries the client address. One of:
-     *   'cf' (default)     — CF-Connecting-IP, set by Cloudflare and not spoofable
-     *   'x-forwarded-for'  — the first X-Forwarded-For hop, for deployments
-     *                        behind a reverse proxy that rewrites the header
-     *   'none'             — no client address is available (Tor/I2P mirrors
-     *                        without a trusted proxy); IP-shaped rate limits are
-     *                        skipped instead of collapsing into one shared bucket
-     * Anything else is treated as the default. Unknown/absent addresses only
-     * lose the per-address rate limits; per-account ones still apply.
+     *   'cf' (default)     — CF-Connecting-IP. On Cloudflare the edge sets it and
+     *                        a client cannot. Under `wrangler dev` (Docker) the
+     *                        runtime only fills it in when the request has none,
+     *                        so a proxy in front must overwrite it, or a client
+     *                        can pick its own address
+     *   'x-forwarded-for'  — the last X-Forwarded-For hop, the one the single
+     *                        reverse proxy in front appended; earlier hops came
+     *                        from the client
+     *   'none'             — no client address (Tor/I2P mirrors). Per-address
+     *                        buckets become one shared bucket per endpoint,
+     *                        sized for everyone; the share-access address
+     *                        bucket is skipped
+     * Anything else is treated as the default. Per-account and per-link limits
+     * apply whatever this is set to.
      */
     TRUSTED_IP_SOURCE?: string;
     /**
@@ -107,21 +114,6 @@ function withSecurityHeaders(response: Response): Response {
 }
 
 /**
- * The client address for rate-limit keys and session records, or null when the
- * deployment has none (TRUSTED_IP_SOURCE=none, Tor/I2P mirrors). Callers must
- * cope with null by not keying an address bucket on a shared 'unknown'.
- */
-function getClientIP(request: Request, env: Env): string | null {
-    const source = (env.TRUSTED_IP_SOURCE || 'cf').trim().toLowerCase();
-    if (source === 'none' || source === 'off') return null;
-    if (source === 'x-forwarded-for' || source === 'xff') {
-        const first = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim();
-        return first || null;
-    }
-    return request.headers.get('CF-Connecting-IP')?.trim() || null;
-}
-
-/**
  * Origins a passkey ceremony may be bound to. The WebAuthn rpId/origin has to
  * be an address this deployment actually serves, but the handlers used to echo
  * whatever `Origin` header the caller sent into the challenge, so any page (or
@@ -131,6 +123,10 @@ function getClientIP(request: Request, env: Env): string | null {
  */
 function allowedPasskeyOrigins(url: URL, env: Env): Set<string> {
     const allowed = new Set<string>([url.origin]);
+    // Behind a TLS-terminating proxy (the Docker setup the README suggests) the
+    // worker sees http while the browser is on https for the same host. The
+    // host is still this deployment's, so the https form of it is allowed too.
+    if (url.protocol === 'http:') allowed.add(`https://${url.host}`);
     if (env.PUBLIC_APP_ORIGIN) {
         try {
             allowed.add(new URL(env.PUBLIC_APP_ORIGIN).origin);
@@ -168,69 +164,6 @@ function shareOriginFor(url: URL, env: Env): string {
     return (env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/+$/, '');
 }
 
-/**
- * Reads a JSON request body for the small JSON endpoints. The body is consumed
- * chunk by chunk and reading stops as soon as the accumulated size passes the
- * cap, so an oversized (or chunked, Content-Length-less) payload never gets
- * buffered in full by this application. That bounds what the handler holds,
- * not the runtime's network buffers: a single stream chunk is allocated by the
- * runtime before we see it. Malformed JSON and invalid UTF-8 are reported as
- * request errors instead of letting them reach the outer catch as a 500.
- * Bigger payloads have their own dedicated limits and do not use this.
- * Callers with a tighter budget than MAX_JSON_BODY_BYTES can pass their own
- * cap (the share-access body, for example, is limited to 1 KiB).
- */
-export async function readSmallJsonBody(
-    request: Request,
-    maxBytes: number = MAX_JSON_BODY_BYTES,
-): Promise<{ ok: boolean; value: any; tooLarge: boolean }> {
-    if (!request.body) {
-        return { ok: true, value: {}, tooLarge: false };
-    }
-
-    const reader = request.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let totalBytes = 0;
-
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (!value) continue;
-
-            totalBytes += value.byteLength;
-            if (totalBytes > maxBytes) {
-                try {
-                    await reader.cancel();
-                } catch {
-                    // The stream may already have been cancelled or closed.
-                }
-                return { ok: false, value: undefined, tooLarge: true };
-            }
-            chunks.push(value);
-        }
-    } catch {
-        return { ok: false, value: undefined, tooLarge: false };
-    } finally {
-        reader.releaseLock();
-    }
-
-    try {
-        const bytes = new Uint8Array(totalBytes);
-        let offset = 0;
-        for (const chunk of chunks) {
-            bytes.set(chunk, offset);
-            offset += chunk.byteLength;
-        }
-
-        const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-        const value = raw.length > 0 ? JSON.parse(raw) : {};
-        return { ok: true, value: value ?? {}, tooLarge: false };
-    } catch {
-        return { ok: false, value: undefined, tooLarge: false };
-    }
-}
-
 // Timing-safe string comparison
 function timingSafeEqual(a: string, b: string): boolean {
     try {
@@ -263,11 +196,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
-const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
-// Uniform cap for the small JSON request bodies (auth, passkey, 2FA); large
-// payloads have their own limits and file routes do not go through this.
-export const MAX_JSON_BODY_BYTES = 64 * 1024;
 
 /**
  * Every API error is `{ code, message }`. The message is for a human; the code
@@ -379,7 +308,10 @@ function validateUsername(username: string): boolean {
     return USERNAME_REGEX.test(username) && !RESERVED_USERNAMES.has(username.toLowerCase());
 }
 
-function validatePassword(password: string): { valid: boolean; error?: string } {
+function validatePassword(password: unknown): { valid: boolean; error?: string } {
+    // Request bodies are parsed JSON, so a number or an object can arrive here;
+    // the strength check below would throw on it and surface as a 500.
+    if (typeof password !== 'string') return { valid: false, error: 'Password must be a string' };
     if (password.length < MIN_PASSWORD_LENGTH)
         return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long` };
     if (password.length > MAX_PASSWORD_LENGTH)
@@ -672,6 +604,42 @@ async function sha256Hex(value: string): Promise<string> {
     return Array.from(new Uint8Array(digest))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
+}
+
+/**
+ * A signed note that this browser already gave the right password for one
+ * share. A live page polls every 10 s; with the pass it skips the bcrypt check
+ * and the guessing lock, so someone sending wrong passwords cannot shut out
+ * people who are already reading. It is bound to the share's current password
+ * hash, so a new password or a revoked share ends it, and its `purpose` keeps
+ * the session check from ever taking it for a sign-in.
+ */
+const SHARE_VIEWER_PASS_TTL = '24h';
+
+async function signShareViewerPass(jwtSecret: string, tokenHash: string, passwordHash: string): Promise<string> {
+    return new SignJWT({ purpose: 'share-view', share: tokenHash, pw: (await sha256Hex(passwordHash)).slice(0, 32) })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime(SHARE_VIEWER_PASS_TTL)
+        .sign(new TextEncoder().encode(jwtSecret));
+}
+
+async function shareViewerPassValid(
+    pass: unknown,
+    jwtSecret: string,
+    tokenHash: string,
+    passwordHash: string,
+): Promise<boolean> {
+    if (typeof pass !== 'string' || pass.length === 0) return false;
+    try {
+        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret));
+        return (
+            payload.purpose === 'share-view' &&
+            payload.share === tokenHash &&
+            payload.pw === (await sha256Hex(passwordHash)).slice(0, 32)
+        );
+    } catch {
+        return false;
+    }
 }
 
 // --- WebAuthn / Passkey crypto helpers ---
@@ -1149,6 +1117,7 @@ export default {
                 const body = parsedBody.value;
                 let { username, password } = body;
                 if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
+                if (typeof username !== 'string') return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
 
                 username = username.trim();
                 if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
@@ -1199,6 +1168,8 @@ export default {
                 const body = parsedBody.value;
                 let { username, password, totp_code, backup_code } = body;
                 if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
+                if (typeof username !== 'string' || typeof password !== 'string')
+                    return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
                 username = username.trim();
 
                 // Per-account throttle, keyed on nothing the caller can rotate. The IP
@@ -1648,7 +1619,11 @@ export default {
                     return shareJson({ code: 'SHARE_EXPIRED', message: 'This share link has expired' }, 410);
                 }
 
-                if (share.password_hash) {
+                let viewerPass: string | null = null;
+                if (
+                    share.password_hash &&
+                    !(await shareViewerPassValid(body.viewerPass, jwtSecret, tokenHash, share.password_hash))
+                ) {
                     if (body.password === undefined || body.password === '') {
                         return shareJson(
                             {
@@ -1713,9 +1688,12 @@ export default {
                         // + 1` is applied atomically to the row by SQLite; there is no
                         // read-modify-write window left in the application.
                         // Backoff: the fifth consecutive miss locks for 15 min, every
-                        // further miss doubles that, capped at a day. The exponent is
-                        // clamped so the shift stays in range: 900 * 2^7 is already past
-                        // the cap, and beyond it every term is 86400 anyway.
+                        // further miss doubles that, capped at an hour. Anyone holding
+                        // the link can trip this, so the cap is what bounds how long
+                        // they can keep new readers waiting; readers who already
+                        // unlocked carry a viewer pass and are not stopped by it. The
+                        // exponent is clamped so the shift stays in range: 900 * 2^2
+                        // is the cap, and beyond it every term is 3600 anyway.
                         // MAX(COALESCE(...)) keeps concurrent escalations monotonic — a
                         // longer lock written by a statement that raced ahead is never
                         // shortened by a later one that computed a smaller term.
@@ -1727,7 +1705,7 @@ export default {
                                 SET failed_attempts = failed_attempts + 1,
                                     locked_until = CASE
                                         WHEN failed_attempts + 1 >= 5
-                                        THEN MAX(COALESCE(locked_until, 0), ? + MIN(900 * (1 << MIN(failed_attempts - 4, 7)), 86400))
+                                        THEN MAX(COALESCE(locked_until, 0), ? + MIN(900 * (1 << MIN(failed_attempts - 4, 2)), 3600))
                                         ELSE locked_until
                                     END
                               WHERE token_hash = ?`,
@@ -1746,6 +1724,7 @@ export default {
                             .bind(tokenHash)
                             .run();
                     }
+                    viewerPass = await signShareViewerPass(jwtSecret, tokenHash, share.password_hash);
                 }
 
                 // Fetch the potentially large snapshot only after expiry and password
@@ -1768,6 +1747,7 @@ export default {
                     // Ciphertext for an encrypted share; the viewer decrypts it
                     // with the key from the link's fragment.
                     ...(snapshotRow.encrypted === 1 ? { encryptedSnapshot: stored } : { snapshot: stored }),
+                    ...(viewerPass ? { viewerPass } : {}),
                 });
             }
 

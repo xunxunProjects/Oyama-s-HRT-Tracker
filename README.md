@@ -194,11 +194,19 @@ put a TLS-terminating reverse proxy (or a Tor/I2P daemon) in front instead.
 container uses Wrangler's local workerd runtime and local persistent D1/R2
 resources; it does not connect to the Cloudflare production database or bucket.
 
-`TRUSTED_IP_SOURCE` is optional too. Set it to `x-forwarded-for` when exactly
-one reverse proxy you control sits in front of the container (otherwise the
-worker sees no client address and every viewer shares one rate-limit bucket),
-or to `none` on a Tor/I2P mirror that has no client addresses at all. The
-default is `cf`, which reads Cloudflare's `CF-Connecting-IP` header.
+`TRUSTED_IP_SOURCE` is optional too. The default, `cf`, reads the
+`CF-Connecting-IP` header. Off Cloudflare, the container fills that header in
+only when a request arrives without one, so have the reverse proxy overwrite
+it with the client address (Caddy: `header_up CF-Connecting-IP {remote_host}`,
+nginx: `proxy_set_header CF-Connecting-IP $remote_addr;`). Otherwise a client
+can send its own, or, behind a proxy, every visitor shares the proxy's address.
+Alternatively set `x-forwarded-for` to use the last `X-Forwarded-For` hop, the
+one the single proxy in front added, or `none` on a Tor/I2P mirror with no
+client addresses, where each endpoint gets one shared limit.
+
+`PUBLIC_APP_ORIGIN` (for example `https://hrt.example.com`) is optional. Share
+links use it, and passkey sign-in accepts it when the proxy does not pass the
+browser's `Host` header through.
 
 The workflow in `.github/workflows/docker-publish.yml` validates pull requests
 and publishes `linux/amd64` and `linux/arm64` images to GitHub Container Registry

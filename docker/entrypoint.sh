@@ -33,29 +33,55 @@ node ./docker/reconcile.mjs "$database_name" \
 # Secrets go into a 0600 .dev.vars (wrangler's own dev-vars file) instead of
 # --var arguments: a command line is readable through /proc, so the values
 # used to show up in `ps` for anything else running in this container. The
-# file is written fresh on every start and trimmed of line breaks; values are
-# double-quoted with backslashes and quotes escaped for dotenv. Plain
+# file is written fresh on every start and trimmed of line breaks. Plain
 # environment variables are not bindings for the worker, so every setting the
 # worker reads from Env (TRUSTED_IP_SOURCE, for instance) has to be forwarded
 # into this file explicitly.
-escape_dotenv() {
-    printf '%s' "$1" | tr -d '\n\r' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+#
+# wrangler parses the file with dotenv 16, which strips the quotes around a
+# value and undoes no escapes, so backslash-escaping would change secrets
+# that contain a backslash or a quote. Single quotes keep a value exactly as
+# it is; a value with a single quote in it goes in backticks instead, and one
+# with both cannot be written faithfully at all.
+dotenv_line() {
+    value=$(printf '%s' "$2" | tr -d '\n\r')
+    case $value in
+        *\'*)
+            case $value in
+                *\`*)
+                    echo "$1 contains both ' and \`, which .dev.vars cannot hold. Choose another value." >&2
+                    exit 1
+                    ;;
+            esac
+            printf '%s=`%s`\n' "$1" "$value"
+            ;;
+        *)
+            printf "%s='%s'\n" "$1" "$value"
+            ;;
+    esac
 }
 
 vars_file="./.dev.vars"
 umask 077
 {
-    printf 'JWT_SECRET="%s"\n' "$(escape_dotenv "$JWT_SECRET")"
+    dotenv_line JWT_SECRET "$JWT_SECRET"
     if [ -n "${ADMIN_USERNAME:-}" ]; then
-        printf 'ADMIN_USERNAME="%s"\n' "$(escape_dotenv "$ADMIN_USERNAME")"
+        dotenv_line ADMIN_USERNAME "$ADMIN_USERNAME"
     fi
     if [ -n "${ADMIN_PASSWORD:-}" ]; then
-        printf 'ADMIN_PASSWORD="%s"\n' "$(escape_dotenv "$ADMIN_PASSWORD")"
+        dotenv_line ADMIN_PASSWORD "$ADMIN_PASSWORD"
     fi
-    # Optional rate-limit IP source: 'cf' (default), 'x-forwarded-for' behind
-    # exactly one trusted proxy, or 'none' on a mirror without client IPs.
+    # Optional rate-limit IP source: 'cf' (default; the proxy in front must
+    # overwrite CF-Connecting-IP), 'x-forwarded-for' behind exactly one proxy
+    # you control, or 'none' on a mirror without client IPs.
     if [ -n "${TRUSTED_IP_SOURCE:-}" ]; then
-        printf 'TRUSTED_IP_SOURCE="%s"\n' "$(escape_dotenv "$TRUSTED_IP_SOURCE")"
+        dotenv_line TRUSTED_IP_SOURCE "$TRUSTED_IP_SOURCE"
+    fi
+    # Optional public address, for example https://hrt.example.com. Share links
+    # point here, and passkeys accept it when the proxy in front does not pass
+    # the browser's Host header through.
+    if [ -n "${PUBLIC_APP_ORIGIN:-}" ]; then
+        dotenv_line PUBLIC_APP_ORIGIN "$PUBLIC_APP_ORIGIN"
     fi
 } > "$vars_file"
 chmod 600 "$vars_file"

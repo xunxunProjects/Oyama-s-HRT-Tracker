@@ -6,7 +6,8 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { apiErrorCode } from '../services/apiClient';
 import { settingsMuted } from '../components/SettingsListItem';
-import { passwordStrength } from '../../passwordStrength';
+import { newPasswordLevel } from '../../passwordStrength';
+import PasswordStrengthHint from '../components/PasswordStrengthHint';
 
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -24,7 +25,8 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     // The server enforces the same rule; checking here keeps the feedback
     // local and worded in the reader's language.
-    const strength = newPass.length >= 8 ? passwordStrength(newPass) : null;
+    const level = newPasswordLevel(newPass);
+    const passwordBlocked = level === 'weak' || level === 'tooLong';
 
     // A form, so Enter in the last field submits and password managers see
     // which field is which.
@@ -39,8 +41,8 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             setError(t('pw.too_short'));
             return;
         }
-        if (strength === 'weak') {
-            setError(t('pw.too_weak'));
+        if (passwordBlocked) {
+            setError(t(level === 'tooLong' ? 'pw.too_long' : 'pw.too_weak'));
             return;
         }
 
@@ -121,24 +123,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <p id={`${id}-rule`} className={`mt-1.5 text-xs ${muted}`}>
                                 {t('pw.too_short')}
                             </p>
-                            {strength && (
-                                <p
-                                    className={`mt-1 text-xs ${
-                                        strength === 'weak'
-                                            ? 'text-[var(--danger)]'
-                                            : strength === 'strong'
-                                              ? 'text-[var(--accent-ink)]'
-                                              : muted
-                                    }`}
-                                    aria-live="polite"
-                                >
-                                    {strength === 'weak'
-                                        ? t('pw.strength_weak')
-                                        : strength === 'strong'
-                                          ? t('pw.strength_strong')
-                                          : t('pw.strength_fair')}
-                                </p>
-                            )}
+                            <PasswordStrengthHint level={level} className="mt-1 empty:mt-0" />
                         </div>
                         <div>
                             <label htmlFor={`${id}-confirm`} className={labelCls}>
@@ -158,7 +143,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                     <button
                         type="submit"
-                        disabled={!current || !newPass || !confirm || isLoading || strength === 'weak'}
+                        disabled={!current || !newPass || !confirm || isLoading || passwordBlocked}
                         className="btn-primary w-full"
                     >
                         {isLoading && <Loader2 size={16} className="animate-spin" />}
