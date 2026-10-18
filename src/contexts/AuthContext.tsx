@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        rememberDevicePass(data.user.username, data.devicePass);
         // A passkey proves who you are; it does not hand this device the
         // password the cloud key is derived from. When the passkey was only the
         // *second* factor the password is right here and the server has just
