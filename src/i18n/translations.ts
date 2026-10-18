@@ -238,6 +238,7 @@ export const TRANSLATIONS_BASE = {
 
         'error.nonPositive': '不能输入小于等于 0 的值。',
         'error.weightRange': '体重需在 20 到 400 公斤之间。',
+        'error.birthYearRange': '出生年份需在 {min} 到 {max} 之间。',
         'error.slHoldMinOne': '含服时长需大于等于 1 分钟。',
 
         'export.encrypt_ask_desc': '加密后将生成随机密码，导入时必须输入该密码。',
@@ -306,6 +307,16 @@ export const TRANSLATIONS_BASE = {
         'dialog.alert_title': '提示',
 
         'modal.weight.desc': '用于估算峰值浓度。',
+        'settings.age': '年龄',
+        'settings.age_unset': '未设置',
+        'age.birth_year': '出生年份',
+        'age.this_year': '今年 {n} 岁',
+        'age.desc': '用于调整雌二醇与睾酮的清除速度。',
+        'age.explain':
+            '雌二醇与睾酮的清除会随年龄略微变慢，所以同样的剂量，年纪越大读数越高，每年约 0.5% 到 0.7%。留空时按 {ref} 岁估算，即模型所依据研究的平均年龄。睾酮的证据比雌二醇更充分；无论哪种，化验结果都会校正雌二醇的估计。环丙孕酮不做调整。',
+        'age.remove': '移除出生年份',
+        'settings.age_beta': '年龄调整 · Beta',
+        'settings.age_beta_desc': '按年龄调整估算。睾酮的证据较充分，雌二醇的证据并不一致',
         'modal.dose.add_title': '新增用药记录',
         'modal.dose.edit_title': '编辑用药记录',
         'modal.dose.delete_confirm': '确定删除这条记录吗？',
@@ -1091,6 +1102,7 @@ export const TRANSLATIONS_BASE = {
 
         'error.nonPositive': 'Value must be greater than zero.',
         'error.weightRange': 'Weight must be between 20 and 400 kg.',
+        'error.birthYearRange': 'Year of birth must be between {min} and {max}.',
         'error.slHoldMinOne': 'Sublingual hold time must be at least 1 minute.',
 
         'export.encrypt_ask_desc': 'A random password will be generated and required for import.',
@@ -1160,6 +1172,17 @@ export const TRANSLATIONS_BASE = {
         'dialog.alert_title': 'Alert',
 
         'modal.weight.desc': 'Used in peak concentration estimates.',
+        'settings.age': 'Age',
+        'settings.age_unset': 'Not set',
+        'age.birth_year': 'Year of birth',
+        'age.this_year': '{n} this year',
+        'age.desc': 'Adjusts how fast estradiol and testosterone are cleared.',
+        'age.explain':
+            'Estradiol and testosterone are cleared a little more slowly with age, so the same dose reads a little higher later in life: about 0.5 to 0.7% a year. Left blank, the estimate is as for a {ref}-year-old, the average age in the studies the model was fitted on. The evidence is firmer for testosterone than for estradiol, and blood tests correct the estradiol estimate either way. Cyproterone is not adjusted.',
+        'age.remove': 'Remove year of birth',
+        'settings.age_beta': 'Age adjustment · Beta',
+        'settings.age_beta_desc':
+            'Adjust the estimates for your age. The evidence is firm for testosterone and mixed for estradiol',
         'modal.dose.add_title': 'Add Dose',
         'modal.dose.edit_title': 'Edit Dose',
         'modal.dose.delete_confirm': 'Delete this record?',
@@ -1863,6 +1886,7 @@ const ZH_TW = {
 
     'error.nonPositive': '不能輸入小於或等於 0 的值',
     'error.weightRange': '體重需在 20 到 400 公斤之間。',
+    'error.birthYearRange': '出生年份需在 {min} 到 {max} 之間。',
     'error.slHoldMinOne': '含服時長需大於等於 1 分鐘',
 
     'export.encrypt_ask_desc': '加密後會產生一組隨機密碼，匯入時必須輸入該密碼。',
@@ -1918,6 +1942,16 @@ const ZH_TW = {
     'dialog.alert_title': '提示',
 
     'modal.weight.desc': '用於估算濃度峰值。',
+    'settings.age': '年齡',
+    'settings.age_unset': '未設定',
+    'age.birth_year': '出生年份',
+    'age.this_year': '今年 {n} 歲',
+    'age.desc': '用於調整雌二醇與睪固酮的清除速度。',
+    'age.explain':
+        '雌二醇與睪固酮的清除會隨年齡略微變慢，所以同樣的劑量，年紀越大讀數越高，每年約 0.5% 到 0.7%。留空時按 {ref} 歲估算，即模型所依據研究的平均年齡。睪固酮的證據比雌二醇更充分；無論哪種，檢驗結果都會校正雌二醇的估計。環丙孕酮不做調整。',
+    'age.remove': '移除出生年份',
+    'settings.age_beta': '年齡調整 · Beta',
+    'settings.age_beta_desc': '按年齡調整估算。睪固酮的證據較充分，雌二醇的證據並不一致',
 
     'modal.dose.add_title': '新增用藥',
     'modal.dose.edit_title': '編輯用藥',
@@ -2726,6 +2760,7 @@ export const TRANSLATIONS = {
 
         'error.nonPositive': '唔可以輸入小於等於 0 嘅值',
         'error.weightRange': '體重要喺 20 到 400 公斤之間。',
+        'error.birthYearRange': '出生年份要喺 {min} 到 {max} 之間。',
         'error.slHoldMinOne': '含服時間要大於等於 1 分鐘',
 
         'export.encrypt_ask_desc': '加密之後會生成隨機密碼，匯入嗰陣要用。',
@@ -2764,6 +2799,16 @@ export const TRANSLATIONS = {
         'dialog.alert_title': '提示',
 
         'modal.weight.desc': '用嚟估算峰值濃度。',
+        'settings.age': '年齡',
+        'settings.age_unset': '未設定',
+        'age.birth_year': '出生年份',
+        'age.this_year': '今年 {n} 歲',
+        'age.desc': '用嚟調整雌二醇同睪固酮嘅清除速度。',
+        'age.explain':
+            '雌二醇同睪固酮嘅清除會隨年紀慢少少，所以同一個劑量，年紀越大讀數越高，每年大約 0.5% 至 0.7%。留空嘅話就當 {ref} 歲計，即係模型參考嗰啲研究嘅平均年齡。睪固酮嘅證據比雌二醇充分；點都好，檢驗結果都會校正雌二醇嘅估計。環丙孕酮唔會調整。',
+        'age.remove': '移除出生年份',
+        'settings.age_beta': '年齡調整 · Beta',
+        'settings.age_beta_desc': '按年紀調整估算。睪固酮嘅證據比較充分，雌二醇嘅證據就唔一致',
         'modal.dose.add_title': '新增用藥',
         'modal.dose.edit_title': '編輯用藥',
         'modal.dose.delete_confirm': '確認刪除呢條記錄？',
@@ -3289,6 +3334,7 @@ export const TRANSLATIONS = {
 
         'error.nonPositive': '0 以下の値は入力できません。',
         'error.weightRange': '体重は 20〜400 kg の範囲で入力してください。',
+        'error.birthYearRange': '生まれ年は {min}〜{max} の範囲で入力してください。',
         'error.slHoldMinOne': '舌下保持時間は 1 分以上必要です。',
 
         'export.encrypt_ask_desc':
@@ -3334,6 +3380,17 @@ export const TRANSLATIONS = {
         'dialog.alert_title': 'お知らせ',
 
         'modal.weight.desc': '濃度ピーク値の推定に使用されます。',
+        'settings.age': '年齢',
+        'settings.age_unset': '未設定',
+        'age.birth_year': '生まれ年',
+        'age.this_year': '今年 {n} 歳',
+        'age.desc': 'エストラジオールとテストステロンが消失する速さの調整に使用されます。',
+        'age.explain':
+            'エストラジオールとテストステロンは年齢とともにやや遅く消失するため、同じ用量でも年齢が上がるほど値がやや高くなります（年に約 0.5〜0.7%）。空欄のときは、モデルの元になった研究の平均年齢である {ref} 歳として推定します。根拠はエストラジオールよりテストステロンの方が確かです。いずれの場合も、エストラジオールの推定は血液検査の結果で補正されます。シプロテロンは調整しません。',
+        'age.remove': '生まれ年を削除',
+        'settings.age_beta': '年齢による調整 · Beta',
+        'settings.age_beta_desc':
+            '推定値を年齢に合わせて調整します。テストステロンの根拠は確かですが、エストラジオールの根拠は一致していません',
         'modal.dose.add_title': '新規投薬の追加',
         'modal.dose.edit_title': '投薬の編集',
         'modal.dose.delete_confirm': 'この記録を削除しますか？',
@@ -4153,6 +4210,7 @@ export const TRANSLATIONS = {
 
         'error.nonPositive': '값은 0보다 커야 합니다.',
         'error.weightRange': '몸무게는 20~400kg 사이여야 합니다.',
+        'error.birthYearRange': '출생 연도는 {min}~{max} 사이여야 합니다.',
         'error.slHoldMinOne': '설하 유지 시간은 최소 1분 이상이어야 합니다.',
 
         'export.encrypt_ask_desc': '무작위 비밀번호가 생성되며 가져오기 시 필요합니다.',
@@ -4196,6 +4254,17 @@ export const TRANSLATIONS = {
         'dialog.alert_title': '알림',
 
         'modal.weight.desc': '최고 농도 추정에 사용됩니다.',
+        'settings.age': '나이',
+        'settings.age_unset': '설정 안 됨',
+        'age.birth_year': '출생 연도',
+        'age.this_year': '올해 {n}세',
+        'age.desc': '에스트라디올과 테스토스테론이 제거되는 속도를 조정합니다.',
+        'age.explain':
+            '에스트라디올과 테스토스테론은 나이가 들수록 조금씩 느리게 제거되므로, 같은 용량이라도 나이가 들수록 수치가 다소 높게 나옵니다(연간 약 0.5~0.7%). 비워 두면 모델의 근거가 된 연구의 평균 나이인 {ref}세를 기준으로 추정합니다. 근거는 에스트라디올보다 테스토스테론 쪽이 더 확실하며, 어느 쪽이든 에스트라디올 추정치는 혈액 검사 결과로 보정됩니다. 사이프로테론은 조정하지 않습니다.',
+        'age.remove': '출생 연도 삭제',
+        'settings.age_beta': '나이 보정 · Beta',
+        'settings.age_beta_desc':
+            '추정치를 나이에 맞춰 보정합니다. 테스토스테론은 근거가 확실하지만 에스트라디올은 근거가 엇갈립니다',
         'modal.dose.add_title': '용량 추가',
         'modal.dose.edit_title': '용량 편집',
         'modal.dose.delete_confirm': '이 기록을 삭제하시겠습니까?',
@@ -5031,6 +5100,7 @@ export const TRANSLATIONS = {
 
         'error.nonPositive': 'Değer sıfırdan büyük olmalıdır.',
         'error.weightRange': 'Kilo 20 ile 400 kg arasında olmalıdır.',
+        'error.birthYearRange': 'Doğum yılı {min} ile {max} arasında olmalıdır.',
         'error.slHoldMinOne': 'Dil altı tutma süresi en az 1 dakika olmalıdır.',
 
         'export.encrypt_ask_desc': 'İçe aktarma için gerekli rastgele bir şifre oluşturulacak.',
@@ -5075,6 +5145,17 @@ export const TRANSLATIONS = {
         'dialog.alert_title': 'Uyarı',
 
         'modal.weight.desc': 'Tepe konsantrasyon tahminlerinde kullanılır.',
+        'settings.age': 'Yaş',
+        'settings.age_unset': 'Ayarlanmadı',
+        'age.birth_year': 'Doğum yılı',
+        'age.this_year': 'Bu yıl {n} yaşında',
+        'age.desc': 'Estradiol ve testosteronun vücuttan atılma hızını ayarlar.',
+        'age.explain':
+            'Estradiol ve testosteron yaşla birlikte biraz daha yavaş atılır; bu yüzden aynı doz ileri yaşlarda biraz daha yüksek ölçülür: yılda yaklaşık %0,5 ile %0,7. Boş bırakılırsa tahmin, modelin dayandığı çalışmalardaki ortalama yaş olan {ref} yaşına göre yapılır. Kanıtlar testosteron için estradiolden daha güçlüdür; her durumda kan tahlilleri estradiol tahminini düzeltir. Siproteron ayarlanmaz.',
+        'age.remove': 'Doğum yılını kaldır',
+        'settings.age_beta': 'Yaş ayarı · Beta',
+        'settings.age_beta_desc':
+            'Tahminleri yaşınıza göre ayarlar. Kanıtlar testosteron için güçlü, estradiol için çelişkili',
         'modal.dose.add_title': 'Doz Ekle',
         'modal.dose.edit_title': 'Dozu Düzenle',
         'modal.dose.delete_confirm': 'Bu kayıt silinsin mi?',

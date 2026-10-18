@@ -103,6 +103,7 @@ interface Options {
     labResults: unknown;
     doseTemplates: unknown;
     weight: unknown;
+    birthYear: unknown;
     pkParams: unknown;
 }
 
@@ -162,6 +163,7 @@ export const useCloudSync = ({
     labResults,
     doseTemplates,
     weight,
+    birthYear,
     pkParams,
 }: Options): CloudSyncState => {
     // The reported half of the state. `syncNow` is grafted on at the end so
@@ -520,7 +522,7 @@ export const useCloudSync = ({
             if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, weight, pkParams]);
+    }, [events, labResults, doseTemplates, weight, birthYear, pkParams]);
 
     const syncNow = useCallback(async () => {
         const outcome = await runSync(true);
@@ -542,6 +544,8 @@ function toPayload(localPayload: any, merged: SyncState): any {
         ...localPayload,
         weight: merged.weight ?? localPayload?.weight,
         weightUpdatedAt: merged.weightUpdatedAt || undefined,
+        birthYear: merged.birthYear ?? null,
+        birthYearUpdatedAt: merged.birthYearUpdatedAt || undefined,
         modes: merged.modes,
         events: active.events,
         labResults: active.labResults,

@@ -14,14 +14,14 @@ image yourself, that operator is the one holding the data described below.
 
 ## Summary
 
-| What                                                       | Where it lives                         | Can the server operator read it?                                       |
-| ---------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
-| Doses, lab results, weight, dose templates, model settings | Your browser (`localStorage`)          | No, unless you turn on cloud backup or create a share link             |
-| Cloud backups                                              | D1 `content` table                     | No. Encrypted on your device before upload                             |
-| Share links                                                | D1 `dosage_shares` table               | No. Encrypted on your device; the key is only in the link              |
-| Account (username, password hash, 2FA)                     | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only)                           |
-| Signed-in devices                                          | D1 `sessions`                          | Yes: IP address and browser user agent                                 |
-| Avatar                                                     | R2 bucket                              | Yes, and public to anyone who knows your username, until you delete it |
+| What                                                                      | Where it lives                         | Can the server operator read it?                                       |
+| ------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| Doses, lab results, weight, year of birth, dose templates, model settings | Your browser (`localStorage`)          | No, unless you turn on cloud backup or create a share link             |
+| Cloud backups                                                             | D1 `content` table                     | No. Encrypted on your device before upload                             |
+| Share links                                                               | D1 `dosage_shares` table               | No. Encrypted on your device; the key is only in the link              |
+| Account (username, password hash, 2FA)                                    | D1 `users`, `passkeys`, `backup_codes` | Username yes; password no (bcrypt hash only)                           |
+| Signed-in devices                                                         | D1 `sessions`                          | Yes: IP address and browser user agent                                 |
+| Avatar                                                                    | R2 bucket                              | Yes, and public to anyone who knows your username, until you delete it |
 
 ## Without an account
 
@@ -68,7 +68,8 @@ stored in readable form.
 
 When cloud backup is on, the app uploads a full copy of your data a few seconds
 after each change: doses, lab results, dose templates and deletion markers for
-both modes, weight, and model parameter overrides.
+both modes, weight, year of birth (if you entered one), and model parameter
+overrides.
 
 **Encryption.** The copy is encrypted in your browser before upload, with
 AES-256-GCM. The key is derived from your account password and your user id
@@ -128,9 +129,10 @@ links from app versions cached before this change, until those update.
 **What a link contains.** Your HRT mode, your time zone, every dose in that
 mode (route, time, amount, ester and route-specific details such as patch wear
 time), and the modelled concentration curve. Dose ids are replaced with random
-ones. Lab results, weight, username, avatar and account details are not
-included. The estradiol curve is the calibrated one, so it reflects your lab
-results indirectly, but the lab values themselves are not sent.
+ones. Lab results, weight, year of birth, username, avatar and account details
+are not included. The estradiol curve is the calibrated one, so it reflects your
+lab results indirectly, and both curves reflect your weight and, if you entered
+one, your year of birth, but none of those values are sent.
 
 **How the link works.** The server makes a random 32-byte token and stores only
 its SHA-256 hash. The token and the key are placed after `#` in the link, so

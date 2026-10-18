@@ -22,6 +22,7 @@ import {
     applyPKOverrides,
     sanitizePKParams,
     isPlausibleBodyWeightKG,
+    isPlausibleBirthYear,
     BODY_WEIGHT_KG_MIN,
     BODY_WEIGHT_KG_MAX,
     DOSE_MG_MAX,
@@ -54,7 +55,16 @@ const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: strin
     nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
 const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses', 'deletions'] as const;
-const SHARED_SUFFIXES = ['weight', 'pk-params', 'cal-method', 'cal-history-mode', 'weight-at', 'pk-params-at'] as const;
+const SHARED_SUFFIXES = [
+    'weight',
+    'pk-params',
+    'cal-method',
+    'cal-history-mode',
+    'weight-at',
+    'pk-params-at',
+    'birth-year',
+    'birth-year-at',
+] as const;
 
 /**
  * First sign-in on this device adopts whatever was recorded while signed out.
@@ -113,8 +123,14 @@ export interface DoseDayGroup {
     events: DoseEvent[];
 }
 
-/** `withPrediction`: run the look-ahead simulation the Overview chart draws past "now". Off by default in Settings. */
-export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: { withPrediction?: boolean } = {}) => {
+/**
+ * `withPrediction`: run the look-ahead simulation the Overview chart draws past "now". Off by default in Settings.
+ * `withAge`: let the year of birth adjust the model (the age beta in Settings, off by default).
+ */
+export const useAppData = (
+    showDialog: ShowDialog,
+    { withPrediction = false, withAge = false }: { withPrediction?: boolean; withAge?: boolean } = {},
+) => {
     const { t, lang } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
     const { user } = useAuth();
@@ -209,6 +225,20 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setWeightState(w);
         localStorage.setItem(sharedKey('weight-at'), String(Date.now()));
     };
+    // Optional, unlike weight: none leaves the model at the age it was fitted
+    // on (AGE_REF_YEARS). Shared across modes and synced the same way.
+    const loadBirthYear = (): number | null => {
+        const saved = Number(localStorage.getItem(sharedKey('birth-year')));
+        return isPlausibleBirthYear(saved) ? saved : null;
+    };
+    const [birthYear, setBirthYearState] = useState<number | null>(loadBirthYear);
+    const setBirthYear = (y: number | null) => {
+        setBirthYearState(y);
+        localStorage.setItem(sharedKey('birth-year-at'), String(Date.now()));
+    };
+    // What the model is given. With the beta off the year of birth is kept,
+    // and still synced, but left out, so switching it back on brings it back.
+    const modelBirthYear = withAge ? birthYear : null;
     const [labResults, setLabResults] = useState<LabResult[]>(() =>
         loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]),
     );
@@ -304,6 +334,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         // Mode-independent, but still per-account, so they reload on the same beat.
         const savedWeight = localStorage.getItem(sharedKey('weight'));
         setWeightState(savedWeight ? parseFloat(savedWeight) : 70.0);
+        setBirthYearState(loadBirthYear());
         setCalibrationMethodState(normalizeCalibrationMethod(localStorage.getItem(sharedKey('cal-method'))));
         setCalibrationHistoryModeState(
             localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective',
@@ -346,6 +377,11 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(sharedKey('weight'), weight.toString());
     }, [weight, scope]);
+    useEffect(() => {
+        if (loadedScopeRef.current !== scope) return;
+        if (birthYear !== null) localStorage.setItem(sharedKey('birth-year'), String(birthYear));
+        else localStorage.removeItem(sharedKey('birth-year'));
+    }, [birthYear, scope]);
     useEffect(() => {
         // The override is applied unconditionally — the simulation must track
         // whatever is in state right now. Only the *write* waits for the scope
@@ -399,8 +435,8 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     // through to the chart's "no records" state for as long as the simulation
     // took to run.
     const simulation = useMemo<SimulationResult | null>(
-        () => (events.length > 0 ? runSimulation(events, weight) : null),
-        [events, weight],
+        () => (events.length > 0 ? runSimulation(events, weight, modelBirthYear) : null),
+        [events, weight, modelBirthYear],
     );
 
     // What the person is taking now: their plan when they have entered one,
@@ -428,9 +464,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     const simulationAhead = useMemo<SimulationResult | null>(() => {
         if (!doses.length) return null;
         const fromH = Math.min(...doses.map(e => e.timeH)) - 120 * 24;
-        return runSimulation([...events.filter(e => e.timeH >= fromH), ...doses], weight);
+        return runSimulation([...events.filter(e => e.timeH >= fromH), ...doses], weight, modelBirthYear);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dosesKey, events, weight]);
+    }, [dosesKey, events, weight, modelBirthYear]);
 
     // --- Derived State ---
     // Self-learning calibration: fits a personal amplitude (+ clearance, for the
@@ -438,8 +474,16 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     // mode. Returns the scale function plus the learned parameters and per-lab
     // comparison used by the Lab page UI.
     const calibration = useMemo(() => {
-        return computeCalibration(simulation, events, weight, labResults, calibrationMethod, calibrationHistoryMode);
-    }, [simulation, events, weight, labResults, calibrationMethod, calibrationHistoryMode]);
+        return computeCalibration(
+            simulation,
+            events,
+            weight,
+            labResults,
+            calibrationMethod,
+            calibrationHistoryMode,
+            modelBirthYear,
+        );
+    }, [simulation, events, weight, modelBirthYear, labResults, calibrationMethod, calibrationHistoryMode]);
     const calibrationFn = calibration.factorFn;
 
     const currentLevel = useMemo(() => {
@@ -799,6 +843,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         try {
             let newEvents: DoseEvent[] = [];
             let newWeight: number | undefined = undefined;
+            let newBirthYear: number | undefined = undefined;
             let newLabs: LabResult[] = [];
             let newTemplates: DoseTemplate[] = [];
             let newPkParams: PKCustomParams | undefined = undefined;
@@ -879,6 +924,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
                     newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
+                if (isPlausibleBirthYear(parsed.birthYear)) newBirthYear = parsed.birthYear;
                 if (parsed.pkParams && typeof parsed.pkParams === 'object') {
                     newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
                 }
@@ -893,6 +939,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 if (typeof parsed.weight === 'number' && Number.isFinite(parsed.weight) && parsed.weight > 0) {
                     newWeight = Math.min(BODY_WEIGHT_KG_MAX, Math.max(BODY_WEIGHT_KG_MIN, parsed.weight));
                 }
+                if (isPlausibleBirthYear(parsed.birthYear)) newBirthYear = parsed.birthYear;
                 if (Array.isArray(parsed.labResults)) {
                     newLabs = sanitizeImportedLabResults(parsed.labResults);
                     replaced.labResults = true;
@@ -961,6 +1008,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 !importedOtherMode &&
                 !newEvents.length &&
                 !newWeight &&
+                newBirthYear === undefined &&
                 !newLabs.length &&
                 !newTemplates.length &&
                 !newPkParams
@@ -986,6 +1034,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 setDoseTemplates(newTemplates);
             }
             if (newWeight !== undefined) setWeight(newWeight);
+            if (newBirthYear !== undefined) setBirthYear(newBirthYear);
             if (newPkParams !== undefined) setPkParams(newPkParams);
 
             showDialog('alert', t('drawer.import_success'));
@@ -1002,6 +1051,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         try {
             let incomingEvents: DoseEvent[] = [];
             let incomingWeight: number | undefined = undefined;
+            let incomingBirthYear: number | undefined = undefined;
             let incomingLabs: LabResult[] = [];
             let incomingTemplates: DoseTemplate[] = [];
             let mergedOther = 0;
@@ -1061,11 +1111,13 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                     }
                 }
                 if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+                if (isPlausibleBirthYear(parsed.birthYear)) incomingBirthYear = parsed.birthYear;
             } else if (Array.isArray(parsed)) {
                 incomingEvents = sanitizeImportedEvents(parsed);
             } else if (typeof parsed === 'object' && parsed !== null) {
                 if (Array.isArray(parsed.events)) incomingEvents = sanitizeImportedEvents(parsed.events);
                 if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+                if (isPlausibleBirthYear(parsed.birthYear)) incomingBirthYear = parsed.birthYear;
                 if (Array.isArray(parsed.labResults)) incomingLabs = sanitizeImportedLabResults(parsed.labResults);
                 if (Array.isArray(parsed.doseTemplates))
                     incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
@@ -1125,6 +1177,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
                 !mergedOther &&
                 !incomingEvents.length &&
                 !incomingWeight &&
+                incomingBirthYear === undefined &&
                 !incomingLabs.length &&
                 !incomingTemplates.length
             )
@@ -1150,6 +1203,8 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             if (incomingWeight !== undefined && incomingWeight > weight) {
                 setWeight(incomingWeight);
             }
+            // A merge adds what is missing, so it fills in a year of birth but never changes one.
+            if (incomingBirthYear !== undefined && birthYear === null) setBirthYear(incomingBirthYear);
 
             if (incomingLabs.length > 0) {
                 const existingIds = new Set(labResults.map(r => r.id));
@@ -1204,6 +1259,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             // Missing on payloads written before sync existed, which is exactly
             // how they should lose to a stamped one.
             weightUpdatedAt: Number(localStorage.getItem(sharedKey('weight-at'))) || undefined,
+            // `null` when there is none, so that removing it reaches other
+            // devices too, as with pkParams below.
+            birthYear: birthYear ?? null,
+            birthYearUpdatedAt: Number(localStorage.getItem(sharedKey('birth-year-at'))) || undefined,
             modes,
             // Flat v1-compatible fields mirror the currently active mode.
             events,
@@ -1259,6 +1318,14 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             localStorage.setItem(sharedKey('weight'), String(state.weight));
             if (state.weightUpdatedAt > 0) localStorage.setItem(sharedKey('weight-at'), String(state.weightUpdatedAt));
         }
+        if (state.birthYear !== undefined) {
+            const next = isPlausibleBirthYear(state.birthYear) ? state.birthYear : null;
+            setBirthYearState(next);
+            if (next !== null) localStorage.setItem(sharedKey('birth-year'), String(next));
+            else localStorage.removeItem(sharedKey('birth-year'));
+            if (state.birthYearUpdatedAt > 0)
+                localStorage.setItem(sharedKey('birth-year-at'), String(state.birthYearUpdatedAt));
+        }
         if (state.pkParams !== undefined) {
             const next = sanitizePKParams(state.pkParams);
             setPkParamsState(next);
@@ -1273,6 +1340,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         events,
         weight,
         setWeight,
+        birthYear,
+        setBirthYear,
+        modelBirthYear,
         labResults,
         doseTemplates,
         quickDoses,

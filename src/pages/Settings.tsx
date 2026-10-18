@@ -25,12 +25,16 @@ interface SettingsProps {
     onNavigateToTransparency: () => void;
     onNavigateToCredits: () => void;
     weight: number;
+    birthYear: number | null;
+    ageBeta: boolean;
+    setAgeBeta: (v: boolean) => void;
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
     onNavigateToLanguage: () => void;
     onNavigateToAppearance: () => void;
     onNavigateToWeight: () => void;
+    onNavigateToAge: () => void;
     onNavigateToExport: () => void;
     onNavigateToImport: () => void;
     autoSync: boolean;
@@ -147,12 +151,16 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToTransparency,
     onNavigateToCredits,
     weight,
+    birthYear,
+    ageBeta,
+    setAgeBeta,
     pkParams,
     onNavigateToPKParams,
     onNavigateToHRTMode,
     onNavigateToLanguage,
     onNavigateToAppearance,
     onNavigateToWeight,
+    onNavigateToAge,
     onNavigateToExport,
     onNavigateToImport,
     autoSync,
@@ -257,6 +265,22 @@ const Settings: React.FC<SettingsProps> = ({
                     value={`${weight} kg`}
                     onClick={() => navTo(onNavigateToWeight, 'general')}
                 />
+                <SwitchRow
+                    label={t('settings.age_beta')}
+                    desc={t('settings.age_beta_desc')}
+                    checked={ageBeta}
+                    onChange={setAgeBeta}
+                />
+                {/* Only worth showing once the beta itself is on. */}
+                {ageBeta && (
+                    <NavRow
+                        label={t('settings.age')}
+                        value={
+                            birthYear === null ? t('settings.age_unset') : String(new Date().getFullYear() - birthYear)
+                        }
+                        onClick={() => navTo(onNavigateToAge, 'general')}
+                    />
+                )}
                 <NavRow
                     label={t('settings.pk_params')}
                     value={

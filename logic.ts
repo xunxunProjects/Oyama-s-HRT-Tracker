@@ -767,6 +767,7 @@ function buildClearanceField(
     events: DoseEvent[],
     bodyWeightKG: number,
     labTimes: number[],
+    birthYear: number | null,
 ): ClearanceField {
     const baseParams = getActivePKParams();
     const logKmin = Math.log(KMUL_MIN);
@@ -781,11 +782,16 @@ function buildClearanceField(
         const atUnity = Math.abs(kMul - 1) < 1e-3;
         const sim = atUnity
             ? baselineSim
-            : runSimulationWithParams(events, bodyWeightKG, {
-                  ...baseParams,
-                  e2_kClear: baseParams.e2_kClear * kMul,
-                  e2_kClearInj: baseParams.e2_kClearInj * kMul,
-              });
+            : runSimulationWithParams(
+                  events,
+                  bodyWeightKG,
+                  {
+                      ...baseParams,
+                      e2_kClear: baseParams.e2_kClear * kMul,
+                      e2_kClearInj: baseParams.e2_kClearInj * kMul,
+                  },
+                  birthYear,
+              );
         logK.push(lk);
         sims.push(sim);
         const row: number[] = [];
@@ -1140,6 +1146,8 @@ export function computeCalibration(
     results: LabResult[],
     method: CalibrationMethod = 'mipd',
     historyMode: CalibrationHistoryMode = 'retrospective',
+    /** The one `baselineSim` was run with: the clearance grid reruns the model and must match it. */
+    birthYear: number | null = null,
 ): CalibrationResult {
     const points = computeCalibrationPoints(baselineSim, results);
     const identity: CalibrationResult = {
@@ -1167,7 +1175,7 @@ export function computeCalibration(
     // EKF and MIPD identify amplitude + clearance; both share the clearance field.
     // Whether clearance may move is decided per prefix of the labs, so in forward
     // mode a later lab never changes the segments before it.
-    const field = buildClearanceField(baselineSim, events, bodyWeightKG, labTimes);
+    const field = buildClearanceField(baselineSim, events, bodyWeightKG, labTimes, birthYear);
     const fit = (count: number) =>
         method === 'ekf'
             ? ekfFit(field, logObs, count, clearanceIdentifiable(labTimes, count))
@@ -1545,6 +1553,69 @@ export function isPlausibleBodyWeightKG(kg: number): boolean {
 }
 
 /**
+ * Year of birth, for the age adjustment below. It is optional: none (null)
+ * leaves the model as it was. Anything outside 1900 to the current year, typed
+ * in or imported, is read as none.
+ */
+export const BIRTH_YEAR_MIN = 1900;
+
+export function isPlausibleBirthYear(year: unknown, nowYear = new Date().getFullYear()): year is number {
+    return typeof year === 'number' && Number.isInteger(year) && year >= BIRTH_YEAR_MIN && year <= nowYear;
+}
+
+// -----------------------------------------------------------------------------
+// Age
+// -----------------------------------------------------------------------------
+//
+// Clearance of estradiol and testosterone falls with age. With a year of birth
+// the clearance rate k3 is scaled log-linearly in age, relative to the mean age
+// of the people the defaults were fitted on: 54.2 years in Aveed's trial and
+// 53.8 in AndroGel 1.62%'s (labels, section 14), and 54.0 in the
+// postmenopausal women behind the oral estrone pool (Zhang et al. 2024,
+// Table 1, PMC11246651). At 54 nothing changes, and no year of birth reads as 54.
+//
+//   - Testosterone: Coviello et al. 2006 (J Clin Endocrinol Metab 91:4669,
+//     PMID 16912120) suppressed men's own production with a GnRH agonist and
+//     gave weekly testosterone enanthate. Apparent clearance was 1821 L/day at
+//     19–35 and 1390 L/day at 59–75, about 0.68% a year between the groups'
+//     midpoints. Wang et al. 2004 (PMID 15181080) measured their own
+//     testosterone's clearance 36% lower in middle-aged men than in young men.
+//   - Estradiol: Longcope 1971 (Am J Obstet Gynecol 111:778) measured
+//     clearance in five women aged 70–88 about 25% below young women's, about
+//     0.55% a year taking the young women as 27 (the abstract gives no ages).
+//     The evidence is weaker than for testosterone. In postmenopausal women aged
+//     46–90, Longcope et al. 1980 (Maturitas 2:283, PMID 7231200) found no trend
+//     with age, and put the lower clearance after menopause down to the low
+//     estradiol levels then; Järvinen et al. 2004 (PMID 15036491) found no
+//     significant difference in oral estradiol valerate kinetics between women
+//     under 60 and over 65.
+//
+// Outside 19–75, the ages the testosterone study covered, the multiplier
+// holds at its end value. Cyproterone, the absorption rates and the oral
+// estrone pool are left as they are. Lab results still correct estradiol from
+// here: the calibration's personal clearance starts from the adjusted model.
+export const AGE_REF_YEARS = 54;
+const AGE_RANGE_YEARS = [19, 75] as const;
+const AGE_CLEARANCE_SLOPE = {
+    t: Math.log(1821 / 1390) / (67 - 27),
+    e2: Math.log(1 / 0.75) / (79 - 27),
+};
+const HOURS_PER_YEAR = 365.2425 * 24;
+
+/** Age in years at `timeH` (hours since 1970), taking the middle of the year of birth. */
+export function ageAtH(birthYear: number, timeH: number): number {
+    return 1970 + timeH / HOURS_PER_YEAR - (birthYear + 0.5);
+}
+
+/** Multiplier on the clearance of free estradiol or testosterone at `timeH`; 1 with no year of birth. */
+export function ageClearanceMultiplier(hormone: 'e2' | 't', birthYear: number | null, timeH: number): number {
+    if (birthYear === null) return 1;
+    const [lo, hi] = AGE_RANGE_YEARS;
+    const age = Math.min(hi, Math.max(lo, ageAtH(birthYear, timeH)));
+    return Math.exp(-AGE_CLEARANCE_SLOPE[hormone] * (age - AGE_REF_YEARS));
+}
+
+/**
  * Accepted range per parameter, mirroring the clamps the settings screen applies
  * as you type. Kept here, next to the defaults, because the settings screen is
  * not the only writer: an imported backup file can carry a `pkParams` block too,
@@ -1648,11 +1719,12 @@ export function runSimulationWithParams(
     events: DoseEvent[],
     bodyWeightKG: number,
     params: PKCustomParams,
+    birthYear: number | null = null,
 ): SimulationResult | null {
     const saved = _activePKParams;
     _activePKParams = { ...DEFAULT_PK_PARAMS, ...params };
     try {
-        return runSimulation(events, bodyWeightKG);
+        return runSimulation(events, bodyWeightKG, birthYear);
     } finally {
         _activePKParams = saved;
     }
@@ -1911,14 +1983,18 @@ interface PKParams {
     F_slow: number;
 }
 
-function resolveParams(event: DoseEvent): PKParams {
-    const defaultK3 = event.route === Route.injection ? _activePKParams.e2_kClearInj : _activePKParams.e2_kClear;
+function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
+    const defaultK3 =
+        (event.route === Route.injection ? _activePKParams.e2_kClearInj : _activePKParams.e2_kClear) *
+        ageClearanceMultiplier('e2', birthYear, event.timeH);
     const toE2 = getToE2Factor(event.ester);
     const extras = event.extras ?? {};
 
     // Transmasculine (testosterone) path — use the dedicated T PK parameters.
     if (isTestosteroneEster(event.ester)) {
-        const tK3 = event.route === Route.injection ? _activePKParams.t_kClearInj : _activePKParams.t_kClear;
+        const tK3 =
+            (event.route === Route.injection ? _activePKParams.t_kClearInj : _activePKParams.t_kClear) *
+            ageClearanceMultiplier('t', birthYear, event.timeH);
         switch (event.route) {
             case Route.injection: {
                 if (event.ester === Ester.T) {
@@ -2373,8 +2449,7 @@ function resolvePatchWearH(event: DoseEvent, allEvents: DoseEvent[]): number {
 class PrecomputedEventModel {
     private model: (t: number) => number;
 
-    constructor(event: DoseEvent, allEvents: DoseEvent[]) {
-        const params = resolveParams(event);
+    constructor(event: DoseEvent, allEvents: DoseEvent[], params: PKParams) {
         const startTime = event.timeH;
         const dose = event.doseMG;
 
@@ -2516,19 +2591,25 @@ function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: Dose
     return Math.ceil(13.816 / kMin);
 }
 
-export function runSimulation(events: DoseEvent[], bodyWeightKG: number): SimulationResult | null {
+/** `birthYear`: for the age adjustment (see AGE_REF_YEARS); null, or one isPlausibleBirthYear rejects, leaves it out. */
+export function runSimulation(
+    events: DoseEvent[],
+    bodyWeightKG: number,
+    birthYear: number | null = null,
+): SimulationResult | null {
     // Unmodelled drugs, and codes this build doesn't know, have no parameters
     // of their own: let through, they would fall into the estradiol branches
     // below and be counted as estradiol.
     events = events.filter(e => !isUnmodelledDrug(e.ester));
     if (events.length === 0 || bodyWeightKG <= 0) return null;
+    const born = isPlausibleBirthYear(birthYear) ? birthYear : null;
 
     const sortedEvents = [...events].sort((a, b) => a.timeH - b.timeH);
     const precomputed = sortedEvents
         .filter(e => e.route !== Route.patchRemove)
         .map(e => {
-            const model = new PrecomputedEventModel(e, sortedEvents);
-            const params = resolveParams(e);
+            const params = resolveParams(e, born);
+            const model = new PrecomputedEventModel(e, sortedEvents, params);
             const maxLifetimeH = computeMaxLifetimeH(params, e, sortedEvents);
             return { model, ester: e.ester, startTimeH: e.timeH, maxLifetimeH };
         });

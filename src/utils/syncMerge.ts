@@ -24,11 +24,11 @@
  *     deterministic tiebreak each keeps its own and the two flip-flop the cloud
  *     backup between them forever.
  *
- * Scalars that aren't records — body weight, PK overrides — carry their own
+ * Scalars that aren't records — body weight, year of birth, PK overrides — carry their own
  * last-write timestamp and are resolved last-write-wins.
  */
 
-import { isTestosteroneEster, isT_LabUnit } from '../../logic';
+import { isPlausibleBirthYear, isTestosteroneEster, isT_LabUnit } from '../../logic';
 
 export type ModeKey = 'transfem' | 'transmasc';
 export const MODE_KEYS: readonly ModeKey[] = ['transfem', 'transmasc'];
@@ -52,6 +52,9 @@ export interface SyncState {
     /** `undefined` = the payload said nothing about weight. */
     weight?: number;
     weightUpdatedAt: number;
+    /** `undefined` = unstated; `null` = explicitly none. */
+    birthYear?: number | null;
+    birthYearUpdatedAt: number;
     /** `undefined` = unstated; `null` = explicitly "no overrides". */
     pkParams?: any;
     pkParamsUpdatedAt: number;
@@ -105,6 +108,7 @@ export function emptySyncState(): SyncState {
     return {
         modes: { transfem: emptyModeBlock(), transmasc: emptyModeBlock() },
         weightUpdatedAt: 0,
+        birthYearUpdatedAt: 0,
         pkParamsUpdatedAt: 0,
     };
 }
@@ -224,6 +228,10 @@ export function normalizeSyncState(payload: unknown): SyncState {
         // A payload from before per-field stamps still has to lose to a stamped
         // one, but must beat "nothing at all" — hence 1 rather than 0.
         state.weightUpdatedAt = asTimestamp(p.weightUpdatedAt) || 1;
+    }
+    if (p.birthYear !== undefined) {
+        state.birthYear = isPlausibleBirthYear(p.birthYear) ? p.birthYear : null;
+        state.birthYearUpdatedAt = asTimestamp(p.birthYearUpdatedAt) || 1;
     }
     if (p.pkParams !== undefined) {
         state.pkParams = p.pkParams ?? null;
@@ -408,6 +416,10 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
     merged.weight = weight.value;
     merged.weightUpdatedAt = weight.at;
 
+    const born = resolveScalar(local.birthYear, local.birthYearUpdatedAt, remote.birthYear, remote.birthYearUpdatedAt);
+    merged.birthYear = born.value;
+    merged.birthYearUpdatedAt = born.at;
+
     const pk = resolveScalar(local.pkParams, local.pkParamsUpdatedAt, remote.pkParams, remote.pkParamsUpdatedAt);
     merged.pkParams = pk.value;
     merged.pkParamsUpdatedAt = pk.at;
@@ -438,7 +450,7 @@ export function hasContent(state: SyncState): boolean {
             if (Object.keys(block.deletions[kind]).length > 0) return true;
         }
     }
-    return state.weightUpdatedAt > 1 || state.pkParamsUpdatedAt > 1;
+    return state.weightUpdatedAt > 1 || state.birthYearUpdatedAt > 1 || state.pkParamsUpdatedAt > 1;
 }
 
 /**
@@ -466,6 +478,7 @@ export function fingerprintState(state: SyncState): string {
         }
     }
     parts.push(`weight:${state.weight === undefined ? '' : stableString(state.weight)}`);
+    parts.push(`birthYear:${state.birthYear === undefined ? '' : stableString(state.birthYear)}`);
     parts.push(`pkParams:${state.pkParams === undefined ? '' : stableString(state.pkParams)}`);
     return parts.join('\n');
 }
