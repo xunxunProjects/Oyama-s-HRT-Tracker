@@ -6,6 +6,8 @@ import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 import { settingsSection, rowBleed } from './SettingsListItem';
 import { copyText } from '../utils/clipboard';
+import { MIN_PASSWORD_LENGTH, newPasswordLevel } from '../../passwordStrength';
+import PasswordStrengthHint from './PasswordStrengthHint';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -38,6 +40,13 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
     const [copyFailed, setCopyFailed] = useState<'json' | 'password' | null>(null);
 
     const hasData = events.length > 0 || labResults.length > 0;
+
+    // The file this password protects is downloaded and attacked offline, so
+    // it gets the same floor the account password does. An empty field means
+    // "generate one for me" and stays allowed.
+    const level = newPasswordLevel(password);
+    const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+    const passwordBlocked = tooShort || level === 'weak' || level === 'tooLong';
 
     const handleJsonExport = async () => {
         await onExport(false);
@@ -174,7 +183,12 @@ const ExportSection: React.FC<ExportSectionProps> = ({ events, labResults, weigh
                                 />
                             </div>
                             <p className="text-xs text-[var(--text-muted)]">{t('export.password_hint_random')}</p>
-                            <button onClick={handleEncryptedExport} className="btn-primary w-full">
+                            <PasswordStrengthHint level={tooShort ? 'tooShort' : level} />
+                            <button
+                                onClick={handleEncryptedExport}
+                                disabled={passwordBlocked}
+                                className="btn-primary w-full"
+                            >
                                 {t('export.btn_encrypted')}
                             </button>
 

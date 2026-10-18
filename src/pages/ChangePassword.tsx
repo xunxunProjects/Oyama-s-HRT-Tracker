@@ -6,6 +6,8 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { apiErrorCode } from '../services/apiClient';
 import { settingsMuted } from '../components/SettingsListItem';
+import { newPasswordLevel } from '../../passwordStrength';
+import PasswordStrengthHint from '../components/PasswordStrengthHint';
 
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -21,6 +23,11 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const muted = settingsMuted;
     const labelCls = `block text-xs font-medium mb-1.5 ${muted}`;
 
+    // The server enforces the same rule; checking here keeps the feedback
+    // local and worded in the reader's language.
+    const level = newPasswordLevel(newPass);
+    const passwordBlocked = level === 'weak' || level === 'tooLong';
+
     // A form, so Enter in the last field submits and password managers see
     // which field is which.
     const handleSubmit = async (ev: React.FormEvent) => {
@@ -32,6 +39,10 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }
         if (newPass.length < 8) {
             setError(t('pw.too_short'));
+            return;
+        }
+        if (passwordBlocked) {
+            setError(t(level === 'tooLong' ? 'pw.too_long' : 'pw.too_weak'));
             return;
         }
 
@@ -112,6 +123,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <p id={`${id}-rule`} className={`mt-1.5 text-xs ${muted}`}>
                                 {t('pw.too_short')}
                             </p>
+                            <PasswordStrengthHint level={level} className="mt-1 empty:mt-0" />
                         </div>
                         <div>
                             <label htmlFor={`${id}-confirm`} className={labelCls}>
@@ -131,7 +143,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                     <button
                         type="submit"
-                        disabled={!current || !newPass || !confirm || isLoading}
+                        disabled={!current || !newPass || !confirm || isLoading || passwordBlocked}
                         className="btn-primary w-full"
                     >
                         {isLoading && <Loader2 size={16} className="animate-spin" />}

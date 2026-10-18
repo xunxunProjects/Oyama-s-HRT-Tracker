@@ -21,7 +21,8 @@ type ShareState =
     | { kind: 'ready'; details: ShareDetails }
     | { kind: 'expired' }
     | { kind: 'unavailable' }
-    | { kind: 'badKey' };
+    | { kind: 'badKey' }
+    | { kind: 'rateLimited'; retryAt: number };
 
 const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
@@ -33,13 +34,26 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [unlocking, setUnlocking] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [retryNonce, setRetryNonce] = useState(0);
+    // When a wrong-password lock on this link ends; until then the form stays
+    // up with the reason under it instead of bouncing to another screen.
+    const [unlockBlockedUntil, setUnlockBlockedUntil] = useState(0);
     const unlockedPasswordRef = useRef('');
+    const viewerPassRef = useRef('');
+
+    const formatTime = (ms: number) =>
+        new Intl.DateTimeFormat(LOCALE_MAP[lang] || 'en-US', { hour: 'numeric', minute: '2-digit' }).format(ms);
 
     const classifyError = (error: unknown): ShareState => {
         if (error instanceof ShareApiError && (error.status === 410 || error.code === 'SHARE_EXPIRED')) {
             return { kind: 'expired' };
         }
         if (error instanceof ShareApiError && error.code === SHARE_KEY_INVALID) return { kind: 'badKey' };
+        // A 429 is a budget problem, not a missing record. Showing the
+        // unavailable text here made rate limiting look like a dead link.
+        if (error instanceof ShareApiError && (error.status === 429 || error.code === 'RATE_LIMITED')) {
+            return { kind: 'rateLimited', retryAt: Date.now() + (error.retryAfterMs ?? 60_000) };
+        }
         return { kind: 'unavailable' };
     };
 
@@ -89,7 +103,25 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
         };
         // classifyError contains no reactive state.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, shareKey]);
+    }, [token, shareKey, retryNonce]);
+
+    // After a 429, wait out the server's Retry-After (or a minute if it did
+    // not say) and try the link again on our own, so a hit limit reads as a
+    // pause instead of a broken link.
+    useEffect(() => {
+        if (state.kind !== 'rateLimited') return;
+        const timer = window.setTimeout(
+            () => setRetryNonce(nonce => nonce + 1),
+            Math.min(Math.max(state.retryAt - Date.now(), 0), 5 * 60_000),
+        );
+        return () => window.clearTimeout(timer);
+    }, [state]);
+
+    useEffect(() => {
+        if (!unlockBlockedUntil) return;
+        const timer = window.setTimeout(() => setUnlockBlockedUntil(0), Math.max(unlockBlockedUntil - Date.now(), 0));
+        return () => window.clearTimeout(timer);
+    }, [unlockBlockedUntil]);
 
     const handleUnlock = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -99,11 +131,14 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
         try {
             const details = await sharingService.unlock(token, shareKey, password);
             unlockedPasswordRef.current = password;
+            viewerPassRef.current = details.viewerPass ?? '';
             setState({ kind: 'ready', details });
             setPassword('');
         } catch (error) {
             if (error instanceof ShareApiError && error.code === 'INVALID_PASSWORD') {
                 setPasswordError(copy.wrongPassword);
+            } else if (error instanceof ShareApiError && error.status === 429) {
+                setUnlockBlockedUntil(Date.now() + (error.retryAfterMs ?? 60_000));
             } else {
                 setState(classifyError(error));
             }
@@ -123,10 +158,18 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             if (cancelled || refreshing || document.hidden || Date.now() < retryAfter) return;
             refreshing = true;
             try {
+                // The viewer pass lets this read skip the password check, so a
+                // lock someone else tripped on this link does not stop it.
                 const result = unlockedPasswordRef.current
-                    ? await sharingService.unlock(token, shareKey, unlockedPasswordRef.current)
+                    ? await sharingService.unlock(
+                          token,
+                          shareKey,
+                          unlockedPasswordRef.current,
+                          viewerPassRef.current || undefined,
+                      )
                     : await sharingService.open(token, shareKey);
                 if (!cancelled && 'snapshot' in result) {
+                    if (result.viewerPass) viewerPassRef.current = result.viewerPass;
                     setState({ kind: 'ready', details: result });
                 }
             } catch (error) {
@@ -184,6 +227,9 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     }
 
     if (state.kind === 'locked') {
+        const unlockMessage = unlockBlockedUntil
+            ? copy.passwordLocked.replace('{time}', formatTime(unlockBlockedUntil))
+            : passwordError;
         return (
             <PublicShell>
                 <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16">
@@ -216,7 +262,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
                                     required
                                     autoFocus
                                     aria-invalid={!!passwordError}
-                                    aria-describedby={passwordError ? 'share-password-error' : undefined}
+                                    aria-describedby={unlockMessage ? 'share-password-error' : undefined}
                                 />
                                 <button
                                     type="button"
@@ -227,19 +273,38 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                 </button>
                             </div>
-                            {passwordError && (
+                            {unlockMessage && (
                                 <p id="share-password-error" className="mt-2 text-sm text-[var(--danger)]" role="alert">
-                                    {passwordError}
+                                    {unlockMessage}
                                 </p>
                             )}
                             <button
                                 type="submit"
                                 className="btn-primary mt-4 w-full"
-                                disabled={unlocking || password.length < 8}
+                                disabled={unlocking || password.length < 8 || unlockBlockedUntil > 0}
                             >
                                 {unlocking ? copy.unlocking : copy.unlock}
                             </button>
                         </form>
+                    </div>
+                </main>
+            </PublicShell>
+        );
+    }
+
+    if (state.kind === 'rateLimited') {
+        return (
+            <PublicShell>
+                <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16 text-center">
+                    <div className="w-full">
+                        <Clock3 size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
+                        <h1 className="text-xl font-semibold text-body">{copy.rateLimitedTitle}</h1>
+                        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                            {copy.rateLimitedDescription}
+                        </p>
+                        <p className="mt-2 text-sm text-muted" aria-live="polite">
+                            {copy.rateLimitedRetry.replace('{time}', formatTime(state.retryAt))}
+                        </p>
                     </div>
                 </main>
             </PublicShell>

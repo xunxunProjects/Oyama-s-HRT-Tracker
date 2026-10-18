@@ -15,6 +15,15 @@ import {
     sharingService,
 } from '../services/sharing';
 import { generateShareKey, shareUrlWithKey, WrappedShareKey, wrapShareKey } from '../services/shareCrypto';
+import {
+    MIN_PASSWORD_LENGTH,
+    STRONG_BITS,
+    WEAK_BITS,
+    estimatePasswordBits,
+    newPasswordLevel,
+    theoreticalPasswordBits,
+} from '../../passwordStrength';
+import PasswordStrengthHint from '../components/PasswordStrengthHint';
 import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
@@ -101,9 +110,21 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         [mode, events, simulation, calibrationFn],
     );
 
+    // The server re-checks this on the share create endpoint; blocking it here
+    // just keeps the person from losing a round trip to a 400.
+    const level = newPasswordLevel(password);
+    const passwordBlocked =
+        passwordEnabled && (password.length < MIN_PASSWORD_LENGTH || level === 'weak' || level === 'tooLong');
+
+    // Live readouts for the password field, from the same module the gate uses:
+    // the guess-model estimate in bits, and the theoretical search-space entropy
+    // H = L x log2(N) under the uniform-random assumption.
+    const entropy = password.length > 0 ? estimatePasswordBits(password) : null;
+    const theory = password.length > 0 ? theoreticalPasswordBits(password) : null;
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (submitting || !events.length) return;
+        if (submitting || !events.length || passwordBlocked) return;
 
         setError(null);
         setSubmitting(true);
@@ -160,6 +181,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                 if (requestError.code === 'SNAPSHOT_TOO_LARGE') setError(copy.tooLarge);
                 else if (requestError.code === 'SHARE_LIMIT_REACHED') setError(copy.limitReached);
                 else if (requestError.code === 'INVALID_EXPIRATION') setError(copy.invalidExpiry);
+                else if (requestError.code === 'RATE_LIMITED') setError(copy.rateLimitedDescription);
                 else setError(copy.createError);
             } else {
                 setError(copy.createError);
@@ -329,6 +351,46 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    <PasswordStrengthHint level={level} className="mt-1.5 empty:mt-0" />
+                                    {entropy !== null && theory !== null && (
+                                        <div className="mt-2.5">
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <span className="text-xs text-muted">{copy.entropyLabel}</span>
+                                                <span className="shrink-0 text-xs tabular-nums text-body">
+                                                    {Math.round(entropy)} {copy.entropyUnit}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[var(--border)] bg-[var(--accent-subtle)]"
+                                                role="progressbar"
+                                                aria-label={copy.entropyLabel}
+                                                aria-valuemin={0}
+                                                aria-valuemax={80}
+                                                aria-valuenow={Math.min(Math.round(entropy), 80)}
+                                            >
+                                                <div
+                                                    className={`h-full rounded-full transition-[width,background-color] duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
+                                                        entropy < WEAK_BITS
+                                                            ? 'bg-[var(--danger)]'
+                                                            : entropy < STRONG_BITS
+                                                              ? 'bg-[var(--warning)]'
+                                                              : 'bg-[var(--accent)]'
+                                                    }`}
+                                                    style={{ width: `${Math.min(100, (entropy / 80) * 100)}%` }}
+                                                />
+                                            </div>
+                                            <p className="mt-1.5 text-xs leading-relaxed text-muted" aria-live="polite">
+                                                {copy.entropyFormula
+                                                    .replace('{length}', String(theory.length))
+                                                    .replace('{charset}', String(theory.charsetSize))
+                                                    .replace('{bits}', String(Math.round(theory.bits)))
+                                                    .replace('{unit}', copy.entropyUnit)}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-relaxed text-muted">
+                                                {copy.entropyAssumptions}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -379,7 +441,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || !events.length || (passwordEnabled && password.length < 8)}
+                                disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
                                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}

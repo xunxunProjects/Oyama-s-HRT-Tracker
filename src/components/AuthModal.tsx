@@ -7,6 +7,8 @@ import { authService, serializeAssertionCredential, b64url2ab } from '../service
 import { apiErrorCode } from '../services/apiClient';
 import { useEscape } from '../hooks/useEscape';
 import { getShareCopy } from '../i18n/share';
+import { newPasswordLevel } from '../../passwordStrength';
+import PasswordStrengthHint from './PasswordStrengthHint';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -56,6 +58,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     const acceptedPasswordRef = useRef<string | null>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
     const id = useId();
+
+    // Registering is when a weak password becomes permanent: no reset brings
+    // back the backups it encrypts. The worker refuses the same passwords;
+    // this hint says why before the round trip.
+    const level = isLogin ? null : newPasswordLevel(password);
+    const passwordBlocked = level === 'weak' || level === 'tooLong';
 
     const { login, register, loginWithToken } = useAuth();
     const { t, lang } = useTranslation();
@@ -189,6 +197,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
             } else {
+                if (passwordBlocked) {
+                    setError(t(level === 'tooLong' ? 'pw.too_long' : 'pw.too_weak'));
+                    return;
+                }
                 await register(username, password);
             }
             succeed();
@@ -220,7 +232,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         </p>
     );
     const submitButton = (
-        <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
+        <button type="submit" disabled={loading || passwordBlocked} className="btn-primary w-full mt-1">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -293,12 +305,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                                 placeholder={t('auth.password_placeholder')}
                                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                                 aria-describedby={
-                                    [!isLogin ? `${id}-key-note` : '', error && !needsTOTP ? errorId : '']
+                                    [
+                                        !isLogin ? `${id}-key-note` : '',
+                                        level ? `${id}-pw-strength` : '',
+                                        error && !needsTOTP ? errorId : '',
+                                    ]
                                         .filter(Boolean)
                                         .join(' ') || undefined
                                 }
                                 required
                             />
+                            {!isLogin && <PasswordStrengthHint id={`${id}-pw-strength`} level={level} />}
                         </div>
 
                         {/* Signing up is the moment to say it: the password is

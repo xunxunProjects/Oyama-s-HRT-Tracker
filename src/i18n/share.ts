@@ -53,6 +53,14 @@ export interface ShareCopy {
     notEncrypted: string;
     legacyHint: string;
     keyInvalidDescription: string;
+    rateLimitedTitle: string;
+    rateLimitedDescription: string;
+    rateLimitedRetry: string;
+    passwordLocked: string;
+    entropyLabel: string;
+    entropyUnit: string;
+    entropyFormula: string;
+    entropyAssumptions: string;
 }
 
 const en: ShareCopy = {
@@ -113,6 +121,15 @@ const en: ShareCopy = {
         'Links marked “Not encrypted” were made before links were encrypted and can be read by the service. Revoke them and create new ones to encrypt them.',
     keyInvalidDescription:
         'The link looks incomplete. Make sure the whole link was copied, including everything after the #.',
+    rateLimitedTitle: 'Too many requests',
+    rateLimitedDescription: 'Too many attempts. Please wait a moment and try again.',
+    rateLimitedRetry: 'Try again after {time}',
+    passwordLocked: 'Too many wrong passwords for this link. Try again after {time}.',
+    entropyLabel: 'Entropy estimate',
+    entropyUnit: 'bit',
+    entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+    entropyAssumptions:
+        'Theory assumes uniform randomness; the estimate also weighs common words and patterns. Neither is a crack-time guarantee.',
 };
 
 const copy: Record<Lang, ShareCopy> = {
@@ -173,6 +190,14 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '标着“未加密”的链接是在分享加密上线之前创建的，服务端可以读取。撤销后重新创建即可加密。',
         keyInvalidDescription: '链接好像不完整，请确认复制了完整的链接，包括 # 后面的全部内容。',
+        rateLimitedTitle: '请求太频繁',
+        rateLimitedDescription: '尝试次数过多，请稍等片刻再试。',
+        rateLimitedRetry: '请在 {time} 之后重试',
+        passwordLocked: '这个链接的密码输错太多次了，请在 {time} 之后再试。',
+        entropyLabel: '估算熵值',
+        entropyUnit: '比特',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理论值假设字符均匀随机；估算值同时考虑常见词组与重复模式。两者都不等同于破解时间。',
     },
     'zh-TW': {
         ...en,
@@ -230,6 +255,14 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '標示「未加密」的連結是在分享加密上線之前建立的，服務端可以讀取。撤銷後重新建立即可加密。',
         keyInvalidDescription: '連結似乎不完整，請確認複製了完整的連結，包括 # 後面的全部內容。',
+        rateLimitedTitle: '請求太頻繁',
+        rateLimitedDescription: '嘗試次數過多，請稍等片刻再試。',
+        rateLimitedRetry: '請在 {time} 之後重試',
+        passwordLocked: '這個連結的密碼輸錯太多次了，請在 {time} 之後再試。',
+        entropyLabel: '估算熵值',
+        entropyUnit: '位元',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見片語與重複模式。兩者都不等同於破解時間。',
     },
     yue: {
         ...en,
@@ -287,6 +320,14 @@ const copy: Record<Lang, ShareCopy> = {
         notEncrypted: '未加密',
         legacyHint: '標住「未加密」嘅連結係分享加密推出之前建立嘅，伺服器睇得到。撤銷之後再建立就會加密。',
         keyInvalidDescription: '連結好似唔完整，請確認複製咗成條連結，包括 # 後面嘅全部內容。',
+        rateLimitedTitle: '請求太頻密',
+        rateLimitedDescription: '試得太多喇，請等一陣再試。',
+        rateLimitedRetry: '請喺 {time} 之後再試',
+        passwordLocked: '呢條連結嘅密碼輸錯太多次喇，請喺 {time} 之後再試。',
+        entropyLabel: '估算熵值',
+        entropyUnit: '位元',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見字詞同重複模式。兩者都唔等同破解時間。',
     },
     ja: {
         ...en,
@@ -347,6 +388,15 @@ const copy: Record<Lang, ShareCopy> = {
         legacyHint:
             '「暗号化なし」のリンクは共有の暗号化が始まる前に作成されたもので、サービス側から読めます。取り消して作り直すと暗号化されます。',
         keyInvalidDescription: 'リンクが不完全なようです。# 以降も含めてリンク全体をコピーしたか確認してください。',
+        rateLimitedTitle: 'リクエストが多すぎます',
+        rateLimitedDescription: '試行回数が多すぎます。しばらく待ってからもう一度お試しください。',
+        rateLimitedRetry: '{time} 以降に再試行してください',
+        passwordLocked: 'このリンクのパスワードの誤りが多すぎます。{time} 以降にもう一度お試しください。',
+        entropyLabel: '推定エントロピー',
+        entropyUnit: 'ビット',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            '理論値は文字が一様ランダムという仮定に基づきます。推定値はよくある語句や繰り返しパターンも考慮します。どちらも解読時間の保証ではありません。',
     },
     ko: {
         ...en,
@@ -407,6 +457,15 @@ const copy: Record<Lang, ShareCopy> = {
         legacyHint:
             '“암호화 안 됨” 링크는 공유 암호화 이전에 만들어져 서비스가 읽을 수 있습니다. 취소하고 새로 만들면 암호화됩니다.',
         keyInvalidDescription: '링크가 불완전한 것 같습니다. # 뒤의 내용까지 링크 전체를 복사했는지 확인하세요.',
+        rateLimitedTitle: '요청이 너무 많아요',
+        rateLimitedDescription: '시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+        rateLimitedRetry: '{time} 이후에 다시 시도하세요',
+        passwordLocked: '이 링크의 비밀번호가 너무 많이 틀렸어요. {time} 이후에 다시 시도해 주세요.',
+        entropyLabel: '추정 엔트로피',
+        entropyUnit: '비트',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            '이론값은 문자가 균일하게 무작위라고 가정합니다. 추정값은 흔한 단어와 반복 패턴도 고려합니다. 둘 다 해독 시간을 보장하지 않습니다.',
     },
     tr: {
         ...en,
@@ -469,6 +528,15 @@ const copy: Record<Lang, ShareCopy> = {
             '“Şifrelenmemiş” bağlantılar, paylaşım şifrelemesinden önce oluşturuldu ve hizmet tarafından okunabilir. Şifrelemek için iptal edip yenilerini oluşturun.',
         keyInvalidDescription:
             'Bağlantı eksik görünüyor. # işaretinden sonrası dahil bağlantının tamamını kopyaladığınızdan emin olun.',
+        rateLimitedTitle: 'Çok fazla istek',
+        rateLimitedDescription: 'Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.',
+        rateLimitedRetry: 'Saat {time} itibarıyla yeniden deneyin',
+        passwordLocked: 'Bu bağlantı için çok fazla yanlış parola girildi. Saat {time} itibarıyla yeniden deneyin.',
+        entropyLabel: 'Tahmini entropi',
+        entropyUnit: 'bit',
+        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyAssumptions:
+            'Kuramsal değer karakterlerin tekdüze rastgele olduğunu varsayar; tahmin ayrıca yaygın sözcükleri ve tekrar desenlerini hesaba katar. İkisi de kırılma süresi garantisi değildir.',
     },
 };
 

@@ -7,6 +7,8 @@ import {
     sanitizeEncryptedShareSnapshot,
     sanitizeShareSnapshot,
 } from './shareSnapshotSchema';
+import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
+import { getClientIP, MAX_JSON_BODY_BYTES, readSmallJsonBody } from './requestInput';
 
 export interface Env {
     DB: D1Database;
@@ -18,6 +20,24 @@ export interface Env {
     AVATAR_BUCKET: R2Bucket;
     /** Set to 'development' only in local config; anything else means production. */
     ENVIRONMENT?: string;
+    /**
+     * Which header carries the client address. One of:
+     *   'cf' (default)     — CF-Connecting-IP. On Cloudflare the edge sets it and
+     *                        a client cannot. Under `wrangler dev` (Docker) the
+     *                        runtime only fills it in when the request has none,
+     *                        so a proxy in front must overwrite it, or a client
+     *                        can pick its own address
+     *   'x-forwarded-for'  — the last X-Forwarded-For hop, the one the single
+     *                        reverse proxy in front appended; earlier hops came
+     *                        from the client
+     *   'none'             — no client address (Tor/I2P mirrors). Per-address
+     *                        buckets become one shared bucket per endpoint,
+     *                        sized for everyone; the share-access address
+     *                        bucket is skipped
+     * Anything else is treated as the default. Per-account and per-link limits
+     * apply whatever this is set to.
+     */
+    TRUSTED_IP_SOURCE?: string;
     /**
      * Rate Limiting bindings, one per requests-per-minute class (wrangler.toml).
      * Keys are prefixed per endpoint, so endpoints with the same ceiling share a
@@ -79,12 +99,69 @@ function withSecurityHeaders(response: Response): Response {
     const newResponse = new Response(response.body, response);
     newResponse.headers.set('X-Content-Type-Options', 'nosniff');
     newResponse.headers.set('X-Frame-Options', 'DENY');
-    newResponse.headers.set('X-XSS-Protection', '1; mode=block');
+    // Strict-Transport-Security is ignored by user agents on plain-http
+    // responses (RFC 6797 §7.2), so an onion/I2P mirror that speaks http is
+    // unaffected while any https deployment gets the pin. The deprecated
+    // X-XSS-Protection header is gone: the filter it switched on could itself
+    // be used as an oracle, and modern browsers ignore it.
+    newResponse.headers.set('Strict-Transport-Security', 'max-age=31536000');
+    newResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     newResponse.headers.set(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self';",
+        "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';",
     );
     return newResponse;
+}
+
+/**
+ * Origins a passkey ceremony may be bound to. The WebAuthn rpId/origin has to
+ * be an address this deployment actually serves, but the handlers used to echo
+ * whatever `Origin` header the caller sent into the challenge, so any page (or
+ * scripted client) could mint a challenge pinned to a hostname of its choosing.
+ * Allowed: the request's own origin (self-hosted mirrors, onion/I2P) and the
+ * configured public origin when one is set.
+ */
+function allowedPasskeyOrigins(url: URL, env: Env): Set<string> {
+    const allowed = new Set<string>([url.origin]);
+    // Behind a TLS-terminating proxy (the Docker setup the README suggests) the
+    // worker sees http while the browser is on https for the same host. The
+    // host is still this deployment's, so the https form of it is allowed too.
+    if (url.protocol === 'http:') allowed.add(`https://${url.host}`);
+    if (env.PUBLIC_APP_ORIGIN) {
+        try {
+            allowed.add(new URL(env.PUBLIC_APP_ORIGIN).origin);
+        } catch {
+            // Ignore malformed configuration; the request origin still works.
+        }
+    }
+    return allowed;
+}
+
+/**
+ * Resolves the origin a passkey challenge should be bound to. Browsers send
+ * `Origin` on these fetches; when it is absent (plain navigation, curl) the
+ * request's own origin is used. Returns null when the caller claims an origin
+ * this deployment does not serve.
+ */
+function resolvePasskeyOrigin(request: Request, url: URL, env: Env): string | null {
+    const origin = request.headers.get('Origin');
+    if (!origin) return url.origin;
+    return allowedPasskeyOrigins(url, env).has(origin) ? origin : null;
+}
+
+/**
+ * The origin a newly created share link should point at. The configured public
+ * origin wins on clearnet, but on a mirror (.onion/.i2p) the request's own
+ * origin is the address the reader can actually reach: a link minted with the
+ * clearnet origin while browsing the mirror would send those readers back out
+ * to another network, or nowhere at all.
+ */
+function shareOriginFor(url: URL, env: Env): string {
+    const host = url.hostname.toLowerCase();
+    if (host.endsWith('.onion') || host.endsWith('.i2p')) {
+        return url.origin;
+    }
+    return (env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/+$/, '');
 }
 
 // Timing-safe string comparison
@@ -119,7 +196,6 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
-const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
 
 /**
@@ -200,15 +276,52 @@ function validateJWTSecret(secret: string | undefined): string {
     return secret;
 }
 
+// Names the app itself answers to, or that read as an authority ("admin",
+// "support"), so a normal account should never own them. Compared
+// case-insensitively: 'Admin' is the env-managed account's display name and
+// the avatar route special-cases it, and 'ADMIN' would be just as confusing.
+const RESERVED_USERNAMES = new Set([
+    'admin',
+    'administrator',
+    'root',
+    'system',
+    'sysadmin',
+    'mod',
+    'moderator',
+    'support',
+    'help',
+    'staff',
+    'owner',
+    'official',
+    'oauth',
+    'api',
+    'www',
+    'me',
+    'user',
+    'users',
+    'security',
+    'null',
+    'undefined',
+]);
+
 function validateUsername(username: string): boolean {
-    return USERNAME_REGEX.test(username);
+    return USERNAME_REGEX.test(username) && !RESERVED_USERNAMES.has(username.toLowerCase());
 }
 
-function validatePassword(password: string): { valid: boolean; error?: string } {
+function validatePassword(password: unknown): { valid: boolean; error?: string } {
+    // Request bodies are parsed JSON, so a number or an object can arrive here;
+    // the strength check below would throw on it and surface as a 500.
+    if (typeof password !== 'string') return { valid: false, error: 'Password must be a string' };
     if (password.length < MIN_PASSWORD_LENGTH)
         return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long` };
     if (password.length > MAX_PASSWORD_LENGTH)
         return { valid: false, error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters long` };
+    // bcrypt only reads the first 72 bytes; a longer password would silently
+    // work as its own prefix, so refuse to set one rather than store that.
+    if (passwordByteLength(password) > MAX_PASSWORD_BYTES)
+        return { valid: false, error: `Password must be at most ${MAX_PASSWORD_BYTES} bytes (UTF-8)` };
+    if (passwordStrength(password) === 'weak')
+        return { valid: false, error: 'Password is too easy to guess; use a longer or less regular one' };
     return { valid: true };
 }
 
@@ -491,6 +604,42 @@ async function sha256Hex(value: string): Promise<string> {
     return Array.from(new Uint8Array(digest))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
+}
+
+/**
+ * A signed note that this browser already gave the right password for one
+ * share. A live page polls every 10 s; with the pass it skips the bcrypt check
+ * and the guessing lock, so someone sending wrong passwords cannot shut out
+ * people who are already reading. It is bound to the share's current password
+ * hash, so a new password or a revoked share ends it, and its `purpose` keeps
+ * the session check from ever taking it for a sign-in.
+ */
+const SHARE_VIEWER_PASS_TTL = '24h';
+
+async function signShareViewerPass(jwtSecret: string, tokenHash: string, passwordHash: string): Promise<string> {
+    return new SignJWT({ purpose: 'share-view', share: tokenHash, pw: (await sha256Hex(passwordHash)).slice(0, 32) })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime(SHARE_VIEWER_PASS_TTL)
+        .sign(new TextEncoder().encode(jwtSecret));
+}
+
+async function shareViewerPassValid(
+    pass: unknown,
+    jwtSecret: string,
+    tokenHash: string,
+    passwordHash: string,
+): Promise<boolean> {
+    if (typeof pass !== 'string' || pass.length === 0) return false;
+    try {
+        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret));
+        return (
+            payload.purpose === 'share-view' &&
+            payload.share === tokenHash &&
+            payload.pw === (await sha256Hex(passwordHash)).slice(0, 32)
+        );
+    } catch {
+        return false;
+    }
 }
 
 // --- WebAuthn / Passkey crypto helpers ---
@@ -787,17 +936,31 @@ export default {
             // Rate limiting for auth/sensitive endpoints
             const sensitivePaths = ['/api/login', '/api/register', '/api/user/password', '/api/user/me'];
             if (sensitivePaths.some(p => url.pathname === p)) {
-                // CF-Connecting-IP only. X-Forwarded-For / X-Real-IP were a fallback here,
-                // but behind the Cloudflare edge they are never reached (CF always sets
-                // CF-Connecting-IP), and anywhere else they are attacker-controlled — one
-                // header per request buys a fresh bucket and the limiter stops existing.
-                // Same reasoning already spelled out 15 lines below for /api/transparency.
-                // Missing header falls back to one shared bucket rather than a 400, so the
-                // self-hosted build still serves; the per-account limiter in the login
-                // handler is what actually bounds brute force there.
-                const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-                if (!(await checkRateLimit(env, clientIP, 10))) {
-                    // Slightly relaxed but broader coverage
+                // The address comes from getClientIP (CF-Connecting-IP, or an
+                // explicitly trusted proxy header). X-Forwarded-For is never
+                // trusted implicitly: behind the Cloudflare edge it is not
+                // reached, and anywhere else it is attacker-controlled — one
+                // header per request would buy a fresh bucket and the limiter
+                // would stop existing.
+                //
+                // When there is no address at all (self-hosted mirrors behind
+                // Tor/I2P with TRUSTED_IP_SOURCE=none), an address-keyed bucket
+                // would be one shared bucket: ten of anyone's requests a minute
+                // would lock everyone else out. Login keeps its per-account
+                // bucket; the others get a shared ceiling sized so one user's
+                // traffic cannot read as another's lockout.
+                const clientIP = getClientIP(request, env);
+                let allowed: boolean;
+                if (clientIP) {
+                    allowed = await checkRateLimit(env, clientIP, 10);
+                } else if (url.pathname === '/api/login') {
+                    allowed = await checkRateLimit(env, 'login-global-noip', 60);
+                } else if (url.pathname === '/api/register') {
+                    allowed = await checkRateLimit(env, 'register-global-noip', 10);
+                } else {
+                    allowed = await checkRateLimit(env, 'sensitive-global-noip', 30);
+                }
+                if (!allowed) {
                     return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
                         'Retry-After': '60',
                     });
@@ -808,11 +971,12 @@ export default {
 
             // Transparency: public aggregate stats. No PII exposed.
             if (url.pathname === '/api/transparency' && request.method === 'GET') {
-                // Only trust CF-Connecting-IP on a public, unauthenticated endpoint.
-                // X-Forwarded-For / X-Real-IP can be spoofed by clients and would
-                // allow trivial rate-limit evasion.
-                const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-                if (!(await checkRateLimit(env, `transparency:${clientIP}`, 30))) {
+                // Per-address where an address exists; a single wider bucket
+                // otherwise, so a no-address mirror degrades in speed, not in
+                // availability. See getClientIP.
+                const clientIP = getClientIP(request, env);
+                const limitKey = clientIP ? `transparency:${clientIP}` : 'transparency:global-noip';
+                if (!(await checkRateLimit(env, limitKey, clientIP ? 30 : 60))) {
                     return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
                         'Retry-After': '60',
                     });
@@ -904,9 +1068,11 @@ export default {
             // purpose — the case this exists for is telling people the domain is
             // moving, and someone who never signs in has to see that too.
             if (url.pathname === '/api/notice' && request.method === 'GET') {
-                // CF-Connecting-IP only, for the reason spelled out on /api/transparency.
-                const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-                if (!(await checkRateLimit(env, `notice:${clientIP}`, 60))) {
+                // Per-address where available, one wider shared bucket where not
+                // (the notice is polled by every open client).
+                const clientIP = getClientIP(request, env);
+                const limitKey = clientIP ? `notice:${clientIP}` : 'notice:global-noip';
+                if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
                     return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
                         'Retry-After': '60',
                     });
@@ -942,9 +1108,16 @@ export default {
 
             // Register
             if (url.pathname === '/api/register' && request.method === 'POST') {
-                const body = (await request.json()) as any;
+                const parsedBody = await readSmallJsonBody(request);
+                if (!parsedBody.ok) {
+                    return parsedBody.tooLarge
+                        ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                        : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                }
+                const body = parsedBody.value;
                 let { username, password } = body;
                 if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
+                if (typeof username !== 'string') return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
 
                 username = username.trim();
                 if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
@@ -963,10 +1136,7 @@ export default {
                 // Issue a session immediately so the user can complete mandatory 2FA setup
                 const sessionId = crypto.randomUUID();
                 const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
-                const regIP =
-                    request.headers.get('CF-Connecting-IP') ||
-                    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-                    'unknown';
+                const regIP = getClientIP(request, env) ?? 'unknown';
                 await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
                     .bind(sessionId, id, userAgent, regIP)
                     .run();
@@ -989,9 +1159,17 @@ export default {
 
             // Login
             if (url.pathname === '/api/login' && request.method === 'POST') {
-                const body = (await request.json()) as any;
+                const parsedBody = await readSmallJsonBody(request);
+                if (!parsedBody.ok) {
+                    return parsedBody.tooLarge
+                        ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                        : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                }
+                const body = parsedBody.value;
                 let { username, password, totp_code, backup_code } = body;
                 if (!username || !password) return jsonError('INVALID_REQUEST', 'Missing credentials', 400);
+                if (typeof username !== 'string' || typeof password !== 'string')
+                    return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
                 username = username.trim();
 
                 // Per-account throttle, keyed on nothing the caller can rotate. The IP
@@ -1018,7 +1196,11 @@ export default {
                     adminP &&
                     adminU.length > 0 &&
                     adminP.length > 0 &&
-                    timingSafeEqual(username, adminU) &&
+                    // Case-insensitive: ADMIN_USERNAME may be configured as
+                    // 'admin' while the UI and DB display 'Admin', and a login
+                    // that type-checks as the same name must not be rejected
+                    // on capitalization alone.
+                    timingSafeEqual(username.toLowerCase(), adminU.toLowerCase()) &&
                     timingSafeEqual(password, adminP)
                 ) {
                     const secret = new TextEncoder().encode(jwtSecret);
@@ -1125,10 +1307,7 @@ export default {
                 // Create session
                 const sessionId = crypto.randomUUID();
                 const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
-                const loginIP =
-                    request.headers.get('CF-Connecting-IP') ||
-                    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-                    'unknown';
+                const loginIP = getClientIP(request, env) ?? 'unknown';
                 await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
                     .bind(sessionId, user.id, userAgent, loginIP)
                     .run();
@@ -1178,15 +1357,30 @@ export default {
 
             // POST /api/auth/passkey-options — generate WebAuthn auth challenge (public, no JWT)
             if (url.pathname === '/api/auth/passkey-options' && request.method === 'POST') {
-                const clientIP =
-                    request.headers.get('CF-Connecting-IP') ||
-                    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-                    'unknown';
-                if (!(await checkRateLimit(env, `passkey-options:${clientIP}`, 10))) {
+                const clientIP = getClientIP(request, env);
+                // Addressless deployments (TRUSTED_IP_SOURCE=none, Tor/I2P) get a
+                // single generous bucket rather than one 'unknown' bucket that was
+                // sized for a single client and served as a shared choke point.
+                if (
+                    !(await checkRateLimit(
+                        env,
+                        clientIP ? `passkey-options:${clientIP}` : 'passkey-options:global-noip',
+                        clientIP ? 10 : 60,
+                    ))
+                ) {
                     return jsonError('RATE_LIMITED', 'Too many requests', 429, { 'Retry-After': '60' });
                 }
-                const { username } = (await request.json().catch(() => ({}))) as any;
-                const origin = request.headers.get('Origin') || `https://${url.hostname}`;
+                const declaredLength = Number(request.headers.get('Content-Length'));
+                if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+                    return jsonError('TOO_LARGE', 'Request body is too large', 413);
+                }
+                const origin = resolvePasskeyOrigin(request, url, env);
+                if (!origin) return jsonError('FORBIDDEN', 'Origin not allowed', 403);
+                const parsedOptionsBody = await readSmallJsonBody(request);
+                if (!parsedOptionsBody.ok && parsedOptionsBody.tooLarge) {
+                    return jsonError('TOO_LARGE', 'Request body is too large', 413);
+                }
+                const { username } = (parsedOptionsBody.ok ? parsedOptionsBody.value : {}) as any;
                 const challenge = b64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
                 const secret = new TextEncoder().encode(jwtSecret);
 
@@ -1217,14 +1411,27 @@ export default {
 
             // POST /api/auth/passkey-verify — verify WebAuthn assertion and issue session JWT (public)
             if (url.pathname === '/api/auth/passkey-verify' && request.method === 'POST') {
-                const clientIP =
-                    request.headers.get('CF-Connecting-IP') ||
-                    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-                    'unknown';
-                if (!(await checkRateLimit(env, `passkey-verify:${clientIP}`, 10))) {
+                const clientIP = getClientIP(request, env);
+                if (
+                    !(await checkRateLimit(
+                        env,
+                        clientIP ? `passkey-verify:${clientIP}` : 'passkey-verify:global-noip',
+                        clientIP ? 10 : 60,
+                    ))
+                ) {
                     return jsonError('RATE_LIMITED', 'Too many requests', 429, { 'Retry-After': '60' });
                 }
-                const { challengeToken, credential } = (await request.json()) as any;
+                const declaredLength = Number(request.headers.get('Content-Length'));
+                if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+                    return jsonError('TOO_LARGE', 'Request body is too large', 413);
+                }
+                const parsedVerifyBody = await readSmallJsonBody(request);
+                if (!parsedVerifyBody.ok) {
+                    return parsedVerifyBody.tooLarge
+                        ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                        : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                }
+                const { challengeToken, credential } = parsedVerifyBody.value ?? {};
                 if (!challengeToken || !credential?.id || !credential?.response) {
                     return jsonError('INVALID_REQUEST', 'Missing data', 400);
                 }
@@ -1252,6 +1459,12 @@ export default {
                 if (!userRow) return jsonError('INVALID_CREDENTIALS', 'User not found', 401);
 
                 const expectedOrigin = challengePayload.origin as string;
+                // The challenge must have been minted for an origin this
+                // deployment serves; anything else is a pre-upgrade token or a
+                // forged one and never reaches the assertion check.
+                if (!allowedPasskeyOrigins(url, env).has(expectedOrigin)) {
+                    return jsonError('INVALID_REQUEST', 'Challenge origin not allowed', 400);
+                }
                 const expectedRpId = (() => {
                     try {
                         return new URL(expectedOrigin).hostname;
@@ -1281,7 +1494,7 @@ export default {
 
                 const sessionId = crypto.randomUUID();
                 const userAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
-                const loginIP = clientIP;
+                const loginIP = clientIP ?? 'unknown';
                 await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
                     .bind(sessionId, userRow.id, userAgent, loginIP)
                     .run();
@@ -1319,16 +1532,13 @@ export default {
                 if (Number.isFinite(declaredLength) && declaredLength > 1024) {
                     return shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413);
                 }
-                const rawBody = await request.text();
-                if (new TextEncoder().encode(rawBody).byteLength > 1024) {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413);
+                const parsedAccessBody = await readSmallJsonBody(request, 1024);
+                if (!parsedAccessBody.ok) {
+                    return parsedAccessBody.tooLarge
+                        ? shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413)
+                        : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
                 }
-                let body: unknown;
-                try {
-                    body = rawBody.length > 0 ? JSON.parse(rawBody) : {};
-                } catch {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
-                }
+                const body: unknown = parsedAccessBody.value;
                 if (!isJsonObject(body))
                     return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
                 if (typeof body.token !== 'string')
@@ -1336,10 +1546,14 @@ export default {
                 if (!SHARE_TOKEN_REGEX.test(body.token))
                     return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
 
-                const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+                const clientIP = getClientIP(request, env);
                 // The IP-only bucket cannot be evaded by rotating random tokens and is
-                // checked before any deliberately expensive bcrypt comparison.
-                if (!(await checkRateLimit(env, `share-access-ip:${clientIP}`, 30))) {
+                // checked before any deliberately expensive bcrypt comparison. On a
+                // deployment with no client addresses (Tor/I2P, TRUSTED_IP_SOURCE=none)
+                // there is no such bucket: the per-token budget below and the
+                // per-share password lockout carry the load instead of one shared
+                // 'unknown' bucket every viewer drew from and saturated.
+                if (clientIP && !(await checkRateLimit(env, `share-access-ip:${clientIP}`, 30))) {
                     return shareJson(
                         { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
                         429,
@@ -1349,7 +1563,7 @@ export default {
 
                 const tokenHash = await sha256Hex(body.token);
                 const share = (await env.DB.prepare(
-                    'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at FROM dosage_shares WHERE token_hash = ?',
+                    'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at, failed_attempts, locked_until FROM dosage_shares WHERE token_hash = ?',
                 )
                     .bind(tokenHash)
                     .first()) as {
@@ -1359,6 +1573,8 @@ export default {
                     share_mode: DosageShareSnapshot['mode'] | null;
                     created_at: number;
                     updated_at: number | null;
+                    failed_attempts: number | null;
+                    locked_until: number | null;
                 } | null;
 
                 if (!share) {
@@ -1403,7 +1619,11 @@ export default {
                     return shareJson({ code: 'SHARE_EXPIRED', message: 'This share link has expired' }, 410);
                 }
 
-                if (share.password_hash) {
+                let viewerPass: string | null = null;
+                if (
+                    share.password_hash &&
+                    !(await shareViewerPassValid(body.viewerPass, jwtSecret, tokenHash, share.password_hash))
+                ) {
                     if (body.password === undefined || body.password === '') {
                         return shareJson(
                             {
@@ -1427,13 +1647,30 @@ export default {
                         return shareJson({ code: 'INVALID_PASSWORD', message: 'Incorrect password' }, 403);
                     }
                     // Throttle guessing against a real password-protected share.
-                    // Deliberately NOT keyed on the client IP: with the IP in the key this
-                    // rotated away along with the IP, which on a deployment without a
-                    // trusted edge left the password open to unlimited bcrypt guessing.
-                    // Charged only for an actual credential attempt, so a link holder who
-                    // does not know the password cannot spend the budget every other
-                    // viewer of this share draws from. New key name so rows saturated
-                    // under the old shared bucket do not carry over.
+                    // Deliberately NOT keyed on the client IP: with the IP in the key
+                    // this rotated away along with the IP, which on a deployment
+                    // without a trusted edge left the password open to unlimited
+                    // bcrypt guessing. The persistent counter on the share row is
+                    // checked first and survives isolates and restarts; the in-memory
+                    // bucket below is only a burst backstop, charged for an actual
+                    // credential attempt, so a link holder who does not know the
+                    // password cannot spend every other viewer's budget.
+                    //
+                    // The check just below is a plain read, so a request that saw a
+                    // clear row an instant before a concurrent miss armed the lock can
+                    // still reach one bcrypt comparison. If it is wrong, the UPDATE in
+                    // the failure branch re-arms the lock from the higher count. That
+                    // window is one raced comparison wide and the counter only ever
+                    // grows inside it; it is not a way around the lock.
+                    const nowSeconds = Math.floor(Date.now() / 1000);
+                    const lockedUntil = share.locked_until ?? 0;
+                    if (lockedUntil > nowSeconds) {
+                        return shareJson(
+                            { code: 'RATE_LIMITED', message: 'Too many attempts. Please try again later.' },
+                            429,
+                            { 'Retry-After': String(lockedUntil - nowSeconds) },
+                        );
+                    }
                     if (!(await checkRateLimit(env, `share-access-pw:${tokenHash.slice(0, 20)}`, 10))) {
                         return shareJson(
                             { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
@@ -1443,8 +1680,51 @@ export default {
                     }
                     const passwordValid = await bcrypt.compare(body.password, share.password_hash);
                     if (!passwordValid) {
+                        // Count the miss and (re)arm the lock in ONE statement, with the
+                        // arithmetic done by the storage engine. Reading the count into
+                        // JavaScript, adding one and writing it back let two concurrent
+                        // misses read the same value and write the same successor, so one
+                        // of the attempts vanished. `SET failed_attempts = failed_attempts
+                        // + 1` is applied atomically to the row by SQLite; there is no
+                        // read-modify-write window left in the application.
+                        // Backoff: the fifth consecutive miss locks for 15 min, every
+                        // further miss doubles that, capped at an hour. Anyone holding
+                        // the link can trip this, so the cap is what bounds how long
+                        // they can keep new readers waiting; readers who already
+                        // unlocked carry a viewer pass and are not stopped by it. The
+                        // exponent is clamped so the shift stays in range: 900 * 2^2
+                        // is the cap, and beyond it every term is 3600 anyway.
+                        // MAX(COALESCE(...)) keeps concurrent escalations monotonic — a
+                        // longer lock written by a statement that raced ahead is never
+                        // shortened by a later one that computed a smaller term.
+                        // Awaited, not waitUntil: an "incorrect" response has to come back
+                        // with the miss already committed, or the next request replays the
+                        // same count.
+                        await env.DB.prepare(
+                            `UPDATE dosage_shares
+                                SET failed_attempts = failed_attempts + 1,
+                                    locked_until = CASE
+                                        WHEN failed_attempts + 1 >= 5
+                                        THEN MAX(COALESCE(locked_until, 0), ? + MIN(900 * (1 << MIN(failed_attempts - 4, 2)), 3600))
+                                        ELSE locked_until
+                                    END
+                              WHERE token_hash = ?`,
+                        )
+                            .bind(nowSeconds, tokenHash)
+                            .run();
                         return shareJson({ code: 'INVALID_PASSWORD', message: 'Incorrect password' }, 403);
                     }
+                    if ((share.failed_attempts ?? 0) > 0 || share.locked_until != null) {
+                        // Awaited for the same reason: the reset has to land before the
+                        // successful response does. A miss that arrives after it starts
+                        // the next run at its own count.
+                        await env.DB.prepare(
+                            'UPDATE dosage_shares SET failed_attempts = 0, locked_until = NULL WHERE token_hash = ?',
+                        )
+                            .bind(tokenHash)
+                            .run();
+                    }
+                    viewerPass = await signShareViewerPass(jwtSecret, tokenHash, share.password_hash);
                 }
 
                 // Fetch the potentially large snapshot only after expiry and password
@@ -1467,6 +1747,7 @@ export default {
                     // Ciphertext for an encrypted share; the viewer decrypts it
                     // with the key from the link's fragment.
                     ...(snapshotRow.encrypted === 1 ? { encryptedSnapshot: stored } : { snapshot: stored }),
+                    ...(viewerPass ? { viewerPass } : {}),
                 });
             }
 
@@ -1712,7 +1993,7 @@ export default {
                         {
                             id,
                             token: rawShareToken,
-                            url: `${(env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/+$/, '')}/share/#${rawShareToken}`,
+                            url: `${shareOriginFor(url, env)}/share/#${rawShareToken}`,
                             live,
                             mode: legacySnapshot?.mode ?? null,
                             encrypted,
@@ -1881,7 +2162,13 @@ export default {
                             { 'Retry-After': '60' },
                         );
                     }
-                    const body = (await request.json().catch(() => null)) as unknown;
+                    const parsedKeysBody = await readSmallJsonBody(request);
+                    if (!parsedKeysBody.ok) {
+                        return parsedKeysBody.tooLarge
+                            ? shareJson({ code: 'TOO_LARGE', message: 'Request body is too large' }, 413)
+                            : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
+                    }
+                    const body = parsedKeysBody.value as unknown;
                     if (
                         !isJsonObject(body) ||
                         !Array.isArray(body.keys) ||
@@ -2081,7 +2368,14 @@ export default {
                 // Profile / Password / Delete Me
                 if (url.pathname.startsWith('/api/user/')) {
                     if (url.pathname === '/api/user/profile' && request.method === 'PATCH') {
-                        let { username } = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        let { username } = parsedBody.value;
+                        if (typeof username !== 'string') return jsonError('INVALID_REQUEST', 'Invalid username', 400);
                         username = username.trim();
                         if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username', 400);
                         const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?')
@@ -2099,7 +2393,15 @@ export default {
                     }
 
                     if (url.pathname === '/api/user/password' && request.method === 'POST') {
-                        const { currentPassword, newPassword } = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { currentPassword, newPassword } = parsedBody.value;
+                        if (typeof currentPassword !== 'string')
+                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
                         const user = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
                             .bind(userId)
                             .first()) as any;
@@ -2135,7 +2437,15 @@ export default {
                     }
 
                     if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
-                        const { password, code, backup_code } = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { password, code, backup_code } = parsedBody.value;
+                        if (typeof password !== 'string')
+                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
                         const user = (await env.DB.prepare(
                             'SELECT password_hash, created_at, totp_secret FROM users WHERE id = ?',
                         )
@@ -2818,7 +3128,13 @@ export default {
 
                     // POST /api/user/2fa/enable — verify code and save secret to DB
                     if (url.pathname === '/api/user/2fa/enable' && request.method === 'POST') {
-                        const { secret: totpSecret, code, password, currentCode } = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { secret: totpSecret, code, password, currentCode } = parsedBody.value;
                         if (!totpSecret || !code) return jsonError('INVALID_REQUEST', 'Missing secret or code', 400);
                         // Validate secret format (base32 chars, 16-32 chars)
                         if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret))
@@ -2845,7 +3161,7 @@ export default {
                         // account lost its recovery path in the bargain. Require the
                         // password the strictly weaker operations already ask for — see
                         // DELETE /api/user/passkeys/:id and the backup-code regenerate.
-                        if (!password) {
+                        if (typeof password !== 'string' || password.length === 0) {
                             return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         }
                         if (!(await bcrypt.compare(password, existing.password_hash ?? dummyHash))) {
@@ -2889,8 +3205,15 @@ export default {
 
                     // DELETE /api/user/2fa — disable 2FA (requires current password + TOTP code)
                     if (url.pathname === '/api/user/2fa' && request.method === 'DELETE') {
-                        const { password, code } = (await request.json()) as any;
-                        if (!password || !code) return jsonError('INVALID_REQUEST', 'Missing password or code', 400);
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { password, code } = parsedBody.value;
+                        if (typeof password !== 'string' || typeof code !== 'string')
+                            return jsonError('INVALID_REQUEST', 'Missing password or code', 400);
                         const userRow = (await env.DB.prepare(
                             'SELECT password_hash, totp_secret FROM users WHERE id = ?',
                         )
@@ -2932,8 +3255,15 @@ export default {
                         // Regenerating deletes every existing code (generateAndStoreBackupCodes
                         // opens with DELETE FROM backup_codes), so it destroys the recovery
                         // path and needs the password — same reasoning as re-enrolment above.
-                        const { password } = (await request.json().catch(() => ({}))) as any;
-                        if (!password) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { password } = parsedBody.value;
+                        if (typeof password !== 'string' || password.length === 0)
+                            return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         const row = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
                             .bind(userId)
                             .first()) as any;
@@ -2973,7 +3303,8 @@ export default {
                         const userRow = (await env.DB.prepare('SELECT username FROM users WHERE id = ?')
                             .bind(userId)
                             .first()) as any;
-                        const origin = request.headers.get('Origin') || `https://${url.hostname}`;
+                        const origin = resolvePasskeyOrigin(request, url, env);
+                        if (!origin) return jsonError('FORBIDDEN', 'Origin not allowed', 403);
                         const rpId = (() => {
                             try {
                                 return new URL(origin).hostname;
@@ -3024,12 +3355,18 @@ export default {
 
                     // POST /api/user/passkey/register — verify attestation and save passkey
                     if (url.pathname === '/api/user/passkey/register' && request.method === 'POST') {
+                        const parsedRegBody = await readSmallJsonBody(request);
+                        if (!parsedRegBody.ok) {
+                            return parsedRegBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
                         const {
                             challengeToken,
                             credential,
                             deviceName,
                             password: pkRegPassword,
-                        } = (await request.json()) as any;
+                        } = parsedRegBody.value ?? {};
                         if (!challengeToken || !credential?.response) {
                             return jsonError('INVALID_REQUEST', 'Missing data', 400);
                         }
@@ -3045,6 +3382,12 @@ export default {
                             return jsonError('INVALID_REQUEST', 'Invalid challenge', 400);
                         }
                         const expectedOrigin = challengePayload.origin as string;
+                        // Registration must have been started for an origin this
+                        // deployment serves; a challenge minted before this check
+                        // existed (or by a spoofed header) is refused here.
+                        if (!allowedPasskeyOrigins(url, env).has(expectedOrigin)) {
+                            return jsonError('INVALID_REQUEST', 'Challenge origin not allowed', 400);
+                        }
                         const expectedRpId = (() => {
                             try {
                                 return new URL(expectedOrigin).hostname;
@@ -3159,8 +3502,15 @@ export default {
                         // because the passkeys table is non-empty), so this weakens
                         // authentication and needs the password — the same bar DELETE
                         // /api/user/2fa sets for the equivalent TOTP action.
-                        const { password: pkPassword } = (await request.json().catch(() => ({}))) as any;
-                        if (!pkPassword) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { password: pkPassword } = parsedBody.value;
+                        if (typeof pkPassword !== 'string' || pkPassword.length === 0)
+                            return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         const pkUser = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
                             .bind(userId)
                             .first()) as any;
