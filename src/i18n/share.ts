@@ -127,7 +127,7 @@ const en: ShareCopy = {
     passwordLocked: 'Too many wrong passwords for this link. Try again after {time}.',
     entropyLabel: 'Entropy estimate',
     entropyUnit: 'bit',
-    entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+    entropyFormula: 'If every character were random: H = {length} × log₂({charset}) ≈ {bits} {unit}',
     entropyAssumptions:
         'Theory assumes uniform randomness; the estimate also weighs common words and patterns. Neither is a crack-time guarantee.',
 };
@@ -196,7 +196,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: '这个链接的密码输错太多次了，请在 {time} 之后再试。',
         entropyLabel: '估算熵值',
         entropyUnit: '比特',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: '如果每个字符都完全随机：H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions: '理论值假设字符均匀随机；估算值同时考虑常见词组与重复模式。两者都不等同于破解时间。',
     },
     'zh-TW': {
@@ -261,7 +261,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: '這個連結的密碼輸錯太多次了，請在 {time} 之後再試。',
         entropyLabel: '估算熵值',
         entropyUnit: '位元',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: '如果每個字元都完全隨機：H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見片語與重複模式。兩者都不等同於破解時間。',
     },
     yue: {
@@ -326,7 +326,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: '呢條連結嘅密碼輸錯太多次喇，請喺 {time} 之後再試。',
         entropyLabel: '估算熵值',
         entropyUnit: '位元',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: '如果每個字元都完全隨機：H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions: '理論值假設字元均勻隨機；估算值同時考慮常見字詞同重複模式。兩者都唔等同破解時間。',
     },
     ja: {
@@ -394,7 +394,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: 'このリンクのパスワードの誤りが多すぎます。{time} 以降にもう一度お試しください。',
         entropyLabel: '推定エントロピー',
         entropyUnit: 'ビット',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: 'すべての文字が完全にランダムなら：H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions:
             '理論値は文字が一様ランダムという仮定に基づきます。推定値はよくある語句や繰り返しパターンも考慮します。どちらも解読時間の保証ではありません。',
     },
@@ -463,7 +463,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: '이 링크의 비밀번호가 너무 많이 틀렸어요. {time} 이후에 다시 시도해 주세요.',
         entropyLabel: '추정 엔트로피',
         entropyUnit: '비트',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: '모든 문자가 완전히 무작위라면: H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions:
             '이론값은 문자가 균일하게 무작위라고 가정합니다. 추정값은 흔한 단어와 반복 패턴도 고려합니다. 둘 다 해독 시간을 보장하지 않습니다.',
     },
@@ -534,7 +534,7 @@ const copy: Record<Lang, ShareCopy> = {
         passwordLocked: 'Bu bağlantı için çok fazla yanlış parola girildi. Saat {time} itibarıyla yeniden deneyin.',
         entropyLabel: 'Tahmini entropi',
         entropyUnit: 'bit',
-        entropyFormula: 'H = L × log₂N = {length} × log₂({charset}) ≈ {bits} {unit}',
+        entropyFormula: 'Her karakter tamamen rastgele olsaydı: H = {length} × log₂({charset}) ≈ {bits} {unit}',
         entropyAssumptions:
             'Kuramsal değer karakterlerin tekdüze rastgele olduğunu varsayar; tahmin ayrıca yaygın sözcükleri ve tekrar desenlerini hesaba katar. İkisi de kırılma süresi garantisi değildir.',
     },
