@@ -4,7 +4,8 @@ import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
-import { apiErrorCode } from '../services/apiClient';
+import { ApiError, apiErrorCode } from '../services/apiClient';
+import { LOCALE_MAP } from '../utils/helpers';
 import { useEscape } from '../hooks/useEscape';
 import { getShareCopy } from '../i18n/share';
 import { newPasswordLevel } from '../../passwordStrength';
@@ -33,10 +34,19 @@ interface AuthModalProps {
  * The two failures a person causes by typing get the translated line; anything
  * else keeps the server's message, which is at least specific.
  */
-export const describeAuthError = (err: unknown, t: (key: string) => string): string => {
+export const describeAuthError = (err: unknown, t: (key: string) => string, lang?: string): string => {
     const code = apiErrorCode(err);
     if (code === 'INVALID_CREDENTIALS') return t('auth.invalid_credentials');
     if (code === 'TWO_FACTOR_INVALID') return t('account.2fa_verify_failed');
+    if (code === 'ACCOUNT_LOCKED') {
+        const retryAt = Date.now() + ((err instanceof ApiError && err.retryAfterMs) || 15 * 60_000);
+        const time = new Intl.DateTimeFormat((lang && LOCALE_MAP[lang]) || undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+        }).format(retryAt);
+        return t('auth.account_locked').replace('{time}', time);
+    }
+    if (code === 'RATE_LIMITED') return t('auth.too_many_attempts');
     return (err instanceof Error && err.message) || t('error.generic');
 };
 
@@ -215,7 +225,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
-                setError(describeAuthError(err, t));
+                setError(describeAuthError(err, t, lang));
             }
         } finally {
             setLoading(false);

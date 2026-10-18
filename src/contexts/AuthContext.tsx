@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { authService, User, AuthResponse, sessionIdFromToken } from '../services/auth';
+import { authService, User, AuthResponse, rememberDevicePass, sessionIdFromToken } from '../services/auth';
 import { cacheCloudKey, deriveAndCacheCloudKey, getCloudKey } from '../utils/cloudBackup';
 import { rewrapLiveShareKeys } from '../services/sharing';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
@@ -22,6 +22,8 @@ interface AuthContextType {
     updateProfile: (username: string) => Promise<void>;
     changePassword: (current: string, newPass: string) => Promise<void>;
     deleteAccount: (password: string, code?: string, backupCode?: string) => Promise<void>;
+    /** The signed-in account's password was below the strength floor at its last sign-in. */
+    weakPassword: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,6 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { t } = useTranslation();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+    // Remembered across reloads until the password changes or the user signs out.
+    const [weakPassword, setWeakPassword] = useState(() => localStorage.getItem('weak_password') === '1');
+    const markWeakPassword = (weak: boolean) => {
+        setWeakPassword(weak);
+        if (weak) localStorage.setItem('weak_password', '1');
+        else localStorage.removeItem('weak_password');
+    };
 
     // Versions before 2FA became optional persisted a forced-setup flag; drop it.
     useEffect(() => {
@@ -62,7 +71,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        rememberDevicePass(username, data.devicePass);
         await deriveAndCacheCloudKey(password, data.user.id);
+        // Accounts made before the strength floor can still have a weak password.
+        // Say so once at sign-in; the Account page keeps the reminder.
+        markWeakPassword(!!data.passwordWeak);
+        if (data.passwordWeak) {
+            showDialog('alert', t('account.weak_password_body'), undefined, {
+                title: t('account.weak_password_title'),
+            });
+        }
     };
 
     const loginWithToken = async (data: AuthResponse, verifiedPassword?: string) => {
@@ -86,6 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        rememberDevicePass(username, data.devicePass);
+        markWeakPassword(false);
         await deriveAndCacheCloudKey(password, data.user.id);
     };
 
@@ -97,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
+        markWeakPassword(false);
         cacheCloudKey(null);
     };
 
@@ -153,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!token) return;
         const oldCloudKey = getCloudKey();
         await authService.changePassword(token, current, newPass);
+        markWeakPassword(false);
         // Re-derive the cloud key for the new password. Backups made under the
         // old password become unreadable (this is what also stops an admin who
         // resets the password from decrypting them).
@@ -185,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 updateProfile,
                 changePassword,
                 deleteAccount,
+                weakPassword,
             }}
         >
             {children}

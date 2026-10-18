@@ -9,6 +9,40 @@ export interface User {
 export interface AuthResponse {
     token: string;
     user: User;
+    /** Lets this device sign in to the account while it is locked by someone else's wrong guesses. */
+    devicePass?: string;
+    /** The password just used is below the strength floor; the app suggests changing it. */
+    passwordWeak?: boolean;
+}
+
+// Device passes, one per account name, from the last successful sign-in on
+// this device. Kept apart from the session so signing out does not forget
+// that this device is the owner's.
+const DEVICE_PASSES_KEY = 'login_device_passes';
+
+const readDevicePasses = (): Record<string, string> => {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(DEVICE_PASSES_KEY) ?? '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+};
+
+export function devicePassFor(username: string): string | undefined {
+    return readDevicePasses()[username.trim().toLowerCase()];
+}
+
+export function rememberDevicePass(username: string, pass: string | undefined): void {
+    if (!pass) return;
+    try {
+        localStorage.setItem(
+            DEVICE_PASSES_KEY,
+            JSON.stringify({ ...readDevicePasses(), [username.trim().toLowerCase()]: pass }),
+        );
+    } catch {
+        // Storage full or blocked: the device just is not remembered.
+    }
 }
 
 export interface Session {
@@ -109,9 +143,16 @@ export { b64url2ab };
 
 export const authService = {
     async login(username: string, password: string, totpCode?: string, backupCode?: string): Promise<AuthResponse> {
-        const body: { username: string; password: string; totp_code?: string; backup_code?: string } = {
+        const body: {
+            username: string;
+            password: string;
+            totp_code?: string;
+            backup_code?: string;
+            device_pass?: string;
+        } = {
             username,
             password,
+            device_pass: devicePassFor(username),
         };
         if (totpCode) body.totp_code = totpCode;
         if (backupCode) body.backup_code = backupCode;
@@ -134,10 +175,12 @@ export const authService = {
                 err.method = data.method ?? 'totp';
                 throw err;
             }
+            const retryAfter = Number(res.headers.get('Retry-After'));
             throw new ApiError(
                 res.status,
                 typeof data?.code === 'string' ? data.code : `HTTP_${res.status}`,
                 typeof data?.message === 'string' ? data.message : text,
+                Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null,
             );
         }
         return (await res.json()) as AuthResponse;

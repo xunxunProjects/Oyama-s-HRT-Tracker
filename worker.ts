@@ -216,6 +216,7 @@ type ApiErrorCode =
     | 'TOO_LARGE'
     | 'UNSUPPORTED_MEDIA'
     | 'RATE_LIMITED'
+    | 'ACCOUNT_LOCKED'
     | 'STORAGE_FULL'
     | 'SERVICE_UNAVAILABLE'
     | 'INTERNAL';
@@ -637,6 +638,48 @@ async function shareViewerPassValid(
             payload.share === tokenHash &&
             payload.pw === (await sha256Hex(passwordHash)).slice(0, 32)
         );
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * A signed note that this browser has signed in to one account before. The
+ * persistent sign-in lock exists to stop password guessing, and anyone who
+ * knows a username can trip it; a device that has already proven the
+ * password carries this pass and is not held back, so the lock cannot be used
+ * to keep the owner out. `pw` is keyed on the account's current password
+ * (an HMAC under the JWT secret, so the pass reveals nothing about it), so a
+ * password change ends every pass, and `purpose` keeps the session check from
+ * taking it for a sign-in.
+ */
+const LOGIN_DEVICE_PASS_TTL = '90d';
+
+const loginDeviceBinding = (jwtSecret: string, credential: string) =>
+    hmacSha256Hex(jwtSecret, `login-device:${credential}`).then(hex => hex.slice(0, 32));
+
+async function signLoginDevicePass(jwtSecret: string, account: string, credential: string): Promise<string> {
+    return new SignJWT({ purpose: 'login-device', account, pw: await loginDeviceBinding(jwtSecret, credential) })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime(LOGIN_DEVICE_PASS_TTL)
+        .sign(new TextEncoder().encode(jwtSecret));
+}
+
+/** True when `pass` was issued for `account` under one of its current credentials. */
+async function loginDevicePassValid(
+    pass: unknown,
+    jwtSecret: string,
+    account: string,
+    credentials: string[],
+): Promise<boolean> {
+    if (typeof pass !== 'string' || pass.length === 0 || credentials.length === 0) return false;
+    try {
+        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret));
+        if (payload.purpose !== 'login-device' || payload.account !== account) return false;
+        for (const credential of credentials) {
+            if (payload.pw === (await loginDeviceBinding(jwtSecret, credential))) return true;
+        }
+        return false;
     } catch {
         return false;
     }
@@ -1146,11 +1189,19 @@ export default {
                     .setIssuedAt()
                     .setExpirationTime('7d')
                     .sign(regSecret);
+                // A deleted account's misses would otherwise lock the new owner of the name.
+                await env.DB.prepare('DELETE FROM login_backoff WHERE account = ?').bind(username.toLowerCase()).run();
+                const regDevicePass = await signLoginDevicePass(
+                    jwtSecret,
+                    username.toLowerCase(),
+                    `user:${hashedPassword}`,
+                );
                 return withSecurityHeaders(
                     new Response(
                         JSON.stringify({
                             token: regToken,
                             user: { id, username, isAdmin: false },
+                            devicePass: regDevicePass,
                         }),
                         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
                     ),
@@ -1190,19 +1241,77 @@ export default {
                 // Guard against undefined/empty env vars allowing "null" or "undefined" login
                 const adminU = env.ADMIN_USERNAME;
                 const adminP = env.ADMIN_PASSWORD;
-
-                if (
-                    adminU &&
-                    adminP &&
+                const account = username.toLowerCase();
+                // Case-insensitive: ADMIN_USERNAME may be configured as 'admin'
+                // while the UI and DB display 'Admin', and a login that
+                // type-checks as the same name must not be rejected on
+                // capitalization alone.
+                const isAdminName =
+                    !!adminU &&
+                    !!adminP &&
                     adminU.length > 0 &&
                     adminP.length > 0 &&
-                    // Case-insensitive: ADMIN_USERNAME may be configured as
-                    // 'admin' while the UI and DB display 'Admin', and a login
-                    // that type-checks as the same name must not be rejected
-                    // on capitalization alone.
-                    timingSafeEqual(username.toLowerCase(), adminU.toLowerCase()) &&
-                    timingSafeEqual(password, adminP)
-                ) {
+                    timingSafeEqual(account, adminU.toLowerCase());
+
+                // DB User check (looked up before the admin password so the lock
+                // below knows whether the name is a real account)
+                const user = (await env.DB.prepare('SELECT * FROM users WHERE username = ?')
+                    .bind(username)
+                    .first()) as any;
+
+                // Persistent backoff, keyed on the account name and kept in the
+                // database, so neither a restart nor a different isolate resets
+                // it: the fifth consecutive miss (wrong password or second
+                // factor) locks the account for 15 min, each further miss doubles
+                // that, capped at an hour. Checked before any bcrypt work. A
+                // device that has signed in before carries a pass and is not
+                // stopped, so whoever trips the lock cannot keep the owner out.
+                // Only real accounts are counted; a name nobody owns never gets
+                // a row (registration already says which names are taken).
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                const backoff = await env.DB.prepare(
+                    'SELECT failed_attempts, locked_until FROM login_backoff WHERE account = ?',
+                )
+                    .bind(account)
+                    .first<{ failed_attempts: number; locked_until: number | null }>();
+                const credentials = [
+                    ...(isAdminName ? [`admin:${adminP}`] : []),
+                    ...(user ? [`user:${user.password_hash}`] : []),
+                ];
+                const trustedDevice = await loginDevicePassValid(body.device_pass, jwtSecret, account, credentials);
+                if (!trustedDevice && backoff?.locked_until && backoff.locked_until > nowSeconds) {
+                    return jsonError(
+                        'ACCOUNT_LOCKED',
+                        'Too many failed sign-ins for this account. Please try again later.',
+                        429,
+                        { 'Retry-After': String(backoff.locked_until - nowSeconds) },
+                    );
+                }
+                // One statement, arithmetic in the storage engine, for the same
+                // reason as the share lock: two concurrent misses must not read
+                // the same count and lose one. Awaited so the 401 goes out with
+                // the miss already counted.
+                const recordMiss = async () => {
+                    if (!isAdminName && !user) return;
+                    await env.DB.prepare(
+                        `INSERT INTO login_backoff (account, failed_attempts, locked_until) VALUES (?, 1, NULL)
+                         ON CONFLICT(account) DO UPDATE SET
+                            failed_attempts = failed_attempts + 1,
+                            locked_until = CASE
+                                WHEN failed_attempts + 1 >= 5
+                                THEN MAX(COALESCE(locked_until, 0), ? + MIN(900 * (1 << MIN(failed_attempts - 4, 2)), 3600))
+                                ELSE locked_until
+                            END`,
+                    )
+                        .bind(account, nowSeconds)
+                        .run();
+                };
+                const clearMisses = async () => {
+                    if (backoff)
+                        await env.DB.prepare('DELETE FROM login_backoff WHERE account = ?').bind(account).run();
+                };
+
+                if (isAdminName && timingSafeEqual(password, adminP!)) {
                     const secret = new TextEncoder().encode(jwtSecret);
                     const token = await new SignJWT({ sub: 'admin', username: 'Admin', role: 'admin' })
                         .setProtectedHeader({ alg: 'HS256' })
@@ -1212,18 +1321,19 @@ export default {
                     await env.DB.prepare(
                         "INSERT OR IGNORE INTO users (id, username, password_hash) VALUES ('admin', 'Admin', 'env_managed')",
                     ).run();
+                    await clearMisses();
+                    const adminDevicePass = await signLoginDevicePass(jwtSecret, account, `admin:${adminP}`);
                     return withSecurityHeaders(
                         new Response(
-                            JSON.stringify({ token, user: { id: 'admin', username: 'Admin', isAdmin: true } }),
+                            JSON.stringify({
+                                token,
+                                user: { id: 'admin', username: 'Admin', isAdmin: true },
+                                devicePass: adminDevicePass,
+                            }),
                             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
                         ),
                     );
                 }
-
-                // DB User check
-                const user = (await env.DB.prepare('SELECT * FROM users WHERE username = ?')
-                    .bind(username)
-                    .first()) as any;
 
                 // Anti-timing leak: Always run a bcrypt comparison even if user doesn't exist
                 const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC'; // Randomized-looking dummy
@@ -1231,6 +1341,7 @@ export default {
                 const passwordValid = await bcrypt.compare(password, passwordHash);
 
                 if (!user || !passwordValid) {
+                    await recordMiss();
                     return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
                 }
 
@@ -1263,11 +1374,16 @@ export default {
                             String(backup_code),
                             jwtSecret,
                         );
-                        if (!backupValid)
+                        if (!backupValid) {
+                            await recordMiss();
                             return jsonError('TWO_FACTOR_INVALID', 'Invalid or already-used backup code', 401);
+                        }
                     } else {
                         const totpValid = await consumeTOTP(env, user.id, userWithTotp.totp_secret, String(totp_code));
-                        if (!totpValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 401);
+                        if (!totpValid) {
+                            await recordMiss();
+                            return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 401);
+                        }
                     }
                 } else {
                     // No TOTP: check if user has any passkeys registered
@@ -1283,8 +1399,10 @@ export default {
                                 String(backup_code),
                                 jwtSecret,
                             );
-                            if (!backupValid)
+                            if (!backupValid) {
+                                await recordMiss();
                                 return jsonError('TWO_FACTOR_INVALID', 'Invalid or already-used backup code', 401);
+                            }
                         } else {
                             return withSecurityHeaders(
                                 new Response(
@@ -1318,9 +1436,15 @@ export default {
                     .setIssuedAt()
                     .setExpirationTime('7d')
                     .sign(secret);
+                await clearMisses();
                 const loginResp: Record<string, any> = {
                     token,
                     user: { id: user.id, username: user.username, isAdmin: false },
+                    devicePass: await signLoginDevicePass(jwtSecret, account, `user:${user.password_hash}`),
+                    // The only moment the server sees the plaintext of an existing
+                    // password. Accounts made before the strength floor can still
+                    // have a weak one; the app asks them to change it.
+                    ...(passwordStrength(password) === 'weak' ? { passwordWeak: true } : {}),
                 };
                 return withSecurityHeaders(
                     new Response(JSON.stringify(loginResp), {
