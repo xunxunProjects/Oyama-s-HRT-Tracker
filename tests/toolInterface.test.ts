@@ -151,6 +151,123 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
         });
     });
 
+    describe('protected routes', () => {
+        const data = { cloud: 1, iv: 'aXY=', data: 'Y2lwaGVydGV4dA==' };
+        const put = (body: unknown, ifMatch?: string) =>
+            call('/api/tool/v1/snapshot', {
+                method: 'PUT',
+                body,
+                token,
+                headers: ifMatch ? { 'If-Match': ifMatch } : {},
+            });
+
+        it('reports the token owner', async () => {
+            const result = await call('/api/tool/v1/me', { token });
+            expect(result.response.status).toBe(200);
+            expect(result.body?.user).toEqual({ id: 'user-1', username: 'Alice', isAdmin: false });
+            expect(result.body?.apiVersion).toBe(1);
+            expect(Number.isNaN(Date.parse(result.body!.serverTime))).toBe(false);
+        });
+
+        it('returns NO_SNAPSHOT before the first write', async () => {
+            const result = await call('/api/tool/v1/snapshot', { token });
+            expect(result.response.status).toBe(404);
+            expect(result.body?.code).toBe('NO_SNAPSHOT');
+        });
+
+        it('stores and returns the opaque bundle', async () => {
+            const saved = await put({ data });
+            expect(saved.response.status).toBe(201);
+            expect(typeof saved.body?.id).toBe('string');
+            expect(typeof saved.body?.createdAt).toBe('number');
+
+            const latest = await call('/api/tool/v1/snapshot', { token });
+            expect(latest.response.status).toBe(200);
+            expect(latest.body).toEqual({
+                id: saved.body!.id,
+                createdAt: saved.body!.createdAt,
+                data,
+            });
+
+            const list = await call('/api/tool/v1/snapshots', { token });
+            expect(list.body).toEqual([
+                {
+                    id: saved.body!.id,
+                    createdAt: saved.body!.createdAt,
+                    dataSize: JSON.stringify(data).length,
+                },
+            ]);
+
+            const one = await call(`/api/tool/v1/snapshot/${saved.body!.id}`, { token });
+            expect(one.body).toEqual({ id: saved.body!.id, createdAt: saved.body!.createdAt, data });
+        });
+
+        it('refuses a stale If-Match with the current revision', async () => {
+            const first = await put({ data });
+            const second = await put({ data: { ...data, data: 'bmV3' } });
+            expect(second.response.status).toBe(201);
+
+            const stale = await put({ data }, first.body!.id);
+            expect(stale.response.status).toBe(409);
+            expect(stale.body?.code).toBe('CONFLICT');
+            expect(stale.body?.current).toEqual({ id: second.body!.id, createdAt: second.body!.createdAt });
+
+            const accepted = await put({ data }, second.body!.id);
+            expect(accepted.response.status).toBe(201);
+        });
+
+        it('keeps one user out of another user’s snapshot', async () => {
+            const saved = await put({ data });
+            db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
+                'user-2',
+                'Bob',
+                bcrypt.hashSync(PASSWORD, 4),
+            );
+            const bob = await call('/api/login', { body: { username: 'Bob', password: PASSWORD } });
+            const bobToken = bob.body?.token as string;
+
+            expect((await call(`/api/tool/v1/snapshot/${saved.body!.id}`, { token: bobToken })).response.status).toBe(
+                404,
+            );
+            expect((await call('/api/tool/v1/snapshot', { token: bobToken })).response.status).toBe(404);
+            const bobPut = await call('/api/tool/v1/snapshot', {
+                method: 'PUT',
+                body: { data },
+                token: bobToken,
+            });
+            expect(bobPut.response.status).toBe(201);
+            expect(bobPut.body?.id).not.toBe(saved.body!.id);
+        });
+
+        it('prunes to the retention policy', async () => {
+            for (let i = 0; i < 6; i++) {
+                expect((await put({ data: { ...data, seq: i } })).response.status).toBe(201);
+            }
+            const list = await call('/api/tool/v1/snapshots', { token });
+            expect(list.body).toHaveLength(5);
+        });
+
+        it('rejects malformed and oversized writes', async () => {
+            const missing = await put({ nope: true });
+            expect(missing.response.status).toBe(400);
+            expect(missing.body?.code).toBe('INVALID_REQUEST');
+
+            const huge = await put({ data: { cloud: 1, blob: 'x'.repeat(2 * 1024 * 1024) } });
+            expect(huge.response.status).toBe(413);
+            expect(huge.body?.code).toBe('TOO_LARGE');
+        });
+
+        it('logs out only the caller’s session', async () => {
+            const out = await call('/api/tool/v1/logout', { method: 'POST', token });
+            expect(out.response.status).toBe(200);
+            expect(out.body).toEqual({ ok: true });
+
+            const me = await call('/api/tool/v1/me', { token });
+            expect(me.response.status).toBe(401);
+            expect(me.response.headers.get('X-Session-Invalid')).toBe('1');
+        });
+    });
+
     describe('/api/content compatibility', () => {
         it('keeps the existing write and metadata responses', async () => {
             const data = { cloud: 1, iv: 'aXY=', data: 'ZGF0YQ==' };

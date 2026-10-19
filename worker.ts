@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
-import { addToolLoginFields, toolVersionBody } from './toolApi';
+import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -1970,6 +1970,40 @@ export default {
                                 .run(),
                         );
                     }
+                }
+
+                // --- Tool API (authenticated) ---
+                // Auth, session revocation and the idle timeout above are the
+                // same ones the website uses; the namespace only adds the
+                // storage shapes the CLI speaks.
+                if (url.pathname.startsWith('/api/tool/v1/')) {
+                    const toolResponse = await handleToolProtected(
+                        request,
+                        env,
+                        {
+                            userId,
+                            sessionId: sessionId ?? null,
+                            username: typeof payload.username === 'string' ? payload.username : '',
+                            role: typeof payload.role === 'string' ? payload.role : 'user',
+                        },
+                        {
+                            json: (body, status = 200, extraHeaders = {}) =>
+                                withSecurityHeaders(
+                                    new Response(JSON.stringify(body), {
+                                        status,
+                                        headers: {
+                                            ...corsHeaders,
+                                            'Content-Type': 'application/json',
+                                            'Cache-Control': 'no-store',
+                                            ...extraHeaders,
+                                        },
+                                    }),
+                                ),
+                            error: jsonError,
+                            allowWrite: () => checkRateLimit(env, `content-write:${userId}`, 20),
+                        },
+                    );
+                    if (toolResponse) return toolResponse;
                 }
 
                 // --- Dosage sharing (owner management) ---
