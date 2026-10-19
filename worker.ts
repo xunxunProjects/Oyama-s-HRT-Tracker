@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import { MAX_CLOUD_BACKUP_BYTES, selectBackupsToKeep } from './backupPolicy';
+import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
+import { getContent, listContent, storeContent } from './contentStore';
+import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -219,6 +221,7 @@ type ApiErrorCode =
     | 'ACCOUNT_LOCKED'
     | 'STORAGE_FULL'
     | 'SERVICE_UNAVAILABLE'
+    | 'NOT_IMPLEMENTED'
     | 'INTERNAL';
 
 /** D1's wording when the database has hit its plan's size cap. */
@@ -913,7 +916,7 @@ export default {
         const corsHeaders = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, HEAD, POST, DELETE, OPTIONS, PATCH, PUT',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-Match, X-HRT-Base-Revision',
             // A VITE_API_ORIGIN build (the desktop app) calls cross-origin, where the
             // browser hides every response header outside the CORS-safe list unless
             // it is named here. The client reads Retry-After to back off, and
@@ -977,7 +980,13 @@ export default {
             }
 
             // Rate limiting for auth/sensitive endpoints
-            const sensitivePaths = ['/api/login', '/api/register', '/api/user/password', '/api/user/me'];
+            const sensitivePaths = [
+                '/api/login',
+                '/api/tool/v1/login',
+                '/api/register',
+                '/api/user/password',
+                '/api/user/me',
+            ];
             if (sensitivePaths.some(p => url.pathname === p)) {
                 // The address comes from getClientIP (CF-Connecting-IP, or an
                 // explicitly trusted proxy header). X-Forwarded-For is never
@@ -996,7 +1005,7 @@ export default {
                 let allowed: boolean;
                 if (clientIP) {
                     allowed = await checkRateLimit(env, clientIP, 10);
-                } else if (url.pathname === '/api/login') {
+                } else if (url.pathname === '/api/login' || url.pathname === '/api/tool/v1/login') {
                     allowed = await checkRateLimit(env, 'login-global-noip', 60);
                 } else if (url.pathname === '/api/register') {
                     allowed = await checkRateLimit(env, 'register-global-noip', 10);
@@ -1208,8 +1217,25 @@ export default {
                 );
             }
 
+            // Tool API: public surface. The CLI reads /version before it
+            // trusts a server and sends /login through the same handler as
+            // the website, so rate limits, lockout, TOTP and device passes
+            // are not reimplemented here.
+            if (url.pathname === '/api/tool/v1/version' && request.method === 'GET') {
+                return withSecurityHeaders(
+                    new Response(JSON.stringify(toolVersionBody()), {
+                        status: 200,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+                    }),
+                );
+            }
+            if (url.pathname === '/api/tool/v1/compute' && request.method === 'POST') {
+                return jsonError('NOT_IMPLEMENTED', 'Server compute is reserved for a future version', 501);
+            }
+
             // Login
-            if (url.pathname === '/api/login' && request.method === 'POST') {
+            const isToolLogin = url.pathname === '/api/tool/v1/login';
+            if ((url.pathname === '/api/login' || isToolLogin) && request.method === 'POST') {
                 const parsedBody = await readSmallJsonBody(request);
                 if (!parsedBody.ok) {
                     return parsedBody.tooLarge
@@ -1323,15 +1349,16 @@ export default {
                     ).run();
                     await clearMisses();
                     const adminDevicePass = await signLoginDevicePass(jwtSecret, account, `admin:${adminP}`);
+                    const adminBody = {
+                        token,
+                        user: { id: 'admin', username: 'Admin', isAdmin: true },
+                        devicePass: adminDevicePass,
+                    };
                     return withSecurityHeaders(
-                        new Response(
-                            JSON.stringify({
-                                token,
-                                user: { id: 'admin', username: 'Admin', isAdmin: true },
-                                devicePass: adminDevicePass,
-                            }),
-                            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-                        ),
+                        new Response(JSON.stringify(isToolLogin ? addToolLoginFields(adminBody) : adminBody), {
+                            status: 200,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        }),
                     );
                 }
 
@@ -1447,7 +1474,7 @@ export default {
                     ...(passwordStrength(password) === 'weak' ? { passwordWeak: true } : {}),
                 };
                 return withSecurityHeaders(
-                    new Response(JSON.stringify(loginResp), {
+                    new Response(JSON.stringify(isToolLogin ? addToolLoginFields(loginResp) : loginResp), {
                         status: 200,
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                     }),
@@ -1945,6 +1972,40 @@ export default {
                     }
                 }
 
+                // --- Tool API (authenticated) ---
+                // Auth, session revocation and the idle timeout above are the
+                // same ones the website uses; the namespace only adds the
+                // storage shapes the CLI speaks.
+                if (url.pathname.startsWith('/api/tool/v1/')) {
+                    const toolResponse = await handleToolProtected(
+                        request,
+                        env,
+                        {
+                            userId,
+                            sessionId: sessionId ?? null,
+                            username: typeof payload.username === 'string' ? payload.username : '',
+                            role: typeof payload.role === 'string' ? payload.role : 'user',
+                        },
+                        {
+                            json: (body, status = 200, extraHeaders = {}) =>
+                                withSecurityHeaders(
+                                    new Response(JSON.stringify(body), {
+                                        status,
+                                        headers: {
+                                            ...corsHeaders,
+                                            'Content-Type': 'application/json',
+                                            'Cache-Control': 'no-store',
+                                            ...extraHeaders,
+                                        },
+                                    }),
+                                ),
+                            error: jsonError,
+                            allowWrite: () => checkRateLimit(env, `content-write:${userId}`, 20),
+                        },
+                    );
+                    if (toolResponse) return toolResponse;
+                }
+
                 // --- Dosage sharing (owner management) ---
                 if (url.pathname === '/api/shares' && request.method === 'POST') {
                     if (!(await checkRateLimit(env, `share-create:${userId}`, 10))) {
@@ -2385,13 +2446,9 @@ export default {
                     // `meta=1` was omitted — up to MAX_CLOUD_BACKUPS × 2 MiB — for a caller
                     // that no longer existed. Bodies come one at a time from /api/content/:id.
                     if (url.pathname === '/api/content' && request.method === 'GET') {
-                        const content = await env.DB.prepare(
-                            'SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC',
-                        )
-                            .bind(userId)
-                            .all();
+                        const content = await listContent(env, userId);
                         return withSecurityHeaders(
-                            new Response(JSON.stringify(content.results), {
+                            new Response(JSON.stringify(content), {
                                 status: 200,
                                 headers: {
                                     ...corsHeaders,
@@ -2430,28 +2487,7 @@ export default {
                         if (data === undefined) {
                             return jsonError('INVALID_REQUEST', 'Missing data', 400);
                         }
-                        const id = crypto.randomUUID();
-                        await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)')
-                            .bind(id, userId, JSON.stringify(data))
-                            .run();
-                        // Prune to the retention policy. Which revisions survive is decided
-                        // in backupPolicy.ts — one per generation, then the newest — rather
-                        // than "the newest N", which the client's few-seconds-after-every-
-                        // edit uploads turned into a log of the last minute.
-                        const revisions = await env.DB.prepare(
-                            'SELECT id, created_at FROM content WHERE user_id = ? ORDER BY created_at DESC',
-                        )
-                            .bind(userId)
-                            .all<{ id: string; created_at: number }>();
-                        const keep = selectBackupsToKeep(revisions.results, id);
-                        const stale = revisions.results.filter(r => !keep.has(r.id)).map(r => r.id);
-                        if (stale.length > 0) {
-                            await env.DB.prepare(
-                                `DELETE FROM content WHERE user_id = ? AND id IN (${stale.map(() => '?').join(',')})`,
-                            )
-                                .bind(userId, ...stale)
-                                .run();
-                        }
+                        const id = await storeContent(env, userId, data);
                         return withSecurityHeaders(
                             new Response(JSON.stringify({ message: 'Content saved', id }), {
                                 status: 201,
@@ -2482,10 +2518,8 @@ export default {
                     }
                     // Load a specific backup by ID
                     if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
-                        const backupId = url.pathname.split('/').pop();
-                        const row = await env.DB.prepare('SELECT * FROM content WHERE id = ? AND user_id = ?')
-                            .bind(backupId, userId)
-                            .first();
+                        const backupId = url.pathname.split('/').pop()!;
+                        const row = await getContent(env, userId, backupId);
                         if (!row) return jsonError('NOT_FOUND', 'Not found', 404);
                         return withSecurityHeaders(
                             new Response(JSON.stringify(row), {
