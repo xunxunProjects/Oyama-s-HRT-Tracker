@@ -5,6 +5,7 @@ import Doodle from '../components/Doodle';
 // Bundled with the app, so the page still loads nothing from other sites.
 import maintainerAvatar from '../assets/maintainer-avatar.webp';
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
+import fantuanmtfAvatar from '../assets/fantuanmtf-avatar.webp';
 import llmGirls from '../assets/llm-girls.webp';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
@@ -45,7 +46,7 @@ const ORIGINAL: Entry[] = [
     },
 ];
 
-// Everyone in the repository's contributor list except the maintainer, the
+// Everyone in the repository's contributor list except the maintainers, the
 // original author (credited above) and automated accounts, in the order
 // GitHub lists them.
 // Other trackers built on the same pharmacokinetic work.
@@ -171,14 +172,22 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </div>
 
-                <h2 className={heading}>Maintainer</h2>
+                <h2 className={heading}>Maintainers</h2>
                 <div>
                     <LinkRow
                         entry={{
                             name: 'SmirnovaOyama',
                             href: 'https://github.com/SmirnovaOyama',
-                            desc: 'Current maintainer (2025 - present)',
+                            desc: 'Maintainer',
                             image: maintainerAvatar,
+                        }}
+                    />
+                    <LinkRow
+                        entry={{
+                            name: 'fantuanmtf',
+                            href: 'https://github.com/fantuanmtf',
+                            desc: 'Maintainer',
+                            image: fantuanmtfAvatar,
                         }}
                     />
                 </div>

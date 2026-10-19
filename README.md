@@ -305,9 +305,11 @@ Contributions are welcome, and you do not need to be a programmer to help. See [
 # Support
 
 <p align="center">
-  <b>Maintainer</b>
+  <b>Maintainers</b>
   <br />
   <a href="https://github.com/SmirnovaOyama">@SmirnovaOyama</a>
+  <br />
+  <a href="https://github.com/fantuanmtf">@fantuanmtf</a>
   <br />
   <br />
   <b>Original model</b>
