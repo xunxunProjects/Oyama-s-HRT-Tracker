@@ -118,7 +118,8 @@ Metadata only, newest first:
 [{ "id": "<revision id>", "createdAt": 1792461600, "dataSize": 4096 }]
 ```
 
-`dataSize` is the stored JSON length in bytes. At most five revisions are
+`dataSize` is the stored JSON length (characters; for the base64-encoded
+bundles the client stores this equals bytes). At most five revisions are
 retained per account.
 
 ### `GET /snapshot/:id`
@@ -134,7 +135,9 @@ retention policy as `/api/content`. The 2 MiB body cap and the
 
 Optional conditional write:
 
-- `If-Match: <baseRevisionId>` (or `X-HRT-Base-Revision: <baseRevisionId>`)
+- `If-Match: <baseRevisionId>` (or `X-HRT-Base-Revision: <baseRevisionId>`;
+  a quoted or `W/`-prefixed id is accepted).
+- `If-Match: *` requires that the account already has a revision.
 - If supplied and the newest retained revision is different, the write is not
   performed and the response is `409`:
 
@@ -157,7 +160,10 @@ Success `201`:
 ```
 
 Errors: `400 INVALID_REQUEST` (bad JSON or missing `data`), `413 TOO_LARGE`,
-`429 RATE_LIMITED`, `409 CONFLICT`.
+`429 RATE_LIMITED`, `409 CONFLICT`. The stream is cancelled as soon as it
+passes 2 MiB. D1 also caps a stored string/row at 2,000,000 bytes; a payload
+the database refuses for that reason is reported as `413 TOO_LARGE`, not a
+500, even when it is just under the request cap.
 
 ## Error body
 

@@ -9,7 +9,8 @@
 
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, latestContent, listContent, storeContent } from './contentStore';
-import type { Env } from './worker';
+import { readSmallJsonBody } from './requestInput';
+import type { ApiErrorCode, Env } from './worker';
 
 export const TOOL_API_VERSION = 1;
 export const TOOL_MIN_VERSION = '0.1.0';
@@ -49,7 +50,7 @@ export interface ToolAuthContext {
 
 export interface ToolResponders {
     json(body: unknown, status?: number, headers?: Record<string, string>): Response;
-    error(code: string, message: string, status: number, headers?: Record<string, string>): Response;
+    error(code: ApiErrorCode, message: string, status: number, headers?: Record<string, string>): Response;
     /** The existing `content-write:<userId>` limiter. */
     allowWrite(): Promise<boolean>;
 }
@@ -68,8 +69,13 @@ const snapshotBody = (row: Record<string, unknown>): SnapshotBody => ({
 
 const baseRevision = (request: Request): string | null => {
     const raw = request.headers.get('If-Match') ?? request.headers.get('X-HRT-Base-Revision');
-    if (!raw || raw === '*') return null;
-    return raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw;
+    if (!raw) return null;
+    if (raw === '*') return '*';
+    /* Weak validators are still the id the client means; the comparison is
+       against our revision id, not an HTTP entity tag. */
+    let value = raw.startsWith('W/') ? raw.slice(2) : raw;
+    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+    return value;
 };
 
 /**
@@ -116,26 +122,34 @@ export async function handleToolProtected(
                     'Retry-After': '60',
                 });
             }
-            const declaredLength = Number(request.headers.get('Content-Length'));
-            if (Number.isFinite(declaredLength) && declaredLength > MAX_CLOUD_BACKUP_BYTES) {
-                return respond.error('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
+            /* Streamed and cancelled at the cap: a chunked body without a
+               Content-Length cannot buffer the isolate out of memory. */
+            const parsedBody = await readSmallJsonBody(request, MAX_CLOUD_BACKUP_BYTES);
+            if (!parsedBody.ok) {
+                return parsedBody.tooLarge
+                    ? respond.error('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413)
+                    : respond.error('INVALID_REQUEST', 'Invalid JSON body', 400);
             }
-            const rawBody = await request.text();
-            if (new TextEncoder().encode(rawBody).byteLength > MAX_CLOUD_BACKUP_BYTES) {
-                return respond.error('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
-            }
-            let parsed: unknown;
-            try {
-                parsed = JSON.parse(rawBody);
-            } catch {
-                return respond.error('INVALID_REQUEST', 'Invalid JSON body', 400);
-            }
-            const data = (parsed as { data?: unknown } | null)?.data;
+            const data = (parsedBody.value as { data?: unknown } | null)?.data;
             if (data === undefined) {
                 return respond.error('INVALID_REQUEST', 'Missing data', 400);
             }
 
-            const base = baseRevision(request);
+            let base = baseRevision(request);
+            if (base === '*') {
+                const newest = await latestContent(env, auth.userId);
+                if (!newest) {
+                    return respond.json(
+                        {
+                            code: 'CONFLICT',
+                            message: 'Snapshot has changed; merge and retry',
+                            current: null,
+                        },
+                        409,
+                    );
+                }
+                base = String(newest.id);
+            }
             const id = await storeContent(env, auth.userId, data, base ?? undefined);
             if (id === null) {
                 const newest = await latestContent(env, auth.userId);
@@ -166,7 +180,14 @@ export async function handleToolProtected(
 
     const match = /^\/api\/tool\/v1\/snapshot\/([^/]+)$/.exec(path);
     if (match && method === 'GET') {
-        const row = await getContent(env, auth.userId, decodeURIComponent(match[1]));
+        /* Revision ids are UUIDs minted by crypto.randomUUID. Reject anything
+           else before decoding, so malformed percent-encoding is a 404 rather
+           than a URIError on the way to the outer catch. */
+        const id = match[1];
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+            return respond.error('NO_SNAPSHOT', 'No snapshot with that id', 404);
+        }
+        const row = await getContent(env, auth.userId, id);
         if (!row) return respond.error('NO_SNAPSHOT', 'No snapshot with that id', 404);
         return respond.json(snapshotBody(row));
     }

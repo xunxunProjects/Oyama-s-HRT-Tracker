@@ -206,8 +206,9 @@ const MAX_PASSWORD_LENGTH = 128;
  * 413 and a 429 all reached the user as "save failed", and the day the database
  * hit its size cap looked like one person's upload bug.
  */
-type ApiErrorCode =
+export type ApiErrorCode =
     | 'INVALID_REQUEST'
+    | 'NO_SNAPSHOT'
     | 'INVALID_CREDENTIALS'
     | 'TWO_FACTOR_REQUIRED'
     | 'TWO_FACTOR_INVALID'
@@ -227,6 +228,10 @@ type ApiErrorCode =
 /** D1's wording when the database has hit its plan's size cap. */
 const isStorageFullError = (err: unknown): boolean =>
     err instanceof Error && /Exceeded maximum DB size/i.test(err.message);
+
+/** D1's wording when one string/BLOB/row exceeds its 2,000,000-byte limit. */
+const isRowTooLargeError = (err: unknown): boolean =>
+    err instanceof Error && /string or blob too big|SQLITE_TOOBIG/i.test(err.message);
 
 // Dosage shares are deliberately minimal snapshots. Static shares are
 // immutable; live shares may replace their payload when the owner syncs their
@@ -2467,21 +2472,15 @@ export default {
                                 'Retry-After': '60',
                             });
                         }
-                        const declaredLength = Number(request.headers.get('Content-Length'));
-                        if (Number.isFinite(declaredLength) && declaredLength > MAX_CLOUD_BACKUP_BYTES) {
-                            return jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
+                        // Streamed and cancelled at the cap: the old text() read
+                        // buffered a chunked body in full before the byte check.
+                        const parsedBody = await readSmallJsonBody(request, MAX_CLOUD_BACKUP_BYTES);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
-                        const rawBody = await request.text();
-                        if (new TextEncoder().encode(rawBody).byteLength > MAX_CLOUD_BACKUP_BYTES) {
-                            return jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413);
-                        }
-                        let parsedBody: any;
-                        try {
-                            parsedBody = JSON.parse(rawBody);
-                        } catch {
-                            return jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const data = parsedBody?.data;
+                        const data = (parsedBody.value as { data?: unknown } | null)?.data;
                         // `JSON.stringify(undefined)` is undefined, which the D1 bind below
                         // rejects with a 500 — reject it here as the 400 it actually is.
                         if (data === undefined) {
@@ -3706,7 +3705,9 @@ export default {
                     e.name === 'JWSSignatureVerificationFailed' ||
                     e.name === 'JWTInvalid' ||
                     e.name === 'JWSInvalid' ||
-                    e.message?.includes('token')
+                    /* JSON.parse's "Unexpected token ..." must not be read as
+                       an auth failure; narrow the legacy message heuristic. */
+                    (e.name !== 'SyntaxError' && e.message?.includes('token'))
                 ) {
                     return sessionInvalid('Invalid token');
                 }
@@ -3724,6 +3725,9 @@ export default {
                     'The server is out of storage space. Your data is safe on this device.',
                     507,
                 );
+            }
+            if (isRowTooLargeError(err)) {
+                return jsonError('TOO_LARGE', 'Backup exceeds the database row limit', 413);
             }
             // Sanitize internal error messages for production
             // `url` is reconstructed from the request's Host header, which the caller

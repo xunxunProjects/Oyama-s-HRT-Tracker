@@ -90,7 +90,7 @@ const login = async (password = PASSWORD) => {
     return result;
 };
 
-describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
+describe('/api/tool/v1', () => {
     beforeEach(async () => {
         db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
         const migrationDir = new URL('../migrations/', import.meta.url);
@@ -149,6 +149,15 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             expect(result.response.status).toBe(501);
             expect(result.body?.code).toBe('NOT_IMPLEMENTED');
         });
+
+        it('shares the website’s second-factor requirement', async () => {
+            db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run('JBSWY3DPEHPK3PXP', 'user-1');
+            const result = await call('/api/tool/v1/login', {
+                body: { username: 'Alice', password: PASSWORD },
+            });
+            expect(result.response.status).toBe(401);
+            expect(result.body?.code).toBe('TWO_FACTOR_REQUIRED');
+        });
     });
 
     describe('protected routes', () => {
@@ -167,6 +176,12 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             expect(result.body?.user).toEqual({ id: 'user-1', username: 'Alice', isAdmin: false });
             expect(result.body?.apiVersion).toBe(1);
             expect(Number.isNaN(Date.parse(result.body!.serverTime))).toBe(false);
+        });
+
+        it('rejects a request with no token', async () => {
+            const result = await call('/api/tool/v1/me');
+            expect(result.response.status).toBe(401);
+            expect(result.body?.code).toBe('SESSION_INVALID');
         });
 
         it('returns NO_SNAPSHOT before the first write', async () => {
@@ -216,6 +231,49 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             expect(accepted.response.status).toBe(201);
         });
 
+        it('accepts the alias header and treats * as “a revision must exist”', async () => {
+            const empty = await call('/api/tool/v1/snapshot', {
+                method: 'PUT',
+                body: { data },
+                token,
+                headers: { 'If-Match': '*' },
+            });
+            expect(empty.response.status).toBe(409);
+            expect(empty.body?.current).toBeNull();
+
+            const first = await put({ data: { seq: 1 } });
+            const alias = await call('/api/tool/v1/snapshot', {
+                method: 'PUT',
+                body: { data: { seq: 2 } },
+                token,
+                headers: { 'X-HRT-Base-Revision': first.body!.id },
+            });
+            expect(alias.response.status).toBe(201);
+
+            const star = await call('/api/tool/v1/snapshot', {
+                method: 'PUT',
+                body: { data: { seq: 3 } },
+                token,
+                headers: { 'If-Match': '*' },
+            });
+            expect(star.response.status).toBe(201);
+        });
+
+        it('round-trips string, array and null data unchanged', async () => {
+            for (const value of ['plain text', [1, 2, 3], null]) {
+                const saved = await put({ data: value });
+                expect(saved.response.status).toBe(201);
+                const latest = await call('/api/tool/v1/snapshot', { token });
+                expect(latest.body?.data).toEqual(value);
+            }
+        });
+
+        it('answers a malformed revision id with 404, not 500', async () => {
+            const result = await call('/api/tool/v1/snapshot/%E0%A4%A', { token });
+            expect(result.response.status).toBe(404);
+            expect(result.body?.code).toBe('NO_SNAPSHOT');
+        });
+
         it('keeps one user out of another user’s snapshot', async () => {
             const saved = await put({ data });
             db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
@@ -239,12 +297,17 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             expect(bobPut.body?.id).not.toBe(saved.body!.id);
         });
 
-        it('prunes to the retention policy', async () => {
+        it('prunes to the retention policy and keeps the newest revision', async () => {
+            let newestId = '';
             for (let i = 0; i < 6; i++) {
-                expect((await put({ data: { ...data, seq: i } })).response.status).toBe(201);
+                const saved = await put({ data: { ...data, seq: i } });
+                expect(saved.response.status).toBe(201);
+                newestId = saved.body!.id;
             }
             const list = await call('/api/tool/v1/snapshots', { token });
             expect(list.body).toHaveLength(5);
+            expect(list.body!.map((row: { id: string }) => row.id)).toContain(newestId);
+            expect((await call('/api/tool/v1/snapshot', { token })).body?.id).toBe(newestId);
         });
 
         it('rejects malformed and oversized writes', async () => {
@@ -257,7 +320,89 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             expect(huge.body?.code).toBe('TOO_LARGE');
         });
 
+        it('rejects invalid JSON with 400', async () => {
+            const response = await worker.fetch(
+                new Request('https://example.com/api/tool/v1/snapshot', {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: '{not json',
+                }),
+                env,
+                ctx,
+            );
+            expect(response.status).toBe(400);
+            expect(((await response.json()) as Record<string, unknown>).code).toBe('INVALID_REQUEST');
+        });
+
+        it('returns 429 when the content-write limiter refuses', async () => {
+            env = {
+                ...env,
+                RL_PER_MINUTE_20: { limit: async () => ({ success: false }) },
+            } as unknown as Env;
+            const result = await put({ data });
+            expect(result.response.status).toBe(429);
+            expect(result.body?.code).toBe('RATE_LIMITED');
+        });
+
+        it('maps the D1 row-size limit to 413, not 500', async () => {
+            const real = env.DB;
+            env = {
+                ...env,
+                DB: {
+                    prepare(sql: string) {
+                        if (/INSERT INTO content/i.test(sql)) {
+                            return {
+                                bind() {
+                                    return {
+                                        run: async () => {
+                                            throw new Error('string or blob too big: SQLITE_TOOBIG');
+                                        },
+                                    };
+                                },
+                            };
+                        }
+                        return real.prepare(sql);
+                    },
+                },
+            } as unknown as Env;
+            const result = await put({ data });
+            expect(result.response.status).toBe(413);
+            expect(result.body?.code).toBe('TOO_LARGE');
+        });
+
+        it('stops reading an oversized chunked body at the cap', async () => {
+            const cap = 2 * 1024 * 1024;
+            const chunk = new Uint8Array(64 * 1024).fill(120);
+            let pulled = 0;
+            const stream = new ReadableStream<Uint8Array>({
+                pull(controller) {
+                    pulled += chunk.byteLength;
+                    if (pulled > cap + 4 * chunk.byteLength) {
+                        controller.error(new Error('read past the cap'));
+                        return;
+                    }
+                    controller.enqueue(chunk);
+                },
+            });
+            const response = await worker.fetch(
+                new Request('https://example.com/api/tool/v1/snapshot', {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: stream,
+                    duplex: 'half',
+                } as RequestInit & { duplex: 'half' }),
+                env,
+                ctx,
+            );
+            expect(response.status).toBe(413);
+        });
+
         it('logs out only the caller’s session', async () => {
+            const other = await call('/api/tool/v1/login', {
+                body: { username: 'Alice', password: PASSWORD },
+            });
+            const otherToken = other.body?.token as string;
+
             const out = await call('/api/tool/v1/logout', { method: 'POST', token });
             expect(out.response.status).toBe(200);
             expect(out.body).toEqual({ ok: true });
@@ -265,6 +410,8 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
             const me = await call('/api/tool/v1/me', { token });
             expect(me.response.status).toBe(401);
             expect(me.response.headers.get('X-Session-Invalid')).toBe('1');
+
+            expect((await call('/api/tool/v1/me', { token: otherToken })).response.status).toBe(200);
         });
     });
 
