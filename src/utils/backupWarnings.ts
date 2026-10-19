@@ -1,9 +1,10 @@
 /**
  * Confirmation copy for complete-backup actions.
  *
- * The bundle deliberately carries no source-account identifier, and the
- * website never encrypts it. These helpers keep the account target and the
- * plaintext warning explicit and testable without adding fields to the format.
+ * A bundle exported while signed in names its account only as a hash, which
+ * the preview compares with the account it is going into. The website never
+ * encrypts the bundle. These helpers keep the account target and the plaintext
+ * warning explicit and testable.
  *
  * Everything here is what a person reads, so it says in a few plain sentences
  * what will happen and leaves the detail (per-category counts, ids, validator
@@ -15,6 +16,7 @@ import { REPLACE_PARTIAL_MESSAGE } from './replaceJournal';
 import {
     COMPLETE_BACKUP_FORMAT_VERSION,
     PARTIAL_WRITE_MESSAGE,
+    type CompleteBackupAccountMatch,
     type CompleteBackupMergeResult,
     type CompleteBackupPreview,
 } from './backupBundle';
@@ -42,21 +44,43 @@ export interface CompleteBackupAccountWarning {
     lines: string[];
 }
 
+/** The account line's key when signed in, by whether the file came from this account. */
+const ACCOUNT_LINE: Record<'merge' | 'replace', Record<CompleteBackupAccountMatch, string>> = {
+    merge: {
+        same: 'import.bundle_same_account',
+        other: 'import.bundle_other_account',
+        unknown: 'import.bundle_yours_account',
+    },
+    replace: {
+        same: 'import.bundle_same_account',
+        other: 'import.replace_complete_other_account',
+        unknown: 'import.replace_complete_yours_account',
+    },
+};
+
+const accountLine = (
+    target: CompleteBackupTarget,
+    account: CompleteBackupAccountMatch,
+    action: 'merge' | 'replace',
+    t: Translate,
+): string =>
+    target.kind === 'account'
+        ? t(ACCOUNT_LINE[action][account]).replace('{name}', target.username)
+        : t('import.bundle_yours');
+
 /**
- * Ask the reader to check the backup is theirs, naming the account it merges
- * into when they are signed in. There is no source-account field to compare,
- * so the copy promises no cross-account detection.
+ * The account line of the merge preview. Signed in, it says the file came from
+ * this account, warns that it came from another one, or, when the file names
+ * no account, names the account it merges into and asks the reader to check
+ * the backup is theirs. Signed out, it only asks for that check.
  */
 export function describeCompleteBackupAccountWarning(
     user: BackupTargetUser | null | undefined,
     t: Translate,
+    account: CompleteBackupAccountMatch = 'unknown',
 ): CompleteBackupAccountWarning {
     const target = resolveCompleteBackupTarget(user);
-    const line =
-        target.kind === 'account'
-            ? t('import.bundle_yours_account').replace('{name}', target.username)
-            : t('import.bundle_yours');
-    return { target, lines: [line] };
+    return { target, lines: [accountLine(target, account, 'merge', t)] };
 }
 
 export interface CompleteBackupExportWarning {
@@ -138,15 +162,14 @@ export function describeCompleteBackupPreview(
     if (preview.stats.removed > 0) sentences.push(countText('import.bundle_will_remove', preview.stats.removed, t));
     if (Object.keys(preview.preferences.values).length > 0) sentences.push(t('import.bundle_preferences'));
     if (preview.blocked.length) sentences.push(describeBlockedParts(preview.blocked, t));
-    sentences.push(...describeCompleteBackupAccountWarning(user, t).lines);
+    sentences.push(...describeCompleteBackupAccountWarning(user, t, preview.account).lines);
     return joinSentences(sentences);
 }
 
 /**
  * The confirmation before a complete backup replaces the device, in three
  * sentences like the merge preview: when it was made and how many records it
- * holds, that everything here becomes what it holds, and a check that it is
- * the reader's, naming the account when they are signed in.
+ * holds, that everything here becomes what it holds, and the account line.
  */
 export function describeCompleteBackupReplace(
     preview: CompleteBackupPreview,
@@ -163,16 +186,13 @@ export function describeCompleteBackupReplace(
             counts.plan,
         0,
     );
-    const target = resolveCompleteBackupTarget(user);
     return joinSentences([
         countText('import.replace_complete_from', records, t).replace(
             '{date}',
             preview.createdAt ? formatBackupDate(preview.createdAt, lang) : '',
         ),
         t('import.replace_complete_message'),
-        target.kind === 'account'
-            ? t('import.replace_complete_yours_account').replace('{name}', target.username)
-            : t('import.bundle_yours'),
+        accountLine(resolveCompleteBackupTarget(user), preview.account, 'replace', t),
     ]);
 }
 

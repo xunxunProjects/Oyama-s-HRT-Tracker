@@ -61,13 +61,19 @@ it has no keys or signature to check.
 | BTV-16 | Case-variant JSON keys           | `"Mode"` or `"Format"` instead of `"mode"`/`"format"`; `"Events"` instead of `"events"`; both `"Mode":"transmasc"` and `"mode":"transfem"` in one object                  | Object keys are case-sensitive. `"Mode"` leaves `mode` missing → envelope error; `"Format"` leaves `format` missing; `"Events"` is not a known category → treated as missing and reported, never merged.                                                                                                      | Go `encoding/json` matches envelope struct fields case-insensitively. If a case variant and the lowercase key both occur, both decode to the same field and the later JSON member wins (last-wins). Mode names inside the `modes` map and category keys (`events`, `labResults`, `doseTemplates`, `quickDoses`, `supplies`, `plan`) remain exact lowercase.                                                                                                                                                                                                                                          | **TOOLS AUTHORITATIVE**   | Neither side matches category keys case-insensitively; `"Events"` is ignored by both. Envelope fields can differ: Go may accept a spelling the website rejects, and case variants resolve last-wins in Go but lowercase-only in JS.          |
 | BTV-17 | Tools encrypted / inspect rules  | Literal, compressed-plaintext, or signed-only OpenPGP payload; forged PKESK recipient advertisement; tampered ciphertext; trailing packet after the encrypted data packet | The website never encrypts/decrypts complete backups and holds no OpenPGP keys or passphrases; it only reads the plaintext bundle.                                                                                                                                                                            | `decrypt` and `inspect` validate the outer sequence: one or more PKESK packets, exactly one integrity-protected encrypted data packet, then EOF. Only legal marker packets may precede the encrypted packet; missing recipient/payload, a second encrypted packet, or any trailing packet is rejected. `decrypt` verifies the MDC and that the supplied private key actually decrypts. `inspect` only reads the outer container and unauthenticated PKESK advertisements, always reports `recipientVerified:false`, and does not decrypt or check the MDC, so it cannot detect ciphertext tampering. | **TOOLS AUTHORITATIVE**   | A `.hrtb` that passes `inspect` is not recipient proof or integrity proof; only a successful `decrypt` demonstrates those. A decrypted bundle still carries website-defined record semantics.                                                |
 
-## Related invariant (no new field)
+## Source account
 
-The bundle has **no source-account identifier** and this work item does not add
-one. The website import preview names the current target account and warns that
-the format cannot detect a cross-account bundle; the user must confirm the merge
-explicitly. Tools remains opaque to account identity. Whether a future schema
-should carry an account identifier is **UNRESOLVED** and out of scope here.
+A bundle exported while signed in carries an optional top-level
+`sourceAccount`: the lowercase hex SHA-256 of
+`oyama-hrt-complete-backup/account/<account id>`. It holds neither the account
+id nor the username. On import the website compares it with the same hash of
+the signed-in account, and the confirmation says whether the file came from
+this account or from another one. A file without the field (exported signed
+out, or by an older version), or a device that is signed out, gets the plain
+"make sure this backup is yours" check, and a malformed value is ignored. The
+tag catches the wrong file; it is not a signature and proves nothing about who
+wrote the file, which stays the Tools signing path's job. Tools accepts unknown
+envelope fields, so `formatVersion` stays 1.
 
 ## Review-fix notes (website)
 

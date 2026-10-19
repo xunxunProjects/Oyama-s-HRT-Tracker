@@ -47,6 +47,7 @@ const preview = (overrides: Partial<CompleteBackupPreview> = {}): CompleteBackup
     sourceMode: 'transfem',
     currentMode: 'transfem',
     targetOwner: 'local',
+    account: 'unknown',
     counts: { transfem: counts(), transmasc: counts() },
     missing: [],
     blocked: [],
@@ -89,10 +90,27 @@ describe('complete-backup confirmation copy', () => {
         }
     });
 
-    it('says the same in Chinese without claiming the bundle carries a source account', () => {
+    it('says the same in Chinese when the file names no account', () => {
         const warning = describeCompleteBackupAccountWarning({ username: '合成账户' }, translate('zh'));
 
         expect(warning.lines).toEqual(['它会合并到账户 合成账户，请确认这份备份是你的。']);
+    });
+
+    it('says the file came from this account, or warns that it came from another one', () => {
+        const user = { username: 'synthetic-user' };
+        const line = (lang: 'en' | 'zh', account: 'same' | 'other') =>
+            describeCompleteBackupAccountWarning(user, translate(lang), account).lines;
+
+        expect(line('en', 'same')).toEqual(['It was exported from the account synthetic-user.']);
+        expect(line('en', 'other')).toEqual([
+            "It was exported from another account and merges into synthetic-user, so make sure that's what you want.",
+        ]);
+        expect(line('zh', 'same')).toEqual(['它是从账户 synthetic-user 导出的。']);
+        expect(line('zh', 'other')).toEqual(['它是从另一个账户导出的，会合并到 synthetic-user，请确认这是你想要的。']);
+        // Signed out there is no account to compare with, so only the check is asked for.
+        expect(describeCompleteBackupAccountWarning(null, translate('en'), 'other').lines).toEqual([
+            'Make sure this backup is yours.',
+        ]);
     });
 
     it('asks before downloading an unencrypted file and names no tool that is not shipped', () => {
@@ -295,6 +313,30 @@ describe('complete-backup outcome copy', () => {
         expect(text.endsWith('你登录的是 合成账户，请确认这份备份是你的。')).toBe(true);
         expect(text).not.toContain('。 ');
         expect(text).not.toMatch(/合并|日志/);
+    });
+
+    it('ends a replace with what the file says about its account', () => {
+        const user = { username: 'synthetic-user' };
+        const same = describeCompleteBackupReplace(preview({ account: 'same' }), {
+            t: translate('en'),
+            lang: 'en',
+            user,
+        });
+        expect(same.endsWith(' your other devices change too. It was exported from the account synthetic-user.')).toBe(
+            true,
+        );
+
+        const other = describeCompleteBackupReplace(preview({ account: 'other' }), {
+            t: translate('zh'),
+            lang: 'zh',
+            user,
+        });
+        expect(
+            other.endsWith(
+                '其他设备也会跟着换。它是从另一个账户导出的，你登录的是 synthetic-user，请确认这是你想要的。',
+            ),
+        ).toBe(true);
+        expect(other).not.toMatch(/合并|日志/);
     });
 
     it('says a failed replace changed nothing, unless the rollback failed too', () => {
