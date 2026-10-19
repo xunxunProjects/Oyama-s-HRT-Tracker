@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import { MAX_CLOUD_BACKUP_BYTES, selectBackupsToKeep } from './backupPolicy';
+import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
+import { getContent, listContent, storeContent } from './contentStore';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -2385,13 +2386,9 @@ export default {
                     // `meta=1` was omitted — up to MAX_CLOUD_BACKUPS × 2 MiB — for a caller
                     // that no longer existed. Bodies come one at a time from /api/content/:id.
                     if (url.pathname === '/api/content' && request.method === 'GET') {
-                        const content = await env.DB.prepare(
-                            'SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC',
-                        )
-                            .bind(userId)
-                            .all();
+                        const content = await listContent(env, userId);
                         return withSecurityHeaders(
-                            new Response(JSON.stringify(content.results), {
+                            new Response(JSON.stringify(content), {
                                 status: 200,
                                 headers: {
                                     ...corsHeaders,
@@ -2430,28 +2427,7 @@ export default {
                         if (data === undefined) {
                             return jsonError('INVALID_REQUEST', 'Missing data', 400);
                         }
-                        const id = crypto.randomUUID();
-                        await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)')
-                            .bind(id, userId, JSON.stringify(data))
-                            .run();
-                        // Prune to the retention policy. Which revisions survive is decided
-                        // in backupPolicy.ts — one per generation, then the newest — rather
-                        // than "the newest N", which the client's few-seconds-after-every-
-                        // edit uploads turned into a log of the last minute.
-                        const revisions = await env.DB.prepare(
-                            'SELECT id, created_at FROM content WHERE user_id = ? ORDER BY created_at DESC',
-                        )
-                            .bind(userId)
-                            .all<{ id: string; created_at: number }>();
-                        const keep = selectBackupsToKeep(revisions.results, id);
-                        const stale = revisions.results.filter(r => !keep.has(r.id)).map(r => r.id);
-                        if (stale.length > 0) {
-                            await env.DB.prepare(
-                                `DELETE FROM content WHERE user_id = ? AND id IN (${stale.map(() => '?').join(',')})`,
-                            )
-                                .bind(userId, ...stale)
-                                .run();
-                        }
+                        const id = await storeContent(env, userId, data);
                         return withSecurityHeaders(
                             new Response(JSON.stringify({ message: 'Content saved', id }), {
                                 status: 201,
@@ -2482,10 +2458,8 @@ export default {
                     }
                     // Load a specific backup by ID
                     if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
-                        const backupId = url.pathname.split('/').pop();
-                        const row = await env.DB.prepare('SELECT * FROM content WHERE id = ? AND user_id = ?')
-                            .bind(backupId, userId)
-                            .first();
+                        const backupId = url.pathname.split('/').pop()!;
+                        const row = await getContent(env, userId, backupId);
                         if (!row) return jsonError('NOT_FOUND', 'Not found', 404);
                         return withSecurityHeaders(
                             new Response(JSON.stringify(row), {
