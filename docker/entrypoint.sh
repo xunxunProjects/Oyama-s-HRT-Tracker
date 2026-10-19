@@ -11,6 +11,15 @@ if [ "${#JWT_SECRET}" -lt 32 ]; then
     exit 1
 fi
 
+# Length alone accepts a 64-character run of one character. The worker applies
+# the same alphabet floor; check it here so the container fails at start rather
+# than on the first API request.
+distinct=$(printf '%s' "$JWT_SECRET" | fold -w 1 | sort -u | wc -l | tr -d ' ')
+if [ "$distinct" -lt 8 ]; then
+    echo "JWT_SECRET must use at least 8 distinct characters. Generate one with: openssl rand -base64 48" >&2
+    exit 1
+fi
+
 persist_dir="${PERSIST_DIR:-/data}"
 database_name="${D1_DATABASE_NAME:-hrt-tracker-prod}"
 port="${PORT:-8787}"
