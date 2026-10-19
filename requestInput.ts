@@ -38,12 +38,12 @@ export function getClientIP(request: Request, env: { TRUSTED_IP_SOURCE?: string 
  * Callers with a tighter budget than MAX_JSON_BODY_BYTES can pass their own
  * cap (the share-access body, for example, is limited to 1 KiB).
  */
-export async function readSmallJsonBody(
+export async function readSmallBody(
     request: Request,
-    maxBytes: number = MAX_JSON_BODY_BYTES,
-): Promise<{ ok: boolean; value: any; tooLarge: boolean }> {
+    maxBytes: number,
+): Promise<{ ok: boolean; bytes: Uint8Array; tooLarge: boolean }> {
     if (!request.body) {
-        return { ok: true, value: {}, tooLarge: false };
+        return { ok: true, bytes: new Uint8Array(0), tooLarge: false };
     }
 
     const reader = request.body.getReader();
@@ -63,25 +63,35 @@ export async function readSmallJsonBody(
                 } catch {
                     // The stream may already have been cancelled or closed.
                 }
-                return { ok: false, value: undefined, tooLarge: true };
+                return { ok: false, bytes: new Uint8Array(0), tooLarge: true };
             }
             chunks.push(value);
         }
     } catch {
-        return { ok: false, value: undefined, tooLarge: false };
+        return { ok: false, bytes: new Uint8Array(0), tooLarge: false };
     } finally {
         reader.releaseLock();
     }
 
-    try {
-        const bytes = new Uint8Array(totalBytes);
-        let offset = 0;
-        for (const chunk of chunks) {
-            bytes.set(chunk, offset);
-            offset += chunk.byteLength;
-        }
+    const bytes = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return { ok: true, bytes, tooLarge: false };
+}
 
-        const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+export async function readSmallJsonBody(
+    request: Request,
+    maxBytes: number = MAX_JSON_BODY_BYTES,
+): Promise<{ ok: boolean; value: any; tooLarge: boolean }> {
+    const body = await readSmallBody(request, maxBytes);
+    if (!body.ok) {
+        return { ok: false, value: undefined, tooLarge: body.tooLarge };
+    }
+    try {
+        const raw = new TextDecoder('utf-8', { fatal: true }).decode(body.bytes);
         const value = raw.length > 0 ? JSON.parse(raw) : {};
         return { ok: true, value: value ?? {}, tooLarge: false };
     } catch {

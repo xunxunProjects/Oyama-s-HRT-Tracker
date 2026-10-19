@@ -37,22 +37,34 @@ const PASSWORD = 'violet harbor tiny lantern';
 
 function d1(db: SqliteDatabase) {
     return {
+        async batch(statements: Array<{ run(): Promise<unknown> }>) {
+            const results = [];
+            for (const statement of statements) results.push(await statement.run());
+            return results;
+        },
         prepare(sql: string) {
+            // D1 accepts ?1/?2 numbered parameters; node:sqlite does not, so
+            // rewrite them to plain ? and reorder the bound values.
+            const order: number[] = [];
+            const rewritten = sql.replace(/\?(\d+)/g, (_match, index: string) => {
+                order.push(Number(index));
+                return '?';
+            });
             let args: unknown[] = [];
             const statement = {
                 bind(...values: unknown[]) {
-                    args = values;
+                    args = order.length > 0 ? order.map(index => values[index - 1]) : values;
                     return statement;
                 },
                 async first() {
-                    return db.prepare(sql).get(...args) ?? null;
+                    return db.prepare(rewritten).get(...args) ?? null;
                 },
                 async run() {
-                    const result = db.prepare(sql).run(...args);
+                    const result = db.prepare(rewritten).run(...args);
                     return { success: true, meta: { changes: Number(result.changes) } };
                 },
                 async all() {
-                    return { success: true, results: db.prepare(sql).all(...args) };
+                    return { success: true, results: db.prepare(rewritten).all(...args) };
                 },
             };
             return statement;
@@ -412,6 +424,161 @@ describe('/api/tool/v1', () => {
             expect(me.response.headers.get('X-Session-Invalid')).toBe('1');
 
             expect((await call('/api/tool/v1/me', { token: otherToken })).response.status).toBe(200);
+        });
+    });
+
+    describe('account and admin integrity', () => {
+        it('refuses a username that differs only by case', async () => {
+            const first = await call('/api/register', {
+                body: { username: 'CaseUser', password: PASSWORD },
+            });
+            expect(first.response.status).toBe(201);
+
+            const duplicate = await call('/api/register', {
+                body: { username: 'caseuser', password: PASSWORD },
+            });
+            expect(duplicate.response.status).toBe(409);
+
+            const rename = await call('/api/user/profile', {
+                method: 'PATCH',
+                body: { username: 'CASEUSER' },
+                token,
+            });
+            expect(rename.response.status).toBe(409);
+        });
+
+        it('rate-limits password verification on credential endpoints', async () => {
+            env = {
+                ...env,
+                RL_PER_MINUTE_10: { limit: async () => ({ success: false }) },
+            } as unknown as Env;
+            const result = await call('/api/user/password', {
+                body: { currentPassword: 'guess', newPassword: 'amber river quiet lantern' },
+                token,
+            });
+            expect(result.response.status).toBe(429);
+            expect(result.body?.code).toBe('RATE_LIMITED');
+        });
+
+        it('refuses to register the configured admin name in any case', async () => {
+            env = { ...env, ADMIN_USERNAME: 'ops', ADMIN_PASSWORD: 'quiet maple orbit 73' } as unknown as Env;
+            for (const username of ['ops', 'OPS', 'Ops']) {
+                const result = await call('/api/register', { body: { username, password: PASSWORD } });
+                expect(result.response.status).toBe(409);
+            }
+        });
+
+        it('admin password reset clears every credential, not just sessions', async () => {
+            env = {
+                ...env,
+                ADMIN_USERNAME: 'admin',
+                ADMIN_PASSWORD: 'quiet maple orbit 73',
+            } as unknown as Env;
+            db.prepare('UPDATE users SET totp_secret = ?, totp_last_step = 1 WHERE id = ?').run(
+                'JBSWY3DPEHPK3PXP',
+                'user-1',
+            );
+            db.prepare(
+                'INSERT INTO passkeys (id, user_id, credential_id, public_key_x, public_key_y) VALUES (?, ?, ?, ?, ?)',
+            ).run('pk-1', 'user-1', 'cred-1', 'x', 'y');
+            db.prepare('INSERT INTO backup_codes (id, user_id, code_hash) VALUES (?, ?, ?)').run(
+                'bc-1',
+                'user-1',
+                'hash',
+            );
+
+            const admin = await call('/api/login', {
+                body: { username: 'admin', password: 'quiet maple orbit 73' },
+            });
+            const reset = await call('/api/admin/users/user-1/password', {
+                body: { newPassword: 'amber river quiet lantern' },
+                token: admin.body?.token as string,
+            });
+            expect(reset.response.status).toBe(200);
+            expect(reset.body?.credentialsCleared).toBe(true);
+
+            expect(db.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?').get('user-1')).toEqual({
+                n: 0,
+            });
+            expect(db.prepare('SELECT COUNT(*) AS n FROM backup_codes WHERE user_id = ?').get('user-1')).toEqual({
+                n: 0,
+            });
+            expect(db.prepare('SELECT totp_secret FROM users WHERE id = ?').get('user-1')).toEqual({
+                totp_secret: null,
+            });
+        });
+
+        it('answers malformed admin pagination instead of 500', async () => {
+            env = {
+                ...env,
+                ADMIN_USERNAME: 'admin',
+                ADMIN_PASSWORD: 'quiet maple orbit 73',
+            } as unknown as Env;
+            const admin = await call('/api/login', {
+                body: { username: 'admin', password: 'quiet maple orbit 73' },
+            });
+            const adminToken = admin.body?.token as string;
+
+            const malformed = await call('/api/admin/users?page=abc&limit=xyz', { token: adminToken });
+            expect(malformed.response.status).toBe(200);
+            expect(malformed.body?.page).toBe(1);
+            expect(malformed.body?.limit).toBe(20);
+
+            const huge = await call('/api/admin/users?page=999999999999999999999', {
+                token: adminToken,
+            });
+            expect(huge.response.status).toBe(200);
+        });
+    });
+
+    describe('request body limits', () => {
+        // A body that would throw if read past the cap. The old text()/
+        // arrayBuffer() readers consumed the whole stream and surfaced a 500;
+        // the bounded readers cancel at the cap and answer 413.
+        const streamed = async (path: string, method: string, cap: number) => {
+            const chunk = new Uint8Array(64 * 1024).fill(120);
+            let pulled = 0;
+            const stream = new ReadableStream<Uint8Array>({
+                pull(controller) {
+                    pulled += chunk.byteLength;
+                    if (pulled > cap + 4 * chunk.byteLength) {
+                        controller.error(new Error('read past the cap'));
+                        return;
+                    }
+                    controller.enqueue(chunk);
+                },
+            });
+            const response = await worker.fetch(
+                new Request(`https://example.com${path}`, {
+                    method,
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/octet-stream',
+                    },
+                    body: stream,
+                    duplex: 'half',
+                } as RequestInit & { duplex: 'half' }),
+                env,
+                ctx,
+            );
+            const text = await response.text();
+            return { response, body: text ? (JSON.parse(text) as Record<string, unknown>) : null };
+        };
+
+        it('caps share creation and live updates', async () => {
+            const created = await streamed('/api/shares', 'POST', 2 * 1024 * 1024);
+            expect(created.response.status).toBe(413);
+            expect(created.body?.code).toBe('SNAPSHOT_TOO_LARGE');
+
+            const updated = await streamed('/api/shares/live', 'PUT', 2 * 1024 * 1024);
+            expect(updated.response.status).toBe(413);
+            expect(updated.body?.code).toBe('SNAPSHOT_TOO_LARGE');
+        });
+
+        it('caps avatar uploads', async () => {
+            const avatar = await streamed('/api/user/avatar', 'PUT', 5 * 1024 * 1024);
+            expect(avatar.response.status).toBe(413);
+            expect(avatar.body?.code).toBe('TOO_LARGE');
         });
     });
 

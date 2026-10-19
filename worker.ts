@@ -10,7 +10,7 @@ import {
     sanitizeShareSnapshot,
 } from './shareSnapshotSchema';
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
-import { getClientIP, MAX_JSON_BODY_BYTES, readSmallJsonBody } from './requestInput';
+import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
 
 export interface Env {
     DB: D1Database;
@@ -95,6 +95,15 @@ async function checkRateLimit(env: Env, key: string, perMinute: number): Promise
         console.error('Rate limit check failed:', e);
         return true;
     }
+}
+
+/**
+ * Every endpoint that bcrypt-compares the account password shares one
+ * per-user bucket, so a stolen session plus a guessed password cannot turn
+ * 2FA/passkey/password endpoints into an unthrottled oracle.
+ */
+async function passwordCheckAllowed(env: Env, userId: string): Promise<boolean> {
+    return checkRateLimit(env, `password-check:${userId}`, 10);
 }
 
 function withSecurityHeaders(response: Response): Response {
@@ -282,6 +291,12 @@ function validateJWTSecret(secret: string | undefined): string {
     for (const weak of WEAK_SECRETS) {
         if (lowerSecret.includes(weak)) throw new Error(`JWT_SECRET contains weak pattern "${weak}".`);
     }
+    // A 64-character run of one character clears the length check but has
+    // almost no entropy. Require a minimal alphabet; generated secrets use
+    // far more.
+    if (new Set(secret).size < 8) {
+        throw new Error('JWT_SECRET must use at least 8 distinct characters.');
+    }
     return secret;
 }
 
@@ -315,6 +330,16 @@ const RESERVED_USERNAMES = new Set([
 
 function validateUsername(username: string): boolean {
     return USERNAME_REGEX.test(username) && !RESERVED_USERNAMES.has(username.toLowerCase());
+}
+
+/**
+ * The configured admin name is not in RESERVED_USERNAMES (it is arbitrary),
+ * so a normal account could otherwise take it and share its login_backoff
+ * row. Case-insensitive, matching the admin login comparison.
+ */
+function reservedForAdmin(env: Env, username: string): boolean {
+    const admin = env.ADMIN_USERNAME;
+    return !!admin && admin.length > 0 && username.toLowerCase() === admin.toLowerCase();
 }
 
 function validatePassword(password: unknown): { valid: boolean; error?: string } {
@@ -1178,17 +1203,25 @@ export default {
 
                 username = username.trim();
                 if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
+                if (reservedForAdmin(env, username)) return jsonError('CONFLICT', 'Username already taken', 409);
                 const passVal = validatePassword(password);
                 if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
 
-                const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
-                if (existing) return jsonError('CONFLICT', 'Username already taken', 409);
-
+                // Case-insensitive: "Alice" and "alice" must not coexist as
+                // separate accounts, or a share link or admin list cannot tell
+                // them apart. The check lives in the INSERT so two concurrent
+                // case-variant registrations cannot both pass a SELECT.
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const id = crypto.randomUUID();
-                await env.DB.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)')
-                    .bind(id, username, hashedPassword)
+                const inserted = await env.DB.prepare(
+                    `INSERT INTO users (id, username, password_hash)
+                     SELECT ?, ?, ?
+                     WHERE NOT EXISTS (SELECT 1 FROM users WHERE lower(username) = lower(?))`,
+                )
+                    .bind(id, username, hashedPassword, username)
                     .run();
+                if (Number(inserted.meta?.changes ?? 0) === 0)
+                    return jsonError('CONFLICT', 'Username already taken', 409);
 
                 // Issue a session immediately so the user can complete mandatory 2FA setup
                 const sessionId = crypto.randomUUID();
@@ -1217,7 +1250,14 @@ export default {
                             user: { id, username, isAdmin: false },
                             devicePass: regDevicePass,
                         }),
-                        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                        {
+                            status: 201,
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json',
+                                'Cache-Control': 'no-store',
+                            },
+                        },
                     ),
                 );
             }
@@ -1362,7 +1402,11 @@ export default {
                     return withSecurityHeaders(
                         new Response(JSON.stringify(isToolLogin ? addToolLoginFields(adminBody) : adminBody), {
                             status: 200,
-                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json',
+                                'Cache-Control': 'no-store',
+                            },
                         }),
                     );
                 }
@@ -1481,7 +1525,11 @@ export default {
                 return withSecurityHeaders(
                     new Response(JSON.stringify(isToolLogin ? addToolLoginFields(loginResp) : loginResp), {
                         status: 200,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-store',
+                        },
                     }),
                 );
             }
@@ -2021,27 +2069,18 @@ export default {
                         );
                     }
 
-                    const declaredLength = Number(request.headers.get('Content-Length'));
-                    if (Number.isFinite(declaredLength) && declaredLength > MAX_SHARE_REQUEST_BYTES) {
-                        return shareJson(
-                            { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
-                            413,
-                        );
+                    // Streamed and cancelled at the cap; text() buffered a
+                    // chunked body in full before the size check.
+                    const parsedBody = await readSmallJsonBody(request, MAX_SHARE_REQUEST_BYTES);
+                    if (!parsedBody.ok) {
+                        return parsedBody.tooLarge
+                            ? shareJson(
+                                  { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
+                                  413,
+                              )
+                            : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
                     }
-                    const rawBody = await request.text();
-                    if (new TextEncoder().encode(rawBody).byteLength > MAX_SHARE_REQUEST_BYTES) {
-                        return shareJson(
-                            { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
-                            413,
-                        );
-                    }
-
-                    let body: unknown;
-                    try {
-                        body = JSON.parse(rawBody);
-                    } catch {
-                        return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
-                    }
+                    const body = parsedBody.value as unknown;
                     if (!isJsonObject(body))
                         return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
 
@@ -2217,27 +2256,16 @@ export default {
                         );
                     }
 
-                    const declaredLength = Number(request.headers.get('Content-Length'));
-                    if (Number.isFinite(declaredLength) && declaredLength > MAX_SHARE_REQUEST_BYTES) {
-                        return shareJson(
-                            { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
-                            413,
-                        );
+                    const parsedBody = await readSmallJsonBody(request, MAX_SHARE_REQUEST_BYTES);
+                    if (!parsedBody.ok) {
+                        return parsedBody.tooLarge
+                            ? shareJson(
+                                  { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
+                                  413,
+                              )
+                            : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
                     }
-                    const rawBody = await request.text();
-                    if (new TextEncoder().encode(rawBody).byteLength > MAX_SHARE_REQUEST_BYTES) {
-                        return shareJson(
-                            { code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' },
-                            413,
-                        );
-                    }
-
-                    let body: unknown;
-                    try {
-                        body = JSON.parse(rawBody);
-                    } catch {
-                        return shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
-                    }
+                    const body = parsedBody.value as unknown;
                     if (!isJsonObject(body)) {
                         return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
                     }
@@ -2546,12 +2574,18 @@ export default {
                         if (typeof username !== 'string') return jsonError('INVALID_REQUEST', 'Invalid username', 400);
                         username = username.trim();
                         if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username', 400);
-                        const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?')
-                            .bind(username)
-                            .first();
-                        if (existing && (existing as any).id !== userId)
+                        if (reservedForAdmin(env, username)) return jsonError('CONFLICT', 'Username taken', 409);
+                        const renamed = await env.DB.prepare(
+                            `UPDATE users SET username = ?
+                             WHERE id = ?
+                               AND NOT EXISTS (
+                                   SELECT 1 FROM users WHERE lower(username) = lower(?) AND id != ?
+                               )`,
+                        )
+                            .bind(username, userId, username, userId)
+                            .run();
+                        if (Number(renamed.meta?.changes ?? 0) === 0)
                             return jsonError('CONFLICT', 'Username taken', 409);
-                        await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, userId).run();
                         return withSecurityHeaders(
                             new Response(JSON.stringify({ message: 'Profile updated', username }), {
                                 status: 200,
@@ -2568,6 +2602,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { currentPassword, newPassword } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (typeof currentPassword !== 'string')
                             return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
                         const user = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
@@ -2612,6 +2650,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { password, code, backup_code } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (typeof password !== 'string')
                             return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
                         const user = (await env.DB.prepare(
@@ -2673,9 +2715,15 @@ export default {
 
                 // Avatar PUT
                 if (url.pathname === '/api/user/avatar' && request.method === 'PUT') {
-                    const body = await request.arrayBuffer();
-                    if (body.byteLength > 5 * 1024 * 1024) return jsonError('TOO_LARGE', 'File too large', 413);
-                    const view = new Uint8Array(body);
+                    // Streamed and cancelled at 5 MiB instead of buffering the
+                    // whole upload before the check.
+                    const body = await readSmallBody(request, 5 * 1024 * 1024);
+                    if (!body.ok) {
+                        return body.tooLarge
+                            ? jsonError('TOO_LARGE', 'File too large', 413)
+                            : jsonError('INVALID_REQUEST', 'Invalid upload', 400);
+                    }
+                    const view = body.bytes;
                     let contentType =
                         view[0] === 0xff && view[1] === 0xd8
                             ? 'image/jpeg'
@@ -2683,7 +2731,7 @@ export default {
                               ? 'image/png'
                               : null;
                     if (!contentType) return jsonError('UNSUPPORTED_MEDIA', 'Invalid file type', 415);
-                    await env.AVATAR_BUCKET.put(`hrt-tracker-user-avatar/${userId}`, body, {
+                    await env.AVATAR_BUCKET.put(`hrt-tracker-user-avatar/${userId}`, view, {
                         httpMetadata: { contentType },
                     });
                     return withSecurityHeaders(
@@ -2719,7 +2767,13 @@ export default {
                     }
 
                     if (url.pathname === '/api/admin/notice' && request.method === 'PUT') {
-                        const body = (await request.json().catch(() => null)) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const body = parsedBody.value as any;
                         if (!body || typeof body.body !== 'string') {
                             return jsonError('INVALID_REQUEST', 'Missing notice body', 400);
                         }
@@ -2819,8 +2873,13 @@ export default {
                     // Search users (with backup stats, paginated)
                     if (url.pathname === '/api/admin/users' && request.method === 'GET') {
                         const query = url.searchParams.get('q')?.trim();
-                        const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
-                        const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
+                        // parseInt('abc') is NaN and a huge digit string overflows
+                        // D1's bind; both used to reach the database and 500.
+                        const pageParam = Number.parseInt(url.searchParams.get('page') ?? '1', 10);
+                        const page =
+                            Number.isSafeInteger(pageParam) && pageParam >= 1 ? Math.min(pageParam, 1_000_000) : 1;
+                        const limitParam = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
+                        const limit = Number.isSafeInteger(limitParam) ? Math.min(100, Math.max(1, limitParam)) : 20;
                         const offset = (page - 1) * limit;
                         const whereClause = query ? 'WHERE username LIKE ?' : '';
                         const filterArgs = query ? [`%${query}%`] : [];
@@ -2971,7 +3030,13 @@ export default {
                     // Admin change user password
                     if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/password$/) && request.method === 'POST') {
                         const targetId = url.pathname.split('/')[4];
-                        const body = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const body = parsedBody.value as any;
                         const { newPassword } = body;
                         if (!newPassword) return jsonError('INVALID_REQUEST', 'Missing new password', 400);
                         const passVal = validatePassword(newPassword);
@@ -2994,16 +3059,28 @@ export default {
                         )
                             .bind(Math.floor(Date.now() / 1000), targetId)
                             .first<{ n: number }>();
+                        // A reset is a full credential reset, not just a new
+                        // password: an intruder who enrolled a passkey or fresh
+                        // backup codes would otherwise survive it.
                         await env.DB.batch([
                             env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(
                                 hashedPassword,
                                 targetId,
                             ),
+                            env.DB.prepare(
+                                'UPDATE users SET totp_secret = NULL, totp_last_step = NULL WHERE id = ?',
+                            ).bind(targetId),
                             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
+                            env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId),
+                            env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId),
                         ]);
                         return withSecurityHeaders(
                             new Response(
-                                JSON.stringify({ message: 'Password updated', sessionsRevoked: sessRow?.n ?? 0 }),
+                                JSON.stringify({
+                                    message: 'Password updated',
+                                    sessionsRevoked: sessRow?.n ?? 0,
+                                    credentialsCleared: true,
+                                }),
                                 { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
                             ),
                         );
@@ -3012,19 +3089,30 @@ export default {
                     // Admin reset username
                     if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/username$/) && request.method === 'PATCH') {
                         const targetId = url.pathname.split('/')[4];
-                        const body = (await request.json()) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const body = parsedBody.value as any;
                         const { username } = body;
                         if (!username) return jsonError('INVALID_REQUEST', 'Missing username', 400);
                         const trimmed = username.trim();
                         if (!validateUsername(trimmed))
                             return jsonError('INVALID_REQUEST', 'Invalid username format', 400);
-                        const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ? AND id != ?')
-                            .bind(trimmed, targetId)
-                            .first();
-                        if (existing) return jsonError('CONFLICT', 'Username already taken', 409);
-                        await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?')
-                            .bind(trimmed, targetId)
+                        if (reservedForAdmin(env, trimmed)) return jsonError('CONFLICT', 'Username already taken', 409);
+                        const renamed = await env.DB.prepare(
+                            `UPDATE users SET username = ?
+                             WHERE id = ?
+                               AND NOT EXISTS (
+                                   SELECT 1 FROM users WHERE lower(username) = lower(?) AND id != ?
+                               )`,
+                        )
+                            .bind(trimmed, targetId, trimmed, targetId)
                             .run();
+                        if (Number(renamed.meta?.changes ?? 0) === 0)
+                            return jsonError('CONFLICT', 'Username already taken', 409);
                         return withSecurityHeaders(
                             new Response(JSON.stringify({ message: 'Username updated' }), {
                                 status: 200,
@@ -3088,7 +3176,13 @@ export default {
                     // every factor; a narrower scope drops one without touching the rest.
                     if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/2fa$/) && request.method === 'DELETE') {
                         const targetId = url.pathname.split('/')[4];
-                        const { scope } = (await request.json().catch(() => ({}))) as any;
+                        const parsedBody = await readSmallJsonBody(request);
+                        if (!parsedBody.ok) {
+                            return parsedBody.tooLarge
+                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+                        }
+                        const { scope } = parsedBody.value as any;
                         const which = scope === undefined || scope === null ? 'all' : String(scope);
                         if (!['all', 'totp', 'passkeys', 'backup_codes'].includes(which)) {
                             return jsonError('INVALID_REQUEST', 'Invalid scope', 400);
@@ -3303,6 +3397,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { secret: totpSecret, code, password, currentCode } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (!totpSecret || !code) return jsonError('INVALID_REQUEST', 'Missing secret or code', 400);
                         // Validate secret format (base32 chars, 16-32 chars)
                         if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret))
@@ -3380,6 +3478,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { password, code } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (typeof password !== 'string' || typeof code !== 'string')
                             return jsonError('INVALID_REQUEST', 'Missing password or code', 400);
                         const userRow = (await env.DB.prepare(
@@ -3430,6 +3532,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { password } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (typeof password !== 'string' || password.length === 0)
                             return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         const row = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
@@ -3609,6 +3715,10 @@ export default {
                         // already gates on the password, so enrolment takes the same proof.
                         // Placed after the duplicate check so a replayed credential still
                         // 409s without paying for a bcrypt round.
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (!pkRegPassword) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         const pkOwner = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
                             .bind(userId)
@@ -3677,6 +3787,10 @@ export default {
                                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
                         }
                         const { password: pkPassword } = parsedBody.value;
+                        if (!(await passwordCheckAllowed(env, userId)))
+                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
+                                'Retry-After': '60',
+                            });
                         if (typeof pkPassword !== 'string' || pkPassword.length === 0)
                             return jsonError('INVALID_REQUEST', 'Current password is required', 400);
                         const pkUser = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
