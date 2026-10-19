@@ -19,7 +19,7 @@ export type ContentRow = Record<string, unknown>;
 
 export async function listContent(env: Env, userId: string): Promise<ContentMeta[]> {
     const content = await env.DB.prepare(
-        'SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC',
+        'SELECT id, created_at, LENGTH(data) AS data_size FROM content WHERE user_id = ? ORDER BY created_at DESC, rowid DESC',
     )
         .bind(userId)
         .all();
