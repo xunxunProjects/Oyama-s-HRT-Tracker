@@ -43,12 +43,38 @@ export async function getContent(env: Env, userId: string, id: string): Promise<
  * survive is decided in backupPolicy.ts — one per generation, then the
  * newest — rather than "the newest N", which the client's few-seconds-after-
  * every-edit uploads turned into a log of the last minute.
+ *
+ * With `expectedBase`, the insert is conditional on that id still being the
+ * newest revision. The condition lives in the INSERT statement so two clients
+ * holding the same base cannot both pass a read-then-write check. Returns
+ * null when the condition fails; the caller refetches and reports a conflict.
  */
-export async function storeContent(env: Env, userId: string, data: unknown): Promise<string> {
+export async function storeContent(
+    env: Env,
+    userId: string,
+    data: unknown,
+    expectedBase?: string,
+): Promise<string | null> {
     const id = crypto.randomUUID();
-    await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)')
-        .bind(id, userId, JSON.stringify(data))
-        .run();
+    if (expectedBase !== undefined) {
+        const inserted = await env.DB.prepare(
+            `INSERT INTO content (id, user_id, data)
+             SELECT ?, ?, ?
+             WHERE COALESCE(
+                 (SELECT id FROM content WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1),
+                 ''
+             ) = ?`,
+        )
+            .bind(id, userId, JSON.stringify(data), userId, expectedBase)
+            .run();
+        if (Number(inserted.meta?.changes ?? 0) === 0) {
+            return null;
+        }
+    } else {
+        await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)')
+            .bind(id, userId, JSON.stringify(data))
+            .run();
+    }
     const revisions = await env.DB.prepare(
         'SELECT id, created_at FROM content WHERE user_id = ? ORDER BY created_at DESC',
     )

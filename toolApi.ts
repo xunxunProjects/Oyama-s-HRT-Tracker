@@ -136,21 +136,18 @@ export async function handleToolProtected(
             }
 
             const base = baseRevision(request);
-            if (base) {
+            const id = await storeContent(env, auth.userId, data, base ?? undefined);
+            if (id === null) {
                 const newest = await latestContent(env, auth.userId);
-                if (!newest || String(newest.id) !== base) {
-                    return respond.json(
-                        {
-                            code: 'CONFLICT',
-                            message: 'Snapshot has changed; merge and retry',
-                            current: newest ? { id: String(newest.id), createdAt: Number(newest.created_at) } : null,
-                        },
-                        409,
-                    );
-                }
+                return respond.json(
+                    {
+                        code: 'CONFLICT',
+                        message: 'Snapshot has changed; merge and retry',
+                        current: newest ? { id: String(newest.id), createdAt: Number(newest.created_at) } : null,
+                    },
+                    409,
+                );
             }
-
-            const id = await storeContent(env, auth.userId, data);
             const row = await getContent(env, auth.userId, id);
             return respond.json({ id, createdAt: row ? Number(row.created_at) : Math.floor(Date.now() / 1000) }, 201);
         }
