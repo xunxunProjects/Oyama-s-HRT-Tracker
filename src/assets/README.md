@@ -1,7 +1,7 @@
 # Assets
 
-`maintainer-avatar.webp` and `laozhong-avatar.webp` are the profile pictures of
-the people credited on the Credits page. They are not original artwork of this
+`maintainer-avatar.webp`, `fantuanmtf-avatar.webp` and `laozhong-avatar.webp`
+are the profile pictures of the people credited on the Credits page. They are not original artwork of this
 project and are not covered by the project's MIT license.
 
 `llm-girls.webp` is the picture next to the note on how the code was written.
