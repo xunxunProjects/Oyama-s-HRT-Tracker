@@ -178,7 +178,6 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         entry={{
                             name: 'SmirnovaOyama',
                             href: 'https://github.com/SmirnovaOyama',
-                            desc: 'Maintainer',
                             image: maintainerAvatar,
                         }}
                     />
@@ -186,7 +185,6 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         entry={{
                             name: 'fantuanmtf',
                             href: 'https://github.com/fantuanmtf',
-                            desc: 'Maintainer',
                             image: fantuanmtfAvatar,
                         }}
                     />
