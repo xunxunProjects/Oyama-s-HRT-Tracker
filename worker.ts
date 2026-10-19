@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
+import { addToolLoginFields, toolVersionBody } from './toolApi';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -220,6 +221,7 @@ type ApiErrorCode =
     | 'ACCOUNT_LOCKED'
     | 'STORAGE_FULL'
     | 'SERVICE_UNAVAILABLE'
+    | 'NOT_IMPLEMENTED'
     | 'INTERNAL';
 
 /** D1's wording when the database has hit its plan's size cap. */
@@ -978,7 +980,13 @@ export default {
             }
 
             // Rate limiting for auth/sensitive endpoints
-            const sensitivePaths = ['/api/login', '/api/register', '/api/user/password', '/api/user/me'];
+            const sensitivePaths = [
+                '/api/login',
+                '/api/tool/v1/login',
+                '/api/register',
+                '/api/user/password',
+                '/api/user/me',
+            ];
             if (sensitivePaths.some(p => url.pathname === p)) {
                 // The address comes from getClientIP (CF-Connecting-IP, or an
                 // explicitly trusted proxy header). X-Forwarded-For is never
@@ -997,7 +1005,7 @@ export default {
                 let allowed: boolean;
                 if (clientIP) {
                     allowed = await checkRateLimit(env, clientIP, 10);
-                } else if (url.pathname === '/api/login') {
+                } else if (url.pathname === '/api/login' || url.pathname === '/api/tool/v1/login') {
                     allowed = await checkRateLimit(env, 'login-global-noip', 60);
                 } else if (url.pathname === '/api/register') {
                     allowed = await checkRateLimit(env, 'register-global-noip', 10);
@@ -1209,8 +1217,25 @@ export default {
                 );
             }
 
+            // Tool API: public surface. The CLI reads /version before it
+            // trusts a server and sends /login through the same handler as
+            // the website, so rate limits, lockout, TOTP and device passes
+            // are not reimplemented here.
+            if (url.pathname === '/api/tool/v1/version' && request.method === 'GET') {
+                return withSecurityHeaders(
+                    new Response(JSON.stringify(toolVersionBody()), {
+                        status: 200,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+                    }),
+                );
+            }
+            if (url.pathname === '/api/tool/v1/compute' && request.method === 'POST') {
+                return jsonError('NOT_IMPLEMENTED', 'Server compute is reserved for a future version', 501);
+            }
+
             // Login
-            if (url.pathname === '/api/login' && request.method === 'POST') {
+            const isToolLogin = url.pathname === '/api/tool/v1/login';
+            if ((url.pathname === '/api/login' || isToolLogin) && request.method === 'POST') {
                 const parsedBody = await readSmallJsonBody(request);
                 if (!parsedBody.ok) {
                     return parsedBody.tooLarge
@@ -1324,15 +1349,16 @@ export default {
                     ).run();
                     await clearMisses();
                     const adminDevicePass = await signLoginDevicePass(jwtSecret, account, `admin:${adminP}`);
+                    const adminBody = {
+                        token,
+                        user: { id: 'admin', username: 'Admin', isAdmin: true },
+                        devicePass: adminDevicePass,
+                    };
                     return withSecurityHeaders(
-                        new Response(
-                            JSON.stringify({
-                                token,
-                                user: { id: 'admin', username: 'Admin', isAdmin: true },
-                                devicePass: adminDevicePass,
-                            }),
-                            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-                        ),
+                        new Response(JSON.stringify(isToolLogin ? addToolLoginFields(adminBody) : adminBody), {
+                            status: 200,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        }),
                     );
                 }
 
@@ -1448,7 +1474,7 @@ export default {
                     ...(passwordStrength(password) === 'weak' ? { passwordWeak: true } : {}),
                 };
                 return withSecurityHeaders(
-                    new Response(JSON.stringify(loginResp), {
+                    new Response(JSON.stringify(isToolLogin ? addToolLoginFields(loginResp) : loginResp), {
                         status: 200,
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                     }),

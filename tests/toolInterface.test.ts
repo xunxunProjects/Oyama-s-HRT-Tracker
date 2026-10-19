@@ -110,6 +110,47 @@ describe.skipIf(!sqliteModule || !fsModule)('/api/tool/v1', () => {
         expect(token).not.toBe('');
     });
 
+    describe('public routes', () => {
+        it('serves the version and transport advertisement without auth', async () => {
+            const version = await call('/api/tool/v1/version');
+            expect(version.response.status).toBe(200);
+            expect(version.body).toEqual({
+                apiVersion: 1,
+                minToolVersion: '0.1.0',
+                transport: ['tls'],
+                serverTime: expect.any(String),
+            });
+            expect(Number.isNaN(Date.parse(version.body!.serverTime))).toBe(false);
+        });
+
+        it('logs in through the existing flow and adds the tool fields', async () => {
+            const result = await call('/api/tool/v1/login', {
+                body: { username: 'Alice', password: PASSWORD },
+            });
+            expect(result.response.status).toBe(200);
+            expect(typeof result.body?.token).toBe('string');
+            expect(result.body?.user).toEqual({ id: 'user-1', username: 'Alice', isAdmin: false });
+            expect(typeof result.body?.devicePass).toBe('string');
+            expect(result.body?.apiVersion).toBe(1);
+            expect(result.body?.transport).toEqual(['tls']);
+            expect(Number.isNaN(Date.parse(result.body!.serverTime))).toBe(false);
+        });
+
+        it('still rejects a wrong password with 401', async () => {
+            const result = await call('/api/tool/v1/login', {
+                body: { username: 'Alice', password: 'wrong password entirely' },
+            });
+            expect(result.response.status).toBe(401);
+            expect(result.body?.code).toBe('INVALID_CREDENTIALS');
+        });
+
+        it('reserves server compute with 501', async () => {
+            const result = await call('/api/tool/v1/compute', { body: {} });
+            expect(result.response.status).toBe(501);
+            expect(result.body?.code).toBe('NOT_IMPLEMENTED');
+        });
+    });
+
     describe('/api/content compatibility', () => {
         it('keeps the existing write and metadata responses', async () => {
             const data = { cloud: 1, iv: 'aXY=', data: 'ZGF0YQ==' };
