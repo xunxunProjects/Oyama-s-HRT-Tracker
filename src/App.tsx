@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
@@ -10,6 +10,24 @@ import { v4 as uuidv4 } from 'uuid';
 import { PlanItem, planEvent } from './utils/plan';
 import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
+import {
+    COMPLETE_BACKUP_FORMAT,
+    classifyCompleteBackupOutcome,
+    completeBackupPreviewFingerprint,
+    type CompleteBackupMergeResult,
+    type CompleteBackupPreview,
+    type PortablePreferences,
+} from './utils/backupBundle';
+import {
+    describeCompleteBackupExportWarning,
+    describeCompleteBackupFailure,
+    describeCompleteBackupPreview,
+    describeCompleteBackupReplace,
+    describeCompleteBackupReplaceFailure,
+    describeCompleteBackupResult,
+    describeUnreadableCompleteBackup,
+    isPartialReplaceFailure,
+} from './utils/backupWarnings';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
@@ -119,6 +137,10 @@ const AppContent = () => {
         processImportedData,
         mergeImportedData,
         buildExportPayload,
+        buildCompleteBackupBundle,
+        previewCompleteBackupBundle,
+        applyCompleteBackupBundle,
+        replaceCompleteBackupBundle,
         applySyncedState,
         scope,
         readyScope,
@@ -204,6 +226,34 @@ const AppContent = () => {
     const [theme, setTheme] = useState<AppTheme>(() => {
         const saved = localStorage.getItem('app-theme');
         return (saved as AppTheme) || 'system';
+    });
+
+    // Imported complete bundles carry only the confirmed preference keys. The
+    // data layer returns them; the app owns the React state and storage effects.
+    const applyPortablePreferences = (prefs: PortablePreferences) => {
+        if (prefs['app-theme'] !== undefined) setTheme(prefs['app-theme']);
+        if (prefs['hrt-lang'] !== undefined) setLang(prefs['hrt-lang']);
+        if (prefs['app-show-prediction'] !== undefined) setShowPrediction(prefs['app-show-prediction']);
+        if (prefs['app-hide-site-label'] !== undefined) setHideSiteLabel(prefs['app-hide-site-label']);
+        if (prefs['hrt-supply-lead-days'] !== undefined) setSupplyLeadDays(prefs['hrt-supply-lead-days']);
+    };
+
+    // Dialogs stay open across renders, so their callbacks must not keep the
+    // arrays/functions captured when the dialog opened. Every confirm path
+    // re-previews and applies through this latest snapshot instead.
+    const completeBackupRef = useRef({
+        preview: previewCompleteBackupBundle,
+        apply: applyCompleteBackupBundle,
+        replace: replaceCompleteBackupBundle,
+        build: buildCompleteBackupBundle,
+    });
+    useEffect(() => {
+        completeBackupRef.current = {
+            preview: previewCompleteBackupBundle,
+            apply: applyCompleteBackupBundle,
+            replace: replaceCompleteBackupBundle,
+            build: buildCompleteBackupBundle,
+        };
     });
     // Same reading as the Overview's: an explicit dark theme, or the system's under "system".
     const isDarkMode =
@@ -317,6 +367,203 @@ const AppContent = () => {
             });
         });
 
+    /**
+     * Complete bundles are unencrypted JSON and merge only. Replace-all remains
+     * BLOCKED: there is no proven multi-key transaction, so this path never
+     * clears local categories.
+     */
+    const confirmCompleteBackupImport = (parsed: unknown): Promise<boolean> =>
+        new Promise(resolve => {
+            // The validator's messages name fields and record ids. They are for
+            // whoever looks into the file, so they go to the console and the
+            // person is told only that the file can't be read, or is too new.
+            const rejectUnreadable = (unreadable: CompleteBackupPreview) => {
+                console.warn('Complete backup not imported:', unreadable.errors);
+                showDialog('alert', describeUnreadableCompleteBackup(unreadable, t));
+                resolve(false);
+            };
+
+            const preview = completeBackupRef.current.preview(parsed);
+            if (!preview.ok) {
+                rejectUnreadable(preview);
+                return;
+            }
+            if (preview.issues.length || preview.conflicts.length) {
+                console.warn('Complete backup preview:', { issues: preview.issues, conflicts: preview.conflicts });
+            }
+
+            const run = () => {
+                let result: CompleteBackupMergeResult;
+                try {
+                    result = completeBackupRef.current.apply(parsed);
+                } catch (err) {
+                    console.error(err);
+                    showDialog('alert', describeCompleteBackupFailure(err, t));
+                    resolve(false);
+                    return;
+                }
+                const outcome = classifyCompleteBackupOutcome(result);
+                applyPortablePreferences(result.preferences);
+                showDialog('alert', describeCompleteBackupResult(result, outcome, t));
+                resolve(outcome !== 'nothing');
+            };
+
+            const openPreview = (current: CompleteBackupPreview) => {
+                showDialog(
+                    'confirm',
+                    describeCompleteBackupPreview(current, { t, lang, user }),
+                    () => {
+                        // The active arrays can change while a dialog is open.
+                        // Recompute at confirm time; if the visible outcome
+                        // changed, show it again instead of applying stale consent.
+                        const latest = completeBackupRef.current.preview(parsed);
+                        if (!latest.ok) {
+                            rejectUnreadable(latest);
+                            return;
+                        }
+                        if (completeBackupPreviewFingerprint(latest) !== completeBackupPreviewFingerprint(current)) {
+                            openPreview(latest);
+                            return;
+                        }
+                        if (latest.scalars.calibration?.action !== 'overwrite') {
+                            run();
+                            return;
+                        }
+                        // Calibration changes how PK estimates are interpreted.
+                        // It gets its own explicit confirmation instead of
+                        // riding on the merge. Apply re-previews again, so a
+                        // change during this dialog cannot bypass the latest
+                        // conflict/block decisions.
+                        showDialog(
+                            'confirm',
+                            t('import.bundle_calibration_confirm'),
+                            () => {
+                                const finalPreview = completeBackupRef.current.preview(parsed);
+                                if (!finalPreview.ok) {
+                                    rejectUnreadable(finalPreview);
+                                    return;
+                                }
+                                run();
+                            },
+                            {
+                                danger: true,
+                                title: t('import.bundle_calibration_confirm_title'),
+                                confirmLabel: t('import.bundle_calibration_confirm_btn'),
+                                onCancel: () => resolve(false),
+                            },
+                        );
+                    },
+                    {
+                        // A merge that only adds records is not a red-button
+                        // action; one that deletes local records is.
+                        danger: current.stats.removed > 0,
+                        title: t('import.bundle_preview_title'),
+                        confirmLabel: t('import.bundle_merge_btn'),
+                        onCancel: () => resolve(false),
+                    },
+                );
+            };
+
+            openPreview(preview);
+        });
+
+    /**
+     * Replace, unlike merge, may not silently drop or block a category: the
+     * file has to describe the whole store. Scalars the format may omit
+     * (weight, PK parameters) and preferences are optional.
+     */
+    const confirmCompleteBackupReplace = (parsed: unknown): Promise<boolean> =>
+        new Promise(resolve => {
+            const optionalMissing = new Set(['weight', 'pkParams', 'preferences']);
+            const requiredMissing = (preview: CompleteBackupPreview) =>
+                preview.missing.filter(path => !optionalMissing.has(path));
+            const reject = (preview: CompleteBackupPreview) => {
+                console.warn('Complete backup cannot replace this device:', {
+                    errors: preview.errors,
+                    issues: preview.issues,
+                    missing: requiredMissing(preview),
+                });
+                showDialog('alert', t('import.bundle_invalid'));
+                resolve(false);
+            };
+
+            const preview = completeBackupRef.current.preview(parsed);
+            if (!preview.ok || preview.issues.length > 0 || requiredMissing(preview).length > 0) {
+                reject(preview);
+                return;
+            }
+
+            const run = () => {
+                try {
+                    const result = completeBackupRef.current.replace(parsed);
+                    applyPortablePreferences(result.preferences);
+                    showDialog('alert', t('import.replace_complete_success'));
+                    resolve(true);
+                } catch (err) {
+                    console.error(err);
+                    // A partial write leaves its journal behind, and the store
+                    // half replaced. Reloading runs the recovery before
+                    // anything reads or syncs it, instead of asking the person
+                    // to know to reload.
+                    showDialog(
+                        'alert',
+                        describeCompleteBackupReplaceFailure(err, t),
+                        isPartialReplaceFailure(err) ? () => window.location.reload() : undefined,
+                    );
+                    resolve(false);
+                }
+            };
+
+            const open = (current: CompleteBackupPreview, fingerprint: string) => {
+                showDialog(
+                    'confirm',
+                    describeCompleteBackupReplace(current, { t, lang, user }),
+                    () => {
+                        // The active arrays can change while the dialog is open.
+                        // Replacing them without showing the new contents would
+                        // be consent to a different operation.
+                        const latest = completeBackupRef.current.preview(parsed);
+                        if (!latest.ok || latest.issues.length > 0 || requiredMissing(latest).length > 0) {
+                            reject(latest);
+                            return;
+                        }
+                        const latestFingerprint = completeBackupPreviewFingerprint(latest);
+                        if (latestFingerprint !== fingerprint) {
+                            open(latest, latestFingerprint);
+                            return;
+                        }
+                        run();
+                    },
+                    {
+                        danger: true,
+                        title: t('import.replace_complete_title'),
+                        confirmLabel: t('import.replace_complete_btn'),
+                        onCancel: () => resolve(false),
+                    },
+                );
+            };
+
+            open(preview, completeBackupPreviewFingerprint(preview));
+        });
+
+    const replaceCompleteBackupFromJson = async (text: string): Promise<boolean> => {
+        try {
+            let parsed = JSON.parse(text);
+            if (parsed && typeof parsed === 'object' && parsed.c && typeof parsed.c === 'string') {
+                parsed = JSON.parse(await decompressData(parsed.c));
+            }
+            if (!parsed || typeof parsed !== 'object' || parsed.format !== COMPLETE_BACKUP_FORMAT) {
+                showDialog('alert', t('import.bundle_invalid'));
+                return false;
+            }
+            return await confirmCompleteBackupReplace(parsed);
+        } catch (err) {
+            console.error(err);
+            showDialog('alert', t('drawer.import_error'));
+            return false;
+        }
+    };
+
     const importEventsFromJson = async (text: string): Promise<boolean> => {
         try {
             let parsed = JSON.parse(text);
@@ -332,6 +579,10 @@ const AppContent = () => {
             if (parsed.c && typeof parsed.c === 'string') {
                 const decompressed = await decompressData(parsed.c);
                 parsed = JSON.parse(decompressed);
+            }
+
+            if (parsed && typeof parsed === 'object' && parsed.format === COMPLETE_BACKUP_FORMAT) {
+                return await confirmCompleteBackupImport(parsed);
             }
 
             return await confirmImport(parsed);
@@ -355,6 +606,10 @@ const AppContent = () => {
                 }
                 setIsPasswordInputOpen(false);
                 setPendingImportText(null);
+                if (parsed && typeof parsed === 'object' && parsed.format === COMPLETE_BACKUP_FORMAT) {
+                    await confirmCompleteBackupImport(parsed);
+                    return;
+                }
                 confirmImport(parsed);
             } catch (e) {
                 console.error(e);
@@ -432,6 +687,45 @@ const AppContent = () => {
         return null;
     };
 
+    /**
+     * The complete bundle is deliberately plaintext JSON. OpenPGP encryption is
+     * the offline Tools project's job; this website never handles keys or
+     * passphrases and does not claim a cold-backup encryption format. The
+     * download stays behind an explicit plaintext-health-data confirmation.
+     */
+    const handleCompleteBackupExport = () => {
+        const warning = describeCompleteBackupExportWarning(t);
+        showDialog(
+            'confirm',
+            warning.message,
+            () => {
+                try {
+                    // Build at confirm time, not when the dialog opened: the
+                    // arrays may have changed while the warning was on screen.
+                    const report = completeBackupRef.current.build();
+                    downloadFile(
+                        JSON.stringify(report.bundle, null, 2),
+                        `hrt-complete-backup-${new Date().toISOString().split('T')[0]}.json`,
+                    );
+                    // Collapsed duplicates and expired deletion marks are
+                    // housekeeping; only records left out are worth a word.
+                    if (report.issues.length) console.warn('Complete backup export:', report.issues);
+                    if (report.invalidRecords > 0) {
+                        showDialog('alert', t('export.complete_skipped').replace('{n}', String(report.invalidRecords)));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showDialog('alert', t('export.complete_failed'));
+                }
+            },
+            {
+                danger: true,
+                title: warning.title,
+                confirmLabel: warning.confirmLabel,
+            },
+        );
+    };
+
     // Reconcile, then upload — not a plain upload. Every save inserts a new
     // newest revision with no "only if unchanged", so writing without reading
     // first would let one device's press erase a dose another device deleted.
@@ -469,7 +763,7 @@ const AppContent = () => {
             return;
         }
         try {
-            let parsed: any;
+            let parsed: unknown;
             let timestamp: number;
             if (backupId) {
                 const backup = await cloudService.loadOne(token, backupId);
@@ -775,6 +1069,7 @@ const AppContent = () => {
                             weight={weight}
                             onExport={handleExportConfirm}
                             onQuickExport={handleQuickExport}
+                            onExportCompleteBackup={handleCompleteBackupExport}
                             onBack={() => handleViewChange('settings')}
                         />
                     )}
@@ -782,6 +1077,7 @@ const AppContent = () => {
                     {currentView === 'settings-import' && (
                         <ImportSettings
                             onImportJson={importEventsFromJson}
+                            onReplaceJson={replaceCompleteBackupFromJson}
                             onBack={() => handleViewChange('settings')}
                             onNavigateToExport={() => handleViewChange('settings-export')}
                         />

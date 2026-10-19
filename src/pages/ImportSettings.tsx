@@ -6,13 +6,20 @@ import ImportSection from '../components/ImportSection';
 
 interface ImportSettingsProps {
     onImportJson: (text: string) => boolean | Promise<boolean>;
+    /** Replace the whole device from a complete bundle, through the crash journal. */
+    onReplaceJson: (text: string) => boolean | Promise<boolean>;
     onBack: () => void;
-    /** Opens Export, so a backup can be made before an import replaces things. */
+    /** Opens Export, so a backup can be made before a regular import replaces things. */
     onNavigateToExport?: () => void;
 }
 
-const ImportSettings: React.FC<ImportSettingsProps> = ({ onImportJson, onBack, onNavigateToExport }) => {
+// No space after a CJK full stop, which carries its own.
+const gapAfter = (sentence: string) => (/[。！？]$/.test(sentence) ? '' : ' ');
+
+const ImportSettings: React.FC<ImportSettingsProps> = ({ onImportJson, onReplaceJson, onBack, onNavigateToExport }) => {
     const { t } = useTranslation();
+    const replaceNote = t('import.replace_note');
+    const completeNote = t('import.complete_note');
 
     return (
         <div className="relative space-y-4 pb-32">
@@ -20,13 +27,15 @@ const ImportSettings: React.FC<ImportSettingsProps> = ({ onImportJson, onBack, o
 
             <div className={PAGE_COLUMN}>
                 {/* Said before a file is chosen, not only in the confirm after:
-                    an import replaces, it doesn't add, and the way to keep what
-                    is here is to export it first. */}
+                    a regular record import replaces, while a complete backup
+                    merges. The way to keep what is here is to export it first. */}
                 <div className="callout mt-1 mb-2">
-                    {t('import.replace_note')}
+                    {replaceNote}
+                    {gapAfter(replaceNote)}
+                    {completeNote}
                     {onNavigateToExport && (
                         <>
-                            {' '}
+                            {gapAfter(completeNote)}
                             <button
                                 type="button"
                                 onClick={onNavigateToExport}
@@ -37,7 +46,7 @@ const ImportSettings: React.FC<ImportSettingsProps> = ({ onImportJson, onBack, o
                         </>
                     )}
                 </div>
-                <ImportSection onImportJson={onImportJson} />
+                <ImportSection onImportJson={onImportJson} onReplaceJson={onReplaceJson} />
             </div>
         </div>
     );

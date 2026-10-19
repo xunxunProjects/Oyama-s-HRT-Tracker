@@ -93,8 +93,13 @@ export const TOMBSTONE_MAX_PER_KIND = 5000;
 
 // --- Shapes -----------------------------------------------------------------
 
+const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
+
+/** Tombstone maps use no prototype so an id like `toString` cannot read an inherited value. */
+const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
+
 export function emptyTombstones(): Tombstones {
-    return { events: {}, labResults: {}, doseTemplates: {} };
+    return { events: nullMap(), labResults: nullMap(), doseTemplates: nullMap() };
 }
 
 function emptyModeBlock(): ModeBlock {
@@ -119,7 +124,7 @@ function asTimestamp(value: unknown): number {
 }
 
 export function sanitizeTombstoneMap(raw: unknown): TombstoneMap {
-    const out: TombstoneMap = {};
+    const out: TombstoneMap = nullMap();
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
     for (const [id, at] of Object.entries(raw as Record<string, unknown>)) {
         if (!id) continue;
@@ -145,7 +150,9 @@ export function pruneTombstoneMap(map: TombstoneMap, now: number): TombstoneMap 
         live.sort((a, b) => b[1] - a[1]);
         live.length = TOMBSTONE_MAX_PER_KIND;
     }
-    return Object.fromEntries(live);
+    const out = nullMap<number>();
+    for (const [id, at] of live) out[id] = at;
+    return out;
 }
 
 export function pruneTombstones(t: Tombstones, now: number): Tombstones {
@@ -157,9 +164,10 @@ export function pruneTombstones(t: Tombstones, now: number): Tombstones {
 }
 
 function mergeTombstoneMaps(a: TombstoneMap, b: TombstoneMap): TombstoneMap {
-    const out: TombstoneMap = { ...a };
+    const out: TombstoneMap = nullMap();
+    for (const [id, at] of Object.entries(a)) out[id] = at;
     for (const [id, at] of Object.entries(b)) {
-        if (!(id in out) || at > out[id]) out[id] = at;
+        if (!hasOwn(out, id) || at > out[id]) out[id] = at;
     }
     return out;
 }
@@ -283,7 +291,7 @@ function mergeKind(kind: RecordKind, local: any[], remote: any[], tombstones: To
     for (const record of local) {
         const id = recordId(record);
         if (!id) continue;
-        if (tombstones[id] !== undefined) {
+        if (hasOwn(tombstones, id)) {
             // Deleted on another device (or on this one, before a restore put it
             // back in the file we are merging).
             if (!dropped.has(id)) {
@@ -298,7 +306,7 @@ function mergeKind(kind: RecordKind, local: any[], remote: any[], tombstones: To
     for (const record of remote) {
         const id = recordId(record);
         if (!id) continue;
-        if (tombstones[id] !== undefined) continue;
+        if (hasOwn(tombstones, id)) continue;
 
         const mine = out.get(id);
         if (mine === undefined) {
