@@ -237,6 +237,16 @@ async function uploadKey(env: Env, request: Request, user: F2fUser): Promise<Res
         seat = { cohort_id: assigned.cohortId, seat: assigned.seat, status: 'active' };
     }
 
+    const cohort = await env.DB.prepare('SELECT state FROM f2f_cohorts WHERE id = ?')
+        .bind(seat.cohort_id)
+        .first();
+    if (!cohort) {
+        return error('COHORT_NOT_FOUND', 'cohort not found', 409);
+    }
+    if (String(cohort.state) === 'revoked' || String(cohort.state) === 'deleted') {
+        return error('COHORT_CLOSED', 'this cohort no longer accepts keys', 409);
+    }
+
     const existing = await env.DB.prepare('SELECT id, user_id, status FROM f2f_keys WHERE fingerprint = ?')
         .bind(fingerprint)
         .first();
