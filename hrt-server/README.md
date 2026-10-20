@@ -1,8 +1,9 @@
 # hrt-raw-server
 
-The optional TLS 1.3 / mTLS adapter for the `hrt/1` protocol. It is
-**disabled by default** and is not available on Cloudflare Workers/Pages or
-other edge platforms that cannot expose a raw TLS listener.
+The optional TLS 1.3 adapter for the `hrt/1` protocol, with per-request
+device signatures. It is **disabled by default** and is not available on
+Cloudflare Workers/Pages or other edge platforms that cannot expose a raw
+TLS listener.
 
 The web app remains the source of truth for accounts, pairing requests,
 devices, holds, and trusted IPs. This process only owns the TLS listener,
@@ -11,10 +12,10 @@ the framed protocol, and the allowlisted loopback bridge to
 
 ## Status
 
-The transport, framing, allowlists, device-fingerprint authorization, and
-tests are implemented. The web app's pairing/device endpoints and the CLI
-raw client are the next phase. Do not expose this listener to the internet
-until those are in place.
+The transport, framing, allowlists, device-signature authorization, web
+pairing endpoints, and the CLI raw client are implemented. The listener
+remains off until an operator enables it and configures the server
+certificate and service token.
 
 ## Running
 
@@ -70,9 +71,10 @@ deployment.
 See [`../docs/hrt-protocol/DEV_GUIDE.md`](../docs/hrt-protocol/DEV_GUIDE.md).
 Frames are a 4-byte big-endian length plus one JSON envelope, capped at
 24 MiB. Only `pair.start`, `pair.poll`, `ping`, and allowlisted
-`/api/tool/v1/*` requests are accepted. A client certificate is required
-for `request`; its SHA-256 DER fingerprint must be authorized by the web
-app.
+`/api/tool/v1/*` requests are accepted. A `request` frame must carry the
+device certificate and an ECDSA-SHA256 signature over the canonical
+request; the server verifies the signature and asks the web app to
+authorize the certificate's SHA-256 DER fingerprint.
 
 ## Limits
 

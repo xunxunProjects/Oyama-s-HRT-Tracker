@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { createHash, X509Certificate } from 'node:crypto';
+import { createHash, createSign, X509Certificate } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -128,13 +128,12 @@ class FrameClient {
     }
 }
 
-async function connect(withCertificate: boolean): Promise<FrameClient> {
+async function connect(): Promise<FrameClient> {
     const socket = tls.connect({
         host: '127.0.0.1',
         port: rawPort,
         servername: 'localhost',
         ca: serverCert,
-        ...(withCertificate ? { cert: clientCert, key: clientKey } : {}),
         ALPNProtocols: ['hrt/1'],
         rejectUnauthorized: true,
     });
@@ -144,6 +143,38 @@ async function connect(withCertificate: boolean): Promise<FrameClient> {
     });
     expect(socket.alpnProtocol).toBe('hrt/1');
     return new FrameClient(socket);
+}
+
+function signedRequest({
+    id,
+    method = 'GET',
+    path,
+    headers = {},
+    body = '',
+}: {
+    id: string;
+    method?: string;
+    path: string;
+    headers?: Record<string, string>;
+    body?: string;
+}): Record<string, unknown> {
+    const canonical =
+        `hrt-request-v1\n${method}\n${path}\n` +
+        `${createHash('sha256').update(body).digest('hex')}\n` +
+        `${headers.authorization ?? ''}\n${headers['if-match'] ?? ''}`;
+    const signer = createSign('SHA256');
+    signer.update(canonical);
+    signer.end();
+    return {
+        id,
+        op: 'request',
+        method,
+        path,
+        headers,
+        body_base64: Buffer.from(body).toString('base64'),
+        device_certificate: clientCert.toString('utf8'),
+        device_signature: signer.sign(clientKey).toString('base64'),
+    };
 }
 
 function body(message: Record<string, unknown>): Record<string, unknown> {
@@ -253,8 +284,8 @@ beforeEach(() => {
 });
 
 describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
-    it('serves ping without a client certificate', async () => {
-        const client = await connect(false);
+    it('serves ping without device credentials', async () => {
+        const client = await connect();
         try {
             const response = await client.send({ id: 'ping-1', op: 'ping' });
             expect(response.status).toBe(200);
@@ -265,7 +296,7 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
     });
 
     it('forwards pair.start with the service token and observed IP', async () => {
-        const client = await connect(false);
+        const client = await connect();
         try {
             const response = await client.send({
                 id: 'pair-1',
@@ -273,7 +304,7 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
                 body_base64: Buffer.from(
                     JSON.stringify({
                         code_hash: 'aa'.repeat(32),
-                        device_public_key: 'test-key',
+                        device_certificate: clientCert.toString('utf8'),
                         device_name: 'test device',
                     }),
                 ).toString('base64'),
@@ -289,8 +320,8 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
         }
     });
 
-    it('requires a client certificate for request frames', async () => {
-        const client = await connect(false);
+    it('requires a device signature for request frames', async () => {
+        const client = await connect();
         try {
             const response = await client.send({
                 id: 'req-1',
@@ -306,15 +337,15 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
     });
 
     it('forwards an authorized request with the verified device fingerprint', async () => {
-        const client = await connect(true);
+        const client = await connect();
         try {
-            const response = await client.send({
-                id: 'req-2',
-                op: 'request',
-                method: 'GET',
-                path: '/api/tool/v1/me',
-                headers: { authorization: 'Bearer test-token' },
-            });
+            const response = await client.send(
+                signedRequest({
+                    id: 'req-2',
+                    path: '/api/tool/v1/me',
+                    headers: { authorization: 'Bearer test-token' },
+                }),
+            );
             expect(response.status).toBe(200);
             expect(body(response).user).toEqual({ id: 'user-1', username: 'Alice' });
             expect(meCalls).toHaveLength(1);
@@ -327,21 +358,11 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
     });
 
     it('rejects paths outside the tool API and traversal attempts', async () => {
-        const client = await connect(true);
+        const client = await connect();
         try {
-            const outside = await client.send({
-                id: 'req-3',
-                op: 'request',
-                method: 'GET',
-                path: '/api/other',
-            });
+            const outside = await client.send(signedRequest({ id: 'req-3', path: '/api/other' }));
             expect((outside.error as { code: string }).code).toBe('PATH_NOT_ALLOWED');
-            const traversal = await client.send({
-                id: 'req-4',
-                op: 'request',
-                method: 'GET',
-                path: '/api/tool/v1/../../admin',
-            });
+            const traversal = await client.send(signedRequest({ id: 'req-4', path: '/api/tool/v1/../../admin' }));
             expect((traversal.error as { code: string }).code).toBe('PATH_NOT_ALLOWED');
             expect(meCalls).toHaveLength(0);
         } finally {
@@ -351,15 +372,15 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
 
     it('rejects a device the web app has revoked', async () => {
         authorizeAllowed = false;
-        const client = await connect(true);
+        const client = await connect();
         try {
-            const response = await client.send({
-                id: 'req-5',
-                op: 'request',
-                method: 'GET',
-                path: '/api/tool/v1/me',
-                headers: { authorization: 'Bearer test-token' },
-            });
+            const response = await client.send(
+                signedRequest({
+                    id: 'req-5',
+                    path: '/api/tool/v1/me',
+                    headers: { authorization: 'Bearer test-token' },
+                }),
+            );
             expect((response.error as { code: string }).code).toBe('NOT_AUTHORIZED');
             expect(meCalls).toHaveLength(0);
         } finally {
@@ -367,8 +388,25 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
         }
     });
 
+    it('rejects a tampered device signature', async () => {
+        const client = await connect();
+        try {
+            const frame = signedRequest({
+                id: 'req-6',
+                path: '/api/tool/v1/me',
+                headers: { authorization: 'Bearer test-token' },
+            });
+            frame.path = '/api/tool/v1/snapshot';
+            const response = await client.send(frame);
+            expect((response.error as { code: string }).code).toBe('CERT_INVALID');
+            expect(meCalls).toHaveLength(0);
+        } finally {
+            client.close();
+        }
+    });
+
     it('rejects an oversized frame and keeps the cap enforced', async () => {
-        const client = await connect(false);
+        const client = await connect();
         try {
             const header = Buffer.alloc(4);
             header.writeUInt32BE(HRT_MAX_FRAME_BYTES + 1, 0);

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, createSign } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -107,6 +107,42 @@ function makeCert(keyPath: string, certPath: string, subject: string, san?: stri
     ];
     if (san !== undefined) args.push('-addext', san);
     execFileSync('openssl', args, { stdio: 'ignore' });
+}
+
+function signedRequest(
+    deviceCert: Buffer,
+    deviceKey: Buffer,
+    {
+        id,
+        method = 'GET',
+        path,
+        headers = {},
+        body = '',
+    }: {
+        id: string;
+        method?: string;
+        path: string;
+        headers?: Record<string, string>;
+        body?: string;
+    },
+): Record<string, unknown> {
+    const canonical =
+        `hrt-request-v1\n${method}\n${path}\n` +
+        `${createHash('sha256').update(body).digest('hex')}\n` +
+        `${headers.authorization ?? ''}\n${headers['if-match'] ?? ''}`;
+    const signer = createSign('SHA256');
+    signer.update(canonical);
+    signer.end();
+    return {
+        id,
+        op: 'request',
+        method,
+        path,
+        headers,
+        body_base64: Buffer.from(body).toString('base64'),
+        device_certificate: deviceCert.toString('utf8'),
+        device_signature: signer.sign(deviceKey).toString('base64'),
+    };
 }
 
 class TestFrameClient {
@@ -250,8 +286,6 @@ describe.skipIf(!hasOpenSSL)('hrt end to end', () => {
             port: rawPort,
             servername: 'localhost',
             ca: serverCert,
-            cert: deviceCert,
-            key: deviceKey,
             ALPNProtocols: ['hrt/1'],
             rejectUnauthorized: true,
         });
@@ -323,13 +357,13 @@ describe.skipIf(!hasOpenSSL)('hrt end to end', () => {
             expect(pollBody.status).toBe('approved');
             expect(pollBody.token).not.toBe('');
 
-            const me = await client.send({
-                id: 'request-1',
-                op: 'request',
-                method: 'GET',
-                path: '/api/tool/v1/me',
-                headers: { authorization: `Bearer ${pollBody.token}` },
-            });
+            const me = await client.send(
+                signedRequest(deviceCert, deviceKey, {
+                    id: 'request-1',
+                    path: '/api/tool/v1/me',
+                    headers: { authorization: `Bearer ${pollBody.token}` },
+                }),
+            );
             expect(me.status).toBe(200);
             const meBody = JSON.parse(Buffer.from(me.body_base64 as string, 'base64').toString('utf8')) as {
                 user: { id: string; username: string };

@@ -7,7 +7,7 @@
  * so the original authentication code is not duplicated.
  */
 
-import { createHash } from 'node:crypto';
+import { createHash, verify, X509Certificate } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
@@ -19,6 +19,7 @@ const MAX_ID_BYTES = 128;
 const MAX_PATH_BYTES = 2048;
 const MAX_HEADER_VALUE_BYTES = 8192;
 const MAX_IDS_PER_CONNECTION = 1000;
+const MAX_REQUEST_BODY_BYTES = 16 * 1024 * 1024;
 
 const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE']);
 const ALLOWED_REQUEST_HEADERS = new Set(['authorization', 'accept', 'content-type', 'if-match']);
@@ -90,6 +91,55 @@ export function decodeFrame(frame) {
 
 function sha256Hex(data) {
     return createHash('sha256').update(data).digest('hex');
+}
+
+function signingString(method, path, body, headers) {
+    const header = name => {
+        const value = headers?.[name];
+        return typeof value === 'string' ? value : '';
+    };
+    return `hrt-request-v1\n${method}\n${path}\n${sha256Hex(body)}\n${header('authorization')}\n${header('if-match')}`;
+}
+
+/* Device proof-of-possession lives above TLS: the client signs the canonical
+   request with the per-install key, and the server verifies it against the
+   self-signed certificate before asking the web app about the fingerprint.
+   This avoids disabling certificate-chain validation. */
+function deviceFromRequest(message, method, path, body, headers) {
+    if (typeof message.device_certificate !== 'string' || typeof message.device_signature !== 'string') {
+        return { error: 'CERT_REQUIRED' };
+    }
+    if (Buffer.byteLength(message.device_certificate, 'utf8') > 32 * 1024 || message.device_signature.length > 8192) {
+        return { error: 'CERT_INVALID' };
+    }
+    let certificate;
+    try {
+        certificate = new X509Certificate(message.device_certificate);
+    } catch {
+        return { error: 'CERT_INVALID' };
+    }
+    if (
+        certificate.publicKey.asymmetricKeyType !== 'ec' ||
+        certificate.publicKey.asymmetricKeyDetails?.namedCurve !== 'prime256v1'
+    ) {
+        return { error: 'CERT_INVALID' };
+    }
+    const canonical = signingString(method, path, body, headers);
+    let valid;
+    try {
+        valid = verify(
+            'sha256',
+            Buffer.from(canonical, 'utf8'),
+            certificate.publicKey,
+            Buffer.from(message.device_signature, 'base64'),
+        );
+    } catch {
+        return { error: 'CERT_INVALID' };
+    }
+    if (!valid) {
+        return { error: 'CERT_INVALID' };
+    }
+    return { fingerprint: sha256Hex(certificate.raw) };
 }
 
 function sendFrame(socket, message) {
@@ -332,8 +382,6 @@ export function createHrtServer({
             cert,
             minVersion: 'TLSv1.3',
             ALPNProtocols: ['hrt/1'],
-            requestCert: true,
-            rejectUnauthorized: false,
             handshakeTimeout: handshakeTimeoutMs,
         },
         socket => {
@@ -357,14 +405,13 @@ export function createHrtServer({
             socket.setTimeout(idleTimeoutMs, () => socket.destroy());
             socket.on('error', () => socket.destroy());
 
-            const peer = socket.getPeerCertificate();
-            const fingerprint = peer && Buffer.isBuffer(peer.raw) ? sha256Hex(peer.raw) : null;
             const clientIp = normalizeClientIp(socket.remoteAddress);
             const seenIds = new Set();
             let queue = Promise.resolve();
+            let invalidSignatures = 0;
 
-            const authorize = async () => {
-                if (fingerprint === null) {
+            const authorize = async fingerprint => {
+                if (typeof fingerprint !== 'string') {
                     return false;
                 }
                 const cached = authorizationCache.get(fingerprint);
@@ -451,16 +498,6 @@ export function createHrtServer({
                     return;
                 }
 
-                if (!(await authorize())) {
-                    sendError(
-                        socket,
-                        id,
-                        fingerprint === null ? 'CERT_REQUIRED' : 'NOT_AUTHORIZED',
-                        'a paired client certificate is required',
-                    );
-                    return;
-                }
-
                 if (
                     typeof message.method !== 'string' ||
                     !ALLOWED_METHODS.has(message.method) ||
@@ -486,7 +523,39 @@ export function createHrtServer({
                     return;
                 }
                 const headers = filteredRequestHeaders(message.headers);
-                headers['x-hrt-device-fingerprint'] = fingerprint;
+                let body;
+                try {
+                    body = decodeBody(message.body_base64 ?? '', MAX_REQUEST_BODY_BYTES);
+                } catch (error) {
+                    sendError(
+                        socket,
+                        id,
+                        error instanceof HrtFrameError ? error.code : 'BAD_FRAME',
+                        error instanceof HrtFrameError ? error.message : 'invalid request body',
+                    );
+                    return;
+                }
+                const device = deviceFromRequest(message, message.method, message.path, body, headers);
+                if (device.error) {
+                    invalidSignatures += 1;
+                    sendError(
+                        socket,
+                        id,
+                        device.error,
+                        device.error === 'CERT_REQUIRED'
+                            ? 'a signed device request is required'
+                            : 'the device signature is invalid',
+                    );
+                    if (invalidSignatures >= 3) {
+                        socket.destroy();
+                    }
+                    return;
+                }
+                if (!(await authorize(device.fingerprint))) {
+                    sendError(socket, id, 'NOT_AUTHORIZED', 'the device is not authorized');
+                    return;
+                }
+                headers['x-hrt-device-fingerprint'] = device.fingerprint;
                 const response = await forwardHttp({
                     origin,
                     method: message.method,
@@ -495,7 +564,7 @@ export function createHrtServer({
                         ...headers,
                         ...serviceHeaders,
                     },
-                    body: decodeBody(message.body_base64 ?? ''),
+                    body,
                     timeoutMs: requestTimeoutMs,
                 });
                 sendResult(socket, id, response);
