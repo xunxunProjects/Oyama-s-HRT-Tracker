@@ -59,8 +59,6 @@ import EditProfilePage from './pages/EditProfile';
 import EditAvatarPage from './pages/EditAvatar';
 import PKParamsPage from './pages/PKParams';
 import HRTModeSettings from './pages/HRTModeSettings';
-import LanguageSettings from './pages/LanguageSettings';
-import AppearanceSettings from './pages/AppearanceSettings';
 import WeightSettings from './pages/WeightSettings';
 import AgeSettings from './pages/AgeSettings';
 import ExportSettings from './pages/ExportSettings';
@@ -1011,7 +1009,9 @@ const AppContent = () => {
                         <Settings
                             t={t}
                             lang={lang}
+                            setLang={setLang}
                             theme={theme}
+                            setTheme={setTheme}
                             languageOptions={languageOptions}
                             onClearAllEvents={clearAllEvents}
                             events={events}
@@ -1027,8 +1027,6 @@ const AppContent = () => {
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
                             onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
-                            onNavigateToLanguage={() => handleViewChange('settings-language')}
-                            onNavigateToAppearance={() => handleViewChange('settings-appearance')}
                             onNavigateToWeight={() => handleViewChange('settings-weight')}
                             onNavigateToAge={() => handleViewChange('settings-age')}
                             onNavigateToExport={() => handleViewChange('settings-export')}
@@ -1053,23 +1051,6 @@ const AppContent = () => {
 
                     {currentView === 'settings-hrt-mode' && (
                         <HRTModeSettings onBack={() => handleViewChange('settings')} />
-                    )}
-
-                    {currentView === 'settings-language' && (
-                        <LanguageSettings
-                            lang={lang}
-                            setLang={setLang}
-                            languageOptions={languageOptions}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
-
-                    {currentView === 'settings-appearance' && (
-                        <AppearanceSettings
-                            theme={theme}
-                            setTheme={setTheme}
-                            onBack={() => handleViewChange('settings')}
-                        />
                     )}
 
                     {currentView === 'settings-weight' && (

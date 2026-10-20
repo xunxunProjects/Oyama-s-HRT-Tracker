@@ -30,8 +30,6 @@ export type ViewKey =
     | 'edit-avatar'
     | 'pk-params'
     | 'settings-hrt-mode'
-    | 'settings-language'
-    | 'settings-appearance'
     | 'settings-weight'
     | 'settings-age'
     | 'settings-export'
@@ -54,8 +52,6 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     share: 'home',
     'lab-calibration': 'lab',
     'settings-hrt-mode': 'settings',
-    'settings-language': 'settings',
-    'settings-appearance': 'settings',
     'settings-weight': 'settings',
     'settings-age': 'settings',
     'settings-export': 'settings',
@@ -111,8 +107,6 @@ const VIEW_ORDER: ViewKey[] = [
     'pk-params',
     'supplies',
     'settings-hrt-mode',
-    'settings-language',
-    'settings-appearance',
     'settings-weight',
     'settings-age',
     'settings-export',
@@ -200,7 +194,7 @@ export const useAppNavigation = (user: any) => {
             return;
         }
         if (ALSO_UNDER[view] === from) {
-            pushNavEntry(view, depth + 1, undefined, from);
+            pushNavEntry(view, depth + 1, from);
             show(view, 'forward', false, from);
             return;
         }

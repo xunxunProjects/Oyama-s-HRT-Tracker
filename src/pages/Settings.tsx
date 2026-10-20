@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ChevronRight, Settings2, Database, Info } from 'lucide-react';
+import React from 'react';
+import { ChevronRight, ChevronsUpDown } from 'lucide-react';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
@@ -8,14 +8,14 @@ import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 import Switch from '../components/Switch';
 import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
-import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
 
 interface SettingsProps {
     t: (key: string) => string;
     lang: Lang;
+    setLang: (lang: Lang) => void;
     theme: AppTheme;
+    setTheme: (theme: AppTheme) => void;
     languageOptions: { value: string; label: string }[];
     onClearAllEvents: () => void;
     events: DoseEvent[];
@@ -31,8 +31,6 @@ interface SettingsProps {
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
-    onNavigateToLanguage: () => void;
-    onNavigateToAppearance: () => void;
     onNavigateToWeight: () => void;
     onNavigateToAge: () => void;
     onNavigateToExport: () => void;
@@ -54,14 +52,11 @@ interface SettingsProps {
     supplyCount: number;
 }
 
-type SettingsCat = 'general' | 'data' | 'about';
-type MobileView = 'list' | SettingsCat;
-
 const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
 const rowValue = 'flex items-center gap-1 text-[0.9375rem] text-[var(--text-muted)]';
 const muted = 'text-[var(--text-muted)]';
-const on = 'text-[var(--text)]';
+const groupLabel = `text-xs font-semibold mb-2 block ${muted}`;
 
 const section = settingsSection;
 
@@ -77,6 +72,44 @@ const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => 
             <ChevronRight size={18} className="opacity-70 rtl:-scale-x-100" />
         </span>
     </button>
+);
+
+// A short list picked in place: the row looks like any other, and a native
+// <select> laid over it opens the system picker (the wheel on a phone, a menu
+// on a computer) from one tap, rather than a page of its own to go into and
+// back out of.
+const PickRow = <K extends string>({
+    label,
+    value,
+    options,
+    onChange,
+}: {
+    label: string;
+    value: K;
+    options: { value: K; label: string }[];
+    onChange: (v: K) => void;
+}) => (
+    <div
+        className={`${rowBase} ${rowBleed} relative focus-within:outline focus-within:outline-2 focus-within:outline-[var(--accent)]`}
+    >
+        <span className={rowLabel}>{label}</span>
+        <span className={rowValue}>
+            {options.find(o => o.value === value)?.label ?? value}
+            <ChevronsUpDown size={16} className="opacity-70" />
+        </span>
+        <select
+            value={value}
+            onChange={e => onChange(e.target.value as K)}
+            aria-label={label}
+            className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+        >
+            {options.map(o => (
+                <option key={o.value} value={o.value}>
+                    {o.label}
+                </option>
+            ))}
+        </select>
+    </div>
 );
 
 // The text is the switch's <label>, so a tap on the words (the bigger, more
@@ -114,34 +147,14 @@ const CAT_STYLE_SWATCHES: { id: CatStyle; background: string }[] = [
     { id: 'pink', background: 'var(--pixel-pink)' },
 ];
 
-const CAT_ORDER: readonly SettingsCat[] = ['general', 'data', 'about'];
-const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
-
-let _savedCat: SettingsCat = 'general';
-
-// On a phone the category drilled into is a level of its own for the system
-// Back, so it lives in the history entry pushed on the way in (navHistory)
-// rather than in a module variable. That also makes it last as long as it
-// should: Back from one of its pages lands in it again, while leaving by a
-// tab drops it, so the Settings tab opens on the list, not on whichever
-// category was open last.
-const mobileViewFromHistory = (): MobileView => {
-    const entry = readNavEntry();
-    const cat = entry?.view === 'settings' ? entry.cat : undefined;
-    return CAT_ORDER.find(c => c === cat) ?? 'list';
-};
-
-// Out of a category back through history, so the entry pushed on the way in
-// is not left behind for the next Back; popstate then shows the list.
-const leaveMobileCat = (setMobileView: (v: MobileView) => void) => {
-    if (readNavEntry()?.cat) stepBack();
-    else setMobileView('list');
-};
+const THEMES: readonly AppTheme[] = ['light', 'dark', 'system', 'mono'];
 
 const Settings: React.FC<SettingsProps> = ({
     t,
     lang,
+    setLang,
     theme,
+    setTheme,
     languageOptions,
     onClearAllEvents,
     events,
@@ -157,8 +170,6 @@ const Settings: React.FC<SettingsProps> = ({
     pkParams,
     onNavigateToPKParams,
     onNavigateToHRTMode,
-    onNavigateToLanguage,
-    onNavigateToAppearance,
     onNavigateToWeight,
     onNavigateToAge,
     onNavigateToExport,
@@ -181,339 +192,202 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
-    const [cat, setCat] = useState<SettingsCat>(_savedCat);
-    const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
 
-    const selectCat = (c: SettingsCat) => {
-        _savedCat = c;
-        setCat(c);
-    };
-
-    const enterMobileCat = (c: SettingsCat) => {
-        _savedCat = c;
-        setCat(c);
-        setMobileView(c);
-        const entry = readNavEntry();
-        if (entry?.cat) replaceNavEntry('settings', entry.depth, c);
-        else pushNavEntry('settings', navDepth() + 1, c);
-    };
-
-    const exitMobileCat = () => leaveMobileCat(setMobileView);
-
-    // The system Back (or Forward) moving between the list and a category,
-    // and the Settings tab tapped again while a category is open.
-    useEffect(() => {
-        const onPop = () => {
-            if (readNavEntry()?.view === 'settings') setMobileView(mobileViewFromHistory());
-        };
-        const onReselect = (e: Event) => {
-            if ((e as CustomEvent<{ view: string }>).detail?.view === 'settings') leaveMobileCat(setMobileView);
-        };
-        window.addEventListener('popstate', onPop);
-        window.addEventListener(TAB_RESELECT, onReselect);
-        return () => {
-            window.removeEventListener('popstate', onPop);
-            window.removeEventListener(TAB_RESELECT, onReselect);
-        };
-    }, []);
-
-    const navTo = (fn: () => void, forCat: SettingsCat) => {
-        _savedCat = forCat;
-        fn();
-    };
-
-    const catAnim = useSwitchAnimation(cat, CAT_ORDER);
-    const mobileAnim = useSwitchAnimation(mobileView, MOBILE_ORDER);
-
-    // Each hint names what people come looking for in that category, so the
-    // weight and the prediction switch can be found from this first screen.
-    const cats: { id: SettingsCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        {
-            id: 'general',
-            label: t('settings.group.general'),
-            Icon: Settings2,
-            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(', '),
-        },
-        {
-            id: 'data',
-            label: t('settings.group.data'),
-            Icon: Database,
-            hint: [t('export.title'), t('import.title')].join(', '),
-        },
-        {
-            id: 'about',
-            label: t('settings.group.about'),
-            Icon: Info,
-            hint: [t('drawer.model_title'), t('transparency.title')].join(', '),
-        },
-    ];
-
-    // Each category is a stack of sections: like rows sit together, and the
-    // space between sections is the only grouping, so no extra headings to
-    // translate.
-    const renderGeneral = () => (
-        <div className="space-y-8">
-            {/* What the model is fed. */}
-            <div className={section}>
-                <NavRow
-                    label={t('settings.hrt_mode')}
-                    value={t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}
-                    onClick={() => navTo(onNavigateToHRTMode, 'general')}
-                />
-                <NavRow
-                    label={t('status.weight')}
-                    value={`${weight} kg`}
-                    onClick={() => navTo(onNavigateToWeight, 'general')}
-                />
-                <SwitchRow
-                    label={t('settings.age_beta')}
-                    desc={t('settings.age_beta_desc')}
-                    checked={ageBeta}
-                    onChange={setAgeBeta}
-                />
-                {/* Only worth showing once the beta itself is on. */}
-                {ageBeta && (
-                    <NavRow
-                        label={t('settings.age')}
-                        value={
-                            birthYear === null ? t('settings.age_unset') : String(new Date().getFullYear() - birthYear)
-                        }
-                        onClick={() => navTo(onNavigateToAge, 'general')}
-                    />
-                )}
-                <NavRow
-                    label={t('settings.pk_params')}
-                    value={
-                        pkParams && (
-                            <span className="text-xs text-[var(--warning)] font-medium mr-1">{t('pk.customized')}</span>
-                        )
-                    }
-                    onClick={() => navTo(onNavigateToPKParams, 'general')}
-                />
-            </div>
-
-            {/* What's left on hand. */}
-            <div className={section}>
-                <NavRow
-                    label={t('supplies.title')}
-                    value={supplyCount > 0 ? fill(t('supplies.count'), { n: supplyCount }) : undefined}
-                    onClick={() => navTo(onNavigateToSupplies, 'general')}
-                />
-            </div>
-
-            {/* How the app looks and speaks. */}
-            <div className={section}>
-                <NavRow
-                    label={t('drawer.lang')}
-                    value={languageOptions.find(o => o.value === lang)?.label ?? lang}
-                    onClick={() => navTo(onNavigateToLanguage, 'general')}
-                />
-                <NavRow
-                    label={t('settings.theme')}
-                    value={t(`theme.${theme}`)}
-                    onClick={() => navTo(onNavigateToAppearance, 'general')}
-                />
-                <SwitchRow
-                    label={t('settings.prediction')}
-                    desc={t('settings.prediction_desc')}
-                    checked={showPrediction}
-                    onChange={setShowPrediction}
-                />
-                <SwitchRow
-                    label={t('settings.pixel_cats')}
-                    desc={t('settings.pixel_cats_desc')}
-                    checked={showCats}
-                    onChange={setShowCats}
-                />
-                {/* Only worth showing once the cats themselves are on. */}
-                {showCats && (
-                    <div className={`${rowBase} cursor-default`}>
-                        <span className={rowLabel}>{t('settings.cat_style')}</span>
-                        <div className="flex items-center gap-2.5">
-                            {CAT_STYLE_SWATCHES.map(({ id, background }) => (
-                                <button
-                                    key={id}
-                                    onClick={() => setCatStyle(id)}
-                                    aria-label={t(`settings.cat_style.${id}`)}
-                                    title={t(`settings.cat_style.${id}`)}
-                                    aria-pressed={catStyle === id}
-                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--border)] ${
-                                        catStyle === id
-                                            ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
-                                            : ''
-                                    }`}
-                                    style={{ background }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Desktop reaches the admin area from the left nav rail; on mobile that
-                rail doesn't exist, so this is the only way in. */}
-            {isAdmin && (
-                <div className={`${section} md:hidden`}>
-                    <NavRow label={t('admin.dashboard')} onClick={() => navTo(onNavigateToAdmin, 'general')} />
-                </div>
-            )}
-        </div>
-    );
-
-    const renderData = () => (
-        <div className="space-y-8">
-            {isLoggedIn && (
-                <div className={section}>
-                    <SwitchRow
-                        label={t('settings.auto_sync')}
-                        desc={t('settings.auto_sync_desc')}
-                        checked={autoSync}
-                        onChange={setAutoSync}
-                    />
-                </div>
-            )}
-
-            <div className={section}>
-                <NavRow label={t('export.title')} onClick={() => navTo(onNavigateToExport, 'data')} />
-                <NavRow label={t('import.title')} onClick={() => navTo(onNavigateToImport, 'data')} />
-            </div>
-
-            {/* Destructive, so it sits apart from Export and Import rather than one row under them.
-                The count says how much goes before the tap, not only in the confirm. */}
-            <div className={section}>
-                <button
-                    onClick={onClearAllEvents}
-                    disabled={!events.length}
-                    className={`${rowBase} ${events.length ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}
-                >
-                    <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
-                        {t('drawer.clear')}
-                    </span>
-                    {events.length > 0 && (
-                        <span className={`${rowValue} tabular-nums`}>
-                            {events.length} {t('timeline.records')}
-                        </span>
-                    )}
-                </button>
-            </div>
-        </div>
-    );
-
-    const renderAbout = () => (
-        <div className="space-y-8">
-            <div className={section}>
-                <NavRow
-                    label={t('drawer.model_title')}
-                    onClick={() =>
-                        showDialog('confirm', t('drawer.model_confirm'), () =>
-                            window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'),
-                        )
-                    }
-                />
-                <NavRow
-                    label={t('drawer.github')}
-                    onClick={() =>
-                        showDialog('confirm', t('drawer.github_confirm'), () =>
-                            window.open('https://github.com/xunxunProjects/Oyama-s-HRT-Tracker', '_blank'),
-                        )
-                    }
-                />
-                <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
-                <NavRow label="Credits" onClick={() => navTo(onNavigateToCredits, 'about')} />
-                <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
-                {/* The intro only ever shows itself once, so this is the only way back
-                    to it — and the only way anyone who skipped it can read it. */}
-                <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
-            </div>
-
-            <div className={section}>
-                <SwitchRow
-                    label={t('settings.developer_mode')}
-                    desc={t('settings.developer_mode_desc')}
-                    checked={devMode}
-                    onChange={setDevMode}
-                />
-                {devMode && (
-                    <SwitchRow
-                        label={t('settings.hide_site_label')}
-                        desc={t('settings.hide_site_label_desc')}
-                        checked={hideSiteLabel}
-                        onChange={setHideSiteLabel}
-                    />
-                )}
-                {devMode && (
-                    <NavRow label={t('settings.cat_states')} onClick={() => navTo(onNavigateToCatStates, 'about')} />
-                )}
-                {devMode && (
-                    <NavRow label={t('settings.milk_tea_egg')} onClick={() => navTo(onNavigateToMilkTea, 'about')} />
-                )}
-            </div>
-        </div>
-    );
-
-    // Called, not mounted as <Component />: a component declared inside render is
-    // a new type every render, so React would tear the rows down on each toggle
-    // and a keyboard user's focus would drop off the switch they just pressed.
-    const catContent = (id: SettingsCat) => {
-        if (id === 'general') return renderGeneral();
-        if (id === 'data') return renderData();
-        return renderAbout();
-    };
-
+    // One page, the same on a phone and a computer. It used to open on three
+    // categories to go into first, so even the theme was three taps and two
+    // pages deep. Now every row is on the first screen or a scroll below it,
+    // and the group names are only headings.
     return (
         <div className="relative pb-32">
-            {/* ── Mobile: the category list, then one category ─────────── */}
-            <div className="md:hidden">
-                {/* Keyed so drilling in slides forward and backing out slides back. */}
-                <div key={mobileView} className={mobileAnim}>
-                    {mobileView === 'list' ? (
-                        <>
-                            <PageHeader title={t('nav.settings')} />
-                            <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
-                                {cats.map(({ id, label, Icon, hint }) => (
+            <PageHeader title={t('nav.settings')} />
+            <div className={`${PAGE_COLUMN} mt-3 space-y-8`}>
+                {/* What the model is fed. */}
+                <div className={section}>
+                    <NavRow
+                        label={t('settings.hrt_mode')}
+                        value={t(mode === 'transfem' ? 'mode.transfem' : 'mode.transmasc')}
+                        onClick={onNavigateToHRTMode}
+                    />
+                    <NavRow label={t('status.weight')} value={`${weight} kg`} onClick={onNavigateToWeight} />
+                    <SwitchRow
+                        label={t('settings.age_beta')}
+                        desc={t('settings.age_beta_desc')}
+                        checked={ageBeta}
+                        onChange={setAgeBeta}
+                    />
+                    {/* Only worth showing once the beta itself is on. */}
+                    {ageBeta && (
+                        <NavRow
+                            label={t('settings.age')}
+                            value={
+                                birthYear === null
+                                    ? t('settings.age_unset')
+                                    : String(new Date().getFullYear() - birthYear)
+                            }
+                            onClick={onNavigateToAge}
+                        />
+                    )}
+                    <NavRow
+                        label={t('settings.pk_params')}
+                        value={
+                            pkParams && (
+                                <span className="text-xs text-[var(--warning)] font-medium mr-1">
+                                    {t('pk.customized')}
+                                </span>
+                            )
+                        }
+                        onClick={onNavigateToPKParams}
+                    />
+                </div>
+
+                {/* What's left on hand. */}
+                <div className={section}>
+                    <NavRow
+                        label={t('supplies.title')}
+                        value={supplyCount > 0 ? fill(t('supplies.count'), { n: supplyCount }) : undefined}
+                        onClick={onNavigateToSupplies}
+                    />
+                </div>
+
+                {/* How the app looks and speaks. */}
+                <div className={section}>
+                    <PickRow
+                        label={t('drawer.lang')}
+                        value={lang}
+                        options={languageOptions as { value: Lang; label: string }[]}
+                        onChange={setLang}
+                    />
+                    <PickRow
+                        label={t('settings.theme')}
+                        value={theme}
+                        options={THEMES.map(v => ({ value: v, label: t(`theme.${v}`) }))}
+                        onChange={setTheme}
+                    />
+                    <SwitchRow
+                        label={t('settings.prediction')}
+                        desc={t('settings.prediction_desc')}
+                        checked={showPrediction}
+                        onChange={setShowPrediction}
+                    />
+                    <SwitchRow
+                        label={t('settings.pixel_cats')}
+                        desc={t('settings.pixel_cats_desc')}
+                        checked={showCats}
+                        onChange={setShowCats}
+                    />
+                    {/* Only worth showing once the cats themselves are on. */}
+                    {showCats && (
+                        <div className={`${rowBase} cursor-default`}>
+                            <span className={rowLabel}>{t('settings.cat_style')}</span>
+                            <div className="flex items-center gap-2.5">
+                                {CAT_STYLE_SWATCHES.map(({ id, background }) => (
                                     <button
                                         key={id}
-                                        onClick={() => enterMobileCat(id)}
-                                        // The rule starts after the 36px tile and its 12px gap.
-                                        style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                                        className={`${rowBase} ${rowBleed}`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                                <Icon size={20} strokeWidth={1.75} className={muted} />
-                                            </div>
-                                            <div className="text-start">
-                                                <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
-                                                <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
-                                            </div>
-                                        </div>
-                                        <ChevronRight
-                                            size={18}
-                                            className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`}
-                                        />
-                                    </button>
+                                        onClick={() => setCatStyle(id)}
+                                        aria-label={t(`settings.cat_style.${id}`)}
+                                        title={t(`settings.cat_style.${id}`)}
+                                        aria-pressed={catStyle === id}
+                                        className={`h-6 w-6 shrink-0 rounded-full border border-[var(--border)] ${
+                                            catStyle === id
+                                                ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
+                                                : ''
+                                        }`}
+                                        style={{ background }}
+                                    />
                                 ))}
                             </div>
-                        </>
-                    ) : (
-                        <>
-                            <PageHeader onBack={exitMobileCat} title={cats.find(c => c.id === mobileView)?.label} />
-                            <div className={`${PAGE_COLUMN} mt-3`}>{catContent(mobileView as SettingsCat)}</div>
-                        </>
+                        </div>
                     )}
                 </div>
-            </div>
 
-            {/* ── Desktop: the same header and column as every other page,
-                with the categories as tabs under the title. A second nav rail
-                beside the app's own sidebar pushed the whole page left. ── */}
-            <div className="hidden md:block">
-                <PageHeader title={t('nav.settings')} />
-                <div className={`${PAGE_COLUMN} mt-3`}>
-                    <Tabs tabs={cats} value={cat} onChange={selectCat} className="mb-4" />
-                    <div key={cat} className={catAnim}>
-                        {catContent(cat)}
+                {/* Desktop reaches the admin area from the left nav rail; on mobile that
+                    rail doesn't exist, so this is the only way in. */}
+                {isAdmin && (
+                    <div className={`${section} md:hidden`}>
+                        <NavRow label={t('admin.dashboard')} onClick={onNavigateToAdmin} />
                     </div>
+                )}
+
+                <section>
+                    <h2 className={groupLabel}>{t('settings.group.data')}</h2>
+                    <div className={section}>
+                        {isLoggedIn && (
+                            <SwitchRow
+                                label={t('settings.auto_sync')}
+                                desc={t('settings.auto_sync_desc')}
+                                checked={autoSync}
+                                onChange={setAutoSync}
+                            />
+                        )}
+                        <NavRow label={t('export.title')} onClick={onNavigateToExport} />
+                        <NavRow label={t('import.title')} onClick={onNavigateToImport} />
+                    </div>
+                </section>
+
+                {/* Destructive, so it sits apart from Export and Import rather than one row under them.
+                    The count says how much goes before the tap, not only in the confirm. */}
+                <div className={section}>
+                    <button
+                        onClick={onClearAllEvents}
+                        disabled={!events.length}
+                        className={`${rowBase} ${events.length ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}
+                    >
+                        <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
+                            {t('drawer.clear')}
+                        </span>
+                        {events.length > 0 && (
+                            <span className={`${rowValue} tabular-nums`}>
+                                {events.length} {t('timeline.records')}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                <section>
+                    <h2 className={groupLabel}>{t('settings.group.about')}</h2>
+                    <div className={section}>
+                        <NavRow
+                            label={t('drawer.model_title')}
+                            onClick={() =>
+                                showDialog('confirm', t('drawer.model_confirm'), () =>
+                                    window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'),
+                                )
+                            }
+                        />
+                        <NavRow
+                            label={t('drawer.github')}
+                            onClick={() =>
+                                showDialog('confirm', t('drawer.github_confirm'), () =>
+                                    window.open('https://github.com/xunxunProjects/Oyama-s-HRT-Tracker', '_blank'),
+                                )
+                            }
+                        />
+                        <NavRow label={t('transparency.title')} onClick={onNavigateToTransparency} />
+                        <NavRow label="Credits" onClick={onNavigateToCredits} />
+                        <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
+                        {/* The intro only ever shows itself once, so this is the only way back
+                            to it — and the only way anyone who skipped it can read it. */}
+                        <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
+                    </div>
+                </section>
+
+                <div className={section}>
+                    <SwitchRow
+                        label={t('settings.developer_mode')}
+                        desc={t('settings.developer_mode_desc')}
+                        checked={devMode}
+                        onChange={setDevMode}
+                    />
+                    {devMode && (
+                        <SwitchRow
+                            label={t('settings.hide_site_label')}
+                            desc={t('settings.hide_site_label_desc')}
+                            checked={hideSiteLabel}
+                            onChange={setHideSiteLabel}
+                        />
+                    )}
+                    {devMode && <NavRow label={t('settings.cat_states')} onClick={onNavigateToCatStates} />}
+                    {devMode && <NavRow label={t('settings.milk_tea_egg')} onClick={onNavigateToMilkTea} />}
                 </div>
             </div>
         </div>

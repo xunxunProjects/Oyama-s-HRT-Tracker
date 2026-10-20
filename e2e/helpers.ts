@@ -161,14 +161,12 @@ export async function gotoApp(page: Page): Promise<void> {
 
 export async function openExport(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('tab', { name: 'Data Management' }).click();
     await page.getByRole('button', { name: 'Export Data', exact: true }).click();
     await expect(page.getByRole('button', { name: /Complete backup/ })).toBeVisible();
 }
 
 export async function openImport(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('tab', { name: 'Data Management' }).click();
     await page.getByRole('button', { name: 'Import Data', exact: true }).click();
     await expect(page.getByRole('button', { name: /Paste JSON Text/ })).toBeVisible();
 }

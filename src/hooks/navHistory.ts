@@ -14,16 +14,12 @@ import type { ViewKey } from './useAppNavigation';
  * above it do stay as the browser's Forward, and when a tab has taken the
  * base's place they belong to another stack; the navigation hook steps back
  * over one rather than show it.
- *
- * Settings on a phone has a level of its own between the list and a page:
- * the category drilled into, recorded in `cat` on its own entry.
  */
 export interface NavEntry {
     hrtNav: 1;
     view: ViewKey;
     /** How many entries above the base this one is: 0 for a tab's own page. */
     depth: number;
-    cat?: string;
     /** The page this one was opened from, when that isn't its own tab (see ALSO_UNDER). */
     under?: ViewKey;
 }
@@ -42,13 +38,13 @@ export const navDepth = (): number => readNavEntry()?.depth ?? 0;
 let shownDepth = navDepth();
 let leftDepth = shownDepth;
 
-export const pushNavEntry = (view: ViewKey, depth: number, cat?: string, under?: ViewKey) => {
-    window.history.pushState({ hrtNav: 1, view, depth, cat, under } satisfies NavEntry, '');
+export const pushNavEntry = (view: ViewKey, depth: number, under?: ViewKey) => {
+    window.history.pushState({ hrtNav: 1, view, depth, under } satisfies NavEntry, '');
     shownDepth = depth;
 };
 
-export const replaceNavEntry = (view: ViewKey, depth: number, cat?: string) => {
-    window.history.replaceState({ hrtNav: 1, view, depth, cat } satisfies NavEntry, '');
+export const replaceNavEntry = (view: ViewKey, depth: number) => {
+    window.history.replaceState({ hrtNav: 1, view, depth } satisfies NavEntry, '');
     shownDepth = depth;
 };
 
