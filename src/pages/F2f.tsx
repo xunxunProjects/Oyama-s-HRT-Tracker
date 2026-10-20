@@ -213,6 +213,21 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     )}
                                 </section>
 
+                                {status.escrow && (
+                                    <section className={card}>
+                                        <p className={heading}>{t('f2f.escrow_title')}</p>
+                                        <p className={`${muted} mt-1`}>{t('f2f.escrow_desc')}</p>
+                                        <p className={`${mono} mt-2`}>{status.escrow.fingerprint}</p>
+                                        <button
+                                            className={`${secondary} mt-2`}
+                                            onClick={() => copy(status.escrow!.fingerprint, 'escrow')}
+                                        >
+                                            <Copy size={14} className="mr-1 inline" />
+                                            {copied === 'escrow' ? t('f2f.copied') : t('f2f.copy')}
+                                        </button>
+                                    </section>
+                                )}
+
                                 <section className={card}>
                                     <p className={heading}>{t('f2f.rotate')}</p>
                                     <p className={`${muted} mt-1`}>{t('f2f.rotate_note')}</p>

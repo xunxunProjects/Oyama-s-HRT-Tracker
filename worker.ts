@@ -4,7 +4,7 @@ import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
 import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
-import { handleF2fWeb, sweepF2fCohorts } from './f2f';
+import { handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -51,6 +51,10 @@ export interface Env {
     HRT_RAW_ENABLED?: string;
     HRT_SERVICE_TOKEN?: string;
     HRT_IP_KEY?: string;
+    /** '1' makes every new F2F cohort reserve an operator-provisioned escrow key. */
+    HRT_F2F_ESCROW?: string;
+    /** Base64 of 32 bytes; wraps the escrow private keys at rest. */
+    HRT_ESCROW_KEY?: string;
     /**
      * Rate Limiting bindings, one per requests-per-minute class (wrangler.toml).
      * Keys are prefixed per endpoint, so endpoints with the same ceiling share a
@@ -1291,6 +1295,10 @@ export default {
             if (url.pathname.startsWith('/api/tool/v1/hrt/')) {
                 const hrtResponse = await handleHrtService(request, env, url);
                 if (hrtResponse) return withSecurityHeaders(hrtResponse);
+            }
+            if (url.pathname.startsWith('/api/tool/v1/f2f/')) {
+                const f2fResponse = await handleF2fService(request, env, url);
+                if (f2fResponse) return withSecurityHeaders(f2fResponse);
             }
 
             // Login

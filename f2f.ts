@@ -3,10 +3,12 @@
  *
  * A cohort has 100 numbered seats. Seats are assigned once and never reused:
  * deleting an account leaves a tombstone row, so a new member always takes a
- * higher seat and a full cohort (100 rows, active or deleted) is closed. This
- * module stores only public keys. The optional cohort escrow key columns are
- * reserved for the separately enabled escrow mode; no private key is created
- * or returned here.
+ * higher seat and a full cohort (100 rows, active or deleted) is closed.
+ *
+ * Member public keys are public data. The optional cohort escrow key is an
+ * operator-provisioned OpenPGP key pair: only the public part is returned to
+ * members, while the private part is stored as an AES-GCM envelope under
+ * HRT_ESCROW_KEY and is not exposed by any API here.
  */
 
 import { readSmallJsonBody } from './requestInput';
@@ -15,6 +17,7 @@ import type { Env } from './worker';
 const COHORT_SIZE = 100;
 const MAX_KEYS_PER_USER = 20;
 const MAX_PUBLIC_KEY_BYTES = 64 * 1024;
+const MAX_PRIVATE_KEY_BYTES = 128 * 1024;
 const MIN_PUBLIC_KEY_BYTES = 100;
 const IDLE_RETIRE_SECONDS = 180 * 24 * 60 * 60;
 
@@ -23,12 +26,70 @@ const COHORT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 const KEY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ARMOR_BEGIN = '-----BEGIN PGP PUBLIC KEY BLOCK-----';
 const ARMOR_END = '-----END PGP PUBLIC KEY BLOCK-----';
+const PRIVATE_ARMOR_BEGIN = '-----BEGIN PGP PRIVATE KEY BLOCK-----';
+const PRIVATE_ARMOR_END = '-----END PGP PRIVATE KEY BLOCK-----';
 
 const encoder = new TextEncoder();
 
 export interface F2fUser {
     userId: string;
     username: string;
+}
+
+class F2fError extends Error {
+    constructor(
+        readonly code: string,
+        readonly status: number,
+        message: string,
+    ) {
+        super(message);
+    }
+}
+
+function b64decode(value: string): Uint8Array | null {
+    try {
+        return Uint8Array.from(atob(value), char => char.charCodeAt(0));
+    } catch {
+        return null;
+    }
+}
+
+function b64encode(bytes: Uint8Array): string {
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)));
+    return Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let index = 0; index < a.length; index++) diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
+    return diff === 0;
+}
+
+async function escrowCryptoKey(env: Env): Promise<CryptoKey> {
+    const bytes = env.HRT_ESCROW_KEY ? b64decode(env.HRT_ESCROW_KEY) : null;
+    if (!bytes || bytes.length !== 32) {
+        throw new F2fError('ESCROW_UNAVAILABLE', 503, 'escrow is enabled but HRT_ESCROW_KEY is not configured');
+    }
+    return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function encryptEscrowPrivateKey(env: Env, privateKey: string, fingerprint: string): Promise<string> {
+    const key = await escrowCryptoKey(env);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    /* The fingerprint is authenticated data, so a ciphertext cannot be moved
+       to another key row without failing decryption. */
+    const additionalData = encoder.encode(`f2f-escrow-v1:${fingerprint}`);
+    const ciphertext = new Uint8Array(
+        await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData }, key, encoder.encode(privateKey)),
+    );
+    return `v1.${b64encode(iv)}.${b64encode(ciphertext)}`;
 }
 
 interface SeatRow {
@@ -70,10 +131,27 @@ function normalizePublicKey(value: unknown): string | null {
     return key;
 }
 
+function normalizePrivateKey(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const key = value.trim();
+    const bytes = encoder.encode(key).length;
+    if (bytes < MIN_PUBLIC_KEY_BYTES || bytes > MAX_PRIVATE_KEY_BYTES) return null;
+    if (!key.startsWith(PRIVATE_ARMOR_BEGIN) || !key.endsWith(PRIVATE_ARMOR_END)) return null;
+    if (hasUnsafeControl(key)) return null;
+    return key;
+}
+
 function normalizeFingerprint(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const fingerprint = value.trim().toLowerCase();
     return HEX_FINGERPRINT.test(fingerprint) ? fingerprint : null;
+}
+
+async function serviceAuthorized(request: Request, env: Env): Promise<boolean> {
+    const expected = env.HRT_SERVICE_TOKEN;
+    const provided = request.headers.get('x-hrt-service');
+    if (!expected || !provided) return false;
+    return constantTimeEqual(await sha256Hex(expected), await sha256Hex(provided));
 }
 
 async function readBody(
@@ -110,6 +188,64 @@ async function seatForUser(env: Env, userId: string): Promise<SeatRow | null> {
 }
 
 /**
+ * Create a cohort, reserving an escrow key first when escrow is enabled. The
+ * reservation is a conditional UPDATE, so concurrent cohort creations cannot
+ * share one key. If the cohort insert then fails, the key is released.
+ */
+async function createCohort(env: Env, now: number): Promise<string> {
+    if (env.HRT_F2F_ESCROW !== '1') {
+        const id = crypto.randomUUID();
+        await env.DB.prepare("INSERT INTO f2f_cohorts (id, state, created_at, last_used_at) VALUES (?, 'active', ?, ?)")
+            .bind(id, now, now)
+            .run();
+        return id;
+    }
+    if (!env.HRT_ESCROW_KEY) {
+        throw new F2fError('ESCROW_UNAVAILABLE', 503, 'escrow is enabled but HRT_ESCROW_KEY is not configured');
+    }
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const key = await env.DB.prepare(
+            `SELECT id, public_key, private_key_encrypted, fingerprint
+               FROM f2f_escrow_keys
+              WHERE state = 'available'
+              ORDER BY created_at ASC LIMIT 1`,
+        ).first();
+        if (!key) {
+            throw new F2fError('ESCROW_UNAVAILABLE', 503, 'no escrow key is available');
+        }
+        const id = crypto.randomUUID();
+        const reserved = await env.DB.prepare(
+            "UPDATE f2f_escrow_keys SET state = 'assigned', cohort_id = ?, assigned_at = ? WHERE id = ? AND state = 'available'",
+        )
+            .bind(id, now, String(key.id))
+            .run();
+        if (Number(reserved.meta?.changes ?? 0) !== 1) {
+            continue;
+        }
+        try {
+            await env.DB.prepare(
+                `INSERT INTO f2f_cohorts
+                   (id, state, created_at, last_used_at,
+                    escrow_public_key, escrow_private_key_encrypted, escrow_fingerprint)
+                 VALUES (?, 'active', ?, ?, ?, ?, ?)`,
+            )
+                .bind(id, now, now, String(key.public_key), String(key.private_key_encrypted), String(key.fingerprint))
+                .run();
+        } catch (insertError) {
+            await env.DB.prepare(
+                "UPDATE f2f_escrow_keys SET state = 'available', cohort_id = NULL, assigned_at = NULL WHERE id = ? AND cohort_id = ?",
+            )
+                .bind(String(key.id), id)
+                .run();
+            throw insertError;
+        }
+        return id;
+    }
+    throw new F2fError('ESCROW_UNAVAILABLE', 503, 'could not reserve an escrow key');
+}
+
+/**
  * Assign the lowest unoccupied seat. A deleted seat still occupies its row,
  * so it is skipped forever. The insert uses ON CONFLICT DO NOTHING and retries
  * when another request wins the same seat.
@@ -123,12 +259,7 @@ async function assignSeat(env: Env, userId: string, now: number): Promise<{ coho
         if (active) {
             cohortId = String(active.id);
         } else {
-            cohortId = crypto.randomUUID();
-            await env.DB.prepare(
-                "INSERT INTO f2f_cohorts (id, state, created_at, last_used_at) VALUES (?, 'active', ?, ?)",
-            )
-                .bind(cohortId, now, now)
-                .run();
+            cohortId = await createCohort(env, now);
         }
 
         const usedResult = await env.DB.prepare('SELECT seat FROM f2f_seats WHERE cohort_id = ?').bind(cohortId).all();
@@ -176,7 +307,10 @@ async function status(env: Env, user: F2fUser): Promise<Response> {
     if (!seat || seat.status !== 'active') {
         return json({ registered: false });
     }
-    const cohort = await env.DB.prepare('SELECT id, state, created_at, last_used_at FROM f2f_cohorts WHERE id = ?')
+    const cohort = await env.DB.prepare(
+        `SELECT id, state, created_at, last_used_at, escrow_public_key, escrow_fingerprint
+           FROM f2f_cohorts WHERE id = ?`,
+    )
         .bind(seat.cohort_id)
         .first();
     if (!cohort) {
@@ -215,6 +349,13 @@ async function status(env: Env, user: F2fUser): Promise<Response> {
                   createdAt: Number(key.created_at),
               }
             : null,
+        escrow:
+            typeof cohort.escrow_public_key === 'string' && cohort.escrow_public_key
+                ? {
+                      publicKey: String(cohort.escrow_public_key),
+                      fingerprint: String(cohort.escrow_fingerprint ?? ''),
+                  }
+                : null,
     });
 }
 
@@ -233,8 +374,15 @@ async function uploadKey(env: Env, request: Request, user: F2fUser): Promise<Res
         return error('SEAT_DELETED', 'this account no longer has an F2F seat', 403);
     }
     if (!seat) {
-        const assigned = await assignSeat(env, user.userId, nowSeconds());
-        seat = { cohort_id: assigned.cohortId, seat: assigned.seat, status: 'active' };
+        try {
+            const assigned = await assignSeat(env, user.userId, nowSeconds());
+            seat = { cohort_id: assigned.cohortId, seat: assigned.seat, status: 'active' };
+        } catch (assignError) {
+            if (assignError instanceof F2fError) {
+                return error(assignError.code, assignError.message, assignError.status);
+            }
+            return error('SEAT_UNAVAILABLE', 'could not assign a seat', 503);
+        }
     }
 
     const cohort = await env.DB.prepare('SELECT state FROM f2f_cohorts WHERE id = ?').bind(seat.cohort_id).first();
@@ -351,7 +499,11 @@ async function cohortMembers(env: Env, user: F2fUser, cohortId: string): Promise
     if (!membership) {
         return error('NOT_A_MEMBER', 'you are not an active member of this cohort', 403);
     }
-    const cohort = await env.DB.prepare('SELECT id, state FROM f2f_cohorts WHERE id = ?').bind(cohortId).first();
+    const cohort = await env.DB.prepare(
+        'SELECT id, state, escrow_public_key, escrow_fingerprint FROM f2f_cohorts WHERE id = ?',
+    )
+        .bind(cohortId)
+        .first();
     if (!cohort) {
         return error('COHORT_NOT_FOUND', 'cohort not found', 404);
     }
@@ -400,9 +552,95 @@ async function cohortMembers(env: Env, user: F2fUser, cohortId: string): Promise
     await env.DB.prepare('UPDATE f2f_cohorts SET last_used_at = ? WHERE id = ?').bind(nowSeconds(), cohortId).run();
 
     return json({
-        cohort: { id: String(cohort.id), state: String(cohort.state) },
+        cohort: {
+            id: String(cohort.id),
+            state: String(cohort.state),
+            escrow: cohort.escrow_public_key
+                ? {
+                      publicKey: String(cohort.escrow_public_key),
+                      fingerprint: String(cohort.escrow_fingerprint ?? ''),
+                  }
+                : null,
+        },
         members,
     });
+}
+
+async function provisionEscrowKey(env: Env, request: Request): Promise<Response> {
+    const parsed = await readBody(request, MAX_PUBLIC_KEY_BYTES + MAX_PRIVATE_KEY_BYTES + 16 * 1024);
+    if ('response' in parsed) return parsed.response;
+    const publicKey = normalizePublicKey(parsed.value.public_key);
+    const privateKey = normalizePrivateKey(parsed.value.private_key);
+    const fingerprint = normalizeFingerprint(parsed.value.fingerprint);
+    if (!publicKey || !privateKey || !fingerprint) {
+        return error('INVALID_KEY', 'a valid armored key pair and fingerprint are required', 400);
+    }
+    if (!env.HRT_ESCROW_KEY) {
+        return error('ESCROW_UNAVAILABLE', 'HRT_ESCROW_KEY is not configured', 503);
+    }
+    let encrypted: string;
+    try {
+        encrypted = await encryptEscrowPrivateKey(env, privateKey, fingerprint);
+    } catch (encryptError) {
+        if (encryptError instanceof F2fError) {
+            return error(encryptError.code, encryptError.message, encryptError.status);
+        }
+        return error('ESCROW_UNAVAILABLE', 'cannot encrypt the escrow key', 503);
+    }
+    const id = crypto.randomUUID();
+    try {
+        await env.DB.prepare(
+            `INSERT INTO f2f_escrow_keys
+               (id, public_key, private_key_encrypted, fingerprint, state, created_at)
+             VALUES (?, ?, ?, ?, 'available', ?)`,
+        )
+            .bind(id, publicKey, encrypted, fingerprint, nowSeconds())
+            .run();
+    } catch {
+        return error('KEY_EXISTS', 'this escrow fingerprint is already provisioned', 409);
+    }
+    return json({ id, fingerprint, state: 'available' });
+}
+
+async function escrowStatus(env: Env): Promise<Response> {
+    const counts = await env.DB.prepare('SELECT state, COUNT(*) AS n FROM f2f_escrow_keys GROUP BY state').all();
+    const keys = await env.DB.prepare(
+        `SELECT id, fingerprint, state, cohort_id, created_at, assigned_at
+           FROM f2f_escrow_keys ORDER BY created_at ASC LIMIT 100`,
+    ).all();
+    const summary: Record<string, number> = { available: 0, assigned: 0, retired: 0, deleted: 0 };
+    for (const row of counts.results ?? []) {
+        summary[String(row.state)] = Number(row.n);
+    }
+    return json({
+        enabled: env.HRT_F2F_ESCROW === '1',
+        counts: summary,
+        keys: (keys.results ?? []).map(row => ({
+            id: String(row.id),
+            fingerprint: String(row.fingerprint),
+            state: String(row.state),
+            cohortId: row.cohort_id === null ? null : String(row.cohort_id),
+            createdAt: Number(row.created_at),
+            assignedAt: row.assigned_at === null ? null : Number(row.assigned_at),
+        })),
+    });
+}
+
+/** Service-token endpoints used by the operator to provision escrow keys. */
+export async function handleF2fService(request: Request, env: Env, url: URL): Promise<Response | null> {
+    if (!url.pathname.startsWith('/api/tool/v1/f2f/')) return null;
+    if (!(await serviceAuthorized(request, env))) {
+        return error('NOT_AUTHORIZED', 'service authentication failed', 401);
+    }
+    if (url.pathname === '/api/tool/v1/f2f/escrow/keys') {
+        if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 'POST required', 405);
+        return provisionEscrowKey(env, request);
+    }
+    if (url.pathname === '/api/tool/v1/f2f/escrow/status') {
+        if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 'GET required', 405);
+        return escrowStatus(env);
+    }
+    return error('NOT_FOUND', 'Not found', 404);
 }
 
 export async function handleF2fWeb(request: Request, env: Env, url: URL, user: F2fUser): Promise<Response | null> {
@@ -443,4 +681,12 @@ export async function sweepF2fCohorts(env: Env): Promise<void> {
     )
         .bind(now, now - IDLE_RETIRE_SECONDS)
         .run();
+    /* A crash between reserving an escrow key and inserting its cohort would
+       otherwise strand the key forever. */
+    await env.DB.prepare(
+        `UPDATE f2f_escrow_keys
+            SET state = 'available', cohort_id = NULL, assigned_at = NULL
+          WHERE state = 'assigned'
+            AND (cohort_id IS NULL OR cohort_id NOT IN (SELECT id FROM f2f_cohorts))`,
+    ).run();
 }
