@@ -12,6 +12,8 @@ interface ExportSettingsProps {
     onExport: (encrypt: boolean, password?: string) => Promise<string | null>;
     /** Resolves to false when the clipboard write failed (see ExportSection). */
     onQuickExport: () => void | boolean | Promise<void | boolean>;
+    /** Plaintext complete-device bundle; encryption belongs to the Tools workflow. */
+    onExportCompleteBackup: () => void;
     onBack: () => void;
 }
 
@@ -21,6 +23,7 @@ const ExportSettings: React.FC<ExportSettingsProps> = ({
     weight,
     onExport,
     onQuickExport,
+    onExportCompleteBackup,
     onBack,
 }) => {
     const { t } = useTranslation();
@@ -36,6 +39,7 @@ const ExportSettings: React.FC<ExportSettingsProps> = ({
                     weight={weight}
                     onExport={onExport}
                     onQuickExport={onQuickExport}
+                    onExportCompleteBackup={onExportCompleteBackup}
                 />
             </div>
         </div>

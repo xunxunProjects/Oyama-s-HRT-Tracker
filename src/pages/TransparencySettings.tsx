@@ -77,7 +77,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
             <PageHeader onBack={onBack} title={t('transparency.title')} />
 
             {lastUpdated && (
-                <p className="px-6 md:px-8 text-xs text-[var(--text-muted)] mb-6">
+                <p className="px-6 md:px-8 text-xs tabular-nums text-[var(--text-muted)] mb-6">
                     {t('transparency.last_updated').replace('{t}', new Date(lastUpdated).toLocaleTimeString())}
                 </p>
             )}
@@ -117,7 +117,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                             <p className="text-[0.9375rem] text-[var(--text)]">
                                 {t('transparency.stat.new_users_24h')}
                             </p>
-                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.new_users_7d').replace('{n}', fig(stats?.new_users_7d))}
                             </p>
                         </div>
@@ -129,7 +129,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                     <div className={rowBase}>
                         <div>
                             <p className="text-[0.9375rem] text-[var(--text)]">{t('transparency.stat.self_deleted')}</p>
-                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.self_deleted_7d))}
                             </p>
                         </div>
@@ -143,7 +143,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                             <p className="text-[0.9375rem] text-[var(--text)]">
                                 {t('transparency.stat.admin_deleted')}
                             </p>
-                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.admin_deleted_7d))}
                             </p>
                         </div>

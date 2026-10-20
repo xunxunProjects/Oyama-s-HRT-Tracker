@@ -9,13 +9,13 @@ import { useTranslation } from '../contexts/LanguageContext';
  */
 export const PAGE_COLUMN = 'mx-auto w-full max-w-2xl px-6 md:px-8';
 
-/** A small pill text button for the right side of a PageHeader (Select, Edit…). */
+/** A text button for the right side of a PageHeader (Select, Edit…). */
 export const headerAction =
-    'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-full hover:bg-[var(--surface-hover)]';
+    'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)]';
 
-/** The same pill for the action that does the page's job (Add, Log…): terracotta, with a tonal hover. */
+/** The same button for the action that does the page's job (Add, Log…): terracotta, with a tonal hover. */
 export const headerActionAccent =
-    'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
+    'inline-flex h-8 items-center gap-1.5 px-2.5 text-[0.875rem] font-medium rounded-[var(--radius-md)] text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
@@ -66,7 +66,7 @@ const PageHeader: React.FC<{
                             >
                                 <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
                                 <span
-                                    className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
+                                    className={`font-display text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
                                 >
                                     {title}
                                 </span>

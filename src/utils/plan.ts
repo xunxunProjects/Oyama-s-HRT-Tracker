@@ -1,4 +1,4 @@
-import { DoseEvent, Ester, ExtraKey, GNRH_AGONISTS, Route } from '../../logic';
+import { DoseEvent, Ester, ExtraKey, GNRH_AGONISTS, Route, isDrugCode } from '../../logic';
 import { Regimen, hormoneOf, lapseH } from './regimen';
 
 /**
@@ -140,7 +140,10 @@ export const itemToDraft = (i: PlanItem): PlanDraft => ({
 
 export const normalizePlanItem = (raw: any): PlanItem | null => {
     if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string') return null;
-    if (!Object.values(Route).includes(raw.route) || !Object.values(Ester).includes(raw.ester)) return null;
+    // Keep a newer version's drug code instead of dropping the item. The plan
+    // only matches and schedules it; `hormoneOf` treats an unknown code as
+    // unmodelled, so it adds no simulated curve and is never rewritten to E2.
+    if (!Object.values(Route).includes(raw.route) || !isDrugCode(raw.ester)) return null;
     const everyDays = Number(raw.everyDays);
     const timesPerDay = Math.round(Number(raw.timesPerDay));
     const doseMG = Number(raw.doseMG);

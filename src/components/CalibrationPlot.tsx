@@ -163,7 +163,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                     <svg
                         width={width}
                         height={height}
-                        className="block overflow-visible"
+                        className="block overflow-visible tabular-nums"
                         onPointerLeave={() => setHover(null)}
                     >
                         <defs>
@@ -216,7 +216,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                             ))}
                             {/* Axis titles in the corners, pointing along their axis */}
                             <text x={mL - 6 * ui} y={mT - 9 * ui} fontSize={10.5 * ui} className={mutedFill}>
-                                ↑ {t('cal.plot.y')} (pg/ml)
+                                ↑ {t('cal.plot.y')} (pg/mL)
                             </text>
                             <text
                                 x={mL + pw}
@@ -225,7 +225,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                 fontSize={10.5 * ui}
                                 className={mutedFill}
                             >
-                                {t('cal.plot.x')} (pg/ml) →
+                                {t('cal.plot.x')} (pg/mL) →
                             </text>
                         </g>
 
@@ -327,7 +327,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className={`text-sm font-medium tabular-nums ${on}`}>{Math.round(hp.obs)}</span>
-                            <span className={`text-[0.6875rem] ${muted}`}>{t('cal.plot.lab')} pg/ml</span>
+                            <span className={`text-[0.6875rem] ${muted}`}>{t('cal.plot.lab')} pg/mL</span>
                         </div>
                         <div className={`text-[0.6875rem] tabular-nums whitespace-nowrap ${muted}`}>
                             {t('cal.model')} {Math.round(hp.pred)}

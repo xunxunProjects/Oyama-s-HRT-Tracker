@@ -89,11 +89,7 @@ const OptionCard: React.FC<{
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className={`text-[0.9375rem] ${selected ? `font-semibold ${on}` : on}`}>{title}</span>
-                    {badge && (
-                        <span className="text-[0.6875rem] font-medium px-1.5 py-0.5 rounded-full text-[var(--accent-ink)] border border-[var(--accent-ink)]/30">
-                            {badge}
-                        </span>
-                    )}
+                    {badge && <span className="text-xs font-medium text-[var(--accent-ink)]">{badge}</span>}
                 </div>
                 {children}
             </div>

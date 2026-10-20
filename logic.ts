@@ -69,6 +69,15 @@ export function isKnownEster(e: unknown): e is Ester {
     return typeof e === 'string' && KNOWN_ESTERS.has(e);
 }
 
+/**
+ * A syntactically valid drug code, whether or not this build knows the drug.
+ * A newer version can use a code this one has never heard of; storage, sync,
+ * and import preserve it exactly rather than rewriting it to a known ester.
+ */
+export function isDrugCode(e: unknown): e is Ester {
+    return typeof e === 'string' && /^[A-Za-z0-9_]{1,24}$/.test(e);
+}
+
 /** No level model behind it: one of UNMODELLED_DRUGS, or a code this build doesn't know. */
 export function isUnmodelledDrug(e: Ester): boolean {
     return !KNOWN_ESTERS.has(e) || UNMODELLED_DRUGS.has(e);

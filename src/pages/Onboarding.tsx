@@ -443,7 +443,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                             <p className="text-[0.9375rem] font-medium text-body">{regimenLabel(item, t)}</p>
                             <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">
                                 {frequencyLabel(item, t)}
-                                {item.route === Route.gel && ` · ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
+                                {item.route === Route.gel && `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                             </p>
                         </div>
                         {/* Confirmed like on the Plan page: on a replayed intro

@@ -45,6 +45,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 import { useEscapeLayer } from './CustomSelect';
 import GuideFold from './dose_form/GuideFold';
 import Tick from './Tick';
+import { cleanDoseMG } from '../utils/cleanDose';
 
 export interface DoseTemplate {
     id: string;
@@ -615,7 +616,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         : Ester.E2
                     : ester,
             timeH,
-            doseMG: finalDose,
+            doseMG: cleanDoseMG(finalDose),
             extras,
         };
 
@@ -800,12 +801,16 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                         }}
                                         className="flex-1 text-left"
                                     >
-                                        <div className="text-sm font-medium text-[var(--text)]">{template.name}</div>
-                                        <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                                            {t(`route.${template.route}`)} ·{' '}
-                                            {template.extras[ExtraKey.releaseRateUGPerDay]
-                                                ? `${template.extras[ExtraKey.releaseRateUGPerDay]} µg/d`
-                                                : `${trimDose(template.doseMG)} mg`}
+                                        <div className="whitespace-pre-line text-sm font-medium text-[var(--text)]">
+                                            {template.name.replaceAll(' · ', '\n')}
+                                        </div>
+                                        <div className="mt-0.5 text-xs text-[var(--text-muted)]">
+                                            <span className="block">{t(`route.${template.route}`)}</span>
+                                            <span className="block">
+                                                {template.extras[ExtraKey.releaseRateUGPerDay]
+                                                    ? `${template.extras[ExtraKey.releaseRateUGPerDay]} µg/d`
+                                                    : `${trimDose(template.doseMG)} mg`}
+                                            </span>
                                         </div>
                                     </button>
                                     <button

@@ -9,7 +9,9 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - "8787:8787"
+      # Loopback only: put a reverse proxy (or a Tor/I2P daemon) in front.
+      # Change to "8787:8787" only if you really need LAN exposure.
+      - "127.0.0.1:8787:8787"
     env_file:
       - .env
     volumes:

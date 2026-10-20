@@ -5,6 +5,8 @@ import { settingsSection, rowBleed } from './SettingsListItem';
 
 interface ImportSectionProps {
     onImportJson: (text: string) => boolean | Promise<boolean>;
+    /** Replace every record and the calibration, not merge. */
+    onReplaceJson: (text: string) => boolean | Promise<boolean>;
 }
 
 // Each row is one button, so the whole row takes the tap (as on Export).
@@ -13,21 +15,30 @@ const rowLabel = 'block text-[0.9375rem] text-[var(--text)]';
 const rowDesc = 'block text-xs text-[var(--text-muted)] mt-0.5';
 const action = 'text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5';
 
-const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
+const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJson }) => {
     const { t } = useTranslation();
     const [showPaste, setShowPaste] = useState(false);
     const [text, setText] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const readFile = (e: React.ChangeEvent<HTMLInputElement>, run: (text: string) => unknown) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = async () => {
-            await onImportJson(reader.result as string);
+            await run(reader.result as string);
         };
         reader.readAsText(file);
         e.target.value = '';
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        void readFile(e, onImportJson);
+    };
+
+    const handleReplaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        void readFile(e, onReplaceJson);
     };
 
     // The pasted text stays when the import doesn't go through (a Cancel at
@@ -39,12 +50,32 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
         setShowPaste(false);
     };
 
+    const handleTextReplace = async () => {
+        if (!(await onReplaceJson(text))) return;
+        setText('');
+        setShowPaste(false);
+    };
+
     return (
         <div className={settingsSection}>
             {/* File import */}
             <button onClick={() => fileInputRef.current?.click()} className={`${rowBase} ${rowBleed}`}>
                 <span className={rowLabel}>{t('import.file')}</span>
                 <span className={action}>{t('import.file_btn')}</span>
+            </button>
+
+            {/* Replace from a complete backup. Deliberately separate from the
+                merge import: this is the only action that clears categories. */}
+            <button onClick={() => replaceFileInputRef.current?.click()} className={`${rowBase} ${rowBleed}`}>
+                <span>
+                    <span className="block text-[0.9375rem] text-[var(--danger)]">
+                        {t('import.replace_complete_row')}
+                    </span>
+                    <span className={rowDesc}>{t('import.replace_complete_desc')}</span>
+                </span>
+                <span className="text-sm font-medium text-[var(--danger)] shrink-0 ml-6 mt-0.5">
+                    {t('import.replace_complete_file_btn')}
+                </span>
             </button>
 
             {/* Paste JSON */}
@@ -79,7 +110,11 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                             autoCapitalize="off"
                             spellCheck={false}
                         />
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                            {/* Red is for the confirm that follows, not the way to it. */}
+                            <button onClick={handleTextReplace} disabled={!text.trim()} className="btn-secondary">
+                                {t('import.replace_complete_paste_btn')}
+                            </button>
                             <button onClick={handleTextImport} disabled={!text.trim()} className="btn-primary">
                                 {/* Plain "Import": the text can hold labs, weight and
                                     parameters as well as doses. */}
@@ -97,6 +132,13 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson }) => {
                 accept="application/json"
                 className="hidden"
                 onChange={handleFileChange}
+            />
+            <input
+                ref={replaceFileInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={handleReplaceFileChange}
             />
         </div>
     );

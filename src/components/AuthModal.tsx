@@ -4,9 +4,12 @@ import ShieldIcon from './ShieldIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { authService, serializeAssertionCredential, b64url2ab } from '../services/auth';
-import { apiErrorCode } from '../services/apiClient';
+import { ApiError, apiErrorCode } from '../services/apiClient';
+import { LOCALE_MAP } from '../utils/helpers';
 import { useEscape } from '../hooks/useEscape';
 import { getShareCopy } from '../i18n/share';
+import { newPasswordLevel } from '../../passwordStrength';
+import PasswordStrengthHint from './PasswordStrengthHint';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -31,10 +34,19 @@ interface AuthModalProps {
  * The two failures a person causes by typing get the translated line; anything
  * else keeps the server's message, which is at least specific.
  */
-export const describeAuthError = (err: unknown, t: (key: string) => string): string => {
+export const describeAuthError = (err: unknown, t: (key: string) => string, lang?: string): string => {
     const code = apiErrorCode(err);
     if (code === 'INVALID_CREDENTIALS') return t('auth.invalid_credentials');
     if (code === 'TWO_FACTOR_INVALID') return t('account.2fa_verify_failed');
+    if (code === 'ACCOUNT_LOCKED') {
+        const retryAt = Date.now() + ((err instanceof ApiError && err.retryAfterMs) || 15 * 60_000);
+        const time = new Intl.DateTimeFormat((lang && LOCALE_MAP[lang]) || undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+        }).format(retryAt);
+        return t('auth.account_locked').replace('{time}', time);
+    }
+    if (code === 'RATE_LIMITED') return t('auth.too_many_attempts');
     return (err instanceof Error && err.message) || t('error.generic');
 };
 
@@ -56,6 +68,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     const acceptedPasswordRef = useRef<string | null>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
     const id = useId();
+
+    // Registering is when a weak password becomes permanent: no reset brings
+    // back the backups it encrypts. The worker refuses the same passwords;
+    // this hint says why before the round trip.
+    const level = isLogin ? null : newPasswordLevel(password);
+    const passwordBlocked = level === 'weak' || level === 'tooLong';
 
     const { login, register, loginWithToken } = useAuth();
     const { t, lang } = useTranslation();
@@ -189,6 +207,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     needsTOTP && useBackupCode ? backupCode : undefined,
                 );
             } else {
+                if (passwordBlocked) {
+                    setError(t(level === 'tooLong' ? 'pw.too_long' : 'pw.too_weak'));
+                    return;
+                }
                 await register(username, password);
             }
             succeed();
@@ -203,7 +225,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                     setTimeout(() => handlePasskeyLogin(password), 100);
                 }
             } else {
-                setError(describeAuthError(err, t));
+                setError(describeAuthError(err, t, lang));
             }
         } finally {
             setLoading(false);
@@ -220,7 +242,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
         </p>
     );
     const submitButton = (
-        <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
+        <button type="submit" disabled={loading || passwordBlocked} className="btn-primary w-full mt-1">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
         </button>
@@ -293,12 +315,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
                                 placeholder={t('auth.password_placeholder')}
                                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                                 aria-describedby={
-                                    [!isLogin ? `${id}-key-note` : '', error && !needsTOTP ? errorId : '']
+                                    [
+                                        !isLogin ? `${id}-key-note` : '',
+                                        level ? `${id}-pw-strength` : '',
+                                        error && !needsTOTP ? errorId : '',
+                                    ]
                                         .filter(Boolean)
                                         .join(' ') || undefined
                                 }
                                 required
                             />
+                            {!isLogin && <PasswordStrengthHint id={`${id}-pw-strength`} level={level} />}
                         </div>
 
                         {/* Signing up is the moment to say it: the password is

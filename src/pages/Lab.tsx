@@ -24,6 +24,7 @@ import { fill } from '../utils/regimenText';
 import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labReport';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { copyText } from '../utils/clipboard';
+import { clinicalUnit } from '../utils/clinicalUnit';
 
 interface LabProps {
     t: (key: string) => string;
@@ -141,7 +142,7 @@ const Lab: React.FC<LabProps> = ({
                     calibration.fitErrPct !== null ? `±${calibration.fitErrPct.toFixed(0)}%` : null,
                 ]
                     .filter(Boolean)
-                    .join(' · ');
+                    .join(', ');
 
     return (
         <div ref={rootRef} className="relative pb-32">
@@ -271,12 +272,12 @@ const Lab: React.FC<LabProps> = ({
                                             <span className="flex-1 min-w-0">
                                                 <span className="flex items-center justify-between mb-1">
                                                     <span className="text-sm">
-                                                        <span className={`font-medium ${on}`}>
-                                                            {res.concValue} {res.unit}
+                                                        <span className={`font-medium tabular-nums ${on}`}>
+                                                            {res.concValue} {clinicalUnit(res.unit)}
                                                         </span>
                                                         <span className={muted}>
-                                                            {' '}
-                                                            · {t(isT ? 'label.t' : 'label.e2')}
+                                                            {', '}
+                                                            {t(isT ? 'label.t' : 'label.e2')}
                                                         </span>
                                                     </span>
                                                     <span className={`text-xs tabular-nums ${muted} shrink-0`}>
@@ -286,10 +287,10 @@ const Lab: React.FC<LabProps> = ({
                                                 <span className="flex items-center justify-between gap-2">
                                                     {/* How long after the dose it was drawn rides on the
                                                         date: what makes a lab comparable with the curve. */}
-                                                    <span className={`text-xs ${muted}`}>
+                                                    <span className={`text-xs tabular-nums ${muted}`}>
                                                         {formatDate(d, lang)}
                                                         {timing &&
-                                                            ` · ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}
+                                                            `, ${fill(t('lab.after_dose'), { when: sinceDoseLabel(timing.hoursBefore, t) })}`}
                                                     </span>
                                                     {/* Against the raw model, named as the plot names it, and
                                                         in words: "13% above" rather than a bare ×1.13. */}

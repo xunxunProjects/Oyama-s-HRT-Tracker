@@ -144,7 +144,7 @@ const compute = (isTransmasc: boolean): CurveData | null => {
 
     const k = (Y1 - Y0) / yMax;
     return {
-        unit: isTransmasc ? 'ng/dl' : 'pg/ml',
+        unit: isTransmasc ? 'ng/dL' : 'pg/mL',
         doseX: Array.from({ length: DOSE_COUNT }, (_, i) => X(i * DOSE_INTERVAL_D)),
         modelD: buildPath(values, yMax),
         calD: buildPath(

@@ -1,11 +1,15 @@
 @import "tailwindcss";
+@import "./styles/oyama-tokens.css";
 
 @variant dark (&:is(.dark *));
 
 @theme {
     --font-sans:
-        -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, "PingFang SC",
-        "PingFang TC", "PingFang HK", "Hiragino Sans", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
+        "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-display:
+        "SF Pro Display", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
+        "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
 
     /* Type scale. The base is 15px (text-sm, body) with 13px captions
        (text-xs); 12px is the smallest readable size, used deliberately. */
@@ -36,154 +40,19 @@
     --duration-sweep: 900ms;
 }
 
-/* ── Design tokens (Oyama Tracker design system v2) ───────────────────────
-   Components read the semantic layer; the clay and neutral OKLCH scales sit
-   underneath it and are only for building new semantics. Every semantic token
-   switches with the theme under `.dark`, so a class names one token and never
-   pairs it with a `dark:` twin. */
+/* Color, spacing, radius, shadow, type and motion tokens live in
+   src/styles/oyama-tokens.css. Every semantic token switches under `.dark`,
+   so a class names one token and never pairs it with a `dark:` twin.
+   --surface-glass-bar is app chrome the export does not carry: the sticky
+   page header's glass. At rest it is the page itself, so the bar only shows
+   once rows pass under it. --surface-glass is what floats (the nav island),
+   and in dark that one is lighter than the page. */
 :root {
-    /* Terracotta scale. clay-500 is the original brand #cc785c. */
-    --clay-50: oklch(97.5% 0.012 45);
-    --clay-100: oklch(94.5% 0.028 44);
-    --clay-200: oklch(88.5% 0.055 42);
-    --clay-300: oklch(80.5% 0.085 40);
-    --clay-400: oklch(72.5% 0.105 39);
-    --clay-500: oklch(65.8% 0.1131 39.15);
-    --clay-600: oklch(55.5% 0.118 38);
-    --clay-700: oklch(49% 0.105 37);
-    --clay-800: oklch(40.5% 0.085 37);
-    --clay-900: oklch(32% 0.062 38);
-    --clay-950: oklch(24.5% 0.04 40);
-    /* Warm grey scale. */
-    --neutral-0: oklch(100% 0 0);
-    --neutral-25: oklch(98.7% 0.002 89);
-    --neutral-50: oklch(97.3% 0.004 90);
-    --neutral-100: oklch(94.5% 0.004 88);
-    --neutral-200: oklch(91% 0.007 89);
-    --neutral-300: oklch(85% 0.008 89);
-    --neutral-400: oklch(72% 0.01 88);
-    --neutral-500: oklch(60% 0.012 89);
-    --neutral-600: oklch(51.7% 0.013 90);
-    --neutral-700: oklch(42% 0.011 90);
-    --neutral-800: oklch(33% 0.009 88);
-    --neutral-850: oklch(28.5% 0.008 87);
-    --neutral-900: oklch(25% 0.007 88);
-    --neutral-950: oklch(20.5% 0.006 90);
-    --neutral-1000: oklch(16.5% 0.005 90);
-
-    /* Semantic layer. */
-    --bg: var(--neutral-0);
-    --bg-subtle: var(--neutral-25);
-    --surface: var(--neutral-0);
-    --surface-muted: var(--neutral-50);
-    --surface-hover: var(--neutral-100);
-    --surface-pressed: var(--neutral-200);
-    --surface-glass: rgba(255, 255, 255, 0.72);
-    /* The sticky page header's glass. At rest it is the page itself, so the
-       bar only shows once rows pass under it. --surface-glass is the glass of
-       what floats, the nav island, and in dark it is lighter than the page. */
     --surface-glass-bar: rgba(255, 255, 255, 0.72);
-    --control-thumb: var(--neutral-0);
-    --field: var(--neutral-0);
-    --text: var(--neutral-950);
-    --text-muted: var(--neutral-600);
-    --text-disabled: var(--neutral-400);
-    --border: var(--neutral-200);
-    --border-strong: var(--neutral-500);
-    --accent: var(--clay-600);
-    --accent-hover: var(--clay-700);
-    --on-accent: var(--neutral-0);
-    --accent-ink: var(--clay-600);
-    --accent-subtle: var(--clay-50);
-    --accent-subtle-hover: var(--clay-100);
-    --on-accent-subtle: var(--clay-700);
-    --focus-ring: var(--clay-600);
-    --brand: var(--clay-500);
-    --scrim: rgba(24, 23, 20, 0.32);
-
-    /* Status. Every one clears 4.5:1 on bg in both themes, and always comes with a word. */
-    --status-positive: oklch(52% 0.11 162);
-    --status-info: oklch(52% 0.17 255);
-    --status-violet: oklch(50% 0.2 285);
-    --status-neutral: var(--text-muted);
-    --warning: oklch(53% 0.13 55);
-    --danger: oklch(53% 0.19 27);
-    --danger-fill: oklch(55% 0.2 27);
-    --danger-fill-hover: oklch(49% 0.18 27);
-    --on-danger: var(--neutral-0);
-
-    /* Charts and illustration. */
-    --chart-line: var(--brand);
-    --chart-second: var(--neutral-400);
-    --chart-grid: var(--neutral-100);
-    --chart-axis: var(--text-muted);
-    --chart-band: rgba(204, 120, 92, 0.1);
-    --chart-lab: var(--clay-700);
-    --chart-dot: var(--bg);
-    --heatmap-0: var(--neutral-100);
-    --heatmap-1: var(--clay-100);
-    --heatmap-2: var(--clay-300);
-    --heatmap-3: var(--clay-500);
-    --heatmap-4: var(--clay-700);
-    --illustration-line: var(--brand);
-    --illustration-wash: var(--clay-50);
-
-    /* Elevation: two-layer and warm-tinted. Only what floats gets a shadow. */
-    --shadow-xs: 0 1px 2px rgba(24, 23, 20, 0.06);
-    --shadow-sm: 0 1px 2px rgba(24, 23, 20, 0.04), 0 2px 8px rgba(24, 23, 20, 0.06);
-    --shadow-md: 0 2px 4px rgba(24, 23, 20, 0.04), 0 8px 24px rgba(24, 23, 20, 0.08);
-    --shadow-lg: 0 4px 8px rgba(24, 23, 20, 0.04), 0 24px 56px rgba(24, 23, 20, 0.14);
-
-    /* Glass: chrome that content scrolls under, and the modal scrim. */
-    --blur-glass: 20px;
-    --blur-scrim: 6px;
 }
 
 .dark {
-    --bg: var(--neutral-950);
-    --bg-subtle: var(--neutral-1000);
-    --surface: var(--neutral-900);
-    --surface-muted: var(--neutral-850);
-    --surface-hover: var(--neutral-850);
-    --surface-pressed: var(--neutral-800);
-    --surface-glass: rgba(35, 33, 30, 0.72);
     --surface-glass-bar: color-mix(in oklch, var(--bg) 72%, transparent);
-    --control-thumb: var(--neutral-800);
-    --field: var(--neutral-900);
-    --text: var(--neutral-25);
-    --text-muted: var(--neutral-400);
-    --text-disabled: var(--neutral-600);
-    --border: var(--neutral-800);
-    --border-strong: var(--neutral-500);
-    --accent: var(--clay-400);
-    --accent-hover: var(--clay-300);
-    --on-accent: var(--neutral-1000);
-    --accent-ink: var(--clay-300);
-    --accent-subtle: var(--clay-950);
-    --accent-subtle-hover: var(--clay-900);
-    --on-accent-subtle: var(--clay-200);
-    --focus-ring: var(--clay-300);
-    --brand: var(--clay-400);
-    --scrim: rgba(0, 0, 0, 0.6);
-    --status-positive: oklch(80% 0.13 162);
-    --status-info: oklch(78% 0.11 250);
-    --status-violet: oklch(78% 0.11 285);
-    --warning: oklch(82% 0.13 75);
-    --danger: oklch(74% 0.15 22);
-    --chart-second: var(--neutral-500);
-    --chart-grid: var(--neutral-850);
-    --chart-band: rgba(223, 143, 116, 0.12);
-    --chart-lab: var(--clay-200);
-    --heatmap-0: var(--neutral-850);
-    --heatmap-1: var(--clay-900);
-    --heatmap-2: var(--clay-700);
-    --heatmap-3: var(--clay-500);
-    --heatmap-4: var(--clay-300);
-    --illustration-wash: var(--clay-950);
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 24px 56px rgba(0, 0, 0, 0.6);
 }
 
 /* Chart entrance, following the product film: the line draws on from the left,
@@ -553,8 +422,24 @@ html.mono {
     filter: grayscale(1);
 }
 
+/* Apple draws SF Pro Text for UI copy and SF Pro Display from 20px up.
+   Chinese, Japanese and Korean take the system face for the page language. */
+:lang(zh-TW) {
+    --font-cjk: "PingFang TC", "PingFang HK", "PingFang SC", "Hiragino Sans";
+}
+:lang(zh-HK) {
+    --font-cjk: "PingFang HK", "PingFang TC", "PingFang SC", "Hiragino Sans";
+}
+:lang(ja) {
+    --font-cjk: "Hiragino Sans", "PingFang SC", "Apple SD Gothic Neo";
+}
+:lang(ko) {
+    --font-cjk: "Apple SD Gothic Neo", "PingFang SC", "Hiragino Sans";
+}
+
 body {
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
     color: var(--text);
     background: var(--bg);
     height: 100%;
@@ -562,6 +447,17 @@ body {
     overscroll-behavior-y: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+.font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+}
+
+/* The sidebar wordmark is 17px, under the 20px line where Display takes over. */
+h1.font-sans {
+    font-family: var(--font-sans);
 }
 
 #root {
@@ -1165,56 +1061,7 @@ select,
     outline-offset: -2px;
 }
 
-/* ── Pixel cat (empty states) ─────────────────────────────────── */
-:root {
-    --pixel-blue: #9fd4ee;
-    --pixel-pink: #f6bfce;
-    --pixel-white: #ffffff;
-    /* shade = the tail lying in front; edge = the silhouette outline */
-    --pixel-blue-shade: #7fb8d6;
-    --pixel-pink-shade: #dfa1b3;
-    --pixel-white-shade: #e2d6da;
-    --pixel-blue-edge: #6fa8c9;
-    --pixel-pink-edge: #d191a5;
-    --pixel-white-edge: #cfbfc4;
-    --pixel-eye: #3f3238;
-    --pixel-nose: #e58ba4;
-    /* Quilt — off the flag palette, picked up from the app's terracotta so the
-       one thing on the sprite that isn't cat is obviously not cat. */
-    --pixel-quilt: #e8c0ac;
-    --pixel-quilt-shade: #d2a28c;
-    --pixel-quilt-edge: #b27f68;
-    /* Dinner: a salmon-orange fish, carried in the mouth. Brighter and more
-       saturated than the bowl's clay so nothing on the sprite is a second
-       brown; fins a step darker. */
-    --pixel-fish: #f2a868;
-    --pixel-fish-fin: #d4813f;
-    /* Sleep marks. Muted on purpose — they should read as a soft puff, not text. */
-    --pixel-zzz: #b7adb0;
-}
-
-/* Pastels this light glare against a dark surface, so knock them back. */
-.dark {
-    --pixel-blue: #7fb3ce;
-    --pixel-pink: #d69faf;
-    --pixel-white: #e4dbde;
-    --pixel-blue-shade: #688fa6;
-    --pixel-pink-shade: #b8848f;
-    --pixel-white-shade: #c3b7bb;
-    --pixel-blue-edge: #547588;
-    --pixel-pink-edge: #966b76;
-    --pixel-white-edge: #a0959a;
-    --pixel-eye: #2b2226;
-    --pixel-nose: #c97488;
-    --pixel-quilt: #a9806b;
-    --pixel-quilt-shade: #8c6857;
-    --pixel-quilt-edge: #6b4e40;
-    /* Knocked back less than the pastels: dimmed to match them it goes brown,
-       and brown in a clay bowl is the exact thing the fish replaced. */
-    --pixel-fish: #e39b5c;
-    --pixel-fish-fin: #b96f33;
-    --pixel-zzz: #6e656a;
-}
+/* Pixel-cat colours live in src/styles/oyama-tokens.css. */
 
 /* Steps, not tweens — the point is that it moves a whole pixel at a time. The
    cat itself never shifts; only the parts of it that a real cat would move. */

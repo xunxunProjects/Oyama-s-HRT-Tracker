@@ -15,6 +15,8 @@ import {
     runSimulation,
     runSimulationWithParams,
 } from '../logic';
+import { mergeImportedDataToStorage, processImportedDataToStorage } from '../src/utils/backupImport';
+import { applySyncedStateToStorage, buildExportPayloadFromStorage } from '../src/utils/backupState';
 import { emptySyncState, fingerprintState, mergeSyncStates, normalizeSyncState } from '../src/utils/syncMerge';
 import { BW, NOW_H, dose, lab, regimen, trapz } from './helpers';
 
@@ -196,5 +198,65 @@ describe('syncing the year of birth', () => {
         expect(merged.birthYear).toBe(1990);
         expect(remoteStale).toBe(true);
         expect(fingerprintState(merged)).not.toBe(fingerprintState(emptySyncState()));
+    });
+});
+
+describe('the year of birth in exports and imports', () => {
+    const memory = () => {
+        const map = new Map<string, string>();
+        return {
+            map,
+            getItem: (k: string) => map.get(k) ?? null,
+            setItem: (k: string, v: string) => void map.set(k, v),
+            removeItem: (k: string) => void map.delete(k),
+        };
+    };
+    const active = (birthYear: number | null) => ({
+        events: [],
+        labResults: [],
+        doseTemplates: [],
+        weight: 70,
+        birthYear,
+    });
+
+    it('is written to an export, as null when there is none', () => {
+        const storage = memory();
+        storage.setItem('hrt-u1-birth-year-at', '42');
+        const withYear = buildExportPayloadFromStorage(storage, '1', 'transfem', { ...active(1990), pkParams: null });
+        expect(withYear).toMatchObject({ birthYear: 1990, birthYearUpdatedAt: 42 });
+        const without = buildExportPayloadFromStorage(storage, '1', 'transfem', { ...active(null), pkParams: null });
+        expect(without.birthYear).toBeNull();
+    });
+
+    it('is read back by a replace import, alone or with records, and ignored when implausible', () => {
+        const context = { storage: memory(), owner: '1', mode: 'transfem' as const, active: active(null) };
+        expect(processImportedDataToStorage({ modes: {}, birthYear: 1990 }, context).birthYear).toBe(1990);
+        expect(processImportedDataToStorage({ events: [], weight: 60, birthYear: 1800 }, context).birthYear).toBe(
+            undefined,
+        );
+    });
+
+    it('fills in a missing one on merge but never changes one', () => {
+        const payload = { modes: {}, birthYear: 1990 };
+        const empty = { storage: memory(), owner: '1', mode: 'transfem' as const, active: active(null) };
+        expect(mergeImportedDataToStorage(payload, empty).birthYear).toBe(1990);
+        const set = { ...empty, active: active(1985) };
+        expect(() => mergeImportedDataToStorage(payload, set)).not.toThrow();
+        expect(mergeImportedDataToStorage(payload, set).birthYear).toBeUndefined();
+    });
+
+    it('is applied from a synced state, a removal included', () => {
+        const storage = memory();
+        const state = { ...emptySyncState(), birthYear: 1990, birthYearUpdatedAt: 7 };
+        expect(applySyncedStateToStorage(storage, '1', 'transfem', state).birthYear).toBe(1990);
+        expect(storage.getItem('hrt-u1-birth-year')).toBe('1990');
+        expect(storage.getItem('hrt-u1-birth-year-at')).toBe('7');
+        const removed = { ...emptySyncState(), birthYear: null, birthYearUpdatedAt: 8 };
+        expect(applySyncedStateToStorage(storage, '1', 'transfem', removed).birthYear).toBeNull();
+        expect(storage.getItem('hrt-u1-birth-year')).toBeNull();
+        // Silence leaves it as it was.
+        storage.setItem('hrt-u1-birth-year', '1990');
+        expect(applySyncedStateToStorage(storage, '1', 'transfem', emptySyncState()).birthYear).toBeUndefined();
+        expect(storage.getItem('hrt-u1-birth-year')).toBe('1990');
     });
 });

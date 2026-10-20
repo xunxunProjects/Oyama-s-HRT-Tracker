@@ -414,7 +414,7 @@ const History: React.FC<HistoryProps> = ({
                         {/* A removal is the one line: its route is its name,
                             and it has no amount of its own. */}
                         {!isRemoval && (
-                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
+                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-xs tabular-nums text-[var(--text-muted)]">
                                 <span className="truncate">{t(`route.${ev.route}`)}</span>
                                 {ev.extras[ExtraKey.releaseRateUGPerDay] ? (
                                     <>
