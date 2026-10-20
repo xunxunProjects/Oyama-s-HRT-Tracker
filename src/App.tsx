@@ -52,6 +52,7 @@ import Settings from './pages/Settings';
 import Account from './pages/Account';
 import Admin from './pages/Admin';
 import SessionsPage from './pages/Sessions';
+import HrtSecurityPage from './pages/HrtSecurity';
 import TwoFactorPage from './pages/TwoFactor';
 import ChangePasswordPage from './pages/ChangePassword';
 import DeleteAccountPage from './pages/DeleteAccount';
@@ -1130,6 +1131,10 @@ const AppContent = () => {
 
                     {currentView === 'sessions' && token && (
                         <SessionsPage token={token} onBack={() => handleViewChange('account')} />
+                    )}
+
+                    {currentView === 'hrt-security' && token && (
+                        <HrtSecurityPage token={token} onBack={() => handleViewChange('account')} />
                     )}
 
                     {currentView === 'two-factor' && token && (

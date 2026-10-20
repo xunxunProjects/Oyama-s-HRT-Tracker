@@ -23,6 +23,7 @@ export type ViewKey =
     | 'account'
     | 'admin'
     | 'sessions'
+    | 'hrt-security'
     | 'two-factor'
     | 'change-password'
     | 'delete-account'
@@ -67,6 +68,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'pk-params': 'settings',
     supplies: 'settings',
     sessions: 'account',
+    'hrt-security': 'account',
     'two-factor': 'account',
     'change-password': 'account',
     'delete-account': 'account',
@@ -103,6 +105,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings',
     'account',
     'sessions',
+    'hrt-security',
     'two-factor',
     'change-password',
     'delete-account',
