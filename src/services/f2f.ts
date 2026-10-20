@@ -75,4 +75,13 @@ export const f2fService = {
         );
         return result.members;
     },
+    keyring: async (token: string, cohortId: string) => {
+        const response = await fetch(apiEndpoint(`/api/f2f/cohorts/${cohortId}/keyring`), {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+            throw await apiErrorFrom(response);
+        }
+        return response.text();
+    },
 };

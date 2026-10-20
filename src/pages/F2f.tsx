@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Copy, Fingerprint, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Copy, Download, Fingerprint, Loader2, RefreshCw } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useDialog } from '../contexts/DialogContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -92,6 +92,27 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             window.setTimeout(() => setCopied(current => (current === label ? null : current)), 1500);
         } catch {
             setError(t('f2f.error'));
+        }
+    };
+
+    const downloadKeyring = async () => {
+        const cohortId = status?.cohort?.id;
+        if (!cohortId) return;
+        setBusy('keyring');
+        setError(null);
+        try {
+            const text = await f2fService.keyring(token, cohortId);
+            const blob = new Blob([text], { type: 'application/pgp-keys' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `hrt-f2f-${cohortId}.asc`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (downloadError) {
+            setError(errorMessage(downloadError));
+        } finally {
+            setBusy(null);
         }
     };
 
@@ -235,7 +256,18 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                 </section>
 
                                 <section className={card}>
-                                    <p className={heading}>{t('f2f.members_title')}</p>
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <p className={heading}>{t('f2f.members_title')}</p>
+                                        <button
+                                            className={secondary}
+                                            onClick={() => void downloadKeyring()}
+                                            disabled={busy !== null}
+                                        >
+                                            <Download size={14} className="mr-1 inline" />
+                                            {t('f2f.download_keyring')}
+                                        </button>
+                                    </div>
+                                    <p className={`${muted} mt-1`}>{t('f2f.keyring_help')}</p>
                                     {members.length === 0 ? (
                                         <p className={`${muted} mt-2`}>{t('f2f.no_members')}</p>
                                     ) : (

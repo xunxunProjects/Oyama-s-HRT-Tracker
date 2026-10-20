@@ -643,6 +643,57 @@ export async function handleF2fService(request: Request, env: Env, url: URL): Pr
     return error('NOT_FOUND', 'Not found', 404);
 }
 
+async function cohortKeyring(env: Env, user: F2fUser, cohortId: string): Promise<Response> {
+    if (!COHORT_ID.test(cohortId)) {
+        return error('INVALID_REQUEST', 'invalid cohort id', 400);
+    }
+    const membership = await env.DB.prepare(
+        `SELECT seat FROM f2f_seats
+          WHERE cohort_id = ? AND user_id = ? AND status = 'active'`,
+    )
+        .bind(cohortId, user.userId)
+        .first();
+    if (!membership) {
+        return error('NOT_A_MEMBER', 'you are not an active member of this cohort', 403);
+    }
+    const cohort = await env.DB.prepare('SELECT escrow_public_key FROM f2f_cohorts WHERE id = ?')
+        .bind(cohortId)
+        .first();
+    if (!cohort) {
+        return error('COHORT_NOT_FOUND', 'cohort not found', 404);
+    }
+    const keys = await env.DB.prepare(
+        `SELECT public_key FROM f2f_keys
+          WHERE cohort_id = ? AND status = 'active' AND public_key <> ''
+          ORDER BY seat ASC`,
+    )
+        .bind(cohortId)
+        .all();
+
+    const blocks: string[] = [];
+    for (const row of keys.results ?? []) {
+        const armor = String(row.public_key).trim();
+        if (armor && !blocks.includes(armor)) blocks.push(armor);
+    }
+    if (typeof cohort.escrow_public_key === 'string' && cohort.escrow_public_key) {
+        const escrow = cohort.escrow_public_key.trim();
+        if (escrow && !blocks.includes(escrow)) blocks.push(escrow);
+    }
+    if (blocks.length === 0) {
+        return error('NO_KEYS', 'this cohort has no active public keys', 404);
+    }
+
+    return new Response(`${blocks.join('\n\n')}\n`, {
+        status: 200,
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Disposition': `attachment; filename="hrt-f2f-${cohortId}.asc"`,
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+        },
+    });
+}
+
 export async function handleF2fWeb(request: Request, env: Env, url: URL, user: F2fUser): Promise<Response | null> {
     if (!url.pathname.startsWith('/api/f2f/')) return null;
 
@@ -666,6 +717,11 @@ export async function handleF2fWeb(request: Request, env: Env, url: URL, user: F
     if (members) {
         if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 'method not allowed', 405);
         return cohortMembers(env, user, members[1]);
+    }
+    const keyring = url.pathname.match(/^\/api\/f2f\/cohorts\/([^/]+)\/keyring$/);
+    if (keyring) {
+        if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 'method not allowed', 405);
+        return cohortKeyring(env, user, keyring[1]);
     }
     return null;
 }
