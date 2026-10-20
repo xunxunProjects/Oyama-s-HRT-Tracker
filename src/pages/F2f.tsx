@@ -107,8 +107,10 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             const link = document.createElement('a');
             link.href = url;
             link.download = `hrt-f2f-${cohortId}.asc`;
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(url);
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (downloadError) {
             setError(errorMessage(downloadError));
         } finally {
