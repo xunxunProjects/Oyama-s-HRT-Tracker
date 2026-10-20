@@ -245,6 +245,7 @@ export interface Scenario {
 export interface ForecastInput {
     events: DoseEvent[];
     weight: number;
+    birthYear: number | null;
     labResults: LabResult[];
     calibrationMethod: CalibrationMethod;
     calibrationHistoryMode: CalibrationHistoryMode;
@@ -411,6 +412,7 @@ function simulateScenario(
 ): Scenario | null {
     const {
         weight,
+        birthYear,
         labResults,
         calibrationMethod,
         calibrationHistoryMode,
@@ -421,7 +423,7 @@ function simulateScenario(
         target,
     } = input;
     const all = [...fixed, ...projected].sort((a, b) => a.timeH - b.timeH);
-    const sim: SimulationResult | null = runSimulation(all, weight);
+    const sim: SimulationResult | null = runSimulation(all, weight, birthYear);
     if (!sim || !sim.timeH.length) return null;
 
     let factor: (h: number) => number = () => 1;
@@ -429,7 +431,15 @@ function simulateScenario(
     if (isTransmasc) {
         value = sim.timeH.map((_, i) => sim.concNGdL_T?.[i] ?? 0);
     } else {
-        factor = computeCalibration(sim, all, weight, labResults, calibrationMethod, calibrationHistoryMode).factorFn;
+        factor = computeCalibration(
+            sim,
+            all,
+            weight,
+            labResults,
+            calibrationMethod,
+            calibrationHistoryMode,
+            birthYear,
+        ).factorFn;
         value = sim.timeH.map((h, i) => sim.concPGmL_E2[i] * factor(h));
     }
 
@@ -460,6 +470,7 @@ function simulateScenario(
         const runSim = runSimulation(
             [...recentFixed, ...shifted].sort((a, b) => a.timeH - b.timeH),
             weight,
+            birthYear,
         );
         if (!runSim || !runSim.timeH.length) continue;
         const raw = isTransmasc ? runSim.timeH.map((_, i) => runSim.concNGdL_T?.[i] ?? 0) : runSim.concPGmL_E2;

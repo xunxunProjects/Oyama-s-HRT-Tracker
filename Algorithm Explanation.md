@@ -37,6 +37,7 @@ E2、未酯化 T 与 CPA 为 1.0。分子量取自 `EsterInfo`：E2 272.38、EB 
   - CPA：ng/mL，`conc = amountMG × 1e6 / Vd_CPA_ml`（§13）。
   - 总睾酮：ng/dL，`conc = amountMG × 1e8 / Vd_T_ml`（§14）。
 - 体分布体积：`Vd = vdPerKG × BW`。E2 的 `vdPerKG` 为 **2.0 L·kg⁻¹**（固定常量；用户只能设置体重 BW），CPA 为 14.0 L·kg⁻¹，睾酮为 1.0 L·kg⁻¹。
+- 年龄（Beta，默认关闭）：在设置中打开“年龄调整”并填写出生年份时，E2 与睾酮的清除速率 k₃ 按给药时的年龄调整（§17）；关闭或不填时模型不变。下文“填写了出生年份时”均指开关已打开。
 
 ---
 
@@ -50,7 +51,7 @@ E2、未酯化 T 与 CPA 为 1.0。分子量取自 `EsterInfo`：E2 272.38、EB 
 | `kClearInjection`（运行时读 `e2_kClearInj`） | 注射专用游离 E2 清除速率常数 k₃（仅 injection 路由使用） | 0.041 h⁻¹ | 对应 t½ ≈ 16.9 h；保持 flip‑flop 形状以匹配 EEN/EV/EC 的 Tmax/Cmax，不等同于生理清除；可在 PK 参数页修改 |
 | `depotK1Corr` | 注射两库 k₁ 的全局校正系数 | 1.0 | 固定代码常量，界面未开放；改峰/拖尾时可整体缩放 E2 注射的 k₁ |
 
-`CorePK.kClear` 与 `CorePK.kClearInjection` 仍以同样的数值留在代码中，但 `resolveParams` 实际读取的是 `_activePKParams.e2_kClear` 与 `e2_kClearInj`（PK 参数页允许的范围分别为 0.001-5 与 0.001-1 h⁻¹）。
+`CorePK.kClear` 与 `CorePK.kClearInjection` 仍以同样的数值留在代码中，但 `resolveParams` 实际读取的是 `_activePKParams.e2_kClear` 与 `e2_kClearInj`（PK 参数页允许的范围分别为 0.001-5 与 0.001-1 h⁻¹）。填写了出生年份时，`resolveParams` 再把它们乘以年龄倍数 `ageClearanceMultiplier`（§17）；表中的数值相当于 54 岁。
 
 > 注：`kClear` 是游离 E2 中心室的表观清除常数，其锚点来自贴片移除后的终末半衰期（≈ 1-2 h），在此基础上取中间值 **0.41 h⁻¹** 以兼顾舌下与贴片的日内回落。它服务于本项目的简化模型与多路叠加稳定性，并不等价于群体生理清除率，不应外推到人群参数。
 
@@ -343,6 +344,7 @@ $$
   - 口服 CPA（e480bc0，§13）：按 Androcur 说明书改为一阶吸收加双相处置，F 由 0.7 改为 0.88；70 kg 下 100 mg 峰值由约 67 ng/mL 变为约 285 ng/mL（3 h），终末半衰期 43.9 h，总暴露为旧模型的约 1.4 倍。
   - 睾酮注射（56dc5ca，§14）：三种酯的形成分数由 0.025 改为 0.043（Xyosted、Aveed 说明书），70 kg 下 100 mg/周 TC 或 TE 的平均值由约 430 ng/dL 变为约 730-750 ng/dL；TU 改为单库（释放半衰期 50 天，k₂ 由 0.20 改为 0.036），首剂 1000 mg 的峰由约第 3.2 天移到约第 7 天，1000 mg 每 10 周的稳态谷峰比由约 0.17 变为约 0.42（Nebido 说明书）。代码注释中旧的标定目标（TC/TE 约 600、TU 约 500 ng/dL）一并删除。
   - 删除过时注释（1b61183）：`average`/`adaptive` 校准方法的旧 JSDoc，以及睾酮参数一节对 `transmasc_hrt_modeling_document.md` 的引用。
+- **2026‑10‑18**（issue #124）：新增可选的出生年份，作为 Beta 功能，默认关闭。打开并填写后 E2 与睾酮的清除速率 k₃ 按给药时的年龄调整，以 54 岁为基准（§17）；关闭或不填时模型与此前相同。
 - **2026‑10‑13**（PR #92：395fa4f、70d6027）：第二轮复查后的修正。
   - 贴片配对（§3.1）：没有按计划匹配的贴片时，移除事件只在该激素最新一片的计划结束后 240 h（`PATCH_MAX_OVERWEAR_H`）内才配给它。此前没有时限，停用或换路由后几周才补记的移除会让带计划佩戴时长的那片贴片在整段空档里一直按全速给药（没有计划时长的贴片仍按第 1 步配给移除，不受这一限制）。同一时刻贴上的几片在两条配对路径上按同一顺序尝试（排序另加酯别），同一时刻的几个移除按 E2、T、不限激素的顺序处理。
   - 剂量提醒（`getDoseAdvisory`）：口服、舌下与凝胶按所含雌二醇的 mg 计（乘 `getToE2Factor`），戊酸酯不再按酯 mg 计。片剂或凝胶与贴片在同一个本地日内合计，贴片取它在这一天内的递送量；每次贴上时另按其后 24 h 的贴片递送量单独检查。此前从片剂换到贴片的那天会把整天的片剂加上贴片其后 24 h 的递送量，在之后两周内一直误报。CPA 改为日均量：取最近 14 天（按给药时刻算，再按本地日分组）内各服药日的平均剂量，除以服药日之间的平均间隔，所以每 2 或 3 天 25 mg 读作 12.5 或 8.3 mg/天，不再提醒；只有一个服药日时按该日全量计。注射间隔取最近 4 个保留间隔的平均值，换成更短的间隔几针内就能反映，周一/周四的节奏读作 3.5 天；单独一个超过总体中位间隔 2 倍的间隔视为停药后重新开始，不计入间隔，并标出最近一轮的开始，连续两个及以上则视为更长的周期而保留。另一种已有至少 2 针（间隔已知）的酯在本酯最后一针之后开始或重新开始时，才算换药，所以换回之前的酯会结束中间那种；本酯在那种酯上一轮期间也注射过的，视为两者并用，不算换药；新酯只打了一针时不再提前停算旧方案。
@@ -383,6 +385,16 @@ $$
 - Zhang et al. 2024，口服戊酸雌二醇的药代研究（PMC11246651），Table 2：空腹口服后 E2 半衰期 14.36 h（即 `OralPK.kE1Pool`），中位 Tmax 10 h，Cmax/AUC 0.034 h⁻¹；进食组 2-2.25 h 达峰（§5）。
 - Doll et al. Pharmacokinetics of Sublingual Versus Oral Estradiol in Transgender Women. *Endocr Pract*. 2022;28(3):237-242：LC-MS/MS，10 名跨性别女性单次 1 mg，舌下 1 h 时 144 pg/mL，口服 8 h 时 35 pg/mL（§10）。<https://pubmed.ncbi.nlm.nih.gov/34781041/>
 - Spratt et al. *J Clin Endocrinol Metab*. 2017;102(7):2349：63 名每周皮下注射睾酮的跨性别男性，平均约 73.6 mg/周，注射后 3-4 天平均 702 ng/dL（§14）。<https://academic.oup.com/jcem/article/102/7/2349/3098651>
+- Coviello AD et al. Differences in the apparent metabolic clearance rate of testosterone in young and older men with gonadotropin suppression receiving graded doses of testosterone. *J Clin Endocrinol Metab*. 2006;91(11):4669-75：61 名 19-35 岁与 60 名 59-75 岁男性，GnRH 激动剂抑制自身分泌后每周注射庚酸睾酮，表观清除率 1821 ± 102 与 1390 ± 69 L/天（§17）。<https://pubmed.ncbi.nlm.nih.gov/16912120/>
+- Wang C et al. Testosterone metabolic clearance and production rates determined by stable isotope dilution/tandem mass spectrometry in normal men: influence of ethnicity and age. *J Clin Endocrinol Metab*. 2004;89(6):2936-41：中年白人男性的清除率 812 L/天，年轻白人男性 1272 L/天（§17）。<https://pubmed.ncbi.nlm.nih.gov/15181080/>
+- Longcope C. Metabolic clearance and blood production rates of estrogens in postmenopausal women. *Am J Obstet Gynecol*. 1971;111(6):778-81：5 名 70-88 岁女性的 E2 清除率 580 ± 30 L/天/m²，比年轻女性低约 25%（§17）。<https://pubmed.ncbi.nlm.nih.gov/5171425/>
+- Longcope C, Jaffee W, Griffing G. Metabolic clearance rates of androgens and oestrogens in ageing women. *Maturitas*. 1980;2(4):283-90：46-90 岁绝经后女性，E2 清除率与年龄无相关；绝经后低于绝经前，作者认为与 E2 水平低有关（§17）。<https://pubmed.ncbi.nlm.nih.gov/7231200/>
+- Longcope C, Johnston CC Jr. Androgen and estrogen dynamics: stability over a two year interval in peri-menopausal women. *J Steroid Biochem*. 1990;35(1):91-5：同一批女性相隔两年（部分在此期间绝经）E2 清除率不变（§17）。<https://pubmed.ncbi.nlm.nih.gov/2308332/>
+- Järvinen A et al. Pharmacokinetics of estradiol valerate and medroxyprogesterone acetate in different age groups of postmenopausal women. *Maturitas*. 2004;47(3):209-17：46 名绝经后女性分为 60 岁以下、60-65 岁、65 岁以上，E2 的 Cmax、Tmax、AUC 与半衰期无显著差异（最年长组 AUC 平均高 1.6 倍，未达显著）（§17）。<https://pubmed.ncbi.nlm.nih.gov/15036491/>
+- Vermeulen A, Rubens R, Verdonck L. Testosterone secretion and metabolism in male senescence. *J Clin Endocrinol Metab*. 1972;34(4):730-5：老年男性睾酮清除率下降（§17）。<https://pubmed.ncbi.nlm.nih.gov/5012774/>
+- Pastuszak AW et al. Population pharmacokinetic modeling and simulations to evaluate a potential dose regimen of testosterone undecanoate in hypogonadal males. *J Clin Pharmacol*. 2021;61(12):1618-25：130 名男性，显著协变量为体重与 SHBG（§17）。<https://pubmed.ncbi.nlm.nih.gov/34269421/>
+- Hembree WC, Bardin CW, Lipsett MB. A study of estrogen metabolic clearance rates and transfer factors. *J Clin Invest*. 1969;48(10):1809-19：绝经后女性的雌激素清除率与绝经前在同一范围（§17）。<https://pubmed.ncbi.nlm.nih.gov/5822587/>
+- Chantrapanichkul P et al. Serum hormone concentrations in transgender individuals receiving gender-affirming hormone therapy. *Endocr Pract*. 2021;27(1):27-33：196 人的回顾性队列，年龄较大与较高的 E2、睾酮水平相关；观察性结果，未用于定量（§17）。<https://pubmed.ncbi.nlm.nih.gov/33471729/>
 
 **官方说明书（补充）**
 - EstroGel® 0.06% (estradiol gel) FDA 说明书：表观终末消除半衰期 **36 h**（`k₁` 即取自此处）；1.25 g/day 稳态 Cavg 28.3 pg/mL。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/021166s019lbl.pdf>
@@ -393,7 +405,8 @@ $$
 - Dianette®（Diane-35）SmPC：2 mg CPA 后约 1.6 h 时 15 ng/mL（§13）。<https://www.medicines.org.uk/emc/product/1122/smpc>
 - Angeliq®（1 mg 雌二醇加屈螺酮，每日）说明书：稳态中位 Tmax 2.01 h，Cmax 63.7 pg/mL（§5.2）。<https://medlibrary.org/lib/rx/meds/angeliq-1/page/5/>
 - Xyosted®（庚酸睾酮皮下注射，每周）说明书：第 12 周 Cavg 553 ng/dL、Cmin 436 ng/dL（N = 137）<https://medlibrary.org/lib/rx/meds/xyosted/page/4/>；剂量经滴定，FDA 临床药理综述给出 50/75/100 mg 各 25/93/19 人，平均 73.9 mg/周 <https://www.accessdata.fda.gov/drugsatfda_docs/nda/2019/209863Orig1s000ClinPharmR.pdf>（§14）。
-- Aveed®（十一酸睾酮 750 mg，第 0、4 周后每 10 周）说明书：第三针后 Cavg 495 ng/dL（N = 117）；按体重分组为 65-100 kg 568 ng/dL、100 kg 及以上 426 ng/dL（§14）。<https://medlibrary.org/lib/rx/meds/aveed/page/6/>
+- Aveed®（十一酸睾酮 750 mg，第 0、4 周后每 10 周）说明书：第三针后 Cavg 495 ng/dL（N = 117）；按体重分组为 65-100 kg 568 ng/dL、100 kg 及以上 426 ng/dL（§14）；试验 130 人平均 54.2 岁（§17）。<https://medlibrary.org/lib/rx/meds/aveed/page/6/>
+- AndroGel® 1.62% 说明书 §14：274 名性腺功能减退男性，18-80 岁，平均 53.8 岁（§17）。<https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=f4e8d29b-8707-4d47-e053-2a95a90aecee>
 - Azmiro®（环戊丙酸睾酮肌注）说明书：单次 200 mg，Tmax 72 h，基线校正后 Cmax 758 ng/dL、AUC 137,219 h·ng/dL（§14、§10）。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/216318s002lbl.pdf>
 - Nebido®（十一酸睾酮）说明书：首次 1000 mg 后第 7 天达峰；释放半衰期 90 ± 40 天；每 10 周 1000 mg 稳态峰约 37 nmol/L、谷约 16 nmol/L，谷峰比 0.43（§14）。<https://www.rxreasoner.com/monographs/nebido/pharmacology>
 
@@ -407,7 +420,7 @@ $$
 ---
 
 ## 10) 局限
-- 个体差异未建模：肝功能、SHBG、年龄、体脂、并用药等可能改变 `F` 与各速率常数。化验校准（§16）只能事后修正 E2 的整体幅度与清除。
+- 个体差异大多未建模：肝功能、SHBG、体脂、并用药等可能改变 `F` 与各速率常数。年龄只按文献对清除率做粗略调整（§17），且 E2 一侧的证据并不一致。化验校准（§16）只能事后修正 E2 的整体幅度与清除。
 - 凝胶的面积/负荷非线性：当前未在模型中体现；存在低剂量低估与高剂量高估的潜在风险。
 - 注射溶剂/体积影响：对扩散 `k₁` 的影响尚未显式参数化，现仅能通过代码常量 `depotK1Corr` 整体近似。
 - 口服 E2 与舌下 E2 吞咽部分的雌酮及其硫酸酯储库只用一个一阶库（`kE1Pool`）近似，其速率取自口服 EV 后测得的 E2 半衰期；模型不输出雌酮浓度，口服 EV 也不经此库（§5）。
@@ -494,6 +507,7 @@ $$
 - **分布容积与单位**：`T_CorePK.vdPerKG = 1.0 L·kg⁻¹`（总睾酮的表观分布容积），`conc(ng/dL) = amountMG × 1e8 / Vd_ml`。nmol/L 的化验值按 × 28.842 换算为 ng/dL。
 - **可调参数**：PK 参数页可改 `t_kClear`、`t_kClearInj`、`t_ff_*`、`t_gel_*`；两库参数与 `k2` 是代码常量。参数页保存时写入全部字段，所以存储的 `t_ff_*` 等于旧默认值 0.025 时，`sanitizePKParams` 按当前默认值 0.043 读取（`PK_FORMER_DEFAULTS`），在页面上输入 0.025 也一样；其他值（如 0.0251）按输入使用。
 - **标定依据**（`logic.ts` 注释）：凝胶与注射在 70 kg 下对照各参数处引用的说明书检查（`tests/literature.test.ts`）；说明书人群大多更重，所有路由统一用 70 kg 以保持彼此一致。AndroGel 1% 说明书：50 mg/天 Cavg ≈ 555 ng/dL（模型约 595 ng/dL）；Androderm 5 mg/天贴片 → 500-700 ng/dL（模型约 595 ng/dL）；注射见上。注释同时写明这些只是研究/教学用估计，不用于个体剂量决策。旧注释中的目标（TC 或 TE 100 mg/周 Cavg ≈ 600 ng/dL、TU 1000 mg/12 周 ≈ 500 ng/dL）已于 2026‑10‑13 删除。
+- **年龄**：填写了出生年份时，`t_kClear` 与 `t_kClearInj` 乘以年龄倍数（§17，依据 Coviello 2006），以 54 岁为基准，约每岁 0.68%。
 - **不校准**：化验校准只作用于 E2（§16），睾酮曲线始终是原始模型值。
 - 更完整的跨男建模设计（游离睾酮、SHBG、Hct 等）见仓库内 `transmasc_hrt_modeling_document.md`；代码只实现了其中总睾酮 PK 的简化部分，`logic.ts` 也已不再引用该文档。
 
@@ -521,4 +535,27 @@ $$
   - `forward`：因果滤波，每个时刻只用到当时为止的化验值。第一个化验之前倍数为 1；第 i 个化验之后使用前 i 个化验学到的参数（`ekf` 与 `mipd` 都用前 i 个化验重新拟合，是否允许移动清除也只看这 i 个化验；`ou_kalman` 只用前向滤波）。在之后的日期再加化验时，三种方法的过去估计都不会改变。
 - **拟合误差**：至少 2 个化验值时，取实际绘制的曲线（模型 × `factorFn`）在各化验时刻的对数残差 RMSE，折算为 ±% 报告（`curveFitErrPct`），所有方法与历史模式都如此，因此与图上看到的一致。预测页的不确定范围也取自它。
 - **旧设置迁移**（`normalizeCalibrationMethod`）：存储的 `average` 映射为 `mipd`，`adaptive` 映射为 `ekf`，无法识别的值也按 `mipd` 处理。
+- **年龄**：填写了出生年份时，原始模型已按年龄调整（§17），清除网格的每个点也用同一出生年份重跑，所以拟合出的个人清除 kMul 与界面显示的半衰期变化都是相对年龄调整后的模型而言；年龄相当于把个人清除先验的中心移到该年龄的平均值。
 - 三种学习方法参照 hrt.transmtf.com 提供的校准模型，在本项目中针对可从化验识别的两个参数（个人幅度与个人清除）重新实现（`logic.ts` 注释）。
+
+---
+
+## 17) 年龄（清除率）
+- **开关**：这是 Beta 功能，默认关闭。设置 → 常规中的“年龄调整 · Beta”开关只保存在本设备上；打开后才显示“年龄”一项。关闭时出生年份仍会保留并照常同步，只是不传给模型（`useAppData` 的 `withAge`），所以再打开即可恢复。
+- **输入**：设置页的“年龄”填写出生年份，可以留空。存的是出生年份而不是年龄，所以不会过时，每次给药都按给药时的年龄计算：年龄 = 给药时刻 − (出生年份 + 0.5 年)。出生年份与体重一样在两种模式间共用，随导出文件与云备份传递，同步时按最后修改时间取值（删除也会同步）；分享链接不包含它。1900 年至今年以外的值按未填写处理（`isPlausibleBirthYear`）。
+- **模型**（`ageClearanceMultiplier`，在 `resolveParams` 中按事件计算）：只调整游离激素的清除速率 k₃。E2 的 `e2_kClear`、`e2_kClearInj` 与睾酮的 `t_kClear`、`t_kClearInj` 乘以
+  $$
+  m(\text{age})=\exp\big(-s\,(\min(75,\max(19,\text{age}))-54)\big)
+  $$
+  睾酮 s = ln(1821/1390)/40 ≈ 0.68%/岁，E2 s = ln(1/0.75)/52 ≈ 0.55%/岁。各路由的 AUC 都是 F·D/k₃，所以总暴露按 1/m 变化；注射的 k₃ 是 flip‑flop 下的有效值，乘以 m 同样按 1/m 改变暴露，曲线形状也略有变化。吸收速率、酯水解、口服雌酮库 `kE1Pool` 与 CPA 都不变。
+- **基准 54 岁**：默认参数所依据人群的平均年龄：Aveed 试验 54.2 岁、AndroGel 1.62% 试验 53.8 岁（说明书 §14），口服戊酸雌二醇研究 54.0 岁（Zhang 2024，Table 1，口服雌酮库即取自该研究）。不填出生年份等同于 54 岁，模型与此前完全相同，`tests/` 中的文献对照也不受影响。
+- **数值**（m 为清除速率的倍数，括号内为浓度的倍数 1/m）：
+
+| 年龄 | 19 及以下 | 25 | 30 | 40 | 54 | 65 | 75 及以上 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| E2 | 1.214（0.82） | 1.174（0.85） | 1.142（0.88） | 1.081（0.93） | 1（1） | 0.941（1.06） | 0.890（1.12） |
+| 睾酮 | 1.267（0.79） | 1.216（0.82） | 1.176（0.85） | 1.099（0.91） | 1（1） | 0.928（1.08） | 0.868（1.15） |
+
+- **睾酮的依据**：Coviello 2006 在用 GnRH 激动剂抑制自身分泌后每周注射庚酸睾酮，表观清除率 19-35 岁为 1821 L/天，59-75 岁为 1390 L/天；斜率取两组年龄中点 27 与 67 岁之间的对数线性变化。Wang 2004 用稳定同位素测得中年男性自身睾酮的清除率比年轻男性低 36%，Vermeulen 1972 也报告老年男性清除率下降。Coviello 的多元回归中显著的预测因素是瘦体重、体脂比例与 SHBG，Pastuszak 2021 的十一酸睾酮群体药代模型中显著的协变量是体重与 SHBG：年龄的作用很可能经由 SHBG 与体成分体现。应用不知道 SHBG，年龄在这里只是它们的代用。
+- **雌二醇的依据，以及与之不一致的数据**：Longcope 1971 测得 5 名 70-88 岁女性的 E2 清除率比年轻女性低约 25%；摘要没有给出年轻女性的年龄，斜率按 27 岁（与 Coviello 年轻组的中点相同）到 79 岁（70-88 岁的中点）计算。但同一作者 1980 年在 46-90 岁的绝经后女性中没有发现清除率与年龄相关，并认为绝经后清除率较低与当时的低 E2 水平有关；Longcope 与 Johnston 1990 年在同一批女性中观察两年（部分在此期间绝经），清除率不变；Hembree 1969 报告绝经后女性的清除率与绝经前在同一范围；Järvinen 2004 在 60 岁以下与 65 岁以上的女性之间未发现口服戊酸雌二醇药代的显著差异。跨性别人群中，Chantrapanichkul 2021 的回顾性队列发现年龄较大与较高的 E2、睾酮水平相关，但这是观察性结果，混有剂量、依从性与性腺切除等因素，没有用于定量。E2 的年龄调整按 issue #124 的讨论加入，证据弱于睾酮；有化验时，校准仍会修正个人清除（§16）。
+- **范围外**：19 岁以下与 75 岁以上（睾酮研究覆盖的年龄）取端点值，不外推。

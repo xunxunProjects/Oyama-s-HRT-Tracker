@@ -17,6 +17,7 @@ import {
     LabResult,
     PKCustomParams,
     isT_LabUnit,
+    isPlausibleBirthYear,
     isTestosteroneEster,
     sanitizePKParams,
 } from '../../logic';
@@ -38,6 +39,7 @@ export interface ImportActiveRecords {
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
     weight: number;
+    birthYear: number | null;
 }
 
 export interface ImportStorageContext {
@@ -53,6 +55,7 @@ export interface ProcessImportedDataResult {
     labResults?: LabResult[];
     doseTemplates?: DoseTemplate[];
     weight?: number;
+    birthYear?: number;
     pkParams?: PKCustomParams;
 }
 
@@ -62,6 +65,7 @@ export interface MergeImportedDataResult {
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
     weight?: number;
+    birthYear?: number;
     mergedCount: number;
 }
 
@@ -183,6 +187,7 @@ export function processImportedDataToStorage(
     const otherModeWrites: (() => void)[] = [];
     let newEvents: DoseEvent[] = [];
     let newWeight: number | undefined = undefined;
+    let newBirthYear: number | undefined = undefined;
     let newLabs: LabResult[] = [];
     let newTemplates: DoseTemplate[] = [];
     let newPkParams: PKCustomParams | undefined = undefined;
@@ -264,6 +269,7 @@ export function processImportedDataToStorage(
             }
         }
         newWeight = clampImportedWeight(parsed.weight);
+        if (isPlausibleBirthYear(parsed.birthYear)) newBirthYear = parsed.birthYear;
         if (parsed.pkParams && typeof parsed.pkParams === 'object') {
             newPkParams = sanitizePKParams(parsed.pkParams) ?? undefined;
         }
@@ -276,6 +282,7 @@ export function processImportedDataToStorage(
             replaced.events = true;
         }
         newWeight = clampImportedWeight(parsed.weight);
+        if (isPlausibleBirthYear(parsed.birthYear)) newBirthYear = parsed.birthYear;
         if (Array.isArray(parsed.labResults)) {
             newLabs = sanitizeImportedLabResults(parsed.labResults);
             replaced.labResults = true;
@@ -348,6 +355,7 @@ export function processImportedDataToStorage(
         !importedOtherMode &&
         !newEvents.length &&
         !newWeight &&
+        newBirthYear === undefined &&
         !newLabs.length &&
         !newTemplates.length &&
         !newPkParams
@@ -382,6 +390,7 @@ export function processImportedDataToStorage(
         result.doseTemplates = newTemplates;
     }
     if (newWeight !== undefined) result.weight = newWeight;
+    if (newBirthYear !== undefined) result.birthYear = newBirthYear;
     if (newPkParams !== undefined) result.pkParams = newPkParams;
     return result;
 }
@@ -402,6 +411,7 @@ export function mergeImportedDataToStorage(
     const otherMode = otherModeFor(mode);
     let incomingEvents: DoseEvent[] = [];
     let incomingWeight: number | undefined = undefined;
+    let incomingBirthYear: number | undefined = undefined;
     let incomingLabs: LabResult[] = [];
     let incomingTemplates: DoseTemplate[] = [];
     let mergedOther = 0;
@@ -474,11 +484,13 @@ export function mergeImportedDataToStorage(
         // No finite/upper-bound checks here: the historical merge path accepted
         // any positive numeric weight. Preserved deliberately.
         if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+        if (isPlausibleBirthYear(parsed.birthYear)) incomingBirthYear = parsed.birthYear;
     } else if (Array.isArray(parsed)) {
         incomingEvents = sanitizeImportedEvents(parsed);
     } else if (typeof parsed === 'object' && parsed !== null) {
         if (Array.isArray(parsed.events)) incomingEvents = sanitizeImportedEvents(parsed.events);
         if (typeof parsed.weight === 'number' && parsed.weight > 0) incomingWeight = parsed.weight;
+        if (isPlausibleBirthYear(parsed.birthYear)) incomingBirthYear = parsed.birthYear;
         if (Array.isArray(parsed.labResults)) incomingLabs = sanitizeImportedLabResults(parsed.labResults);
         if (Array.isArray(parsed.doseTemplates)) incomingTemplates = sanitizeImportedTemplates(parsed.doseTemplates);
     }
@@ -514,7 +526,14 @@ export function mergeImportedDataToStorage(
         }
     }
 
-    if (!mergedOther && !incomingEvents.length && !incomingWeight && !incomingLabs.length && !incomingTemplates.length)
+    if (
+        !mergedOther &&
+        !incomingEvents.length &&
+        !incomingWeight &&
+        incomingBirthYear === undefined &&
+        !incomingLabs.length &&
+        !incomingTemplates.length
+    )
         throw new Error('No valid entries');
 
     const result: MergeImportedDataResult = {
@@ -542,6 +561,8 @@ export function mergeImportedDataToStorage(
     if (incomingWeight !== undefined && incomingWeight > active.weight) {
         result.weight = incomingWeight;
     }
+    // A merge adds what is missing, so it fills in a year of birth but never changes one.
+    if (incomingBirthYear !== undefined && active.birthYear === null) result.birthYear = incomingBirthYear;
 
     if (incomingLabs.length > 0) {
         const existingIds = new Set(active.labResults.map(r => r.id));

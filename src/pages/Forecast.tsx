@@ -86,6 +86,7 @@ interface ForecastProps {
     onBack: () => void;
     events: DoseEvent[];
     weight: number;
+    birthYear: number | null;
     labResults: LabResult[];
     calibration: CalibrationResult;
     calibrationMethod: CalibrationMethod;
@@ -100,6 +101,7 @@ const Forecast: React.FC<ForecastProps> = ({
     onBack,
     events,
     weight,
+    birthYear,
     labResults,
     calibration,
     calibrationMethod,
@@ -193,6 +195,7 @@ const Forecast: React.FC<ForecastProps> = ({
         () => ({
             events,
             weight,
+            birthYear,
             labResults,
             calibrationMethod,
             calibrationHistoryMode,
@@ -206,6 +209,7 @@ const Forecast: React.FC<ForecastProps> = ({
         [
             events,
             weight,
+            birthYear,
             labResults,
             calibrationMethod,
             calibrationHistoryMode,
@@ -220,7 +224,7 @@ const Forecast: React.FC<ForecastProps> = ({
     // typing, and remember every spec already run so switching plans or
     // horizons back is free.
     const cache = useRef(new Map<string, Scenario | null>());
-    const inputKey = `${events.length}|${weight}|${labResults.length}|${calibrationMethod}|${calibrationHistoryMode}|${isTransmasc}|${hourNow}|${horizonH}`;
+    const inputKey = `${events.length}|${weight}|${birthYear}|${labResults.length}|${calibrationMethod}|${calibrationHistoryMode}|${isTransmasc}|${hourNow}|${horizonH}`;
     const [current, setCurrent] = useState<Scenario | null>(null);
     const [results, setResults] = useState<Record<string, Scenario | null>>({});
     const [busy, setBusy] = useState(true);

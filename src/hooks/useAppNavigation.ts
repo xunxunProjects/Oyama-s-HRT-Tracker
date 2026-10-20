@@ -33,6 +33,7 @@ export type ViewKey =
     | 'settings-language'
     | 'settings-appearance'
     | 'settings-weight'
+    | 'settings-age'
     | 'settings-export'
     | 'settings-import'
     | 'settings-transparency'
@@ -56,6 +57,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-language': 'settings',
     'settings-appearance': 'settings',
     'settings-weight': 'settings',
+    'settings-age': 'settings',
     'settings-export': 'settings',
     'settings-import': 'settings',
     'settings-transparency': 'settings',
@@ -112,6 +114,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings-language',
     'settings-appearance',
     'settings-weight',
+    'settings-age',
     'settings-export',
     'settings-import',
     'settings-transparency',

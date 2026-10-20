@@ -62,6 +62,7 @@ import HRTModeSettings from './pages/HRTModeSettings';
 import LanguageSettings from './pages/LanguageSettings';
 import AppearanceSettings from './pages/AppearanceSettings';
 import WeightSettings from './pages/WeightSettings';
+import AgeSettings from './pages/AgeSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
@@ -93,11 +94,21 @@ const AppContent = () => {
         localStorage.setItem('app-show-prediction', String(showPrediction));
     }, [showPrediction]);
 
+    // --- Age adjustment (beta): lets the year of birth adjust clearance.
+    // Off unless switched on in Settings, and kept on this device. ---
+    const [ageBeta, setAgeBeta] = useState<boolean>(() => localStorage.getItem('app-age-beta') === 'true');
+    useEffect(() => {
+        localStorage.setItem('app-age-beta', String(ageBeta));
+    }, [ageBeta]);
+
     // Use Custom Hooks
     const {
         events,
         weight,
         setWeight,
+        birthYear,
+        setBirthYear,
+        modelBirthYear,
         labResults,
         doseTemplates,
         simulation,
@@ -149,7 +160,7 @@ const AppContent = () => {
         supplies,
         saveSupply,
         deleteSupply,
-    } = useAppData(showDialog, { withPrediction: showPrediction });
+    } = useAppData(showDialog, { withPrediction: showPrediction, withAge: ageBeta });
     const nowH = currentTime.getTime() / 3600000;
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
     const [supplyLeadDays, setSupplyLeadDaysState] = useState(
@@ -209,7 +220,8 @@ const AppContent = () => {
                 currentView === 'sessions' ||
                 currentView === 'two-factor' ||
                 currentView === 'edit-avatar')) ||
-        (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states'));
+        (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states')) ||
+        (!ageBeta && currentView === 'settings-age');
     useEffect(() => {
         if (pageGone) handleViewChange(tabForView(currentView));
     }, [pageGone, currentView, handleViewChange]);
@@ -281,6 +293,7 @@ const AppContent = () => {
         labResults,
         doseTemplates,
         weight,
+        birthYear,
         pkParams,
     });
 
@@ -916,6 +929,7 @@ const AppContent = () => {
                             onBack={() => handleViewChange('home')}
                             events={events}
                             weight={weight}
+                            birthYear={modelBirthYear}
                             labResults={labResults}
                             calibration={calibration}
                             calibrationMethod={calibrationMethod}
@@ -1007,12 +1021,16 @@ const AppContent = () => {
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
                             weight={weight}
+                            birthYear={birthYear}
+                            ageBeta={ageBeta}
+                            setAgeBeta={setAgeBeta}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
                             onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
                             onNavigateToLanguage={() => handleViewChange('settings-language')}
                             onNavigateToAppearance={() => handleViewChange('settings-appearance')}
                             onNavigateToWeight={() => handleViewChange('settings-weight')}
+                            onNavigateToAge={() => handleViewChange('settings-age')}
                             onNavigateToExport={() => handleViewChange('settings-export')}
                             onNavigateToImport={() => handleViewChange('settings-import')}
                             autoSync={autoSync}
@@ -1058,6 +1076,14 @@ const AppContent = () => {
                         <WeightSettings
                             weight={weight}
                             onSave={setWeight}
+                            onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-age' && ageBeta && (
+                        <AgeSettings
+                            birthYear={birthYear}
+                            onSave={setBirthYear}
                             onBack={() => handleViewChange('settings')}
                         />
                     )}

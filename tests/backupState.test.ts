@@ -58,6 +58,7 @@ const syncState = (): SyncState => ({
     },
     weight: 70,
     weightUpdatedAt: 123,
+    birthYearUpdatedAt: 0,
     pkParams: undefined,
     pkParamsUpdatedAt: 0,
 });
@@ -181,6 +182,7 @@ describe('production backup seams', () => {
                 labResults: [],
                 doseTemplates: [],
                 weight: 70,
+                birthYear: null,
                 pkParams: null,
             },
             '2026-01-01T00:00:00.000Z',

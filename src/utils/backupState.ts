@@ -11,6 +11,7 @@ import {
     isLabAssay,
     sanitizePKParams,
     isPlausibleBodyWeightKG,
+    isPlausibleBirthYear,
 } from '../../logic';
 import { MODE_KEYS, ModeKey, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from './syncMerge';
 import { cleanDoseMG } from './cleanDose';
@@ -47,6 +48,7 @@ export interface ActiveBackupState {
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
     weight: number;
+    birthYear: number | null;
     pkParams: PKCustomParams | null;
 }
 
@@ -55,6 +57,9 @@ export interface ExportPayload {
     mode: ModeKey;
     weight: number;
     weightUpdatedAt?: number;
+    /** `null` when there is none, so that removing it reaches other devices too. */
+    birthYear: number | null;
+    birthYearUpdatedAt?: number;
     modes: Record<
         ModeKey,
         {
@@ -79,6 +84,7 @@ export interface AppliedSyncedState {
         deletions: Tombstones;
     };
     weight?: number;
+    birthYear?: number | null;
     pkParams?: PKCustomParams | null;
 }
 
@@ -228,6 +234,8 @@ export const buildExportPayloadFromStorage = (
         mode: activeMode,
         weight: active.weight,
         weightUpdatedAt: Number(storage.getItem(nsFor(owner, 'weight-at'))) || undefined,
+        birthYear: active.birthYear,
+        birthYearUpdatedAt: Number(storage.getItem(nsFor(owner, 'birth-year-at'))) || undefined,
         modes,
         // Flat v1-compatible fields mirror the currently active mode. This
         // build reads only `modes` when it is present, so the copy is never
@@ -278,6 +286,15 @@ export const applySyncedStateToStorage = (
         storage.setItem(nsFor(owner, 'weight'), String(state.weight));
         if (state.weightUpdatedAt > 0) {
             storage.setItem(nsFor(owner, 'weight-at'), String(state.weightUpdatedAt));
+        }
+    }
+    if (state.birthYear !== undefined) {
+        const next = isPlausibleBirthYear(state.birthYear) ? state.birthYear : null;
+        result.birthYear = next;
+        if (next !== null) storage.setItem(nsFor(owner, 'birth-year'), String(next));
+        else storage.removeItem(nsFor(owner, 'birth-year'));
+        if (state.birthYearUpdatedAt > 0) {
+            storage.setItem(nsFor(owner, 'birth-year-at'), String(state.birthYearUpdatedAt));
         }
     }
     if (state.pkParams !== undefined) {

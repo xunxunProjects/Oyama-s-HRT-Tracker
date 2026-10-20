@@ -76,6 +76,7 @@ const active = (overrides: Partial<ImportActiveRecords> = {}): ImportActiveRecor
     labResults: [],
     doseTemplates: [],
     weight: 70,
+    birthYear: null,
     ...overrides,
 });
 
