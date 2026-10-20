@@ -14,6 +14,7 @@ import {
     Plus,
     Minus,
     Fingerprint,
+    KeyRound,
     Lock,
     MonitorSmartphone,
     CloudOff,
@@ -629,6 +630,12 @@ const Account: React.FC<AccountProps> = ({
                                 title={t('hrt.title')}
                                 description={t('hrt.subtitle')}
                                 onClick={() => onNavigate('hrt-security')}
+                            />
+                            <SettingsListItem
+                                icon={KeyRound}
+                                title={t('f2f.title')}
+                                description={t('f2f.subtitle')}
+                                onClick={() => onNavigate('f2f')}
                             />
                         </div>
                     </section>
