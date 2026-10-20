@@ -30,6 +30,7 @@ COPY --from=build /app/passwordStrength.ts ./passwordStrength.ts
 COPY --from=build /app/requestInput.ts ./requestInput.ts
 COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/hrt-server ./hrt-server
 COPY docker/mark-applied-migrations.sql ./docker/mark-applied-migrations.sql
 COPY docker/reconcile.mjs ./docker/reconcile.mjs
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
@@ -42,6 +43,8 @@ USER node
 
 VOLUME ["/data"]
 EXPOSE 8787
+# Optional hrt/1 raw transport; only listen when HRT_RAW_ENABLED=1.
+EXPOSE 9443
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||'8787')+'/api/transparency').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]

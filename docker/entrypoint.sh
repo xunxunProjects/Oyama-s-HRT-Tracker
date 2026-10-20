@@ -111,4 +111,27 @@ set -- ./node_modules/.bin/wrangler dev \
     --port "$port" \
     --persist-to "$persist_dir"
 
+# Optional hrt/1 raw transport. It is a separate process and is off by
+# default; the web app keeps owning accounts, pairing data, and holds.
+if [ "${HRT_RAW_ENABLED:-0}" = "1" ]; then
+    node ./hrt-server/server.mjs &
+    raw_pid=$!
+    sleep 0.2
+    if ! kill -0 "$raw_pid" 2>/dev/null; then
+        echo "hrt-raw-server failed to start" >&2
+        exit 1
+    fi
+
+    "$@" &
+    web_pid=$!
+    trap 'kill "$raw_pid" "$web_pid" 2>/dev/null || true' TERM INT
+    while kill -0 "$raw_pid" 2>/dev/null && kill -0 "$web_pid" 2>/dev/null; do
+        sleep 1
+    done
+    kill "$raw_pid" "$web_pid" 2>/dev/null || true
+    wait "$raw_pid" 2>/dev/null || true
+    wait "$web_pid" 2>/dev/null || true
+    exit 1
+fi
+
 exec "$@"
