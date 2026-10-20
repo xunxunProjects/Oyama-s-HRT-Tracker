@@ -70,6 +70,44 @@ dotenv_line() {
     esac
 }
 
+# Optional hrt:// transport. The raw server and the worker share one service
+# token; the worker also needs an AES-GCM key for pairing IPs. Generate and
+# persist the IP key on the volume when the operator did not supply one.
+hrt_service_token=""
+hrt_ip_key=""
+if [ "${HRT_RAW_ENABLED:-0}" = "1" ]; then
+    if [ -z "${HRT_SERVICE_TOKEN_FILE:-}" ] || [ ! -f "${HRT_SERVICE_TOKEN_FILE}" ]; then
+        echo "HRT_SERVICE_TOKEN_FILE is required when HRT_RAW_ENABLED=1" >&2
+        exit 1
+    fi
+    token_perms=$(stat -c '%a' "$HRT_SERVICE_TOKEN_FILE" 2>/dev/null || true)
+    if [ "$token_perms" != "600" ]; then
+        echo "HRT_SERVICE_TOKEN_FILE must be mode 0600" >&2
+        exit 1
+    fi
+    hrt_service_token=$(tr -d '\n\r' < "$HRT_SERVICE_TOKEN_FILE")
+    if [ "${#hrt_service_token}" -lt 16 ]; then
+        echo "the hrt service token must contain at least 16 characters" >&2
+        exit 1
+    fi
+    if [ -n "${HRT_IP_KEY:-}" ]; then
+        hrt_ip_key="$HRT_IP_KEY"
+    else
+        hrt_ip_key_file="${HRT_IP_KEY_FILE:-$persist_dir/hrt/ip-key}"
+        mkdir -p "$(dirname "$hrt_ip_key_file")"
+        if [ ! -f "$hrt_ip_key_file" ]; then
+            node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64'))" \
+                > "$hrt_ip_key_file"
+            chmod 600 "$hrt_ip_key_file"
+        fi
+        hrt_ip_key=$(tr -d '\n\r' < "$hrt_ip_key_file")
+    fi
+    if ! node -e "const b = Buffer.from(process.argv[1], 'base64'); if (b.length !== 32) process.exit(1)" "$hrt_ip_key"; then
+        echo "HRT_IP_KEY must be base64 of 32 bytes" >&2
+        exit 1
+    fi
+fi
+
 vars_file="./.dev.vars"
 umask 077
 {
@@ -91,6 +129,11 @@ umask 077
     # the browser's Host header through.
     if [ -n "${PUBLIC_APP_ORIGIN:-}" ]; then
         dotenv_line PUBLIC_APP_ORIGIN "$PUBLIC_APP_ORIGIN"
+    fi
+    if [ "${HRT_RAW_ENABLED:-0}" = "1" ]; then
+        dotenv_line HRT_RAW_ENABLED "1"
+        dotenv_line HRT_SERVICE_TOKEN "$hrt_service_token"
+        dotenv_line HRT_IP_KEY "$hrt_ip_key"
     fi
 } > "$vars_file"
 chmod 600 "$vars_file"

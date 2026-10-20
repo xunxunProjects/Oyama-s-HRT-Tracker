@@ -18,11 +18,18 @@ export const TOOL_TRANSPORTS = ['tls'] as const;
 
 export const toolServerTime = (): string => new Date().toISOString();
 
-export const toolVersionBody = () => ({
+export const toolVersionBody = (env?: Pick<Env, 'HRT_RAW_ENABLED' | 'HRT_SERVICE_TOKEN'>) => ({
     apiVersion: TOOL_API_VERSION,
     minToolVersion: TOOL_MIN_VERSION,
     transport: [...TOOL_TRANSPORTS],
     serverTime: toolServerTime(),
+    hrt: {
+        supported:
+            env?.HRT_RAW_ENABLED === '1' &&
+            typeof env.HRT_SERVICE_TOKEN === 'string' &&
+            env.HRT_SERVICE_TOKEN.length >= 16,
+        version: 1,
+    },
 });
 
 /** Add the tool fields to a successful login response, leaving errors alone. */

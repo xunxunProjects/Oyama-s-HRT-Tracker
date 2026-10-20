@@ -131,6 +131,7 @@ describe('/api/tool/v1', () => {
                 minToolVersion: '0.1.0',
                 transport: ['tls'],
                 serverTime: expect.any(String),
+                hrt: { supported: false, version: 1 },
             });
             expect(Number.isNaN(Date.parse(version.body!.serverTime))).toBe(false);
         });

@@ -42,12 +42,17 @@ HRT_RAW_KEY=/data/hrt/server-key.pem
 HRT_SERVICE_TOKEN_FILE=/data/hrt/service-token
 HRT_WEB_ORIGIN=http://127.0.0.1:8787
 HRT_RAW_MAX_CONNECTIONS=8
+# The web app also needs HRT_IP_KEY, base64 of 32 random bytes, to encrypt
+# pairing IPs at rest. Docker generates and persists it when omitted.
+HRT_IP_KEY=<base64-32-bytes>
 ```
 
 `HRT_WEB_ORIGIN` must stay on loopback. The TLS private key and the service
 token must be mode `0600`; the process refuses to start otherwise. The
 web app must accept the same service token on its internal
-`/api/tool/v1/hrt/*` endpoints.
+`/api/tool/v1/hrt/*` endpoints. Docker writes `HRT_RAW_ENABLED`,
+`HRT_SERVICE_TOKEN`, and `HRT_IP_KEY` into the worker's `.dev.vars`; the
+raw server reads the same token file from the volume.
 
 Start manually:
 
@@ -56,7 +61,9 @@ HRT_RAW_ENABLED=1 ... node hrt-server/server.mjs
 ```
 
 In Docker the entrypoint starts this process only when
-`HRT_RAW_ENABLED=1`; otherwise the image behaves as before.
+`HRT_RAW_ENABLED=1`; otherwise the image behaves as before. If the raw
+server exits, the container exits rather than serving a half-disabled
+deployment.
 
 ## Wire protocol
 

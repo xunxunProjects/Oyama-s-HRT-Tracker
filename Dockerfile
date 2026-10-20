@@ -24,6 +24,7 @@ COPY --from=build /app/wrangler.toml ./wrangler.toml
 COPY --from=build /app/worker.ts ./worker.ts
 COPY --from=build /app/contentStore.ts ./contentStore.ts
 COPY --from=build /app/toolApi.ts ./toolApi.ts
+COPY --from=build /app/hrtPairing.ts ./hrtPairing.ts
 COPY --from=build /app/backupPolicy.ts ./backupPolicy.ts
 COPY --from=build /app/shareSnapshotSchema.ts ./shareSnapshotSchema.ts
 COPY --from=build /app/passwordStrength.ts ./passwordStrength.ts

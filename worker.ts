@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
+import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -40,6 +41,15 @@ export interface Env {
      * apply whatever this is set to.
      */
     TRUSTED_IP_SOURCE?: string;
+    /**
+     * Optional hrt:// raw transport. The raw adapter runs as a separate
+     * self-hosted process; Cloudflare deployments leave this off. The service
+     * token is shared only with that loopback process, and HRT_IP_KEY is a
+     * base64 32-byte AES-GCM key used to encrypt pairing IPs at rest.
+     */
+    HRT_RAW_ENABLED?: string;
+    HRT_SERVICE_TOKEN?: string;
+    HRT_IP_KEY?: string;
     /**
      * Rate Limiting bindings, one per requests-per-minute class (wrangler.toml).
      * Keys are prefixed per endpoint, so endpoints with the same ceiling share a
@@ -1268,7 +1278,7 @@ export default {
             // are not reimplemented here.
             if (url.pathname === '/api/tool/v1/version' && request.method === 'GET') {
                 return withSecurityHeaders(
-                    new Response(JSON.stringify(toolVersionBody()), {
+                    new Response(JSON.stringify(toolVersionBody(env)), {
                         status: 200,
                         headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
                     }),
@@ -1276,6 +1286,10 @@ export default {
             }
             if (url.pathname === '/api/tool/v1/compute' && request.method === 'POST') {
                 return jsonError('NOT_IMPLEMENTED', 'Server compute is reserved for a future version', 501);
+            }
+            if (url.pathname.startsWith('/api/tool/v1/hrt/')) {
+                const hrtResponse = await handleHrtService(request, env, url);
+                if (hrtResponse) return withSecurityHeaders(hrtResponse);
             }
 
             // Login
@@ -2025,11 +2039,28 @@ export default {
                     }
                 }
 
+                // --- hrt pairing web UI (same session auth) ---
+                if (url.pathname.startsWith('/api/hrt/')) {
+                    const userRow = (await env.DB.prepare('SELECT id, username FROM users WHERE id = ?')
+                        .bind(userId)
+                        .first()) as { id: string; username: string } | null;
+                    if (!userRow) return sessionInvalid('Account not found');
+                    const hrtResponse = await handleHrtWeb(request, env, url, {
+                        userId: String(userRow.id),
+                        username: String(userRow.username),
+                    });
+                    if (hrtResponse) return withSecurityHeaders(hrtResponse);
+                    return jsonError('NOT_FOUND', 'Not found', 404);
+                }
+
                 // --- Tool API (authenticated) ---
                 // Auth, session revocation and the idle timeout above are the
                 // same ones the website uses; the namespace only adds the
                 // storage shapes the CLI speaks.
                 if (url.pathname.startsWith('/api/tool/v1/')) {
+                    if (!(await hrtDeviceMatchesToken(request, env, userId))) {
+                        return sessionInvalid('Device revoked');
+                    }
                     const toolResponse = await handleToolProtected(
                         request,
                         env,

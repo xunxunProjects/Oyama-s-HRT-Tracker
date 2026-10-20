@@ -624,6 +624,12 @@ const Account: React.FC<AccountProps> = ({
                                 description={t('account.sessions_desc')}
                                 onClick={() => onNavigate('sessions')}
                             />
+                            <SettingsListItem
+                                icon={Fingerprint}
+                                title={t('hrt.title')}
+                                description={t('hrt.subtitle')}
+                                onClick={() => onNavigate('hrt-security')}
+                            />
                         </div>
                     </section>
 
