@@ -237,9 +237,7 @@ async function uploadKey(env: Env, request: Request, user: F2fUser): Promise<Res
         seat = { cohort_id: assigned.cohortId, seat: assigned.seat, status: 'active' };
     }
 
-    const cohort = await env.DB.prepare('SELECT state FROM f2f_cohorts WHERE id = ?')
-        .bind(seat.cohort_id)
-        .first();
+    const cohort = await env.DB.prepare('SELECT state FROM f2f_cohorts WHERE id = ?').bind(seat.cohort_id).first();
     if (!cohort) {
         return error('COHORT_NOT_FOUND', 'cohort not found', 409);
     }
