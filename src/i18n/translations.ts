@@ -735,6 +735,8 @@ export const TRANSLATIONS_BASE = {
         'f2f.key_required': '请粘贴公钥和指纹',
         'f2f.upload': '上传公钥',
         'f2f.members_title': '成员与公钥',
+        'f2f.download_keyring': '下载公钥环',
+        'f2f.keyring_help': '导入后请当面核对指纹，再用 GPG 加密；启用托管时把托管指纹也加为收件人。',
         'f2f.no_members': '暂无成员。',
         'f2f.copy': '复制',
         'f2f.copied': '已复制',
@@ -1754,6 +1756,9 @@ export const TRANSLATIONS_BASE = {
         'f2f.key_required': 'Paste both the public key and its fingerprint.',
         'f2f.upload': 'Upload public key',
         'f2f.members_title': 'Members and public keys',
+        'f2f.download_keyring': 'Download keyring',
+        'f2f.keyring_help':
+            'Import it, verify fingerprints in person, then encrypt with GPG. Add the escrow fingerprint as a recipient when escrow is enabled.',
         'f2f.no_members': 'No members yet.',
         'f2f.copy': 'Copy',
         'f2f.copied': 'Copied',

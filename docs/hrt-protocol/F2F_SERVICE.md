@@ -140,6 +140,41 @@ Deleted seats and revoked or empty keys are omitted. The caller's own seat is
 included. `cohort.escrow` is `null` when the cohort has no escrow key.
 Reading this endpoint counts as cohort activity for the 180-day rule.
 
+### `GET /api/f2f/cohorts/:id/keyring`
+
+Active members only. Returns `text/plain` containing one armored public-key
+block per active member key, followed by the cohort escrow public key when
+one is assigned. Revoked, retired, deleted, and empty keys are omitted. The
+response is an importable GnuPG keyring; the private keys are never included.
+
+## Using standard GnuPG
+
+The browser page can download the cohort keyring. The same workflow with the
+command line is:
+
+```sh
+# Each member, on their own machine:
+gpg --quick-generate-key 'Your Name <you@example.invalid>' future-default default never
+gpg --armor --export YOUR_FINGERPRINT > public.asc
+gpg --fingerprint YOUR_FINGERPRINT
+
+# Upload public.asc and the fingerprint in Account -> F2F keyring.
+# Then download/open the cohort keyring and import it:
+gpg --import hrt-f2f-<cohort-id>.asc
+gpg --fingerprint
+
+# Encrypt to every active member; add the escrow fingerprint when shown:
+gpg --encrypt --armor \
+    --recipient MEMBER_FPR_1 --recipient MEMBER_FPR_2 --recipient ESCROW_FPR \
+    --output message.asc message.txt
+
+# Decrypt with your own private key:
+gpg --decrypt message.asc > message.txt
+```
+
+The member fingerprints must be compared face to face. A file that imports
+successfully is not proof that a key belongs to the person you think it does.
+
 ### Escrow provisioning (service token)
 
 These routes require `x-hrt-service: <HRT_SERVICE_TOKEN>` and never accept a
@@ -193,6 +228,9 @@ up: losing it makes the stored escrow private keys unrecoverable.
   uses the normal HTTPS API. Do not put private keys in either transport.
 - Cloudflare Workers and the Docker image share the same D1 schema and
   handlers. The service does not require the optional raw server.
+- Docker requires `HRT_SERVICE_TOKEN_FILE` when `HRT_F2F_ESCROW=1` and
+  generates/persists `HRT_ESCROW_KEY` unless the operator supplies one.
+  Back up that key with the other deployment secrets.
 - Exact abuse thresholds, key caps, and retention values live in code and are
   not a security boundary.
 
@@ -202,4 +240,5 @@ up: losing it makes the stored escrow private keys unrecoverable.
 rotation, malformed keys, ownership, tombstone behavior after account
 deletion, the 100-seat rollover, the 180-day retirement sweep, escrow
 provisioning and encryption-at-rest, escrow cohort assignment, empty-pool
-failure, and service-token authentication.
+failure, service-token authentication, and keyring export (active-only,
+member-only, escrow included, no private material).

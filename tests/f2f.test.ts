@@ -105,6 +105,17 @@ const call = async (
     return { response, body: text ? (JSON.parse(text) as Record<string, any>) : null };
 };
 
+const textCall = async (path: string, token: string) => {
+    const response = await worker.fetch(
+        new Request(`https://example.com${path}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+        env,
+        ctx,
+    );
+    return { response, text: await response.text() };
+};
+
 const login = async (username: string) => {
     const result = await call('/api/login', { body: { username, password: PASSWORD } });
     return result.body?.token as string;
@@ -331,6 +342,35 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
             state: string;
         };
         expect(active.state).toBe('active');
+    });
+
+    it('exports an importable keyring of active member keys and the escrow key', async () => {
+        env.HRT_F2F_ESCROW = '1';
+        await provisionEscrow(301);
+        const alice = await login('Alice');
+        const bob = await login('Bob');
+        const carol = await login('Carol');
+        const first = await upload(alice, 1);
+        await upload(bob, 2);
+        expect(first.response.status).toBe(200);
+
+        const keyring = await textCall(`/api/f2f/cohorts/${first.body?.cohort_id}/keyring`, alice);
+        expect(keyring.response.status).toBe(200);
+        expect(keyring.response.headers.get('content-type')).toContain('text/plain');
+        expect(keyring.response.headers.get('content-disposition')).toContain('hrt-f2f-');
+        expect(keyring.text).toContain(publicKey(1));
+        expect(keyring.text).toContain(publicKey(2));
+        expect(keyring.text).toContain(publicKey(301));
+        expect(keyring.text).not.toContain('PRIVATE KEY');
+        expect(keyring.text).not.toContain('B'.repeat(160));
+
+        const outsider = await textCall(`/api/f2f/cohorts/${first.body?.cohort_id}/keyring`, carol);
+        expect(outsider.response.status).toBe(403);
+
+        await call('/api/f2f/keys/revoke', { token: alice, body: { key_id: first.body?.key_id } });
+        const afterRevoke = await textCall(`/api/f2f/cohorts/${first.body?.cohort_id}/keyring`, bob);
+        expect(afterRevoke.text).not.toContain(publicKey(1));
+        expect(afterRevoke.text).toContain(publicKey(2));
     });
 
     it('provisions an escrow key without storing its plaintext', async () => {
