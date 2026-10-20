@@ -39,6 +39,7 @@ import type { AppTheme } from '../constants';
 import type { Lang } from '../i18n/translations';
 import { legacyCpaItem, normalizePlanItem, type PlanItem } from './plan';
 import { normalizeSupply, type Pack, type Supply } from './regimen';
+import { cleanDoseMG } from './cleanDose';
 import {
     MAX_IMPORT_ENTRIES,
     loadJSONFromStorage,
@@ -402,7 +403,7 @@ const validateEvent = (raw: unknown, path: string, now?: number): Validation<Dos
         id: raw.id,
         route: raw.route,
         timeH,
-        doseMG: raw.doseMG,
+        doseMG: cleanDoseMG(raw.doseMG),
         ester: raw.ester,
         extras: extras as DoseEvent['extras'],
     };
@@ -449,7 +450,7 @@ const validateTemplate = (raw: unknown, path: string, now?: number): Validation<
         name: raw.name,
         route: raw.route,
         ester: raw.ester,
-        doseMG: raw.doseMG,
+        doseMG: cleanDoseMG(raw.doseMG),
         extras,
         createdAt: raw.createdAt,
     };

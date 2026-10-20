@@ -45,6 +45,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 import { useEscapeLayer } from './CustomSelect';
 import GuideFold from './dose_form/GuideFold';
 import Tick from './Tick';
+import { cleanDoseMG } from '../utils/cleanDose';
 
 export interface DoseTemplate {
     id: string;
@@ -615,7 +616,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         : Ester.E2
                     : ester,
             timeH,
-            doseMG: finalDose,
+            doseMG: cleanDoseMG(finalDose),
             extras,
         };
 

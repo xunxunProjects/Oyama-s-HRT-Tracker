@@ -6,7 +6,12 @@ import {
     type ImportActiveRecords,
     type ImportStorageContext,
 } from '../src/utils/backupImport';
-import { modeKeyFor, readTombstonesFromStorage, type StorageLike } from '../src/utils/backupState';
+import {
+    buildExportPayloadFromStorage,
+    modeKeyFor,
+    readTombstonesFromStorage,
+    type StorageLike,
+} from '../src/utils/backupState';
 import { emptyTombstones, type ModeKey, type Tombstones } from '../src/utils/syncMerge';
 
 /** Synthetic values only. No fixture here contains real health data or secrets. */
@@ -507,5 +512,91 @@ describe('production import reconciliation', () => {
             context(new MemoryStorage(), 'transfem'),
         );
         expect(result.events![0].doseMG).toBe(DOSE_MG_MAX);
+    });
+});
+
+describe('the flat copy in a v2 export', () => {
+    // A v2 export carries the active mode twice: under modes.<mode> and again
+    // at the top level for readers that predate `modes`.
+    const exported = () => {
+        const storage = new MemoryStorage();
+        const records = active({
+            events: [event('ev-1'), event('ev-2')],
+            labResults: [lab('lab-1')],
+            doseTemplates: [template('tpl-1')],
+        });
+        seedMode(storage, 'transfem', {
+            events: records.events,
+            'lab-results': records.labResults,
+            'dose-templates': records.doseTemplates,
+        });
+        const payload = buildExportPayloadFromStorage(storage, OWNER, 'transfem', { ...records, pkParams: null });
+        return JSON.parse(JSON.stringify(payload));
+    };
+
+    it('is written alongside modes', () => {
+        const payload = exported();
+        expect(payload.events).toEqual(payload.modes.transfem.events);
+        expect(payload.labResults).toEqual(payload.modes.transfem.labResults);
+        expect(payload.doseTemplates).toEqual(payload.modes.transfem.doseTemplates);
+    });
+
+    it('is not read again when importing the file over the records', () => {
+        const result = processImportedDataToStorage(exported(), context(new MemoryStorage(), 'transfem'), {
+            now: NOW,
+        });
+        expect(ids(result.events!)).toEqual(['ev-1', 'ev-2']);
+        expect(ids(result.labResults!)).toEqual(['lab-1']);
+        expect(ids(result.doseTemplates!)).toEqual(['tpl-1']);
+    });
+
+    it('is not read again when merging the file, on an empty device or the same one', () => {
+        const fresh = mergeImportedDataToStorage(exported(), context(new MemoryStorage(), 'transfem'), { now: NOW });
+        expect(ids(fresh.events)).toEqual(['ev-1', 'ev-2']);
+        expect(ids(fresh.labResults)).toEqual(['lab-1']);
+        expect(ids(fresh.doseTemplates)).toEqual(['tpl-1']);
+
+        const payload = exported();
+        const same = mergeImportedDataToStorage(
+            payload,
+            context(
+                new MemoryStorage(),
+                'transfem',
+                active({
+                    events: payload.modes.transfem.events,
+                    labResults: payload.modes.transfem.labResults,
+                    doseTemplates: payload.modes.transfem.doseTemplates,
+                }),
+            ),
+            { now: NOW },
+        );
+        expect(same.events).toEqual([]);
+        expect(same.labResults).toEqual([]);
+        expect(same.doseTemplates).toEqual([]);
+    });
+
+    it('cannot add a record of its own: only modes is read when both are present', () => {
+        const payload = exported();
+        payload.events.push(event('flat-only'));
+        const result = processImportedDataToStorage(payload, context(new MemoryStorage(), 'transfem'), { now: NOW });
+        expect(ids(result.events!)).toEqual(['ev-1', 'ev-2']);
+    });
+});
+
+describe('float tails on stored doses', () => {
+    it('imports 12.499934062706513 mg CPA as 12.5 and keeps an exact dose as typed', () => {
+        const result = processImportedDataToStorage(
+            {
+                events: [
+                    event('cpa', { route: Route.oral, ester: Ester.CPA, doseMG: 12.499934062706513 }),
+                    event('patch', { route: Route.patchApply, doseMG: 0.0375 }),
+                ],
+                doseTemplates: [template('tpl', { ester: Ester.CPA, doseMG: 12.499934062706513 })],
+            },
+            context(new MemoryStorage(), 'transfem'),
+            { now: NOW },
+        );
+        expect(result.events!.map(e => e.doseMG)).toEqual([12.5, 0.0375]);
+        expect(result.doseTemplates![0].doseMG).toBe(12.5);
     });
 });

@@ -13,6 +13,7 @@ import {
     isPlausibleBodyWeightKG,
 } from '../../logic';
 import { MODE_KEYS, ModeKey, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from './syncMerge';
+import { cleanDoseMG } from './cleanDose';
 
 /** Minimal storage surface used by the pure backup helpers. */
 export interface StorageLike {
@@ -139,7 +140,7 @@ export const sanitizeImportedEvents = (raw: any): DoseEvent[] => {
                 id: typeof item.id === 'string' ? item.id : uuidv4(),
                 route,
                 timeH: timeNum,
-                doseMG: Number.isFinite(doseNum) ? Math.min(DOSE_MG_MAX, Math.max(0, doseNum)) : 0,
+                doseMG: Number.isFinite(doseNum) ? cleanDoseMG(Math.min(DOSE_MG_MAX, Math.max(0, doseNum))) : 0,
                 ester: validEster,
                 extras: sanitizedExtras,
                 updatedAt: keepStamp(item),
@@ -188,7 +189,7 @@ export const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
                 name: typeof name === 'string' ? name : 'Template',
                 route,
                 ester,
-                doseMG: doseNum,
+                doseMG: cleanDoseMG(doseNum),
                 extras: extras && typeof extras === 'object' ? extras : {},
                 createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
                 updatedAt: keepStamp(item),
@@ -228,7 +229,11 @@ export const buildExportPayloadFromStorage = (
         weight: active.weight,
         weightUpdatedAt: Number(storage.getItem(nsFor(owner, 'weight-at'))) || undefined,
         modes,
-        // Flat v1-compatible fields mirror the currently active mode.
+        // Flat v1-compatible fields mirror the currently active mode. This
+        // build reads only `modes` when it is present, so the copy is never
+        // imported twice; it stays for readers that predate `modes` (older
+        // cached or desktop builds, and the upstream HRT-Recorder-online),
+        // which would otherwise find an empty file.
         events: active.events,
         labResults: active.labResults,
         doseTemplates: active.doseTemplates,
