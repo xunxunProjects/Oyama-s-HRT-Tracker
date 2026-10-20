@@ -11,11 +11,14 @@
  * HRT_ESCROW_KEY and is not exposed by any API here.
  */
 
+import { SignJWT } from 'jose';
 import * as openpgp from 'openpgp';
-import { readSmallJsonBody } from './requestInput';
+import { getClientIP, readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
 
 const COHORT_SIZE = 100;
+const CLI_CODE_TTL_SECONDS = 10 * 60;
+const CLI_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const MAX_KEYS_PER_USER = 20;
 const MAX_PUBLIC_KEY_BYTES = 64 * 1024;
 const MAX_PRIVATE_KEY_BYTES = 128 * 1024;
@@ -23,6 +26,7 @@ const MIN_PUBLIC_KEY_BYTES = 100;
 const IDLE_RETIRE_SECONDS = 180 * 24 * 60 * 60;
 
 const HEX_FINGERPRINT = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+const CLI_CODE = /^[0-9a-f]{32}$/;
 const COHORT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const KEY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ARMOR_BEGIN = '-----BEGIN PGP PUBLIC KEY BLOCK-----';
@@ -736,6 +740,82 @@ async function cohortKeyring(env: Env, user: F2fUser, cohortId: string): Promise
     });
 }
 
+function randomHex(byteCount: number): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(byteCount));
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function createCliCode(env: Env, user: F2fUser): Promise<Response> {
+    const code = randomHex(16);
+    const codeHash = await sha256Hex(code);
+    const now = nowSeconds();
+    const expiresAt = now + CLI_CODE_TTL_SECONDS;
+    /* Only the newest code stays valid. Generating a replacement invalidates
+       one the user may have generated but not yet typed into the CLI. */
+    await env.DB.batch([
+        env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(user.userId),
+        env.DB.prepare(
+            'INSERT INTO f2f_cli_codes (code_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
+        ).bind(codeHash, user.userId, now, expiresAt),
+    ]);
+    return json({ code, expires_at: expiresAt });
+}
+
+/** Unauthenticated code exchange. Called before the session-auth branch in the
+ *  worker; the returned JWT carries scope=f2f and is only accepted for
+ *  /api/f2f/* routes. */
+export async function exchangeF2fCliCode(request: Request, env: Env, jwtSecret: string): Promise<Response> {
+    const parsed = await readBody(request, 1024);
+    if ('response' in parsed) return parsed.response;
+    const raw = parsed.value.code;
+    const code = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+    if (!CLI_CODE.test(code)) return error('INVALID_CODE', 'invalid or expired code', 401);
+
+    const now = nowSeconds();
+    const codeHash = await sha256Hex(code);
+    const row = (await env.DB.prepare('SELECT user_id, expires_at, used_at FROM f2f_cli_codes WHERE code_hash = ?')
+        .bind(codeHash)
+        .first()) as { user_id: string; expires_at: number; used_at: number | null } | null;
+    if (!row || row.used_at !== null || Number(row.expires_at) <= now) {
+        return error('INVALID_CODE', 'invalid or expired code', 401);
+    }
+
+    const userRow = (await env.DB.prepare('SELECT id, username FROM users WHERE id = ?').bind(row.user_id).first()) as {
+        id: string;
+        username: string;
+    } | null;
+    if (!userRow) return error('INVALID_CODE', 'invalid or expired code', 401);
+
+    /* Single use is enforced by the UPDATE, not the SELECT above: two
+       concurrent exchanges must not both mint a token. */
+    const used = await env.DB.prepare(
+        'UPDATE f2f_cli_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?',
+    )
+        .bind(now, codeHash, now)
+        .run();
+    if (Number(used.meta?.changes ?? 0) !== 1) {
+        return error('INVALID_CODE', 'invalid or expired code', 401);
+    }
+
+    const sessionId = crypto.randomUUID();
+    const ip = getClientIP(request, env) ?? 'unknown';
+    await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+        .bind(sessionId, userRow.id, 'hrt-f2f CLI', ip)
+        .run();
+    const token = await new SignJWT({
+        sub: String(userRow.id),
+        username: String(userRow.username),
+        role: 'user',
+        sid: sessionId,
+        scope: 'f2f',
+    })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('7d')
+        .sign(new TextEncoder().encode(jwtSecret));
+    return json({ token, expires_at: now + CLI_TOKEN_TTL_SECONDS });
+}
+
 export async function handleF2fWeb(request: Request, env: Env, url: URL, user: F2fUser): Promise<Response | null> {
     if (!url.pathname.startsWith('/api/f2f/')) return null;
 
@@ -746,6 +826,10 @@ export async function handleF2fWeb(request: Request, env: Env, url: URL, user: F
     if (url.pathname === '/api/f2f/keys') {
         if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 'method not allowed', 405);
         return uploadKey(env, request, user);
+    }
+    if (url.pathname === '/api/f2f/cli/codes') {
+        if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 'method not allowed', 405);
+        return createCliCode(env, user);
     }
     if (url.pathname === '/api/f2f/keys/retire') {
         if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 'method not allowed', 405);

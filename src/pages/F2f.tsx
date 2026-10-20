@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Copy, Download, Fingerprint, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Copy, Download, Fingerprint, Loader2, RefreshCw, Terminal } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useDialog } from '../contexts/DialogContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -34,6 +34,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [publicKey, setPublicKey] = useState('');
     const [fingerprint, setFingerprint] = useState('');
     const [copied, setCopied] = useState<string | null>(null);
+    const [cliCode, setCliCode] = useState<{ code: string; expires_at: number } | null>(null);
 
     const load = async () => {
         setLoading(true);
@@ -118,6 +119,18 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         }
     };
 
+    const generateCliCode = async () => {
+        setBusy('cli-code');
+        setError(null);
+        try {
+            setCliCode(await f2fService.createCliCode(token));
+        } catch (codeError) {
+            setError(errorMessage(codeError));
+        } finally {
+            setBusy(null);
+        }
+    };
+
     const revoke = () => {
         const keyId = status?.key?.id;
         if (!keyId) return;
@@ -186,6 +199,42 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                 </button>
                             </div>
                             <p className="mt-2 text-xs text-[var(--warning)]">{t('f2f.verify_note')}</p>
+                        </section>
+
+                        <section className={card}>
+                            <div className="flex items-center gap-2">
+                                <Terminal size={16} className="text-[var(--text-muted)]" />
+                                <p className={heading}>{t('f2f.cli_title')}</p>
+                            </div>
+                            <p className={`${muted} mt-1`}>{t('f2f.cli_desc')}</p>
+                            <button
+                                className={`${primary} mt-2`}
+                                onClick={() => void generateCliCode()}
+                                disabled={busy !== null}
+                            >
+                                {busy === 'cli-code' ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    t('f2f.cli_generate')
+                                )}
+                            </button>
+                            {cliCode && (
+                                <div className="mt-3 space-y-2">
+                                    <p className={mono}>{cliCode.code}</p>
+                                    <p className={muted}>
+                                        {t('f2f.cli_expires')}{' '}
+                                        {new Date(cliCode.expires_at * 1000).toLocaleTimeString()}
+                                    </p>
+                                    <button className={secondary} onClick={() => copy(cliCode.code, 'cli-code')}>
+                                        <Copy size={14} className="mr-1 inline" />
+                                        {copied === 'cli-code' ? t('f2f.copied') : t('f2f.copy')}
+                                    </button>
+                                    <p className={`${muted} mt-2`}>{t('f2f.cli_help')}</p>
+                                    <code className={`${mono} block rounded-lg bg-[var(--bg)] p-2`}>
+                                        {`hrt-f2f login --server ${window.location.origin} --code ${cliCode.code} --token-out ~/.config/hrt-f2f/token`}
+                                    </code>
+                                </div>
+                            )}
                         </section>
 
                         {status?.registered ? (

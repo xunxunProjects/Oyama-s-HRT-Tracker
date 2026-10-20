@@ -67,9 +67,36 @@ as a tombstone.
 
 ## HTTP API
 
-All routes require the normal web session (`Authorization: Bearer ...`) and
-are served under the same auth, session-idle, and security-header middleware as
-the rest of the app.
+Routes under `/api/f2f/` accept either the normal web session
+(`Authorization: Bearer ...`) or an F2F-scoped CLI token. Both go through the
+same session-idle and security-header middleware as the rest of the app. The
+CLI token cannot mint registration codes, and it is rejected outside
+`/api/f2f/*`.
+
+### `POST /api/f2f/cli/codes`
+
+Web session only. Mints a 128-bit hexadecimal one-time code, stores only its
+SHA-256, and invalidates any previous unused code for the account. The code
+expires after ten minutes.
+
+```json
+{ "code": "32-hex", "expires_at": 1760000600 }
+```
+
+### `POST /api/f2f/cli/token`
+
+Public: the one-time code is the credential. Rate-limited by client address.
+The exchange is single-use, enforced by a conditional `UPDATE` so two
+concurrent requests cannot both succeed. On success it creates an ordinary
+`hrt-f2f CLI` session row and returns a seven-day JWT carrying
+`scope: "f2f"`.
+
+```json
+{ "token": "...", "expires_at": 1760600000 }
+```
+
+Because the token is backed by a session row, revoking the `hrt-f2f CLI`
+session in the web UI immediately invalidates the CLI.
 
 ### `GET /api/f2f/status`
 
@@ -240,5 +267,6 @@ up: losing it makes the stored escrow private keys unrecoverable.
 rotation, malformed keys, ownership, tombstone behavior after account
 deletion, the 100-seat rollover, the 180-day retirement sweep, escrow
 provisioning and encryption-at-rest, escrow cohort assignment, empty-pool
-failure, service-token authentication, and keyring export (active-only,
-member-only, escrow included, no private material).
+failure, service-token authentication, keyring export (active-only,
+member-only, escrow included, no private material), and one-time CLI code
+creation, single-use exchange, expiry, scope enforcement, and rate limiting.

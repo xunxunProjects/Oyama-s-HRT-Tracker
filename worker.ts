@@ -4,7 +4,7 @@ import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
 import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
-import { handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
+import { exchangeF2fCliCode, handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -1989,6 +1989,23 @@ export default {
                 });
             }
 
+            // Exchange a one-time code from the web UI for an F2F-scoped
+            // session. This is deliberately public: the CLI has no session
+            // yet, and the code is the credential.
+            if (url.pathname === '/api/f2f/cli/token') {
+                if (request.method !== 'POST') {
+                    return jsonError('INVALID_REQUEST', 'method not allowed', 405);
+                }
+                const clientIP = getClientIP(request, env);
+                const limitKey = clientIP ? `f2f-cli-token:${clientIP}` : 'f2f-cli-token:global-noip';
+                if (!(await checkRateLimit(env, limitKey, clientIP ? 10 : 30))) {
+                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                        'Retry-After': '60',
+                    });
+                }
+                return withSecurityHeaders(await exchangeF2fCliCode(request, env, jwtSecret));
+            }
+
             // -- Protected API Routes --
             const authHeader = request.headers.get('Authorization');
             if (!authHeader?.startsWith('Bearer ')) return sessionInvalid('Unauthorized');
@@ -2008,7 +2025,13 @@ export default {
                 // session token before it can be treated as one.
                 const purpose = (payload as any).purpose;
                 const sessionId = (payload as any).sid as string | undefined;
+                const tokenScope = (payload as any).scope as string | undefined;
                 if (typeof payload.sub !== 'string' || !payload.sub || purpose !== undefined) {
+                    return sessionInvalid('Invalid token');
+                }
+                // A scoped token (minted by the F2F CLI code exchange) must only
+                // ever reach the namespace it was minted for.
+                if (tokenScope !== undefined && tokenScope !== 'f2f') {
                     return sessionInvalid('Invalid token');
                 }
                 // Every session token minted by this worker carries a `sid` (login,
@@ -2048,6 +2071,10 @@ export default {
                     }
                 }
 
+                if (tokenScope === 'f2f' && !url.pathname.startsWith('/api/f2f/')) {
+                    return jsonError('FORBIDDEN', 'This token is limited to F2F operations', 403);
+                }
+
                 // --- hrt pairing web UI (same session auth) ---
                 if (url.pathname.startsWith('/api/hrt/')) {
                     const userRow = (await env.DB.prepare('SELECT id, username FROM users WHERE id = ?')
@@ -2068,12 +2095,18 @@ export default {
                         .bind(userId)
                         .first()) as { id: string; username: string } | null;
                     if (!userRow) return sessionInvalid('Account not found');
+                    // A CLI token may use the registry but must not mint new
+                    // registration codes; only a web session can do that.
+                    if (tokenScope === 'f2f' && url.pathname === '/api/f2f/cli/codes') {
+                        return jsonError('FORBIDDEN', 'This token cannot create registration codes', 403);
+                    }
                     /* Key uploads and rotations are cheap to spam and touch the
                        database; reads can be polled. Both get a per-account
                        ceiling so one session cannot exhaust the shared worker. */
                     const f2fWrite =
                         request.method === 'POST' &&
                         (url.pathname === '/api/f2f/keys' ||
+                            url.pathname === '/api/f2f/cli/codes' ||
                             url.pathname === '/api/f2f/keys/retire' ||
                             url.pathname === '/api/f2f/keys/revoke');
                     const f2fAllowed = await checkRateLimit(
@@ -2759,6 +2792,7 @@ export default {
                             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
+                            env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(userId),
                             /* F2F seats are tombstones: never delete the row. */
                             env.DB.prepare(
                                 "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",
@@ -3356,6 +3390,7 @@ export default {
                             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId),
+                            env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(targetId),
                             /* F2F seats are tombstones: never delete the row. */
                             env.DB.prepare(
                                 "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",

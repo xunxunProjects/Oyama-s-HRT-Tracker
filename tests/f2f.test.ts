@@ -536,4 +536,55 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(result.response.status).toBe(429);
         expect(result.body?.code).toBe('RATE_LIMITED');
     });
+
+    it('issues a one-time CLI registration code and exchanges it for a scoped token', async () => {
+        const token = await login('Alice');
+        const created = await call('/api/f2f/cli/codes', { method: 'POST', token });
+        expect(created.response.status).toBe(200);
+        const code = created.body?.code as string;
+        expect(code).toMatch(/^[0-9a-f]{32}$/);
+        expect(created.body?.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000));
+        const stored = db.prepare('SELECT code_hash FROM f2f_cli_codes').get() as { code_hash: string };
+        expect(stored.code_hash).not.toBe(code);
+
+        const exchanged = await call('/api/f2f/cli/token', { body: { code } });
+        expect(exchanged.response.status).toBe(200);
+        const cliToken = exchanged.body?.token as string;
+        expect(cliToken.length).toBeGreaterThan(32);
+
+        const status = await call('/api/f2f/status', { token: cliToken });
+        expect(status.response.status).toBe(200);
+
+        const me = await call('/api/user/me', { token: cliToken });
+        expect(me.response.status).toBe(403);
+
+        const more = await call('/api/f2f/cli/codes', { method: 'POST', token: cliToken });
+        expect(more.response.status).toBe(403);
+
+        const reuse = await call('/api/f2f/cli/token', { body: { code } });
+        expect(reuse.response.status).toBe(401);
+        expect(reuse.body?.code).toBe('INVALID_CODE');
+    });
+
+    it('rejects an expired CLI registration code', async () => {
+        const token = await login('Alice');
+        const created = await call('/api/f2f/cli/codes', { method: 'POST', token });
+        db.prepare('UPDATE f2f_cli_codes SET expires_at = ?').run(Math.floor(Date.now() / 1000) - 1);
+        const exchanged = await call('/api/f2f/cli/token', { body: { code: created.body?.code } });
+        expect(exchanged.response.status).toBe(401);
+        expect(exchanged.body?.code).toBe('INVALID_CODE');
+    });
+
+    it('rate-limits CLI registration code exchange', async () => {
+        env = {
+            ...env,
+            RL_PER_MINUTE_10: { limit: async () => ({ success: false }) },
+        } as unknown as Env;
+        const result = await call('/api/f2f/cli/token', {
+            body: { code: 'a'.repeat(32) },
+            headers: { 'CF-Connecting-IP': '203.0.113.9' },
+        });
+        expect(result.response.status).toBe(429);
+        expect(result.body?.code).toBe('RATE_LIMITED');
+    });
 });

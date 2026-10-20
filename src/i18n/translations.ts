@@ -747,6 +747,12 @@ export const TRANSLATIONS_BASE = {
         'f2f.escrow_title': '小团体托管公钥',
         'f2f.escrow_desc': '部署启用托管时，可把副本加密给这把公钥以便服务器恢复；私钥不会显示。',
         'f2f.escrow_fingerprint': '托管密钥指纹',
+        'f2f.cli_title': '命令行登录码',
+        'f2f.cli_desc':
+            '生成一次性注册码，在安装了 hrt-f2f 的机器上换取仅限 F2F 的令牌。注册码 10 分钟内有效，只能使用一次。',
+        'f2f.cli_generate': '生成注册码',
+        'f2f.cli_expires': '有效期至',
+        'f2f.cli_help': '在终端运行下面的命令；令牌会写入 0600 文件，不会显示在这里。',
         'f2f.error': '操作失败',
         'account.no_backups': '暂无云端备份',
         'account.backups_list_failed': '无法加载云端备份列表。',
@@ -1771,6 +1777,12 @@ export const TRANSLATIONS_BASE = {
         'f2f.escrow_desc':
             'When the deployment enables escrow, encrypt a copy to this key so the server can recover it. The private key is never shown.',
         'f2f.escrow_fingerprint': 'Escrow fingerprint',
+        'f2f.cli_title': 'Command-line login code',
+        'f2f.cli_desc':
+            'Generate a one-time code to obtain a token limited to F2F on the machine running hrt-f2f. The code expires in 10 minutes and works once.',
+        'f2f.cli_generate': 'Generate code',
+        'f2f.cli_expires': 'Expires at',
+        'f2f.cli_help': 'Run this in a terminal. The token is written to a 0600 file and is never shown here.',
         'f2f.error': 'Something went wrong',
         'account.no_backups': 'No cloud backups yet',
         'account.backups_list_failed': "Couldn't load the list of cloud backups.",

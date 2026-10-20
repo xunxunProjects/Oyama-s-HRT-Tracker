@@ -68,6 +68,10 @@ export const f2fService = {
         request<{ ok: true; status: string }>(token, '/api/f2f/keys/revoke', {
             body: { key_id: keyId },
         }),
+    createCliCode: (token: string) =>
+        request<{ code: string; expires_at: number }>(token, '/api/f2f/cli/codes', {
+            method: 'POST',
+        }),
     members: async (token: string, cohortId: string) => {
         const result = await request<{ cohort: { id: string; state: string }; members: F2fMember[] }>(
             token,
