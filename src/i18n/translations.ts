@@ -244,6 +244,7 @@ export const TRANSLATIONS_BASE = {
         'import.replace_complete_from_one': '这是 {date} 的备份，有 1 条记录。',
         'import.replace_complete_message': '这台设备上的记录和设置会换成它的内容，开着云同步的话，其他设备也会跟着换。',
         'import.replace_complete_yours_account': '你登录的是 {name}，请确认这份备份是你的。',
+        'import.replace_complete_other_account': '它是从另一个账户导出的，你登录的是 {name}，请确认这是你想要的。',
         'import.replace_complete_btn': '全部替换',
         'import.replace_complete_success': '完整备份已恢复到本机。',
         'import.replace_complete_failed': '恢复失败，本机数据没有改变。',
@@ -303,6 +304,8 @@ export const TRANSLATIONS_BASE = {
         'import.bundle_skipped_parts': '这些合并不了，保持原样：{list}。',
         'import.bundle_yours': '请确认这份备份是你的。',
         'import.bundle_yours_account': '它会合并到账户 {name}，请确认这份备份是你的。',
+        'import.bundle_same_account': '它是从账户 {name} 导出的。',
+        'import.bundle_other_account': '它是从另一个账户导出的，会合并到 {name}，请确认这是你想要的。',
         'import.bundle_preferences': '备份里的显示设置也会一起应用。',
         'import.bundle_sep': '、',
         'import.bundle_cat_events': '用药记录',
@@ -1170,6 +1173,8 @@ export const TRANSLATIONS_BASE = {
         'import.replace_complete_message':
             'The records and settings on this device will be replaced by the ones in it, and with cloud sync on, your other devices change too.',
         'import.replace_complete_yours_account': "You're signed in as {name}, so make sure this backup is yours.",
+        'import.replace_complete_other_account':
+            "It was exported from another account and you're signed in as {name}, so make sure that's what you want.",
         'import.replace_complete_btn': 'Replace everything',
         'import.replace_complete_success': 'Complete backup restored.',
         'import.replace_complete_failed': 'Restore failed. Nothing on this device was changed.',
@@ -1231,6 +1236,9 @@ export const TRANSLATIONS_BASE = {
         'import.bundle_skipped_parts': "These can't be merged and stay as they are: {list}.",
         'import.bundle_yours': 'Make sure this backup is yours.',
         'import.bundle_yours_account': 'It merges into the account {name}, so make sure this backup is yours.',
+        'import.bundle_same_account': 'It was exported from the account {name}.',
+        'import.bundle_other_account':
+            "It was exported from another account and merges into {name}, so make sure that's what you want.",
         'import.bundle_preferences': "It also applies the backup's display settings.",
         'import.bundle_sep': ', ',
         'import.bundle_cat_events': 'doses',

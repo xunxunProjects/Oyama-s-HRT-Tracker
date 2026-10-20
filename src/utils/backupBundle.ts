@@ -11,6 +11,10 @@
  * merge-only: category-level validation runs before any write, and a category
  * with an unresolved same-id conflict is blocked rather than guessed.
  *
+ * A bundle exported while signed in names its account only as a hash
+ * (`sourceAccount`), so an import can say whether it came from the account it
+ * is going into.
+ *
  * A separate Replace action requires a complete bundle, refuses ambiguity, and
  * applies through a crash-recoverable localStorage journal. That is an
  * application-level transaction, not a browser primitive: it restores its
@@ -63,6 +67,8 @@ import {
     type Tombstones,
 } from './syncMerge';
 import { applyReplaceJournal, type ReplaceJournalEntry } from './replaceJournal';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 
 export const COMPLETE_BACKUP_FORMAT = 'oyama-hrt-complete-backup';
 export const COMPLETE_BACKUP_FORMAT_VERSION = 1;
@@ -119,6 +125,8 @@ export interface CompleteBackupBundle {
     formatVersion: typeof COMPLETE_BACKUP_FORMAT_VERSION;
     createdAt: string;
     mode: ModeKey;
+    /** `completeBackupAccountTag` of the account it was exported from; absent when signed out. */
+    sourceAccount?: string;
     modes: Record<ModeKey, CompleteBackupMode>;
     weight?: number;
     weightUpdatedAt?: number;
@@ -199,6 +207,13 @@ export interface CompleteBackupDeletionImpact {
     droppedIds: string[];
 }
 
+/**
+ * Whether a file was exported from the account it is going into. `unknown`
+ * when the file names no account (made signed out, or by an older version) or
+ * this device is signed out.
+ */
+export type CompleteBackupAccountMatch = 'same' | 'other' | 'unknown';
+
 export interface CompleteBackupPreview {
     /** False only when the envelope itself cannot be read. */
     ok: boolean;
@@ -212,6 +227,7 @@ export interface CompleteBackupPreview {
      * file against different accounts are not interchangeable.
      */
     targetOwner: string;
+    account: CompleteBackupAccountMatch;
     counts: Record<ModeKey, BundleCounts>;
     /** Category paths the file does not mention at all. */
     missing: string[];
@@ -318,6 +334,17 @@ const isRecordId = (value: unknown): value is string =>
     typeof value === 'string' && value !== '' && !FORBIDDEN_IDS.has(value);
 
 const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
+
+const ACCOUNT_TAG = /^[0-9a-f]{64}$/;
+
+/**
+ * How a bundle names the account it came from without holding the account's
+ * id or username: a SHA-256 of the id under this format's name. It is only
+ * compared with the importing account's own tag, to catch the wrong file; it
+ * is not a signature and proves nothing about who wrote the file.
+ */
+export const completeBackupAccountTag = (owner: string): string | undefined =>
+    owner === 'local' ? undefined : bytesToHex(sha256(utf8ToBytes(`${COMPLETE_BACKUP_FORMAT}/account/${owner}`)));
 
 const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
 
@@ -1027,6 +1054,7 @@ export function buildCompleteBackupBundleReportFromStorage(
         now,
         issues,
     );
+    const sourceAccount = completeBackupAccountTag(owner);
     let pkParams: PKCustomParams | null | undefined;
     if (storage.getItem(pkKey) !== null || active.pkParams !== null) {
         const saved = loadJSONFromStorage<unknown>(storage, pkKey, null);
@@ -1043,6 +1071,7 @@ export function buildCompleteBackupBundleReportFromStorage(
             formatVersion: COMPLETE_BACKUP_FORMAT_VERSION,
             createdAt,
             mode: activeMode,
+            ...(sourceAccount !== undefined ? { sourceAccount } : {}),
             modes: { transfem: readMode('transfem'), transmasc: readMode('transmasc') },
             ...(weight !== undefined ? { weight } : {}),
             ...(weightUpdatedAt !== undefined ? { weightUpdatedAt } : {}),
@@ -1078,6 +1107,7 @@ interface ParsedBundle {
     createdAt?: string;
     formatVersion?: number;
     sourceMode?: ModeKey;
+    sourceAccount?: string;
     modes: Partial<Record<ModeKey, CompleteBackupMode>>;
     categoryErrors: Record<string, string[]>;
     categoryCounts: Record<string, number>;
@@ -1259,6 +1289,11 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
         createdAt: raw.createdAt as string,
         formatVersion: raw.formatVersion as number,
         sourceMode: raw.mode as ModeKey,
+        // Anything else in that field is ignored: the file then names no account.
+        sourceAccount:
+            typeof raw.sourceAccount === 'string' && ACCOUNT_TAG.test(raw.sourceAccount)
+                ? raw.sourceAccount
+                : undefined,
         modes,
         categoryErrors,
         categoryCounts,
@@ -1917,6 +1952,7 @@ export function inspectCompleteBackupBundle(raw: unknown, context: CompleteBacku
     }
 
     const reconciled = reconcileBundle(parsed, context, now);
+    const ownTag = completeBackupAccountTag(context.owner);
 
     return {
         ok: parsed.errors.length === 0,
@@ -1926,6 +1962,7 @@ export function inspectCompleteBackupBundle(raw: unknown, context: CompleteBacku
         sourceMode: parsed.sourceMode,
         currentMode: context.mode,
         targetOwner: context.owner,
+        account: !parsed.sourceAccount || !ownTag ? 'unknown' : parsed.sourceAccount === ownTag ? 'same' : 'other',
         counts,
         missing: parsed.missing,
         blocked: [...reconciled.blocked],
@@ -1957,6 +1994,7 @@ export function completeBackupPreviewFingerprint(preview: CompleteBackupPreview)
         sourceMode: preview.sourceMode,
         currentMode: preview.currentMode,
         targetOwner: preview.targetOwner,
+        account: preview.account,
         counts: preview.counts,
         missing: [...preview.missing].sort(),
         blocked: [...preview.blocked].sort(),

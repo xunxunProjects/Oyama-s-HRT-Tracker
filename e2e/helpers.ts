@@ -83,6 +83,7 @@ export interface BundleFixture {
     formatVersion: number;
     createdAt: string;
     mode: ModeKey;
+    sourceAccount?: string;
     modes: Record<ModeKey, BundleMode>;
     weight?: number;
     weightUpdatedAt?: number;

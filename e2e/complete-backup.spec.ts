@@ -323,6 +323,34 @@ test.describe('complete backup import (L3 browser)', () => {
         expect(await readStorage(page, 'hrt-weight')).toBe(69);
     });
 
+    test('says whether a backup came from the signed-in account or another one', async ({ page, context, request }) => {
+        const user = await registerUser(request, 'source');
+        await seedStorage(
+            context,
+            signedInStorage(user, {
+                [`hrt-u${user.user.id}-events`]: JSON.stringify([event('own-1', 4, stamp())]),
+            }),
+        );
+
+        await gotoApp(page);
+        const exported = await downloadCompleteBackup(page);
+        // The file names its account only by a hash, never by id or username.
+        expect(exported.sourceAccount).toMatch(/^[0-9a-f]{64}$/);
+        expect(JSON.stringify(exported)).not.toContain(user.user.id);
+        expect(JSON.stringify(exported)).not.toContain(user.user.username);
+
+        const dialog = page.getByRole('alertdialog');
+        await pasteAndImport(page, JSON.stringify(exported));
+        await expect(dialog).toContainText(`It was exported from the account ${user.user.username}.`);
+        await expect(dialog).not.toContainText('make sure');
+        await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+        await pasteAndImport(page, JSON.stringify({ ...exported, sourceAccount: 'f'.repeat(64) }));
+        await expect(dialog).toContainText(
+            `It was exported from another account and merges into ${user.user.username}, so make sure that's what you want.`,
+        );
+    });
+
     test('rolls back every write when a committed write throws', async ({ page, context }) => {
         const old = stamp();
         const newer = stamp(60_000);

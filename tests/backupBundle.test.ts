@@ -11,6 +11,7 @@ import {
     buildCompleteBackupBundleFromStorage,
     buildCompleteBackupBundleReportFromStorage,
     classifyCompleteBackupOutcome,
+    completeBackupAccountTag,
     completeBackupPreviewFingerprint,
     formatIds,
     inspectCompleteBackupBundle,
@@ -540,7 +541,7 @@ describe('complete backup bundle data layer', () => {
         );
     });
 
-    it('adds no source-account identifier and leaves formatVersion at 1', () => {
+    it('names no account when exported signed out, and leaves formatVersion at 1', () => {
         const bundle = build(seed());
 
         expect(bundle.formatVersion).toBe(1);
@@ -550,6 +551,57 @@ describe('complete backup bundle data layer', () => {
         const serialized = JSON.stringify(bundle);
         expect(serialized).not.toContain('auth_user');
         expect(serialized).not.toContain('sourceAccount');
+    });
+
+    it('names the account it was exported from only by a hash of the account id', () => {
+        const storage = seed();
+        const owner = 'synthetic-account-id';
+        const bundle = buildCompleteBackupBundleFromStorage(
+            storage,
+            owner,
+            'transfem',
+            activeFrom(storage, 'transfem'),
+            CREATED_AT,
+            NOW,
+        );
+
+        // Pinned: changing how the tag is made would stop every older backup matching.
+        expect(completeBackupAccountTag(owner)).toBe(
+            '37c7f3c86ce6d5023385369227ad8d9e755e736833063123b000b0e336e2cb85',
+        );
+        expect(bundle.sourceAccount).toBe(completeBackupAccountTag(owner));
+        expect(JSON.stringify(bundle)).not.toContain(owner);
+        expect(completeBackupAccountTag('synthetic-account-2')).not.toBe(bundle.sourceAccount);
+        expect(completeBackupAccountTag('local')).toBeUndefined();
+        expect(bundle.formatVersion).toBe(1);
+    });
+
+    it('tells whether a file came from the account it is going into', () => {
+        const storage = seed();
+        const exportedBy = (owner: string) =>
+            buildCompleteBackupBundleFromStorage(
+                storage,
+                owner,
+                'transfem',
+                activeFrom(storage, 'transfem'),
+                CREATED_AT,
+                NOW,
+            );
+        const into = (owner: string): CompleteBackupContext => ({ ...context(new MemoryStorage()), owner });
+        const mine = exportedBy('synthetic-account-1');
+
+        expect(inspectCompleteBackupBundle(mine, into('synthetic-account-1')).account).toBe('same');
+        expect(inspectCompleteBackupBundle(mine, into('synthetic-account-2')).account).toBe('other');
+        // Signed out here, or a file that names no account: nothing to compare.
+        expect(inspectCompleteBackupBundle(mine, into('local')).account).toBe('unknown');
+        expect(inspectCompleteBackupBundle(exportedBy('local'), into('synthetic-account-1')).account).toBe('unknown');
+        // Anything but a tag in the field is ignored, neither trusted nor fatal.
+        const odd = inspectCompleteBackupBundle(
+            { ...mine, sourceAccount: 'synthetic-account-1' },
+            into('synthetic-account-1'),
+        );
+        expect(odd.ok).toBe(true);
+        expect(odd.account).toBe('unknown');
     });
 
     it('does not write anything when the envelope version is unknown', () => {
