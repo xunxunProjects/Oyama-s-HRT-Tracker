@@ -42,6 +42,7 @@ import {
 } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
+import { hrtService } from '../services/hrt';
 import { apiEndpoint } from '../services/apiClient';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
@@ -126,6 +127,10 @@ const Account: React.FC<AccountProps> = ({
     lastSyncedAt,
 }) => {
     const [avatarError, setAvatarError] = useState(false);
+    // The hrt-tool page only exists when the Worker has HRT_RAW_ENABLED and a
+    // service token. Hiding the entry otherwise keeps a deployment without
+    // those variables from offering a page that answers 404 to every call.
+    const [hrtToolSupported, setHrtToolSupported] = useState(false);
     // Bust the avatar cache once per mount so returning from the edit-avatar
     // page (which remounts Account) reflects a freshly uploaded image.
     const avatarCacheBuster = useMemo(() => Date.now(), []);
@@ -208,6 +213,17 @@ const Account: React.FC<AccountProps> = ({
                 .then(s => onTwoFAStatusChange(s.enabled))
                 .catch(() => {});
         }
+    }, [user, token]);
+
+    useEffect(() => {
+        if (!user || !token) return;
+        let cancelled = false;
+        void hrtService.capability().then(supported => {
+            if (!cancelled) setHrtToolSupported(supported);
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [user, token]);
 
     // A sync that uploaded leaves a new revision behind; refresh so the list
@@ -625,12 +641,14 @@ const Account: React.FC<AccountProps> = ({
                                 description={t('account.sessions_desc')}
                                 onClick={() => onNavigate('sessions')}
                             />
-                            <SettingsListItem
-                                icon={Fingerprint}
-                                title={t('hrt.title')}
-                                description={t('hrt.subtitle')}
-                                onClick={() => onNavigate('hrt-security')}
-                            />
+                            {hrtToolSupported && (
+                                <SettingsListItem
+                                    icon={Fingerprint}
+                                    title={t('hrt.title')}
+                                    description={t('hrt.subtitle')}
+                                    onClick={() => onNavigate('hrt-security')}
+                                />
+                            )}
                             <SettingsListItem
                                 icon={KeyRound}
                                 title={t('f2f.title')}

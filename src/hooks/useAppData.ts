@@ -58,7 +58,15 @@ const nsFor = (owner: string, suffix: string) => (owner === LOCAL_OWNER ? `hrt-$
 const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: string) =>
     nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
-const MODE_SUFFIXES = ['events', 'lab-results', 'dose-templates', 'quick-doses', 'deletions'] as const;
+const MODE_SUFFIXES = [
+    'events',
+    'lab-results',
+    'dose-templates',
+    'quick-doses',
+    'plan',
+    'supplies',
+    'deletions',
+] as const;
 const SHARED_SUFFIXES = [
     'weight',
     'pk-params',

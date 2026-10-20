@@ -16,6 +16,11 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
         expect(headers['x-content-type-options']).toBe('nosniff');
         expect(headers['permissions-policy']).toContain('camera=()');
 
+        const capability = await request.get(`${API_ORIGIN}/api/hrt/capability`);
+        expect(capability.status()).toBe(200);
+        expect(await capability.json()).toEqual({ supported: false });
+        expect(capability.headers()['cache-control']).toBe('no-store');
+
         const transparency = await request.get(`${API_ORIGIN}/api/transparency`);
         expect(transparency.status()).toBe(200);
         expect(transparency.headers()['cache-control']).toBe('public, max-age=15');
@@ -37,6 +42,14 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
         request,
     }) => {
         const user = await registerUser(request, 'avatar');
+
+        // An account with no avatar must not make the browser log a 404 every
+        // time Account renders; an unknown username still gets a plain 404.
+        const missing = await request.get(`${API_ORIGIN}/api/user/avatar/${user.user.username}`);
+        expect(missing.status()).toBe(204);
+        const unknown = await request.get(`${API_ORIGIN}/api/user/avatar/no-such-user-${Date.now()}`);
+        expect(unknown.status()).toBe(404);
+
         const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00]);
         const put = await request.put(`${API_ORIGIN}/api/user/avatar`, {
             headers: { ...auth(user.token), 'Content-Type': 'image/jpeg' },

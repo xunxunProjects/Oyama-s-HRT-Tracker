@@ -94,6 +94,23 @@ If you run your own copy:
   将 `JWT_SECRET` 设置为至少 32 个字符的随机值，例如 `openssl rand -base64 48`。
   缺少、过短或过弱的密钥会导致 Worker 拒绝启动。切勿将其提交到代码库。
 
+- The hrt-tool pairing page stays hidden unless `HRT_RAW_ENABLED=1` and
+  `HRT_SERVICE_TOKEN` (at least 16 characters) are both set. Keep the token in
+  a secret, not in the repository.
+
+  hrt-tool 配对页面默认隐藏，只有同时设置 `HRT_RAW_ENABLED=1` 与
+  `HRT_SERVICE_TOKEN`（至少 16 个字符）才会显示。请将令牌保存为 Secret，不要提交到仓库。
+
+- The Worker sends a strict CSP with `script-src 'self'`. Cloudflare features
+  that inject scripts into the page (Web Analytics and the JS
+  detection/challenge bootstrap) are blocked by it. Either disable those
+  features for the zone or supply a nonce/hash through your CSP setup; do not
+  weaken the policy with `'unsafe-inline'`.
+
+  Worker 会发送 `script-src 'self'` 的严格 CSP。Cloudflare 注入页面的脚本
+  （Web Analytics 与 JS 检测/质询引导脚本）会被拦截。请为站点关闭这些功能，
+  或在 CSP 配置中提供 nonce/hash；不要用 `'unsafe-inline'` 削弱策略。
+
 - `ADMIN_USERNAME` and `ADMIN_PASSWORD` are optional. If you use them, set both
   to strong, unique values and store them as secrets
   (`wrangler secret put`, or the `.env` file for Docker).

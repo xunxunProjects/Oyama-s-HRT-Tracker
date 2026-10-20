@@ -602,7 +602,9 @@ const AppContent = () => {
 
             return await confirmImport(parsed);
         } catch (err) {
-            console.error(err);
+            // The alert is the user-facing report. Keep the log to the reason,
+            // not a JSON.parse stack for an input the reader can see is wrong.
+            console.warn('Import failed:', err instanceof Error ? err.message : String(err));
             showDialog('alert', t('drawer.import_error'));
             return false;
         }

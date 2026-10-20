@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { isValidUsername } from '../utils/username';
 
 const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -15,7 +16,10 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     const muted = 'text-[var(--text-muted)]';
 
-    const canSave = !!username.trim() && !isLoading && username !== user?.username;
+    const trimmedUsername = username.trim();
+    const usernameValid = isValidUsername(trimmedUsername);
+    const showRules = username.length > 0 && !usernameValid;
+    const canSave = usernameValid && !isLoading && trimmedUsername !== user?.username;
 
     // A form, so Enter in the field saves.
     const handleSubmit = async (ev: React.FormEvent) => {
@@ -24,7 +28,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         setIsLoading(true);
         setError('');
         try {
-            await updateProfile(username);
+            await updateProfile(trimmedUsername);
             onBack();
         } catch (e: any) {
             setError(e.message);
@@ -59,9 +63,19 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             className="input-base"
                             placeholder={t('account.new_username')}
                             autoComplete="username"
-                            aria-describedby={error ? `${id}-error` : undefined}
+                            aria-describedby={
+                                [error ? `${id}-error` : '', showRules ? `${id}-rules` : '']
+                                    .filter(Boolean)
+                                    .join(' ') || undefined
+                            }
+                            aria-invalid={showRules || undefined}
                             autoFocus
                         />
+                        {showRules && (
+                            <p id={`${id}-rules`} className="mt-1.5 text-xs text-[var(--danger)]">
+                                {t('account.username_rules')}
+                            </p>
+                        )}
                     </div>
 
                     <button type="submit" disabled={!canSave} className="btn-primary w-full">

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
-import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
+import { handleHrtService, handleHrtWeb, hrtCapability, hrtDeviceMatchesToken } from './hrtPairing';
 import { exchangeF2fCliCode, handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
@@ -1066,6 +1066,18 @@ export default {
 
             // -- Public API Routes --
 
+            // Whether the hrt-tool pairing surface is configured on this
+            // deployment. The Account page uses it to hide an entry that would
+            // otherwise lead to a page whose four API calls all 404.
+            if (url.pathname === '/api/hrt/capability' && request.method === 'GET') {
+                return withSecurityHeaders(
+                    new Response(JSON.stringify({ supported: hrtCapability(env).supported }), {
+                        status: 200,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+                    }),
+                );
+            }
+
             // Transparency: public aggregate stats. No PII exposed.
             if (url.pathname === '/api/transparency' && request.method === 'GET') {
                 // Per-address where an address exists; a single wider bucket
@@ -1570,7 +1582,20 @@ export default {
                     if (!userId) return genericNotFound();
 
                     const object = await env.AVATAR_BUCKET.get(`hrt-tracker-user-avatar/${userId}`);
-                    if (!object) return genericNotFound();
+                    if (!object) {
+                        // The account exists but has no avatar yet. A 204 keeps the
+                        // client's initial fallback without logging a 404 on every
+                        // Account render; an unknown username still 404s above.
+                        return withSecurityHeaders(
+                            new Response(null, {
+                                status: 204,
+                                headers: {
+                                    'Access-Control-Allow-Origin': '*',
+                                    'Cache-Control': 'no-store',
+                                },
+                            }),
+                        );
+                    }
 
                     const headers = new Headers();
                     object.writeHttpMetadata(headers);

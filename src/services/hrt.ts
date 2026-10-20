@@ -54,6 +54,19 @@ async function request<T>(token: string, path: string, init: { method?: string; 
 }
 
 export const hrtService = {
+    /** Public: whether this deployment has the hrt-tool pairing surface enabled. */
+    capability: async (): Promise<boolean> => {
+        try {
+            const response = await fetch(apiEndpoint('/api/hrt/capability'), {
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) return false;
+            const body = (await response.json()) as { supported?: unknown };
+            return body.supported === true;
+        } catch {
+            return false;
+        }
+    },
     status: (token: string) => request<HrtStatus>(token, '/api/hrt/status'),
     requests: async (token: string) => (await request<{ requests: HrtRequest[] }>(token, '/api/hrt/requests')).requests,
     approve: (token: string, id: string, code: string) =>
