@@ -18,6 +18,10 @@ export interface F2fStatus {
     };
     seat?: number;
     key?: F2fKey | null;
+    escrow?: {
+        publicKey: string;
+        fingerprint: string;
+    } | null;
 }
 
 export interface F2fMemberKey {

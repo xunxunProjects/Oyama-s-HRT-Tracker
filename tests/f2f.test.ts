@@ -75,12 +75,21 @@ function publicKey(value: number): string {
     return `-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n${'A'.repeat(160)}${value}\n-----END PGP PUBLIC KEY BLOCK-----`;
 }
 
+function privateKey(value: number): string {
+    return `-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n${'B'.repeat(160)}${value}\n-----END PGP PRIVATE KEY BLOCK-----`;
+}
+
+const SERVICE_TOKEN = 'test-service-token-0123456789';
+
 let db: SqliteDatabase;
 let env: Env;
 const ctx = { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as Parameters<typeof worker.fetch>[2];
 
-const call = async (path: string, init: { method?: string; body?: unknown; token?: string } = {}) => {
-    const headers: Record<string, string> = {};
+const call = async (
+    path: string,
+    init: { method?: string; body?: unknown; token?: string; headers?: Record<string, string> } = {},
+) => {
+    const headers: Record<string, string> = { ...(init.headers ?? {}) };
     if (init.body !== undefined) headers['Content-Type'] = 'application/json';
     if (init.token) headers.Authorization = `Bearer ${init.token}`;
     const response = await worker.fetch(
@@ -103,6 +112,16 @@ const login = async (username: string) => {
 
 const upload = (token: string, value: number, key = publicKey(value), fpr = fingerprint(value)) =>
     call('/api/f2f/keys', { token, body: { public_key: key, fingerprint: fpr } });
+
+const provisionEscrow = (value: number, token = SERVICE_TOKEN) =>
+    call('/api/tool/v1/f2f/escrow/keys', {
+        headers: { 'x-hrt-service': token },
+        body: {
+            public_key: publicKey(value),
+            private_key: privateKey(value),
+            fingerprint: fingerprint(value),
+        },
+    });
 
 const directUpload = async (userId: string, value: number) => {
     const url = new URL('https://example.com/api/f2f/keys');
@@ -139,6 +158,8 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
             DB: d1(db),
             JWT_SECRET,
             PUBLIC_APP_ORIGIN: 'https://example.com',
+            HRT_SERVICE_TOKEN: SERVICE_TOKEN,
+            HRT_ESCROW_KEY: Buffer.alloc(32, 9).toString('base64'),
         } as unknown as Env;
     });
 
@@ -310,5 +331,93 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
             state: string;
         };
         expect(active.state).toBe('active');
+    });
+
+    it('provisions an escrow key without storing its plaintext', async () => {
+        const result = await provisionEscrow(201);
+        expect(result.response.status).toBe(200);
+        expect(result.body?.state).toBe('available');
+
+        const row = db
+            .prepare('SELECT private_key_encrypted, state FROM f2f_escrow_keys WHERE fingerprint = ?')
+            .get(fingerprint(201)) as { private_key_encrypted: string; state: string };
+        expect(row.state).toBe('available');
+        expect(row.private_key_encrypted).toMatch(/^v1\./);
+        expect(row.private_key_encrypted).not.toContain('PRIVATE KEY');
+        expect(row.private_key_encrypted).not.toContain('B'.repeat(160));
+
+        const status = await call('/api/tool/v1/f2f/escrow/status', {
+            headers: { 'x-hrt-service': SERVICE_TOKEN },
+        });
+        expect(status.response.status).toBe(200);
+        expect(status.body?.counts.available).toBe(1);
+        expect(JSON.stringify(status.body)).not.toContain('private_key_encrypted');
+    });
+
+    it('assigns one escrow key to a new cohort and exposes only its public half', async () => {
+        env.HRT_F2F_ESCROW = '1';
+        const provisioned = await provisionEscrow(202);
+        const token = await login('Alice');
+        const joined = await upload(token, 1);
+        expect(joined.response.status).toBe(200);
+
+        const status = await call('/api/f2f/status', { token });
+        expect(status.body?.escrow?.fingerprint).toBe(fingerprint(202));
+        expect(status.body?.escrow?.publicKey).toContain('BEGIN PGP PUBLIC KEY BLOCK');
+        expect(status.body?.escrow?.privateKey).toBeUndefined();
+
+        const escrow = db
+            .prepare('SELECT state, cohort_id FROM f2f_escrow_keys WHERE id = ?')
+            .get(provisioned.body?.id) as { state: string; cohort_id: string };
+        expect(escrow.state).toBe('assigned');
+        expect(escrow.cohort_id).toBe(joined.body?.cohort_id);
+
+        const members = await call(`/api/f2f/cohorts/${joined.body?.cohort_id}/members`, { token });
+        expect(members.body?.cohort?.escrow?.fingerprint).toBe(fingerprint(202));
+    });
+
+    it('refuses a new cohort when escrow is enabled without an available key', async () => {
+        env.HRT_F2F_ESCROW = '1';
+        const token = await login('Alice');
+        const result = await upload(token, 1);
+        expect(result.response.status).toBe(503);
+        expect(result.body?.code).toBe('ESCROW_UNAVAILABLE');
+        expect(db.prepare('SELECT COUNT(*) AS n FROM f2f_seats').get()).toEqual({ n: 0 });
+    });
+
+    it('requires the service token to provision escrow keys', async () => {
+        const result = await provisionEscrow(203, 'wrong-service-token-0000');
+        expect(result.response.status).toBe(401);
+        expect(db.prepare('SELECT COUNT(*) AS n FROM f2f_escrow_keys').get()).toEqual({ n: 0 });
+    });
+
+    it('rejects a duplicate escrow fingerprint', async () => {
+        expect((await provisionEscrow(204)).response.status).toBe(200);
+        const again = await provisionEscrow(204);
+        expect(again.response.status).toBe(409);
+    });
+
+    it('releases an escrow key whose cohort disappeared', async () => {
+        const provisioned = await provisionEscrow(205);
+        db.prepare("UPDATE f2f_escrow_keys SET state = 'assigned', cohort_id = ?, assigned_at = ? WHERE id = ?").run(
+            '00000000-0000-0000-0000-000000000000',
+            Math.floor(Date.now() / 1000),
+            provisioned.body?.id,
+        );
+
+        await sweepF2fCohorts(env);
+        const row = db
+            .prepare('SELECT state, cohort_id, assigned_at FROM f2f_escrow_keys WHERE id = ?')
+            .get(provisioned.body?.id) as { state: string; cohort_id: string | null; assigned_at: number | null };
+        expect(row.state).toBe('available');
+        expect(row.cohort_id).toBeNull();
+        expect(row.assigned_at).toBeNull();
+    });
+
+    it('leaves escrow off unless the operator enables it', async () => {
+        const token = await login('Alice');
+        await upload(token, 1);
+        const status = await call('/api/f2f/status', { token });
+        expect(status.body?.escrow).toBeNull();
     });
 });

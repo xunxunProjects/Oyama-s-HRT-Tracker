@@ -1,11 +1,11 @@
 # F2F cohort service
 
 The face-to-face (F2F) service is a separate keyring from `hrt-tool`'s backup
-path. This document is the implementation contract for the server side. It is
-deliberately narrower than the long-term design: public-key registration,
-cohort/seat allocation, member discovery, and the 180-day retirement rule are
-implemented; cohort escrow keys and the client key-generation/encryption flow
-are the next milestones.
+path. This document is the implementation contract for the server side.
+Public-key registration, cohort/seat allocation, member discovery, the
+180-day retirement rule, and **operator-provisioned cohort escrow keys** are
+implemented. The client key-generation/encryption flow is the next
+milestone.
 
 ## Trust model
 
@@ -18,9 +18,13 @@ are the next milestones.
 - The server does not cryptographically validate the uploaded key yet: it
   checks the armor framing, size, and fingerprint format. A member must not
   treat a key as authentic until the fingerprint has been verified in person.
-- The cohort escrow columns are reserved for an opt-in, operator-provisioned
-  escrow key. No escrow private key is created, used, or returned by the API
-  in this milestone.
+- Escrow is opt-in. An operator generates a cohort OpenPGP key pair offline
+  and provisions it through a service-token endpoint. The server stores the
+  public key and an AES-GCM envelope of the private key under
+  `HRT_ESCROW_KEY`; members receive only the public key. No API returns the
+  private key, and no recovery/decryption endpoint is exposed yet.
+- Without escrow, members encrypt only to each other's public keys. With
+  escrow, a sender may encrypt an additional copy to the cohort escrow key.
 
 ## Cohorts and seats
 
@@ -47,6 +51,12 @@ active|deleted, created_at, updated_at, deleted_at)`
 status active|retired|revoked, created_at, updated_at, retired_at,
 revoked_at)`
 
+`migrations/0011_f2f_escrow.sql`:
+
+- `f2f_escrow_keys(id, public_key, private_key_encrypted, fingerprint UNIQUE,
+state available|assigned|retired|deleted, cohort_id, created_at,
+assigned_at, retired_at)`
+
 A user has at most one seat. A user may rotate keys without moving seats; the
 previous active key becomes `retired` and remains readable. A revoked key
 cannot become active again, and its fingerprint is never reused.
@@ -68,6 +78,10 @@ the rest of the app.
   "registered": true,
   "cohort": { "id": "...", "state": "active", "memberCount": 2, "totalSeats": 2 },
   "seat": 1,
+  "escrow": {
+    "publicKey": "-----BEGIN PGP PUBLIC KEY BLOCK-----...",
+    "fingerprint": "40-or-64-hex"
+  },
   "key": {
     "id": "...",
     "fingerprint": "40-or-64-hex",
@@ -107,7 +121,11 @@ their `active`/`retired` keys:
 
 ```json
 {
-  "cohort": { "id": "...", "state": "active" },
+  "cohort": {
+    "id": "...",
+    "state": "active",
+    "escrow": { "publicKey": "…", "fingerprint": "…" }
+  },
   "members": [
     {
       "seat": 1,
@@ -119,8 +137,53 @@ their `active`/`retired` keys:
 ```
 
 Deleted seats and revoked or empty keys are omitted. The caller's own seat is
-included. Reading this endpoint counts as cohort activity for the 180-day
-rule.
+included. `cohort.escrow` is `null` when the cohort has no escrow key.
+Reading this endpoint counts as cohort activity for the 180-day rule.
+
+### Escrow provisioning (service token)
+
+These routes require `x-hrt-service: <HRT_SERVICE_TOKEN>` and never accept a
+web session.
+
+`POST /api/tool/v1/f2f/escrow/keys`
+
+```json
+{
+  "public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----...",
+  "private_key": "-----BEGIN PGP PRIVATE KEY BLOCK-----...",
+  "fingerprint": "40-or-64-hex"
+}
+```
+
+The private key is encrypted with AES-GCM under `HRT_ESCROW_KEY`
+(`v1.<iv>.<ciphertext>`) before it is stored. Fingerprints are unique.
+Errors: `INVALID_KEY`, `KEY_EXISTS`, `ESCROW_UNAVAILABLE`.
+
+`GET /api/tool/v1/f2f/escrow/status` returns counts by state and a metadata
+list (id, fingerprint, state, cohort id, timestamps). It never returns the
+encrypted private key.
+
+### Operator workflow
+
+Generate a cohort escrow key offline, then provision it before enabling
+escrow or creating the next cohort:
+
+```sh
+gpg --batch --passphrase '' --quick-generate-key 'HRT F2F escrow' future-default default never
+FPR=$(gpg --list-keys --with-colons 'HRT F2F escrow' | awk -F: '/^fpr:/ {print $10; exit}')
+gpg --armor --export "$FPR" > escrow-public.asc
+gpg --armor --export-secret-keys "$FPR" > escrow-private.asc
+jq -n --rawfile pub escrow-public.asc --rawfile priv escrow-private.asc \
+  --arg fpr "$FPR" '{public_key:$pub, private_key:$priv, fingerprint:$fpr}' \
+  | curl -fsS -X POST "$APP/api/tool/v1/f2f/escrow/keys" \
+      -H "x-hrt-service: $SERVICE_TOKEN" -H 'Content-Type: application/json' --data-binary @-
+```
+
+`HRT_F2F_ESCROW=1` makes each new cohort reserve one available key. If the
+pool is empty or `HRT_ESCROW_KEY` is missing, the membership request fails
+with `ESCROW_UNAVAILABLE` instead of silently creating a non-escrowed
+cohort. Existing cohorts are not retrofitted. Keep `HRT_ESCROW_KEY` backed
+up: losing it makes the stored escrow private keys unrecoverable.
 
 ## Operational rules
 
@@ -137,4 +200,6 @@ rule.
 
 `tests/f2f.test.ts` covers seat assignment, cohort sharing, member listing,
 rotation, malformed keys, ownership, tombstone behavior after account
-deletion, the 100-seat rollover, and the 180-day retirement sweep.
+deletion, the 100-seat rollover, the 180-day retirement sweep, escrow
+provisioning and encryption-at-rest, escrow cohort assignment, empty-pool
+failure, and service-token authentication.

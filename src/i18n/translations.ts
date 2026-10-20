@@ -742,6 +742,9 @@ export const TRANSLATIONS_BASE = {
         'f2f.revoked': '已撤销',
         'f2f.revoke_confirm': '永久撤销这个公钥？已有密文仍可用私钥解密。',
         'f2f.rotate_note': '上传新公钥后，旧公钥会保留为已停用状态，座位不变。',
+        'f2f.escrow_title': '小团体托管公钥',
+        'f2f.escrow_desc': '部署启用托管时，可把副本加密给这把公钥以便服务器恢复；私钥不会显示。',
+        'f2f.escrow_fingerprint': '托管密钥指纹',
         'f2f.error': '操作失败',
         'account.no_backups': '暂无云端备份',
         'account.backups_list_failed': '无法加载云端备份列表。',
@@ -1759,6 +1762,10 @@ export const TRANSLATIONS_BASE = {
         'f2f.revoke_confirm':
             'Revoke this key permanently? Existing ciphertext can still be decrypted with the private key.',
         'f2f.rotate_note': 'A new key keeps the old one as retired and leaves the seat unchanged.',
+        'f2f.escrow_title': 'Cohort escrow key',
+        'f2f.escrow_desc':
+            'When the deployment enables escrow, encrypt a copy to this key so the server can recover it. The private key is never shown.',
+        'f2f.escrow_fingerprint': 'Escrow fingerprint',
         'f2f.error': 'Something went wrong',
         'account.no_backups': 'No cloud backups yet',
         'account.backups_list_failed': "Couldn't load the list of cloud backups.",
