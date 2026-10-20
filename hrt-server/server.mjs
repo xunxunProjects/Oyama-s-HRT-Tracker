@@ -556,14 +556,15 @@ export function createHrtServer({
                     return;
                 }
                 headers['x-hrt-device-fingerprint'] = device.fingerprint;
+                /* User requests authenticate with their own Bearer token. The
+                   service token belongs only to the raw server's pairing and
+                   authorize calls; adding it here would let any paired user
+                   reach service-only endpoints such as escrow provisioning. */
                 const response = await forwardHttp({
                     origin,
                     method: message.method,
                     path: `${parsedPath.pathname}${parsedPath.search}`,
-                    headers: {
-                        ...headers,
-                        ...serviceHeaders,
-                    },
+                    headers,
                     body,
                     timeoutMs: requestTimeoutMs,
                 });

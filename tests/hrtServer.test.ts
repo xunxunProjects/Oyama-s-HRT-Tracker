@@ -351,6 +351,8 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
             expect(meCalls).toHaveLength(1);
             expect(meCalls[0].headers.authorization).toBe('Bearer test-token');
             expect(meCalls[0].headers['x-hrt-device-fingerprint']).toBe(clientFingerprint);
+            /* A paired user must not inherit the raw server's service token. */
+            expect(meCalls[0].headers['x-hrt-service']).toBeUndefined();
             expect(authorizeCalls[0].headers['x-hrt-service']).toBe(SERVICE_TOKEN);
         } finally {
             client.close();
