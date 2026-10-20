@@ -2068,6 +2068,24 @@ export default {
                         .bind(userId)
                         .first()) as { id: string; username: string } | null;
                     if (!userRow) return sessionInvalid('Account not found');
+                    /* Key uploads and rotations are cheap to spam and touch the
+                       database; reads can be polled. Both get a per-account
+                       ceiling so one session cannot exhaust the shared worker. */
+                    const f2fWrite =
+                        request.method === 'POST' &&
+                        (url.pathname === '/api/f2f/keys' ||
+                            url.pathname === '/api/f2f/keys/retire' ||
+                            url.pathname === '/api/f2f/keys/revoke');
+                    const f2fAllowed = await checkRateLimit(
+                        env,
+                        `f2f:${f2fWrite ? 'write' : 'read'}:${userId}`,
+                        f2fWrite ? 10 : 60,
+                    );
+                    if (!f2fAllowed) {
+                        return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                            'Retry-After': '60',
+                        });
+                    }
                     const f2fResponse = await handleF2fWeb(request, env, url, {
                         userId: String(userRow.id),
                         username: String(userRow.username),

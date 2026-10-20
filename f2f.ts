@@ -11,6 +11,7 @@
  * HRT_ESCROW_KEY and is not exposed by any API here.
  */
 
+import * as openpgp from 'openpgp';
 import { readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
 
@@ -145,6 +146,41 @@ function normalizeFingerprint(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const fingerprint = value.trim().toLowerCase();
     return HEX_FINGERPRINT.test(fingerprint) ? fingerprint : null;
+}
+
+/** Parse the armored key and require a public, unexpired, unrevoked key whose
+ *  fingerprint matches the value the client supplied. Without this, a member
+ *  can poison the cohort keyring with arbitrary text and break every other
+ *  member's import. */
+async function validPublicKey(armored: string, fingerprint: string): Promise<boolean> {
+    try {
+        const keys = await openpgp.readKeys({ armoredKeys: armored });
+        if (keys.length !== 1) return false;
+        const key = keys[0];
+        if (key.isPrivate()) return false;
+        if (await key.isRevoked()) return false;
+        /* OpenPGP.js returns Infinity for a key that never expires, so only a
+           real Date can be in the past. */
+        const expiration = await key.getExpirationTime();
+        if (expiration instanceof Date && expiration.getTime() <= Date.now()) return false;
+        const encryptionKey = await key.getEncryptionKey();
+        const encryptionExpiration = await encryptionKey.getExpirationTime();
+        if (encryptionExpiration instanceof Date && encryptionExpiration.getTime() <= Date.now()) {
+            return false;
+        }
+        return key.getFingerprint().toLowerCase() === fingerprint;
+    } catch {
+        return false;
+    }
+}
+
+async function validPrivateKey(armored: string, fingerprint: string): Promise<boolean> {
+    try {
+        const key = await openpgp.readPrivateKey({ armoredKey: armored });
+        return key.isPrivate() && key.getFingerprint().toLowerCase() === fingerprint;
+    } catch {
+        return false;
+    }
 }
 
 async function serviceAuthorized(request: Request, env: Env): Promise<boolean> {
@@ -368,6 +404,9 @@ async function uploadKey(env: Env, request: Request, user: F2fUser): Promise<Res
     if (!publicKey || !fingerprint) {
         return error('INVALID_KEY', 'a valid armored public key and fingerprint are required', 400);
     }
+    if (!(await validPublicKey(publicKey, fingerprint))) {
+        return error('INVALID_KEY', 'the public key does not match the fingerprint or cannot be used', 400);
+    }
 
     let seat = await seatForUser(env, user.userId);
     if (seat && seat.status === 'deleted') {
@@ -574,6 +613,9 @@ async function provisionEscrowKey(env: Env, request: Request): Promise<Response>
     const fingerprint = normalizeFingerprint(parsed.value.fingerprint);
     if (!publicKey || !privateKey || !fingerprint) {
         return error('INVALID_KEY', 'a valid armored key pair and fingerprint are required', 400);
+    }
+    if (!(await validPublicKey(publicKey, fingerprint)) || !(await validPrivateKey(privateKey, fingerprint))) {
+        return error('INVALID_KEY', 'the key pair does not match the fingerprint or cannot be used', 400);
     }
     if (!env.HRT_ESCROW_KEY) {
         return error('ESCROW_UNAVAILABLE', 'HRT_ESCROW_KEY is not configured', 503);

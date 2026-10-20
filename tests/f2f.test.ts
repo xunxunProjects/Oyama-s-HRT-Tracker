@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import * as openpgp from 'openpgp';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { handleF2fWeb, sweepF2fCohorts } from '../f2f';
 import worker, { type Env } from '../worker';
 
@@ -67,16 +68,39 @@ function d1(db: SqliteDatabase) {
     };
 }
 
+interface TestKey {
+    publicKey: string;
+    fingerprint: string;
+}
+
+interface TestEscrowKey extends TestKey {
+    privateKey: string;
+}
+
+const memberKeys: TestKey[] = [];
+const escrowKeys = new Map<number, TestEscrowKey>();
+const escrowValues = [201, 202, 203, 204, 205, 301];
+
 function fingerprint(value: number): string {
-    return value.toString(16).padStart(40, '0');
+    return memberKeys[value - 1].fingerprint;
 }
 
 function publicKey(value: number): string {
-    return `-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n${'A'.repeat(160)}${value}\n-----END PGP PUBLIC KEY BLOCK-----`;
+    return memberKeys[value - 1].publicKey;
 }
 
-function privateKey(value: number): string {
-    return `-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n${'B'.repeat(160)}${value}\n-----END PGP PRIVATE KEY BLOCK-----`;
+function escrowKey(value: number): TestEscrowKey {
+    const key = escrowKeys.get(value);
+    if (!key) throw new Error(`no escrow fixture ${value}`);
+    return key;
+}
+
+function escrowPublic(value: number): string {
+    return escrowKey(value).publicKey;
+}
+
+function escrowFingerprint(value: number): string {
+    return escrowKey(value).fingerprint;
 }
 
 const SERVICE_TOKEN = 'test-service-token-0123456789';
@@ -128,9 +152,9 @@ const provisionEscrow = (value: number, token = SERVICE_TOKEN) =>
     call('/api/tool/v1/f2f/escrow/keys', {
         headers: { 'x-hrt-service': token },
         body: {
-            public_key: publicKey(value),
-            private_key: privateKey(value),
-            fingerprint: fingerprint(value),
+            public_key: escrowPublic(value),
+            private_key: escrowKey(value).privateKey,
+            fingerprint: escrowFingerprint(value),
         },
     });
 
@@ -145,6 +169,38 @@ const directUpload = async (userId: string, value: number) => {
 };
 
 describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
+    beforeAll(async () => {
+        for (let value = 1; value <= 101; value++) {
+            const pair = await openpgp.generateKey({
+                type: 'ecc',
+                curve: 'curve25519Legacy',
+                userIDs: [{ name: `Member ${value}`, email: `member${value}@example.invalid` }],
+                format: 'armored',
+            });
+            const key = await openpgp.readKey({ armoredKey: pair.publicKey });
+            memberKeys[value - 1] = {
+                publicKey: pair.publicKey,
+                fingerprint: key.getFingerprint().toLowerCase(),
+            };
+        }
+        for (const value of escrowValues) {
+            const passphrase = 'escrow-test-passphrase';
+            const pair = await openpgp.generateKey({
+                type: 'ecc',
+                curve: 'curve25519Legacy',
+                userIDs: [{ name: `Escrow ${value}`, email: `escrow${value}@example.invalid` }],
+                passphrase,
+                format: 'armored',
+            });
+            const key = await openpgp.readKey({ armoredKey: pair.publicKey });
+            escrowKeys.set(value, {
+                publicKey: pair.publicKey,
+                privateKey: pair.privateKey,
+                fingerprint: key.getFingerprint().toLowerCase(),
+            });
+        }
+    }, 120_000);
+
     beforeEach(async () => {
         db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
         const migrationDir = new URL('../migrations/', import.meta.url);
@@ -249,6 +305,15 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(badArmor.response.status).toBe(400);
         const badFingerprint = await upload(token, 1, publicKey(1), 'xyz');
         expect(badFingerprint.response.status).toBe(400);
+        expect(db.prepare('SELECT COUNT(*) AS n FROM f2f_keys').get()).toEqual({ n: 0 });
+    });
+
+    it('rejects a structurally valid but fake public key', async () => {
+        const token = await login('Alice');
+        const fake =
+            '-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n' + 'A'.repeat(160) + '\n-----END PGP PUBLIC KEY BLOCK-----';
+        const result = await upload(token, 1, fake, fingerprint(1));
+        expect(result.response.status).toBe(400);
         expect(db.prepare('SELECT COUNT(*) AS n FROM f2f_keys').get()).toEqual({ n: 0 });
     });
 
@@ -360,7 +425,7 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(keyring.response.headers.get('content-disposition')).toContain('hrt-f2f-');
         expect(keyring.text).toContain(publicKey(1));
         expect(keyring.text).toContain(publicKey(2));
-        expect(keyring.text).toContain(publicKey(301));
+        expect(keyring.text).toContain(escrowPublic(301));
         expect(keyring.text).not.toContain('PRIVATE KEY');
         expect(keyring.text).not.toContain('B'.repeat(160));
 
@@ -380,7 +445,7 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
 
         const row = db
             .prepare('SELECT private_key_encrypted, state FROM f2f_escrow_keys WHERE fingerprint = ?')
-            .get(fingerprint(201)) as { private_key_encrypted: string; state: string };
+            .get(escrowFingerprint(201)) as { private_key_encrypted: string; state: string };
         expect(row.state).toBe('available');
         expect(row.private_key_encrypted).toMatch(/^v1\./);
         expect(row.private_key_encrypted).not.toContain('PRIVATE KEY');
@@ -402,7 +467,7 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(joined.response.status).toBe(200);
 
         const status = await call('/api/f2f/status', { token });
-        expect(status.body?.escrow?.fingerprint).toBe(fingerprint(202));
+        expect(status.body?.escrow?.fingerprint).toBe(escrowFingerprint(202));
         expect(status.body?.escrow?.publicKey).toContain('BEGIN PGP PUBLIC KEY BLOCK');
         expect(status.body?.escrow?.privateKey).toBeUndefined();
 
@@ -413,7 +478,7 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(escrow.cohort_id).toBe(joined.body?.cohort_id);
 
         const members = await call(`/api/f2f/cohorts/${joined.body?.cohort_id}/members`, { token });
-        expect(members.body?.cohort?.escrow?.fingerprint).toBe(fingerprint(202));
+        expect(members.body?.cohort?.escrow?.fingerprint).toBe(escrowFingerprint(202));
     });
 
     it('refuses a new cohort when escrow is enabled without an available key', async () => {
@@ -459,5 +524,16 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         await upload(token, 1);
         const status = await call('/api/f2f/status', { token });
         expect(status.body?.escrow).toBeNull();
+    });
+
+    it('rate-limits F2F key writes per account', async () => {
+        const token = await login('Alice');
+        env = {
+            ...env,
+            RL_PER_MINUTE_10: { limit: async () => ({ success: false }) },
+        } as unknown as Env;
+        const result = await upload(token, 1);
+        expect(result.response.status).toBe(429);
+        expect(result.body?.code).toBe('RATE_LIMITED');
     });
 });
