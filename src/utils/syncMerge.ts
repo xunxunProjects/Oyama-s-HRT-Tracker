@@ -29,6 +29,7 @@
  */
 
 import { isTestosteroneEster, isT_LabUnit } from '../../logic';
+import { cleanDoseMG } from './cleanDose';
 
 export type ModeKey = 'transfem' | 'transmasc';
 export const MODE_KEYS: readonly ModeKey[] = ['transfem', 'transmasc'];
@@ -271,7 +272,14 @@ export function stableString(value: unknown): string {
 }
 
 function contentFingerprint(kind: RecordKind, record: any): string {
-    return CONTENT_FIELDS[kind].map(f => stableString(record?.[f])).join('|');
+    return CONTENT_FIELDS[kind]
+        .map(f => {
+            const value = record?.[f];
+            // Imports tidy float tails off doses (cleanDoseMG), so a tidied copy
+            // and an untidied one of the same record must still read as equal.
+            return stableString(f === 'doseMG' && typeof value === 'number' ? cleanDoseMG(value) : value);
+        })
+        .join('|');
 }
 
 function recordId(record: any): string | null {
