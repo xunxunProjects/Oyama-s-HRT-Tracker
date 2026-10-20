@@ -1,0 +1,314 @@
+import bcrypt from 'bcryptjs';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { handleF2fWeb, sweepF2fCohorts } from '../f2f';
+import worker, { type Env } from '../worker';
+
+interface SqliteDatabase {
+    exec(sql: string): void;
+    prepare(sql: string): {
+        get(...values: unknown[]): unknown;
+        run(...values: unknown[]): { changes: number | bigint };
+        all(...values: unknown[]): unknown[];
+    };
+}
+
+const sqliteSpecifier = 'node:sqlite';
+const fsSpecifier = 'node:fs';
+let sqliteModule: { DatabaseSync: new (path: string, options?: Record<string, unknown>) => SqliteDatabase } | null =
+    null;
+let fsModule: { readdirSync: (path: URL) => string[]; readFileSync: (path: URL, encoding: 'utf8') => string } | null =
+    null;
+try {
+    sqliteModule = (await import(/* @vite-ignore */ sqliteSpecifier)) as typeof sqliteModule;
+} catch {
+    sqliteModule = null;
+}
+try {
+    fsModule = (await import(/* @vite-ignore */ fsSpecifier)) as typeof fsModule;
+} catch {
+    fsModule = null;
+}
+
+const JWT_SECRET = 'K7fQ2vRm9pLxT4wYzA6bC1dE8fG3hJ5n';
+const PASSWORD = 'violet harbor tiny lantern';
+
+function d1(db: SqliteDatabase) {
+    return {
+        async batch(statements: Array<{ run(): Promise<unknown> }>) {
+            const results = [];
+            for (const statement of statements) results.push(await statement.run());
+            return results;
+        },
+        prepare(sql: string) {
+            const order: number[] = [];
+            const rewritten = sql.replace(/\?(\d+)/g, (_match, index: string) => {
+                order.push(Number(index));
+                return '?';
+            });
+            let args: unknown[] = [];
+            const statement = {
+                bind(...values: unknown[]) {
+                    args = order.length > 0 ? order.map(index => values[index - 1]) : values;
+                    return statement;
+                },
+                async first() {
+                    return db.prepare(rewritten).get(...args) ?? null;
+                },
+                async run() {
+                    const result = db.prepare(rewritten).run(...args);
+                    return { success: true, meta: { changes: Number(result.changes) } };
+                },
+                async all() {
+                    return { success: true, results: db.prepare(rewritten).all(...args) };
+                },
+            };
+            return statement;
+        },
+    };
+}
+
+function fingerprint(value: number): string {
+    return value.toString(16).padStart(40, '0');
+}
+
+function publicKey(value: number): string {
+    return `-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n${'A'.repeat(160)}${value}\n-----END PGP PUBLIC KEY BLOCK-----`;
+}
+
+let db: SqliteDatabase;
+let env: Env;
+const ctx = { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as Parameters<typeof worker.fetch>[2];
+
+const call = async (path: string, init: { method?: string; body?: unknown; token?: string } = {}) => {
+    const headers: Record<string, string> = {};
+    if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+    if (init.token) headers.Authorization = `Bearer ${init.token}`;
+    const response = await worker.fetch(
+        new Request(`https://example.com${path}`, {
+            method: init.method ?? (init.body !== undefined ? 'POST' : 'GET'),
+            headers,
+            ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+        }),
+        env,
+        ctx,
+    );
+    const text = await response.text();
+    return { response, body: text ? (JSON.parse(text) as Record<string, any>) : null };
+};
+
+const login = async (username: string) => {
+    const result = await call('/api/login', { body: { username, password: PASSWORD } });
+    return result.body?.token as string;
+};
+
+const upload = (token: string, value: number, key = publicKey(value), fpr = fingerprint(value)) =>
+    call('/api/f2f/keys', { token, body: { public_key: key, fingerprint: fpr } });
+
+const directUpload = async (userId: string, value: number) => {
+    const url = new URL('https://example.com/api/f2f/keys');
+    const request = new Request(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_key: publicKey(value), fingerprint: fingerprint(value) }),
+    });
+    return handleF2fWeb(request, env, url, { userId, username: `user-${userId}` });
+};
+
+describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
+    beforeEach(async () => {
+        db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
+        const migrationDir = new URL('../migrations/', import.meta.url);
+        for (const file of fsModule!
+            .readdirSync(migrationDir)
+            .filter(name => name.endsWith('.sql'))
+            .sort()) {
+            db.exec(fsModule!.readFileSync(new URL(file, migrationDir), 'utf8'));
+        }
+        for (const [id, name] of [
+            ['user-1', 'Alice'],
+            ['user-2', 'Bob'],
+            ['user-3', 'Carol'],
+        ]) {
+            db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
+                id,
+                name,
+                bcrypt.hashSync(PASSWORD, 4),
+            );
+        }
+        env = {
+            DB: d1(db),
+            JWT_SECRET,
+            PUBLIC_APP_ORIGIN: 'https://example.com',
+        } as unknown as Env;
+    });
+
+    it('reports no cohort before a key is registered', async () => {
+        const token = await login('Alice');
+        const status = await call('/api/f2f/status', { token });
+        expect(status.response.status).toBe(200);
+        expect(status.body?.registered).toBe(false);
+    });
+
+    it('assigns the lowest free seat and stores the public key', async () => {
+        const token = await login('Alice');
+        const result = await upload(token, 1);
+        expect(result.response.status).toBe(200);
+        expect(result.body?.seat).toBe(1);
+        expect(result.body?.fingerprint).toBe(fingerprint(1));
+        expect(typeof result.body?.cohort_id).toBe('string');
+
+        const status = await call('/api/f2f/status', { token });
+        expect(status.body?.registered).toBe(true);
+        expect(status.body?.seat).toBe(1);
+        expect(status.body?.key?.fingerprint).toBe(fingerprint(1));
+        expect(status.body?.cohort?.memberCount).toBe(1);
+    });
+
+    it('puts the next member in the same cohort and exposes public keys to members', async () => {
+        const alice = await login('Alice');
+        const bob = await login('Bob');
+        const first = await upload(alice, 1);
+        const second = await upload(bob, 2);
+        expect(second.body?.cohort_id).toBe(first.body?.cohort_id);
+        expect(second.body?.seat).toBe(2);
+
+        const members = await call(`/api/f2f/cohorts/${first.body?.cohort_id}/members`, {
+            token: alice,
+        });
+        expect(members.response.status).toBe(200);
+        expect(members.body?.members).toHaveLength(2);
+        expect(members.body?.members[0]).toMatchObject({
+            seat: 1,
+            username: 'Alice',
+        });
+        expect(members.body?.members[0].keys[0].fingerprint).toBe(fingerprint(1));
+        expect(members.body?.members[1].keys[0].publicKey).toContain('BEGIN PGP PUBLIC KEY BLOCK');
+    });
+
+    it('rotates to a new key without moving the seat and keeps the old key retired', async () => {
+        const token = await login('Alice');
+        const first = await upload(token, 1);
+        const second = await upload(token, 11);
+        expect(second.body?.seat).toBe(first.body?.seat);
+        expect(second.body?.cohort_id).toBe(first.body?.cohort_id);
+
+        const status = await call('/api/f2f/status', { token });
+        expect(status.body?.key?.fingerprint).toBe(fingerprint(11));
+        const rows = db
+            .prepare('SELECT fingerprint, status FROM f2f_keys WHERE user_id = ? ORDER BY created_at')
+            .all('user-1') as Array<{ fingerprint: string; status: string }>;
+        expect(rows).toHaveLength(2);
+        expect(rows).toEqual(
+            expect.arrayContaining([
+                { fingerprint: fingerprint(1), status: 'retired' },
+                { fingerprint: fingerprint(11), status: 'active' },
+            ]),
+        );
+
+        const members = await call(`/api/f2f/cohorts/${first.body?.cohort_id}/members`, {
+            token,
+        });
+        expect(members.body?.members[0].keys).toHaveLength(2);
+    });
+
+    it('rejects a malformed key or fingerprint', async () => {
+        const token = await login('Alice');
+        const badArmor = await upload(token, 1, 'not a key', fingerprint(1));
+        expect(badArmor.response.status).toBe(400);
+        const badFingerprint = await upload(token, 1, publicKey(1), 'xyz');
+        expect(badFingerprint.response.status).toBe(400);
+        expect(db.prepare('SELECT COUNT(*) AS n FROM f2f_keys').get()).toEqual({ n: 0 });
+    });
+
+    it("does not let a member retire another member's key", async () => {
+        const alice = await login('Alice');
+        const bob = await login('Bob');
+        const key = await upload(alice, 1);
+        await upload(bob, 2);
+        const result = await call('/api/f2f/keys/retire', {
+            token: bob,
+            body: { key_id: key.body?.key_id },
+        });
+        expect(result.response.status).toBe(404);
+        const status = await call('/api/f2f/status', { token: alice });
+        expect(status.body?.key?.fingerprint).toBe(fingerprint(1));
+    });
+
+    it('turns a deleted seat into a permanent tombstone that is not reused', async () => {
+        const alice = await login('Alice');
+        const bob = await login('Bob');
+        const carol = await login('Carol');
+        const first = await upload(alice, 1);
+        await upload(bob, 2);
+
+        const deleted = await call('/api/user/me', {
+            token: alice,
+            method: 'DELETE',
+            body: { password: PASSWORD },
+        });
+        expect(deleted.response.status).toBe(200);
+        const seat = db.prepare('SELECT status, deleted_at FROM f2f_seats WHERE user_id = ?').get('user-1') as {
+            status: string;
+            deleted_at: number | null;
+        };
+        expect(seat.status).toBe('deleted');
+        expect(seat.deleted_at).not.toBeNull();
+        const key = db.prepare('SELECT status, public_key FROM f2f_keys WHERE user_id = ?').get('user-1') as {
+            status: string;
+            public_key: string;
+        };
+        expect(key.status).toBe('revoked');
+        expect(key.public_key).toBe('');
+
+        const next = await upload(carol, 3);
+        expect(next.body?.cohort_id).toBe(first.body?.cohort_id);
+        expect(next.body?.seat).toBe(3);
+    });
+
+    it('starts a new cohort when all 100 seats have been assigned', async () => {
+        for (let i = 0; i < 100; i++) {
+            const userId = `bulk-${i}`;
+            db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
+                userId,
+                `bulk-${i}`,
+                'x',
+            );
+            const response = await directUpload(userId, i + 1);
+            expect(response?.status).toBe(200);
+        }
+        const firstCohort = db.prepare('SELECT id, state FROM f2f_cohorts ORDER BY created_at LIMIT 1').get() as {
+            id: string;
+            state: string;
+        };
+        expect(firstCohort.state).toBe('full');
+
+        const carol = await login('Carol');
+        const next = await upload(carol, 101);
+        expect(next.response.status).toBe(200);
+        expect(next.body?.cohort_id).not.toBe(firstCohort.id);
+        expect(next.body?.seat).toBe(1);
+    });
+
+    it('retires a cohort after 180 idle days and keeps a newly active cohort', async () => {
+        const token = await login('Alice');
+        const first = await upload(token, 1);
+        const old = Math.floor(Date.now() / 1000) - 181 * 24 * 60 * 60;
+        db.prepare('UPDATE f2f_cohorts SET last_used_at = ? WHERE id = ?').run(old, first.body?.cohort_id);
+
+        await sweepF2fCohorts(env);
+        const retired = db.prepare('SELECT state FROM f2f_cohorts WHERE id = ?').get(first.body?.cohort_id) as {
+            state: string;
+        };
+        expect(retired.state).toBe('retired');
+
+        /* The retired cohort takes no new members, so Bob starts a new one. */
+        const bob = await login('Bob');
+        const second = await upload(bob, 2);
+        expect(second.body?.cohort_id).not.toBe(first.body?.cohort_id);
+        await sweepF2fCohorts(env);
+        const active = db.prepare('SELECT state FROM f2f_cohorts WHERE id = ?').get(second.body?.cohort_id) as {
+            state: string;
+        };
+        expect(active.state).toBe('active');
+    });
+});

@@ -4,6 +4,7 @@ import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
 import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
+import { handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
     isJsonObject,
@@ -2053,6 +2054,20 @@ export default {
                     return jsonError('NOT_FOUND', 'Not found', 404);
                 }
 
+                // --- F2F cohort registry (same session auth) ---
+                if (url.pathname.startsWith('/api/f2f/')) {
+                    const userRow = (await env.DB.prepare('SELECT id, username FROM users WHERE id = ?')
+                        .bind(userId)
+                        .first()) as { id: string; username: string } | null;
+                    if (!userRow) return sessionInvalid('Account not found');
+                    const f2fResponse = await handleF2fWeb(request, env, url, {
+                        userId: String(userRow.id),
+                        username: String(userRow.username),
+                    });
+                    if (f2fResponse) return withSecurityHeaders(f2fResponse);
+                    return jsonError('NOT_FOUND', 'Not found', 404);
+                }
+
                 // --- Tool API (authenticated) ---
                 // Auth, session revocation and the idle timeout above are the
                 // same ones the website uses; the namespace only adds the
@@ -2711,12 +2726,20 @@ export default {
                             if (!twoFAValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
                         }
 
+                        const deletedAt = Math.floor(Date.now() / 1000);
                         await env.DB.batch([
                             env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
+                            /* F2F seats are tombstones: never delete the row. */
+                            env.DB.prepare(
+                                "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",
+                            ).bind(deletedAt, deletedAt, userId),
+                            env.DB.prepare(
+                                "UPDATE f2f_seats SET status = 'deleted', deleted_at = ?, updated_at = ? WHERE user_id = ?",
+                            ).bind(deletedAt, deletedAt, userId),
                             env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
                         ]);
                         try {
@@ -3300,12 +3323,20 @@ export default {
                         const target = (await env.DB.prepare('SELECT created_at FROM users WHERE id = ?')
                             .bind(targetId)
                             .first()) as any;
+                        const deletedAt = Math.floor(Date.now() / 1000);
                         await env.DB.batch([
                             env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId),
+                            /* F2F seats are tombstones: never delete the row. */
+                            env.DB.prepare(
+                                "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",
+                            ).bind(deletedAt, deletedAt, targetId),
+                            env.DB.prepare(
+                                "UPDATE f2f_seats SET status = 'deleted', deleted_at = ?, updated_at = ? WHERE user_id = ?",
+                            ).bind(deletedAt, deletedAt, targetId),
                             env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId),
                         ]);
                         try {
@@ -3906,6 +3937,11 @@ export default {
                     console.error('Failed to sweep sessions:', e);
                 }
                 await sweepExpiredShares(env);
+                try {
+                    await sweepF2fCohorts(env);
+                } catch (e) {
+                    console.error('Failed to sweep F2F cohorts:', e);
+                }
             })(),
         );
     },
