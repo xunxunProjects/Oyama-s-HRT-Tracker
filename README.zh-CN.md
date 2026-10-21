@@ -34,6 +34,7 @@
   - [药量库存](#药量库存)
   - [备份与分享](#备份与分享)
   - [模型来源](#模型来源)
+- [命令行工具](#命令行工具)
 - [自行部署](#自行部署)
 - [参与贡献](#参与贡献)
 - [支持](#支持)
@@ -100,6 +101,17 @@
 雌二醇的药代动力学模型基于 **@LaoZhong-Mihari** 在 **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** 仓库中提供的 `PKcore.swift` 与 `PKparameter.swift`，其中的三室模型、双相肌注库房动力学与舌下吸收分层均来自该仓库。
 
 此后本项目对模型做了调整和扩展：为男性化模式加入了睾酮（注射用酯、凝胶与贴片），为醋酸环丙孕酮加入了单独的曲线，并新增了十一酸雌二醇注射；调整了凝胶与舌下给药的处理；还可以用你的检查结果校准雌二醇曲线。详情见 [Algorithm Explanation.md](./Algorithm%20Explanation.md)。
+
+# 命令行工具
+
+离线工具位于独立仓库 **[Oyama-s-HRT-Tracker-Tools](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools)**。其中的 [`hrt-tool`](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools/blob/main/tools/hrt-tool/README.md) 是面向同一份数据的预发布命令行客户端：
+
+- 用 `status` 查看当前估算值、未来各时间点的预测浓度与最近的检查结果；
+- 用 `add dose` 交互式记录一次用药；
+- 用 `proxy socks5://…` 通过 Tor 或 I2P 连接，域名由代理解析；
+- 保管库、会话和具名连接均加密存储。
+
+命令行工具仍在实验阶段，网站不依赖它，也不会接触 OpenPGP 密钥或口令。构建方式与发布下载见 [Tools 仓库](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools)。
 
 # 自行部署
 

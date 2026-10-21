@@ -34,6 +34,7 @@
   - [Supplies](#supplies)
   - [Backup and sharing](#backup-and-sharing)
   - [Where the model comes from](#where-the-model-comes-from)
+- [Command-line tools](#command-line-tools)
 - [Self-hosting](#self-hosting)
 - [Contributing](#contributing)
 - [Support](#support)
@@ -100,6 +101,17 @@ From left to right: the overview with the current estimate, a month of estradiol
 The estradiol pharmacokinetic model is based on `PKcore.swift` and `PKparameter.swift` by **@LaoZhong-Mihari**, from the **[HRT-Recorder-PKcomponent-Test](https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test)** repository. Its three-compartment structure, two-part injection depot kinetics and sublingual absorption tiers come from there.
 
 This project has since adjusted and extended the model: it adds testosterone (injection esters, gel and patch) for the masculinizing mode, cyproterone acetate on its own curve, and estradiol undecylate injections; it revises the gel and sublingual handling; and it can calibrate the estradiol curve against your lab results. See [Algorithm Explanation.md](./Algorithm%20Explanation.md) for the details.
+
+# Command-line tools
+
+The offline tools live in the separate **[Oyama-s-HRT-Tracker-Tools](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools)** repository. [`hrt-tool`](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools/blob/main/tools/hrt-tool/README.md) is a pre-release command-line client for the same data:
+
+- `status` shows the current estimate, the projected curve and recent blood tests;
+- `add dose` records a dose interactively;
+- `proxy socks5://…` connects through Tor or I2P, with DNS resolved by the proxy;
+- the vault, sessions and named connections are encrypted at rest.
+
+The CLI is experimental; the website does not depend on it and never handles OpenPGP keys or passphrases. Build and release downloads are in the [Tools repository](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools).
 
 # Self-hosting
 
