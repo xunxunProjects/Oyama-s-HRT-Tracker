@@ -1,5 +1,8 @@
 # Deploy with Docker
 
+> **Production: pin the `v1.5.0` release tag.** Do not deploy `main`; build the
+> image from a release checkout.
+
 The container runs the complete app: the Worker API under Wrangler's local
 workerd runtime, a local D1 database, R2-compatible avatar storage, and
 optionally the `hrt://` raw server and F2F escrow. Data is kept in `./data` and

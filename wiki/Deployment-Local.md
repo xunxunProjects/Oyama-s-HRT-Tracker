@@ -1,5 +1,8 @@
 # Local development
 
+> This is not a production deployment. For production, pin the `v1.5.0`
+> release tag. For a loopback-only personal instance, see [Local-Tool](Local-Tool).
+
 The app has two servers in development:
 
 | Process                 | Address                 | What it serves                       |

@@ -1,5 +1,8 @@
 # Cloudflare Workers
 
+> **Production: deploy the `v1.5.0` release tag.** Do not deploy `main`; it is
+> not a release.
+
 This is the serverless deployment: the web app is served by a Cloudflare
 Worker, accounts and metadata live in D1, and avatars live in R2. You do not
 run a machine, but you do own the Cloudflare account, the database, and the
