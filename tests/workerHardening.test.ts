@@ -84,6 +84,26 @@ describe('passkey origin', () => {
     });
 });
 
+describe('forged session tokens', () => {
+    const b64url = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+
+    it('answers an alg:none token with 401, not a crash', async () => {
+        const token = `${b64url({ alg: 'none', typ: 'JWT' })}.${b64url({
+            sub: 'admin',
+            role: 'admin',
+            sid: 'forged',
+        })}.`;
+        const response = await worker.fetch(
+            new Request('https://example.com/api/user/sessions', {
+                headers: { Authorization: `Bearer ${token}` },
+            }),
+            env,
+            ctx,
+        );
+        expect(response.status).toBe(401);
+    });
+});
+
 describe('wrongly typed credentials', () => {
     it('answers a numeric password on register with 400, not a crash', async () => {
         const response = await post('https://example.com/api/register', {
