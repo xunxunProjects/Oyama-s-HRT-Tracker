@@ -15,7 +15,7 @@ interface; open `:8787` to use the built app served by the Worker itself.
 
 ## Requirements
 
-- Node.js 22 and npm.
+- Node.js 22.23.4+ and npm.
 - For the desktop app: a Rust toolchain and the Tauri 1 system dependencies for
   your platform.
 - Optional: Docker, if you want to run the container locally.

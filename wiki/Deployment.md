@@ -24,14 +24,15 @@ for operators who need a native service and accept the extra maintenance.
 
 ## Requirements
 
-- **Cloudflare:** Node.js 22, npm, a Cloudflare account, D1 and R2 enabled, and
+- **Cloudflare:** Node.js 22.23.4+ (the October 2026 security release), npm, a
+  Cloudflare account, D1 and R2 enabled, and
   a domain if you do not want a `workers.dev` address.
 - **Docker:** Git, Docker Engine, Docker Compose v2. The image is built from
   source; the published GHCR image is private for now.
-- **VPS native:** Node.js 22, npm, a build toolchain for native modules, a
+- **VPS native:** Node.js 22.23.4+, npm, a build toolchain for native modules, a
   reverse proxy (Caddy or nginx), and systemd. Rust is only needed for the
   desktop app.
-- **Local:** Node.js 22 and npm; see [Deployment-Local](Deployment-Local).
+- **Local:** Node.js 22.23.4+ and npm; see [Deployment-Local](Deployment-Local).
 
 ## What the server stores
 

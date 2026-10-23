@@ -35,7 +35,7 @@ never needs a library that can decrypt a backup.
 | `@vitejs/plugin-react`                                                              | `^5.0.0`                                               | React support in Vite                   |
 | `vite-plugin-pwa`                                                                   | `^1.2.0`                                               | Manifest and service worker             |
 | `tailwindcss`, `@tailwindcss/postcss`, `postcss`                                    | `^4.1.18`, `^4.1.18`, `^8.5.6`                         | Styling                                 |
-| `vitest`                                                                            | `^4.1.11`                                              | Unit tests                              |
+| `vitest`                                                                            | `^4.1.12`                                              | Unit tests                              |
 | `@playwright/test`                                                                  | `^1.64.1`                                              | End-to-end tests                        |
 | `wrangler`                                                                          | `^4.147.0`                                             | Local Worker, D1/R2, migrations, deploy |
 | `@cloudflare/workers-types`                                                         | `^5.20261005.1`                                        | Worker API types                        |
@@ -50,6 +50,22 @@ never needs a library that can decrypt a backup.
 and `tauri-build ^1.5` at build time. The release profile uses LTO, strips
 symbols, and builds one codegen unit. Tauri 2 is intentionally not adopted yet;
 Dependabot is configured not to propose that major upgrade.
+
+Tauri 1.8.3 is **not affected** by CVE-2026-42184 (`is_local_url()` origin
+confusion), which covers Tauri 2.0–2.11.0. That advisory is another reason the
+Tauri 2 migration needs its own reviewed change rather than an emergency bump.
+
+## Security baseline
+
+- **Node.js 22.23.4+.** The Dockerfile and every GitHub Actions setup-node step
+  pin this release, the 2026-10-21 security update for CVE-2026-111497 (Brotli
+  decoder RCE), CVE-2026-105482 (`dns.resolve` NUL truncation) and
+  CVE-2026-106069 (TLS hostname bypass). Do not float on the `22` tag.
+- **nginx is not bundled.** If an operator puts nginx in front, use 1.30.6+ or
+  1.31.7+ for the October 2026 advisories; see
+  [Deployment-VPS](Deployment-VPS#tls-reverse-proxy).
+- **`npm audit --omit=dev` is clean.** Development-only audit findings are
+  still fixed promptly; `vitest` is kept at 4.1.12 or later.
 
 ## Platform services
 

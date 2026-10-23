@@ -119,8 +119,8 @@ the normal setup.
 
 - **Caddy**: add `header_up CF-Connecting-IP {remote_host}` inside
   `reverse_proxy` when `TRUSTED_IP_SOURCE=cf`.
-- **nginx**: add `proxy_set_header CF-Connecting-IP $remote_addr;` in the
-  proxying `location`.
+- **nginx**: use 1.30.6+ or 1.31.7+ (the 2026-10-14 security release) and add
+  `proxy_set_header CF-Connecting-IP $remote_addr;` in the proxying `location`.
 - Alternatively set `TRUSTED_IP_SOURCE=x-forwarded-for` and let the single
   proxy append the address, or `none` on a Tor/I2P mirror.
 

@@ -14,7 +14,7 @@ a clone of your fork.
 
 ## Before you start
 
-- Node.js 22 and npm.
+- Node.js 22.23.4+ and npm.
 - A Cloudflare account with D1 and R2 available. R2 has to be enabled once in
   the dashboard before the first bucket can be created.
 - A domain is optional; without one the Worker gets a `workers.dev` address.

@@ -5,7 +5,7 @@ This page is the fast path for working on the code. It assumes you have read
 
 ## Local setup
 
-Requirements: Node.js 22, npm, and a C toolchain only if you build the desktop
+Requirements: Node.js 22.23.4+, npm, and a C toolchain only if you build the desktop
 app.
 
 ```bash

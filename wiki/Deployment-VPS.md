@@ -28,7 +28,7 @@ loopback.
 ## Requirements
 
 - Linux VPS with systemd.
-- Node.js 22 and npm.
+- Node.js 22.23.4+ and npm.
 - A build toolchain for native modules.
 - Caddy or nginx for TLS.
 - A dedicated system user (example: `hrt`) and a data directory
@@ -130,7 +130,13 @@ hrt.example.com {
 
 Caddy obtains a certificate and appends the client address to
 `X-Forwarded-For`; set `TRUSTED_IP_SOURCE='x-forwarded-for'` in `.dev.vars`.
-If you use nginx, make sure it overwrites or appends the client-address header
+If you use nginx, run **1.30.6+ or 1.31.7+**, the 2026-10-14 security release.
+The October 2026 advisories cover `alias` with `rewrite` and
+`$request_filename` (CVE-2026-15176), string-expression evaluation
+(CVE-2026-93479), HTTP/3 request-body injection (CVE-2026-95101), TLS session
+ticket forgery (CVE-2026-97629), and SSI with AIO (CVE-2026-97205). Avoid those
+configurations until the proxy is patched. This repository does not ship or
+configure nginx. Make sure it overwrites or appends the client-address header
 rather than passing a client-supplied value through. Set `PUBLIC_APP_ORIGIN` to
 the public origin.
 
