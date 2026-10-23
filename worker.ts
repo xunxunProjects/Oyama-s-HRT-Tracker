@@ -126,6 +126,12 @@ function withSecurityHeaders(response: Response): Response {
     const newResponse = new Response(response.body, response);
     newResponse.headers.set('X-Content-Type-Options', 'nosniff');
     newResponse.headers.set('X-Frame-Options', 'DENY');
+    // The SPA never needs to send a referrer to another origin, and an API
+    // response must not hand one to a page that later navigates away.
+    newResponse.headers.set('Referrer-Policy', 'no-referrer');
+    // Isolate this window from any opener. The app is never opened as a popup,
+    // and the desktop build embeds the same page.
+    newResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
     // Strict-Transport-Security is ignored by user agents on plain-http
     // responses (RFC 6797 §7.2), so an onion/I2P mirror that speaks http is
     // unaffected while any https deployment gets the pin. The deprecated
@@ -681,7 +687,9 @@ async function shareViewerPassValid(
 ): Promise<boolean> {
     if (typeof pass !== 'string' || pass.length === 0) return false;
     try {
-        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret));
+        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret), {
+            algorithms: ['HS256'],
+        });
         return (
             payload.purpose === 'share-view' &&
             payload.share === tokenHash &&
@@ -723,7 +731,9 @@ async function loginDevicePassValid(
 ): Promise<boolean> {
     if (typeof pass !== 'string' || pass.length === 0 || credentials.length === 0) return false;
     try {
-        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret));
+        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret), {
+            algorithms: ['HS256'],
+        });
         if (payload.purpose !== 'login-device' || payload.account !== account) return false;
         for (const credential of credentials) {
             if (payload.pw === (await loginDeviceBinding(jwtSecret, credential))) return true;
@@ -1581,6 +1591,12 @@ export default {
 
             // Avatar GET (Public)
             if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET') {
+                const clientIP = getClientIP(request, env);
+                if (!(await checkRateLimit(env, clientIP ? `avatar:${clientIP}` : 'avatar:global-noip', 300))) {
+                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                        'Retry-After': '60',
+                    });
+                }
                 const username = url.pathname.split('/').pop();
                 const genericNotFound = () => jsonError('NOT_FOUND', 'Not found', 404);
 
@@ -1701,7 +1717,7 @@ export default {
                 const secret = new TextEncoder().encode(jwtSecret);
                 let challengePayload: any;
                 try {
-                    const { payload } = await jwtVerify(challengeToken, secret);
+                    const { payload } = await jwtVerify(challengeToken, secret, { algorithms: ['HS256'] });
                     challengePayload = payload;
                 } catch {
                     return jsonError('INVALID_REQUEST', 'Invalid or expired challenge', 400);
@@ -2049,7 +2065,7 @@ export default {
 
             let payload: any = null;
             try {
-                ({ payload } = await jwtVerify(token, secret));
+                ({ payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] }));
             } catch {
                 // jose throws TypeError for some malformed headers (for example
                 // alg:none) and those errors used to escape this route's catch as
@@ -3829,7 +3845,7 @@ export default {
                         const secret = new TextEncoder().encode(jwtSecret);
                         let challengePayload: any;
                         try {
-                            const { payload } = await jwtVerify(challengeToken, secret);
+                            const { payload } = await jwtVerify(challengeToken, secret, { algorithms: ['HS256'] });
                             challengePayload = payload;
                         } catch {
                             return jsonError('INVALID_REQUEST', 'Invalid or expired challenge', 400);

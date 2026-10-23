@@ -66,6 +66,12 @@ Tauri 2 migration needs its own reviewed change rather than an emergency bump.
   [Deployment-VPS](Deployment-VPS#tls-reverse-proxy).
 - **`npm audit --omit=dev` is clean.** Development-only audit findings are
   still fixed promptly; `vitest` is kept at 4.1.12 or later.
+- **Rust lockfile audited.** `cargo audit` reports no vulnerabilities after
+  the 2026-10-23 refresh: `bytes` 1.11.1+, `crossbeam-epoch` 0.9.20+, `tar`
+  0.4.45+, `time` 0.3.47+, and `quick-xml` 0.41.0+ through `plist` 1.10.0.
+  Two `rand` "unsound" warnings remain; they are library warnings rather than
+  a reachable path in this desktop wrapper. `tests/rustDependencies.test.ts`
+  keeps the fixed floors from regressing.
 
 ## Platform services
 
