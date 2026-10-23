@@ -13,6 +13,7 @@ import {
 } from './shareSnapshotSchema';
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
+import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 
 export interface Env {
     DB: D1Database;
@@ -270,7 +271,7 @@ const isRowTooLargeError = (err: unknown): boolean =>
 const MAX_SHARE_REQUEST_BYTES = 2 * 1024 * 1024;
 const MAX_ACTIVE_SHARES_PER_USER = 20;
 const MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER = 20;
-const MAX_SHARE_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
+const MAX_SHARE_EXPIRY_SECONDS = Math.floor(MAX_SHARE_EXPIRY_MS / 1000);
 const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/; // 32 random bytes, base64url
 // A live share's link key, sealed with the owner's cloud backup key so any of
 // their devices that can read their backups can keep the link updated. Holds a
@@ -2306,9 +2307,9 @@ export default {
                             400,
                         );
                     }
-                    if (expiresAtSeconds > nowSeconds + MAX_SHARE_LIFETIME_SECONDS) {
+                    if (expiresAtSeconds >= MAX_SHARE_EXPIRY_SECONDS) {
                         return shareJson(
-                            { code: 'INVALID_EXPIRATION', message: 'expiresAt may be at most 365 days in the future' },
+                            { code: 'INVALID_EXPIRATION', message: 'expiresAt must be before the end of 2100' },
                             400,
                         );
                     }

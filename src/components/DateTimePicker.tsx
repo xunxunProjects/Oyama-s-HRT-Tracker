@@ -14,6 +14,7 @@ interface DateTimePickerProps {
     mode?: 'datetime' | 'date' | 'time';
     title?: string;
     inline?: boolean;
+    maxYear?: number;
 }
 
 type DatePart = 'year' | 'month' | 'day' | 'hour' | 'minute';
@@ -170,6 +171,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     mode = 'datetime',
     title,
     inline = false,
+    maxYear,
 }) => {
     const { t, lang } = useTranslation();
     // A layer rather than a plain window listener: inline, the picker sits in
@@ -218,9 +220,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const currentYear = new Date().getFullYear();
     const years = useMemo(() => {
         const first = Math.min(2015, selectedDate.getFullYear());
-        const last = Math.max(currentYear + 10, selectedDate.getFullYear());
+        const last = Math.max(maxYear ?? currentYear + 10, selectedDate.getFullYear());
         return Array.from({ length: last - first + 1 }, (_, index) => first + index);
-    }, [currentYear, selectedDate]);
+    }, [currentYear, maxYear, selectedDate]);
 
     const months = useMemo(
         () =>

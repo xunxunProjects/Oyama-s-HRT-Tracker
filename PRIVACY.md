@@ -147,12 +147,13 @@ server operator can see that a link exists, when it was made, updated and
 expires, whether it is live or has a password, and how large the encrypted copy
 is, but not the doses, mode or time zone inside it.
 
-**Expiry and deletion.** Every link must have an expiry, at most 365 days
-ahead. When it expires, the scheduled job (every 6 hours) or the next visit
-erases the dose data and password hash. A small record of the link's existence
-stays so visitors see "expired" rather than "not found": its id, your user id,
-the token hash, live and encrypted flags, and creation, update and expiry
-times. The 20
+**Expiry and deletion.** Every link must have an expiry, at most the end of 2100. Links longer than 365 days are outside the window where sharing security
+is guaranteed: the key stays valid until expiry, so anyone with the complete
+link can read the snapshot for that whole time. When it expires, the scheduled
+job (every 6 hours) or the next visit erases the dose data and password hash. A
+small record of the link's existence stays so visitors see "expired" rather
+than "not found": its id, your user id, the token hash, live and encrypted
+flags, and creation, update and expiry times. The 20
 most recent expired records per account are kept; older ones are deleted.
 Deleting a link yourself removes its whole row immediately. You can have at
 most 20 active links.

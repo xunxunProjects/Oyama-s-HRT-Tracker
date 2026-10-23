@@ -30,6 +30,7 @@ import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
 import { copyText } from '../utils/clipboard';
+import { MAX_SHARE_EXPIRY_YEAR, isLongLivedShare, shareExpiryProblem } from '../../shareExpiry';
 
 interface ShareSettingsProps {
     onBack: () => void;
@@ -75,6 +76,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [expiresAtInput, setExpiresAtInput] = useState('');
+    const [expiryWarning, setExpiryWarning] = useState(false);
     const [isExpiryPickerOpen, setIsExpiryPickerOpen] = useState(false);
     const [createdShare, setCreatedShare] = useState<CreatedShare | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -91,6 +93,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         setPassword('');
         setShowPassword(false);
         setExpiresAtInput(toLocalDateTimeValue(Date.now() + 7 * 24 * 60 * 60_000));
+        setExpiryWarning(false);
         setIsExpiryPickerOpen(false);
         setCreatedShare(null);
         setSubmitting(false);
@@ -122,6 +125,12 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
     const entropy = password.length > 0 ? estimatePasswordBits(password) : null;
     const theory = password.length > 0 ? theoreticalPasswordBits(password) : null;
 
+    const handleExpiryChange = (date: Date) => {
+        const expiresAt = date.getTime();
+        setExpiresAtInput(toLocalDateTimeValue(expiresAt));
+        setExpiryWarning(!shareExpiryProblem(expiresAt) && isLongLivedShare(expiresAt));
+    };
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (submitting || !events.length || passwordBlocked) return;
@@ -130,12 +139,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
         setSubmitting(true);
         try {
             const expiresAt = new Date(expiresAtInput).getTime();
-            if (
-                !Number.isFinite(expiresAt) ||
-                expiresAt <= Date.now() ||
-                expiresAt > Date.now() + 365 * 24 * 60 * 60_000
-            ) {
-                setError(copy.invalidExpiry);
+            const expiryProblem = shareExpiryProblem(expiresAt);
+            if (expiryProblem) {
+                setError(expiryProblem === 'tooFar' ? copy.expiryTooFar : copy.invalidExpiry);
                 return;
             }
             // The link's key is made here and never sent to the server. A live
@@ -417,16 +423,22 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 isOpen={isExpiryPickerOpen}
                                 inline
                                 onClose={() => setIsExpiryPickerOpen(false)}
-                                onConfirm={date => setExpiresAtInput(toLocalDateTimeValue(date.getTime()))}
+                                onConfirm={handleExpiryChange}
                                 initialDate={
                                     expiresAtInput
                                         ? new Date(expiresAtInput)
                                         : new Date(Date.now() + 7 * 24 * 60 * 60_000)
                                 }
                                 mode="datetime"
+                                maxYear={MAX_SHARE_EXPIRY_YEAR}
                                 title={copy.expiryLabel}
                             />
                             <p className="mt-1.5 text-xs text-muted">{copy.expiryHint}</p>
+                            {expiryWarning && (
+                                <p className="mt-1.5 text-xs leading-relaxed text-[var(--warning)]" role="status">
+                                    {copy.expiryLongWarning}
+                                </p>
+                            )}
                         </div>
 
                         {error && (
