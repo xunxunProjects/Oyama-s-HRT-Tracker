@@ -11,11 +11,40 @@ bucket.
 
 ## Quick start
 
-You need Git, Docker, and Docker Compose v2.
+You need Git, Docker, and Docker Compose v2. The repository scripts can do the
+first deploy:
 
 ```bash
 git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
 cd Oyama-s-HRT-Tracker
+./Dependency-Detection.sh --docker   # read-only preflight
+./docker-install.sh                  # asks: loopback, domain, or LAN
+```
+
+The Docker preflight checks Docker, Compose, the daemon, `.env`, `./data`, and
+the port. It does not require Node.js on the host; the app and its build run
+inside the image. `docker-install.sh` creates `.env` with a generated
+`JWT_SECRET` (mode 600), prepares `./data` for uid 1000, starts the stack, and
+waits for `/api/transparency`. It never prints the secret and does not install
+Docker itself. For unattended loopback installs use
+`./docker-install.sh --yes --mode loopback`; `--dry-run` previews the plan.
+
+For a public domain, keep the app on loopback and let an existing HTTPS proxy
+terminate TLS:
+
+```bash
+./docker-install.sh --mode proxy --domain hrt.example.com --proxy caddy
+```
+
+The script sets `PUBLIC_APP_ORIGIN` and `TRUSTED_IP_SOURCE` and prints a Caddy,
+nginx, Cloudflare, or Tailscale snippet. It does not edit your proxy config.
+
+For a trusted LAN without TLS, use `--mode lan --port 18787`; never expose that
+port directly to the internet.
+
+The manual path is still supported:
+
+```bash
 cp .env.docker.example .env
 # Put the output of this command into JWT_SECRET in .env:
 openssl rand -base64 48
@@ -25,7 +54,7 @@ docker compose up -d --build
 ```
 
 Open <http://localhost:8787>. The first build takes a few minutes. The port is
-published on `127.0.0.1` only.
+published on `127.0.0.1` only by default.
 
 To stop without deleting data, run `docker compose down`.
 
@@ -44,6 +73,8 @@ format cannot represent it.
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | No       | Built-in administrator. Set both or neither. The username is compared case-insensitively and is reserved even if the password is empty.                                                                                                                                               |
 | `PUBLIC_APP_ORIGIN`                | No       | Public origin for share links and passkey sign-in, for example `https://hrt.example.com`.                                                                                                                                                                                             |
 | `TRUSTED_IP_SOURCE`                | No       | `cf` (default), `x-forwarded-for`, or `none`. Controls where per-address rate limits read the client address.                                                                                                                                                                         |
+| `HRT_BIND_HOST`                    | No       | Host address Compose publishes on. Default `127.0.0.1`; use `0.0.0.0` only for a trusted LAN without TLS.                                                                                                                                                                             |
+| `HRT_PORT`                         | No       | Host port Compose publishes. Default `8787`; the container still listens on `PORT=8787` internally.                                                                                                                                                                                   |
 | `ENVIRONMENT`                      | No       | Only `development` makes a 500 response include the error text. The container leaves it unset, so it behaves as production.                                                                                                                                                           |
 
 Changing `JWT_SECRET` invalidates every existing session; there is no
@@ -97,12 +128,14 @@ The container runs as uid 1000, so `./data` must be writable by uid 1000:
 
 - **Back up**: stop the container first, then copy `./data`. The folder holds
   accounts and sessions even though backups and share payloads are encrypted.
-- **Update**: `git pull` then `docker compose up -d --build`. Pending
-  migrations run at startup and `./data` is kept.
+- **Update**: `git pull` then `./docker-install.sh` (or
+  `docker compose up -d --build`). Pending migrations run at startup and
+  `./data` is kept.
 - **Change `.env`**: `docker compose up -d --force-recreate`.
-  `docker compose restart` keeps the old environment.
-- **Port conflict**: change only the host side, for example
-  `127.0.0.1:18787:8787`.
+  `docker compose restart` keeps the old environment. `docker-install.sh`
+  force-recreates automatically when it changes a setting.
+- **Port conflict**: change only the host side with `--port 18787` or
+  `HRT_PORT=18787`; the internal container port stays 8787.
 
 ## Health check
 
@@ -115,7 +148,9 @@ this one, answer 503, so the container becomes `unhealthy`. Check
 ## Reverse proxy and HTTPS
 
 Compose publishes the port on loopback, so a reverse proxy on the same host is
-the normal setup.
+the normal setup. `./docker-install.sh --mode proxy --domain ... --proxy ...`
+sets the matching `PUBLIC_APP_ORIGIN` and `TRUSTED_IP_SOURCE` values and prints
+a starting-point snippet; finish and reload the proxy yourself.
 
 - **Caddy**: add `header_up CF-Connecting-IP {remote_host}` inside
   `reverse_proxy` when `TRUSTED_IP_SOURCE=cf`.

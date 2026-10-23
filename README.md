@@ -124,9 +124,29 @@ database, and R2-compatible avatar storage. Data is kept in the project's `./dat
 directory and survives container restarts. The image is built from source on
 your machine, so you need Git and Docker with Compose.
 
+The fastest path is the two helper scripts in the repository root. They do not
+install Docker itself.
+
 ```bash
 git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
 cd Oyama-s-HRT-Tracker
+./Dependency-Detection.sh --docker   # read-only preflight
+./docker-install.sh                  # asks: loopback, public domain, or LAN
+```
+
+`Dependency-Detection.sh --docker` checks Docker, Compose, the daemon, `.env`,
+`./data`, and the port; the Docker path does not need Node.js on the host.
+`docker-install.sh` creates `.env` with a generated `JWT_SECRET` (mode 600),
+prepares `./data` for uid 1000, starts the Compose stack, and waits for
+`/api/transparency`. It never prints the secret. For a public domain it keeps
+the app on loopback and prints a Caddy, nginx, Cloudflare, or Tailscale
+configuration to finish; it does not edit your proxy. Use `--dry-run` to see
+the plan, `--yes --mode loopback` for an unattended loopback install, or
+`--mode lan --port 18787` for a trusted LAN without TLS.
+
+If you prefer the manual path:
+
+```bash
 cp .env.docker.example .env
 # Replace JWT_SECRET in .env with the output of:
 openssl rand -base64 48
@@ -137,8 +157,9 @@ docker compose up -d --build
 
 Then open <http://localhost:8787>. The port is published on `127.0.0.1` only,
 so the app is not reachable from the LAN by default. Keep it that way unless a
-reverse proxy sits in front, or deliberately change the mapping in
-`compose.yaml` to `"8787:8787"`.
+reverse proxy sits in front, or deliberately set `HRT_BIND_HOST=0.0.0.0` in
+`.env` (or use `./docker-install.sh --mode lan`). LAN mode has no TLS; never
+expose it directly to the internet.
 
 The first build takes a few minutes. To update later, pull the new code and
 rebuild; your data in `./data` is kept:
@@ -151,13 +172,13 @@ docker compose up -d --build
 ### Plain http and https
 
 To open the app over plain http from another device (for example
-`http://192.168.1.5:8787`), publish the port on your LAN interface — change
-the compose mapping to `"8787:8787"` — or put the container behind a reverse
-proxy first. Backups, exports and share links stay end-to-end encrypted over
-plain http too. Browsers do hold back a few features until the
-page is served over https (or opened as `localhost`): installing it as an app,
-offline use, and passkey sign-in. To get those, put the container behind any
-https reverse proxy, such as [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
+`http://192.168.1.5:8787`), set `HRT_BIND_HOST=0.0.0.0` in `.env` or run
+`./docker-install.sh --mode lan --port 18787`, or put the container behind a
+reverse proxy first. Backups, exports and share links stay end-to-end encrypted
+over plain http too. Browsers do hold back a few features until the page is
+served over https (or opened as `localhost`): installing it as an app, offline
+use, and passkey sign-in. To get those, put the container behind any https
+reverse proxy, such as [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
 (`caddy reverse-proxy --from your.domain --to localhost:8787`) or
 [Tailscale Serve](https://tailscale.com/kb/1312/serve).
 

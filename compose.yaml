@@ -9,9 +9,9 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      # Loopback only: put a reverse proxy (or a Tor/I2P daemon) in front.
-      # Change to "8787:8787" only if you really need LAN exposure.
-      - "127.0.0.1:8787:8787"
+      # Defaults to loopback only: put a reverse proxy (or a Tor/I2P daemon)
+      # in front. Set HRT_BIND_HOST=0.0.0.0 only for trusted LAN exposure.
+      - "${HRT_BIND_HOST:-127.0.0.1}:${HRT_PORT:-8787}:8787"
     env_file:
       - .env
     volumes:

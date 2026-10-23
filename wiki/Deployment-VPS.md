@@ -34,6 +34,20 @@ loopback.
 - A dedicated system user (example: `hrt`) and a data directory
   (`/var/lib/hrt-tracker`).
 
+## Preflight
+
+After cloning, run the read-only checker before installing anything:
+
+```bash
+cd /opt/hrt-tracker
+./Dependency-Detection.sh --vps
+```
+
+It checks Linux, systemd, architecture, Node.js 22.23.4+, npm, Git, the build
+toolchain, OpenSSL, curl, disk and memory, the port, `/opt`, the data directory,
+`.dev.vars` if present, and Caddy or a patched nginx (1.30.6+ or 1.31.7+). It
+never uses sudo and never writes files. `--json` is available for automation.
+
 ## Install
 
 ```bash

@@ -22,16 +22,49 @@ Docker and VPS-native run the same Worker sources. The difference is packaging
 and process supervision: Docker is the supported self-host path; VPS-native is
 for operators who need a native service and accept the extra maintenance.
 
+## Preflight and one-command Docker
+
+Two scripts in the repository root keep the first deploy short:
+
+```bash
+./Dependency-Detection.sh --vps     # read-only native-host checks
+./Dependency-Detection.sh --docker  # read-only Docker checks
+./Dependency-Detection.sh --json    # machine-readable result for automation
+```
+
+The checker never installs packages, uses sudo, or writes files. It reports
+`ok`, `warn`, and `fail` items and exits non-zero when a required check fails.
+Use `--port N` when the host port is not 8787.
+
+For Docker, `./docker-install.sh` runs the checker, creates or validates `.env`,
+generates `JWT_SECRET` without printing it, prepares `./data` for uid 1000,
+starts `docker compose -p oyama-hrt up -d --build`, and waits for
+`/api/transparency`. It refuses to rotate an existing weak secret or take over a
+container owned by another Compose project.
+
+- `--mode loopback` (default) publishes `127.0.0.1:8787`.
+- `--mode proxy --domain hrt.example.com --proxy caddy` keeps the app on
+  loopback and sets `PUBLIC_APP_ORIGIN` and `TRUSTED_IP_SOURCE` for an existing
+  HTTPS reverse proxy. The script prints a Caddy, nginx, Cloudflare, or
+  Tailscale snippet; it does not edit proxy configuration.
+- `--mode lan --port 18787` publishes `0.0.0.0:18787` without TLS. Use it only
+  on a trusted network and never expose it to the internet.
+
+Use `--dry-run` to preview the plan, and `--yes` for an unattended run with
+defaults. The script assumes Docker Engine and Compose v2 are already installed.
+
 ## Requirements
 
 - **Cloudflare:** Node.js 22.23.4+ (the October 2026 security release), npm, a
   Cloudflare account, D1 and R2 enabled, and
   a domain if you do not want a `workers.dev` address.
 - **Docker:** Git, Docker Engine, Docker Compose v2. The image is built from
-  source; the published GHCR image is private for now.
+  source; the published GHCR image is private for now. Run
+  `./Dependency-Detection.sh --docker` first.
 - **VPS native:** Node.js 22.23.4+, npm, a build toolchain for native modules, a
-  reverse proxy (Caddy or nginx), and systemd. Rust is only needed for the
-  desktop app.
+  reverse proxy (Caddy or nginx), and systemd. Run
+  `./Dependency-Detection.sh --vps` first. Rust is only needed for the desktop
+  app.
 - **Local:** Node.js 22.23.4+ and npm; see [Deployment-Local](Deployment-Local).
 
 ## What the server stores
@@ -48,9 +81,10 @@ session metadata, so protect the database and the host.
    TLS-terminating reverse proxy (Caddy, nginx, or a Cloudflare custom domain).
    Browsers restrict installation, offline use, and passkey sign-in on plain
    HTTP other than localhost.
-2. **Who can reach the port.** The Compose file publishes `127.0.0.1:8787` only.
-   Keep it loopback-only and put a proxy in front. Never expose the app port
-   directly to the internet.
+2. **Who can reach the port.** The Compose file publishes
+   `${HRT_BIND_HOST:-127.0.0.1}:${HRT_PORT:-8787}`. Keep the default loopback
+   binding and put a proxy in front. Never expose the app port directly to the
+   internet; `--mode lan` is only for a trusted network.
 3. **Client address source.** Per-address rate limits need the real client
    address. Set `TRUSTED_IP_SOURCE` to `cf`, `x-forwarded-for`, or `none` to
    match what sits in front. A proxy must overwrite `CF-Connecting-IP` or
@@ -74,9 +108,10 @@ session metadata, so protect the database and the host.
 | Building from `main`                     | Check out the release tag (`v1.5.0`); never deploy an untagged commit                                                                                   |
 | Copying the maintainer's `wrangler.toml` | Replace the D1 `database_id` and the R2 `bucket_name` with your own; delete the `[[previews.*]]` blocks                                                 |
 | Missing migrations                       | The container applies them on start; Cloudflare uses `npm run wrangler:migrate:remote`; VPS-native uses the local migration command with `--persist-to` |
-| Exposing `8787`                          | Publish `127.0.0.1:8787` only; terminate TLS in a proxy                                                                                                 |
+| Exposing `8787`                          | Keep `HRT_BIND_HOST=127.0.0.1`; terminate TLS in a proxy. `--mode lan` is trusted-network only                                                          |
+| Port already in use                      | Use `--port 18787` (or set `HRT_PORT`); the container still listens on 8787 internally                                                                  |
 | Wrong client IP                          | Set `TRUSTED_IP_SOURCE` and make the proxy overwrite the header                                                                                         |
-| Data owned by root                       | `mkdir -p data && sudo chown 1000:1000 data`; the container runs as uid 1000                                                                            |
+| Data owned by root                       | `mkdir -p data && sudo chown 1000:1000 data`; `docker-install.sh` also tries a targeted fix; the container runs as uid 1000                             |
 | Expecting cron in Docker                 | The six-hour cleanup runs on Cloudflare; Docker and VPS-native do not run it                                                                            |
 | Expecting `hrt://` on Cloudflare         | Not possible; use the HTTPS API or a Docker/VPS deployment                                                                                              |
 | Changing `JWT_SECRET`                    | Every existing session is signed out; plan the rotation                                                                                                 |
@@ -95,6 +130,8 @@ session metadata, so protect the database and the host.
 - [ ] If `hrt://` is enabled: certificate, key, and service token are mode 600,
       the raw port is published only where clients need it, and the service
       token is long and random.
+- [ ] `./Dependency-Detection.sh --docker` passes (or every required issue is
+      understood) before the first deploy.
 - [ ] `./data` is owned by uid 1000, backed up with the container stopped, and
       readable only by the operator.
 - [ ] The app is not exposed directly to the internet; a TLS proxy or a Tor/I2P
@@ -109,9 +146,11 @@ See [Security](Security) for the reasoning and for vulnerability reporting.
 1. Read the release notes and `CHANGELOG.md`.
 2. Back up the data directory, or D1 and R2.
 3. Check out the new release tag; do not merge `main`.
-4. Rebuild and restart. The container reconciles old volumes and applies
-   migrations on start. Cloudflare and VPS-native need the migration command
-   for the new release.
+4. Rebuild and restart. For Docker, `./docker-install.sh` is idempotent and
+   handles the rebuild; it keeps `./data` and only recreates the container when
+   `.env` changed. The container reconciles old volumes and applies migrations
+   on start. Cloudflare and VPS-native need the migration command for the new
+   release.
 5. Verify `/api/transparency` returns 200 and log in with a non-admin account.
 
 If a migration fails, stop and restore the backup. Do not delete the database to
