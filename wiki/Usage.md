@@ -81,7 +81,11 @@ under `docs/` and in the Tools wiki's protocol pages.
 A share link exposes a read-only view of dose history and the curve. The
 decryption key lives only in the link fragment, so anyone with the complete
 link can read it. Lab results, weight, and account details are never included.
-Revoke a link when you no longer need it; revoking removes the stored payload.
+A link can expire up to the end of 2100. Expiries more than 365 days away are
+outside the window where the sharing design's security is guaranteed; the link
+key stays valid until expiry, so anyone with the complete link can read the
+snapshot until then. Revoke a link when you no longer need it; revoking removes
+the stored payload.
 
 ## F2F keyrings
 

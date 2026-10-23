@@ -24,6 +24,8 @@ export interface ShareCopy {
     tooLarge: string;
     limitReached: string;
     invalidExpiry: string;
+    expiryTooFar: string;
+    expiryLongWarning: string;
     publicTitle: string;
     sharedOn: string;
     expiresOn: string;
@@ -89,6 +91,8 @@ const en: ShareCopy = {
     tooLarge: 'This history is too large to share in one link.',
     limitReached: 'You have reached the active-link limit. Try again after an older link expires.',
     invalidExpiry: 'Choose an expiration time in the future.',
+    expiryTooFar: 'Share links can expire no later than the end of 2100.',
+    expiryLongWarning: 'Security is not guaranteed beyond 365 days. Anyone with the link can open it until it expires.',
     publicTitle: 'Shared dosage record',
     sharedOn: 'Shared',
     expiresOn: 'Expires',
@@ -161,6 +165,8 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: '用药记录过大，无法放入一个分享链接。',
         limitReached: '您已达到有效链接数量上限，请在旧链接过期后重试。',
         invalidExpiry: '请选择将来的过期时间。',
+        expiryTooFar: '分享链接最晚只能设置为 2100 年底。',
+        expiryLongWarning: '超过 365 天后不再保证安全。任何持有链接的人都可以在到期前查看内容。',
         publicTitle: '分享的用药记录',
         sharedOn: '分享于',
         expiresOn: '过期于',
@@ -226,6 +232,8 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: '用藥紀錄過大，無法放入一個分享連結。',
         limitReached: '您已達到有效連結數量上限，請在舊連結到期後再試。',
         invalidExpiry: '請選擇未來的到期時間。',
+        expiryTooFar: '分享連結最晚只能設定為 2100 年底。',
+        expiryLongWarning: '超過 365 天後不再保證安全。任何持有連結的人都可以在到期前查看內容。',
         publicTitle: '分享的用藥紀錄',
         sharedOn: '分享於',
         expiresOn: '到期於',
@@ -291,6 +299,8 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: '用藥紀錄太大，放唔入一條分享連結。',
         limitReached: '已達有效連結上限，請等舊連結到期後再試。',
         invalidExpiry: '請揀一個將來嘅到期時間。',
+        expiryTooFar: '分享連結最遲只可以設定到 2100 年底。',
+        expiryLongWarning: '超過 365 日後唔再保證安全。任何持有連結嘅人都可以喺到期前睇到內容。',
         publicTitle: '分享嘅用藥紀錄',
         sharedOn: '分享於',
         expiresOn: '到期於',
@@ -356,6 +366,8 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: '履歴が大きすぎるため、1つのリンクでは共有できません。',
         limitReached: '有効なリンク数の上限に達しました。古いリンクの期限後に再試行してください。',
         invalidExpiry: '未来の有効期限を選択してください。',
+        expiryTooFar: '共有リンクの有効期限は2100年末までです。',
+        expiryLongWarning: '365日を超えると安全性は保証されません。リンクを持っている人は有効期限まで閲覧できます。',
         publicTitle: '共有された投与記録',
         sharedOn: '共有日時',
         expiresOn: '有効期限',
@@ -425,6 +437,9 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: '기록이 너무 커서 하나의 링크로 공유할 수 없습니다.',
         limitReached: '활성 링크 한도에 도달했습니다. 이전 링크가 만료된 후 다시 시도하세요.',
         invalidExpiry: '미래의 만료 시간을 선택하세요.',
+        expiryTooFar: '공유 링크의 만료 시간은 2100년 말까지만 설정할 수 있습니다.',
+        expiryLongWarning:
+            '365일이 지나면 보안이 보장되지 않습니다. 링크를 가진 사람은 만료 전까지 내용을 볼 수 있습니다.',
         publicTitle: '공유된 복용 기록',
         sharedOn: '공유',
         expiresOn: '만료',
@@ -494,6 +509,9 @@ const copy: Record<Lang, ShareCopy> = {
         tooLarge: 'Bu geçmiş tek bir bağlantıda paylaşmak için çok büyük.',
         limitReached: 'Etkin bağlantı sınırına ulaştınız. Eski bir bağlantı sona erdikten sonra yeniden deneyin.',
         invalidExpiry: 'Gelecekte bir son kullanma zamanı seçin.',
+        expiryTooFar: 'Paylaşım bağlantısının süresi en geç 2100 sonuna kadar ayarlanabilir.',
+        expiryLongWarning:
+            '365 günden sonra güvenlik garanti edilmez. Bağlantıya sahip olan herkes süresi dolana kadar açabilir.',
         publicTitle: 'Paylaşılan doz kaydı',
         sharedOn: 'Paylaşıldı',
         expiresOn: 'Sona erer',
