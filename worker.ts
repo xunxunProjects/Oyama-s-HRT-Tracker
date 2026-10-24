@@ -252,6 +252,7 @@ export type ApiErrorCode =
     | 'RATE_LIMITED'
     | 'ACCOUNT_LOCKED'
     | 'STORAGE_FULL'
+    | 'SCHEMA_OUTDATED'
     | 'SERVICE_UNAVAILABLE'
     | 'NOT_IMPLEMENTED'
     | 'INTERNAL';
@@ -259,6 +260,11 @@ export type ApiErrorCode =
 /** D1's wording when the database has hit its plan's size cap. */
 const isStorageFullError = (err: unknown): boolean =>
     err instanceof Error && /Exceeded maximum DB size/i.test(err.message);
+
+/** SQLite's wording when a table or column a query names is not there: the
+ *  code is newer than the database, because a migration was never applied. */
+const isSchemaOutdatedError = (err: unknown): boolean =>
+    err instanceof Error && /no such (table|column)/i.test(err.message);
 
 /** D1's wording when one string/BLOB/row exceeds its 2,000,000-byte limit. */
 const isRowTooLargeError = (err: unknown): boolean =>
@@ -4040,6 +4046,16 @@ export default {
             }
             if (isRowTooLargeError(err)) {
                 return jsonError('TOO_LARGE', 'Backup exceeds the database row limit', 413);
+            }
+            // A deploy that skipped `wrangler d1 migrations apply` fails every
+            // query on the new tables with a bare 500. Say so, so the operator
+            // knows what to run and the page can say "not set up yet".
+            if (isSchemaOutdatedError(err)) {
+                return jsonError(
+                    'SCHEMA_OUTDATED',
+                    'The server database is missing a migration. Run wrangler d1 migrations apply.',
+                    503,
+                );
             }
             // Sanitize internal error messages for production
             // `url` is reconstructed from the request's Host header, which the caller
