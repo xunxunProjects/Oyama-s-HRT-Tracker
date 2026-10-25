@@ -50,10 +50,20 @@ export interface Regimen {
     sinceH: number;
     /** From the plan: its doses are matched by drug and route alone, since a logged amount can drift from the planned one. */
     loose?: boolean;
+    /** The amounts this regimen was seen at, when the log's doses drift slightly around its usual amount. */
+    doseRange?: [number, number];
 }
 
 const DETECT_WINDOW_H = 42 * 24;
 const MIN_DOSES = 3;
+
+/**
+ * Logged amounts drift a little: a slightly different drawn volume, a split
+ * tablet, a rounded dose. Amounts within this share of each other are the same
+ * regimen; a real strength change is larger.
+ */
+const DOSE_DRIFT_SHARE = 0.1;
+const sameDose = (a: number, b: number) => Math.abs(a - b) <= DOSE_DRIFT_SHARE * Math.max(a, b);
 
 export const hormoneOf = (ester: Ester): Hormone =>
     !isKnownEster(ester)
@@ -66,16 +76,19 @@ export const hormoneOf = (ester: Ester): Hormone =>
               ? 'T'
               : 'E2';
 
-const signature = (e: Pick<DoseEvent, 'route' | 'ester' | 'doseMG' | 'extras'>) =>
+const extrasSignature = (e: Pick<DoseEvent, 'extras'>) =>
     [
-        e.route,
-        e.ester,
-        e.doseMG.toFixed(3),
         e.extras[ExtraKey.sublingualTier] ?? '',
         e.extras[ExtraKey.sublingualTheta] ?? '',
         e.extras[ExtraKey.gelSite] ?? '',
         e.extras[ExtraKey.releaseRateUGPerDay] ?? '',
     ].join('|');
+
+const baseSignature = (e: Pick<DoseEvent, 'route' | 'ester' | 'extras'>) =>
+    [e.route, e.ester, extrasSignature(e)].join('|');
+
+const signature = (e: Pick<DoseEvent, 'route' | 'ester' | 'doseMG' | 'extras'>) =>
+    [e.route, e.ester, e.doseMG.toFixed(3), extrasSignature(e)].join('|');
 
 const median = (xs: number[]) => {
     const s = [...xs].sort((a, b) => a - b);
@@ -87,59 +100,94 @@ const median = (xs: number[]) => {
 export const lapseH = (intervalH: number) => intervalH * 2.5 + 12;
 
 /** Whether a logged dose belongs to a regimen. */
-export const regimenMatches = (r: Regimen, e: DoseEvent) =>
-    r.loose ? e.route === r.route && e.ester === r.ester : signature(e) === r.key;
+export const regimenMatches = (r: Regimen, e: DoseEvent) => {
+    if (r.loose) return e.route === r.route && e.ester === r.ester;
+    if (baseSignature(e) !== baseSignature(r)) return false;
+    return r.doseRange ? e.doseMG >= r.doseRange[0] && e.doseMG <= r.doseRange[1] : e.doseMG === r.doseMG;
+};
+
+type DoseCluster = { mean: number; events: DoseEvent[] };
+
+/**
+ * Split a chronological run of doses into groups whose amounts sit within the
+ * drift allowance of each other. Keeping these groups apart preserves genuine
+ * split dosing (2 mg in the morning, 4 mg at night) while ordinary drift
+ * (4.8, 4.9, 5.0 mg) still reads as one regimen.
+ */
+function clusterByDose(events: DoseEvent[]): DoseEvent[][] {
+    const clusters: DoseCluster[] = [];
+    for (const e of events) {
+        let closest: { cluster: DoseCluster; distance: number } | null = null;
+        for (const cluster of clusters) {
+            if (!sameDose(e.doseMG, cluster.mean)) continue;
+            const distance = Math.abs(e.doseMG - cluster.mean);
+            if (!closest || distance < closest.distance) closest = { cluster, distance };
+        }
+        if (closest) {
+            closest.cluster.events.push(e);
+            closest.cluster.mean += (e.doseMG - closest.cluster.mean) / closest.cluster.events.length;
+        } else {
+            clusters.push({ mean: e.doseMG, events: [e] });
+        }
+    }
+    return clusters.map(c => c.events);
+}
 
 export function detectRegimens(events: DoseEvent[], nowH: number): Regimen[] {
     const groups = new Map<string, DoseEvent[]>();
     for (const e of events) {
         if (e.route === Route.patchRemove) continue;
-        const k = signature(e);
+        const k = baseSignature(e);
         const list = groups.get(k);
         if (list) list.push(e);
         else groups.set(k, [e]);
     }
 
     const out: Regimen[] = [];
-    for (const [key, list] of groups) {
+    for (const list of groups.values()) {
         const sorted = [...list].sort((a, b) => a.timeH - b.timeH);
         const past = sorted.filter(e => e.timeH <= nowH);
-        const recent = past.filter(e => e.timeH >= nowH - DETECT_WINDOW_H);
-        if (recent.length < MIN_DOSES) continue;
+        for (const cluster of clusterByDose(past)) {
+            const recent = cluster.filter(e => e.timeH >= nowH - DETECT_WINDOW_H);
+            if (recent.length < MIN_DOSES) continue;
 
-        const gaps: number[] = [];
-        for (let i = 1; i < recent.length; i++) gaps.push(recent[i].timeH - recent[i - 1].timeH);
-        // Logged times wobble by minutes; the schedule behind them is in whole
-        // hours (half hours for anything more often than daily). Unrounded, a
-        // 168.1 h median walks a weekly schedule half an hour later per quarter.
-        const rawInterval = median(gaps);
-        const intervalH = rawInterval >= 24 ? Math.round(rawInterval) : Math.round(rawInterval * 2) / 2;
-        if (!(intervalH > 1)) continue;
+            const gaps: number[] = [];
+            for (let i = 1; i < recent.length; i++) gaps.push(recent[i].timeH - recent[i - 1].timeH);
+            // Logged times wobble by minutes; the schedule behind them is in whole
+            // hours (half hours for anything more often than daily). Unrounded, a
+            // 168.1 h median walks a weekly schedule half an hour later per quarter.
+            const rawInterval = median(gaps);
+            const intervalH = rawInterval >= 24 ? Math.round(rawInterval) : Math.round(rawInterval * 2) / 2;
+            if (!(intervalH > 1)) continue;
 
-        const lastH = past[past.length - 1].timeH;
-        if (nowH - lastH > lapseH(intervalH)) continue;
+            const lastH = cluster[cluster.length - 1].timeH;
+            if (nowH - lastH > lapseH(intervalH)) continue;
 
-        let sinceH = lastH;
-        for (let i = past.length - 2; i >= 0; i--) {
-            if (past[i + 1].timeH - past[i].timeH > lapseH(intervalH)) break;
-            sinceH = past[i].timeH;
+            let sinceH = lastH;
+            for (let i = cluster.length - 2; i >= 0; i--) {
+                if (cluster[i + 1].timeH - cluster[i].timeH > lapseH(intervalH)) break;
+                sinceH = cluster[i].timeH;
+            }
+
+            const sample = cluster[cluster.length - 1];
+            const scheduled = sorted.filter(e => e.timeH > nowH && sameDose(e.doseMG, sample.doseMG));
+            const scheduledH = scheduled.map(e => e.timeH);
+            const amounts = [...cluster, ...scheduled].map(e => e.doseMG);
+            out.push({
+                key: signature(sample),
+                route: sample.route,
+                ester: sample.ester,
+                doseMG: sample.doseMG,
+                extras: { ...sample.extras },
+                hormone: hormoneOf(sample.ester),
+                intervalH,
+                lastH,
+                nextH: scheduledH[0] ?? lastH + intervalH,
+                scheduledH,
+                sinceH,
+                doseRange: [Math.min(...amounts), Math.max(...amounts)],
+            });
         }
-
-        const scheduledH = sorted.filter(e => e.timeH > nowH).map(e => e.timeH);
-        const sample = past[past.length - 1];
-        out.push({
-            key,
-            route: sample.route,
-            ester: sample.ester,
-            doseMG: sample.doseMG,
-            extras: { ...sample.extras },
-            hormone: hormoneOf(sample.ester),
-            intervalH,
-            lastH,
-            nextH: scheduledH[0] ?? lastH + intervalH,
-            scheduledH,
-            sinceH,
-        });
     }
     // A switch leaves the old regimen looking merely paused until it lapses:
     // one whose last dose came before another of the same hormone began has
