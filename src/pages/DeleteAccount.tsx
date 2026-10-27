@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { authService } from '../services/auth';
+import { BusyLabel } from '../components/StableLabel';
 
 const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -196,8 +197,9 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         disabled={!password || !twoFAReady || isLoading}
                         className="btn-danger w-full"
                     >
-                        {isLoading && <Loader2 size={15} className="animate-spin" />}
-                        {t('account.delete_account')}
+                        <BusyLabel busy={isLoading} size={15}>
+                            {t('account.delete_account')}
+                        </BusyLabel>
                     </button>
                 </form>
             </div>

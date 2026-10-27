@@ -10,6 +10,7 @@ import { useEscape } from '../hooks/useEscape';
 import { getShareCopy } from '../i18n/share';
 import { newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from './PasswordStrengthHint';
+import { BusyLabel } from './StableLabel';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -243,8 +244,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, reason, onSucces
     );
     const submitButton = (
         <button type="submit" disabled={loading || passwordBlocked} className="btn-primary w-full mt-1">
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+            <BusyLabel busy={loading}>{isLogin ? t('auth.sign_in') : t('auth.sign_up')}</BusyLabel>
         </button>
     );
 

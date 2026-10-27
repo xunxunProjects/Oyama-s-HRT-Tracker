@@ -49,6 +49,7 @@ import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
 import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
+import { BusyLabel } from '../components/StableLabel';
 
 interface LocalData {
     events: any[];
@@ -544,8 +545,7 @@ const Account: React.FC<AccountProps> = ({
     );
     const authSubmit = (
         <button type="submit" disabled={authLoading || newPasswordBlocked} className="btn-primary w-full">
-            {authLoading && <Loader2 size={16} className="animate-spin" />}
-            {isLogin ? t('auth.sign_in') : t('auth.sign_up')}
+            <BusyLabel busy={authLoading}>{isLogin ? t('auth.sign_in') : t('auth.sign_up')}</BusyLabel>
         </button>
     );
 

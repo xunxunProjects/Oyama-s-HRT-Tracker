@@ -25,6 +25,7 @@ import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labRepor
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { copyText } from '../utils/clipboard';
 import { clinicalUnit } from '../utils/clinicalUnit';
+import { SwapLabel } from '../components/StableLabel';
 
 interface LabProps {
     t: (key: string) => string;
@@ -359,7 +360,7 @@ const Lab: React.FC<LabProps> = ({
                                 className="tap-target inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-ink)]"
                             >
                                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                                {copied ? t('lab.copied') : t('lab.copy_details')}
+                                <SwapLabel show={copied} off={t('lab.copy_details')} on={t('lab.copied')} />
                             </button>
                             <button
                                 onClick={onClearLabResults}

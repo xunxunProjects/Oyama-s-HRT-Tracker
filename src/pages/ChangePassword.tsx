@@ -1,6 +1,6 @@
 import React, { useState, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -8,6 +8,7 @@ import { apiErrorCode } from '../services/apiClient';
 import { settingsMuted } from '../components/SettingsListItem';
 import { newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from '../components/PasswordStrengthHint';
+import { BusyLabel } from '../components/StableLabel';
 
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -146,8 +147,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         disabled={!current || !newPass || !confirm || isLoading || passwordBlocked}
                         className="btn-primary w-full"
                     >
-                        {isLoading && <Loader2 size={16} className="animate-spin" />}
-                        {t('btn.save')}
+                        <BusyLabel busy={isLoading}>{t('btn.save')}</BusyLabel>
                     </button>
                 </form>
             </div>
