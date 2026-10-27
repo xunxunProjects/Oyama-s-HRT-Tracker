@@ -1,9 +1,8 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from './icons';
 import { useEscapeLayer } from './CustomSelect';
 import { useTranslation } from '../contexts/LanguageContext';
-import { useInlineHost } from '../contexts/DialogContext';
+import { PromptPlace, useInlineHost } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import { PAGE_COLUMN } from './PageHeader';
 
@@ -64,6 +63,10 @@ const NumberPart: React.FC<NumberPartProps> = ({ label, value, min = 0, max, dig
         if (!Number.isNaN(n)) onChange(Math.max(min, Math.min(max, n)));
         setDraft(null);
     };
+    // Left half typed: an hour or a minute is a number already ("5"), but a
+    // year isn't until it has all four digits, so "20" goes back to the year
+    // it was rather than being pushed up to the first one allowed.
+    const finish = (text: string) => (digits === 4 && text.length < 4 ? setDraft(null) : commit(text));
     return (
         <input
             type="text"
@@ -77,7 +80,7 @@ const NumberPart: React.FC<NumberPartProps> = ({ label, value, min = 0, max, dig
                 setDraft(text);
                 if (text.length === digits) commit(text);
             }}
-            onBlur={() => draft !== null && commit(draft)}
+            onBlur={() => draft !== null && finish(draft)}
             onKeyDown={e => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -88,7 +91,7 @@ const NumberPart: React.FC<NumberPartProps> = ({ label, value, min = 0, max, dig
                     setDraft(null);
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (draft !== null) commit(draft);
+                    if (draft !== null) finish(draft);
                 }
             }}
             className={`input-base text-center tabular-nums font-medium ${className ?? 'w-12 text-[1.0625rem]'}`}
@@ -204,10 +207,16 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         const moves: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
         if (e.key in moves || e.key === 'PageUp' || e.key === 'PageDown') {
             e.preventDefault();
-            const base = new Date(view.year, view.month, focusable);
-            if (e.key === 'PageUp') base.setMonth(base.getMonth() - 1);
-            else if (e.key === 'PageDown') base.setMonth(base.getMonth() + 1);
-            else base.setDate(base.getDate() + moves[e.key]);
+            let base: Date;
+            if (e.key === 'PageUp' || e.key === 'PageDown') {
+                // The same day a month away, or that month's last if it is
+                // shorter: the 31st of January goes to the 28th of February,
+                // not on into March.
+                const month = view.month + (e.key === 'PageUp' ? -1 : 1);
+                base = new Date(view.year, month, Math.min(focusable, new Date(view.year, month + 1, 0).getDate()));
+            } else {
+                base = new Date(view.year, view.month, focusable + moves[e.key]);
+            }
             if (base.getFullYear() < firstYear || base.getFullYear() > lastYear) return;
             focusDay.current = true;
             pickDay(base.getFullYear(), base.getMonth(), base.getDate());
@@ -374,17 +383,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </div>
         </div>
     );
-    if (host) return createPortal(line, host);
-    const slot = document.getElementById('prompt-slot');
-    return slot ? (
-        createPortal(
-            <div className="prompt-banner glass glass-bar">
-                <div className={`${PAGE_COLUMN} max-w-md`}>{line}</div>
-            </div>,
-            slot,
-        )
-    ) : (
-        <div className={PAGE_COLUMN}>{line}</div>
+    return (
+        <PromptPlace host={host} column={`${PAGE_COLUMN} max-w-md`}>
+            {line}
+        </PromptPlace>
     );
 };
 

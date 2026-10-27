@@ -105,6 +105,36 @@ describe('plan as a calendar file', () => {
         expect(ics).toContain('DTSTART:20261031T210000');
     });
 
+    it('starts a patch put on today at the next change, then alternates 84 hours apart', () => {
+        const patch = item({ everyDays: 3.5, route: Route.patchApply, ester: Ester.E2 });
+        const putOn: DoseEvent = {
+            id: 'p',
+            route: Route.patchApply,
+            ester: Ester.E2,
+            doseMG: 0,
+            extras: {},
+            timeH: new Date(2026, 9, 28, 9, 0).getTime() / 3600000,
+        };
+        const ics = planToCalendar([patch], [putOn], words, now);
+        expect(ics).toContain('DTSTART:20261031T210000');
+        expect(ics).toContain('DTSTART:20261104T090000');
+    });
+
+    it('reminds every dose of the day from the first due day, one earlier than the last logged included', () => {
+        const pill = item({ everyDays: 1, timesPerDay: 2, route: Route.oral, ester: Ester.E2 });
+        const lastNight: DoseEvent = {
+            id: 'n',
+            route: Route.oral,
+            ester: Ester.E2,
+            doseMG: 2,
+            extras: {},
+            timeH: new Date(2026, 9, 27, 20, 0).getTime() / 3600000,
+        };
+        const ics = planToCalendar([pill], [lastNight], words, new Date(2026, 9, 28, 6, 0).getTime());
+        expect(ics).toContain('DTSTART:20261028T080000');
+        expect(ics).toContain('DTSTART:20261028T200000');
+    });
+
     it('encodes a plan id before it reaches the calendar UID', () => {
         const ics = planToCalendar([item({ id: 'p1\r\nBEGIN:VEVENT\r\nSUMMARY:Injected' })], [], words, now);
         expect(ics).not.toContain('\r\nSUMMARY:Injected');

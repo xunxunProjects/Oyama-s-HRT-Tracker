@@ -284,107 +284,109 @@ select:focus-visible {
     }
 }
 
-/* Buttons are capsules, all of them: 36px, fully round at the ends. Primary
-   is the one action a view exists for; tonal a strong second; secondary the
-   neutral way out; danger only goes through with a delete; ghost is the 32px
-   pill for headers and toolbars.
-   `btn-sm` is the 30px size for buttons inside a line of text (an inline
-   prompt's Keep it / Delete). On a touch screen a button that sits alone can
-   add `tap-target` to keep a 44px hit area. */
-.btn-primary,
-.btn-tonal,
-.btn-secondary,
-.btn-danger,
-.btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    /* Tight, because every glyph keeps its own air inside its 24px box. */
-    gap: 0.25rem;
-    height: 2.25rem;
-    padding: 0 1.125rem;
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    border: none;
-    border-radius: var(--radius-full);
-    cursor: pointer;
-    transition:
-        background-color var(--duration-quick) var(--ease-standard),
-        color var(--duration-quick) var(--ease-standard),
-        opacity var(--duration-quick) var(--ease-standard),
-        transform var(--duration-instant) var(--ease-standard);
-}
-.btn-primary {
-    color: var(--on-accent);
-    background-color: var(--accent);
-}
-.btn-primary:hover:not(:disabled) {
-    background-color: var(--accent-hover);
-}
-.btn-tonal {
-    color: var(--on-accent-subtle);
-    background-color: var(--accent-subtle);
-}
-.btn-tonal:hover:not(:disabled) {
-    background-color: var(--accent-subtle-hover);
-}
-.btn-secondary {
-    color: var(--text);
-    background-color: var(--surface-muted);
-}
-.btn-secondary:hover:not(:disabled) {
-    background-color: var(--surface-pressed);
-}
-/* Goes through with something that can't be taken back. Same shape and
-   timing as .btn-primary; only the colour says so. */
-.btn-danger {
-    color: var(--on-danger);
-    background-color: var(--danger-fill);
-}
-.btn-danger:hover:not(:disabled) {
-    background-color: var(--danger-fill-hover);
-}
-.btn-ghost {
-    height: 2rem;
-    padding: 0 0.625rem;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    background-color: transparent;
-    border-radius: var(--radius-full);
-}
-.btn-ghost:hover:not(:disabled) {
-    color: var(--text);
-    background-color: var(--surface-hover);
-}
-.btn-ghost-accent,
-.btn-ghost-accent:hover:not(:disabled) {
-    color: var(--accent-ink);
-}
-.btn-ghost-accent:hover:not(:disabled) {
-    background-color: var(--accent-subtle);
-}
-:is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
-    height: 1.875rem;
-    padding: 0 0.875rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-}
-.btn-primary:active:not(:disabled),
-.btn-tonal:active:not(:disabled),
-.btn-secondary:active:not(:disabled),
-.btn-danger:active:not(:disabled),
-.btn-ghost:active:not(:disabled) {
-    transform: scale(0.97);
-}
-.btn-primary:disabled,
-.btn-tonal:disabled,
-.btn-secondary:disabled,
-.btn-danger:disabled,
-.btn-ghost:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+@layer components {
+    /* Buttons are capsules, all of them: 36px, fully round at the ends. Primary
+       is the one action a view exists for; tonal a strong second; secondary the
+       neutral way out; danger only goes through with a delete; ghost is the 32px
+       pill for headers and toolbars.
+       `btn-sm` is the 30px size for buttons inside a line of text (an inline
+       prompt's Keep it / Delete). On a touch screen a button that sits alone can
+       add `tap-target` to keep a 44px hit area. */
+    .btn-primary,
+    .btn-tonal,
+    .btn-secondary,
+    .btn-danger,
+    .btn-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        /* Tight, because every glyph keeps its own air inside its 24px box. */
+        gap: 0.25rem;
+        height: 2.25rem;
+        padding: 0 1.125rem;
+        font-size: 0.9375rem;
+        line-height: 1.375rem;
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        border: none;
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        transition:
+            background-color var(--duration-quick) var(--ease-standard),
+            color var(--duration-quick) var(--ease-standard),
+            opacity var(--duration-quick) var(--ease-standard),
+            transform var(--duration-instant) var(--ease-standard);
+    }
+    .btn-primary {
+        color: var(--on-accent);
+        background-color: var(--accent);
+    }
+    .btn-primary:hover:not(:disabled) {
+        background-color: var(--accent-hover);
+    }
+    .btn-tonal {
+        color: var(--on-accent-subtle);
+        background-color: var(--accent-subtle);
+    }
+    .btn-tonal:hover:not(:disabled) {
+        background-color: var(--accent-subtle-hover);
+    }
+    .btn-secondary {
+        color: var(--text);
+        background-color: var(--surface-muted);
+    }
+    .btn-secondary:hover:not(:disabled) {
+        background-color: var(--surface-pressed);
+    }
+    /* Goes through with something that can't be taken back. Same shape and
+       timing as .btn-primary; only the colour says so. */
+    .btn-danger {
+        color: var(--on-danger);
+        background-color: var(--danger-fill);
+    }
+    .btn-danger:hover:not(:disabled) {
+        background-color: var(--danger-fill-hover);
+    }
+    .btn-ghost {
+        height: 2rem;
+        padding: 0 0.625rem;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        background-color: transparent;
+        border-radius: var(--radius-full);
+    }
+    .btn-ghost:hover:not(:disabled) {
+        color: var(--text);
+        background-color: var(--surface-hover);
+    }
+    .btn-ghost-accent,
+    .btn-ghost-accent:hover:not(:disabled) {
+        color: var(--accent-ink);
+    }
+    .btn-ghost-accent:hover:not(:disabled) {
+        background-color: var(--accent-subtle);
+    }
+    :is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
+        height: 1.875rem;
+        padding: 0 0.875rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+    .btn-primary:active:not(:disabled),
+    .btn-tonal:active:not(:disabled),
+    .btn-secondary:active:not(:disabled),
+    .btn-danger:active:not(:disabled),
+    .btn-ghost:active:not(:disabled) {
+        transform: scale(0.97);
+    }
+    .btn-primary:disabled,
+    .btn-tonal:disabled,
+    .btn-secondary:disabled,
+    .btn-danger:disabled,
+    .btn-ghost:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 }
 
 /* A button that does what a link would, and looks like one. */
@@ -482,14 +484,16 @@ select:focus-visible {
     }
 }
 
-/* A quiet filled note for something to read or copy; never a warning. */
-.callout {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
-    color: var(--text-muted);
-    background-color: var(--surface-muted);
-    border-radius: var(--radius-md);
+@layer components {
+    /* A quiet filled note for something to read or copy; never a warning. */
+    .callout {
+        padding: 0.75rem 0.875rem;
+        font-size: 0.8125rem;
+        line-height: 1.125rem;
+        color: var(--text-muted);
+        background-color: var(--surface-muted);
+        border-radius: var(--radius-md);
+    }
 }
 
 /* A run of rows divided by hairlines between each pair, never above the
@@ -519,59 +523,61 @@ select:focus-visible {
     pointer-events: none;
 }
 
-/* ── choices ─────────────────────────────────────────────────────────────
-   A choice is a line like a field (Choice.tsx): its name, what's chosen,
-   and a chevron. Opened, the options unfold under it in place as plain rows
-   with a tick by the chosen one. Nothing floats over the page. */
-.choice-trigger {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.625rem 0 0.5rem;
-    text-align: start;
-    color: var(--text);
-    background-image: var(--ink-run), var(--ink-rule);
-    background-repeat: no-repeat;
-    background-size:
-        200% 6px,
-        100% 6px;
-    background-position:
-        100% 100%,
-        0 100%;
-    transition: background-position var(--duration-ink) var(--ease-ink);
-}
-.choice-trigger[aria-expanded="true"],
-.choice-trigger:focus-visible {
-    outline: none;
-    background-position:
-        0 100%,
-        0 100%;
-}
-.choice-options {
-    padding: 0.25rem 0 0.5rem;
-}
-.choice-option {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-height: 2.75rem;
-    padding-block: 0.5rem;
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    text-align: start;
-    color: var(--text);
-    border-radius: var(--radius-md);
-}
-.choice-option:hover {
-    background-color: var(--surface-hover);
-}
-.choice-option:focus-visible {
-    outline-offset: -2px;
-}
-.choice-option[aria-selected="true"] {
-    font-weight: 500;
+@layer components {
+    /* ── choices ─────────────────────────────────────────────────────────────
+       A choice is a line like a field (Choice.tsx): its name, what's chosen,
+       and a chevron. Opened, the options unfold under it in place as plain rows
+       with a tick by the chosen one. Nothing floats over the page. */
+    .choice-trigger {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        min-height: 2.75rem;
+        padding: 0.625rem 0 0.5rem;
+        text-align: start;
+        color: var(--text);
+        background-image: var(--ink-run), var(--ink-rule);
+        background-repeat: no-repeat;
+        background-size:
+            200% 6px,
+            100% 6px;
+        background-position:
+            100% 100%,
+            0 100%;
+        transition: background-position var(--duration-ink) var(--ease-ink);
+    }
+    .choice-trigger[aria-expanded="true"],
+    .choice-trigger:focus-visible {
+        outline: none;
+        background-position:
+            0 100%,
+            0 100%;
+    }
+    .choice-options {
+        padding: 0.25rem 0 0.5rem;
+    }
+    .choice-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 2.75rem;
+        padding-block: 0.5rem;
+        font-size: 0.9375rem;
+        line-height: 1.375rem;
+        text-align: start;
+        color: var(--text);
+        border-radius: var(--radius-md);
+    }
+    .choice-option:hover {
+        background-color: var(--surface-hover);
+    }
+    .choice-option:focus-visible {
+        outline-offset: -2px;
+    }
+    .choice-option[aria-selected="true"] {
+        font-weight: 500;
+    }
 }
 /* An unfolding list whose rows bleed into the gutter for their hover fill:
    the clip that the unfold needs is widened by the bleed, so the fill isn't
@@ -637,62 +643,66 @@ select:focus-visible {
     pointer-events: none;
 }
 
-/* ── inline prompts ───────────────────────────────────────────────────────
-   There are no pop-ups in the app. "Delete this dose?" and "Saved to the
-   cloud" are lines put into the page right under what was pressed
-   (contexts/DialogContext.tsx, InlineConfirm.tsx): what it's about, then
-   the way out and the way on. A row in a hairline list already has rules
-   around it, so there the prompt draws none of its own. */
-.inline-prompt {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.625rem 1rem;
-    padding: 0.875rem 0;
-    border-block: 1px solid var(--border);
-}
-.settings-section > .inline-prompt-host > .inline-prompt,
-.settings-section > .inline-prompt {
-    border-block: 0;
-}
-.inline-prompt-text {
-    flex: 1 1 15rem;
-    min-width: 0;
-}
-.inline-prompt-title {
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    font-weight: 500;
-    color: var(--text);
-}
-.inline-prompt-message {
-    font-size: 0.8125rem;
-    line-height: 1.25rem;
-    color: var(--text-muted);
-    white-space: pre-line;
-    overflow-wrap: anywhere;
-}
-.inline-prompt-title + .inline-prompt-message {
-    margin-top: 0.125rem;
-}
-.inline-prompt-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    margin-inline-start: auto;
-}
-/* Asked for with nothing on the page to put it under (a sync finishing on
-   its own): it floats at the top of the page, over the content, in the
-   header's glass. */
-.prompt-banner {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    border-bottom: 1px solid var(--border);
-}
-.prompt-banner .inline-prompt {
-    border-block: 0;
+@layer components {
+    /* ── inline prompts ───────────────────────────────────────────────────────
+       There are no pop-ups in the app. "Delete this dose?" and "Saved to the
+       cloud" are lines put into the page right under what was pressed
+       (contexts/DialogContext.tsx, InlineConfirm.tsx): what it's about, then
+       the way out and the way on. A row in a hairline list already has rules
+       around it, so there the prompt draws none of its own. In the components
+       layer, so a caller's utilities win. */
+    .inline-prompt {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.625rem 1rem;
+        padding: 0.875rem 0;
+        border-block: 1px solid var(--border);
+    }
+    .settings-section > .inline-prompt-host > .inline-prompt,
+    .settings-section > .inline-prompt {
+        border-block: 0;
+    }
+    .inline-prompt-text {
+        flex: 1 1 15rem;
+        min-width: 0;
+    }
+    .inline-prompt-title {
+        font-size: 0.9375rem;
+        line-height: 1.375rem;
+        font-weight: 500;
+        color: var(--text);
+    }
+    .inline-prompt-message {
+        font-size: 0.8125rem;
+        line-height: 1.25rem;
+        color: var(--text-muted);
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+    .inline-prompt-title + .inline-prompt-message {
+        margin-top: 0.125rem;
+    }
+    .inline-prompt-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+        margin-inline-start: auto;
+    }
+    /* Asked for with nothing on the page to put it under (a sync finishing on
+       its own): it floats at the top of the page, over the content, in the
+       header's glass. Outside the app's frame (the intro) it's fixed there
+       instead (PromptPlace). */
+    .prompt-banner {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        border-bottom: 1px solid var(--border);
+    }
+    .prompt-banner .inline-prompt {
+        border-block: 0;
+    }
 }
 
 /* A destructive action at the foot of a page. Pressed, it gives way to an

@@ -113,6 +113,19 @@
     animation-fill-mode: both;
 }
 
+/* The phone's bottom bar floats over the page area, so on its own it would be
+   part of the root picture, under the page sliding in, and gone for the
+   length of the slide. Captured by itself, it's drawn above the page and
+   stays put. */
+.bottom-nav {
+    view-transition-name: bottom-nav;
+}
+::view-transition-old(bottom-nav),
+::view-transition-new(bottom-nav) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
 @keyframes slide-in-from-end {
     from {
         transform: translateX(calc(100% * var(--move-dir)));

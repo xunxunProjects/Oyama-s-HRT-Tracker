@@ -19,6 +19,7 @@ import {
     parseFrequency,
 } from '../utils/plan';
 import { asTitle, frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
+import { scrollParent } from '../utils/scrollParent';
 
 const divider = 'border-b border-[var(--border)]';
 
@@ -72,6 +73,9 @@ interface PlanWizardProps {
     plan: PlanItem[];
     onAdd: (item: PlanItem) => void;
     onCancel: () => void;
+    /** Its bar of buttons sits above the phone's bottom bar, as on the Plan
+     *  page. The intro has none, so there it goes down to the screen's edge. */
+    aboveNav?: boolean;
 }
 
 /**
@@ -84,7 +88,7 @@ interface PlanWizardProps {
  * route, so the later screens open already answered and Next is enough when
  * the usual fits.
  */
-const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
+const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav = true }) => {
     const { t } = useTranslation();
     const { mode } = useHRTMode();
 
@@ -168,10 +172,11 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel]);
 
-    // Each step starts at the top of the page the wizard sits in.
+    // Each step starts at the top of whatever the wizard scrolls in: the page,
+    // or the intro's own scroller.
     const scroller = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        scroller.current?.closest('.main-view')?.scrollTo({ top: 0 });
+        scrollParent(scroller.current)?.scrollTo({ top: 0 });
     }, [at]);
 
     // What has been answered so far, under the heading of the next question.
@@ -332,7 +337,9 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                 </div>
             </div>
 
-            <div className="sticky bottom-0 shrink-0 border-t border-[var(--border)] glass glass-bar px-6 pt-4 pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]">
+            <div
+                className={`sticky bottom-0 shrink-0 border-t border-[var(--border)] glass glass-bar px-6 pt-4 ${aboveNav ? 'pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'}`}
+            >
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">
                         {at > 0 && (

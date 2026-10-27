@@ -22,8 +22,11 @@ export const supportsViewTransitions =
  * Applies a change of view as a move. The page area is captured on its own
  * (`.main-view`), so the sidebar and the bottom bar stay out of it. With
  * reduced motion, or without view transitions, the change just happens.
+ * `settle` runs once the arriving page has rendered in full inside the move
+ * (a chart that measures itself has grown), for a scroll that needs the
+ * page's final height to land.
  */
-export function runViewMove(move: ViewMove, apply: () => void): void {
+export function runViewMove(move: ViewMove, apply: () => void, settle?: () => void): void {
     const doc = document as ViewTransitionDocument;
     if (
         (move !== 'push' && move !== 'pop') ||
@@ -35,12 +38,13 @@ export function runViewMove(move: ViewMove, apply: () => void): void {
     }
     const root = document.documentElement;
     root.dataset.move = move;
-    const transition = doc.startViewTransition(async () => {
+    // The update stays synchronous. The browser draws no frame until it
+    // returns, so waiting for one in here (to let the page settle) held the
+    // old page frozen until the move timed out, four seconds later. flushSync
+    // has already run every render the page asks for as it lays itself out.
+    const transition = doc.startViewTransition(() => {
         flushSync(apply);
-        // A page that settles after its first layout (a scroll restored on the
-        // way back, a chart that measures itself) gets one frame to do it, so
-        // it's captured as it will look, not jump after the move.
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        settle?.();
     });
     transition.finished.finally(() => {
         if (root.dataset.move === move) delete root.dataset.move;
