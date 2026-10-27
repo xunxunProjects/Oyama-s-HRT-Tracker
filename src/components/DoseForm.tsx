@@ -19,21 +19,10 @@ import {
     sublingualThetaFromHold as thetaFromHold,
     sublingualHoldFromTheta as holdFromTheta,
 } from '../../logic';
-import {
-    Save,
-    Trash2,
-    Info,
-    Bookmark,
-    BookmarkPlus,
-    X,
-    ChevronDown,
-    Check,
-    AlertTriangle,
-    ExternalLink,
-} from 'lucide-react';
+import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, ChevronDown, Check, Warning, External } from './icons';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
-import { drugLabel, productNames } from '../utils/regimenText';
+import { doseOf, drugLabel, productNames } from '../utils/regimenText';
 import InjectionFields from './dose_form/InjectionFields';
 import OralFields from './dose_form/OralFields';
 import SublingualFields from './dose_form/SublingualFields';
@@ -713,7 +702,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
     const guideUnitLabel = doseGuide?.config ? t(`dose.guide.unit.${doseGuide.config.unitKey}`) : '';
     const guideRangeText = doseGuide?.config
-        ? `${doseGuide.config.thresholds.map(threshold => `≤ ${formatGuideNumber(threshold)}`).join(' · ')} ${guideUnitLabel}`
+        ? `${doseGuide.config.thresholds.map(threshold => `≤ ${formatGuideNumber(threshold)}`).join(', ')} ${guideUnitLabel}`
         : '';
     const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : '';
     // The record a delete confirm is about, as its row reads: what, how much,
@@ -724,7 +713,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
         const what =
             ev.route === Route.patchRemove
                 ? t('route.patchRemove')
-                : `${drugLabel(ev.ester, t)} · ${rate ? `${rate} µg/d` : `${trimDose(ev.doseMG)} mg`}`;
+                : doseOf(rate ? `${rate} µg/d` : `${trimDose(ev.doseMG)} mg`, drugLabel(ev.ester, t), t);
         const when = new Date(ev.timeH * 3600000).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
             month: 'short',
             day: 'numeric',
@@ -733,7 +722,11 @@ const DoseForm: React.FC<DoseFormProps> = ({
             minute: '2-digit',
             hour12: false,
         });
-        return ev.route === Route.patchRemove ? `${what}\n${when}` : `${what}\n${t(`route.${ev.route}`)} · ${when}`;
+        return ev.route === Route.patchRemove
+            ? `${what}\n${when}`
+            : `${what}\n${t('dose.line_when')
+                  .replace('{route}', t(`route.${ev.route}`))
+                  .replace('{when}', when)}`;
     };
 
     const confirmAndOpenExternal = (url: string) => {
@@ -837,7 +830,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                         title={t('btn.delete')}
                                         aria-label={`${t('btn.delete')} ${template.name}`}
                                     >
-                                        <Trash2 size={13} />
+                                        <Trash size={13} />
                                     </button>
                                 </div>
                             ))}
@@ -877,7 +870,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             className="p-1.5 hover:bg-[var(--surface-hover)] rounded-lg"
                             aria-label={t('btn.cancel')}
                         >
-                            <X size={18} className="text-[var(--text-muted)]" />
+                            <Close size={18} className="text-[var(--text-muted)]" />
                         </button>
                     </div>
                 </div>
@@ -1073,7 +1066,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                 <GuideFold
                                     icon={
                                         <span className="icon-line text-sm">
-                                            <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
+                                            <Warning className="w-4 h-4 text-[var(--warning)]" />
                                         </span>
                                     }
                                     heading={
@@ -1116,7 +1109,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                                 className="inline-flex items-center gap-1 text-sm text-[var(--accent-ink)] hover:underline mt-0.5"
                                             >
                                                 {t('inj.guide.sim_link')}
-                                                <ExternalLink size={13} />
+                                                <External size={13} />
                                             </a>
                                         </div>
 
@@ -1158,7 +1151,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                             className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--accent-ink)]"
                                         >
                                             {t('inj.guide.source')}
-                                            <ExternalLink size={12} />
+                                            <External size={12} />
                                         </a>
                                     </div>
                                 </GuideFold>
@@ -1298,7 +1291,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                     }
                                 }}
                                 placeholder={t('template.name_placeholder')}
-                                className="flex-1 min-w-0 px-2.5 py-1.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)]"
+                                className="input-base flex-1 min-w-0 text-sm text-[var(--text)]"
                                 style={{ fontSize: '16px' }}
                             />
                             <button
@@ -1318,7 +1311,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                 className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded shrink-0 focus-inset"
                                 aria-label={t('btn.cancel')}
                             >
-                                <X size={18} />
+                                <Close size={18} />
                             </button>
                         </div>
 
@@ -1376,7 +1369,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             title={t('btn.delete')}
                             aria-label={t('btn.delete')}
                         >
-                            <Trash2 size={18} />
+                            <Trash size={18} />
                         </button>
                     )}
                 </div>

@@ -110,7 +110,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                         <p className={on}>{t('milktea.title')}</p>
                         {CATEGORIES.map((cat, catIdx) => (
                             <p key={cat.title} className={muted}>
-                                {cat.title} · {cat.options[selected[catIdx]].label}
+                                {cat.title}: {cat.options[selected[catIdx]].label}
                             </p>
                         ))}
                     </div>

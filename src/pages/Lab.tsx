@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
-import { Plus, ChevronRight, Copy, Check } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Check } from '../components/icons';
 import {
     LabResult,
     CalibrationMethod,

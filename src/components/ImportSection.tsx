@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from './icons';
 import { settingsSection, rowBleed } from './SettingsListItem';
 
 interface ImportSectionProps {

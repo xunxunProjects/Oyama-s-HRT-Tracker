@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from './icons';
 import { useTranslation } from '../contexts/LanguageContext';
 
 /**

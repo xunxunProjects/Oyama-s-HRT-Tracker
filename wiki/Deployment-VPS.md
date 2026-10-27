@@ -5,7 +5,7 @@ VPS, supervised by systemd, behind a TLS reverse proxy. It uses the same
 sources as the Docker image, but you own the process, the data directory, and
 the updates.
 
-> **Use the `v1.5.0` release tag, not `main`.** This path is not the supported
+> **Use the `v1.5.1` release tag, not `main`.** This path is not the supported
 > self-host default. If you want the maintained packaging, use
 > [Docker](Deployment-Docker). Run this only if you need a native service and
 > can maintain it.
@@ -55,7 +55,7 @@ sudo useradd --system --home /opt/hrt-tracker --shell /usr/sbin/nologin hrt
 sudo mkdir -p /opt/hrt-tracker /var/lib/hrt-tracker
 sudo chown hrt:hrt /opt/hrt-tracker /var/lib/hrt-tracker
 
-sudo -u hrt git clone --branch v1.5.0 --depth 1 \
+sudo -u hrt git clone --branch v1.5.1 --depth 1 \
   https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git /opt/hrt-tracker
 cd /opt/hrt-tracker
 sudo -u hrt npm ci
@@ -173,7 +173,7 @@ sudo systemctl stop hrt-tracker
 sudo -u hrt tar -C /var/lib/hrt-tracker -czf /var/backups/hrt-tracker-$(date +%F).tar.gz .
 cd /opt/hrt-tracker
 sudo -u hrt git fetch --tags
-sudo -u hrt git checkout v1.5.0      # replace with the new release tag
+sudo -u hrt git checkout v1.5.1      # replace with the new release tag
 sudo -u hrt npm ci
 sudo -u hrt npm run build
 sudo -u hrt node ./docker/reconcile.mjs hrt-tracker-prod \

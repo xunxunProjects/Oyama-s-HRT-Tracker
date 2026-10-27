@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/oyama-tokens.css";
+@import "./styles/motion.css";
 
 @variant dark (&:is(.dark *));
 
@@ -18,8 +19,8 @@
     --text-sm: 0.9375rem;
     --text-sm--line-height: 1.375rem;
 
-    /* Shape scale: controls 12px, floating panels 16px, modals and the nav
-       island 24px, anything pill-like full. */
+    /* Shape scale: controls 12px, floating panels 16px, the nav island 24px,
+       anything pill-like full. */
     --radius-xs: 6px;
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -28,19 +29,17 @@
     --radius-2xl: 32px;
     --radius-full: 9999px;
 
-    /* Motion. ease-standard for colour; ease-out for anything that moves, so
-       it settles rather than stops. Nothing overshoots. */
+    /* Motion tokens live in oyama-tokens.css and every animation in motion.css;
+       these mirror the ones Tailwind utilities reach for. */
     --ease-standard: cubic-bezier(0.2, 0, 0, 1);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --duration-quick: 150ms;
     --duration-base: 220ms;
     --duration-slow: 320ms;
-    /* How long the chart line takes to draw itself on. Markers and the "now"
-       read-off are delayed along this same span so they land as it passes. */
     --duration-sweep: 900ms;
 }
 
-/* Color, spacing, radius, shadow, type and motion tokens live in
+/* Color, spacing, radius, shadow, type, ink and motion tokens live in
    src/styles/oyama-tokens.css. Every semantic token switches under `.dark`,
    so a class names one token and never pairs it with a `dark:` twin.
    --surface-glass-bar is app chrome the export does not carry: the sticky
@@ -53,83 +52,6 @@
 
 .dark {
     --surface-glass-bar: color-mix(in oklch, var(--bg) 72%, transparent);
-}
-
-/* Chart entrance, following the product film: the line draws on from the left,
-   each dose and lab marker lands as the line reaches it, and the grid, target
-   band and current reading fade up around it. */
-@keyframes chart-sweep {
-    from {
-        transform: scaleX(0);
-    }
-    to {
-        transform: scaleX(1);
-    }
-}
-
-@keyframes chart-mark-in {
-    from {
-        opacity: 0;
-        transform: scale(0.6);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-/* Motion primitives */
-@keyframes fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes sheet-in {
-    from {
-        opacity: 0;
-        transform: translateY(24px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-@keyframes menu-in {
-    from {
-        opacity: 0;
-        transform: translateY(-4px) scale(0.97);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-@keyframes view-in-forward {
-    from {
-        opacity: 0;
-        transform: translateX(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes view-in-backward {
-    from {
-        opacity: 0;
-        transform: translateX(-12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
 }
 
 /* Prevent auto-zoom on iOS/Android when focusing small inputs.
@@ -174,198 +96,17 @@
    else they do not follow the root font size. Zoom scales the whole glyph,
    stroke included, keeping them in proportion with the type beside them.
    Excludes the chart, which lays itself out in measured pixels. */
-svg.lucide {
+svg.ink-icon {
     zoom: var(--ui-scale);
 }
 
-/* Sweeps the clip the curves are drawn through. */
-.chart-sweep {
-    transform-box: fill-box;
-    transform-origin: left center;
-    animation: chart-sweep var(--duration-sweep) var(--ease-standard) both;
-}
-
-/* Grid, axis labels, target band, the "now" read-off. */
-.chart-appear {
-    animation: fade-in var(--duration-base) var(--ease-standard) both;
-}
-
-/* Dose and lab markers. Delayed per point so they arrive with the line. */
-.chart-mark {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: chart-mark-in 260ms var(--ease-standard) both;
-}
-
-/* Onboarding's step area. `safe center`, not Tailwind's `items-center`: on a
-   phone the step is usually taller than the space for it, so plain `center`
-   would clip the top of an overflowing step against the scroller; `safe`
-   falls back to start-aligned (and scrollable) whenever the content doesn't
-   fit, and only centers when there's room to spare — which is the common
-   case on a wide, short desktop window. Written as a plain rule rather than
-   Tailwind's `items-[safe_center]` because the arbitrary-value bracket syntax
-   left the underscore untranslated, producing an invalid, silently-dropped
-   declaration. */
+/* Onboarding's step area. `safe center`: on a phone the step is usually taller
+   than the space for it, so plain `center` would clip its top; `safe` falls
+   back to start-aligned (and scrollable) whenever the content doesn't fit.
+   A plain rule because Tailwind's bracket syntax left the underscore in
+   `items-[safe_center]` untranslated. */
 .onboarding-steps {
     align-items: safe center;
-}
-
-/* The intro's progress rings. `r` is an animatable geometry property, so the
-   ring for the step you are on grows into place rather than jumping, the same
-   way the old dots stretched. */
-.onb-ring {
-    transition:
-        r var(--duration-base) var(--ease-standard),
-        fill var(--duration-base) var(--ease-standard),
-        stroke var(--duration-base) var(--ease-standard);
-}
-
-/* ── the intro chart ──────────────────────────────────────────────────────
-   OnboardingCurve plays three beats (BEATS in that file): doses land, the
-   curve draws through them, then labs arrive and the curve drops onto them.
-   Every delay below is measured from the start of its own beat, because the
-   page can replay any beat on its own.
-
-   These are written the opposite way round from every other animation in this
-   file. Each element's *resting* CSS is its FINAL frame and the keyframe's
-   `from` is what hides it, so switching the animations off leaves the finished
-   beat standing rather than an empty plane. That is what makes the
-   reduced-motion rule at the bottom of this file a one-liner instead of a
-   second code path. */
-@keyframes oc-pop {
-    from {
-        opacity: 0;
-        transform: scale(0.4);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-@keyframes oc-draw {
-    from {
-        stroke-dashoffset: 1;
-    }
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-@keyframes oc-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-@keyframes oc-out {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
-}
-@keyframes oc-ghost-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 0.28;
-    }
-}
-
-/* Dose rings and lab diamonds. Delay is set inline, per marker. */
-.oc-pop {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: oc-pop 300ms var(--ease-standard) both;
-}
-
-/* Axis, gridlines, ticks: they arrive under a line already three quarters
-   drawn, so the curve is what is watched and the furniture just appears. */
-.oc-frame-in {
-    opacity: 1;
-    animation: oc-in 800ms linear 1600ms both;
-}
-
-/* `pathLength=1` on the path makes a dasharray of 1 exactly one line long,
-   so the offset draws it on. */
-.oc-model-draw {
-    stroke-dasharray: 1;
-    animation: oc-draw 2600ms var(--ease-standard) both;
-}
-
-/* The same line in the last beat, fading out as the ghost takes over. `both`
-   is what holds it visible until then, despite the resting opacity being 0. */
-.oc-model-out {
-    opacity: 0;
-    animation: oc-out 700ms linear 700ms both;
-}
-
-/* The model, remembered. Same colour and weight as the line it replaces, so
-   it reads as the same series in an earlier state rather than a second one. */
-.oc-ghost-in {
-    opacity: 0.28;
-    animation: oc-ghost-in 700ms linear 700ms both;
-}
-
-.oc-cal-in {
-    opacity: 1;
-    animation: oc-in 1000ms var(--ease-standard) 800ms both;
-}
-
-.oc-legend-in {
-    opacity: 1;
-    animation: oc-in 500ms linear 1800ms both;
-}
-
-/* UpdateDoodle: the cat peeks up out of its parcel when a new version
-   arrives, blinks now and then, and hops out when refresh is tapped. */
-.ud-peek {
-    animation: ud-peek 700ms cubic-bezier(0.34, 1.4, 0.64, 1) 200ms both;
-}
-.ud-leap {
-    animation: ud-leap 600ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
-}
-.ud-blink {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: ud-blink 4s linear 1.2s infinite;
-}
-.ud-sparks {
-    animation: fade-in 300ms ease-out 700ms both;
-}
-@keyframes ud-peek {
-    from {
-        transform: translateY(9px);
-    }
-    to {
-        transform: translateY(0);
-    }
-}
-@keyframes ud-leap {
-    0% {
-        transform: translateY(0);
-    }
-    45% {
-        transform: translateY(-6px);
-    }
-    100% {
-        transform: translateY(-3px);
-    }
-}
-@keyframes ud-blink {
-    0%,
-    94% {
-        transform: scaleY(1);
-    }
-    97% {
-        transform: scaleY(0.1);
-    }
-    100% {
-        transform: scaleY(1);
-    }
 }
 
 /* A doodle (Doodle) whose turn has not come, or that can't be chosen. */
@@ -373,47 +114,16 @@ svg.lucide {
     filter: grayscale(1) opacity(0.45);
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .onb-ring {
-        transition: none;
-    }
-    .chart-sweep,
-    .chart-appear,
-    .chart-mark,
-    .rail-tick,
-    .rail-label,
-    .advisory-unfold,
-    .ud-peek,
-    .ud-leap,
-    .ud-blink,
-    .ud-sparks {
-        animation: none;
-    }
-    /* Every one of these rests on its final frame, so switching them off
-       shows the whole argument at once instead of losing it. */
-    .oc-pop,
-    .oc-frame-in,
-    .oc-model-draw,
-    .oc-model-out,
-    .oc-ghost-in,
-    .oc-cal-in,
-    .oc-legend-in {
-        animation: none;
-    }
-}
-
 /* Base Styles */
 html {
     font-size: calc(16px * var(--ui-scale));
     height: 100%;
     overscroll-behavior-y: contain;
-    /* No page-level pinch or double-tap zoom. The layout is already responsive,
-       so scaling it just strands the user inside a viewport they then have to
-       pinch their way back out of. Blink and Gecko honour this; Safari ignores
-       it for page zoom and needs its gesture events cancelled instead — see
-       utils/preventPinchZoom.ts. Panning stays allowed, so scrolling and the
-       chart's own drag are untouched, and components that implement their own
-       pinch (the avatar cropper) set a stricter value on their own container. */
+    /* No page-level pinch or double-tap zoom: the layout is already responsive,
+       so scaling it strands the user inside a viewport they then have to pinch
+       back out of. Blink and Gecko honour this; Safari needs its gesture
+       events cancelled instead (utils/preventPinchZoom.ts). Panning stays
+       allowed, and the avatar cropper sets a stricter value of its own. */
     touch-action: pan-x pan-y;
 }
 
@@ -491,12 +201,9 @@ h1.font-sans {
     scrollbar-width: none;
 }
 
-/* Shared UI utilities */
-
 /* An icon beside text. The box is exactly one line of the surrounding text
    tall, so the icon sits centred on the first line whether that text is
-   text-xs or text-sm, snug or relaxed, one line or four. Replaces the
-   per-site mt-0.5 / mt-[3px] nudges, which were tuned by eye and drifted. */
+   text-xs or text-sm, one line or four. */
 .icon-line {
     display: inline-flex;
     align-items: center;
@@ -506,8 +213,8 @@ h1.font-sans {
 }
 /* A control drawn smaller than a fingertip: the 32px header pills, a 26px
    segment. On a touch screen its hit area grows to 44px tall around it, and
-   nothing moves: the pill keeps the size the design gives it. Whatever sits
-   above or below has to keep clear of that 44px, or one tap lands on two. */
+   nothing moves. Whatever sits above or below has to keep clear of that 44px,
+   or one tap lands on two. */
 @media (pointer: coarse) {
     .tap-target {
         position: relative;
@@ -530,19 +237,19 @@ h1.font-sans {
     color: var(--text);
 }
 
-/* Section header above a group of rows. Uppercasing is a no-op in CJK. */
-.overline {
-    font-size: 0.6875rem;
-    line-height: 1rem;
+/* The heading over a group of rows. Sentence case, like every title in the
+   app: v2's "overline" uppercased it, and capitals read as shouting over a
+   quiet list. (Not named `overline`: that is also Tailwind's utility for a
+   line drawn over text.) */
+.group-heading {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--text-muted);
 }
 
-/* One focus treatment everywhere: a solid ring, offset off the element.
-   Text fields are the exception: their border turns terracotta on focus,
-   and a ring around that as well reads as a doubled outline. */
+/* Keyboard focus is one ring of ink, offset off the element. Mouse and touch
+   never show it. Fields are the exception: they are inked instead (below). */
 :focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
@@ -577,67 +284,11 @@ select:focus-visible {
     }
 }
 
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 0;
-    background-color: var(--scrim);
-    -webkit-backdrop-filter: blur(var(--blur-scrim));
-    backdrop-filter: blur(var(--blur-scrim));
-    animation: fade-in var(--duration-base) var(--ease-standard);
-}
-@media (min-width: 768px) {
-    .modal-overlay {
-        align-items: center;
-        padding: 1.5rem;
-    }
-}
-
-.modal-shell,
-.modal-shell-wide {
-    width: 100%;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: sheet-in var(--duration-slow) var(--ease-out);
-}
-.modal-shell {
-    max-width: 26rem;
-}
-.modal-shell-wide {
-    max-width: 36rem;
-}
-
-/* A bottom sheet on phones (top corners round), a floating card from 768px. */
-.modal-card {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    box-shadow: var(--shadow-lg);
-    padding: 1.5rem;
-    max-height: 88vh;
-    overflow-y: auto;
-}
-@media (min-width: 768px) {
-    .modal-card {
-        border-radius: var(--radius-xl);
-    }
-}
-
-.modal-title {
-    font-size: 1.25rem;
-    line-height: 1.625rem;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    color: var(--text);
-    margin-bottom: 0.5rem;
-}
-
 /* Buttons: one 40px, 12px-radius shape. Primary is the one action a view
    exists for; tonal a strong second; secondary the neutral way out; danger
-   only confirms a delete; ghost is the 32px pill for headers and toolbars. */
+   only confirms a delete; ghost is the 32px pill for headers and toolbars.
+   `btn-sm` is the 32px size for buttons inside a line of text (an inline
+   prompt's Keep it / Delete). */
 .btn-primary,
 .btn-tonal,
 .btn-secondary,
@@ -660,7 +311,7 @@ select:focus-visible {
         background-color var(--duration-quick) var(--ease-standard),
         color var(--duration-quick) var(--ease-standard),
         opacity var(--duration-quick) var(--ease-standard),
-        transform var(--duration-quick) var(--ease-standard);
+        transform var(--duration-instant) var(--ease-standard);
 }
 .btn-primary {
     color: var(--on-accent);
@@ -683,9 +334,8 @@ select:focus-visible {
 .btn-secondary:hover:not(:disabled) {
     background-color: var(--surface-pressed);
 }
-/* The confirm button of a dialog that deletes, clears or revokes something.
-   Same shape and timing as .btn-primary; only the colour says "this can't be
-   taken back". */
+/* Goes through with something that can't be taken back. Same shape and
+   timing as .btn-primary; only the colour says so. */
 .btn-danger {
     color: var(--on-danger);
     background-color: var(--danger-fill);
@@ -712,6 +362,13 @@ select:focus-visible {
 .btn-ghost-accent:hover:not(:disabled) {
     background-color: var(--accent-subtle);
 }
+:is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
+    height: 2rem;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border-radius: var(--radius-sm);
+}
 .btn-primary:active:not(:disabled),
 .btn-tonal:active:not(:disabled),
 .btn-secondary:active:not(:disabled),
@@ -728,31 +385,99 @@ select:focus-visible {
     cursor: not-allowed;
 }
 
-/* Fields: 44px, a hairline border that darkens on hover and turns terracotta
-   on focus. No glow: the border change is the whole signal. */
-.input-base {
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.625rem 0.875rem;
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    color: var(--text);
-    background-color: var(--field);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    outline: none;
-    transition:
-        border-color var(--duration-quick) var(--ease-standard),
-        box-shadow var(--duration-quick) var(--ease-standard);
+/* A button that does what a link would, and looks like one. */
+.link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--accent-ink);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+    text-underline-offset: 3px;
 }
-.input-base::placeholder {
-    color: var(--text-muted);
+.link-button:hover {
+    text-decoration-color: currentColor;
 }
-.input-base:hover {
-    border-color: var(--border-strong);
-}
-.input-base:focus {
-    border-color: var(--accent-ink);
+
+@layer components {
+    /* Fields are lines, not boxes: a hand-drawn rule under the text, and on
+       focus an ink stroke drawn over it from left to right (--ink-stroke /
+       --ink-rule in the tokens). Nothing lights up: no glow, no ring, no
+       terracotta, and no red line on an error, which the hint under the
+       field says in words. In the components layer, so a caller's utilities
+       (a width, a figure's size, room for an icon) win over it. */
+    .input-base {
+        display: block;
+        width: 100%;
+        min-height: 2.75rem;
+        padding: 0.625rem 0 0.5rem;
+        font-size: 0.9375rem;
+        line-height: 1.375rem;
+        color: var(--text);
+        background-color: transparent;
+        background-image: var(--ink-stroke), var(--ink-rule);
+        background-repeat: no-repeat;
+        background-position:
+            left bottom,
+            left bottom;
+        background-size:
+            0% 6px,
+            100% 6px;
+        border: 0;
+        border-radius: 0;
+        outline: none;
+        transition: background-size var(--duration-ink) var(--ease-ink);
+    }
+    .input-base::placeholder {
+        color: var(--text-muted);
+    }
+    .input-base:focus,
+    .input-base.is-inked {
+        background-size:
+            100% 6px,
+            100% 6px;
+    }
+    .input-base:disabled {
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+    .input-base:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 100px var(--bg) inset;
+        -webkit-text-fill-color: var(--text);
+    }
+    /* Several lines don't sit on one rule, so a text area keeps a box: a
+       findable hairline that darkens to the text colour on focus. */
+    textarea.input-base {
+        padding: 0.625rem 0.75rem;
+        background-image: none;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        transition: border-color var(--duration-quick) var(--ease-standard);
+    }
+    textarea.input-base:focus {
+        border-color: var(--text);
+    }
+
+    /* The label over a field: the field's name, quiet. */
+    .field-label {
+        display: block;
+        font-size: 0.8125rem;
+        line-height: 1.125rem;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    /* Under a field: what to put in it, or what's wrong with what's there. */
+    .field-hint {
+        margin-top: 0.375rem;
+        font-size: 0.8125rem;
+        line-height: 1.125rem;
+        color: var(--text-muted);
+    }
+    .field-hint.is-error {
+        color: var(--danger);
+    }
 }
 
 /* A quiet filled note for something to read or copy; never a warning. */
@@ -763,36 +488,6 @@ select:focus-visible {
     color: var(--text-muted);
     background-color: var(--surface-muted);
     border-radius: var(--radius-md);
-}
-
-/* A floating list: menus and dropdowns. Rows are inset, so their 10px corners
-   nest inside the panel's 16px. */
-.menu-surface {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    padding: 0.375rem;
-}
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    width: 100%;
-    min-height: 2.5rem;
-    padding: 0 0.625rem 0 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    color: var(--text);
-    text-align: start;
-    cursor: pointer;
-}
-.menu-item:hover {
-    background-color: var(--surface-hover);
-}
-.menu-item[aria-selected="true"] {
-    font-weight: 500;
 }
 
 /* A run of rows divided by hairlines between each pair, never above the
@@ -822,607 +517,217 @@ select:focus-visible {
     pointer-events: none;
 }
 
-.dropdown-in {
-    animation: menu-in var(--duration-base) var(--ease-out);
-    transform-origin: top;
+/* ── choices ─────────────────────────────────────────────────────────────
+   A choice is a line like a field (Choice.tsx): its name, what's chosen,
+   and a chevron. Opened, the options unfold under it in place as plain rows
+   with a tick by the chosen one. Nothing floats over the page. */
+.choice-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0 0.5rem;
+    text-align: start;
+    color: var(--text);
+    background-image: var(--ink-stroke), var(--ink-rule);
+    background-repeat: no-repeat;
+    background-position:
+        left bottom,
+        left bottom;
+    background-size:
+        0% 6px,
+        100% 6px;
+    transition: background-size var(--duration-ink) var(--ease-ink);
+}
+.choice-trigger[aria-expanded="true"],
+.choice-trigger:focus-visible {
+    outline: none;
+    background-size:
+        100% 6px,
+        100% 6px;
+}
+.choice-options {
+    padding: 0.25rem 0 0.5rem;
+}
+.choice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding-block: 0.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    text-align: start;
+    color: var(--text);
+    border-radius: var(--radius-md);
+}
+.choice-option:hover {
+    background-color: var(--surface-hover);
+}
+.choice-option:focus-visible {
+    outline-offset: -2px;
+}
+.choice-option[aria-selected="true"] {
+    font-weight: 500;
+}
+/* An unfolding list whose rows bleed into the gutter for their hover fill:
+   the clip that the unfold needs is widened by the bleed, so the fill isn't
+   cut off at the column's edge. */
+.disclosure-bleed > .disclosure-inner {
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
 }
 
-/* Page transitions — applied to the main view container, keyed by view */
-.view-enter-forward {
-    animation: view-in-forward var(--duration-slow) var(--ease-out);
-}
-
-.view-enter-backward {
-    animation: view-in-backward var(--duration-slow) var(--ease-out);
-}
-
-/* ── Ambient motion ───────────────────────────────────────────────
-   Deliberately narrow: colour, opacity and small transforms only. No scale,
-   no bounce, no spring, nothing that draws attention to itself — the point is
-   that state changes stop snapping, not that they perform.
-
-   The baseline below covers every interactive surface in the app at once
-   (settings rows, range chips, nav items, links, form controls) so hover,
-   focus and selected states ease instead of jumping. Only paint properties
-   are listed, never layout ones, so this can't cause reflow jank. Components
-   that need transform motion opt in with the utilities underneath.
-
-   .btn-primary and friends declare their own transition and win on
-   specificity, so their existing timing is untouched. */
-a,
-button,
-summary,
-label,
-select,
-[role="button"],
-[role="tab"],
-[role="switch"],
-[role="option"] {
-    transition:
-        background-color var(--duration-quick) var(--ease-standard),
-        border-color var(--duration-quick) var(--ease-standard),
-        color var(--duration-quick) var(--ease-standard),
-        box-shadow var(--duration-quick) var(--ease-standard),
-        opacity var(--duration-quick) var(--ease-standard);
-}
-
-/* Toggle switches: the knob slid instantly between its two offsets and the
-   track colour cut over with it. */
-.switch-track {
-    transition: background-color var(--duration-base) var(--ease-standard);
-}
-
-/* Both properties on purpose: Tailwind v4's `translate-x-*` compiles to the
-   standalone `translate` property, not to `transform`, so transitioning only
-   `transform` animates nothing. Keeping `transform` too means this still works
-   if a knob is ever positioned the older way. */
-.switch-knob {
-    transition:
-        translate var(--duration-base) var(--ease-out),
-        transform var(--duration-base) var(--ease-out);
-}
-
-/* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
-   selected checkbox, and in place of Copy once something is copied. Four
-   things move when it turns on, all off the one data-on attribute: the mark
-   fades up, grows from a little under full size, and its stroke is written
-   left to right, short leg first, the way a tick is drawn by hand. Turning
-   off runs it backwards, so the old tick rubs out as the new one is written.
-   Nothing overshoots.
-
-   The icon's path runs the other way (it starts at the top right and ends at
-   the left tip), so the dash is slid in from the path's end: a negative
-   offset of one full dash hides the stroke, and easing it to zero uncovers
-   the path from its last point back to its first. */
-.tick-draw {
-    opacity: 0;
-    scale: 0.7;
-    transition:
-        opacity 160ms linear,
-        scale var(--duration-base) var(--ease-standard);
-}
-.tick-draw path {
-    stroke-dasharray: 24;
-    stroke-dashoffset: -24;
-    transition: stroke-dashoffset var(--duration-base) var(--ease-standard);
-}
-.tick-draw[data-on="true"] {
-    opacity: 1;
-    scale: 1;
-}
-.tick-draw[data-on="true"] path {
-    stroke-dashoffset: 0;
-    transition-delay: 60ms;
-}
-
-/* The Copy glyph that gives way to the tick above (CopyTick). A plain fade on
-   the tick's own opacity timing, so the two cross over as one change. */
-.copy-glyph {
-    transition: opacity 160ms linear;
-}
-.copy-glyph[data-hidden="true"] {
-    opacity: 0;
-}
-
-/* A round checkbox (History's batch select). The fill eases in on the switch
-   track's timing while the tick draws on top of it. */
-.check-dot {
-    transition:
-        background-color var(--duration-base) var(--ease-standard),
-        border-color var(--duration-base) var(--ease-standard);
-}
-
-/* A History row just added or edited. Its wash comes up as the tick is
-   written beside its time and goes back down as the tick is rubbed out, on
-   the slow timing so the row settles rather than blinks. Only the marked row
-   carries this class, so hovering the rest of the list stays immediate. It
-   outranks the reduced-motion `button` rule further down, hence its own. */
-.row-wash {
-    transition: background-color var(--duration-slow) var(--ease-standard);
-}
-@media (prefers-reduced-motion: reduce) {
-    .row-wash {
-        transition: none;
-    }
-}
-
-/* The outline that follows the selected chart range, and the underline that
-   follows the chosen tab (components/Tabs.tsx). It slides by position and
-   width, so it stretches a little as it crosses items of different widths,
-   which is what makes it read as one thing moving. */
-.chip-slide {
-    transition:
-        left var(--duration-base) var(--ease-out),
-        width var(--duration-base) var(--ease-out);
-}
-
-/* The home reading's tick scale (components/LevelRail.tsx). The ticks rise
-   off the baseline in a quick left-to-right wave, staggered by an inline
-   animation-delay, the same direction the chart below draws its line on. The
-   status and the band's figures fade up as the wave reaches them. After that
-   a new reading just re-inks the ticks and moves the tall one; nothing slides. */
-@keyframes rail-tick-in {
-    from {
-        transform: scaleY(0);
-    }
-    to {
-        transform: none;
-    }
-}
-.rail-tick {
-    transform-origin: bottom;
-    animation: rail-tick-in 420ms var(--ease-out) both;
-    transition:
-        height var(--duration-base) var(--ease-standard),
-        background-color var(--duration-base) var(--ease-standard);
-}
-.rail-label {
-    animation: fade-in 320ms var(--ease-standard) both;
-    transition:
-        left var(--duration-base) var(--ease-standard),
-        transform var(--duration-base) var(--ease-standard),
-        color var(--duration-base) var(--ease-standard);
-}
-
-/* The calibration plot (components/CalibrationPlot.tsx). Each calibrated lab
-   mark starts on its raw-model twin and glides across to where calibration
-   put it, staggered per lab; the dotted trail between the two fades up once
-   it has landed. Both rest on their final state, so without the transition
-   they simply appear there. */
-.cal-mark {
-    transition: transform 720ms var(--ease-standard);
-}
-.cal-trail {
-    transition: opacity 320ms var(--ease-standard);
-}
-
-/* A warning's explanation, as it's unfolded (components/DoseAdvisory.tsx).
-   Rides on top of the .disclosure height tween: the text settles down into
-   the space as it opens rather than just being uncovered. Rests visible. */
-@keyframes advisory-unfold {
-    from {
-        opacity: 0;
-        transform: translateY(-4px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-.advisory-unfold {
-    animation: advisory-unfold 300ms var(--ease-standard) 40ms both;
-}
-
-/* Disclosure chevrons. `rotate-180` compiles to the standalone `rotate`
-   property in Tailwind v4, so that is what has to be transitioned — see the
-   note on .switch-knob. */
-.chev {
-    transition:
-        rotate var(--duration-base) var(--ease-out),
-        transform var(--duration-base) var(--ease-out);
-}
-
-/* Collapsible sections. grid-template-rows 0fr -> 1fr is the one way to
-   animate to intrinsic height without measuring it in JS or hard-coding a
-   max-height that clips longer content. The child must be the sole grid item
-   and carry `overflow: hidden`, which .disclosure-inner provides. */
-.disclosure {
+/* ── the calendar ─────────────────────────────────────────────────────────
+   DateTimePicker: a month of days, the chosen one circled in ink as it is
+   picked (.cal-ring draws on with .ink-draw), today marked with a dot. */
+.cal-grid {
     display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    justify-items: center;
+}
+.cal-weekday {
+    padding-block: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+.cal-day {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 0.9375rem;
+    color: var(--text);
+    border-radius: var(--radius-full);
+}
+.cal-day:hover {
+    background-color: var(--surface-hover);
+}
+.cal-day.is-chosen {
+    font-weight: 600;
+}
+.cal-day.is-chosen:hover {
+    background-color: transparent;
+}
+.cal-day.is-today::after {
+    content: "";
+    position: absolute;
+    bottom: 0.3rem;
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: var(--radius-full);
+    background-color: var(--accent-ink);
+}
+.cal-ring {
+    position: absolute;
+    inset: -0.375rem;
+    width: calc(100% + 0.75rem);
+    height: calc(100% + 0.75rem);
+    overflow: visible;
+    fill: none;
+    stroke: var(--accent-ink);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    pointer-events: none;
 }
 
-.disclosure[data-open="true"] {
-    grid-template-rows: 1fr;
+/* ── inline prompts ───────────────────────────────────────────────────────
+   There are no pop-ups in the app. "Delete this dose?" and "Saved to the
+   cloud" are lines put into the page right under what was pressed
+   (contexts/DialogContext.tsx, InlineConfirm.tsx): what it's about, then
+   the way out and the way on. A row in a hairline list already has rules
+   around it, so there the prompt draws none of its own. */
+.inline-prompt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.625rem 1rem;
+    padding: 0.875rem 0;
+    border-block: 1px solid var(--border);
+}
+.settings-section > .inline-prompt-host > .inline-prompt,
+.settings-section > .inline-prompt {
+    border-block: 0;
+}
+.inline-prompt-text {
+    flex: 1 1 15rem;
+    min-width: 0;
+}
+.inline-prompt-title {
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    font-weight: 500;
+    color: var(--text);
+}
+.inline-prompt-message {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.inline-prompt-title + .inline-prompt-message {
+    margin-top: 0.125rem;
+}
+.inline-prompt-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+}
+/* Asked for with nothing on the page to put it under (a sync finishing on
+   its own): it floats at the top of the page, over the content, in the
+   header's glass. */
+.prompt-banner {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--border);
+}
+.prompt-banner .inline-prompt {
+    border-block: 0;
 }
 
-/* No opacity here on purpose. Fading the inner meant its resting state was
-   `opacity: 0`, revealed only by a parent-state selector — so any path that
-   didn't apply that selector left readable content permanently invisible while
-   still taking up space. A collapsed section is already zero-height, so the
-   fade bought nothing and risked hiding the panel outright. */
-.disclosure-inner {
-    overflow: hidden;
+/* A destructive action at the foot of a page. Pressed, it gives way to an
+   inline prompt in the same place (InlineConfirm). */
+.danger-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--danger);
+    text-align: start;
 }
 
-/* A dose field Save was refused for (components/DoseForm.tsx, marked by
-   refusedFieldProps). The border takes the danger colour and keeps it on
-   hover and while focused, since the field is focused at once to be fixed;
-   the message under the fields says what is wrong, so colour is never the
-   only sign. Unlayered, so it outranks the fields' own border utilities. */
-.dose-fields input[aria-invalid="true"] {
-    border-color: var(--danger);
-}
+/* A dose field Save was refused for (components/DoseForm.tsx). The message
+   under the fields says what's wrong; the field itself stays as it is, so
+   nothing turns red. */
 
-/* A control that sits in a box that clips (DoseForm's template buttons,
-   whose halves collapse to zero width in turn): the one focus ring is drawn
-   just inside its edge instead of outside it, where it was cut to a sliver. */
+/* A control that sits in a box that clips (DoseForm's template buttons): the
+   focus ring is drawn just inside its edge instead of being cut to a sliver. */
 .focus-inset:focus-visible {
     outline-offset: -2px;
 }
 
-/* Pixel-cat colours live in src/styles/oyama-tokens.css. */
-
-/* Steps, not tweens — the point is that it moves a whole pixel at a time. The
-   cat itself never shifts; only the parts of it that a real cat would move. */
-@keyframes px-blink {
-    0%,
-    92% {
-        opacity: 0;
-    }
-    92.01%,
-    96% {
-        opacity: 1;
-    }
-    96.01%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* Tail: still for most of the loop, then two quick swishes. A tail that wags
-   on a metronome reads as a clock; the pause is what makes it a cat. */
-@keyframes px-tail-rest {
-    0%,
-    68% {
-        opacity: 1;
-    }
-    68.01%,
-    74% {
-        opacity: 0;
-    }
-    74.01%,
-    80% {
-        opacity: 1;
-    }
-    80.01%,
-    86% {
-        opacity: 0;
-    }
-    86.01%,
-    100% {
-        opacity: 1;
-    }
-}
-@keyframes px-tail-flick {
-    0%,
-    68% {
-        opacity: 0;
-    }
-    68.01%,
-    74% {
-        opacity: 1;
-    }
-    74.01%,
-    80% {
-        opacity: 0;
-    }
-    80.01%,
-    86% {
-        opacity: 1;
-    }
-    86.01%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* Making biscuits: four alternating beats, then the paws settle again. The
-   rest frame has to be hidden across the whole run, or the down paw doubles. */
-@keyframes px-paw-rest {
-    0%,
-    58% {
-        opacity: 1;
-    }
-    58.01%,
-    90% {
-        opacity: 0;
-    }
-    90.01%,
-    100% {
-        opacity: 1;
-    }
-}
-@keyframes px-paw-left {
-    0%,
-    58% {
-        opacity: 0;
-    }
-    58.01%,
-    66% {
-        opacity: 1;
-    }
-    66.01%,
-    74% {
-        opacity: 0;
-    }
-    74.01%,
-    82% {
-        opacity: 1;
-    }
-    82.01%,
-    100% {
-        opacity: 0;
-    }
-}
-@keyframes px-paw-right {
-    0%,
-    66% {
-        opacity: 0;
-    }
-    66.01%,
-    74% {
-        opacity: 1;
-    }
-    74.01%,
-    82% {
-        opacity: 0;
-    }
-    82.01%,
-    90% {
-        opacity: 1;
-    }
-    90.01%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* The loaf only has the one paw to push out, so it gets a slow two-beat
-   stretch instead of the knead. */
-@keyframes px-paw-still {
-    0%,
-    62% {
-        opacity: 1;
-    }
-    62.01%,
-    78% {
-        opacity: 0;
-    }
-    78.01%,
-    100% {
-        opacity: 1;
-    }
-}
-@keyframes px-paw-stretch {
-    0%,
-    62% {
-        opacity: 0;
-    }
-    62.01%,
-    78% {
-        opacity: 1;
-    }
-    78.01%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* Ear flick: mostly at rest, one quick step out and back. */
-@keyframes px-ear-rest {
-    0%,
-    88% {
-        opacity: 1;
-    }
-    88.01%,
-    94% {
-        opacity: 0;
-    }
-    94.01%,
-    100% {
-        opacity: 1;
-    }
-}
-@keyframes px-ear-twitch {
-    0%,
-    88% {
-        opacity: 0;
-    }
-    88.01%,
-    94% {
-        opacity: 1;
-    }
-    94.01%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* Grooming: the paw travels to the face and back, twice a second. Faster than
-   the tail or the ears because a lick is a quick, repetitive motion. */
-@keyframes px-lick-a {
-    0%,
-    49.99% {
-        opacity: 1;
-    }
-    50%,
-    100% {
-        opacity: 0;
-    }
-}
-@keyframes px-lick-b {
-    0%,
-    49.99% {
-        opacity: 0;
-    }
-    50%,
-    100% {
-        opacity: 1;
-    }
-}
-
-/* Chewing: the head-down frame flicks on and off. Held down slightly longer
-   than up, which is what stops it reading as a metronome. */
-@keyframes px-chew {
-    0%,
-    44% {
-        opacity: 0;
-    }
-    44.01%,
-    100% {
-        opacity: 1;
-    }
-}
-
-/* The fish a waiting cat is thinking about: two frames a pixel apart, held
-   long enough that it drifts rather than twitches. Same trick as the tail,
-   slowed right down. */
-@keyframes px-float-a {
-    0%,
-    53.99% {
-        opacity: 1;
-    }
-    54%,
-    100% {
-        opacity: 0;
-    }
-}
-@keyframes px-float-b {
-    0%,
-    53.99% {
-        opacity: 0;
-    }
-    54%,
-    100% {
-        opacity: 1;
-    }
-}
-
-/* Sleep marks: a slow swell and fade, with a long gap so they punctuate the
-   sleeping rather than blink at you. */
-@keyframes px-zzz {
-    0%,
-    6% {
-        opacity: 0;
-    }
-    22%,
-    62% {
-        opacity: 1;
-    }
-    82%,
-    100% {
-        opacity: 0;
-    }
-}
-
-/* Deliberately mismatched periods: nothing here shares a factor, so the cat
-   never falls into doing two things on the same beat twice running. */
-.px-ear-rest {
-    animation: px-ear-rest 3.4s steps(1) infinite;
-}
-.px-ear-twitch {
-    animation: px-ear-twitch 3.4s steps(1) infinite;
-}
-.px-blink {
-    animation: px-blink 4.8s steps(1) infinite;
-}
-.px-tail-rest {
-    animation: px-tail-rest 5.6s steps(1) infinite;
-}
-.px-tail-flick {
-    animation: px-tail-flick 5.6s steps(1) infinite;
-}
-.px-paw-rest {
-    animation: px-paw-rest 6.4s steps(1) infinite;
-}
-.px-paw-left {
-    animation: px-paw-left 6.4s steps(1) infinite;
-}
-.px-paw-right {
-    animation: px-paw-right 6.4s steps(1) infinite;
-}
-.px-paw-still {
-    animation: px-paw-still 7.1s steps(1) infinite;
-}
-.px-paw-stretch {
-    animation: px-paw-stretch 7.1s steps(1) infinite;
-}
-.px-lick-a {
-    animation: px-lick-a 0.5s steps(1) infinite;
-}
-.px-lick-b {
-    animation: px-lick-b 0.5s steps(1) infinite;
-}
-.px-chew {
-    animation: px-chew 0.62s steps(1) infinite;
-}
-.px-float-a {
-    animation: px-float-a 2.9s steps(1) infinite;
-}
-.px-float-b {
-    animation: px-float-b 2.9s steps(1) infinite;
-}
-.px-zzz {
-    animation: px-zzz 4.6s ease-in-out infinite;
-}
+/* Pixel-cat colours live in oyama-tokens.css, their frames in motion.css. */
 
 @media (prefers-reduced-motion: reduce) {
-    .modal-overlay,
-    .modal-shell,
-    .modal-shell-wide,
-    .dropdown-in,
-    .view-enter-forward,
-    .view-enter-backward {
-        animation: none;
-    }
-    /* Hold a single resting pose instead of flicking between frames. */
-    .px-ear-rest,
-    .px-ear-twitch,
-    .px-blink,
-    .px-tail-rest,
-    .px-tail-flick,
-    .px-paw-rest,
-    .px-paw-left,
-    .px-paw-right,
-    .px-paw-still,
-    .px-paw-stretch,
-    .px-lick-a,
-    .px-lick-b,
-    .px-chew,
-    .px-float-a,
-    .px-float-b,
-    .px-zzz {
-        animation: none;
-    }
-    .px-ear-twitch,
-    .px-blink,
-    .px-tail-flick,
-    .px-paw-left,
-    .px-paw-right,
-    .px-paw-stretch,
-    .px-lick-b,
-    .px-chew,
-    .px-float-b {
-        opacity: 0;
-    }
     .btn-primary,
     .btn-tonal,
     .btn-secondary,
     .btn-danger,
     .btn-ghost,
     .input-base,
-    .menu-item {
+    .choice-trigger {
         transition: none;
     }
     .btn-primary:active:not(:disabled),
@@ -1431,32 +736,5 @@ select,
     .btn-danger:active:not(:disabled),
     .btn-ghost:active:not(:disabled) {
         transform: none;
-    }
-    /* Ambient motion: everything still lands in the same end state, it just
-       gets there immediately. Collapsibles keep grid-template-rows so they
-       still open and close — only the tween is dropped. */
-    a,
-    button,
-    summary,
-    label,
-    select,
-    [role="button"],
-    [role="tab"],
-    [role="switch"],
-    [role="option"],
-    .switch-track,
-    .switch-knob,
-    .chev,
-    .chip-slide,
-    .rail-tick,
-    .rail-label,
-    .cal-mark,
-    .cal-trail,
-    .tick-draw,
-    .tick-draw path,
-    .copy-glyph,
-    .check-dot,
-    .disclosure {
-        transition: none;
     }
 }

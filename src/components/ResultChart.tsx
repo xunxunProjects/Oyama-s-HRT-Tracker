@@ -1362,10 +1362,12 @@ const ResultChart = ({
                                     />
                                 </svg>
                                 <span className="font-medium text-[var(--text)]">{hoverLab.raw}</span>
-                                <span className="text-[var(--text-muted)]">{hoverLab.unit}</span>
+                                <span className="text-[var(--text-muted)]">
+                                    {hoverLab.unit}
+                                    {hoverLab.pct != null ? ',' : ''}
+                                </span>
                                 {hoverLab.pct != null && (
                                     <span className="text-[var(--text-muted)]">
-                                        ·{' '}
                                         {hoverLab.pct === 0
                                             ? '±0%'
                                             : fill(t(hoverLab.pct > 0 ? 'lab.ratio_above' : 'lab.ratio_below'), {

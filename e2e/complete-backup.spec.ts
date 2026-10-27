@@ -185,7 +185,7 @@ test.describe('complete backup import (L3 browser)', () => {
         await gotoApp(page);
         await pasteAndImport(page, JSON.stringify(incoming));
 
-        const preview = page.getByRole('alertdialog');
+        const preview = page.locator('[data-prompt="confirm"]');
         await expect(preview).toBeVisible();
         await expect(preview).toContainText('This backup is from');
         await expect(preview).toContainText('adds 1 record and updates 1');
@@ -194,11 +194,11 @@ test.describe('complete backup import (L3 browser)', () => {
         await expect(preview).toContainText('Make sure this backup is yours.');
         await confirmDialog(page, 'Merge');
 
-        const calibration = page.getByRole('alertdialog');
+        const calibration = page.locator('[data-prompt="confirm"]');
         await expect(calibration).toContainText("Use the backup's calibration too?");
         await confirmDialog(page, "Use the backup's");
 
-        await expect(page.getByRole('dialog')).toContainText('Backup merged.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText('Backup merged.');
         await dismissAlert(page);
 
         await expect
@@ -305,9 +305,11 @@ test.describe('complete backup import (L3 browser)', () => {
 
         await gotoApp(page);
         await pasteAndImport(page, JSON.stringify(incoming));
-        await expect(page.getByRole('alertdialog')).toContainText(`It merges into the account ${user.user.username}`);
+        await expect(page.locator('[data-prompt="confirm"]')).toContainText(
+            `It merges into the account ${user.user.username}`,
+        );
         await confirmDialog(page, 'Merge');
-        await expect(page.getByRole('dialog')).toContainText('Backup merged.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText('Backup merged.');
         await dismissAlert(page);
 
         await expect
@@ -339,7 +341,7 @@ test.describe('complete backup import (L3 browser)', () => {
         expect(JSON.stringify(exported)).not.toContain(user.user.id);
         expect(JSON.stringify(exported)).not.toContain(user.user.username);
 
-        const dialog = page.getByRole('alertdialog');
+        const dialog = page.locator('[data-prompt="confirm"]');
         await pasteAndImport(page, JSON.stringify(exported));
         await expect(dialog).toContainText(`It was exported from the account ${user.user.username}.`);
         await expect(dialog).not.toContainText('make sure');
@@ -373,7 +375,7 @@ test.describe('complete backup import (L3 browser)', () => {
 
         await gotoApp(page);
         await pasteAndImport(page, JSON.stringify(incoming));
-        await expect(page.getByRole('alertdialog')).toContainText('adds 1 record');
+        await expect(page.locator('[data-prompt="confirm"]')).toContainText('adds 1 record');
 
         // Fail the second scalar write (weight-at) after the record array has
         // already been written. The app must restore the snapshot, not just
@@ -391,7 +393,9 @@ test.describe('complete backup import (L3 browser)', () => {
         });
 
         await confirmDialog(page, 'Merge');
-        await expect(page.getByRole('dialog')).toContainText('The import failed. Nothing on this device was changed.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'The import failed. Nothing on this device was changed.',
+        );
         await dismissAlert(page);
 
         expect((await readStorage<DoseEventFixture[]>(page, 'hrt-events'))?.map(e => e.id)).toEqual(['rollback-keep']);
@@ -414,10 +418,10 @@ test.describe('complete backup import (L3 browser)', () => {
 
         await gotoApp(page);
         await pasteAndImport(page, JSON.stringify(incoming));
-        const preview = page.getByRole('alertdialog');
+        const preview = page.locator('[data-prompt="confirm"]');
         await expect(preview).toContainText(/These can't be merged and stay as they are: .*doses/);
         await confirmDialog(page, 'Merge');
-        await expect(page.getByRole('dialog')).toContainText('Nothing in the backup could be merged.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText('Nothing in the backup could be merged.');
         await dismissAlert(page);
 
         expect(await readStorage<DoseEventFixture[]>(page, 'hrt-events')).toEqual([local]);
@@ -431,7 +435,9 @@ test.describe('complete backup import (L3 browser)', () => {
 
         // Malformed JSON: the generic import error.
         await pasteAndImport(page, '{not json');
-        await expect(page.getByRole('dialog')).toContainText('Import failed. Please check that the file is valid.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'Import failed. Please check that the file is valid.',
+        );
         await dismissAlert(page);
 
         // A complete-backup envelope this build cannot read is refused before
@@ -448,7 +454,9 @@ test.describe('complete backup import (L3 browser)', () => {
                 preferences: {},
             }),
         );
-        await expect(page.getByRole('dialog')).toContainText('This is not a complete backup file this app can read.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'This is not a complete backup file this app can read.',
+        );
         await dismissAlert(page);
 
         // A version this build cannot read gets its own message.
@@ -456,7 +464,7 @@ test.describe('complete backup import (L3 browser)', () => {
             page,
             JSON.stringify(makeBundle({ formatVersion: 99, modes: { transfem: {}, transmasc: {} }, preferences: {} })),
         );
-        await expect(page.getByRole('dialog')).toContainText(
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
             'This complete backup comes from a newer version. Update the app first.',
         );
         await dismissAlert(page);
@@ -493,11 +501,11 @@ test.describe('complete backup import (L3 browser)', () => {
         await gotoApp(page);
         await pasteAndImport(page, JSON.stringify(incoming));
         await confirmDialog(page, 'Merge');
-        await expect(page.getByRole('dialog')).toContainText('Backup merged.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText('Backup merged.');
         await dismissAlert(page);
 
         await page.getByRole('button', { name: 'History', exact: true }).click();
-        await page.getByRole('button', { name: 'Add Dose', exact: true }).first().click();
+        await page.getByRole('button', { name: 'Add dose', exact: true }).first().click();
         await page.waitForTimeout(300);
 
         expect(await page.evaluate(() => (window as unknown as { __backupXss?: number }).__backupXss)).toBeUndefined();

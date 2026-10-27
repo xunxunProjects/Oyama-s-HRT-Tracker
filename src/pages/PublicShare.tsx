@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Clock3, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
+import { Alert, Clock, Eye, EyeOff, Busy, LockKeyhole } from '../components/icons';
 import { DoseEvent, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster, Route } from '../../logic';
 import Doodle from '../components/Doodle';
 import ResultChart from '../components/ResultChart';
@@ -58,7 +58,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     };
 
     useEffect(() => {
-        document.title = `${copy.publicTitle} · HRT Tracker`;
+        document.title = `${copy.publicTitle} – HRT Tracker`;
         let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
         const created = !robots;
         if (!robots) {
@@ -214,7 +214,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
                     className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center"
                     aria-live="polite"
                 >
-                    <Loader2
+                    <Busy
                         size={24}
                         strokeWidth={1.5}
                         className="mb-4 animate-spin text-[var(--accent-ink)]"
@@ -297,7 +297,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             <PublicShell>
                 <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16 text-center">
                     <div className="w-full">
-                        <Clock3 size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
+                        <Clock size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
                         <h1 className="text-xl font-semibold text-body">{copy.rateLimitedTitle}</h1>
                         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
                             {copy.rateLimitedDescription}
@@ -317,7 +317,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             <PublicShell>
                 <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16 text-center">
                     <div className="w-full">
-                        <AlertCircle size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
+                        <Alert size={28} strokeWidth={1.5} className="mx-auto mb-4 text-muted" />
                         <h1 className="text-xl font-semibold text-body">
                             {expired ? copy.expiredTitle : copy.unavailableTitle}
                         </h1>
@@ -429,7 +429,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                     </div>
                     <dl className="mt-6 flex flex-wrap gap-x-7 gap-y-2 text-xs tabular-nums text-muted">
                         <div className="flex items-center gap-1.5">
-                            <Clock3 size={13} />
+                            <Clock size={13} />
                             <dt>{copy.sharedOn}</dt>
                             <dd className="text-body">{formatDateTime(details.createdAt)}</dd>
                         </div>

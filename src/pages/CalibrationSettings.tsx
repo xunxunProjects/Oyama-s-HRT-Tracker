@@ -1,7 +1,7 @@
 import React from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tick from '../components/Tick';
-import { Check, Minus, CircleOff, Gauge, Radar, Wind, Rewind, FastForward, LucideIcon } from 'lucide-react';
+import { Check, Minus, Off, Gauge, Radar, Wind, Rewind, FastForward, type IconComponent } from '../components/icons';
 import { useTranslation } from '../contexts/LanguageContext';
 import { CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
 
@@ -20,7 +20,7 @@ const divider = 'border-b border-[var(--border)]';
 
 interface MethodDef {
     value: CalibrationMethod;
-    icon: LucideIcon;
+    icon: IconComponent;
     recommended?: boolean;
     pros: string[];
     cons: string[];
@@ -31,7 +31,7 @@ interface MethodDef {
 // Hybrid-MIPD Bayesian fit), reimplemented over this engine's two identifiable
 // parameters: a personal amplitude and a personal clearance.
 const METHODS: MethodDef[] = [
-    { value: 'off', icon: CircleOff, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
+    { value: 'off', icon: Off, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
     {
         value: 'mipd',
         icon: Gauge,
@@ -51,7 +51,7 @@ const METHODS: MethodDef[] = [
 // Only EKF and MIPD fit a personal clearance; OU-Kalman corrects amplitude only.
 const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd';
 
-const HISTORY_MODES: { value: CalibrationHistoryMode; icon: LucideIcon }[] = [
+const HISTORY_MODES: { value: CalibrationHistoryMode; icon: IconComponent }[] = [
     { value: 'retrospective', icon: Rewind },
     { value: 'forward', icon: FastForward },
 ];
@@ -63,7 +63,7 @@ const HISTORY_MODES: { value: CalibrationHistoryMode; icon: LucideIcon }[] = [
 // cards don't have.
 const OptionCard: React.FC<{
     selected: boolean;
-    icon: LucideIcon;
+    icon: IconComponent;
     title: string;
     badge?: string;
     onClick: () => void;

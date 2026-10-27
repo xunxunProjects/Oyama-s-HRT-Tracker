@@ -44,6 +44,50 @@ export const FREQUENCIES: readonly Frequency[] = [
 export const frequencyKey = (i: Pick<PlanItem, 'everyDays' | 'timesPerDay'>) =>
     i.everyDays <= 1 ? `d${i.timesPerDay}` : `e${i.everyDays}`;
 
+/** The furthest apart, and the most often, a rhythm typed in can be. */
+export const MAX_EVERY_DAYS = 180;
+export const MAX_TIMES_PER_DAY = 8;
+
+/**
+ * The rhythm a key stands for: one of the presets, or one typed in on the
+ * plan ("e4" every 4 days, "d5" five times a day). A typed rhythm is a whole
+ * number, so a dose day is always a calendar day; a value saved before or
+ * imported (4.123456) is read as it is, not rounded, so opening and saving an
+ * item never changes it. Anything else, including the marker a half-typed
+ * custom field leaves, is no rhythm at all.
+ */
+export const parseFrequency = (key: string): Frequency | null => {
+    const preset = FREQUENCIES.find(f => f.key === key);
+    if (preset) return preset;
+    const every = /^e(\d{1,3}(?:\.\d+)?)$/.exec(key);
+    if (every) {
+        const n = Number(every[1]);
+        return n >= 1 && n <= MAX_EVERY_DAYS ? { key, everyDays: n, timesPerDay: 1 } : null;
+    }
+    const daily = /^d(\d{1,2})$/.exec(key);
+    if (daily) {
+        const n = Number(daily[1]);
+        return n >= 1 && n <= MAX_TIMES_PER_DAY ? { key, everyDays: 1, timesPerDay: n } : null;
+    }
+    return null;
+};
+
+/** Whether a key is one of the rhythms offered in the list. */
+export const isPresetFrequency = (key: string) => FREQUENCIES.some(f => f.key === key);
+
+/**
+ * Where "another rhythm" starts when it's opened: from the rhythm chosen so
+ * far, as a whole number, so switching to it changes as little as possible.
+ * From once a day it starts on every 4 days, the gap people most often ask
+ * the list for.
+ */
+export const customSeed = (key: string): string => {
+    const f = parseFrequency(key);
+    if (f && f.timesPerDay > 1) return `d${f.timesPerDay}`;
+    if (f && f.everyDays > 1) return `e${Math.max(2, Math.round(f.everyDays))}`;
+    return 'e4';
+};
+
 /**
  * What each route can carry, per mode: the same drugs the dose form logs.
  * Estrogens first, then the anti-androgens and raloxifene mtf.wiki lists.
@@ -104,9 +148,12 @@ export const freshDraft = (route: Route, ester: Ester): PlanDraft => ({
     ...usualFor(route, ester),
 });
 
+/** Whether the amount typed is one a plan can hold. */
+export const draftDoseOk = (d: Pick<PlanDraft, 'dose'>) => parseFloat(d.dose) > 0;
+
 export const draftToItem = (d: PlanDraft, id: string): PlanItem | null => {
     const dose = parseFloat(d.dose);
-    const f = FREQUENCIES.find(x => x.key === d.freq);
+    const f = parseFrequency(d.freq);
     if (!(dose > 0) || !f) return null;
     const isPatch = d.route === Route.patchApply;
     const extras: PlanItem['extras'] = isPatch
@@ -147,7 +194,15 @@ export const normalizePlanItem = (raw: any): PlanItem | null => {
     const everyDays = Number(raw.everyDays);
     const timesPerDay = Math.round(Number(raw.timesPerDay));
     const doseMG = Number(raw.doseMG);
-    if (!(everyDays >= 1) || !(timesPerDay >= 1) || !Number.isFinite(doseMG) || doseMG < 0) return null;
+    if (
+        !(everyDays >= 1) ||
+        !Number.isFinite(everyDays) ||
+        !(timesPerDay >= 1) ||
+        !Number.isFinite(timesPerDay) ||
+        !Number.isFinite(doseMG) ||
+        doseMG < 0
+    )
+        return null;
     return {
         id: raw.id,
         route: raw.route,

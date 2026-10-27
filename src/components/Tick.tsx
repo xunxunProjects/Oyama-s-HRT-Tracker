@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy } from './icons';
 
 const PRIMARY = 'text-[var(--accent-ink)]';
 

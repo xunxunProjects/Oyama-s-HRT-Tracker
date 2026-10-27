@@ -8,6 +8,126 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.5.1
+
+- A new look, drawn by hand. Every icon in the app is now its own, drawn with
+  the same pen as the doodles, and the icon library it used before is gone.
+  Injections are drawn as a syringe with real volume: the dose in a plump
+  barrel, its underside in shadow, a glint along the top, the stopper and the
+  plunger. Labs is a test tube. Passkeys are drawn as the devices they live
+  on, with no fingerprint or key anywhere. Fields are lines that ink themselves in from left
+  to right as you type, instead of boxes that light up. Nothing glows on focus
+  or turns red on an error: the line under the field says what is wrong.
+
+  全新的手绘外观。应用里的每个图标都换成了自己画的，和插画出自同一支笔，原先使用的图标库已经移除。
+  针剂画成了饱满、有立体感的针管：针筒里的药液、背光的下侧、上沿的反光，还有胶塞和推杆。“检查”换成了
+  试管。通行密钥画成它所在的设备，不再使用指纹或钥匙图标。输入框改成一条线，打字时
+  墨线会从左往右画上，不再是会发光的方框；聚焦时不发光，出错时也不变红，错误写在线下的提示里。
+
+- No more pop-ups. A question like "Delete this dose?" now appears as a line in
+  the page right under what you pressed, with Keep it and Delete, and passwords
+  are asked for the same way. Choices unfold in place as a list with a tick.
+  The date picker is a small calendar that circles the day you pick. Editing a
+  dose from the chart opens it in History, signing in happens on Account (and
+  carries on to Share when that is what asked), the plan's questions run inside
+  the page with the sidebar still there, and the disclaimer and the estimate's
+  explanation have a page and a fold of their own.
+
+  不再有弹窗。像“删除这条记录？”这样的确认，现在会作为一行文字出现在你刚按下的位置下方，配有
+  “保留”和“删除”；需要输入密码时也是这样。选项会在原地展开成带对勾的列表。日期选择改成了小日历，
+  选中的那天会被手绘的圈圈住。从曲线上编辑剂量会直接在“记录”里展开；登录统一在“账户”页完成，
+  如果是“分享”要求登录，登录后会接着进入分享；添加用药方案的问题在页面内进行，侧边栏一直都在；
+  免责声明和估算说明分别成了独立页面和原地展开的说明。
+
+- Motion that says what changed. On a phone, opening a page slides it in
+  over the one you were on and going back slides it away again; on a wide
+  window the new page settles into place from a few pixels to the side. Pages
+  never fade through each other, so nothing flashes. A tab chosen in the
+  sidebar or the bottom bar is simply there: in the bottom bar the pill glides
+  to the tab you tap, and the sidebar never moves. Nothing bounces, a wait only
+  shows its mark after 300 ms, and with reduced motion everything lands in
+  place at once.
+
+  有意义的动效。在手机上，打开页面会从侧面滑入盖住当前页，返回时再滑开；在宽屏上，新页面从旁边几个像素
+  的位置轻轻落到位。页面之间不会互相淡入淡出，所以不会闪屏。在侧边栏或底部导航选中的页面会直接出现：
+  底部导航的高亮胶囊会滑到你点的那一项，侧边栏始终不动。没有弹跳；等待超过 300 毫秒才会出现转圈；
+  开启“减弱动态效果”时，所有变化都会直接到位。
+
+- Any rhythm on the plan (#161). Besides the usual ones, "Another rhythm" takes
+  a whole number of days between doses (2 to 180) or of doses a day (2 to 8).
+  Each step of adding a drug only waits on its own answer, so a half-typed
+  rhythm can no longer strand the steps before it. Thanks to @NAKlama for
+  asking, and to @xingqimiao, whose pull request #163 and its review mapped out
+  what this needed.
+
+  用药方案支持任意频率（#161）。除了常用频率，“其他频率”可以填写两次用药之间隔几天（2 到 180）
+  或每天几次（2 到 8），都是整数。添加药物的每一步只检查这一步自己的答案，没填完的频率不会再卡住
+  前面的步骤。感谢 @NAKlama 提出需求，也感谢 @xingqimiao 的 #163 和其中的审阅理清了需要做的事。
+
+- Reminders in your own calendar. The plan page can save your plan as a
+  calendar file. Open it, and your calendar app reminds you when each dose is
+  due, at the time of day you usually take it. Nothing is sent anywhere, and
+  saving it again after the plan changes updates the reminders instead of
+  doubling them.
+
+  用日历提醒自己。方案页可以把用药方案存成日历文件，打开后日历 App 会在每次该用药时提醒你，时间是
+  你平时用药的钟点。不会发送到任何地方；方案改了之后再存一次，提醒会更新，不会重复。
+
+- Clearer words. Settings has a short heading over each group, every title is
+  in sentence case, facts are written as phrases ("4 mg of estradiol valerate")
+  instead of being joined with dots, and the Chinese text addresses you as 你.
+
+  文字更清楚。设置里每组都加了简短的小标题；英文标题统一为句首大写；信息不再用圆点拼接，而是
+  写成短语；中文统一用“你”。
+
+- Also in this release, merged since 1.5.0:
+  - Sign-in and security. An account locks for a while after repeated failed
+    sign-ins, except on devices that have signed in to it before, and passkey
+    sign-ins count as such a device too. New passwords are checked against a
+    stronger policy with a strength meter. Sign-in, share and F2F requests are
+    rate-limited, a token signed with `alg: none` is refused with 401, private
+    responses are never cached, and the Node runtime, dependencies, auth
+    headers and Rust crates are patched (#119, #121, #122, #123, #135, #147,
+    #152, #155, #156, #162).
+  - Complete device backup: export and import everything on a device, with a
+    preview that says what it adds, changes or skips and whether it came from
+    this account (#129, #132). Stored doses no longer keep floating-point tails
+    (#137).
+  - Age adjustment (beta), under Settings: the year of birth adjusts how fast
+    estradiol and testosterone are cleared (#138).
+  - For self-hosting: the Docker image is built from source (#103), with a
+    dependency checker and an installer script (#157); the hrt-tool
+    command-line interface and its self-hosted transport (#133, #134, #141);
+    and the F2F keyring for groups who meet in person, with escrow keys, a GPG
+    keyring export and one-time CLI sign-in codes (#142, #143, #144, #148,
+    #158). Self-hosters and the Cloudflare deployment need migrations `0007` to
+    `0012` (the Docker image applies them on start).
+  - Fixes: share links can expire as late as 2100 (#154); encryption and copy
+    work on a self-host opened over plain http (#106); the shared record lists
+    doses in one column like History (#114); the Overview reads doses that
+    drift a little as one regimen (#160); the calibration plot stays readable
+    with an extreme lab value (#162); the lab calibration exclusion message is
+    right again (#136); buttons keep their size while busy or after copying (#164).
+
+  这个版本还包含 1.5.0 之后合并的以下改动：
+  - 登录与安全：连续登录失败后账户会暂时锁定，但曾经登录过的设备不受影响，通行密钥登录也算这样的
+    设备；新密码按更严格的规则检查，并显示强度；登录、分享和 F2F 请求有频率限制；用 `alg: none`
+    签名的令牌会被拒绝（401）；私密响应不再被缓存；Node 运行时、依赖、认证响应头和 Rust 依赖都已
+    修补（#119、#121、#122、#123、#135、#147、#152、#155、#156、#162）。
+  - 完整设备备份：导出、导入设备上的全部数据，导入前预览会写明新增、修改和跳过的内容，以及备份是否
+    来自这个账户（#129、#132）。保存的剂量不再带浮点尾数（#137）。
+  - 年龄调整（Beta），在设置里：出生年份会调整雌二醇和睾酮的清除速度（#138）。
+  - 自行部署：Docker 镜像改为从源码构建（#103），并提供依赖检查和安装脚本（#157）；hrt-tool 命令行
+    接口及其自托管传输（#133、#134、#141）；供线下见面小团体使用的 F2F 密钥环，支持托管密钥、导出
+    GPG 公钥环和一次性命令行登录码（#142、#143、#144、#148、#158）。自行部署和 Cloudflare 部署需要
+    执行迁移 `0007` 至 `0012`（Docker 镜像启动时会自动执行）。
+  - 修复：分享链接最晚可设到 2100 年过期（#154）；用普通 http 打开的自托管站点上，加密和复制按钮
+    可以正常使用（#106）；分享出去的记录像“记录”页一样单列显示（#114）；剂量时间略有漂移时，概览会
+    当作同一个方案（#160）；遇到极端化验值时校准图仍然清楚可读（#162）；化验校准的排除提示恢复正确
+    （#136）；按钮在处理中或复制后保持原来的大小（#164）。
+
+---
+
 ## 1.5.0
 
 - Labs on the chart now say how they compare with the model: tap or hover a

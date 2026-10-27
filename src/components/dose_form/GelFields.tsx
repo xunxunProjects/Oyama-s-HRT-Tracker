@@ -42,7 +42,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
         <div className="space-y-4">
             {/* Application site */}
             <div className="space-y-1.5">
-                <label id={siteLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                <label id={siteLabelId} className="field-label">
                     {t('field.gel_site')}
                 </label>
                 <CustomSelect
@@ -58,7 +58,7 @@ const GelFields: React.FC<GelFieldsProps> = ({
 
             {/* Applied dose */}
             <div className="space-y-1.5">
-                <label htmlFor={doseId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                <label htmlFor={doseId} className="field-label">
                     {t(equivLabelKey)}
                 </label>
                 <input
@@ -70,18 +70,17 @@ const GelFields: React.FC<GelFieldsProps> = ({
                     step="0.001"
                     value={e2Dose}
                     onChange={e => onE2Change(e.target.value)}
-                    className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="input-base w-full text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0.0"
                     style={{ fontSize: '16px' }}
                 />
                 {/* Absorbed estimate from site bioavailability */}
                 {bioPct !== null && (
-                    <p className="text-xs text-[var(--text-muted)] pl-1">
+                    <p className="field-hint">
                         {t('gel.bioavailability')}: {bioPct.toFixed(0)}%
                         {absorbed !== null && (
                             <>
-                                {' '}
-                                · {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg
+                                , {t('gel.absorbed')} ≈ {absorbed.toFixed(3).replace(/\.?0+$/, '')} mg
                             </>
                         )}
                     </p>

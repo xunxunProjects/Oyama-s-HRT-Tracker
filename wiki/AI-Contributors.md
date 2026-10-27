@@ -74,7 +74,7 @@ claim it passed.
 
 ## Version policy
 
-- Production deployments use the latest release tag (`v1.5.0`), never `main`.
+- Production deployments use the latest release tag (`v1.5.1`), never `main`.
 - Security researchers use the latest commit; say which commit you tested.
 - A release is built from a tag, with CI, and published. Do not retag or move a
   release.

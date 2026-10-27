@@ -306,10 +306,10 @@ To release, set the version, commit it on `main`, and push a matching tag:
 / 发布新版本时，先设置版本号并提交到 `main`，再推送对应的标签：
 
 ```bash
-python3 scripts/set_version.py 1.5.0
-git commit -am "Release 1.5.0"
-git tag v1.5.0
-git push origin main v1.5.0
+python3 scripts/set_version.py 1.5.1
+git commit -am "Release 1.5.1"
+git tag v1.5.1
+git push origin main v1.5.1
 ```
 
 The tag starts `.github/workflows/release.yml`, which checks that the tag is on

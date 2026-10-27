@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
-import { Lock } from 'lucide-react';
+import { Lock } from './icons';
 import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 import { settingsSection, rowBleed } from './SettingsListItem';
@@ -195,7 +195,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                             value={password}
                                             onChange={e => setPassword(e.target.value)}
                                             placeholder={t('export.password_placeholder')}
-                                            className="w-full py-2.5 px-3 pl-9 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                                            className="input-base w-full pl-9 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]"
                                             autoComplete="new-password"
                                             autoCorrect="off"
                                             autoCapitalize="off"

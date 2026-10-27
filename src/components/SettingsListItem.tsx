@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight } from './icons';
 
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
@@ -23,7 +23,7 @@ export const settingsSection = 'settings-section';
  */
 export const rowBleed = 'row-bleed rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)]';
 
-// Accepts lucide icons as well as custom icon components with the same props.
+// Any of the app's icons (components/icons), or a component that takes the same props.
 export type SettingsIcon = React.ComponentType<{ size?: number | string; className?: string }>;
 
 export function SettingsIconBox({ icon: Icon }: { icon: SettingsIcon }) {

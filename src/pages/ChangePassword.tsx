@@ -1,6 +1,6 @@
 import React, { useState, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Lock } from 'lucide-react';
+import { Lock } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';

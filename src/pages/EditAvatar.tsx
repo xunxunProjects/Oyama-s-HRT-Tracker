@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Cropper from 'react-easy-crop';
-import { ImagePlus, Check, Loader2, Trash2 } from 'lucide-react';
+import { ImagePlus, Check, Busy, Trash } from '../components/icons';
 import getCroppedImg from '../utils/cropImage';
 import { useTranslation } from '../contexts/LanguageContext';
 import { apiEndpoint, apiErrorFrom, apiFetch } from '../services/apiClient';
@@ -140,7 +140,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                                 disabled={isRemoving}
                                 className="-mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
                             >
-                                {isRemoving ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                {isRemoving ? <Busy size={14} className="animate-spin" /> : <Trash size={14} />}
                                 {t('avatar.remove')}
                             </button>
                         )}

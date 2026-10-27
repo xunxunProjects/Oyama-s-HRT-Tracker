@@ -142,7 +142,7 @@ The CLI's side of the protocol is documented in the Tools wiki:
 
 ## Release and deployment
 
-The latest release is `v1.5.0` (2026-10-14). Production deployments use that
+The latest release is `v1.5.1` (2026-10-28). Production deployments use that
 tag, not `main`. A release is built from a tag, checked by CI, and published;
 unreleased commits may contain incomplete features. See
 [Deployment](Deployment) for the three supported deployment paths and

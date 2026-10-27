@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, Busy } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useDialog } from '../contexts/DialogContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -15,8 +15,7 @@ interface F2fProps {
 const card = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4';
 const heading = 'text-sm font-medium text-[var(--text)]';
 const muted = 'text-xs leading-relaxed text-[var(--text-muted)]';
-const input =
-    'w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:font-sans placeholder:text-[var(--text-muted)] focus:border-[var(--accent-ink)]';
+const input = 'input-base text-sm placeholder:font-sans';
 const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
 const textButton =
     'text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
@@ -207,12 +206,12 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             <div className={`${PAGE_COLUMN} mt-2 space-y-4`}>
                 {loading ? (
                     <div className="flex justify-center py-16">
-                        <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                        <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
                     </div>
                 ) : loadError ? (
                     <div className="flex flex-col items-center gap-2 py-14 text-center">
                         <p role="alert" className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
-                            <AlertCircle size={15} className="shrink-0 text-[var(--warning)]" />
+                            <Alert size={15} className="shrink-0 text-[var(--warning)]" />
                             {loadError}
                         </p>
                         <button type="button" onClick={load} className="btn-ghost btn-ghost-accent tap-target">
@@ -238,7 +237,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
 
                         {error && (
                             <p role="alert" className="flex items-start gap-1.5 px-1 text-sm text-[var(--warning)]">
-                                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                                <Alert size={15} className="mt-0.5 shrink-0" />
                                 <span>{error}</span>
                             </p>
                         )}

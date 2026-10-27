@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { Home, ListTodo, Settings as SettingsIcon, UserCircle, ShieldCheck } from 'lucide-react';
-import CalibrationCurveIcon from '../components/CalibrationCurveIcon';
+import { House, Log, Labs, Gear, Account, Shield } from '../components/icons';
+import { runViewMove, type ViewMove } from '../motion/viewMove';
 import { useTranslation } from '../contexts/LanguageContext';
 import {
     depthLeft,
@@ -40,6 +40,7 @@ export type ViewKey =
     | 'settings-import'
     | 'settings-transparency'
     | 'settings-credits'
+    | 'settings-disclaimer'
     | 'settings-milk-tea'
     | 'settings-cat-states'
     | 'forecast'
@@ -64,6 +65,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-import': 'settings',
     'settings-transparency': 'settings',
     'settings-credits': 'settings',
+    'settings-disclaimer': 'settings',
     'settings-milk-tea': 'settings',
     'settings-cat-states': 'settings',
     'pk-params': 'settings',
@@ -125,6 +127,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings-import',
     'settings-transparency',
     'settings-credits',
+    'settings-disclaimer',
     'settings-milk-tea',
     'settings-cat-states',
     'admin',
@@ -140,6 +143,9 @@ export const useAppNavigation = (user: any) => {
     // --- State ---
     const [currentView, setCurrentView] = useState<ViewKey>('home');
     const [transitionDirection, setTransitionDirection] = useState<Direction>('forward');
+    // How the view on screen arrived, for browsers that animate it themselves
+    // only on the page's side (see motion/viewMove.ts).
+    const [move, setMove] = useState<ViewMove>('fade');
     // Set while a page from ALSO_UNDER is open under the other tab.
     const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(null);
     const mainScrollRef = useRef<HTMLDivElement>(null);
@@ -151,41 +157,47 @@ export const useAppNavigation = (user: any) => {
     const restoreScroll = useRef(false);
     // A move waiting for history.go to step back to the base entry first: a
     // tab, or a jump to a page under another tab.
-    const pending = useRef<{ view: ViewKey; direction: Direction } | null>(null);
+    const pending = useRef<{ view: ViewKey; direction: Direction; how: ViewMove } | null>(null);
 
     // --- Actions ---
-    const show = useCallback((view: ViewKey, direction: Direction, restore: boolean, under?: ViewKey) => {
-        const el = mainScrollRef.current;
-        if (el) scrollTops.current[viewRef.current] = el.scrollTop;
-        viewRef.current = view;
-        restoreScroll.current = restore;
-        setTransitionDirection(direction);
-        setOpenedUnder(under ?? null);
-        setCurrentView(view);
-    }, []);
+    const show = useCallback(
+        (view: ViewKey, direction: Direction, restore: boolean, under?: ViewKey, how: ViewMove = 'fade') => {
+            const el = mainScrollRef.current;
+            if (el) scrollTops.current[viewRef.current] = el.scrollTop;
+            viewRef.current = view;
+            restoreScroll.current = restore;
+            runViewMove(how, () => {
+                setTransitionDirection(direction);
+                setMove(how);
+                setOpenedUnder(under ?? null);
+                setCurrentView(view);
+            });
+        },
+        [],
+    );
 
     // A fresh stack: the view's tab as the base entry, and the view above it
     // when it is a page inside that tab, so Back from it still has somewhere
     // to go. Only ever called with history at the base entry.
     const land = useCallback(
-        (view: ViewKey, direction: Direction) => {
+        (view: ViewKey, direction: Direction, how: ViewMove = 'fade') => {
             const tab = tabForView(view);
             replaceNavEntry(tab, 0);
             if (tab !== view) pushNavEntry(view, 1);
-            show(view, direction, false);
+            show(view, direction, false, undefined, how);
         },
         [show],
     );
 
     // While a step back is still on its way, the entry it leaves is still the
     // current one, so the move waits in `pending` and popstate carries it on.
-    const jump = (view: ViewKey, direction: Direction) => {
+    const jump = (view: ViewKey, direction: Direction, how: ViewMove = 'fade') => {
         const depth = navDepth();
         if (depth > 0 || isSteppingBack()) {
-            pending.current = { view, direction };
+            pending.current = { view, direction, how };
             stepBack(depth);
         } else {
-            land(view, direction);
+            land(view, direction, how);
         }
     };
 
@@ -202,12 +214,12 @@ export const useAppNavigation = (user: any) => {
         }
         if (parentOf(view) === from) {
             pushNavEntry(view, depth + 1);
-            show(view, 'forward', false);
+            show(view, 'forward', false, undefined, 'push');
             return;
         }
         if (ALSO_UNDER[view] === from) {
             pushNavEntry(view, depth + 1, undefined, from);
-            show(view, 'forward', false, from);
+            show(view, 'forward', false, from, 'push');
             return;
         }
         // A sibling page sits at the same level, so it takes over the entry.
@@ -226,8 +238,9 @@ export const useAppNavigation = (user: any) => {
      * TAB_RESELECT any level the page keeps of its own.
      */
     const handleTabSelect = (tab: ViewKey) => {
+        // A menu switches at once: no cross-fade, nothing slides.
         if (tab !== viewRef.current) {
-            jump(tab, directionOf(viewRef.current, tab));
+            jump(tab, directionOf(viewRef.current, tab), 'none');
             return;
         }
         const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -244,7 +257,7 @@ export const useAppNavigation = (user: any) => {
         if (pending.current) return;
         const depth = navDepth();
         if (depth > 0) {
-            pending.current = { view: 'home', direction: 'forward' };
+            pending.current = { view: 'home', direction: 'forward', how: 'none' };
             stepBack(depth);
         } else {
             replaceNavEntry('home', 0);
@@ -265,7 +278,7 @@ export const useAppNavigation = (user: any) => {
                     return;
                 }
                 pending.current = null;
-                land(next.view, next.direction);
+                land(next.view, next.direction, next.how);
                 return;
             }
             if (entry.view === viewRef.current) return;
@@ -279,7 +292,15 @@ export const useAppNavigation = (user: any) => {
                 stepBack(entry.depth - left);
                 return;
             }
-            show(entry.view, directionOf(viewRef.current, entry.view), true, entry.under);
+            // Back up to the page this one was opened from, or Forward into one.
+            const from = viewRef.current;
+            const how: ViewMove =
+                parentOf(from) === entry.view || ALSO_UNDER[from] === entry.view
+                    ? 'pop'
+                    : parentOf(entry.view) === from || entry.under === from
+                      ? 'push'
+                      : 'fade';
+            show(entry.view, directionOf(from, entry.view), true, entry.under, how);
         };
         window.addEventListener('popstate', onPop);
         return () => window.removeEventListener('popstate', onPop);
@@ -303,15 +324,15 @@ export const useAppNavigation = (user: any) => {
 
     // --- Derived Data ---
     const navItems = [
-        { id: 'home', label: t('nav.home'), icon: Home },
-        { id: 'history', label: t('nav.history'), icon: ListTodo },
-        { id: 'lab', label: t('nav.lab'), icon: CalibrationCurveIcon },
-        { id: 'settings', label: t('nav.settings'), icon: SettingsIcon },
-        { id: 'account', label: t('nav.account'), icon: UserCircle },
+        { id: 'home', label: t('nav.home'), icon: House },
+        { id: 'history', label: t('nav.history'), icon: Log },
+        { id: 'lab', label: t('nav.lab'), icon: Labs },
+        { id: 'settings', label: t('nav.settings'), icon: Gear },
+        { id: 'account', label: t('nav.account'), icon: Account },
     ];
 
     if (user?.isAdmin) {
-        navItems.push({ id: 'admin', label: t('nav.admin'), icon: ShieldCheck });
+        navItems.push({ id: 'admin', label: t('nav.admin'), icon: Shield });
     }
 
     return {
@@ -319,6 +340,7 @@ export const useAppNavigation = (user: any) => {
         /** The tab to light: the view's own, or the one it was opened under. */
         currentTab: openedUnder ? tabForView(openedUnder) : tabForView(currentView),
         transitionDirection,
+        move,
         handleViewChange,
         handleTabSelect,
         mainScrollRef,

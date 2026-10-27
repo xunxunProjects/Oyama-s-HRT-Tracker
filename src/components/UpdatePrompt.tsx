@@ -1,5 +1,5 @@
 import React, { useState, useSyncExternalStore } from 'react';
-import { X } from 'lucide-react';
+import { Close } from './icons';
 import { useTranslation } from '../contexts/LanguageContext';
 import { applyAppUpdate, isAppUpdateReady, subscribeToAppUpdate } from '../utils/swUpdate';
 import { PAGE_COLUMN, headerActionAccent } from './PageHeader';
@@ -40,7 +40,7 @@ const UpdatePrompt: React.FC = () => {
                     title={t('update.later')}
                     className="tap-target -me-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
                 >
-                    <X size={16} strokeWidth={1.75} />
+                    <Close size={16} strokeWidth={1.75} />
                 </button>
             </div>
         </div>

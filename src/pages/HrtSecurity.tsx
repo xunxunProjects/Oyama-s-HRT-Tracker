@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Fingerprint, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Alert, Busy, Plus, Trash } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatRelative } from '../utils/helpers';
@@ -13,8 +13,7 @@ interface HrtSecurityProps {
 const card = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4';
 const heading = 'text-sm font-semibold text-[var(--text)]';
 const muted = 'text-xs text-[var(--text-muted)]';
-const input =
-    'w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--accent-ink)]';
+const input = 'input-base text-sm';
 const button = 'rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-40 transition-colors';
 const primary = `${button} bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]`;
 const secondary = `${button} bg-[var(--surface-hover)] text-[var(--text)]`;
@@ -117,13 +116,13 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
             <div className={`${PAGE_COLUMN} mt-2 space-y-4`}>
                 {loading ? (
                     <div className="flex justify-center py-16">
-                        <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                        <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
                     </div>
                 ) : (
                     <>
                         {error && (
                             <div className={`${card} flex items-start gap-2 text-sm text-[var(--warning)]`}>
-                                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                                <Alert size={16} className="mt-0.5 shrink-0" />
                                 <span>{error}</span>
                             </div>
                         )}
@@ -161,7 +160,7 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                                                     </p>
                                                     <p className={muted}>
                                                         {request.ip ?? t('hrt.unknown_ip')}
-                                                        {request.country ? ` · ${request.country}` : ''}
+                                                        {request.country ? `, ${request.country}` : ''}
                                                     </p>
                                                     <p className={`${muted} font-mono`}>
                                                         {request.fingerprint.slice(0, 16)}…
@@ -269,7 +268,7 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                                                     )
                                                 }
                                             >
-                                                <Trash2 size={14} /> {t('hrt.remove')}
+                                                <Trash size={14} /> {t('hrt.remove')}
                                             </button>
                                         </div>
                                     ))
@@ -291,10 +290,9 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                                             <div>
                                                 <p className="text-sm text-[var(--text)]">
                                                     {device.name}
-                                                    {device.revokedAt !== null ? ` · ${t('hrt.revoked')}` : ''}
+                                                    {device.revokedAt !== null ? ` (${t('hrt.revoked')})` : ''}
                                                 </p>
                                                 <p className={`${muted} font-mono`}>
-                                                    <Fingerprint size={12} className="mr-1 inline" />
                                                     {device.fingerprint.slice(0, 16)}…
                                                 </p>
                                                 <p className={muted}>

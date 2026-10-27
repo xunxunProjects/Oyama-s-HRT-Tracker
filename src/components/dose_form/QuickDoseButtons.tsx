@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Close } from '../icons';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useDialog } from '../../contexts/DialogContext';
@@ -114,7 +114,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                             opacity-0 group-hover:opacity-100 focus-visible:opacity-100
                             pointer-coarse:inset-auto pointer-coarse:w-6 pointer-coarse:h-6 pointer-coarse:opacity-100 pointer-coarse:bg-transparent pointer-coarse:border-transparent"
                     >
-                        <X size={10} strokeWidth={3} />
+                        <Close size={10} strokeWidth={3} />
                     </button>
                 </div>
             ))}

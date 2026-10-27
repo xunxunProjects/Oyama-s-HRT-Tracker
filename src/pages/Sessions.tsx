@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Monitor, Smartphone, Loader2, LogOut, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { Monitor, Phone, Busy, Logout, Close, Alert, Retry } from '../components/icons';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -116,16 +116,16 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
             <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (
                     <div className="flex justify-center py-16">
-                        <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                        <Busy className={`animate-spin ${settingsMuted}`} size={20} />
                     </div>
                 ) : failed ? (
                     <div className="flex flex-col items-center gap-2 py-14 text-center">
                         <p role="alert" className={`flex items-center gap-1.5 text-sm ${settingsMuted}`}>
-                            <AlertCircle size={15} className="shrink-0 text-[var(--warning)]" />
+                            <Alert size={15} className="shrink-0 text-[var(--warning)]" />
                             {t('account.sessions_fetch_failed')}
                         </p>
                         <button type="button" onClick={load} className="btn-ghost btn-ghost-accent tap-target">
-                            <RefreshCw size={14} />
+                            <Retry size={14} />
                             {t('account.retry')}
                         </button>
                     </div>
@@ -137,7 +137,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                             const { browser, os, isMobile } = parseDevice(s.device_info || '');
                             const browserLabel = browser ?? t('session.unknown_browser');
                             const isTerminating = terminating === s.id;
-                            const DeviceIcon = isMobile ? Smartphone : Monitor;
+                            const DeviceIcon = isMobile ? Phone : Monitor;
 
                             return (
                                 <div key={s.id} className={`flex items-start gap-3 py-4 ${divider}`}>
@@ -177,9 +177,9 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             className={`tap-target shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {isTerminating ? (
-                                                <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+                                                <Busy size={15} strokeWidth={1.5} className="animate-spin" />
                                             ) : (
-                                                <X size={15} strokeWidth={1.5} />
+                                                <Close size={15} strokeWidth={1.5} />
                                             )}
                                         </button>
                                     )}
@@ -196,9 +196,9 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                         className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
                     >
                         {terminating === 'others' ? (
-                            <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+                            <Busy size={15} strokeWidth={1.5} className="animate-spin" />
                         ) : (
-                            <LogOut size={15} strokeWidth={1.5} />
+                            <Logout size={15} strokeWidth={1.5} />
                         )}
                         {t('account.sessions_terminate_others')}
                     </button>

@@ -35,11 +35,10 @@ import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
-import DoseFormModal from './components/DoseFormModal';
 import Sidebar from './components/Sidebar';
-import PasswordInputModal from './components/PasswordInputModal';
-import DisclaimerModal from './components/DisclaimerModal';
-import AuthModal from './components/AuthModal';
+import BottomNav from './components/BottomNav';
+import PasswordPrompt from './components/PasswordPrompt';
+import { supportsViewTransitions } from './motion/viewMove';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { cloudService } from './services/cloud';
 
@@ -69,6 +68,7 @@ import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
 import Credits from './pages/Credits';
+import Disclaimer from './pages/Disclaimer';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
@@ -181,21 +181,41 @@ const AppContent = () => {
         calibrationFn,
     });
 
-    const { currentView, currentTab, transitionDirection, handleViewChange, handleTabSelect, mainScrollRef, navItems } =
+    const { currentView, currentTab, move, handleViewChange, handleTabSelect, mainScrollRef, navItems } =
         useAppNavigation(user);
 
-    // --- Local UI State (Modals & Forms) ---
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingEvent, setEditingEvent] = useState<DoseEvent | null>(null);
+    // --- Local UI state ---
+    // A dose on the Overview's chart sent here to be changed: History opens
+    // it in place, where every other dose is edited.
+    const [editFromOverview, setEditFromOverview] = useState<string | null>(null);
     const [isPasswordInputOpen, setIsPasswordInputOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isQuickAddLabOpen, setIsQuickAddLabOpen] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    // Set when Share opened the sign-in modal: the modal then says why it is
-    // asking, and a successful sign-in carries on to Share instead of leaving
-    // the person to find the button they had already pressed.
-    const [authForShare, setAuthForShare] = useState(false);
-    const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+    // Signing in happens on Account, the one place its form lives. A feature
+    // that needs an account (Share) sends people there and says why, and once
+    // they're in, carries on to where they were going instead of leaving them
+    // to find the button they had already pressed.
+    const [afterSignIn, setAfterSignIn] = useState<ViewKey | null>(null);
+    const [signInReason, setSignInReason] = useState<'share' | undefined>(undefined);
+    const requireSignIn = (reason?: 'share', then?: ViewKey) => {
+        setSignInReason(reason);
+        setAfterSignIn(then ?? null);
+        handleViewChange('account');
+    };
+    useEffect(() => {
+        if (!user || !afterSignIn) return;
+        const next = afterSignIn;
+        setAfterSignIn(null);
+        setSignInReason(undefined);
+        handleViewChange(next);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, afterSignIn]);
+    // Left Account without signing in: the reason no longer applies.
+    useEffect(() => {
+        if (currentView === 'account' || (!afterSignIn && !signInReason)) return;
+        setAfterSignIn(null);
+        setSignInReason(undefined);
+    }, [currentView, afterSignIn, signInReason]);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
     // --- Auto-sync preference ---
@@ -344,16 +364,6 @@ const AppContent = () => {
         ],
         [],
     );
-
-    // --- Modal Logic Wrappers ---
-
-    useEffect(() => {
-        const shouldLock = isPasswordInputOpen || isFormOpen || isDisclaimerOpen;
-        document.body.style.overflow = shouldLock ? 'hidden' : '';
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [isPasswordInputOpen, isFormOpen, isDisclaimerOpen]);
 
     // An import replaces the records on this device (and, with sync on, on
     // every device), so it asks first whenever there is something to lose, in
@@ -638,8 +648,8 @@ const AppContent = () => {
     };
 
     const handleEditEvent = (e: DoseEvent) => {
-        setEditingEvent(e);
-        setIsFormOpen(true);
+        setEditFromOverview(e.id);
+        handleViewChange('history');
     };
     // One tap on the Overview logs a plan item's dose. Every dose logged this
     // way is kept, newest last, so the taps can be taken back one at a time:
@@ -750,7 +760,7 @@ const AppContent = () => {
     // encrypted and unreadable here, rather than replacing it with plaintext.
     const handleCloudSave = async () => {
         if (!token) {
-            setIsAuthModalOpen(true);
+            requireSignIn();
             return;
         }
         const { outcome, errorCode } = await syncState.syncNow();
@@ -776,7 +786,7 @@ const AppContent = () => {
 
     const handleCloudLoad = async (backupId?: string) => {
         if (!token) {
-            setIsAuthModalOpen(true);
+            requireSignIn();
             return;
         }
         try {
@@ -817,7 +827,7 @@ const AppContent = () => {
 
     const handleCloudMerge = async (backupId: string) => {
         if (!token) {
-            setIsAuthModalOpen(true);
+            requireSignIn();
             return;
         }
         try {
@@ -870,11 +880,18 @@ const AppContent = () => {
                     this component, so it stays put across view changes. */}
                 <SiteNoticeBanner />
                 <UpdatePrompt />
+                {/* Where a prompt goes when nothing on the page was pressed to
+                    put it under (contexts/DialogContext.tsx). */}
+                <div id="prompt-slot" className="relative z-30 shrink-0" />
 
+                {/* The page area, captured on its own for page moves
+                    (motion.css), so the sidebar and the bottom bar stay put,
+                    and on the page colour, so no move goes see-through.
+                    Without view transitions the arriving page settles alone. */}
                 <div
                     ref={mainScrollRef}
                     key={currentView}
-                    className={`flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav ${transitionDirection === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className={`main-view flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav bg-[var(--bg)] ${supportsViewTransitions || (move !== 'push' && move !== 'pop') ? '' : `view-in-${move}`}`}
                 >
                     {currentView === 'home' && (
                         <Home
@@ -901,10 +918,7 @@ const AppContent = () => {
                             }}
                             onNavigateToShare={() => handleViewChange('share')}
                             authToken={token}
-                            onAuthRequired={() => {
-                                setAuthForShare(true);
-                                setIsAuthModalOpen(true);
-                            }}
+                            onAuthRequired={() => requireSignIn('share', 'share')}
                             regimens={regimens}
                             plan={plan}
                             onLogPlanItem={handleLogPlanItem}
@@ -925,6 +939,7 @@ const AppContent = () => {
                             plan={plan}
                             onSave={savePlanItem}
                             onDelete={deletePlanItem}
+                            events={events}
                         />
                     )}
 
@@ -976,6 +991,8 @@ const AppContent = () => {
                             quickDoses={quickDoses}
                             onAddQuickDose={addQuickDose}
                             onDeleteQuickDose={deleteQuickDose}
+                            openEditId={editFromOverview}
+                            onOpenEditHandled={() => setEditFromOverview(null)}
                         />
                     )}
 
@@ -1020,7 +1037,7 @@ const AppContent = () => {
                             onClearAllEvents={clearAllEvents}
                             events={events}
                             showDialog={showDialog}
-                            setIsDisclaimerOpen={setIsDisclaimerOpen}
+                            onNavigateToDisclaimer={() => handleViewChange('settings-disclaimer')}
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
@@ -1129,6 +1146,7 @@ const AppContent = () => {
                             syncStatus={syncState.status}
                             syncErrorCode={syncState.errorCode}
                             lastSyncedAt={syncState.lastSyncedAt}
+                            signInReason={signInReason}
                         />
                     )}
 
@@ -1177,6 +1195,10 @@ const AppContent = () => {
 
                     {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
 
+                    {currentView === 'settings-disclaimer' && (
+                        <Disclaimer onBack={() => handleViewChange('settings')} />
+                    )}
+
                     {currentView === 'settings-milk-tea' && devMode && (
                         <MilkTeaEasterEgg onBack={() => handleViewChange('settings')} />
                     )}
@@ -1211,86 +1233,25 @@ const AppContent = () => {
                     {currentView === 'admin' && user?.isAdmin && <Admin />}
                 </div>
 
-                {/* Bottom Navigation — a frosted floating island. Content scrolls
-                    visibly beneath it; the current tab's icon sits in a tonal
-                    terracotta pill. Labels stay on one line: a wrapped one
-                    raised its icon above the rest and grew the island past
-                    the scroller's bottom padding. Below 340px they drop to
-                    10px rather than being cut off, and the packs keep them
-                    short enough for that. The longest, Turkish Genel Bakış,
-                    is the name that pack's other strings give the page, so
-                    it stays, and its tab takes a few pixels more than the
-                    rest. Each tab is rounded so the focus ring nests in
-                    the island instead of cutting a square into the next
-                    tab's pill. */}
-                <nav className="glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
-                    <div className="flex items-stretch p-1.5 gap-0.5">
-                        {navItems
-                            .filter(item => item.id !== 'admin')
-                            .map(({ id, icon: Icon, label }) => {
-                                // Mobile reaches admin from Settings → General, so the
-                                // settings tab is the one that should read as active.
-                                const activeTab = currentView === 'admin' ? 'settings' : currentTab;
-                                const isActive = activeTab === id;
-                                return (
-                                    <button
-                                        key={id}
-                                        onClick={() => handleTabSelect(id as ViewKey)}
-                                        aria-current={isActive ? 'page' : undefined}
-                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-colors duration-150 motion-reduce:transition-none
-                                        ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
-                                    >
-                                        <span
-                                            className={`grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : ''}`}
-                                        >
-                                            <Icon size={22} strokeWidth={isActive ? 2 : 1.75} />
-                                        </span>
-                                        <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
-                                            {label}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                    </div>
-                </nav>
+                {/* The bottom bar on a phone (components/BottomNav.tsx). Mobile
+                    reaches admin from Settings, so there the settings tab is
+                    the one that reads as current. */}
+                <BottomNav
+                    tabs={navItems.filter(item => item.id !== 'admin')}
+                    activeTab={currentView === 'admin' ? 'settings' : currentTab}
+                    onSelect={id => handleTabSelect(id as ViewKey)}
+                />
             </div>
 
-            <PasswordInputModal
+            {/* An encrypted file's password, asked for as a line under the
+                Import page's button (components/PasswordPrompt.tsx). */}
+            <PasswordPrompt
                 isOpen={isPasswordInputOpen}
-                onClose={() => setIsPasswordInputOpen(false)}
-                onConfirm={handlePasswordSubmit}
-            />
-
-            <DoseFormModal
-                isOpen={isFormOpen}
-                onClose={() => setIsFormOpen(false)}
-                eventToEdit={editingEvent}
-                onSave={(e: DoseEvent) => {
-                    if (events.find(p => p.id === e.id)) updateEvent(e);
-                    else addEvent(e);
-                }}
-                onDelete={deleteEvent}
-                templates={doseTemplates}
-                onSaveTemplate={addTemplate}
-                onDeleteTemplate={deleteTemplate}
-                quickDoses={quickDoses}
-                onAddQuickDose={addQuickDose}
-                onDeleteQuickDose={deleteQuickDose}
-                events={events}
-            />
-
-            <DisclaimerModal isOpen={isDisclaimerOpen} onClose={() => setIsDisclaimerOpen(false)} />
-
-            <AuthModal
-                isOpen={isAuthModalOpen}
                 onClose={() => {
-                    setIsAuthModalOpen(false);
-                    setAuthForShare(false);
+                    setIsPasswordInputOpen(false);
+                    setPendingImportText(null);
                 }}
-                reason={authForShare ? 'share' : undefined}
-                onSuccess={() => {
-                    if (authForShare) handleViewChange('share');
-                }}
+                onConfirm={handlePasswordSubmit}
             />
         </div>
     );

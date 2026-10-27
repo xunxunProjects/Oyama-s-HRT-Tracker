@@ -7,9 +7,9 @@ test('rejects an invalid username before the server round trip', async ({ page, 
 
     await gotoApp(page);
     await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('button', { name: 'Edit Username' }).click();
+    await page.getByRole('button', { name: 'Edit username' }).click();
 
-    const input = page.getByRole('textbox', { name: 'New Username' });
+    const input = page.getByRole('textbox', { name: 'New username' });
     const save = page.getByRole('button', { name: 'Save', exact: true });
     const rules = page.getByText('Use 3–30 letters, numbers, underscores or hyphens.');
 

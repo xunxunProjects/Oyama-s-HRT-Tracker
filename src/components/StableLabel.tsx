@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Busy } from './icons';
 
 /**
  * Two labels stacked in one grid cell, only one visible. The cell always takes
@@ -34,6 +34,6 @@ export const BusyLabel: React.FC<{ busy: boolean; size?: number; children: React
 }) => (
     <span className="relative inline-flex items-center justify-center">
         <span className={`inline-flex items-center gap-1.5 ${busy ? 'invisible' : ''}`}>{children}</span>
-        {busy && <Loader2 size={size} className="absolute animate-spin" aria-hidden="true" />}
+        {busy && <Busy size={size} className="absolute animate-spin" aria-hidden="true" />}
     </span>
 );

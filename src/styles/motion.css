@@ -1,0 +1,927 @@
+/* ── Oyama motion system (1.5.1) ──────────────────────────────────────────
+
+   Every animation in the app lives in this file, built from the tokens in
+   oyama-tokens.css. The rules it keeps:
+
+   1. Motion says what changed. A page arrives from the side you went toward,
+      a panel unfolds from the row that opened it, a field is inked when it
+      takes the cursor. Nothing moves to decorate, and nothing loops except a
+      busy mark and the pixel cats.
+   2. One action, one motion. A tap never sets off a second animation on top
+      of the first, and nothing replays when a page is merely re-rendered.
+   3. Ink, not glow. Emphasis is drawn on as a pen stroke (fields, ticks, the
+      chosen day) and travels the way you read, left to right. The menus (the
+      sidebar and the bottom bar) don't animate at all.
+   4. Settle, don't bounce. Things ease out and stop where they belong; no
+      spring, no overshoot.
+   5. Reduced motion lands everything on its final frame at once, so nothing
+      is lost, only the travel.
+
+   Durations, shortest first: instant 90ms (a press), quick 150ms (a colour),
+   base 220ms (a change of state), slow 320ms (an unfold), page 380ms, ink
+   560ms (a pen stroke), sweep 900ms (the chart line). */
+
+/* ── keyframes ───────────────────────────────────────────────────────────── */
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Something that has just been put on the page in place (an inline prompt, a
+   notice): it settles down into its line from a few pixels above. */
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* A stroke being drawn. Paths carry pathLength="1", so one dash of length 1
+   covers any of them, and an offset just past 1 hides it without leaving the
+   round cap's dot behind. */
+@keyframes ink-draw {
+    from {
+        stroke-dashoffset: 1.05;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes busy-turn {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── pages ───────────────────────────────────────────────────────────────────
+   Moves between views run as view transitions (motion/viewMove.ts), and only
+   the page area takes part: the sidebar and the bottom bar are left out of it
+   and stay exactly where they are.
+
+   push  into a page from the one above it.
+   pop   back up to it.
+   fade  across, between sibling pages, and none, a tab chosen from a menu:
+         the page is simply there (viewMove.ts skips the transition).
+
+   Nothing here goes see-through. Both pages are captured on the page colour
+   (.main-view has a background), and neither fades: a cross-fade between two
+   pages lets the background show through halfway and reads as a flash. On a
+   phone the new page slides in over the old one, which drifts back a little,
+   and going back slides the top page away again, the way its own apps do. A
+   wide window doesn't slide a whole page across a desktop: the page that's
+   coming is put down at once a few pixels to the side and settles. */
+
+:root {
+    --move-dir: 1;
+}
+:root[dir="rtl"] {
+    --move-dir: -1;
+}
+
+.main-view {
+    view-transition-name: main-view;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(main-view),
+::view-transition-new(main-view) {
+    mix-blend-mode: normal;
+    animation-fill-mode: both;
+}
+
+@keyframes slide-in-from-end {
+    from {
+        transform: translateX(calc(100% * var(--move-dir)));
+    }
+}
+@keyframes drift-to-start {
+    to {
+        transform: translateX(calc(-25% * var(--move-dir)));
+    }
+}
+@keyframes slide-out-to-end {
+    to {
+        transform: translateX(calc(100% * var(--move-dir)));
+    }
+}
+@keyframes drift-from-start {
+    from {
+        transform: translateX(calc(-25% * var(--move-dir)));
+    }
+}
+@keyframes settle-from-end {
+    from {
+        transform: translateX(calc(24px * var(--move-dir)));
+    }
+}
+@keyframes settle-from-start {
+    from {
+        transform: translateX(calc(-24px * var(--move-dir)));
+    }
+}
+
+html[data-move="push"]::view-transition-new(main-view) {
+    animation: slide-in-from-end var(--duration-page) var(--ease-page);
+}
+html[data-move="push"]::view-transition-old(main-view) {
+    animation: drift-to-start var(--duration-page) var(--ease-page);
+}
+html[data-move="pop"]::view-transition-old(main-view) {
+    z-index: 1;
+    animation: slide-out-to-end var(--duration-page) var(--ease-page);
+}
+html[data-move="pop"]::view-transition-new(main-view) {
+    animation: drift-from-start var(--duration-page) var(--ease-page);
+}
+@media (min-width: 768px) {
+    html[data-move]::view-transition-old(main-view) {
+        animation: none;
+        opacity: 0;
+    }
+    html[data-move="push"]::view-transition-new(main-view) {
+        animation: settle-from-end var(--duration-slow) var(--ease-out);
+    }
+    html[data-move="pop"]::view-transition-new(main-view) {
+        animation: settle-from-start var(--duration-slow) var(--ease-out);
+    }
+}
+
+/* Where view transitions aren't available, the page that arrives settles in
+   the same way on its own. */
+.view-in-push {
+    animation: settle-from-end var(--duration-slow) var(--ease-out);
+}
+.view-in-pop {
+    animation: settle-from-start var(--duration-slow) var(--ease-out);
+}
+
+/* Steps inside a page (a wizard's next step, the intro's pages, a tab's
+   panel) come in from the side they're moving toward, on a small scale. */
+@keyframes view-push-in {
+    from {
+        opacity: 0;
+        transform: translateX(calc(24px * var(--move-dir)));
+    }
+}
+@keyframes view-pop-in {
+    from {
+        opacity: 0;
+        transform: translateX(calc(-24px * var(--move-dir)));
+    }
+}
+.view-enter-forward {
+    animation: view-push-in var(--duration-slow) var(--ease-out);
+}
+.view-enter-backward {
+    animation: view-pop-in var(--duration-slow) var(--ease-out);
+}
+
+/* ── ink ─────────────────────────────────────────────────────────────────── */
+
+/* Any stroke that should be drawn on as it appears. */
+.ink-draw path,
+path.ink-draw {
+    stroke-dasharray: 1 2;
+    animation: ink-draw var(--duration-ink) var(--ease-ink) both;
+}
+
+/* Every tick in the app (components/Tick.tsx): beside a chosen option, inside a
+   selected checkbox, in place of Copy once something is copied. The mark fades
+   up, grows from a little under full size, and its stroke is written from the
+   left tip, short leg first, the way a tick is drawn by hand. Turning off, it
+   fades out whole and resets once it can't be seen, so the old tick isn't
+   un-written backwards while the new one is written. */
+.tick-draw {
+    opacity: 0;
+    scale: 0.7;
+    transition:
+        opacity 160ms linear,
+        scale var(--duration-base) var(--ease-out);
+}
+.tick-draw path {
+    stroke-dasharray: 1 2;
+    stroke-dashoffset: 1.05;
+    transition: stroke-dashoffset 0s linear 180ms;
+}
+.tick-draw[data-on="true"] {
+    opacity: 1;
+    scale: 1;
+}
+.tick-draw[data-on="true"] path {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset var(--duration-base) var(--ease-standard) 60ms;
+}
+
+/* The Copy glyph that gives way to the tick above (CopyTick). */
+.copy-glyph {
+    transition: opacity 160ms linear;
+}
+.copy-glyph[data-hidden="true"] {
+    opacity: 0;
+}
+
+/* Waiting. The mark only shows once a wait has gone on for 300ms, so a quick
+   save never flashes it, then turns slowly. */
+.ink-icon.animate-spin {
+    animation:
+        fade-in 1ms linear 300ms both,
+        busy-turn 1.2s linear infinite;
+}
+
+/* ── in place ───────────────────────────────────────────────────────────── */
+
+/* An inline prompt or notice, put into the page where it was asked for. */
+.m-appear {
+    animation: appear var(--duration-base) var(--ease-out) both;
+}
+
+/* Collapsibles. grid-template-rows 0fr -> 1fr is the one way to animate to
+   intrinsic height without measuring it in JS or hard-coding a max-height that
+   clips longer content. The child must be the sole grid item and carry
+   `overflow: hidden`, which .disclosure-inner provides. */
+.disclosure {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-slow) var(--ease-out);
+}
+.disclosure[data-open="true"] {
+    grid-template-rows: 1fr;
+}
+/* No opacity here on purpose: a resting `opacity: 0` revealed only by a
+   parent-state selector left content invisible on any path that missed the
+   selector. A collapsed section is already zero-height. */
+.disclosure-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* A warning's explanation, as it's unfolded (components/DoseAdvisory.tsx). */
+@keyframes advisory-unfold {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+.advisory-unfold {
+    animation: advisory-unfold 300ms var(--ease-standard) 40ms both;
+}
+
+/* Disclosure chevrons. `rotate-180` compiles to the standalone `rotate`
+   property in Tailwind v4, so that is what has to be transitioned. */
+.chev {
+    transition:
+        rotate var(--duration-base) var(--ease-out),
+        transform var(--duration-base) var(--ease-out);
+}
+
+/* The outline that follows the selected chart range, and the underline that
+   follows the chosen tab. It slides by position and width, so it stretches a
+   little crossing items of different widths and reads as one thing moving. */
+.chip-slide {
+    transition:
+        left var(--duration-base) var(--ease-out),
+        width var(--duration-base) var(--ease-out);
+}
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+
+/* Ambient: hover, focus and selected states ease instead of snapping, across
+   every interactive surface. Paint properties only, never layout, so it can't
+   cause reflow. In the base layer, so a utility on the element (the bottom
+   bar's `transition-none`) or a button class (index.css) wins over it. */
+@layer base {
+    a,
+    button,
+    summary,
+    label,
+    select,
+    [role="button"],
+    [role="tab"],
+    [role="switch"],
+    [role="option"] {
+        transition:
+            background-color var(--duration-quick) var(--ease-standard),
+            border-color var(--duration-quick) var(--ease-standard),
+            color var(--duration-quick) var(--ease-standard),
+            box-shadow var(--duration-quick) var(--ease-standard),
+            opacity var(--duration-quick) var(--ease-standard);
+    }
+}
+
+/* Toggle switches. Both translate and transform, since Tailwind v4's
+   `translate-x-*` compiles to the standalone `translate` property. */
+.switch-track {
+    transition: background-color var(--duration-base) var(--ease-standard);
+}
+.switch-knob {
+    transition:
+        translate var(--duration-base) var(--ease-out),
+        transform var(--duration-base) var(--ease-out);
+}
+
+/* A round checkbox (History's batch select): the fill eases in on the
+   switch's timing while the tick draws on top of it. */
+.check-dot {
+    transition:
+        background-color var(--duration-base) var(--ease-standard),
+        border-color var(--duration-base) var(--ease-standard);
+}
+
+/* A History row just added or edited: its wash comes up as the tick is
+   written beside its time and goes back down as the tick is rubbed out. */
+.row-wash {
+    transition: background-color var(--duration-slow) var(--ease-standard);
+}
+
+/* ── charts ──────────────────────────────────────────────────────────────── */
+
+/* The Overview chart: the line draws on from the left, each dose and lab
+   marker lands as the line reaches it, the grid and band fade up around it. */
+@keyframes chart-sweep {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+@keyframes chart-mark-in {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+.chart-sweep {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: chart-sweep var(--duration-sweep) var(--ease-standard) both;
+}
+.chart-appear {
+    animation: fade-in var(--duration-base) var(--ease-standard) both;
+}
+.chart-mark {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: chart-mark-in 260ms var(--ease-standard) both;
+}
+
+/* The home reading's tick scale (components/LevelRail.tsx). The ticks rise off
+   the baseline left to right, the direction the chart below draws its line,
+   once, when the reading first shows. After that a new reading re-inks the
+   ticks and moves the tall one; nothing slides. */
+@keyframes rail-tick-in {
+    from {
+        transform: scaleY(0);
+    }
+    to {
+        transform: none;
+    }
+}
+.rail-tick {
+    transform-origin: bottom;
+    animation: rail-tick-in 420ms var(--ease-out) both;
+    transition:
+        height var(--duration-base) var(--ease-standard),
+        background-color var(--duration-base) var(--ease-standard);
+}
+.rail-label {
+    animation: fade-in 320ms var(--ease-standard) both;
+    transition:
+        left var(--duration-base) var(--ease-standard),
+        transform var(--duration-base) var(--ease-standard),
+        color var(--duration-base) var(--ease-standard);
+}
+
+/* The calibration plot: each calibrated lab glides from its raw-model twin to
+   where calibration put it; the dotted trail between fades up once landed. */
+.cal-mark {
+    transition: transform 720ms var(--ease-standard);
+}
+.cal-trail {
+    transition: opacity 320ms var(--ease-standard);
+}
+
+/* The intro's progress rings: `r` is animatable, so the current ring grows. */
+.onb-ring {
+    transition:
+        r var(--duration-base) var(--ease-standard),
+        fill var(--duration-base) var(--ease-standard),
+        stroke var(--duration-base) var(--ease-standard);
+}
+
+/* The intro chart (OnboardingCurve) plays three beats: doses land, the curve
+   draws through them, then labs arrive and the curve drops onto them. These
+   rest on their FINAL frame and the keyframe's `from` hides them, so switching
+   motion off leaves the finished beat standing. */
+@keyframes oc-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes oc-draw {
+    from {
+        stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes oc-ghost-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.28;
+    }
+}
+.oc-pop {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: oc-pop 300ms var(--ease-standard) both;
+}
+.oc-frame-in {
+    opacity: 1;
+    animation: fade-in 800ms linear 1600ms both;
+}
+.oc-model-draw {
+    stroke-dasharray: 1;
+    animation: oc-draw 2600ms var(--ease-standard) both;
+}
+.oc-model-out {
+    opacity: 0;
+    animation: fade-out 700ms linear 700ms both;
+}
+.oc-ghost-in {
+    opacity: 0.28;
+    animation: oc-ghost-in 700ms linear 700ms both;
+}
+.oc-cal-in {
+    opacity: 1;
+    animation: fade-in 1000ms var(--ease-standard) 800ms both;
+}
+.oc-legend-in {
+    opacity: 1;
+    animation: fade-in 500ms linear 1800ms both;
+}
+
+/* UpdateDoodle: the cat peeks up out of its parcel when a new version arrives
+   and hops out when refresh is tapped. */
+@keyframes ud-peek {
+    from {
+        transform: translateY(9px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+@keyframes ud-leap {
+    0% {
+        transform: translateY(0);
+    }
+    45% {
+        transform: translateY(-6px);
+    }
+    100% {
+        transform: translateY(-3px);
+    }
+}
+.ud-peek {
+    animation: ud-peek 700ms var(--ease-out) 200ms both;
+}
+.ud-leap {
+    animation: ud-leap 600ms var(--ease-out) both;
+}
+
+/* ── the pixel cats ──────────────────────────────────────────────────────────
+   Steps, not tweens: they move a whole pixel at a time, and only the parts a
+   real cat would move. Periods share no factor, so the cat never does two
+   things on the same beat twice running. */
+@keyframes px-blink {
+    0%,
+    92% {
+        opacity: 0;
+    }
+    92.01%,
+    96% {
+        opacity: 1;
+    }
+    96.01%,
+    100% {
+        opacity: 0;
+    }
+}
+/* Tail: still for most of the loop, then two quick swishes. */
+@keyframes px-tail-rest {
+    0%,
+    68% {
+        opacity: 1;
+    }
+    68.01%,
+    74% {
+        opacity: 0;
+    }
+    74.01%,
+    80% {
+        opacity: 1;
+    }
+    80.01%,
+    86% {
+        opacity: 0;
+    }
+    86.01%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes px-tail-flick {
+    0%,
+    68% {
+        opacity: 0;
+    }
+    68.01%,
+    74% {
+        opacity: 1;
+    }
+    74.01%,
+    80% {
+        opacity: 0;
+    }
+    80.01%,
+    86% {
+        opacity: 1;
+    }
+    86.01%,
+    100% {
+        opacity: 0;
+    }
+}
+/* Making biscuits: four alternating beats, then the paws settle again. */
+@keyframes px-paw-rest {
+    0%,
+    58% {
+        opacity: 1;
+    }
+    58.01%,
+    90% {
+        opacity: 0;
+    }
+    90.01%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes px-paw-left {
+    0%,
+    58% {
+        opacity: 0;
+    }
+    58.01%,
+    66% {
+        opacity: 1;
+    }
+    66.01%,
+    74% {
+        opacity: 0;
+    }
+    74.01%,
+    82% {
+        opacity: 1;
+    }
+    82.01%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes px-paw-right {
+    0%,
+    66% {
+        opacity: 0;
+    }
+    66.01%,
+    74% {
+        opacity: 1;
+    }
+    74.01%,
+    82% {
+        opacity: 0;
+    }
+    82.01%,
+    90% {
+        opacity: 1;
+    }
+    90.01%,
+    100% {
+        opacity: 0;
+    }
+}
+/* The loaf has one paw to push out: a slow two-beat stretch. */
+@keyframes px-paw-still {
+    0%,
+    62% {
+        opacity: 1;
+    }
+    62.01%,
+    78% {
+        opacity: 0;
+    }
+    78.01%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes px-paw-stretch {
+    0%,
+    62% {
+        opacity: 0;
+    }
+    62.01%,
+    78% {
+        opacity: 1;
+    }
+    78.01%,
+    100% {
+        opacity: 0;
+    }
+}
+/* Ear flick: mostly at rest, one quick step out and back. */
+@keyframes px-ear-rest {
+    0%,
+    88% {
+        opacity: 1;
+    }
+    88.01%,
+    94% {
+        opacity: 0;
+    }
+    94.01%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes px-ear-twitch {
+    0%,
+    88% {
+        opacity: 0;
+    }
+    88.01%,
+    94% {
+        opacity: 1;
+    }
+    94.01%,
+    100% {
+        opacity: 0;
+    }
+}
+/* Grooming: the paw to the face and back, twice a second. */
+@keyframes px-lick-a {
+    0%,
+    49.99% {
+        opacity: 1;
+    }
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes px-lick-b {
+    0%,
+    49.99% {
+        opacity: 0;
+    }
+    50%,
+    100% {
+        opacity: 1;
+    }
+}
+/* Chewing: held down slightly longer than up, so it isn't a metronome. */
+@keyframes px-chew {
+    0%,
+    44% {
+        opacity: 0;
+    }
+    44.01%,
+    100% {
+        opacity: 1;
+    }
+}
+/* The fish a waiting cat is thinking about: two frames a pixel apart. */
+@keyframes px-float-a {
+    0%,
+    53.99% {
+        opacity: 1;
+    }
+    54%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes px-float-b {
+    0%,
+    53.99% {
+        opacity: 0;
+    }
+    54%,
+    100% {
+        opacity: 1;
+    }
+}
+/* Sleep marks: a slow swell and fade, with a long gap between. */
+@keyframes px-zzz {
+    0%,
+    6% {
+        opacity: 0;
+    }
+    22%,
+    62% {
+        opacity: 1;
+    }
+    82%,
+    100% {
+        opacity: 0;
+    }
+}
+.px-ear-rest {
+    animation: px-ear-rest 3.4s steps(1) infinite;
+}
+.px-ear-twitch {
+    animation: px-ear-twitch 3.4s steps(1) infinite;
+}
+.px-blink {
+    animation: px-blink 4.8s steps(1) infinite;
+}
+.px-tail-rest {
+    animation: px-tail-rest 5.6s steps(1) infinite;
+}
+.px-tail-flick {
+    animation: px-tail-flick 5.6s steps(1) infinite;
+}
+.px-paw-rest {
+    animation: px-paw-rest 6.4s steps(1) infinite;
+}
+.px-paw-left {
+    animation: px-paw-left 6.4s steps(1) infinite;
+}
+.px-paw-right {
+    animation: px-paw-right 6.4s steps(1) infinite;
+}
+.px-paw-still {
+    animation: px-paw-still 7.1s steps(1) infinite;
+}
+.px-paw-stretch {
+    animation: px-paw-stretch 7.1s steps(1) infinite;
+}
+.px-lick-a {
+    animation: px-lick-a 0.5s steps(1) infinite;
+}
+.px-lick-b {
+    animation: px-lick-b 0.5s steps(1) infinite;
+}
+.px-chew {
+    animation: px-chew 0.62s steps(1) infinite;
+}
+.px-float-a {
+    animation: px-float-a 2.9s steps(1) infinite;
+}
+.px-float-b {
+    animation: px-float-b 2.9s steps(1) infinite;
+}
+.px-zzz {
+    animation: px-zzz 4.6s ease-in-out infinite;
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────────────
+   Everything still lands in the same end state; it just gets there at once.
+   Collapsibles keep grid-template-rows, so they still open and close. */
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+    .view-in-push,
+    .view-in-pop,
+    .view-enter-forward,
+    .view-enter-backward,
+    .m-appear,
+    .advisory-unfold,
+    .chart-sweep,
+    .chart-appear,
+    .chart-mark,
+    .rail-tick,
+    .rail-label,
+    .ud-peek,
+    .ud-leap,
+    .ink-draw path,
+    path.ink-draw,
+    .oc-pop,
+    .oc-frame-in,
+    .oc-model-draw,
+    .oc-model-out,
+    .oc-ghost-in,
+    .oc-cal-in,
+    .oc-legend-in {
+        animation: none;
+    }
+    .ink-draw path,
+    path.ink-draw {
+        stroke-dasharray: none;
+    }
+    /* A still arc says "waiting" without turning. */
+    .ink-icon.animate-spin {
+        animation: fade-in 1ms linear 300ms both;
+    }
+    /* Hold a single resting pose instead of flicking between frames. */
+    .px-ear-rest,
+    .px-ear-twitch,
+    .px-blink,
+    .px-tail-rest,
+    .px-tail-flick,
+    .px-paw-rest,
+    .px-paw-left,
+    .px-paw-right,
+    .px-paw-still,
+    .px-paw-stretch,
+    .px-lick-a,
+    .px-lick-b,
+    .px-chew,
+    .px-float-a,
+    .px-float-b,
+    .px-zzz {
+        animation: none;
+    }
+    .px-ear-twitch,
+    .px-blink,
+    .px-tail-flick,
+    .px-paw-left,
+    .px-paw-right,
+    .px-paw-stretch,
+    .px-lick-b,
+    .px-chew,
+    .px-float-b {
+        opacity: 0;
+    }
+    a,
+    button,
+    summary,
+    label,
+    select,
+    [role="button"],
+    [role="tab"],
+    [role="switch"],
+    [role="option"],
+    .switch-track,
+    .switch-knob,
+    .chev,
+    .chip-slide,
+    .rail-tick,
+    .rail-label,
+    .cal-mark,
+    .cal-trail,
+    .onb-ring,
+    .tick-draw,
+    .tick-draw path,
+    .tick-draw[data-on="true"] path,
+    .copy-glyph,
+    .check-dot,
+    .row-wash,
+    .disclosure {
+        transition: none;
+    }
+}

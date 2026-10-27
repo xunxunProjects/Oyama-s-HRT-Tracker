@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus } from '../components/icons';
 import { DoseEvent, Ester, Route } from '../../logic';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';

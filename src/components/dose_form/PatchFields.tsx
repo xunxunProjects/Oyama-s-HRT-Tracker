@@ -20,7 +20,7 @@ interface PatchFieldsProps {
 }
 
 const inputCls =
-    'w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+    'input-base w-full text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 // Common transdermal E2 patch nominal release rates (µg/day).
 const RATE_PRESETS = [25, 37.5, 50, 75, 100];
@@ -75,7 +75,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             <div key={patchMode} className={modeAnim}>
                 {patchMode === 'rate' ? (
                     <div className="space-y-1.5">
-                        <label htmlFor={rateId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={rateId} className="field-label">
                             {t('field.patch_rate')}
                         </label>
                         <input
@@ -111,7 +111,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                     </div>
                 ) : (
                     <div className="space-y-1.5">
-                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={rawId} className="field-label">
                             {t('field.dose_raw')}
                         </label>
                         <input
@@ -134,7 +134,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
             {/* Wear duration — applies to both input modes. Empty means the patch
                 stays on until a separate "remove" event is logged. */}
             <div className="space-y-1.5">
-                <label htmlFor={wearId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                <label htmlFor={wearId} className="field-label">
                     {t('field.patch_wear')}
                 </label>
                 <input
@@ -157,7 +157,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                             onClick={() => setPatchWearDays(String(w.days))}
                             className={chipCls(Number.isFinite(currentWear) && Math.abs(currentWear - w.days) < 1e-6)}
                         >
-                            {formatNum(w.days)} d · {t(w.labelKey)}
+                            {t(w.labelKey)} ({formatNum(w.days)} d)
                         </button>
                     ))}
                     <button
@@ -168,7 +168,7 @@ const PatchFields: React.FC<PatchFieldsProps> = ({
                         {t('field.patch_until_removed')}
                     </button>
                 </div>
-                <p className="text-xs text-[var(--text-muted)] pl-1">{t('field.patch_wear_hint')}</p>
+                <p className="field-hint">{t('field.patch_wear_hint')}</p>
             </div>
         </div>
     );

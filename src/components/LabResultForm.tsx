@@ -2,7 +2,7 @@ import React, { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
-import { Check, Trash2, ChevronDown } from 'lucide-react';
+import { Check, Trash, ChevronDown } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import Segmented from './Segmented';
@@ -93,7 +93,7 @@ const HormoneValueField: React.FC<{
                     value={value}
                     onChange={e => onValueChange(e.target.value)}
                     aria-invalid={value.trim() !== '' && parsed === null}
-                    className="w-full bg-[var(--field)] border border-[var(--border)] rounded-md px-3 py-2 outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)] tabular-nums"
+                    className="input-base w-full text-[var(--text)] placeholder:text-[var(--text-muted)] tabular-nums"
                     style={{ fontSize: '16px', paddingInlineEnd: reading ? '7.5rem' : undefined }}
                 />
                 {reading && (
@@ -292,7 +292,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                             title={t('btn.delete')}
                             aria-label={t('btn.delete')}
                         >
-                            <Trash2 size={16} />
+                            <Trash size={16} />
                         </button>
                     )}
                 </div>

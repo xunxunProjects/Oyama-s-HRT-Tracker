@@ -1,10 +1,11 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Clock3, ChevronDown } from 'lucide-react';
-import Tick from './Tick';
+import { ChevronLeft, ChevronRight } from './icons';
 import { useEscapeLayer } from './CustomSelect';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useInlineHost } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
+import { PAGE_COLUMN } from './PageHeader';
 
 interface DateTimePickerProps {
     isOpen: boolean;
@@ -13,156 +14,87 @@ interface DateTimePickerProps {
     initialDate?: Date;
     mode?: 'datetime' | 'date' | 'time';
     title?: string;
+    /** Sits in a form and applies each change at once. Otherwise it opens as a
+     *  line under what was pressed, with Cancel and OK. */
     inline?: boolean;
     maxYear?: number;
 }
 
-type DatePart = 'year' | 'month' | 'day' | 'hour' | 'minute';
+const MIN_YEAR = 2015;
 
-interface PartOption {
-    value: number;
-    label: string;
+/** The weekday a week starts on where the reader is: 0 Sunday, 1 Monday. */
+function weekStart(locale: string): number {
+    try {
+        const loc = new Intl.Locale(locale) as Intl.Locale & {
+            getWeekInfo?: () => { firstDay: number };
+            weekInfo?: { firstDay: number };
+        };
+        const info = loc.getWeekInfo?.() ?? loc.weekInfo;
+        if (info?.firstDay) return info.firstDay % 7;
+    } catch {
+        // An engine without Intl.Locale: guess from the language below.
+    }
+    return /^(en-US|ja|ko|zh-TW|zh-HK)/.test(locale) ? 0 : 1;
 }
 
-interface PartSelectProps {
+const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+// A ring drawn round the chosen day the way a date is circled on a paper
+// calendar: once round, a little wide, the pen running on past where it began.
+const RING =
+    'M27.6 9.2c-3.1-2.2-7.4-2.9-11.2-1.8-5.2 1.5-8.9 6.1-8.6 11.3.3 5.6 5 9.9 10.7 10.2 5.9.3 11-3.8 11.8-9.3.6-3.9-1-7.6-3.9-10-1.3-1-2.8-1.7-4.3-2.1';
+
+interface TimePartProps {
     label: string;
     value: number;
-    options: PartOption[];
+    max: number;
     onChange: (value: number) => void;
 }
 
-const PartSelect: React.FC<PartSelectProps> = ({ label, value, options, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const listRef = useRef<HTMLDivElement>(null);
-    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({});
-
-    useEffect(() => {
-        if (typeof document !== 'undefined') setPortalTarget(document.body);
-    }, []);
-
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                (triggerRef.current && triggerRef.current.contains(event.target as Node)) ||
-                (listRef.current && listRef.current.contains(event.target as Node))
-            )
-                return;
-            setIsOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
-
-    useLayoutEffect(() => {
-        if (!isOpen || !triggerRef.current) return;
-
-        const updatePosition = () => {
-            const rect = triggerRef.current!.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const spaceAbove = rect.top;
-            const flip = spaceBelow < 160 && spaceAbove > spaceBelow;
-            const maxHeight = Math.max(120, Math.min(240, (flip ? spaceAbove : spaceBelow) - 16));
-            const width = Math.max(rect.width, 72);
-
-            if (flip) {
-                setPositionStyle({ bottom: window.innerHeight - rect.top + 4, left: rect.left, width, maxHeight });
-            } else {
-                setPositionStyle({ top: rect.bottom + 4, left: rect.left, width, maxHeight });
-            }
-        };
-
-        updatePosition();
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
-        return () => {
-            window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition, { capture: true });
-        };
-    }, [isOpen]);
-
-    // Open on the chosen value, centred. This waits for the positioning above:
-    // until the list has its maxHeight it is as tall as all its rows, nothing
-    // scrolls, and every list used to open at its top (minute 00, year 2015).
-    // Once per opening, since scrolling the list repositions it as well.
-    const scrolledRef = useRef(false);
-    useLayoutEffect(() => {
-        if (!isOpen) {
-            scrolledRef.current = false;
-            return;
-        }
-        const list = listRef.current;
-        const el = list?.querySelector<HTMLElement>('[data-selected="true"]');
-        if (scrolledRef.current || positionStyle.maxHeight === undefined || !list || !el) return;
-        list.scrollTop = el.offsetTop - (list.clientHeight - el.offsetHeight) / 2;
-        scrolledRef.current = true;
-    }, [isOpen, positionStyle]);
-
-    // Escape closes this list and leaves the picker around it open.
-    useEscapeLayer(() => setIsOpen(false), isOpen);
-
-    const selected = options.find(option => option.value === value);
-
+/** Hours or minutes, typed as two digits on a line. Arrow keys step them. */
+const TimePart: React.FC<TimePartProps> = ({ label, value, max, onChange }) => {
+    const [draft, setDraft] = useState<string | null>(null);
+    const commit = (text: string) => {
+        const n = parseInt(text, 10);
+        if (!Number.isNaN(n)) onChange(Math.max(0, Math.min(max, n)));
+        setDraft(null);
+    };
     return (
-        <div className="relative">
-            <button
-                type="button"
-                ref={triggerRef}
-                onClick={() => setIsOpen(open => !open)}
-                aria-label={label}
-                aria-haspopup="listbox"
-                aria-expanded={isOpen}
-                className={`w-full min-h-11 flex items-center justify-between gap-1 rounded-[var(--radius-md)] border ps-3 pe-2.5 py-2 text-sm tabular-nums outline-none transition-colors motion-reduce:transition-none
-                    bg-[var(--field)] text-[var(--text)]
-                    ${
-                        isOpen
-                            ? 'border-[var(--accent-ink)]'
-                            : 'border-[var(--border)] hover:border-[var(--border-strong)]'
-                    }`}
-            >
-                <span className="truncate">{selected?.label ?? value}</span>
-                <ChevronDown
-                    size={16}
-                    className={`chev shrink-0 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
-                />
-            </button>
-
-            {isOpen &&
-                portalTarget &&
-                createPortal(
-                    <div
-                        ref={listRef}
-                        role="listbox"
-                        aria-label={label}
-                        style={positionStyle}
-                        className="dropdown-in menu-surface fixed z-[80] overflow-y-auto"
-                    >
-                        {options.map(option => (
-                            <button
-                                key={option.value}
-                                type="button"
-                                role="option"
-                                aria-selected={option.value === value}
-                                data-selected={option.value === value}
-                                onClick={() => {
-                                    onChange(option.value);
-                                    setIsOpen(false);
-                                }}
-                                className="menu-item justify-between tabular-nums"
-                            >
-                                <span>{option.label}</span>
-                                <Tick on={option.value === value} size={18} />
-                            </button>
-                        ))}
-                    </div>,
-                    portalTarget,
-                )}
-        </div>
+        <input
+            type="text"
+            inputMode="numeric"
+            aria-label={label}
+            maxLength={2}
+            value={draft ?? String(value).padStart(2, '0')}
+            onFocus={e => e.currentTarget.select()}
+            onChange={e => {
+                const text = e.target.value.replace(/\D/g, '');
+                setDraft(text);
+                if (text.length === 2) commit(text);
+            }}
+            onBlur={() => draft !== null && commit(draft)}
+            onKeyDown={e => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const step = e.key === 'ArrowUp' ? 1 : -1;
+                    onChange((value + step + max + 1) % (max + 1));
+                    setDraft(null);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (draft !== null) commit(draft);
+                }
+            }}
+            className="input-base w-12 text-center tabular-nums text-[1.0625rem] font-medium"
+        />
     );
 };
 
+/**
+ * Picks a day on a month's calendar and a time under it, with nothing that
+ * opens over anything else. The chosen day is circled in ink as it's chosen.
+ * Arrow keys walk the days, Page Up and Page Down the months.
+ */
 const DateTimePicker: React.FC<DateTimePickerProps> = ({
     isOpen,
     onClose,
@@ -175,166 +107,220 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 }) => {
     const { t, lang } = useTranslation();
     // A layer rather than a plain window listener: inline, the picker sits in
-    // a form whose modal closes on Escape too, and the press should only fold
-    // the picker away (an open list inside it goes first).
+    // a form that folds away on Escape too, and the press should only fold
+    // the picker away.
     useEscapeLayer(onClose, isOpen);
     const locale = LOCALE_MAP[lang] || 'en-US';
+    const host = useInlineHost(isOpen && !inline);
+    const id = useId();
 
     const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
-    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({});
-    const containerRef = useRef<HTMLDivElement>(null);
-    const anchorRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (typeof document !== 'undefined') setPortalTarget(document.body);
-    }, []);
+    const [view, setView] = useState(() => {
+        const d = initialDate || new Date();
+        return { year: d.getFullYear(), month: d.getMonth() };
+    });
+    // Bumped on every pick, so the ring is drawn on afresh each time and not
+    // when the page merely renders again.
+    const [inkKey, setInkKey] = useState(0);
+    const gridRef = useRef<HTMLDivElement>(null);
+    const focusDay = useRef(false);
 
     useEffect(() => {
         if (!isOpen) return;
         const candidate = initialDate ? new Date(initialDate) : new Date();
-        setSelectedDate(Number.isNaN(candidate.getTime()) ? new Date() : candidate);
-    }, [isOpen, initialDate]);
+        const d = Number.isNaN(candidate.getTime()) ? new Date() : candidate;
+        setSelectedDate(d);
+        setView({ year: d.getFullYear(), month: d.getMonth() });
+        // Only when the picker opens: initialDate follows every pick inline.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
-    useLayoutEffect(() => {
-        if (!isOpen || inline) return;
+    const lastYear = Math.max(maxYear ?? new Date().getFullYear() + 10, selectedDate.getFullYear());
+    const firstYear = Math.min(MIN_YEAR, selectedDate.getFullYear());
 
-        const updatePosition = () => {
-            if (window.innerWidth < 768) {
-                setPositionStyle({});
-                return;
-            }
-            setPositionStyle({
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 440,
-            });
-        };
-
-        updatePosition();
-        window.addEventListener('resize', updatePosition);
-        return () => window.removeEventListener('resize', updatePosition);
-    }, [isOpen, inline]);
-
-    const currentYear = new Date().getFullYear();
-    const years = useMemo(() => {
-        const first = Math.min(2015, selectedDate.getFullYear());
-        const last = Math.max(maxYear ?? currentYear + 10, selectedDate.getFullYear());
-        return Array.from({ length: last - first + 1 }, (_, index) => first + index);
-    }, [currentYear, maxYear, selectedDate]);
-
-    const months = useMemo(
-        () =>
-            Array.from({ length: 12 }, (_, month) => ({
-                value: month,
-                label: new Date(2020, month, 1).toLocaleDateString(locale, { month: 'long' }),
-            })),
-        [locale],
-    );
-
-    const daysInSelectedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
-
-    const days = Array.from({ length: daysInSelectedMonth }, (_, index) => index + 1);
-    const hours = Array.from({ length: 24 }, (_, index) => index);
-    const minutes = Array.from({ length: 60 }, (_, index) => index);
-
-    const setPart = (part: DatePart, value: number) => {
-        const next = new Date(selectedDate);
-
-        if (part === 'year' || part === 'month') {
-            const originalDay = next.getDate();
-            next.setDate(1);
-            if (part === 'year') next.setFullYear(value);
-            else next.setMonth(value);
-            const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
-            next.setDate(Math.min(originalDay, maxDay));
-        } else if (part === 'day') {
-            next.setDate(value);
-        } else if (part === 'hour') {
-            next.setHours(value);
-        } else {
-            next.setMinutes(value);
-        }
-
+    const apply = (next: Date) => {
         next.setSeconds(0, 0);
         setSelectedDate(next);
-        // Inline pickers live inside a form — apply changes immediately instead
-        // of requiring a separate confirm step; closing stays under the caller's control.
+        // Inline, each change goes straight into the form; closing stays the
+        // caller's.
         if (inline) onConfirm(next);
     };
 
-    const labelClass = 'block mb-1.5 text-xs font-medium text-[var(--text-muted)]';
+    const pickDay = (year: number, month: number, day: number) => {
+        const next = new Date(selectedDate);
+        next.setFullYear(year, month, day);
+        setView({ year, month });
+        setInkKey(k => k + 1);
+        apply(next);
+    };
 
-    const renderPart = (label: string, part: DatePart, value: number, options: PartOption[]) => (
-        <div className="min-w-0">
-            <span className={labelClass}>{label}</span>
-            <PartSelect label={label} value={value} options={options} onChange={next => setPart(part, next)} />
-        </div>
-    );
+    const shiftMonth = (by: number) =>
+        setView(v => {
+            const d = new Date(v.year, v.month + by, 1);
+            const year = Math.max(firstYear, Math.min(lastYear, d.getFullYear()));
+            return { year, month: year === d.getFullYear() ? d.getMonth() : v.month };
+        });
 
-    if (!isOpen) return inline ? null : <div ref={anchorRef} className="hidden" />;
-    if (!inline && !portalTarget) return <div ref={anchorRef} className="hidden" />;
+    const setTime = (part: 'hour' | 'minute', value: number) => {
+        const next = new Date(selectedDate);
+        if (part === 'hour') next.setHours(value);
+        else next.setMinutes(value);
+        apply(next);
+    };
+
+    const now = new Date();
+    const start = weekStart(locale);
+    const weekdays = useMemo(() => {
+        const fmt = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
+        const long = new Intl.DateTimeFormat(locale, { weekday: 'long' });
+        // 2026-03-01 is a Sunday.
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(2026, 2, 1 + ((start + i) % 7));
+            return { short: fmt.format(d), long: long.format(d) };
+        });
+    }, [locale, start]);
+
+    const daysInMonth = new Date(view.year, view.month + 1, 0).getDate();
+    const lead = (new Date(view.year, view.month, 1).getDay() - start + 7) % 7;
+    const selectedInView = selectedDate.getFullYear() === view.year && selectedDate.getMonth() === view.month;
+    const focusable = selectedInView ? selectedDate.getDate() : 1;
+
+    // After a key moved the day, focus follows it into the new month's grid.
+    useEffect(() => {
+        if (!focusDay.current) return;
+        focusDay.current = false;
+        gridRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
+    });
+
+    const onGridKey = (e: React.KeyboardEvent) => {
+        const moves: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+        if (e.key in moves || e.key === 'PageUp' || e.key === 'PageDown') {
+            e.preventDefault();
+            const base = new Date(view.year, view.month, focusable);
+            if (e.key === 'PageUp') base.setMonth(base.getMonth() - 1);
+            else if (e.key === 'PageDown') base.setMonth(base.getMonth() + 1);
+            else base.setDate(base.getDate() + moves[e.key]);
+            if (base.getFullYear() < firstYear || base.getFullYear() > lastYear) return;
+            focusDay.current = true;
+            pickDay(base.getFullYear(), base.getMonth(), base.getDate());
+        }
+    };
+
+    if (!isOpen) return null;
 
     const showDate = mode !== 'time';
     const showTime = mode !== 'date';
-    const dateSummary = selectedDate.toLocaleDateString(locale, {
+    const monthTitle = new Date(view.year, view.month, 1).toLocaleDateString(locale, {
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
     });
-    const timeSummary = selectedDate.toLocaleTimeString(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-    });
+    const canBack = view.year > firstYear || view.month > 0;
+    const canOn = view.year < lastYear || view.month < 11;
 
     const body = (
-        <div className={inline ? 'pt-3 pb-1 space-y-5' : 'px-5 py-5 space-y-5'}>
+        <div className={inline ? 'pt-3 pb-1 space-y-4' : 'space-y-4'}>
             {showDate && (
-                <section>
-                    <div className="flex items-center gap-2 mb-3 text-[var(--text)]">
-                        <CalendarDays size={16} />
-                        <span className="text-sm font-medium">{t('date.select')}</span>
+                <section aria-labelledby={`${id}-month`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <p id={`${id}-month`} className="text-sm font-medium text-[var(--text)]" aria-live="polite">
+                            {monthTitle}
+                        </p>
+                        <div className="flex items-center -me-2">
+                            <button
+                                type="button"
+                                onClick={() => shiftMonth(-1)}
+                                disabled={!canBack}
+                                aria-label={t('date.prev_month')}
+                                className="btn-ghost w-9 px-0 rtl:-scale-x-100"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => shiftMonth(1)}
+                                disabled={!canOn}
+                                aria-label={t('date.next_month')}
+                                className="btn-ghost w-9 px-0 rtl:-scale-x-100"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-[1.05fr_1.35fr_0.8fr] gap-2.5">
-                        {renderPart(
-                            t('time.year'),
-                            'year',
-                            selectedDate.getFullYear(),
-                            years.map(year => ({ value: year, label: String(year) })),
-                        )}
-                        {renderPart(t('time.month'), 'month', selectedDate.getMonth(), months)}
-                        {renderPart(
-                            t('time.day'),
-                            'day',
-                            selectedDate.getDate(),
-                            days.map(day => ({ value: day, label: String(day).padStart(2, '0') })),
-                        )}
+                    <div className="cal-grid" aria-hidden="true">
+                        {weekdays.map(w => (
+                            <abbr key={w.long} title={w.long} className="cal-weekday">
+                                {w.short}
+                            </abbr>
+                        ))}
+                    </div>
+                    <div ref={gridRef} className="cal-grid" role="group" aria-label={monthTitle} onKeyDown={onGridKey}>
+                        {Array.from({ length: lead }, (_, i) => (
+                            <span key={`lead-${i}`} />
+                        ))}
+                        {Array.from({ length: daysInMonth }, (_, i) => {
+                            const day = i + 1;
+                            const date = new Date(view.year, view.month, day);
+                            const chosen = selectedInView && selectedDate.getDate() === day;
+                            const today = sameDay(date, now);
+                            return (
+                                <button
+                                    key={day}
+                                    type="button"
+                                    tabIndex={day === focusable ? 0 : -1}
+                                    aria-pressed={chosen}
+                                    aria-current={today ? 'date' : undefined}
+                                    aria-label={date.toLocaleDateString(locale, {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                    })}
+                                    onClick={() => pickDay(view.year, view.month, day)}
+                                    className={`cal-day ${chosen ? 'is-chosen' : ''} ${today ? 'is-today' : ''}`}
+                                >
+                                    {chosen && (
+                                        <svg key={inkKey} viewBox="0 0 40 40" className="cal-ring" aria-hidden="true">
+                                            <path d={RING} pathLength={1} className={inkKey ? 'ink-draw' : undefined} />
+                                        </svg>
+                                    )}
+                                    <span className="relative tabular-nums">{day}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </section>
             )}
 
             {showTime && (
-                <section>
-                    <div className="flex items-center gap-2 mb-3 text-[var(--text)]">
-                        <Clock3 size={16} />
-                        <span className="text-sm font-medium">{t('time.select')}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                        {renderPart(
-                            t('time.hour'),
-                            'hour',
-                            selectedDate.getHours(),
-                            hours.map(hour => ({ value: hour, label: String(hour).padStart(2, '0') })),
-                        )}
-                        {renderPart(
-                            t('time.minute'),
-                            'minute',
-                            selectedDate.getMinutes(),
-                            minutes.map(minute => ({ value: minute, label: String(minute).padStart(2, '0') })),
-                        )}
-                    </div>
+                <section className="flex items-center gap-3">
+                    <span className="text-sm text-[var(--text-muted)] me-auto">{t('time.select')}</span>
+                    <TimePart
+                        label={t('time.hour')}
+                        value={selectedDate.getHours()}
+                        max={23}
+                        onChange={v => setTime('hour', v)}
+                    />
+                    <span className="text-[var(--text-muted)] -mx-1" aria-hidden="true">
+                        :
+                    </span>
+                    <TimePart
+                        label={t('time.minute')}
+                        value={selectedDate.getMinutes()}
+                        max={59}
+                        onChange={v => setTime('minute', v)}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const n = new Date();
+                            setView({ year: n.getFullYear(), month: n.getMonth() });
+                            setInkKey(k => k + 1);
+                            apply(n);
+                        }}
+                        className="btn-ghost btn-ghost-accent ms-1"
+                    >
+                        {t('time.now')}
+                    </button>
                 </section>
             )}
         </div>
@@ -342,50 +328,33 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
     if (inline) return <div className="mb-3">{body}</div>;
 
-    const inner = (
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)]">
-            <div className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
-                {title && <p className="text-sm font-semibold text-[var(--text)] mb-1">{title}</p>}
-                <p className="text-sm tabular-nums text-[var(--text-muted)]">
-                    {[showDate ? dateSummary : null, showTime ? timeSummary : null].filter(Boolean).join(' · ')}
-                </p>
-            </div>
-
+    // Opened from a button (the What-if start): a line under it, like the
+    // app's other prompts, with the way out and the way on.
+    const line = (
+        <div className="inline-prompt m-appear block" role="group" aria-label={title}>
+            {title && <p className="inline-prompt-title mb-3">{title}</p>}
             {body}
-
-            <div className="px-5 pb-5 pt-3 flex justify-end gap-2 border-t border-[var(--border)]">
-                <button type="button" onClick={onClose} className="btn-secondary">
+            <div className="inline-prompt-actions mt-4 justify-end">
+                <button type="button" onClick={onClose} className="btn-secondary btn-sm">
                     {t('btn.cancel')}
                 </button>
-                <button type="button" onClick={() => onConfirm(selectedDate)} className="btn-primary">
+                <button type="button" onClick={() => onConfirm(selectedDate)} className="btn-primary btn-sm">
                     {t('btn.ok')}
                 </button>
             </div>
         </div>
     );
-
-    return (
-        <>
-            <div ref={anchorRef} className="hidden" />
-            {createPortal(
-                <>
-                    <button
-                        type="button"
-                        aria-label={t('btn.cancel')}
-                        onClick={onClose}
-                        className="fixed inset-0 z-[60] bg-[var(--scrim)] backdrop-blur-[var(--blur-scrim)]"
-                    />
-                    <div
-                        ref={containerRef}
-                        style={positionStyle}
-                        className={`fixed z-[70] bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-lg)] border border-[var(--border)] ${Object.keys(positionStyle).length > 0 ? 'rounded-[var(--radius-xl)]' : 'bottom-0 left-0 right-0 w-full rounded-t-[var(--radius-xl)] border-b-0'}`}
-                    >
-                        {inner}
-                    </div>
-                </>,
-                portalTarget,
-            )}
-        </>
+    if (host) return createPortal(line, host);
+    const slot = document.getElementById('prompt-slot');
+    return slot ? (
+        createPortal(
+            <div className="prompt-banner glass glass-bar">
+                <div className={`${PAGE_COLUMN} max-w-md`}>{line}</div>
+            </div>,
+            slot,
+        )
+    ) : (
+        <div className={PAGE_COLUMN}>{line}</div>
     );
 };
 

@@ -3,7 +3,7 @@
 This page lists what the tracker uses directly and why. It is an overview, not
 a lockfile: the exact resolved versions are in `package-lock.json`,
 `src-tauri/Cargo.lock`, and the Docker/Workers build logs. Ranges below match
-`package.json` at version 1.5.0.
+`package.json` at version 1.5.1.
 
 ## Runtime libraries
 
@@ -18,7 +18,6 @@ a lockfile: the exact resolved versions are in `package-lock.json`,
 | `qrcode.react`       | `^4.1.0`  | Pairing QR codes                                         |
 | `jspdf`              | `^4.1.0`  | PDF export                                               |
 | `jspdf-autotable`    | `^5.0.7`  | Tables in the PDF export                                 |
-| `lucide-react`       | `^1.52.0` | Icons                                                    |
 | `react-easy-crop`    | `^5.5.6`  | Avatar cropping                                          |
 | `uuid`               | `^11.1.1` | Client-side identifiers                                  |
 

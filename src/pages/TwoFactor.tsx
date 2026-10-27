@@ -2,28 +2,29 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
 import {
-    Loader2,
+    Busy,
     Check,
-    AlertCircle,
+    Alert,
     Eye,
     EyeOff,
-    Fingerprint,
-    X,
+    Devices,
+    Close,
     Plus,
-    KeyRound,
+    Phone,
+    Codes,
     Download,
-    RefreshCw,
-} from 'lucide-react';
+    Retry,
+    Shield,
+} from '../components/icons';
 import { CopyTick } from '../components/Tick';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
-import ShieldIcon from '../components/ShieldIcon';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService, Passkey, serializeAttestationCredential, b64url2ab } from '../services/auth';
 import { formatRelative } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
-import PasswordInputModal from '../components/PasswordInputModal';
+import PasswordPrompt from '../components/PasswordPrompt';
 import { copyText } from '../utils/clipboard';
 import { BusyLabel, SwapLabel } from '../components/StableLabel';
 
@@ -52,15 +53,14 @@ function detectDeviceName(): string {
 const divider = 'border-b border-[var(--border)]';
 const muted = settingsMuted;
 const on = settingsOn;
-const inputCls =
-    'w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]';
+const inputCls = 'input-base text-sm';
 const labelCls = `block text-xs font-semibold ${muted} mb-1`;
 const primaryBtn = 'btn-primary w-full';
 
 const ErrLine: React.FC<{ msg: string | null }> = ({ msg }) =>
     msg ? (
         <p className="flex items-center gap-1.5 text-sm text-[var(--danger)]">
-            <AlertCircle size={13} className="shrink-0" />
+            <Alert size={13} className="shrink-0" />
             {msg}
         </p>
     ) : null;
@@ -453,11 +453,11 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                     tabs={[
                         // Named for what the person installs, as every line under
                         // it does; "TOTP" was the only place the jargon showed.
-                        { id: 'totp', label: t('account.2fa_app'), icon: <KeyRound size={14} strokeWidth={1.5} /> },
+                        { id: 'totp', label: t('account.2fa_app'), icon: <Phone size={14} strokeWidth={1.5} /> },
                         {
                             id: 'passkey',
                             label: t('account.passkey'),
-                            icon: <Fingerprint size={14} strokeWidth={1.5} />,
+                            icon: <Devices size={14} strokeWidth={1.5} />,
                         },
                     ]}
                     value={activeTab}
@@ -471,14 +471,14 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         <div className="space-y-5">
                             {totpEnabled === null && (
                                 <div className="flex justify-center py-10">
-                                    <Loader2 className={`animate-spin ${muted}`} size={20} />
+                                    <Busy className={`animate-spin ${muted}`} size={20} />
                                 </div>
                             )}
 
                             {totpEnabled === true && !success && (
                                 <>
                                     <div className="flex items-start gap-3 pb-4">
-                                        <SettingsIconBox icon={ShieldIcon} />
+                                        <SettingsIconBox icon={Shield} />
                                         <div>
                                             <p className={`text-sm font-medium ${on}`}>{t('account.2fa_is_active')}</p>
                                             <p className={`text-xs ${muted} mt-1 leading-relaxed`}>
@@ -572,7 +572,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             <p className={`text-sm ${muted}`}>{t('account.2fa_scan_qr')}</p>
                                             {setupLoading ? (
                                                 <div className="flex justify-center py-8">
-                                                    <Loader2 className={`animate-spin ${muted}`} size={24} />
+                                                    <Busy className={`animate-spin ${muted}`} size={24} />
                                                 </div>
                                             ) : uri ? (
                                                 <div className="flex justify-center py-2">
@@ -756,11 +756,11 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                             {passkeyLoading ? (
                                 <div className="flex justify-center py-6">
-                                    <Loader2 className={`animate-spin ${muted}`} size={20} />
+                                    <Busy className={`animate-spin ${muted}`} size={20} />
                                 </div>
                             ) : passkeys.length === 0 ? (
                                 <div className={`flex flex-col items-center gap-2 py-10 text-center ${muted}`}>
-                                    <SettingsIconBox icon={Fingerprint} />
+                                    <SettingsIconBox icon={Devices} />
                                     <p className={`text-sm font-medium mt-2 ${on}`}>{t('account.passkey_empty')}</p>
                                     <p className="text-xs max-w-xs leading-relaxed">
                                         {t('account.passkey_empty_hint')}
@@ -770,7 +770,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                 <div>
                                     {passkeys.map(pk => (
                                         <div key={pk.id} className={`flex items-center gap-3 py-3.5 ${divider}`}>
-                                            <SettingsIconBox icon={Fingerprint} />
+                                            <SettingsIconBox icon={Devices} />
                                             <div className="flex-1 min-w-0">
                                                 <p className={`text-sm font-medium ${on} truncate`}>
                                                     {pk.device_name || t('session.unknown_device')}
@@ -788,9 +788,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 className={`tap-target shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                             >
                                                 {deleteLoadingId === pk.id ? (
-                                                    <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                                                    <Busy size={14} strokeWidth={1.5} className="animate-spin" />
                                                 ) : (
-                                                    <X size={14} strokeWidth={1.5} />
+                                                    <Close size={14} strokeWidth={1.5} />
                                                 )}
                                             </button>
                                         </div>
@@ -806,11 +806,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     disabled={registerLoading}
                                     className={primaryBtn}
                                 >
-                                    {registerLoading ? (
-                                        <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                        <Plus size={14} />
-                                    )}
+                                    {registerLoading ? <Busy size={14} className="animate-spin" /> : <Plus size={14} />}
                                     {passkeys.length === 0
                                         ? t('account.passkey_add')
                                         : t('account.passkey_add_another')}
@@ -824,7 +820,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 {enabled && (
                     <div className={`mt-8 pt-6 ${divider}`}>
                         <div className="flex items-center gap-2 mb-1">
-                            <KeyRound size={15} strokeWidth={1.5} className={muted} />
+                            <Codes size={15} strokeWidth={1.5} className={muted} />
                             <h3 className={`text-sm font-medium ${on}`}>{t('account.backup_codes')}</h3>
                         </div>
                         {/* Two or fewer left is the time to make more, before a
@@ -861,9 +857,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             className={`flex items-center gap-1.5 text-sm font-medium ${on} hover:opacity-70 disabled:opacity-40 mt-3 transition-opacity`}
                         >
                             {backupLoading ? (
-                                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />
+                                <Busy size={13} strokeWidth={1.5} className="animate-spin" />
                             ) : (
-                                <RefreshCw size={13} strokeWidth={1.5} />
+                                <Retry size={13} strokeWidth={1.5} />
                             )}
                             {backupRemaining !== null && backupRemaining > 0
                                 ? t('account.backup_codes_regenerate')
@@ -873,7 +869,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 )}
             </div>
 
-            <PasswordInputModal
+            <PasswordPrompt
                 isOpen={!!pwPrompt}
                 onClose={() => {
                     setPwPrompt(null);
