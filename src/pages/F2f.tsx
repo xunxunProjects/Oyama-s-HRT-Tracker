@@ -18,7 +18,7 @@ const input =
     'w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:font-sans placeholder:text-[var(--text-muted)] focus:border-[var(--accent-ink)]';
 const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
 const textButton =
-    'text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
+    'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
 
 /* The server's codes, in words the reader can act on. Anything unexpected,
    including a bare 500, becomes the one calm "something went wrong" line
@@ -383,22 +383,39 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                             </button>
                             {cliCode && (
                                 <div className="mt-3 space-y-2">
+                                    <p className="whitespace-nowrap font-mono text-xs tabular-nums text-[var(--text)]">
+                                        {groupFingerprint(cliCode.code)}
+                                    </p>
                                     <div className="flex items-center justify-between gap-3">
-                                        <p className={mono}>{cliCode.code}</p>
+                                        <p className={muted}>
+                                            {t('f2f.cli_expires').replace(
+                                                '{time}',
+                                                new Date(cliCode.expires_at * 1000).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                }),
+                                            )}
+                                        </p>
                                         {copyButton(cliCode.code, 'cli-code')}
                                     </div>
-                                    <p className={muted}>
-                                        {t('f2f.cli_expires').replace(
-                                            '{time}',
-                                            new Date(cliCode.expires_at * 1000).toLocaleTimeString([], {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            }),
-                                        )}
-                                    </p>
                                     <p className={`${muted} pt-1`}>{t('f2f.cli_help')}</p>
-                                    <code className={`${mono} block rounded-lg bg-[var(--surface-muted)] p-3`}>
-                                        {`hrt-f2f login --server ${window.location.origin} --code ${cliCode.code} --token-out ~/.config/hrt-f2f/token`}
+                                    <code className="block rounded-lg bg-[var(--surface-muted)] p-3 font-mono text-xs leading-relaxed break-words text-[var(--text-muted)]">
+                                        {/* Wrap only between words: a flag like --token-out must not split at its own hyphen. */}
+                                        {[
+                                            'hrt-f2f',
+                                            'login',
+                                            '--server',
+                                            window.location.origin,
+                                            '--code',
+                                            cliCode.code,
+                                            '--token-out',
+                                            '~/.config/hrt-f2f/token',
+                                        ].map((part, index) => (
+                                            <React.Fragment key={index}>
+                                                {index > 0 && ' '}
+                                                <span className="whitespace-nowrap">{part}</span>
+                                            </React.Fragment>
+                                        ))}
                                     </code>
                                 </div>
                             )}
