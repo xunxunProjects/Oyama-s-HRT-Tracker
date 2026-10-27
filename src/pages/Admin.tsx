@@ -586,7 +586,7 @@ const Admin: React.FC = () => {
                                         </span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-full hover:bg-[var(--surface-hover)] transition-colors"
                                         >
                                             <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>

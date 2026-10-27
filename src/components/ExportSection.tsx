@@ -181,7 +181,11 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                 </span>
                                 {!generatedPassword && (
                                     <span className={action}>
-                                        {showEncrypted ? t('btn.cancel') : t('export.btn_encrypted')}
+                                        <SwapLabel
+                                            show={showEncrypted}
+                                            off={t('export.btn_encrypted')}
+                                            on={t('btn.cancel')}
+                                        />
                                     </span>
                                 )}
                             </button>

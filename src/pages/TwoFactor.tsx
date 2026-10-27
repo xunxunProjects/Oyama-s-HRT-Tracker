@@ -87,7 +87,7 @@ const BackupCodesBlock: React.FC<{
         <div className="flex gap-3">
             <button
                 onClick={onCopy}
-                className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}
+                className={`flex items-center gap-1 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}
             >
                 <CopyTick copied={copied} size={12} strokeWidth={1.5} />
                 <SwapLabel
@@ -98,7 +98,7 @@ const BackupCodesBlock: React.FC<{
             </button>
             <button
                 onClick={onDownload}
-                className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}
+                className={`flex items-center gap-1 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}
             >
                 <Download size={12} strokeWidth={1.5} />
                 {t('account.backup_codes_download')}
@@ -527,7 +527,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                         <button
                                             type="submit"
                                             disabled={disableLoading || !disablePassword || disableCode.length !== 6}
-                                            className={`text-sm font-medium ${muted} hover:text-[var(--text)] flex items-center gap-1.5 disabled:opacity-40 transition-colors`}
+                                            className={`text-sm font-medium ${muted} hover:text-[var(--text)] flex items-center gap-1 disabled:opacity-40 transition-colors`}
                                         >
                                             <BusyLabel busy={disableLoading} size={13}>
                                                 {t('account.2fa_disable')}
@@ -854,7 +854,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                         <button
                             onClick={handleGenerateBackupCodes}
                             disabled={backupLoading}
-                            className={`flex items-center gap-1.5 text-sm font-medium ${on} hover:opacity-70 disabled:opacity-40 mt-3 transition-opacity`}
+                            className={`flex items-center gap-1 text-sm font-medium ${on} hover:opacity-70 disabled:opacity-40 mt-3 transition-opacity`}
                         >
                             {backupLoading ? (
                                 <Busy size={13} strokeWidth={1.5} className="animate-spin" />

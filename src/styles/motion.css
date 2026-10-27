@@ -244,6 +244,25 @@ path.ink-draw {
     opacity: 0;
 }
 
+/* A label giving way to another in the same place (SwapLabel): "Copy as
+   table" rolls up and out as "Copied" rolls up into its place, beside the
+   tick being written, and back again when the moment passes. */
+.swap-label > span {
+    transition:
+        opacity 160ms linear,
+        translate var(--duration-base) var(--ease-out);
+}
+.swap-label > span[data-shown="false"] {
+    opacity: 0;
+    pointer-events: none;
+}
+.swap-label > span[data-shown="false"][data-from="above"] {
+    translate: 0 -0.45em;
+}
+.swap-label > span[data-shown="false"][data-from="below"] {
+    translate: 0 0.45em;
+}
+
 /* Waiting. The mark only shows once a wait has gone on for 300ms, so a quick
    save never flashes it, then turns slowly. */
 .ink-icon.animate-spin {
@@ -930,6 +949,7 @@ path.ink-draw {
     .tick-draw path,
     .tick-draw[data-on="true"] path,
     .copy-glyph,
+    .swap-label > span,
     .check-dot,
     .row-wash,
     .disclosure {

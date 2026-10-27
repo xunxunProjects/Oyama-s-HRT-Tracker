@@ -119,5 +119,10 @@ settle, don't bounce; reduced motion lands everything on its final frame.
   fold (grid rows 0fr to 1fr), `.chip-slide` for an indicator that follows.
 - **Ink**: `.ink-draw` draws any stroke on (the calendar's ring);
   `.tick-draw` writes a tick short leg first.
+- **Labels that change** (`SwapLabel`): the button keeps the longer label's
+  width, both labels start right after the icon (4px from it), and the old
+  label rolls up and out as the new one rolls in. A plus that means "add"
+  turns into a cross (`.chev`) as its label becomes "Cancel"; a copy mark
+  becomes a tick (`CopyTick`).
 - **Waiting**: a busy mark only appears after 300ms and turns slowly.
 - Nothing else loops, except the pixel cats.

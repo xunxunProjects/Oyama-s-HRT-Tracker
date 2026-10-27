@@ -128,7 +128,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                         </div>
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)] transition-colors"
+                            className="flex items-center gap-1 px-5 py-2.5 text-sm font-medium rounded-full border border-[var(--border)] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)] transition-colors"
                         >
                             <ImagePlus size={16} />
                             {t('avatar.change')}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SwapLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { Check, ChevronDown, Eye, EyeOff, Link, Busy, LockKeyhole, Trash } from '../components/icons';
 import { CopyTick } from '../components/Tick';
@@ -271,17 +272,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 onClick={handleCopy}
                                 className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--accent-ink)] transition-colors hover:bg-[var(--surface-hover)] sm:self-auto"
                             >
-                                <span className="inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1">
                                     <CopyTick copied={copied} size={14} />
-                                    {/* Both labels share one cell so the button keeps the wider one's width. */}
-                                    <span className="grid">
-                                        <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>
-                                            {copy.copy}
-                                        </span>
-                                        <span className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>
-                                            {copy.copied}
-                                        </span>
-                                    </span>
+                                    <SwapLabel show={copied} off={copy.copy} on={copy.copied} />
                                 </span>
                             </button>
                         </div>

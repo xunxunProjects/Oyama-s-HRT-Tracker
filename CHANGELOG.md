@@ -45,13 +45,17 @@ Notable changes to this project. Full release notes for each version are on the
   window the new page settles into place from a few pixels to the side. Pages
   never fade through each other, so nothing flashes. A tab chosen in the
   sidebar or the bottom bar is simply there: in the bottom bar the pill glides
-  to the tab you tap, and the sidebar never moves. Nothing bounces, a wait only
-  shows its mark after 300 ms, and with reduced motion everything lands in
-  place at once.
+  to the tab you tap, and the sidebar never moves. A button whose words change
+  ("Copy" to "Copied", "Add dose" to "Cancel") keeps its size, keeps its icon
+  right beside its words, and rolls one label into the other, the plus turning
+  into a cross or the copy mark into a tick. Nothing bounces, a wait only shows
+  its mark after 300 ms, and with reduced motion everything lands in place at
+  once.
 
   有意义的动效。在手机上，打开页面会从侧面滑入盖住当前页，返回时再滑开；在宽屏上，新页面从旁边几个像素
   的位置轻轻落到位。页面之间不会互相淡入淡出，所以不会闪屏。在侧边栏或底部导航选中的页面会直接出现：
-  底部导航的高亮胶囊会滑到你点的那一项，侧边栏始终不动。没有弹跳；等待超过 300 毫秒才会出现转圈；
+  底部导航的高亮胶囊会滑到你点的那一项，侧边栏始终不动。文字会变化的按钮（“复制”变“已复制”，“添加剂量”变
+  “取消”）大小不变，图标紧挨着文字，文字会滚动切换，加号转成叉，复制图标变成对勾。没有弹跳；等待超过 300 毫秒才会出现转圈；
   开启“减弱动态效果”时，所有变化都会直接到位。
 
 - Any rhythm on the plan (#161). Besides the usual ones, "Another rhythm" takes

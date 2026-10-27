@@ -193,7 +193,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                     <button
                         onClick={handleTerminateOthers}
                         disabled={terminating === 'others'}
-                        className={`w-full flex items-center justify-center gap-2 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
+                        className={`w-full flex items-center justify-center gap-1 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
                     >
                         {terminating === 'others' ? (
                             <Busy size={15} strokeWidth={1.5} className="animate-spin" />

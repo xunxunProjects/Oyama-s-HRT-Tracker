@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
-import { Plus, ChevronRight, Copy, Check } from '../components/icons';
+import { Plus, ChevronRight } from '../components/icons';
 import {
     LabResult,
     CalibrationMethod,
@@ -26,6 +26,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 import { copyText } from '../utils/clipboard';
 import { clinicalUnit } from '../utils/clinicalUnit';
 import { SwapLabel } from '../components/StableLabel';
+import { CopyTick } from '../components/Tick';
 
 interface LabProps {
     t: (key: string) => string;
@@ -155,8 +156,8 @@ const Lab: React.FC<LabProps> = ({
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
                         className={`${headerActionAccent}`}
                     >
-                        <Plus size={15} className={isQuickAddLabOpen ? 'rotate-45' : ''} />
-                        <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
+                        <Plus size={15} className={`chev ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
+                        <SwapLabel show={isQuickAddLabOpen} off={t('lab.add_title')} on={t('btn.cancel')} />
                     </button>
                 }
             />
@@ -357,9 +358,9 @@ const Lab: React.FC<LabProps> = ({
                         <div className="flex items-center justify-between gap-4 py-4">
                             <button
                                 onClick={copyDetails}
-                                className="tap-target inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-ink)]"
+                                className="tap-target inline-flex items-center gap-1 text-sm font-medium text-[var(--accent-ink)]"
                             >
-                                {copied ? <Check size={14} /> : <Copy size={14} />}
+                                <CopyTick copied={copied} size={14} />
                                 <SwapLabel show={copied} off={t('lab.copy_details')} on={t('lab.copied')} />
                             </button>
                             <button
