@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChevronDown, Plus } from '../components/icons';
+import { ChevronDown } from '../components/icons';
 import { DoseEvent, Ester, Route } from '../../logic';
-import { SwapLabel } from '../components/StableLabel';
+import { AddCancelLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
 import Segmented from '../components/Segmented';
@@ -303,8 +303,7 @@ const Supplies: React.FC<SuppliesProps> = ({
                 title={t('supplies.title')}
                 actions={
                     <button type="button" onClick={() => setAdding(v => !v)} className={`${headerActionAccent}`}>
-                        <Plus size={15} className={`chev ${adding ? 'rotate-45' : ''}`} />
-                        <SwapLabel show={adding} off={t('supplies.add')} on={t('btn.cancel')} />
+                        <AddCancelLabel open={adding} add={t('supplies.add')} cancel={t('btn.cancel')} />
                     </button>
                 }
             />

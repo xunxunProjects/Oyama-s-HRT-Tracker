@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SwapLabel } from '../components/StableLabel';
+import { AddCancelLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
-import { Plus, Trash, Select, Repeat, ChevronDown } from '../components/icons';
+import { Trash, Select, Repeat, ChevronDown } from '../components/icons';
 import Tick from '../components/Tick';
 import Switch from '../components/Switch';
 import Doodle from '../components/Doodle';
@@ -585,8 +585,7 @@ const History: React.FC<HistoryProps> = ({
                                 aria-expanded={isQuickAddOpen}
                                 className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
                             >
-                                <Plus size={15} className={`chev ${isQuickAddOpen ? 'rotate-45' : ''}`} />
-                                <SwapLabel show={isQuickAddOpen} off={t('btn.add')} on={t('btn.cancel')} />
+                                <AddCancelLabel open={isQuickAddOpen} add={t('btn.add')} cancel={t('btn.cancel')} />
                             </button>
                         </>
                     )
