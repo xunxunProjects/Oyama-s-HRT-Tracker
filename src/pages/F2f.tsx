@@ -220,12 +220,21 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             <code className={`min-w-0 font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
                 {/* Each word kept whole, so a line breaks between them and
                     never right after the -- of --recipient. A word too long
-                    for the line (a file name with the group's id) may still
-                    break inside. */}
+                    for the line (a login code, a file name with the group's
+                    id) may break only between blocks of four. */}
                 {text.split(' ').map((word, i) => (
                     <React.Fragment key={i}>
                         {i > 0 && ' '}
-                        <span className={word.length <= 28 ? 'whitespace-nowrap' : undefined}>{word}</span>
+                        {word.length <= 28 ? (
+                            <span className="whitespace-nowrap">{word}</span>
+                        ) : (
+                            word.match(/.{1,4}/g)?.map((block, j) => (
+                                <React.Fragment key={j}>
+                                    {j > 0 && <wbr />}
+                                    {block}
+                                </React.Fragment>
+                            ))
+                        )}
                     </React.Fragment>
                 ))}
             </code>
