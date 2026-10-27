@@ -7,15 +7,21 @@ import { Busy, Close, Plus } from './icons';
  * much longer Japanese and Turkish wording) keeps its size instead of jumping.
  * Both labels start at the cell's start, right after the icon before them: a
  * button centres its text, and a short "Copied" used to land in the middle of
- * the space "Copy as table" kept, far from its tick. The switch rolls: the old
- * label goes up and out as the new one comes up into its place (.swap-label).
+ * the space "Copy as table" kept, far from its tick. A text button at the end
+ * of a row passes align="end" instead, so a short "コピー" sits against the
+ * edge rather than out in the room "コピーしました" keeps. The switch rolls:
+ * the old label goes up and out as the new one comes up into its place
+ * (.swap-label).
  */
-export const SwapLabel: React.FC<{ show: boolean; off: React.ReactNode; on: React.ReactNode }> = ({
-    show,
-    off,
-    on,
-}) => (
-    <span className="swap-label grid justify-items-start text-start">
+export const SwapLabel: React.FC<{
+    show: boolean;
+    off: React.ReactNode;
+    on: React.ReactNode;
+    align?: 'start' | 'end';
+}> = ({ show, off, on, align = 'start' }) => (
+    <span
+        className={`swap-label grid ${align === 'end' ? 'justify-items-end text-end' : 'justify-items-start text-start'}`}
+    >
         <span className="col-start-1 row-start-1" data-shown={!show} data-from="above" aria-hidden={show}>
             {off}
         </span>

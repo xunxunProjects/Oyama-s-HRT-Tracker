@@ -20,7 +20,7 @@ const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)]
 // A fingerprint read out in blocks of four wraps between blocks, never inside one.
 const fprText = 'font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
 const textButton =
-    'text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
+    'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
 // A name and its value on one hairline row.
 const row = 'flex items-baseline justify-between gap-4 py-3 text-[0.9375rem]';
 
@@ -78,7 +78,9 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    // What went wrong, and which button it came from, so it can be said
+    // right under that button.
+    const [error, setError] = useState<{ at: string; text: string } | null>(null);
     const [publicKey, setPublicKey] = useState('');
     const [fingerprint, setFingerprint] = useState('');
     const [copied, setCopied] = useState<string | null>(null);
@@ -89,6 +91,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [guideOpen, setGuideOpen] = useState<boolean | null>(null);
 
     const describe = (err: unknown) => t(ERROR_KEYS[apiErrorCode(err)] ?? 'f2f.error');
+
+    /** The error from the button at `at`, as a hint line under it, in words. */
+    const errorAt = (at: string) =>
+        error?.at === at ? (
+            <p role="alert" className="field-hint is-error">
+                {error.text}
+            </p>
+        ) : null;
 
     const stateLabel = (state: string | undefined) => {
         const key = `f2f.state_${state}`;
@@ -128,7 +138,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             await action();
             await fetchAll();
         } catch (err) {
-            setError(describe(err));
+            setError({ at: key, text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -140,7 +150,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         // without the spaces.
         const fpr = fingerprint.replace(/\s+/g, '');
         if (!key || !fpr) {
-            setError(t('f2f.key_required'));
+            setError({ at: 'upload', text: t('f2f.key_required') });
             return;
         }
         void run('upload', async () => {
@@ -156,7 +166,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             setCopied(label);
             window.setTimeout(() => setCopied(current => (current === label ? null : current)), 1500);
         } catch {
-            setError(t('f2f.error'));
+            setError({ at: 'copy', text: t('f2f.error') });
         }
     };
 
@@ -177,7 +187,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             link.remove();
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (err) {
-            setError(describe(err));
+            setError({ at: 'keyring', text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -189,7 +199,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         try {
             setCliCode(await f2fService.createCliCode(token));
         } catch (err) {
-            setError(describe(err));
+            setError({ at: 'cli-code', text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -209,27 +219,43 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     };
 
     const copyButton = (value: string, label: string) => (
-        <button type="button" className={`${textButton} shrink-0`} onClick={() => copy(value, label)}>
-            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} />
+        <button type="button" className={textButton} onClick={() => copy(value, label)}>
+            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} align="end" />
         </button>
     );
 
     /** A command to run in a terminal, on a quiet filled note, with its own Copy. */
     const command = (text: string, label: string) => (
-        <div className="callout mt-2 flex items-start justify-between gap-3">
-            <code className={`min-w-0 font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
+        <div className="callout mt-2 flow-root">
+            {/* Copy floats at the top, so only the first line makes room for
+                it and a long word further down (the CLI login code) still
+                has the whole width to itself. */}
+            <span className="float-end ms-3">{copyButton(text, label)}</span>
+            <code className={`block font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
                 {/* Each word kept whole, so a line breaks between them and
                     never right after the -- of --recipient. A word too long
-                    for the line (a file name with the group's id) may still
-                    break inside. */}
+                    for the line (a login code, a file name with the group's
+                    id) may break only between blocks of four, and only when
+                    it doesn't fit on a line of its own: its box moves down
+                    whole first. */}
                 {text.split(' ').map((word, i) => (
                     <React.Fragment key={i}>
                         {i > 0 && ' '}
-                        <span className={word.length <= 28 ? 'whitespace-nowrap' : undefined}>{word}</span>
+                        {word.length <= 28 ? (
+                            <span className="whitespace-nowrap">{word}</span>
+                        ) : (
+                            <span className="inline-block max-w-full">
+                                {word.match(/.{1,4}/g)?.map((block, j) => (
+                                    <React.Fragment key={j}>
+                                        {j > 0 && <wbr />}
+                                        {block}
+                                    </React.Fragment>
+                                ))}
+                            </span>
+                        )}
                     </React.Fragment>
                 ))}
             </code>
-            {copyButton(text, label)}
         </div>
     );
 
@@ -262,11 +288,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                     autoComplete="off"
                 />
             </div>
-            <button type="button" className="btn-tonal" onClick={upload} disabled={busy !== null}>
-                <BusyLabel busy={busy === 'upload'} size={15}>
-                    {t('f2f.upload')}
-                </BusyLabel>
-            </button>
+            <div>
+                <button type="button" className="btn-tonal" onClick={upload} disabled={busy !== null}>
+                    <BusyLabel busy={busy === 'upload'} size={15}>
+                        {t('f2f.upload')}
+                    </BusyLabel>
+                </button>
+                {errorAt('upload')}
+            </div>
         </div>
     );
 
@@ -298,7 +327,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                 <p className={muted}>{t('f2f.intro')}</p>
                                 <button
                                     type="button"
-                                    className={`${textButton} shrink-0`}
+                                    className={textButton}
                                     onClick={() => run('refresh', async () => {})}
                                     disabled={busy !== null}
                                 >
@@ -307,15 +336,10 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     </BusyLabel>
                                 </button>
                             </div>
+                            {errorAt('refresh')}
+                            {errorAt('copy')}
                             <p className="text-xs leading-relaxed text-[var(--warning)]">{t('f2f.verify_note')}</p>
                         </div>
-
-                        {error && (
-                            <p role="alert" className="flex items-start gap-1.5 text-sm text-[var(--warning)]">
-                                <Alert size={15} className="mt-0.5 shrink-0" />
-                                <span>{error}</span>
-                            </p>
-                        )}
 
                         {/* The whole of it for someone new to OpenPGP: make a key,
                             hand over its public half, check fingerprints in
@@ -432,6 +456,8 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         </button>
                                     </div>
                                 )}
+                                {errorAt('retire')}
+                                {errorAt('revoke')}
                             </section>
                         )}
 
@@ -461,6 +487,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         </BusyLabel>
                                     </button>
                                 </div>
+                                {errorAt('keyring')}
                                 <p className={muted}>{t('f2f.keyring_help')}</p>
                                 {members.length === 0 ? (
                                     <p className={`${muted} mt-3`}>{t('f2f.no_members')}</p>
@@ -524,21 +551,27 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     {t('f2f.cli_generate')}
                                 </BusyLabel>
                             </button>
+                            {errorAt('cli-code')}
                             {cliCode && (
                                 <div className="mt-3 space-y-2">
+                                    {/* The code on a line of its own, in groups of four that
+                                        wrap between groups on a narrow phone; when it runs out
+                                        and Copy share the row under it. */}
+                                    <p className={`font-mono text-xs tabular-nums ${on}`}>
+                                        {groupFingerprint(cliCode.code)}
+                                    </p>
                                     <div className="flex items-center justify-between gap-3">
-                                        <p className={mono}>{cliCode.code}</p>
+                                        <p className={muted}>
+                                            {t('f2f.cli_expires').replace(
+                                                '{time}',
+                                                new Date(cliCode.expires_at * 1000).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                }),
+                                            )}
+                                        </p>
                                         {copyButton(cliCode.code, 'cli-code')}
                                     </div>
-                                    <p className={muted}>
-                                        {t('f2f.cli_expires').replace(
-                                            '{time}',
-                                            new Date(cliCode.expires_at * 1000).toLocaleTimeString([], {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            }),
-                                        )}
-                                    </p>
                                     <p className={`${muted} pt-1`}>{t('f2f.cli_help')}</p>
                                     {command(
                                         `hrt-f2f login --server ${window.location.origin} --code ${cliCode.code} --token-out ~/.config/hrt-f2f/token`,
