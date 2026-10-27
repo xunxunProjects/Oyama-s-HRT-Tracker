@@ -1,35 +1,35 @@
 import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
 import {
-    UploadCloud,
-    LogOut,
-    BadgeCheck,
-    Edit2,
-    Loader2,
-    Trash2,
+    CloudUp,
+    Logout,
+    CheckCircle,
+    Pencil,
+    Busy,
+    Trash,
     Cloud,
-    HardDrive,
-    DownloadCloud,
+    Drive,
+    CloudDown,
     Merge,
     ChevronDown,
     Plus,
     Minus,
-    Fingerprint,
-    KeyRound,
+    Monitor,
+    Users,
     Lock,
-    MonitorSmartphone,
+    Devices,
     CloudOff,
-    CheckCircle2,
-    AlertCircle,
-    RefreshCw,
-} from 'lucide-react';
-import ShieldIcon from '../components/ShieldIcon';
+    Alert,
+    Retry,
+    Shield,
+} from '../components/icons';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import Point from '../components/Point';
 import PasswordStrengthHint from '../components/PasswordStrengthHint';
 import { newPasswordLevel } from '../../passwordStrength';
-import { describeAuthError } from '../components/AuthModal';
+import { describeAuthError } from '../utils/authError';
+import { getShareCopy } from '../i18n/share';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cloudService, BackupMeta } from '../services/cloud';
@@ -44,7 +44,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import { hrtService } from '../services/hrt';
 import { apiEndpoint } from '../services/apiClient';
-import PasswordInputModal from '../components/PasswordInputModal';
+import PasswordPrompt from '../components/PasswordPrompt';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
 import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -74,6 +74,9 @@ interface AccountProps {
     /** Why `syncStatus` is `error`, when it is — see CloudSyncState.errorCode. */
     syncErrorCode: string | null;
     lastSyncedAt: number | null;
+    /** Signed out, and sent here by a feature that needs an account: the form
+     *  says which, and why, above itself. */
+    signInReason?: 'share';
 }
 
 const divider = 'border-b border-[var(--border)]';
@@ -97,13 +100,13 @@ type UnlockTarget = { purpose: 'expand'; rawData: any; backupId: string } | { pu
 const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
     switch (status) {
         case 'syncing':
-            return <Loader2 size={18} className={`${className} animate-spin`} />;
+            return <Busy size={18} className={`${className} animate-spin`} />;
         case 'synced':
-            return <CheckCircle2 size={18} className={className} />;
+            return <CheckCircle size={18} className={className} />;
         case 'locked':
             return <Lock size={18} className={className} />;
         case 'error':
-            return <AlertCircle size={18} className="text-[var(--warning)] shrink-0" />;
+            return <Alert size={18} className="text-[var(--warning)] shrink-0" />;
         case 'off':
             return <CloudOff size={18} className={className} />;
         default:
@@ -126,6 +129,7 @@ const Account: React.FC<AccountProps> = ({
     syncStatus,
     syncErrorCode,
     lastSyncedAt,
+    signInReason,
 }) => {
     const [avatarError, setAvatarError] = useState(false);
     // The hrt-tool page only exists when the Worker has HRT_RAW_ENABLED and a
@@ -534,8 +538,7 @@ const Account: React.FC<AccountProps> = ({
         }
     };
 
-    const inputCls =
-        'w-full px-3 py-2.5 text-sm bg-[var(--field)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--accent-ink)] text-[var(--text)]';
+    const inputCls = 'input-base text-sm';
 
     const authErrorId = `${formId}-error`;
     const authErrorLine = authError && (
@@ -592,7 +595,7 @@ const Account: React.FC<AccountProps> = ({
                                     {user.username}
                                 </span>
                                 {user.isAdmin && (
-                                    <BadgeCheck
+                                    <CheckCircle
                                         className="w-5 h-5 shrink-0 text-[var(--accent-ink)]"
                                         strokeWidth={2.5}
                                     />
@@ -602,7 +605,7 @@ const Account: React.FC<AccountProps> = ({
                                 onClick={() => onNavigate('edit-profile')}
                                 className="mt-0.5 text-xs text-[var(--accent-ink)] flex items-center gap-1"
                             >
-                                <Edit2 size={12} />
+                                <Pencil size={12} />
                                 {t('account.edit_profile')}
                             </button>
                         </div>
@@ -625,7 +628,7 @@ const Account: React.FC<AccountProps> = ({
                                 onClick={() => onNavigate('change-password')}
                             />
                             <SettingsListItem
-                                icon={ShieldIcon}
+                                icon={Shield}
                                 title={t('account.2fa')}
                                 description={t('account.2fa_desc')}
                                 onClick={() => onNavigate('two-factor')}
@@ -636,21 +639,21 @@ const Account: React.FC<AccountProps> = ({
                                 }
                             />
                             <SettingsListItem
-                                icon={MonitorSmartphone}
+                                icon={Devices}
                                 title={t('account.sessions')}
                                 description={t('account.sessions_desc')}
                                 onClick={() => onNavigate('sessions')}
                             />
                             {hrtToolSupported && (
                                 <SettingsListItem
-                                    icon={Fingerprint}
+                                    icon={Monitor}
                                     title={t('hrt.title')}
                                     description={t('hrt.subtitle')}
                                     onClick={() => onNavigate('hrt-security')}
                                 />
                             )}
                             <SettingsListItem
-                                icon={KeyRound}
+                                icon={Users}
                                 title={t('f2f.title')}
                                 description={t('f2f.subtitle')}
                                 onClick={() => onNavigate('f2f')}
@@ -745,13 +748,7 @@ const Account: React.FC<AccountProps> = ({
                             fixes that, so leave this one out of reach until it
                             has been. */}
                             <SettingsListItem
-                                icon={
-                                    savingCloud ? (
-                                        <Loader2 className={`${iconCls} animate-spin`} size={18} />
-                                    ) : (
-                                        UploadCloud
-                                    )
-                                }
+                                icon={savingCloud ? <Busy className={`${iconCls} animate-spin`} size={18} /> : CloudUp}
                                 title={t('account.backup_cloud')}
                                 description={t('account.backup_cloud_desc')}
                                 onClick={handleSave}
@@ -774,7 +771,7 @@ const Account: React.FC<AccountProps> = ({
                             {/* Backup list */}
                             {backupsLoading ? (
                                 <div className="flex justify-center py-6">
-                                    <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                                    <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
                                 </div>
                             ) : backupsFailed ? (
                                 <div className="py-6 flex flex-col items-center gap-2 text-center">
@@ -782,7 +779,7 @@ const Account: React.FC<AccountProps> = ({
                                         role="alert"
                                         className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
                                     >
-                                        <AlertCircle size={14} className="shrink-0 text-[var(--warning)]" />
+                                        <Alert size={14} className="shrink-0 text-[var(--warning)]" />
                                         {t('account.backups_list_failed')}
                                     </p>
                                     <button
@@ -790,7 +787,7 @@ const Account: React.FC<AccountProps> = ({
                                         onClick={() => fetchBackups()}
                                         className="btn-ghost btn-ghost-accent tap-target"
                                     >
-                                        <RefreshCw size={14} />
+                                        <Retry size={14} />
                                         {t('account.retry')}
                                     </button>
                                 </div>
@@ -823,7 +820,7 @@ const Account: React.FC<AccountProps> = ({
                                                 }
                                             }}
                                         >
-                                            <HardDrive size={20} className={iconCls} />
+                                            <Drive size={20} className={iconCls} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-[var(--text)] truncate">
                                                     {formatRelative(b.created_at, listedAt, t)}
@@ -836,8 +833,7 @@ const Account: React.FC<AccountProps> = ({
                                                         hour: '2-digit',
                                                         minute: '2-digit',
                                                     })}
-                                                    {' · '}
-                                                    {formatBytes(b.data_size)}
+                                                    , {formatBytes(b.data_size)}
                                                 </p>
                                             </div>
                                             <button
@@ -849,7 +845,7 @@ const Account: React.FC<AccountProps> = ({
                                                 title={t('btn.delete')}
                                                 className="-my-1.5 p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] rounded shrink-0"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash size={16} />
                                             </button>
                                             <ChevronDown
                                                 size={16}
@@ -861,7 +857,7 @@ const Account: React.FC<AccountProps> = ({
                                                 <div className="pb-4 pt-1 space-y-3">
                                                     {expandLoading === b.id ? (
                                                         <div className="flex justify-center py-6">
-                                                            <Loader2
+                                                            <Busy
                                                                 className="animate-spin text-[var(--text-muted)]"
                                                                 size={20}
                                                             />
@@ -1133,10 +1129,7 @@ const Account: React.FC<AccountProps> = ({
                                                                             }}
                                                                             className="btn-primary flex-1"
                                                                         >
-                                                                            <DownloadCloud
-                                                                                size={13}
-                                                                                strokeWidth={1.5}
-                                                                            />
+                                                                            <CloudDown size={13} strokeWidth={1.5} />
                                                                             {t('account.restore')}
                                                                         </button>
                                                                     </div>
@@ -1158,7 +1151,7 @@ const Account: React.FC<AccountProps> = ({
                         last thing on the page. */}
                     <div className={settingsSection}>
                         <SettingsListItem
-                            icon={LogOut}
+                            icon={Logout}
                             title={t('account.sign_out')}
                             onClick={confirmSignOut}
                             showChevron={false}
@@ -1170,7 +1163,7 @@ const Account: React.FC<AccountProps> = ({
                         <span className={`${sectionLabelBase} text-[var(--danger)]`}>{t('account.danger_zone')}</span>
                         <div className={settingsSection}>
                             <SettingsListItem
-                                icon={Trash2}
+                                icon={Trash}
                                 title={t('account.delete_account')}
                                 description={t('account.delete_account_desc')}
                                 onClick={() => onNavigate('delete-account')}
@@ -1181,6 +1174,20 @@ const Account: React.FC<AccountProps> = ({
                 </div>
             ) : (
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:max-w-sm [&>*]:mx-auto`}>
+                    {/* Sent here by Share: what Share does, in its own words,
+                        then why it needs an account. No space after a CJK full
+                        stop, which carries its own. */}
+                    {signInReason === 'share' &&
+                        (() => {
+                            const shareDesc = getShareCopy(lang).modalDescription;
+                            return (
+                                <p className="mb-5 text-sm leading-relaxed text-[var(--text)]">
+                                    {shareDesc}
+                                    {/[。！？]$/.test(shareDesc) ? '' : ' '}
+                                    {t('auth.share_needs_account')}
+                                </p>
+                            );
+                        })()}
                     {/* What an account is for, before the form asks for one.
                         Bare, the form read as the app requiring it, and said
                         nothing about what it would do with medical records.
@@ -1281,7 +1288,7 @@ const Account: React.FC<AccountProps> = ({
                             {needsTOTP && (
                                 <div className="space-y-3">
                                     <div className="p-2.5 text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-md flex items-center gap-2">
-                                        <ShieldIcon size={16} className="shrink-0 text-[var(--accent-ink)]" />
+                                        <Shield size={16} className="shrink-0 text-[var(--accent-ink)]" />
                                         {t('auth.needs_2fa')}
                                     </div>
                                     {useBackupCode ? (
@@ -1383,12 +1390,9 @@ const Account: React.FC<AccountProps> = ({
                                                         disabled={passkeyLoading}
                                                         className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                                     >
-                                                        {passkeyLoading ? (
-                                                            <Loader2 size={16} className="animate-spin" />
-                                                        ) : (
-                                                            <Fingerprint size={16} />
-                                                        )}
-                                                        {t('auth.passkey_as_2fa')}
+                                                        <BusyLabel busy={passkeyLoading}>
+                                                            {t('auth.passkey_as_2fa')}
+                                                        </BusyLabel>
                                                     </button>
                                                 </>
                                             )}
@@ -1417,12 +1421,7 @@ const Account: React.FC<AccountProps> = ({
                                         disabled={passkeyLoading}
                                         className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        {passkeyLoading ? (
-                                            <Loader2 size={16} className="animate-spin" />
-                                        ) : (
-                                            <Fingerprint size={16} />
-                                        )}
-                                        {t('auth.passkey_login')}
+                                        <BusyLabel busy={passkeyLoading}>{t('auth.passkey_login')}</BusyLabel>
                                     </button>
                                 </>
                             )}
@@ -1431,7 +1430,7 @@ const Account: React.FC<AccountProps> = ({
                 </div>
             )}
 
-            <PasswordInputModal
+            <PasswordPrompt
                 isOpen={!!unlockTarget}
                 onClose={cancelUnlock}
                 onConfirm={handleUnlockSubmit}

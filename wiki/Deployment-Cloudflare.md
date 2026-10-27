@@ -1,6 +1,6 @@
 # Cloudflare Workers
 
-> **Production: deploy the `v1.5.0` release tag.** Do not deploy `main`; it is
+> **Production: deploy the `v1.5.1` release tag.** Do not deploy `main`; it is
 > not a release.
 
 This is the serverless deployment: the web app is served by a Cloudflare

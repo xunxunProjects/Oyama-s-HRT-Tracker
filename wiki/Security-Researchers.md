@@ -16,14 +16,15 @@ Recent security-relevant changes:
 
 | Date       | Change           | Why it matters                                                                                                          |
 | ---------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-28 | `v1.5.1`         | Latest release; contains the two Low-severity fixes from 2026-10-22                                                     |
 | 2026-10-22 | `40233a3` (#152) | `alg:none` JWTs now return 401 instead of 500; private session/2FA/passkey responses now send `Cache-Control: no-store` |
 | 2026-10-22 | `2f5fd93` (#151) | Wiki and deployment documentation                                                                                       |
-| 2026-10-14 | `v1.5.0`         | Latest release; predates the two Low-severity fixes above                                                               |
+| 2026-10-14 | `v1.5.0`         | Previous release; predates the two Low-severity fixes above                                                             |
 | 2026-10-21 | Tools #3         | Tools wiki and 0.1.1 release engineering                                                                                |
 
-The latest release, `v1.5.0`, does **not** contain the 2026-10-22 fixes. If you
-need those fixes in a deployed instance, wait for the next release; do not
-deploy `main` to production just to pick them up.
+The latest release, `v1.5.1`, contains the 2026-10-22 fixes; `v1.5.0` does
+not. If a deployed instance needs those fixes, upgrade it to `v1.5.1`. Do not
+deploy `main` to production just to pick up an unreleased fix.
 
 ## Scope
 

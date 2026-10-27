@@ -1,6 +1,6 @@
 # Deploy with Docker
 
-> **Production: pin the `v1.5.0` release tag.** Do not deploy `main`; build the
+> **Production: pin the `v1.5.1` release tag.** Do not deploy `main`; build the
 > image from a release checkout.
 
 The container runs the complete app: the Worker API under Wrangler's local
@@ -15,7 +15,8 @@ You need Git, Docker, and Docker Compose v2. The repository scripts can do the
 first deploy:
 
 ```bash
-git clone https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
+git clone --branch v1.5.1 --depth 1 \
+  https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
 cd Oyama-s-HRT-Tracker
 ./Dependency-Detection.sh --docker   # read-only preflight
 ./docker-install.sh                  # asks: loopback, domain, or LAN
@@ -128,8 +129,9 @@ The container runs as uid 1000, so `./data` must be writable by uid 1000:
 
 - **Back up**: stop the container first, then copy `./data`. The folder holds
   accounts and sessions even though backups and share payloads are encrypted.
-- **Update**: `git pull` then `./docker-install.sh` (or
-  `docker compose up -d --build`). Pending migrations run at startup and
+- **Update**: check out the new release tag
+  (`git fetch --tags && git checkout <tag>`), then run `./docker-install.sh`
+  (or `docker compose up -d --build`). Pending migrations run at startup and
   `./data` is kept.
 - **Change `.env`**: `docker compose up -d --force-recreate`.
   `docker compose restart` keeps the old environment. `docker-install.sh`
@@ -264,4 +266,4 @@ list.
   Docker-only.
 - The Docker and Cloudflare deployment paths were read from the repository and
   not deployed while writing this page. Commands are the ones in the README and
-  entrypoint at version 1.5.0.
+  entrypoint at version 1.5.1.

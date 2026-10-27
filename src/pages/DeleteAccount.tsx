@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
-import { AlertTriangle } from 'lucide-react';
+import { Warning } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
@@ -81,7 +81,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     gone, so the one way to keep them is to export first. */}
                 <div className="flex items-start gap-3">
                     <span className="icon-line text-sm leading-relaxed">
-                        <AlertTriangle size={18} className="text-[var(--danger)]" />
+                        <Warning size={18} className="text-[var(--danger)]" />
                     </span>
                     <div className="space-y-4 min-w-0">
                         <div className="space-y-1">

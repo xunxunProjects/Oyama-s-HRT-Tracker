@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, Settings2, Database, Info } from 'lucide-react';
+import { ChevronRight, Sliders, Database, Info } from '../components/icons';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
@@ -20,7 +20,7 @@ interface SettingsProps {
     onClearAllEvents: () => void;
     events: DoseEvent[];
     showDialog: (type: 'alert' | 'confirm', message: string, onConfirm?: () => void) => void;
-    setIsDisclaimerOpen: (isOpen: boolean) => void;
+    onNavigateToDisclaimer: () => void;
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     onNavigateToCredits: () => void;
@@ -64,6 +64,9 @@ const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 
 const section = settingsSection;
+
+/** The heading over a section of rows: sentence case, quiet, and close to its rows. Its own margin wins over the stack's gap below it. */
+const SectionHeading: React.FC<{ title: string }> = ({ title }) => <h2 className="group-heading mb-1">{title}</h2>;
 
 const NavRow: React.FC<{ label: string; value?: React.ReactNode; onClick: () => void }> = ({
     label,
@@ -146,7 +149,7 @@ const Settings: React.FC<SettingsProps> = ({
     onClearAllEvents,
     events,
     showDialog,
-    setIsDisclaimerOpen,
+    onNavigateToDisclaimer,
     onShowIntro,
     onNavigateToTransparency,
     onNavigateToCredits,
@@ -231,7 +234,7 @@ const Settings: React.FC<SettingsProps> = ({
         {
             id: 'general',
             label: t('settings.group.general'),
-            Icon: Settings2,
+            Icon: Sliders,
             hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(', '),
         },
         {
@@ -248,12 +251,13 @@ const Settings: React.FC<SettingsProps> = ({
         },
     ];
 
-    // Each category is a stack of sections: like rows sit together, and the
-    // space between sections is the only grouping, so no extra headings to
-    // translate.
+    // Each category is a stack of sections, each under a short heading in
+    // sentence case. Space alone grouped them before, and a section of one row
+    // (Supplies) read as a row that had come loose from the rest.
     const renderGeneral = () => (
         <div className="space-y-8">
             {/* What the model is fed. */}
+            <SectionHeading title={t('settings.section.model')} />
             <div className={section}>
                 <NavRow
                     label={t('settings.hrt_mode')}
@@ -293,6 +297,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             {/* What's left on hand. */}
+            <SectionHeading title={t('settings.section.supplies')} />
             <div className={section}>
                 <NavRow
                     label={t('supplies.title')}
@@ -302,6 +307,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             {/* How the app looks and speaks. */}
+            <SectionHeading title={t('settings.section.display')} />
             <div className={section}>
                 <NavRow
                     label={t('drawer.lang')}
@@ -353,8 +359,11 @@ const Settings: React.FC<SettingsProps> = ({
             {/* Desktop reaches the admin area from the left nav rail; on mobile that
                 rail doesn't exist, so this is the only way in. */}
             {isAdmin && (
-                <div className={`${section} md:hidden`}>
-                    <NavRow label={t('admin.dashboard')} onClick={() => navTo(onNavigateToAdmin, 'general')} />
+                <div className="md:hidden">
+                    <SectionHeading title={t('settings.section.admin')} />
+                    <div className={section}>
+                        <NavRow label={t('admin.dashboard')} onClick={() => navTo(onNavigateToAdmin, 'general')} />
+                    </div>
                 </div>
             )}
         </div>
@@ -363,16 +372,20 @@ const Settings: React.FC<SettingsProps> = ({
     const renderData = () => (
         <div className="space-y-8">
             {isLoggedIn && (
-                <div className={section}>
-                    <SwitchRow
-                        label={t('settings.auto_sync')}
-                        desc={t('settings.auto_sync_desc')}
-                        checked={autoSync}
-                        onChange={setAutoSync}
-                    />
+                <div>
+                    <SectionHeading title={t('settings.section.sync')} />
+                    <div className={section}>
+                        <SwitchRow
+                            label={t('settings.auto_sync')}
+                            desc={t('settings.auto_sync_desc')}
+                            checked={autoSync}
+                            onChange={setAutoSync}
+                        />
+                    </div>
                 </div>
             )}
 
+            <SectionHeading title={t('settings.section.backup')} />
             <div className={section}>
                 <NavRow label={t('export.title')} onClick={() => navTo(onNavigateToExport, 'data')} />
                 <NavRow label={t('import.title')} onClick={() => navTo(onNavigateToImport, 'data')} />
@@ -380,6 +393,7 @@ const Settings: React.FC<SettingsProps> = ({
 
             {/* Destructive, so it sits apart from Export and Import rather than one row under them.
                 The count says how much goes before the tap, not only in the confirm. */}
+            <SectionHeading title={t('settings.section.clear')} />
             <div className={section}>
                 <button
                     onClick={onClearAllEvents}
@@ -391,7 +405,9 @@ const Settings: React.FC<SettingsProps> = ({
                     </span>
                     {events.length > 0 && (
                         <span className={`${rowValue} tabular-nums`}>
-                            {events.length} {t('timeline.records')}
+                            {events.length === 1
+                                ? t('timeline.records_one')
+                                : t('timeline.records_n').replace('{n}', String(events.length))}
                         </span>
                     )}
                 </button>
@@ -401,6 +417,7 @@ const Settings: React.FC<SettingsProps> = ({
 
     const renderAbout = () => (
         <div className="space-y-8">
+            <SectionHeading title={t('settings.section.about')} />
             <div className={section}>
                 <NavRow
                     label={t('drawer.model_title')}
@@ -420,12 +437,13 @@ const Settings: React.FC<SettingsProps> = ({
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
                 <NavRow label="Credits" onClick={() => navTo(onNavigateToCredits, 'about')} />
-                <NavRow label={t('drawer.disclaimer')} onClick={() => setIsDisclaimerOpen(true)} />
+                <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}
                 <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
             </div>
 
+            <SectionHeading title={t('settings.section.developer')} />
             <div className={section}>
                 <SwitchRow
                     label={t('settings.developer_mode')}

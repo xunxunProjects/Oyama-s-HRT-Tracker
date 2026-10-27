@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { Ester, GEL_SITE_ORDER, GNRH_AGONISTS, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
 import Tick from './Tick';
@@ -7,14 +6,25 @@ import Doodle from './Doodle';
 import DoseRings from './DoseRings';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
-import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, freshDraft } from '../utils/plan';
-import { frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
+import CustomRhythm from './CustomRhythm';
+import {
+    PlanItem,
+    PlanDraft,
+    FREQUENCIES,
+    PLAN_DRUGS,
+    customSeed,
+    draftDoseOk,
+    draftToItem,
+    freshDraft,
+    parseFrequency,
+} from '../utils/plan';
+import { asTitle, frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
 
 const divider = 'border-b border-[var(--border)]';
 
 type StepKey = 'route' | 'drug' | 'dose' | 'site' | 'hold' | 'freq';
 
-/** The rhythms a route is usually on. The rest wait behind the last row. */
+/** The rhythms a route is usually on. Any other is typed in under the last row. */
 const COMMON_FREQ: Partial<Record<Route, string[]>> = {
     [Route.injection]: ['e3', 'e5', 'e7', 'e10', 'e14'],
     [Route.oral]: ['d1', 'd2', 'd3', 'e2'],
@@ -67,7 +77,8 @@ interface PlanWizardProps {
 /**
  * Adding a drug to the plan, one question a screen, in the intro's shell: a
  * heading, rows to choose from, and the same back / rings / next along the
- * bottom. Takes over the whole window for the same reason the intro does.
+ * bottom. It is the Plan page's own content while it runs, not a layer over
+ * the app, so the sidebar and the way back stay where they always are.
  *
  * Choosing a route fills in everything after it with what is usual for that
  * route, so the later screens open already answered and Next is enough when
@@ -84,7 +95,21 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const [draft, setDraft] = useState<PlanDraft | null>(null);
     const [at, setAt] = useState(0);
     const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-    const [allFreq, setAllFreq] = useState(false);
+    // "Another rhythm" chosen on the last step: the rows above lose their
+    // tick and the custom fields unfold under it.
+    const [custom, setCustom] = useState(false);
+    const customRef = useRef<HTMLDivElement>(null);
+    // Unfolded under the last row, the fields would sit below the bottom bar;
+    // once they've opened they're brought up into view.
+    useEffect(() => {
+        if (!custom) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const timer = window.setTimeout(
+            () => customRef.current?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }),
+            reduce ? 0 : 340,
+        );
+        return () => clearTimeout(timer);
+    }, [custom]);
 
     const drugs = draft ? (PLAN_DRUGS[mode][draft.route] ?? []) : [];
     const steps: StepKey[] = [
@@ -98,7 +123,17 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const step = steps[Math.min(at, steps.length - 1)];
     const isLast = at >= steps.length - 1;
     const item = draft && draftToItem(draft, 'draft');
-    const ready = step === 'route' ? !!draft : step === 'dose' ? !!item : true;
+    // Each step waits only on its own answer. Waiting on the whole item let a
+    // half-typed rhythm on the last step disable Next on every step before
+    // it, once Back had been pressed, with no way out but Cancel.
+    const ready =
+        step === 'route'
+            ? !!draft
+            : step === 'dose'
+              ? !!draft && draftDoseOk(draft)
+              : step === 'freq'
+                ? !!draft && !!parseFrequency(draft.freq)
+                : true;
 
     const go = (next: number) => {
         setDirection(next > at ? 'forward' : 'backward');
@@ -117,9 +152,12 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const pickRoute = (route: Route) => {
         const open = free(route);
         setDraft(d => freshDraft(route, d && d.route === route && open.includes(d.ester) ? d.ester : open[0]));
-        setAllFreq(false);
+        setCustom(false);
     };
-    const pickDrug = (ester: Ester) => setDraft(d => d && freshDraft(d.route, ester));
+    const pickDrug = (ester: Ester) => {
+        setDraft(d => d && freshDraft(d.route, ester));
+        setCustom(false);
+    };
     const patch = (p: Partial<PlanDraft>) => setDraft(d => d && { ...d, ...p });
 
     useEffect(() => {
@@ -130,9 +168,10 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel]);
 
+    // Each step starts at the top of the page the wizard sits in.
     const scroller = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        scroller.current?.scrollTo({ top: 0 });
+        scroller.current?.closest('.main-view')?.scrollTo({ top: 0 });
     }, [at]);
 
     // What has been answered so far, under the heading of the next question.
@@ -146,34 +185,21 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                 : regimenLabel(item, t);
 
     const common = draft ? commonFreq(draft.route, draft.ester) : [];
-    const showAllFreq = allFreq || !draft || !common.includes(draft.freq);
+    // The usual rhythms for the route, plus the drug's own if it isn't one of
+    // them (a GnRH depot's), so the row it starts on is always in the list.
+    const listed = draft && !common.includes(draft.freq) && !custom ? [...common, draft.freq] : common;
     const isPatch = draft?.route === Route.patchApply;
 
     const heading = step === 'dose' && isPatch ? t('plan.q_rate') : t(`plan.q_${step}`);
 
-    return createPortal(
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('plan.add')}
-            className="fixed inset-0 z-50 flex select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
-        >
-            <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--surface-hover)]"
-                >
-                    {t('btn.cancel')}
-                </button>
-            </div>
-
+    return (
+        <section aria-label={t('plan.add')} className="flex flex-1 select-none flex-col">
             {/* Top-aligned, unlike the intro: these steps differ in height, and
                 centring each one would move the heading from step to step. */}
-            <div ref={scroller} className="flex flex-1 items-start overflow-y-auto scrollbar-hide px-6">
+            <div ref={scroller} className="flex flex-1 items-start px-6">
                 <div
                     key={step}
-                    className={`mx-auto w-full max-w-md pt-8 pb-8 lg:pt-[12vh] ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className={`mx-auto w-full max-w-md pt-2 pb-8 lg:pt-[6vh] ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     <h1 className="text-2xl font-semibold text-body">{heading}</h1>
                     {draft && soFar && (
@@ -271,29 +297,42 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
 
                     {step === 'freq' && draft && (
                         <div className="mt-6">
-                            {FREQUENCIES.filter(f => showAllFreq || common.includes(f.key)).map(f => (
+                            {FREQUENCIES.filter(f => listed.includes(f.key)).map(f => (
                                 <Row
                                     key={f.key}
-                                    on={draft.freq === f.key}
-                                    onClick={() => patch({ freq: f.key })}
-                                    title={frequencyLabel(f, t)}
+                                    on={!custom && draft.freq === f.key}
+                                    onClick={() => {
+                                        setCustom(false);
+                                        patch({ freq: f.key });
+                                    }}
+                                    title={asTitle(frequencyLabel(f, t))}
                                 />
                             ))}
-                            {!showAllFreq && (
-                                <button
-                                    type="button"
-                                    onClick={() => setAllFreq(true)}
-                                    className="w-full py-4 text-start text-[0.9375rem] text-muted"
-                                >
-                                    {t('plan.other_freq')}
-                                </button>
-                            )}
+                            <Row
+                                on={custom}
+                                onClick={() => {
+                                    if (custom) return;
+                                    setCustom(true);
+                                    patch({ freq: customSeed(draft.freq) });
+                                }}
+                                title={t('plan.freq_custom')}
+                                desc={t('plan.freq_custom_desc')}
+                            />
+                            <div className="disclosure" data-open={custom} {...(custom ? {} : { inert: '' })}>
+                                <div className="disclosure-inner">
+                                    {custom && (
+                                        <div ref={customRef} className="pt-2 pb-4 scroll-mb-28">
+                                            <CustomRhythm freq={draft.freq} onChange={freq => patch({ freq })} t={t} />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="shrink-0 border-t border-[var(--border)] px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+            <div className="sticky bottom-0 shrink-0 border-t border-[var(--border)] glass glass-bar px-6 pt-4 pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]">
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">
                         {at > 0 && (
@@ -312,8 +351,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                     </div>
                 </div>
             </div>
-        </div>,
-        document.body,
+        </section>
     );
 };
 

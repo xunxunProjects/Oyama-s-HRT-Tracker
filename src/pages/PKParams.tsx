@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { RotateCcw, ChevronDown, AlertTriangle, Info, Check } from 'lucide-react';
+import { Undo, ChevronDown, Warning, Info, Check } from '../components/icons';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { PKCustomParams, DEFAULT_PK_PARAMS } from '../../logic';
@@ -195,7 +195,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                 {/* Warning */}
                 <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--border)]">
                     <span className="icon-line text-sm">
-                        <AlertTriangle size={13} className="text-[var(--warning)]" />
+                        <Warning size={13} className="text-[var(--warning)]" />
                     </span>
                     <p className="text-sm text-[var(--text-muted)]">{t('pk.warn')}</p>
                 </div>
@@ -253,7 +253,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                 }}
                                                 onBlur={() => commitField(field)}
                                                 aria-label={t(field.labelKey)}
-                                                className="w-28 px-2.5 py-1.5 bg-[var(--field)] border border-[var(--border)] rounded-md text-[var(--text)] outline-none focus:border-[var(--accent-ink)] tabular-nums"
+                                                className="input-base w-28 text-[var(--text)] tabular-nums"
                                                 style={{ fontSize: '16px' }}
                                             />
                                         </div>
@@ -289,7 +289,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
                 {/* Reset all */}
                 <button onClick={handleReset} className="w-full flex items-center gap-2 py-[18px] text-start">
-                    <RotateCcw size={14} className="text-[var(--danger)]" />
+                    <Undo size={14} className="text-[var(--danger)]" />
                     <span className="text-[0.9375rem] text-[var(--danger)]">{t('pk.reset')}</span>
                 </button>
             </div>

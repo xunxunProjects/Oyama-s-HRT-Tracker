@@ -11,14 +11,14 @@ for using the CLI against a real API without touching a shared deployment.
 
 - Docker Engine and Docker Compose v2, or Node.js 22 if you prefer the
   developer setup.
-- The **`v1.5.0` release**, not `main`.
+- The **`v1.5.1` release**, not `main`.
 - A free loopback port. The examples use `8787`; do not use a port that is
   already serving something else.
 
 ## Docker on loopback
 
 ```bash
-git clone --branch v1.5.0 --depth 1 \
+git clone --branch v1.5.1 --depth 1 \
   https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
 cd Oyama-s-HRT-Tracker
 

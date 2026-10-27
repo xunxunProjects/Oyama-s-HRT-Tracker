@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Close } from '../components/icons';
 import { BODY_WEIGHT_KG_MAX, BODY_WEIGHT_KG_MIN, ExtraKey, Route, isPlausibleBodyWeightKG } from '../../logic';
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
@@ -13,7 +13,7 @@ import { useHRTMode } from '../contexts/HRTModeContext';
 import { useDialog } from '../contexts/DialogContext';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
 import { PlanItem, PLAN_DRUGS } from '../utils/plan';
-import { frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
+import { asTitle, frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
 
 const ONBOARDING_KEY = 'app-onboarded';
 
@@ -401,7 +401,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
             {/* The field is drawn as a figure on a rule, not an .input-base
                 box, so it takes the text-field focus treatment by hand: the
                 rule turns terracotta while the figure is being edited. */}
-            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--accent-ink)]`}>
+            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--text)]`}>
                 <input
                     type="number"
                     inputMode="decimal"
@@ -442,7 +442,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         <div className="min-w-0 flex-1">
                             <p className="text-[0.9375rem] font-medium text-body">{regimenLabel(item, t)}</p>
                             <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">
-                                {frequencyLabel(item, t)}
+                                {asTitle(frequencyLabel(item, t))}
                                 {item.route === Route.gel && `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                             </p>
                         </div>
@@ -458,7 +458,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                             aria-label={t('btn.delete')}
                             className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
                         >
-                            <X size={16} />
+                            <Close size={16} />
                         </button>
                     </div>
                 ))}

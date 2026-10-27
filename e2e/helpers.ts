@@ -161,16 +161,16 @@ export async function gotoApp(page: Page): Promise<void> {
 
 export async function openExport(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('tab', { name: 'Data Management' }).click();
-    await page.getByRole('button', { name: 'Export Data', exact: true }).click();
+    await page.getByRole('tab', { name: 'Data management' }).click();
+    await page.getByRole('button', { name: 'Export data', exact: true }).click();
     await expect(page.getByRole('button', { name: /Complete backup/ })).toBeVisible();
 }
 
 export async function openImport(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('tab', { name: 'Data Management' }).click();
-    await page.getByRole('button', { name: 'Import Data', exact: true }).click();
-    await expect(page.getByRole('button', { name: /Paste JSON Text/ })).toBeVisible();
+    await page.getByRole('tab', { name: 'Data management' }).click();
+    await page.getByRole('button', { name: 'Import data', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Paste JSON text/ })).toBeVisible();
 }
 
 export async function pasteAndImport(page: Page, text: string): Promise<void> {
@@ -179,7 +179,7 @@ export async function pasteAndImport(page: Page, text: string): Promise<void> {
     // A failed import keeps the paste box open with the old text, so only
     // toggle it when it is actually closed.
     if (!(await box.isVisible())) {
-        await page.getByRole('button', { name: /Paste JSON Text/ }).click();
+        await page.getByRole('button', { name: /Paste JSON text/ }).click();
     }
     await box.fill(text);
     await page.getByRole('button', { name: 'Import', exact: true }).click();
@@ -189,7 +189,7 @@ export async function pasteAndReplace(page: Page, text: string): Promise<void> {
     await openImport(page);
     const box = page.getByPlaceholder('Paste JSON content here...');
     if (!(await box.isVisible())) {
-        await page.getByRole('button', { name: /Paste JSON Text/ }).click();
+        await page.getByRole('button', { name: /Paste JSON text/ }).click();
     }
     await box.fill(text);
     await page.getByRole('button', { name: 'Replace device', exact: true }).click();
@@ -200,13 +200,13 @@ export function dialogMessage(page: Page): ReturnType<Page['locator']> {
 }
 
 export async function confirmDialog(page: Page, buttonName: string): Promise<void> {
-    const dialog = page.getByRole('alertdialog');
+    const dialog = page.locator('[data-prompt="confirm"]');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: buttonName, exact: true }).click();
 }
 
 export async function dismissAlert(page: Page): Promise<void> {
-    const dialog = page.getByRole('dialog');
+    const dialog = page.locator('[data-prompt="alert"]');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'OK', exact: true }).click();
 }
@@ -227,7 +227,7 @@ export async function downloadCompleteBackup(page: Page): Promise<BundleFixture>
     await openExport(page);
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: /Complete backup/ }).click();
-    const dialog = page.getByRole('alertdialog');
+    const dialog = page.locator('[data-prompt="confirm"]');
     await expect(dialog).toContainText('Download an unencrypted backup?');
     await dialog.getByRole('button', { name: 'Download', exact: true }).click();
     const download = await downloadPromise;

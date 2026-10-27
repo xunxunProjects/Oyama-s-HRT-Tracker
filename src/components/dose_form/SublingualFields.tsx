@@ -69,7 +69,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
         <div className="space-y-4">
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                    <label id={tierLabelId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label id={tierLabelId} className="field-label">
                         {t('field.sl_absorption')}
                     </label>
                     <button
@@ -106,7 +106,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 max="60"
                                 value={customHoldInput}
                                 onChange={e => handleCustomHoldChange(e.target.value)}
-                                className="w-16 h-9 px-2 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md text-center text-sm font-medium focus:border-[var(--accent-ink)] outline-none text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="input-base w-16 h-9 text-center text-sm font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 style={{ fontSize: '16px' }}
                             />
                             <span className="text-xs text-[var(--text-muted)]">{t('unit.min_short')}</span>
@@ -136,7 +136,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                     <div
                         className={`space-y-2 ${ester === Ester.EV && route === Route.sublingual ? 'col-span-2' : ''}`}
                     >
-                        <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={rawId} className="field-label">
                             {t('field.dose_raw')}
                         </label>
                         <input
@@ -148,7 +148,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             step="0.001"
                             value={rawDose}
                             onChange={e => onRawChange(e.target.value)}
-                            className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="input-base w-full text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
                         />
@@ -157,7 +157,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
 
                 {!(ester === Ester.EV && route === Route.sublingual) && ester !== Ester.CPA && (
                     <div className={`space-y-2 ${ester === Ester.E2 ? 'col-span-2' : ''}`}>
-                        <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                        <label htmlFor={e2Id} className="field-label">
                             {t('field.dose_e2')}
                         </label>
                         <input
@@ -169,7 +169,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                             step="0.001"
                             value={e2Dose}
                             onChange={e => onE2Change(e.target.value)}
-                            className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="input-base w-full text-[var(--text)] font-medium text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.0"
                             style={{ fontSize: '16px' }}
                         />
@@ -179,7 +179,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                 {ester === Ester.EV && route === Route.sublingual && (
                     <div className="col-span-2">
                         {/* No unit after the number: the label already ends in (mg). */}
-                        <p className="text-xs text-[var(--text-muted)] mt-1 pl-1">
+                        <p className="field-hint">
                             {t('field.dose_e2')}: {e2Dose || '--'}
                         </p>
                     </div>

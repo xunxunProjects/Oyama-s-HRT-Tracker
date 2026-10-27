@@ -2,6 +2,20 @@ import React from 'react';
 import { Route } from '../../logic';
 
 const WASH = 'fill-[var(--illustration-wash)]';
+const SHADE = 'fill-[var(--illustration-shade)]';
+const DEEP = 'fill-[var(--illustration-deep)]';
+
+// The syringe's washes, kept out of the drawing below so its strokes read. In
+// the syringe's own frame: the barrel along x, the needle to the left.
+const SYRINGE = {
+    shadow: 'M8.6 35.4 C 13.6 34.4, 26.6 34.6, 31.6 35.6 C 26.4 36.6, 13.4 36.5, 8.6 35.4 Z',
+    liquid: 'M-8 -4.1 C -5 -4.3, -1 -4, 1.6 -4.1 C 0.8 -2.8, 0.6 2.8, 1.6 4.1 C -1 4.2, -5 4.3, -8 4.1 C -9.3 3.4, -9.7 1.6, -9.7 0 C -9.7 -1.6, -9.3 -3.4, -8 -4.1 Z',
+    underside:
+        'M-8.4 2.1 C -5 2.5, -1.4 2.4, 1.1 2.2 C 1.2 2.9, 1.3 3.5, 1.6 4.1 C -1 4.2, -5 4.3, -8 4.1 C -8.6 3.6, -8.6 2.8, -8.4 2.1 Z',
+    stopper:
+        'M1.6 -4.1 C 2.5 -4.2, 3.3 -4.1, 4 -4.1 C 3.2 -2.8, 3 2.8, 4 4.1 C 3.3 4.2, 2.5 4.2, 1.6 4.1 C 0.6 2.8, 0.8 -2.8, 1.6 -4.1 Z',
+    rod: 'M4 -1 C 7.4 -1.1, 10.8 -0.9, 13.6 -1 C 13.6 -0.3, 13.6 0.4, 13.6 1 C 10.8 1.1, 7.4 0.9, 4 1 Z',
+};
 
 /** One pen stroke. */
 const Line: React.FC<{ d: string; w?: number }> = ({ d, w }) => <path d={d} strokeWidth={w} />;
@@ -9,32 +23,59 @@ const Line: React.FC<{ d: string; w?: number }> = ({ d, w }) => <path d={d} stro
 /**
  * The small drawings: one for each route a dose can take, and the ones the
  * intro's rows carry. All in the same hand as DoseDoodle (see there for the
- * rules): one line colour, one flat wash, paths a little off true, outlines
- * that overshoot where they close. Small enough to sit at the head of a row,
+ * rules): one line colour, a flat wash, paths a little off true, outlines
+ * that overshoot where they close. The injection syringe alone is drawn with
+ * volume, in two deeper washes and a glint, so the one route that's a needle
+ * reads as a solid thing in the hand. Small enough to sit at the head of a row,
  * so there is no ground line, and the wash is what the row is about: the
  * liquid, half the capsule, the tablet, the gel, the pad, the sample.
  */
-export type DoodleName =
-    Route | 'syringe' | 'chart' | 'vial' | 'lock' | 'cloud' | 'caution' | 'code' | 'sparkle' | 'heart';
+export type DoodleName = Route | 'syringe' | 'chart' | 'vial' | 'lock' | 'cloud' | 'caution' | 'code' | 'heart';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
-    // An ampoule: the drawn-out tip, the ring it snaps at, liquid in the body.
+    // A syringe drawn with volume, needle down to the left: a plump barrel
+    // with the dose in it, its underside a shade deeper and a glint along its
+    // top, the rubber stopper, the plunger through the flange to a thumb rest
+    // seen a little end-on, the hub and the needle, and a soft shadow.
     [Route.injection]: (
-        <g transform="rotate(-8 20 20)">
-            <path
-                className={WASH}
-                stroke="none"
-                d="M14.8 23.8 C 18 23.4, 22 24, 25.2 23.6 C 25 26, 25.4 28.6, 25.2 30.4 C 25 32.4, 22.8 33.2, 20 33 C 17.2 33.2, 15 32.4, 14.8 30.4 C 14.6 28.6, 15 26, 14.8 23.8 Z"
-            />
-            {/* Glass, from the tip round and back */}
-            <Line d="M17.2 9.6 C 16.4 7.2, 17.6 5.8, 20 5.8 C 22.4 5.8, 23.6 7.2, 22.8 9.6 C 23 11.4, 22.6 13.2, 22.8 15 C 25.2 16.2, 26.6 18, 26.6 20.2 C 26.4 24, 26.8 28, 26.4 30.4 C 26.2 33.2, 23.6 34.4, 20 34.2 C 16.4 34.4, 13.8 33.2, 13.6 30.4 C 13.2 28, 13.6 24, 13.4 20.2 C 13.4 18, 14.8 16.2, 17.2 15 C 17.4 13.2, 17 11.4, 17.1 9.2" />
-            {/* The ring at the neck */}
-            <Line d="M16.4 13 C 18 12.6, 21.2 13.2, 23.6 12.8" w={1.5} />
-            {/* Level of the liquid */}
-            <Line d="M14.4 24 C 18 23.4, 22 24.2, 25.6 23.6" w={1.5} />
-            {/* A stroke of shine on the glass */}
-            <Line d="M16.6 26.4 C 16.4 27.8, 16.8 29.4, 17.1 30.8" w={1.5} />
-        </g>
+        <>
+            <path className={SHADE} stroke="none" d={SYRINGE.shadow} />
+            <g transform="translate(20.6 19) rotate(-38)">
+                <path className={SHADE} stroke="none" d={SYRINGE.liquid} />
+                <path className={DEEP} stroke="none" d={SYRINGE.underside} />
+                <path className={DEEP} stroke="none" d={SYRINGE.stopper} />
+                <path className={DEEP} stroke="none" d={SYRINGE.rod} />
+                {/* The plunger rod */}
+                <Line d="M4 -1 C 7.4 -1.1, 10.8 -0.9, 13.6 -1 M4 1 C 7.4 1.1, 10.8 0.9, 13.6 1" w={1.4} />
+                {/* The flange, and the thumb rest seen a little end-on */}
+                <path
+                    className={DEEP}
+                    d="M8 -6.9 C 8.9 -7.1, 9.6 -6.6, 9.7 -5.8 C 9.8 -1.9, 9.8 1.9, 9.7 5.8 C 9.6 6.6, 8.9 7.1, 8 6.9 C 7.2 6.7, 6.9 6.1, 6.9 5.5 C 6.9 1.8, 6.9 -1.8, 6.9 -5.5 C 6.9 -6.1, 7.2 -6.7, 8.2 -6.9"
+                />
+                <path
+                    className={WASH}
+                    d="M14.6 -4.4 C 15.8 -4.4, 16.5 -2.4, 16.5 0 C 16.5 2.4, 15.8 4.4, 14.6 4.4 C 13.4 4.4, 12.7 2.4, 12.7 0 C 12.7 -2.4, 13.4 -4.4, 14.8 -4.3"
+                />
+                {/* The barrel, round at the needle end, open at the flange */}
+                <Line d="M6.9 -4.2 C 2 -4.4, -4 -4, -8 -4.2 C -9.4 -3.5, -9.9 -1.7, -9.9 0 C -9.9 1.7, -9.4 3.5, -8 4.2 C -4 4.4, 2 4, 6.9 4.2" />
+                {/* The stopper's two edges */}
+                <Line d="M1.6 -4.1 C 0.6 -2.8, 0.6 2.8, 1.6 4.1" w={1.3} />
+                <Line d="M4 -4.1 C 3 -2.8, 3 2.8, 4 4.1" w={1.3} />
+                {/* The hub and the needle */}
+                <path
+                    className={WASH}
+                    d="M-9.8 -1.6 C -10.6 -1.7, -11.4 -1.6, -12 -1.5 C -12.3 -0.5, -12.3 0.5, -12 1.5 C -11.4 1.6, -10.6 1.7, -9.8 1.6"
+                />
+                <Line d="M-12.1 0 C -14.2 0.1, -16.4 -0.1, -18.4 0" w={1.4} />
+                {/* Marks on the barrel, and light along its top */}
+                <Line d="M-5.6 -4.2 L -5.6 -2.6 M-2.6 -4.2 L -2.6 -2.9 M0.4 -4.2 L 0.4 -2.6" w={1.1} />
+                <path
+                    className="stroke-[var(--illustration-shine)]"
+                    d="M-7.2 -1.4 C -5.2 -1.6, -2.6 -1.5, -0.6 -1.6"
+                    strokeWidth={1.6}
+                />
+            </g>
+        </>
     ),
     // DoseDoodle's capsule, brought down to this size.
     [Route.oral]: (
@@ -49,7 +90,8 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M56 31.4 C 60 30.6, 64 31, 67.4 30.4" w={2.4} />
         </g>
     ),
-    // A scored tablet, beginning to dissolve.
+    // A scored tablet, beginning to dissolve: a crumb has come away from its
+    // edge. (Lines radiating off it read as a shine, not as melting.)
     [Route.sublingual]: (
         <>
             <path
@@ -61,10 +103,12 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M20.2 12.6 C 26 12.4, 30.4 16.6, 30.2 22.2 C 30.4 27.8, 26 32, 20.2 31.8 C 14.4 32, 10 27.8, 10.2 22.2 C 10 16.6, 14.4 12.4, 20.6 12.7" />
             {/* Score line */}
             <Line d="M11.4 22.4 C 16 21.8, 25 22.4, 29 21.9" w={1.6} />
-            {/* Dissolving */}
-            <Line d="M30.2 9.6 L 32.8 6.8" w={1.6} />
-            <Line d="M25.4 7.6 L 26.2 4.2" w={1.6} />
-            <Line d="M33.4 14.4 L 36.8 13.6" w={1.6} />
+            {/* Crumbs come away */}
+            <Line
+                d="M32.6 10.2 C 33.4 9.6, 34.4 9.8, 34.6 10.8 C 34.6 11.6, 33.6 12.2, 32.8 11.6 C 32.4 11.2, 32.3 10.6, 32.8 10.1"
+                w={1.4}
+            />
+            <Line d="M34.9 15.8 L 35 16" w={2.2} />
         </>
     ),
     // A tube, squeezed: crimped end up to the right, a bead of gel at the nozzle.

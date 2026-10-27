@@ -8,7 +8,8 @@ import React from 'react';
  *
  * The head is drawn first and the box front over it, so the wash hides
  * whatever of the cat is still inside. On arrival the cat peeks up out of the
- * box; when `leaping` is set (the user tapped refresh) it hops out.
+ * box once; when `leaping` is set (the user tapped refresh) it hops out. No
+ * marks fly off it and it doesn't blink on a loop: the cat is the news.
  */
 const UpdateDoodle: React.FC<{ size?: number; leaping?: boolean }> = ({ size = 2.25, leaping = false }) => (
     <svg
@@ -28,10 +29,8 @@ const UpdateDoodle: React.FC<{ size?: number; leaping?: boolean }> = ({ size = 2
                 {/* Head and ears, rising out of the box */}
                 <path d="M13.6 23 C 13.4 19.4, 14.2 15.6, 15.8 12.8 C 17 14.4, 18.2 15.6, 20 15.8 C 21.8 15.6, 23 14.4, 24.4 12.6 C 25.8 15.6, 26.6 19.4, 26.4 23.2" />
                 {/* Eyes */}
-                <g className="ud-blink">
-                    <path d="M17.6 19.2 L 17.7 19.6" strokeWidth={2.4} />
-                    <path d="M22.4 19.2 L 22.5 19.6" strokeWidth={2.4} />
-                </g>
+                <path d="M17.6 19.2 L 17.7 19.6" strokeWidth={2.4} />
+                <path d="M22.4 19.2 L 22.5 19.6" strokeWidth={2.4} />
             </g>
         </g>
 
@@ -47,13 +46,6 @@ const UpdateDoodle: React.FC<{ size?: number; leaping?: boolean }> = ({ size = 2
         <path d="M30.6 21.2 C 32.6 19.4, 34.4 18.2, 36.4 16.2" />
         {/* Tape down the front */}
         <path d="M20 21.6 C 19.8 23.6, 20.2 25.4, 20 27.2" strokeWidth={1.5} />
-
-        {/* Sparks */}
-        <g className="ud-sparks">
-            <path d="M8.8 10.6 L 6.6 6.8" />
-            <path d="M31.2 10.4 L 33.6 6.6" />
-            <path d="M35 13.8 L 38.4 12.4" strokeWidth={1.5} />
-        </g>
     </svg>
 );
 

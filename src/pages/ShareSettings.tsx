@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SwapLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Check, ChevronDown, Eye, EyeOff, Link2, Loader2, LockKeyhole, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Eye, EyeOff, Link, Busy, LockKeyhole, Trash } from '../components/icons';
 import { CopyTick } from '../components/Tick';
 import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
@@ -271,17 +272,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 onClick={handleCopy}
                                 className="-mr-2 grid shrink-0 place-items-center self-end rounded-md px-2.5 py-2 text-[0.9375rem] font-medium text-[var(--accent-ink)] transition-colors hover:bg-[var(--surface-hover)] sm:self-auto"
                             >
-                                <span className="inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1">
                                     <CopyTick copied={copied} size={14} />
-                                    {/* Both labels share one cell so the button keeps the wider one's width. */}
-                                    <span className="grid">
-                                        <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>
-                                            {copy.copy}
-                                        </span>
-                                        <span className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>
-                                            {copy.copied}
-                                        </span>
-                                    </span>
+                                    <SwapLabel show={copied} off={copy.copy} on={copy.copied} />
                                 </span>
                             </button>
                         </div>
@@ -456,7 +449,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
-                                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}
+                                {submitting ? <Busy size={15} className="animate-spin" /> : <Link size={15} />}
                                 {submitting ? copy.creating : copy.create}
                             </button>
                         </div>
@@ -471,7 +464,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                     )}
                     {sharesLoading ? (
                         <div className="flex items-center gap-2 py-4 text-sm text-muted">
-                            <Loader2 size={14} className="animate-spin" /> {copy.loading}
+                            <Busy size={14} className="animate-spin" /> {copy.loading}
                         </div>
                     ) : shares.length === 0 ? (
                         <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
@@ -510,9 +503,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                         className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50 "
                                     >
                                         {revokingId === share.id ? (
-                                            <Loader2 size={14} className="animate-spin" />
+                                            <Busy size={14} className="animate-spin" />
                                         ) : (
-                                            <Trash2 size={14} />
+                                            <Trash size={14} />
                                         )}
                                         {copy.revoke}
                                     </button>

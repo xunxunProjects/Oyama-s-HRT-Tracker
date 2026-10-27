@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle from '../components/Doodle';
 // Bundled with the app, so the page still loads nothing from other sites.
@@ -100,7 +100,6 @@ const LIBRARIES: Entry[] = [
     { name: 'React', href: 'https://react.dev/', note: 'MIT' },
     { name: 'Vite', href: 'https://vite.dev/', note: 'MIT' },
     { name: 'Tailwind CSS', href: 'https://tailwindcss.com/', note: 'MIT' },
-    { name: 'Lucide', href: 'https://lucide.dev/', note: 'ISC' },
     { name: 'jsPDF', href: 'https://github.com/parallax/jsPDF', note: 'MIT' },
     { name: 'jsPDF-AutoTable', href: 'https://github.com/simonbengtsson/jsPDF-AutoTable', note: 'MIT' },
     { name: 'qrcode.react', href: 'https://github.com/zpao/qrcode.react', note: 'ISC' },

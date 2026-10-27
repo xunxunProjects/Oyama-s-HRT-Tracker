@@ -39,10 +39,24 @@ const CJK = /[\u3040-\u30ff\u3400-\u9fff]/;
 /** Join two words the way the language does: nothing between Chinese or Japanese characters, a space otherwise. */
 const glue = (a: string, b: string) => (CJK.test(a.slice(-1)) && CJK.test(b.slice(0, 1)) ? a + b : `${a} ${b}`);
 
+/**
+ * A word as it reads inside a phrase rather than on its own: "Injection"
+ * stands alone as a title, but "estradiol valerate 4 mg injection" in a
+ * sentence. Only a capital followed by lowercase is lowered, so a code (EV,
+ * IM) keeps its capitals, and scripts without case are left as they are.
+ */
+const inPhrase = (word: string) => (/^\p{Lu}\p{Ll}/u.test(word) ? word[0].toLocaleLowerCase() + word.slice(1) : word);
+
+/** "4 mg of estradiol valerate (EV)": an amount of a drug, in the language's order, the drug lowered when it isn't first. */
+export const doseOf = (dose: string, drug: string, t: T) => {
+    const template = t('dose.line_what');
+    return fill(template, { dose, drug: template.startsWith('{drug}') ? drug : inPhrase(drug) });
+};
+
 /** "雌二醇凝胶", "雌二醇贴片"; a pill or an injection is just the drug's name. */
 const drugForm = (i: { route: Route; ester: Ester }, t: T) =>
     i.route === Route.gel || i.route === Route.patchApply
-        ? glue(esterName(i.ester, t), t(`regimen.route.${i.route}`))
+        ? glue(esterName(i.ester, t), inPhrase(t(`regimen.route.${i.route}`)))
         : esterName(i.ester, t);
 
 /** How a plan item is named in a sentence. Two items that would read the same get their route in front: "口服雌二醇". */
@@ -53,7 +67,7 @@ export function planItemLabel(
 ): string {
     const base = drugForm(item, t);
     const clash = plan.some(o => o.id !== item.id && drugForm(o, t) === base);
-    return clash ? glue(t(`regimen.route.${item.route}`), esterName(item.ester, t)) : base;
+    return clash ? glue(t(`regimen.route.${item.route}`), inPhrase(esterName(item.ester, t))) : base;
 }
 
 /** "手臂": where a gel goes, without the English the settings list carries ("手臂 (Arm)"). */
@@ -61,6 +75,14 @@ export const gelSiteName = (idx: number, t: T) =>
     t(`gel.site.${GEL_SITE_ORDER[Math.min(GEL_SITE_ORDER.length - 1, Math.max(0, Math.round(idx)))]}`)
         .replace(BRACKETED_TAIL, '')
         .trim();
+
+/**
+ * A phrase as it reads on its own line, as a row's title or a choice: its
+ * first letter up ("Weekly"), where the same words inside a sentence stay
+ * lower ("injected weekly"). Scripts without case are left as they are.
+ */
+export const asTitle = (phrase: string) =>
+    /^\p{Ll}/u.test(phrase) ? phrase[0].toLocaleUpperCase() + phrase.slice(1) : phrase;
 
 /** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天", "每 4 周". */
 export function frequencyLabel(f: { everyDays: number; timesPerDay: number }, t: T): string {
@@ -93,7 +115,7 @@ export function regimenLabel(
     r: { route: Route; ester: Ester; doseMG: number; extras: Partial<Record<ExtraKey, number>> },
     t: T,
 ): string {
-    const route = t(`regimen.route.${r.route}`);
+    const route = inPhrase(t(`regimen.route.${r.route}`));
     const rate = r.extras[ExtraKey.releaseRateUGPerDay];
     if (r.route === Route.patchApply && rate)
         return `${glue(esterName(r.ester, t), route)} ${trimNum(rate)} µg${t('regimen.per_day')}`;
@@ -102,7 +124,7 @@ export function regimenLabel(
 
 /** "戊酸雌二醇 肌注": a supply is a drug and a form, not a dose. */
 export const supplyLabel = (s: { route: Route; ester: Ester }, t: T) =>
-    `${esterName(s.ester, t)} ${t(`regimen.route.${s.route}`)}`;
+    `${esterName(s.ester, t)} ${inPhrase(t(`regimen.route.${s.route}`))}`;
 
 /** "每周", "每 3.5 天", "每 12 小时". */
 export function intervalLabel(h: number, t: T): string {
