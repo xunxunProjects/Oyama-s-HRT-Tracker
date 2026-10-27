@@ -20,7 +20,7 @@ const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)]
 // A fingerprint read out in blocks of four wraps between blocks, never inside one.
 const fprText = 'font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
 const textButton =
-    'text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
+    'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
 // A name and its value on one hairline row.
 const row = 'flex items-baseline justify-between gap-4 py-3 text-[0.9375rem]';
 
@@ -209,15 +209,19 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     };
 
     const copyButton = (value: string, label: string) => (
-        <button type="button" className={`${textButton} shrink-0`} onClick={() => copy(value, label)}>
+        <button type="button" className={textButton} onClick={() => copy(value, label)}>
             <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} />
         </button>
     );
 
     /** A command to run in a terminal, on a quiet filled note, with its own Copy. */
     const command = (text: string, label: string) => (
-        <div className="callout mt-2 flex items-start justify-between gap-3">
-            <code className={`min-w-0 font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
+        <div className="callout mt-2 flow-root">
+            {/* Copy floats at the top, so only the first line makes room for
+                it and a long word further down (the CLI login code) still
+                has the whole width to itself. */}
+            <span className="float-end ms-3">{copyButton(text, label)}</span>
+            <code className={`block font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
                 {/* Each word kept whole, so a line breaks between them and
                     never right after the -- of --recipient. A word too long
                     for the line (a login code, a file name with the group's
@@ -238,7 +242,6 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                     </React.Fragment>
                 ))}
             </code>
-            {copyButton(text, label)}
         </div>
     );
 
@@ -307,7 +310,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                 <p className={muted}>{t('f2f.intro')}</p>
                                 <button
                                     type="button"
-                                    className={`${textButton} shrink-0`}
+                                    className={textButton}
                                     onClick={() => run('refresh', async () => {})}
                                     disabled={busy !== null}
                                 >
