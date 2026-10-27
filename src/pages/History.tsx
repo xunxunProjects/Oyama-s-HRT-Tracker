@@ -55,6 +55,39 @@ const centerRow = (row: HTMLElement) => {
     row.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
 };
 
+// A day's label, held under the page header while its rows scroll by. It
+// runs the column's full width: as wide as the rows' text only, it sat as a
+// white box on an open row's wash, which showed past its ends. Once held, a
+// short fade under it lets the rows passing beneath dissolve rather than be
+// sliced through a line of text. A marker at the day's top says when it is
+// held: gone above the label's own offset, the label has caught on the header.
+const PinnedDayLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [marker, setMarker] = useState<HTMLDivElement | null>(null);
+    const [held, setHeld] = useState(false);
+    useEffect(() => {
+        const label = marker?.nextElementSibling;
+        if (!marker || !label || typeof IntersectionObserver === 'undefined') return;
+        const top = parseFloat(getComputedStyle(label).top) || 0;
+        const io = new IntersectionObserver(
+            ([entry]) => setHeld(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)),
+            { rootMargin: `-${top}px 0px 0px 0px` },
+        );
+        io.observe(marker);
+        return () => io.disconnect();
+    }, [marker]);
+    return (
+        <>
+            <div ref={setMarker} aria-hidden="true" className="h-0" />
+            <div
+                data-held={held}
+                className="sticky top-[5rem] z-10 -mx-6 px-6 md:-mx-8 md:px-8 bg-[var(--bg)] pt-2 pb-1 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-[linear-gradient(var(--bg),transparent)] after:opacity-0 after:content-[''] data-[held=true]:after:opacity-100"
+            >
+                {children}
+            </div>
+        </>
+    );
+};
+
 // Whole days, but quarter days below one so a twice-daily or every-6-hours
 // schedule can still be reached from the buttons.
 const intervalStep = (v: number, dir: 1 | -1) => ((dir > 0 ? v >= 1 : v > 1) ? 1 : 0.25);
@@ -453,14 +486,19 @@ const History: React.FC<HistoryProps> = ({
     // A pinned label paints over the rows, so it stops 4px short of them and
     // the rows take the 4px up: the focus ring stands 4px off a row, and the
     // label's own padding hid the top of it on each day's first row.
-    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => (
-        <div key={key} className="mb-4 last:mb-0">
-            <div className={`${pinned ? 'sticky top-[5rem] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
-                <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
+    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => {
+        const text = <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>;
+        return (
+            <div key={key} className="mb-4 last:mb-0">
+                {pinned ? (
+                    <PinnedDayLabel>{text}</PinnedDayLabel>
+                ) : (
+                    <div className="bg-[var(--bg)] pt-2 pb-1">{text}</div>
+                )}
+                <div className="pt-1">{dayEvents.map(renderRow)}</div>
             </div>
-            <div className="pt-1">{dayEvents.map(renderRow)}</div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="relative pb-32">
