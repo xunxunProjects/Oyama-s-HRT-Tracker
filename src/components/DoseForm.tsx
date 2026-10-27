@@ -19,7 +19,7 @@ import {
     sublingualThetaFromHold as thetaFromHold,
     sublingualHoldFromTheta as holdFromTheta,
 } from '../../logic';
-import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, ChevronDown, Check, Warning, External } from './icons';
+import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, ChevronDown, Check, Warning, External, Busy } from './icons';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
 import { doseOf, drugLabel, productNames } from '../utils/regimenText';
@@ -1392,7 +1392,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         className="btn-primary flex-1 sm:flex-none sm:min-w-[88px]"
                     >
                         {isSaving ? (
-                            <div className="w-4 h-4 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
+                            <Busy size={16} className="animate-spin" />
                         ) : (
                             <>
                                 <Save size={16} />

@@ -247,6 +247,11 @@ const AHEAD_OPACITY = 0.7;
 /** What the curve past "now" assumes: the plan's doses, the rhythm read off the log, or none at all. */
 export type AheadBasis = 'plan' | 'rhythm' | 'none';
 
+// The line draws itself on once per visit to the app. Coming back to the
+// Overview from one of its pages remounts the chart, and playing the sweep
+// again there made the returning page arrive half drawn and fill in after.
+let entrancePlayed = false;
+
 const ResultChart = ({
     sim,
     showAhead = false,
@@ -280,6 +285,10 @@ const ResultChart = ({
 }) => {
     const { t, lang } = useTranslation();
     const { isTransmasc: contextIsTransmasc } = useHRTMode();
+    const [still] = useState(() => entrancePlayed);
+    useEffect(() => {
+        entrancePlayed = true;
+    }, []);
     const isTransmasc = mode ? mode === 'transmasc' : contextIsTransmasc;
     const clipId = useId().replace(/:/g, '');
 
@@ -965,7 +974,7 @@ const ResultChart = ({
                     <svg
                         width={width}
                         height={height}
-                        className="block tabular-nums"
+                        className={`block tabular-nums ${still ? 'chart-still' : ''}`}
                         onPointerDown={onPointerDown}
                         onPointerMove={onPointerMove}
                         onPointerUp={onPointerUp}

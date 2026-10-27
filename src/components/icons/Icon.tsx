@@ -28,6 +28,7 @@ export const Icon: React.FC<IconProps & { name: GlyphName }> = ({
 }) => {
     // A point needs a heavier pen than a line to read as the same ink.
     const dotWidth = (Number(strokeWidth) || 1.75) * 1.5;
+    const thinWidth = (Number(strokeWidth) || 1.75) * 0.6;
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -56,8 +57,10 @@ export const Icon: React.FC<IconProps & { name: GlyphName }> = ({
                         key={i}
                         d={stroke.d}
                         pathLength={1}
-                        strokeWidth={stroke.dot ? dotWidth : undefined}
-                        fill={stroke.fill ? 'currentColor' : undefined}
+                        strokeWidth={stroke.dot ? dotWidth : stroke.thin ? thinWidth : undefined}
+                        stroke={stroke.tint ? 'none' : undefined}
+                        fill={stroke.fill || stroke.tint ? 'currentColor' : undefined}
+                        fillOpacity={stroke.tint ? 0.28 : undefined}
                     />
                 ),
             )}

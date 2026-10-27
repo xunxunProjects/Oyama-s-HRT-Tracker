@@ -10,7 +10,7 @@ import { flushSync } from 'react-dom';
 export type ViewMove = 'push' | 'pop' | 'fade' | 'none';
 
 type ViewTransitionDocument = Document & {
-    startViewTransition?: (update: () => void) => { finished: Promise<void> };
+    startViewTransition?: (update: () => void | Promise<void>) => { finished: Promise<void> };
 };
 
 /** Whether the browser animates moves itself. Elsewhere the arriving page
@@ -35,7 +35,13 @@ export function runViewMove(move: ViewMove, apply: () => void): void {
     }
     const root = document.documentElement;
     root.dataset.move = move;
-    const transition = doc.startViewTransition(() => flushSync(apply));
+    const transition = doc.startViewTransition(async () => {
+        flushSync(apply);
+        // A page that settles after its first layout (a scroll restored on the
+        // way back, a chart that measures itself) gets one frame to do it, so
+        // it's captured as it will look, not jump after the move.
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    });
     transition.finished.finally(() => {
         if (root.dataset.move === move) delete root.dataset.move;
     });

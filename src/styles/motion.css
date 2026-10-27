@@ -396,6 +396,13 @@ path.ink-draw {
     transform-origin: center;
     animation: chart-mark-in 260ms var(--ease-standard) both;
 }
+/* Once per visit: a chart shown again (the Overview come back to) is simply
+   there, as it was left. */
+.chart-still .chart-sweep,
+.chart-still .chart-appear,
+.chart-still .chart-mark {
+    animation: none;
+}
 
 /* The home reading's tick scale (components/LevelRail.tsx). The ticks rise off
    the baseline left to right, the direction the chart below draws its line,
@@ -415,6 +422,10 @@ path.ink-draw {
     transition:
         height var(--duration-base) var(--ease-standard),
         background-color var(--duration-base) var(--ease-standard);
+}
+.rail-still .rail-tick,
+.rail-still .rail-label {
+    animation: none;
 }
 .rail-label {
     animation: fade-in 320ms var(--ease-standard) both;

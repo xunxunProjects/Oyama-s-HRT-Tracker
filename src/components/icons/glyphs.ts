@@ -5,14 +5,16 @@
  * point. No jitter, so nothing reads as shaky, and every enclosed space stays
  * at least 3px across so it still reads open at a 1.75 stroke.
  *
- * A stroke is a path string, or an object for the two special cases: `dot`
- * (a point inked with a heavier pen) and `fill` (a shape filled with the ink).
+ * A stroke is a path string, or an object for the special cases: `dot` (a
+ * point inked with a heavier pen), `fill` (a shape filled with the ink),
+ * `tint` (a shape washed with the ink, faintly, to give a drawing depth) and
+ * `thin` (a lighter line: an edge seen through glass, a glint).
  *
  * No key and no fingerprint anywhere: a password is a field of hidden
  * characters (password), recovery codes a slip of paper (codes), and a passkey,
  * which lives on a device, is drawn as the devices it lives on (devices).
  */
-export type Stroke = string | { d: string; dot?: true; fill?: true };
+export type Stroke = string | { d: string; dot?: true; fill?: true; tint?: true; thin?: true };
 
 const circle = 'M12.1 3.7c-4.6-.1-8.5 3.7-8.4 8.4.1 4.5 3.8 8.3 8.4 8.2 4.5-.1 8.2-3.8 8.1-8.3-.1-4.5-3.7-8.3-8.3-8.3';
 const cloud =
@@ -46,13 +48,23 @@ export const GLYPHS = {
         'M4.4 17.15c1.5-.08 3-.08 4.5 0',
         'M12.2 17.15c1.7-.1 3.4-.08 5 .05',
     ],
-    // Labs: a test tube, tipped a little, the sample settled in it with a
-    // bubble rising.
+    // Labs: a test tube with some depth, tipped a little: its mouth an
+    // ellipse, the sample inside tinted, the sample's surface a near edge and
+    // a fainter far one, a glint on the glass and a bubble rising.
     labs: [
-        'M14.26 4.66 C 11.66 8.21, 9.26 11.9, 7.17 14.71 C 5.75 16.65, 6.13 18.37, 7.39 19.26 C 8.66 20.15, 10.42 19.92, 11.75 17.92 C 13.68 15, 16.33 11.48, 18.88 7.65',
-        'M13.01 3.66 C 15.53 5.12, 17.87 6.83, 20.16 8.61',
-        'M9.91 11.14 C 11.46 11.8, 12.57 13.36, 14.23 14.04',
-        { d: 'M10.25 15.62h.05', dot: true },
+        {
+            d: 'M9.77 11.16 C 9.82 12.05, 10.61 12.85, 11.47 13.45 C 12.33 14.05, 13.34 14.52, 14.20 14.26 C 13.38 15.52, 12.56 16.77, 11.75 17.92 C 10.42 19.92, 8.66 20.15, 7.39 19.26 C 6.13 18.37, 5.75 16.65, 7.17 14.71 C 7.97 13.56, 8.87 12.36, 9.77 11.16 Z',
+            tint: true,
+        },
+        'M13.95 5.11 C 11.54 8.37, 9.26 11.90, 7.17 14.71 C 5.75 16.65, 6.13 18.37, 7.39 19.26 C 8.66 20.15, 10.42 19.92, 11.75 17.92 C 13.68 15.00, 16.21 11.64, 18.51 8.19',
+        'M13.82 4.17 C 14.19 3.63, 15.75 4.11, 17.26 5.17 C 18.78 6.24, 19.76 7.53, 19.39 8.07 C 19.01 8.60, 17.46 8.12, 15.94 7.06 C 14.43 6.00, 13.44 4.70, 14.01 4.06',
+        'M9.77 11.16 C 9.82 12.05, 10.61 12.85, 11.47 13.45 C 12.33 14.05, 13.34 14.52, 14.20 14.26',
+        {
+            d: 'M9.91 11.14 C 10.71 10.96, 11.64 11.37, 12.50 11.97 C 13.36 12.58, 14.06 13.31, 14.17 14.12',
+            thin: true,
+        },
+        { d: 'M14.07 7.46 C 13.46 8.25, 12.83 9.15, 12.35 9.92', thin: true },
+        { d: 'M10.11 16.52 L 10.15 16.55', dot: true },
     ],
     // Settings: six soft teeth rather than eight sharp ones, legible at 20px.
     gear: [

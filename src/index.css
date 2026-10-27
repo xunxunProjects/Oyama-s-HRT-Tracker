@@ -284,11 +284,13 @@ select:focus-visible {
     }
 }
 
-/* Buttons: one 40px, 12px-radius shape. Primary is the one action a view
-   exists for; tonal a strong second; secondary the neutral way out; danger
-   only confirms a delete; ghost is the 32px pill for headers and toolbars.
-   `btn-sm` is the 32px size for buttons inside a line of text (an inline
-   prompt's Keep it / Delete). */
+/* Buttons are capsules, all of them: 36px, fully round at the ends. Primary
+   is the one action a view exists for; tonal a strong second; secondary the
+   neutral way out; danger only goes through with a delete; ghost is the 32px
+   pill for headers and toolbars.
+   `btn-sm` is the 30px size for buttons inside a line of text (an inline
+   prompt's Keep it / Delete). On a touch screen a button that sits alone can
+   add `tap-target` to keep a 44px hit area. */
 .btn-primary,
 .btn-tonal,
 .btn-secondary,
@@ -298,14 +300,14 @@ select:focus-visible {
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    height: 2.5rem;
-    padding: 0 1rem;
+    height: 2.25rem;
+    padding: 0 1.125rem;
     font-size: 0.9375rem;
     line-height: 1.375rem;
     font-weight: 500;
     letter-spacing: -0.005em;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     cursor: pointer;
     transition:
         background-color var(--duration-quick) var(--ease-standard),
@@ -363,11 +365,10 @@ select:focus-visible {
     background-color: var(--accent-subtle);
 }
 :is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
-    height: 2rem;
+    height: 1.875rem;
     padding: 0 0.875rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    border-radius: var(--radius-sm);
 }
 .btn-primary:active:not(:disabled),
 .btn-tonal:active:not(:disabled),
@@ -403,7 +404,7 @@ select:focus-visible {
 
 @layer components {
     /* Fields are lines, not boxes: a hand-drawn rule under the text, and on
-       focus an ink stroke drawn over it from left to right (--ink-stroke /
+       focus an ink stroke drawn over it from left to right (--ink-run /
        --ink-rule in the tokens). Nothing lights up: no glow, no ring, no
        terracotta, and no red line on an error, which the hint under the
        field says in words. In the components layer, so a caller's utilities
@@ -417,27 +418,27 @@ select:focus-visible {
         line-height: 1.375rem;
         color: var(--text);
         background-color: transparent;
-        background-image: var(--ink-stroke), var(--ink-rule);
+        background-image: var(--ink-run), var(--ink-rule);
         background-repeat: no-repeat;
-        background-position:
-            left bottom,
-            left bottom;
         background-size:
-            0% 6px,
+            200% 6px,
             100% 6px;
+        background-position:
+            100% 100%,
+            0 100%;
         border: 0;
         border-radius: 0;
         outline: none;
-        transition: background-size var(--duration-ink) var(--ease-ink);
+        transition: background-position var(--duration-ink) var(--ease-ink);
     }
     .input-base::placeholder {
         color: var(--text-muted);
     }
     .input-base:focus,
     .input-base.is-inked {
-        background-size:
-            100% 6px,
-            100% 6px;
+        background-position:
+            0 100%,
+            0 100%;
     }
     .input-base:disabled {
         color: var(--text-muted);
@@ -530,22 +531,22 @@ select:focus-visible {
     padding: 0.625rem 0 0.5rem;
     text-align: start;
     color: var(--text);
-    background-image: var(--ink-stroke), var(--ink-rule);
+    background-image: var(--ink-run), var(--ink-rule);
     background-repeat: no-repeat;
-    background-position:
-        left bottom,
-        left bottom;
     background-size:
-        0% 6px,
+        200% 6px,
         100% 6px;
-    transition: background-size var(--duration-ink) var(--ease-ink);
+    background-position:
+        100% 100%,
+        0 100%;
+    transition: background-position var(--duration-ink) var(--ease-ink);
 }
 .choice-trigger[aria-expanded="true"],
 .choice-trigger:focus-visible {
     outline: none;
-    background-size:
-        100% 6px,
-        100% 6px;
+    background-position:
+        0 100%,
+        0 100%;
 }
 .choice-options {
     padding: 0.25rem 0 0.5rem;

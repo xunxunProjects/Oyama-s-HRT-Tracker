@@ -14,14 +14,15 @@ Notable changes to this project. Full release notes for each version are on the
   the same pen as the doodles, and the icon library it used before is gone.
   Injections are drawn as a syringe with real volume: the dose in a plump
   barrel, its underside in shadow, a glint along the top, the stopper and the
-  plunger. Labs is a test tube. Passkeys are drawn as the devices they live
-  on, with no fingerprint or key anywhere. Fields are lines that ink themselves in from left
+  plunger. Labs is a test tube with some depth too. Passkeys are drawn as the
+  devices they live on, with no fingerprint or key anywhere. Buttons are
+  capsules. Fields are lines that ink themselves in from left
   to right as you type, instead of boxes that light up. Nothing glows on focus
   or turns red on an error: the line under the field says what is wrong.
 
   全新的手绘外观。应用里的每个图标都换成了自己画的，和插画出自同一支笔，原先使用的图标库已经移除。
   针剂画成了饱满、有立体感的针管：针筒里的药液、背光的下侧、上沿的反光，还有胶塞和推杆。“检查”换成了
-  试管。通行密钥画成它所在的设备，不再使用指纹或钥匙图标。输入框改成一条线，打字时
+  有立体感的试管。按钮改成了胶囊形状。通行密钥画成它所在的设备，不再使用指纹或钥匙图标。输入框改成一条线，打字时
   墨线会从左往右画上，不再是会发光的方框；聚焦时不发光，出错时也不变红，错误写在线下的提示里。
 
 - No more pop-ups. A question like "Delete this dose?" now appears as a line in

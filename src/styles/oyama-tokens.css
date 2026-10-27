@@ -239,10 +239,13 @@
     --duration-sweep: 900ms;
 
     /* Ink: the hand-drawn rule under every field and the stroke that draws
-       over it on focus. One gentle wave, drawn on a 320x6 box and stretched to
-       the field. Spelled out per theme because an image can't read var(). */
+       over it on focus. One gentle wave, stretched to the field. The stroke
+       sits in the left half of an image twice the field's width, and is
+       drawn by sliding that image into place (motion.css): resizing an SVG
+       background every frame made the line blink as it was redrawn. Spelled
+       out per theme because an image can't read var(). */
     --ink-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%238c8981' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
-    --ink-stroke: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%231a1916' stroke-width='2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+    --ink-run: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%231a1916' stroke-width='1.75' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 }
 
 .dark {
@@ -316,5 +319,5 @@
     --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 24px 56px rgba(0, 0, 0, 0.6);
     --ink-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%23858279' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
-    --ink-stroke: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%23f9f9f7' stroke-width='2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+    --ink-run: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C42 2.5 86 4 132 3.2s96-1 140 .2c17 .5 32 .2 47-.4' fill='none' stroke='%23f9f9f7' stroke-width='1.75' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 }

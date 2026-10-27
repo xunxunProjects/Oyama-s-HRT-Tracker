@@ -29,6 +29,8 @@ drawn with the same pen as the doodles. Nothing performs; things settle.
   estradiol valerate, injected on 23 Oct", or two short sentences.
 - **Hairline rows, not cards.** Lists are rows divided by hairlines under a
   short heading. One primary action per view.
+- **Buttons are capsules.** 36px tall (30px for `btn-sm` inside a line of
+  text), fully round at the ends, whatever their colour.
 
 ## Icons
 
@@ -41,7 +43,11 @@ space stays at least 3px across so it still reads open at a 1.75 stroke.
   They take `size`, `strokeWidth` (1.75 at rest, 2 for the current thing),
   `className` and `label` (only when nothing beside the icon names it).
 - Every path carries `pathLength="1"`, so any stroke can be drawn on with one
-  dash pattern (`.ink-draw`, `.is-inking`, `.tick-draw`).
+  dash pattern (`.ink-draw`, `.tick-draw`).
+- A glyph can have depth in its own ink: a `tint` stroke washes a shape with
+  the ink at 28% (the sample in the Labs tube) and a `thin` stroke is a
+  lighter line (an edge seen through glass, a glint), so it still turns
+  terracotta as one colour when it's the current tab.
 - To add one, draw it in the same hand, add it to `GLYPHS`, export a
   component from `index.tsx`, and check it at 20px and 48px.
 - Never a key, never a fingerprint. Passwords are `password` (a field of
