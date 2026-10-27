@@ -2,6 +2,7 @@ import React, { useEffect, useId, useMemo, useState } from 'react';
 import { CalibrationResult } from '../../logic';
 import { Lang } from '../i18n/translations';
 import { formatDate, formatTime } from '../utils/helpers';
+import { calibrationDomain, formatAxisTick } from '../utils/calibrationAxis';
 import { useElementSize } from '../hooks/useElementSize';
 
 interface CalibrationPlotProps {
@@ -9,32 +10,6 @@ interface CalibrationPlotProps {
     t: (key: string) => string;
     lang: Lang;
 }
-
-// Snap a value down/up to the 1-2-5 sequence, so the axes end on round numbers.
-const snap125 = (v: number, dir: 'down' | 'up') => {
-    const mag = Math.pow(10, Math.floor(Math.log10(v)));
-    const steps = [1, 2, 5, 10];
-    const n = v / mag;
-    const s =
-        dir === 'down' ? ([...steps].reverse().find(x => x <= n + 1e-9) ?? 1) : (steps.find(x => x >= n - 1e-9) ?? 10);
-    return s * mag;
-};
-
-// 1-2-5 ticks across the domain, thinned to decades and fives, then decades
-// alone, as the span widens.
-const logTicks = (lo: number, hi: number): number[] => {
-    const all: number[] = [];
-    for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) {
-        for (const s of [1, 2, 5]) {
-            const v = s * Math.pow(10, e);
-            if (v >= lo * 0.999 && v <= hi * 1.001) all.push(v);
-        }
-    }
-    const lead = (v: number) => Math.round(v / Math.pow(10, Math.floor(Math.log10(v) + 1e-9)));
-    if (all.length <= 6) return all;
-    const noTwos = all.filter(v => lead(v) !== 2);
-    return noTwos.length <= 6 ? noTwos : all.filter(v => lead(v) === 1);
-};
 
 // A lab, as the main chart draws it: a diamond.
 const diamond = (r: number) => `M0 ${-r}L${r} 0L0 ${r}L${-r} 0Z`;
@@ -86,12 +61,6 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
     if (!points.length) return null;
 
-    // One domain for both axes, so the diagonal really is y = x.
-    const values = points.flatMap(p => [p.obs, p.pred, p.cal]);
-    const lo = snap125(Math.min(...values) / 1.35, 'down');
-    const hi = snap125(Math.max(...values) * 1.35, 'up');
-    const ticks = logTicks(lo, hi);
-
     const mL = 34 * ui,
         mR = 10 * ui,
         mT = 22 * ui,
@@ -99,10 +68,18 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
     const height = Math.round(Math.min(Math.max(width * 0.8, 240 * ui), 380 * ui));
     const pw = Math.max(0, width - mL - mR);
     const ph = Math.max(0, height - mT - mB);
+
+    // One domain for both axes, so the diagonal really is y = x. Thin the
+    // ticks to whatever both axes can display without labels colliding.
+    const maxTicks = Math.max(3, Math.min(8, Math.floor(ph / (24 * ui)), Math.floor(pw / (48 * ui))));
+    const values = points.flatMap(p => [p.obs, p.pred, p.cal]);
+    const domain = calibrationDomain(values, maxTicks);
+    if (!domain) return null;
+    const { lo, hi, ticks } = domain;
+
     const u = (v: number) => (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo));
     const X = (v: number) => mL + u(v) * pw;
     const Y = (v: number) => mT + ph - u(v) * ph;
-    const fmt = (v: number) => String(Math.round(v));
 
     const err = calibrated && calibration.fitErrPct !== null ? calibration.fitErrPct : null;
     const k = err !== null ? 1 + err / 100 : 1;
@@ -200,7 +177,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                         className={`${mutedFill} tabular-nums`}
                                         opacity={0.8}
                                     >
-                                        {fmt(v)}
+                                        {formatAxisTick(v)}
                                     </text>
                                     <text
                                         x={mL - 6 * ui}
@@ -210,7 +187,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                         className={`${mutedFill} tabular-nums`}
                                         opacity={0.8}
                                     >
-                                        {fmt(v)}
+                                        {formatAxisTick(v)}
                                     </text>
                                 </g>
                             ))}

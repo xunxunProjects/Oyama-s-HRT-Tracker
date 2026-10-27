@@ -95,6 +95,22 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
         expect(await scriptName.text()).not.toContain('<script>');
     });
 
+    test('avatar upload rejects XML external entities without storing or expanding them', async ({ request }) => {
+        const user = await registerUser(request, 'xxe');
+        const avatarUrl = `${API_ORIGIN}/api/user/avatar/${user.user.username}`;
+        expect((await request.get(avatarUrl)).status()).toBe(204);
+
+        const xxe = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<svg xmlns="http://www.w3.org/2000/svg"><text>&xxe;</text></svg>`;
+        const upload = await request.put(`${API_ORIGIN}/api/user/avatar`, {
+            headers: { ...auth(user.token), 'Content-Type': 'image/svg+xml' },
+            data: Buffer.from(xxe),
+        });
+        expect(upload.status()).toBe(415);
+        expect((await request.get(avatarUrl)).status()).toBe(204);
+    });
+
     test('one account cannot read or delete another account content', async ({ request }) => {
         const owner = await registerUser(request, 'owner');
         const other = await registerUser(request, 'other');
