@@ -27,6 +27,7 @@ import { copyText } from '../utils/clipboard';
 import { clinicalUnit } from '../utils/clinicalUnit';
 import { SwapLabel } from '../components/StableLabel';
 import { CopyTick } from '../components/Tick';
+import { scrollParent } from '../utils/scrollParent';
 
 interface LabProps {
     t: (key: string) => string;
@@ -48,13 +49,6 @@ interface LabProps {
 // `inert` keeps a collapsed form's inputs out of the tab order; the 0fr row
 // only hides them visually.
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
-
-// The page scrolls inside the app's main column, not the window.
-const scrollParent = (el: HTMLElement | null): HTMLElement | null => {
-    let node = el?.parentElement ?? null;
-    while (node && !/(auto|scroll)/.test(getComputedStyle(node).overflowY)) node = node.parentElement;
-    return node;
-};
 
 const Lab: React.FC<LabProps> = ({
     t,

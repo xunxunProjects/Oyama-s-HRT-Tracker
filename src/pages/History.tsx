@@ -155,17 +155,26 @@ const History: React.FC<HistoryProps> = ({
 
     // Sent here to edit one dose: its form is already open (editingId starts
     // on it), and its row is brought to the middle of the screen, with the
-    // planned section unfolded first if that's where it sits.
+    // planned section unfolded first if that's where it sits. The request is
+    // taken in hand at once, not when the row is reached: leaving within the
+    // fold left it standing, and the form opened again on the next visit. So
+    // the timer stops only with the page, not when the request is cleared.
+    const centerTimer = useRef(0);
+    useEffect(() => {
+        const timer = centerTimer;
+        return () => window.clearTimeout(timer.current);
+    }, []);
     useEffect(() => {
         if (!openEditId) return;
+        setEditingId(openEditId);
         const ev = allEvents.find(e => e.id === openEditId);
         if (ev && ev.timeH > Date.now() / 3600000) setPlannedOpen(true);
-        const timer = window.setTimeout(() => {
+        onOpenEditHandled?.();
+        window.clearTimeout(centerTimer.current);
+        centerTimer.current = window.setTimeout(() => {
             const row = document.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(openEditId)}"]`);
             if (row) centerRow(row);
-            onOpenEditHandled?.();
         }, FOLD_MS);
-        return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [openEditId]);
     const totalRecords = allEvents.length;
@@ -284,10 +293,19 @@ const History: React.FC<HistoryProps> = ({
         setSelectedIds(prev => (prev.size === totalRecords ? new Set() : new Set(allEvents.map(e => e.id))));
     };
 
+    // The question names the doses ticked when it was asked. Ticking more, or
+    // fewer, while it's open takes it away, so Delete never removes a set
+    // other than the one it named.
+    const askDelete = useRef<(() => void) | null>(null);
+    useEffect(() => {
+        askDelete.current?.();
+        askDelete.current = null;
+    }, [selectedIds]);
+
     const handleDeleteSelected = () => {
         if (!selectedIds.size) return;
         const msg = t('timeline.batch_delete_confirm').replace('{n}', String(selectedIds.size));
-        showDialog(
+        askDelete.current = showDialog(
             'confirm',
             msg,
             () => {

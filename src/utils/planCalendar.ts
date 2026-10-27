@@ -64,23 +64,34 @@ const dayStart = (ms: number) => {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 };
 
+/** `days` on from a time by the clock on the wall, so a change to or from
+ *  summer time doesn't move the hour: 3.5 days from Monday 09:00 is Thursday
+ *  21:00 either way. */
+const later = (d: Date, days: number) => {
+    const next = new Date(d);
+    next.setDate(next.getDate() + Math.floor(days));
+    next.setHours(next.getHours() + Math.round((days % 1) * 24));
+    return next;
+};
+
 /** When the first reminder for an item should ring, and at what time of day the rest follow. */
 function firstDose(item: PlanItem, events: DoseEvent[], nowMs: number): Date {
     const nowH = nowMs / 3600000;
     const taken = events.filter(e => matchesItem(item, e) && e.timeH <= nowH).map(e => e.timeH * 3600000);
     const last = taken.length ? Math.max(...taken) : null;
-    const time = last !== null ? new Date(last) : null;
-    const hour = time ? time.getHours() : 9;
-    const minute = time ? time.getMinutes() : 0;
+    // The next dose comes round at the time of day the rhythm brings it to:
+    // the last one's, or twelve hours on for a patch changed every 3.5 days.
+    const due = last !== null ? later(new Date(last), item.everyDays > 1 ? item.everyDays : 0) : null;
     const status = planStatus(item, events, nowH);
     const today = dayStart(nowMs);
     let day: number;
     if (status.kind === 'due') day = today;
     else if (status.kind === 'rest') day = dayStart(status.nextH * 3600000);
-    // Taken today: the next dose day is tomorrow, or every-n-days on from now.
-    else day = dayStart(today + Math.max(1, Math.round(item.everyDays)) * 86400000 + 3600000);
+    // Taken today: tomorrow, or the day the rhythm comes round to, counted as
+    // the plan counts it.
+    else day = due && item.everyDays > 1 ? dayStart(due.getTime()) : dayStart(today + 25 * 3600000);
     const first = new Date(day);
-    first.setHours(hour, minute, 0, 0);
+    first.setHours(due ? due.getHours() : 9, due ? due.getMinutes() : 0, 0, 0);
     return first;
 }
 
@@ -96,20 +107,20 @@ export function planToCalendar(plan: PlanItem[], events: DoseEvent[], words: Cal
         // to whole days, which is how the plan reads it anyway.
         const series: { start: Date; rule: string }[] = [];
         if (item.everyDays <= 1) {
+            // All from the first day, at times spread round the clock from
+            // the last dose's, so one earlier in the day than that (this
+            // morning's, after last night's) is reminded too.
             const n = Math.max(1, item.timesPerDay);
+            const from = first.getHours() * 60 + first.getMinutes();
             for (let k = 0; k < n; k++) {
-                series.push({
-                    start: new Date(first.getTime() + (k * 24 * 3600000) / n),
-                    rule: 'FREQ=DAILY',
-                });
+                const start = new Date(first);
+                start.setHours(0, (from + Math.round((k * 1440) / n)) % 1440, 0, 0);
+                series.push({ start, rule: 'FREQ=DAILY' });
             }
         } else if (Math.abs(item.everyDays * 2 - Math.round(item.everyDays * 2)) < 1e-9 && item.everyDays % 1 !== 0) {
             const span = Math.round(item.everyDays * 2);
             series.push({ start: first, rule: `FREQ=DAILY;INTERVAL=${span}` });
-            series.push({
-                start: new Date(first.getTime() + item.everyDays * 24 * 3600000),
-                rule: `FREQ=DAILY;INTERVAL=${span}`,
-            });
+            series.push({ start: later(first, item.everyDays), rule: `FREQ=DAILY;INTERVAL=${span}` });
         } else {
             series.push({ start: first, rule: `FREQ=DAILY;INTERVAL=${Math.max(1, Math.round(item.everyDays))}` });
         }

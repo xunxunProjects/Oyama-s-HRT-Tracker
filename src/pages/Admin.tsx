@@ -73,8 +73,9 @@ const Admin: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchDebounce, setSearchDebounce] = useState('');
     const [panel, setPanel] = useState<UserPanel>(null);
-    // A user's panel opens in the list, right under that user's row.
-    const panelHost = useInlineHost(!!panel);
+    // A user's panel opens in the list, right under that user's row, and
+    // moves under another's when their button is pressed.
+    const panelHost = useInlineHost(!!panel, panel && `${panel.type}:${panel.user.id}`);
     useEscape(() => setPanel(null), !!panel);
 
     const [page, setPage] = useState(1);
@@ -186,6 +187,12 @@ const Admin: React.FC = () => {
     useEffect(() => {
         setPage(1);
     }, [searchDebounce]);
+
+    // A panel sits under its user's row, which another page or search takes
+    // off the list, so it closes with them.
+    useEffect(() => {
+        setPanel(null);
+    }, [page, searchDebounce]);
 
     const handleDeleteUser = (user: AdminUser) => {
         if (!token) return;
@@ -622,6 +629,7 @@ const Admin: React.FC = () => {
                 </div>
             </div>
         );
+        if (panelHost === undefined) return null;
         return panelHost ? createPortal(body, panelHost) : body;
     };
 

@@ -7,6 +7,7 @@ import Doodle, { DoodleName } from '../components/Doodle';
 import Point, { type MarkState } from '../components/Point';
 import DoseRings from '../components/DoseRings';
 import PlanWizard from '../components/PlanWizard';
+import PageHeader from '../components/PageHeader';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -244,7 +245,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
         if (isPlausibleBodyWeightKG(kg) && kg !== weight) onWeightChange(kg);
     };
 
-    // The plan's own questions, opened over the intro the same way the Plan page opens them.
+    // Adding to the plan from the intro: the Plan page's own questions (below).
     const [addingPlan, setAddingPlan] = useState(false);
     const canAddPlan = (Object.keys(PLAN_DRUGS[mode]) as Route[]).some(r =>
         (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)),
@@ -511,8 +512,37 @@ const Onboarding: React.FC<OnboardingProps> = ({
         else go(step + 1);
     };
 
+    // The plan's questions take the intro's place while they run, under a
+    // title whose back arrow backs out of them, the way the Plan page has
+    // them. There is no bottom bar here, so their buttons go to the edge.
+    if (addingPlan) {
+        return (
+            <div
+                data-prompt-area
+                className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
+            >
+                <div aria-hidden="true" className="shrink-0 pt-[env(safe-area-inset-top,0px)]" />
+                <div className="flex flex-1 flex-col overflow-y-auto scrollbar-hide">
+                    <PageHeader onBack={() => setAddingPlan(false)} title={t('plan.add')} />
+                    <PlanWizard
+                        plan={plan}
+                        onAdd={item => {
+                            onAddPlanItem(item);
+                            setAddingPlan(false);
+                        }}
+                        onCancel={() => setAddingPlan(false)}
+                        aboveNav={false}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]">
+        <div
+            data-prompt-area
+            className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
+        >
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
@@ -580,17 +610,6 @@ const Onboarding: React.FC<OnboardingProps> = ({
                     </div>
                 </div>
             </div>
-
-            {addingPlan && (
-                <PlanWizard
-                    plan={plan}
-                    onAdd={item => {
-                        onAddPlanItem(item);
-                        setAddingPlan(false);
-                    }}
-                    onCancel={() => setAddingPlan(false)}
-                />
-            )}
         </div>
     );
 };

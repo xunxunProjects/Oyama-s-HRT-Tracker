@@ -871,6 +871,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
             <PasswordPrompt
                 isOpen={!!pwPrompt}
+                anchorKey={pwPrompt?.kind === 'passkey' ? pwPrompt.passkey.id : pwPrompt?.kind}
                 onClose={() => {
                     setPwPrompt(null);
                     setPwError(null);

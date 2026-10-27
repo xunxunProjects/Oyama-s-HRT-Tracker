@@ -26,11 +26,19 @@ interface DialogOptions {
      *  in place of "OK", so the button says what pressing it will do. */
     confirmLabel?: string;
     /** Runs when a confirm is backed out of: the way-out button, Escape, the
-     *  system Back, or the page it was asked on going away. */
+     *  system Back, the page it was asked on going away, or another prompt
+     *  taking its place. */
     onCancel?: () => void;
 }
 
-export type ShowDialog = (type: DialogType, message: string, onConfirm?: () => void, options?: DialogOptions) => void;
+/** Shows a prompt. What it returns takes that prompt down again, if it's still
+ *  the one on screen (a confirm taken down that way is backed out of). */
+export type ShowDialog = (
+    type: DialogType,
+    message: string,
+    onConfirm?: () => void,
+    options?: DialogOptions,
+) => () => void;
 
 interface DialogContextType {
     showDialog: ShowDialog;
@@ -45,6 +53,7 @@ export const useDialog = () => {
 };
 
 interface Prompt {
+    id: number;
     type: DialogType;
     message: string;
     onConfirm: (() => void) | null;
@@ -57,14 +66,33 @@ interface Prompt {
     view: Element | null;
 }
 
-/** What was last pressed, so the prompt it causes can be put under it. Safari
- *  doesn't focus a button that's clicked, so focus alone can't say. */
+/** Where a prompt can be put under a row: the app's page area, and the intro,
+ *  which takes the whole screen instead. A press anywhere else (the bars
+ *  around the page, the banner) has no row of its own to go under. */
+const PAGE_AREA = '.main-view, [data-prompt-area]';
+
+/** What was last pressed, with a pointer or a key, so the prompt it causes can
+ *  be put under it. Safari doesn't focus a button that's clicked, so focus
+ *  alone can't say. */
 const lastPress: { el: HTMLElement | null; at: number } = { el: null, at: 0 };
 const PRESS_TARGET = 'button, a, summary, label, [role="button"], [role="switch"], [role="tab"], [role="option"]';
 
-// A host remembers the row it was put under, so a prompt raised from inside
-// another prompt ("Deleted" after "Delete this?") can go in the same place.
-const anchorOf = new WeakMap<HTMLElement, HTMLElement>();
+// Never put a line inside these: in a label it becomes part of what the label
+// names (and a tap anywhere on it presses the labelled control), and in a
+// button or a list of options it's inside the control itself.
+const NOT_INSIDE = 'label, button, a, summary, select, [role="button"], [role="listbox"], [role="option"]';
+
+/** A press a line can still go under: on the page, drawn, and not in
+ *  something folded away (a collapsed list keeps its options, inert). */
+function usable(el: Element | null): el is HTMLElement {
+    return (
+        el instanceof HTMLElement &&
+        el !== document.body &&
+        el.isConnected &&
+        !el.closest('[inert], [hidden]') &&
+        el.getClientRects().length > 0
+    );
+}
 
 /** Whether a new line can go between this box's children: they stack. */
 function stacks(el: HTMLElement): boolean {
@@ -76,17 +104,14 @@ function stacks(el: HTMLElement): boolean {
 }
 
 /** The row a pressed control sits in: the nearest box, from the control up,
- *  whose parent stacks its children. A row can also name itself with
- *  `data-prompt-anchor` where the shape of the page would mislead this. */
-function rowFor(el: HTMLElement): HTMLElement | null {
-    const named = el.closest<HTMLElement>('[data-prompt-anchor]');
-    if (named) return named;
-    let node: HTMLElement = el;
-    while (node.parentElement && node.parentElement !== document.body) {
+ *  whose parent stacks its children and that is wide enough to hold a line
+ *  (its words and its two buttons). A button alone in a grid cell or a tight
+ *  span isn't a row; the run of fields or the list item around it is. */
+function rowFor(el: HTMLElement, area: Element): HTMLElement | null {
+    const need = Math.min(320, area.clientWidth - 48);
+    for (let node = el; node !== area && node.parentElement; node = node.parentElement) {
         const parent = node.parentElement;
-        if (parent.id === 'root') return null;
-        if (stacks(parent)) return node;
-        node = parent;
+        if (stacks(parent) && !parent.closest(NOT_INSIDE) && node.getBoundingClientRect().width >= need) return node;
     }
     return null;
 }
@@ -108,53 +133,92 @@ function hostAfter(row: HTMLElement): HTMLElement {
     host.style.maxWidth = `${width}px`;
     // insertBefore, not after(): the worker types' Element shadows the DOM one.
     parent.insertBefore(host, row.nextSibling);
-    anchorOf.set(host, row);
     return host;
 }
 
+/** A host under the row of what was just pressed (or, failing that, what has
+ *  the focus), or null for the banner: nothing on the page was, the press was
+ *  in the bars around the page, or it was in the banner itself, where what it
+ *  raises follows it. A press inside a line already in the page counts like
+ *  any other, so what it raises goes right under that line. */
 function findHost(): HTMLElement | null {
-    const pressed =
-        lastPress.el?.isConnected && Date.now() - lastPress.at < 15000
-            ? lastPress.el
-            : document.activeElement instanceof HTMLElement && document.activeElement !== document.body
-              ? document.activeElement
-              : null;
-    if (!pressed) return null;
-    // Raised from inside a prompt: under the row that prompt was under.
-    const insidePrompt = pressed.closest<HTMLElement>('.inline-prompt-host');
-    const row = insidePrompt ? anchorOf.get(insidePrompt) : rowFor(pressed);
-    if (!row || !row.isConnected || !row.parentElement) return null;
-    return hostAfter(row);
+    if (lastPress.el && (!lastPress.el.isConnected || Date.now() - lastPress.at >= 15000)) lastPress.el = null;
+    const pressed = usable(lastPress.el)
+        ? lastPress.el
+        : usable(document.activeElement)
+          ? document.activeElement
+          : null;
+    const area = pressed?.closest(PAGE_AREA);
+    if (!pressed || !area || pressed.closest('.prompt-banner')) return null;
+    const row = rowFor(pressed, area);
+    return row ? hostAfter(row) : null;
 }
 
 /**
  * A place in the page right under what was just pressed, for a line that asks
  * for more than yes or no (a password, a form) to render into with a portal.
- * Null while closed, or when nothing on the page was pressed; the caller then
- * renders in its own place. The host goes when `open` turns false.
+ * Undefined while closed, and for the moment the place is being chosen, so
+ * nothing of the caller's is on the page yet to be mistaken for what was
+ * pressed; null with nowhere to put it, for the banner. A new `key` (another
+ * user's panel, another backup) moves it under the row pressed for that one.
+ * If its row goes away (the paste box an import folds up), it moves up to the
+ * banner. The host goes when `open` turns false.
  */
-export function useInlineHost(open: boolean): HTMLElement | null {
-    const [host, setHost] = useState<HTMLElement | null>(null);
+export function useInlineHost(open: boolean, key?: unknown): HTMLElement | null | undefined {
+    const [host, setHost] = useState<HTMLElement | null | undefined>(undefined);
     useLayoutEffect(() => {
         if (!open) return;
         const made = findHost();
         setHost(made);
-        return () => {
-            made?.remove();
+        if (!made) return () => setHost(undefined);
+        const watch = new MutationObserver(() => {
+            if (made.isConnected) return;
+            watch.disconnect();
             setHost(null);
+        });
+        watch.observe(document.body, { childList: true, subtree: true });
+        return () => {
+            watch.disconnect();
+            made.remove();
+            setHost(undefined);
         };
-    }, [open]);
-    return host;
+    }, [open, key]);
+    return open ? host : undefined;
 }
+
+/**
+ * Renders a line where useInlineHost (or a prompt) put it: into its host in
+ * the page, or with none, in the banner at the top of the page. Nothing while
+ * the place is still undefined. Without the app's banner slot (the intro, a
+ * shared page), the banner floats over the top of the screen.
+ */
+export const PromptPlace: React.FC<{
+    host: HTMLElement | null | undefined;
+    children: React.ReactNode;
+    /** The banner's column, for a line narrower than the page's. */
+    column?: string;
+}> = ({ host, children, column = PAGE_COLUMN }) => {
+    if (host === undefined) return null;
+    if (host) return createPortal(children, host);
+    const slot = document.getElementById('prompt-slot');
+    return createPortal(
+        <div
+            className={`prompt-banner glass glass-bar ${slot ? '' : 'fixed inset-x-0 top-0 z-[100] pt-[env(safe-area-inset-top,0px)]'}`}
+        >
+            <div className={column}>{children}</div>
+        </div>,
+        slot ?? document.body,
+    );
+};
 
 /**
  * Every alert and confirm in the app goes through here, and none of them is a
  * pop-up. The question is put into the page as a line right under the row
  * that was pressed ("Delete this dose? Keep it / Delete"), and the rest of
  * the page stays as it was. Asked with nothing on the page to put it under (a
- * sync that finished on its own), it floats at the top of the page instead.
- * Escape, the system Back, or the page going away backs out of it, and focus
- * goes back to where it was.
+ * sync that finished on its own), or as the page it was asked on closes, it
+ * floats at the top of the page instead. Escape, the system Back, or the page
+ * going away backs out of it, and focus goes back to where it was.
  */
 export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     const { t } = useTranslation();
@@ -162,6 +226,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     // The prompt on screen, read by the listeners below without waiting for
     // a render, so a line closed a moment ago can't be backed out of again.
     const promptRef = useRef<Prompt | null>(null);
+    const lastId = useRef(0);
     const cancelRef = useRef<HTMLButtonElement>(null);
     const okRef = useRef<HTMLButtonElement>(null);
     const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -175,46 +240,28 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     const messageId = 'app-dialog-message';
 
     useEffect(() => {
-        const onPress = (e: Event) => {
-            const el = e.target instanceof Element ? e.target.closest<HTMLElement>(PRESS_TARGET) : null;
-            if (el) {
-                lastPress.el = el;
-                lastPress.at = Date.now();
-            }
+        const note = (el: HTMLElement | null | undefined) => {
+            if (!el) return;
+            lastPress.el = el;
+            lastPress.at = Date.now();
         };
-        document.addEventListener('pointerdown', onPress, true);
-        return () => document.removeEventListener('pointerdown', onPress, true);
+        const onPointer = (e: Event) => {
+            note(e.target instanceof Element ? e.target.closest<HTMLElement>(PRESS_TARGET) : null);
+        };
+        // A key that presses something: Enter or Space on a control, or Enter
+        // in a field, which sends its form.
+        const onKey = (e: KeyboardEvent) => {
+            if ((e.key !== 'Enter' && e.key !== ' ') || !(e.target instanceof HTMLElement)) return;
+            const control = e.target.closest<HTMLElement>(PRESS_TARGET);
+            note(control ?? (e.key === 'Enter' && e.target.matches('input, select') ? e.target : null));
+        };
+        document.addEventListener('pointerdown', onPointer, true);
+        document.addEventListener('keydown', onKey, true);
+        return () => {
+            document.removeEventListener('pointerdown', onPointer, true);
+            document.removeEventListener('keydown', onKey, true);
+        };
     }, []);
-
-    const showDialog = useCallback(
-        (type: DialogType, message: string, onConfirm?: () => void, options?: DialogOptions) => {
-            if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
-                returnFocusRef.current = document.activeElement;
-            } else if (lastPress.el?.isConnected) {
-                returnFocusRef.current = lastPress.el;
-            }
-            ownStepPendingRef.current = isSteppingBack();
-            const host = findHost();
-            // One line at a time: a new one takes the old one's place.
-            const prev = promptRef.current;
-            if (prev?.host && prev.host !== host) prev.host.remove();
-            const next = {
-                type,
-                message,
-                onConfirm: onConfirm ?? null,
-                options: options ?? {},
-                host,
-                view: host?.closest('.main-view') ?? null,
-            };
-            promptRef.current = next;
-            setPrompt(next);
-        },
-        [],
-    );
-
-    // Stable reference so a prompt opening and closing doesn't re-render every
-    // consumer of useDialog() across the app (showDialog itself never changes).
-    const contextValue = useMemo(() => ({ showDialog }), [showDialog]);
 
     const close = useCallback((refocus = true) => {
         const current = promptRef.current;
@@ -252,6 +299,47 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         },
         [cancel, handleConfirm],
     );
+
+    const showDialog = useCallback<ShowDialog>(
+        (type, message, onConfirm, options) => {
+            if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+                returnFocusRef.current = document.activeElement;
+            } else if (lastPress.el?.isConnected) {
+                returnFocusRef.current = lastPress.el;
+            }
+            ownStepPendingRef.current = isSteppingBack();
+            // Asked as the page closes ("Password changed" as its form shuts):
+            // in the banner over the page it closes to, not in the one leaving.
+            const host = ownStepPendingRef.current ? null : findHost();
+            const id = ++lastId.current;
+            const next: Prompt = {
+                id,
+                type,
+                message,
+                onConfirm: onConfirm ?? null,
+                options: options ?? {},
+                host,
+                view: host?.closest(PAGE_AREA) ?? null,
+            };
+            // One line at a time: a new one takes the old one's place, and a
+            // question still open is backed out of, so whatever waits on it
+            // hears no. After the swap, so a prompt raised by that cancel
+            // takes this one's place in turn.
+            const prev = promptRef.current;
+            promptRef.current = next;
+            setPrompt(next);
+            prev?.host?.remove();
+            if (prev?.type === 'confirm') prev.options.onCancel?.();
+            return () => {
+                if (promptRef.current?.id === id) dismiss(false);
+            };
+        },
+        [dismiss],
+    );
+
+    // Stable reference so a prompt opening and closing doesn't re-render every
+    // consumer of useDialog() across the app (showDialog itself never changes).
+    const contextValue = useMemo(() => ({ showDialog }), [showDialog]);
 
     // Into the line as it opens: the way out for something that can't be
     // undone, the way on for the rest. Then the line is scrolled into view, in
@@ -293,32 +381,32 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         return () => window.removeEventListener('popstate', onPop);
     }, [prompt, dismiss]);
 
-    // The row it was put under went away. A question goes with it: whatever it
-    // asked about is gone, or the page is. A result ("Backup merged") stays
-    // on the page it belongs to, moved up to the top, since the row is often
-    // what the action itself cleared away (the paste box an import empties).
-    useEffect(() => {
+    // The row it was put under went away. On a page still there (the paste
+    // box an import folds up, the row a delete just took), the line moves up
+    // to the top of that page and still waits for its answer. With the page
+    // gone, it goes with it, as it would on Back. Checked at once as well,
+    // in case the row went before the watch began.
+    useLayoutEffect(() => {
         const host = prompt?.host;
         if (!host) return;
-        const watch = new MutationObserver(() => {
+        const check = () => {
             const current = promptRef.current;
             if (host.isConnected || current?.host !== host) return;
-            if (current.type === 'alert' && current.view?.isConnected) {
+            if (current.view?.isConnected) {
                 const moved = { ...current, host: null };
                 promptRef.current = moved;
                 setPrompt(moved);
-                return;
-            }
-            dismiss(false);
-        });
+            } else dismiss(false);
+        };
+        check();
+        const watch = new MutationObserver(check);
         watch.observe(document.body, { childList: true, subtree: true });
         return () => watch.disconnect();
     }, [prompt, dismiss]);
 
-    const slot = prompt && !prompt.host ? document.getElementById('prompt-slot') : null;
-
     const line = prompt && (
         <div
+            key={prompt.id}
             className="inline-prompt m-appear"
             data-prompt={prompt.type}
             role={prompt.type === 'confirm' ? 'group' : 'status'}
@@ -363,21 +451,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <DialogContext.Provider value={contextValue}>
             {children}
-            {prompt?.host && createPortal(line, prompt.host)}
-            {prompt &&
-                !prompt.host &&
-                (slot ? (
-                    createPortal(
-                        <div className="prompt-banner glass glass-bar">
-                            <div className={PAGE_COLUMN}>{line}</div>
-                        </div>,
-                        slot,
-                    )
-                ) : (
-                    <div className="prompt-banner glass glass-bar fixed inset-x-0 top-0 z-[100] pt-[env(safe-area-inset-top,0px)]">
-                        <div className={PAGE_COLUMN}>{line}</div>
-                    </div>
-                ))}
+            {prompt && <PromptPlace host={prompt.host}>{line}</PromptPlace>}
         </DialogContext.Provider>
     );
 };

@@ -24,8 +24,10 @@ const CustomRhythm: React.FC<{
     const hintId = useId();
     const start = parseFrequency(freq);
     const [kind, setKind] = useState<Kind>(start && start.timesPerDay > 1 ? 'daily' : 'every');
+    // Back from a later step, an unset rhythm comes back empty, with the hint
+    // saying why, rather than showing a number the draft doesn't have.
     const [text, setText] = useState(() =>
-        String(start ? (start.timesPerDay > 1 ? start.timesPerDay : Math.max(2, Math.round(start.everyDays))) : 4),
+        start ? String(start.timesPerDay > 1 ? start.timesPerDay : Math.max(2, Math.round(start.everyDays))) : '',
     );
 
     const max = kind === 'daily' ? MAX_TIMES_PER_DAY : MAX_EVERY_DAYS;

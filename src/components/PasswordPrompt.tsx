@@ -1,9 +1,7 @@
 import { useState, useEffect, useId } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from '../contexts/LanguageContext';
-import { useInlineHost } from '../contexts/DialogContext';
+import { PromptPlace, useInlineHost } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
-import { PAGE_COLUMN } from './PageHeader';
 
 interface PasswordPromptProps {
     isOpen: boolean;
@@ -15,6 +13,9 @@ interface PasswordPromptProps {
     loading?: boolean;
     /** Mask the input as a password field (defaults to the legacy visible text). */
     masked?: boolean;
+    /** What the password is for (a backup, a passkey), when one page asks for
+     *  several: a new one moves the line under the row pressed for it. */
+    anchorKey?: string | number;
 }
 
 /**
@@ -31,10 +32,11 @@ const PasswordPrompt = ({
     error,
     loading,
     masked,
+    anchorKey,
 }: PasswordPromptProps) => {
     const { t } = useTranslation();
     const [password, setPassword] = useState('');
-    const host = useInlineHost(isOpen);
+    const host = useInlineHost(isOpen, anchorKey);
     const id = useId();
 
     useEscape(onClose, isOpen);
@@ -88,18 +90,7 @@ const PasswordPrompt = ({
         </form>
     );
 
-    if (host) return createPortal(line, host);
-    const slot = document.getElementById('prompt-slot');
-    return slot ? (
-        createPortal(
-            <div className="prompt-banner glass glass-bar">
-                <div className={PAGE_COLUMN}>{line}</div>
-            </div>,
-            slot,
-        )
-    ) : (
-        <div className={PAGE_COLUMN}>{line}</div>
-    );
+    return <PromptPlace host={host}>{line}</PromptPlace>;
 };
 
 export default PasswordPrompt;

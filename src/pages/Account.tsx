@@ -1432,6 +1432,7 @@ const Account: React.FC<AccountProps> = ({
 
             <PasswordPrompt
                 isOpen={!!unlockTarget}
+                anchorKey={unlockTarget?.purpose === 'expand' ? unlockTarget.backupId : unlockTarget?.purpose}
                 onClose={cancelUnlock}
                 onConfirm={handleUnlockSubmit}
                 title={t('account.unlock_title')}

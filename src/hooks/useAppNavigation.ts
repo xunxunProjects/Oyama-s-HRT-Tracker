@@ -166,12 +166,23 @@ export const useAppNavigation = (user: any) => {
             if (el) scrollTops.current[viewRef.current] = el.scrollTop;
             viewRef.current = view;
             restoreScroll.current = restore;
-            runViewMove(how, () => {
-                setTransitionDirection(direction);
-                setMove(how);
-                setOpenedUnder(under ?? null);
-                setCurrentView(view);
-            });
+            runViewMove(
+                how,
+                () => {
+                    setTransitionDirection(direction);
+                    setMove(how);
+                    setOpenedUnder(under ?? null);
+                    setCurrentView(view);
+                },
+                // Inside a move the frame-later retry below comes too late:
+                // the page is already on its way in. By here it has its
+                // full height, so the scroll lands before the first frame.
+                () => {
+                    const top = scrollTops.current[view] ?? 0;
+                    const page = mainScrollRef.current;
+                    if (restore && page && page.scrollTop < top) page.scrollTop = top;
+                },
+            );
         },
         [],
     );

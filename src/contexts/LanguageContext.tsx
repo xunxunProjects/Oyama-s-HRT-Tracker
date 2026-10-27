@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS, Lang } from '../i18n/translations';
+import { setAppLocale } from '../i18n/locale';
 
 const LanguageContext = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string } | null>(
     null,
@@ -46,6 +47,7 @@ const FALLBACK: Record<Lang, readonly Lang[]> = {
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
     const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('hrt-lang') as Lang) || 'zh');
+    setAppLocale(LANG_LOCALE[lang] ?? lang);
 
     useEffect(() => {
         localStorage.setItem('hrt-lang', lang);

@@ -3,6 +3,7 @@ import { Ester, ExtraKey, GEL_SITE_ORDER, Route, isKnownEster } from '../../logi
 import { Pack, Supply, packUnitMG } from './regimen';
 import { Lang } from '../i18n/translations';
 import { LOCALE_MAP } from './helpers';
+import { appLocale } from '../i18n/locale';
 
 type T = (key: string) => string;
 
@@ -44,8 +45,11 @@ const glue = (a: string, b: string) => (CJK.test(a.slice(-1)) && CJK.test(b.slic
  * stands alone as a title, but "estradiol valerate 4 mg injection" in a
  * sentence. Only a capital followed by lowercase is lowered, so a code (EV,
  * IM) keeps its capitals, and scripts without case are left as they are.
+ * In the app's language, so an English word stays English on a Turkish
+ * system ("injection", not "ınjection").
  */
-const inPhrase = (word: string) => (/^\p{Lu}\p{Ll}/u.test(word) ? word[0].toLocaleLowerCase() + word.slice(1) : word);
+const inPhrase = (word: string) =>
+    /^\p{Lu}\p{Ll}/u.test(word) ? word[0].toLocaleLowerCase(appLocale()) + word.slice(1) : word;
 
 /** "4 mg of estradiol valerate (EV)": an amount of a drug, in the language's order, the drug lowered when it isn't first. */
 export const doseOf = (dose: string, drug: string, t: T) => {
@@ -79,10 +83,11 @@ export const gelSiteName = (idx: number, t: T) =>
 /**
  * A phrase as it reads on its own line, as a row's title or a choice: its
  * first letter up ("Weekly"), where the same words inside a sentence stay
- * lower ("injected weekly"). Scripts without case are left as they are.
+ * lower ("injected weekly"). Scripts without case are left as they are, and
+ * the case is the app language's: Turkish "iki günde bir" reads "İki".
  */
 export const asTitle = (phrase: string) =>
-    /^\p{Ll}/u.test(phrase) ? phrase[0].toLocaleUpperCase() + phrase.slice(1) : phrase;
+    /^\p{Ll}/u.test(phrase) ? phrase[0].toLocaleUpperCase(appLocale()) + phrase.slice(1) : phrase;
 
 /** "每天", "每天 2 次", "每两天", "每周", "每 3.5 天", "每 4 周". */
 export function frequencyLabel(f: { everyDays: number; timesPerDay: number }, t: T): string {
