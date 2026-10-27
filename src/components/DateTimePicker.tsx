@@ -45,19 +45,23 @@ const sameDay = (a: Date, b: Date) =>
 const RING =
     'M27.6 9.2c-3.1-2.2-7.4-2.9-11.2-1.8-5.2 1.5-8.9 6.1-8.6 11.3.3 5.6 5 9.9 10.7 10.2 5.9.3 11-3.8 11.8-9.3.6-3.9-1-7.6-3.9-10-1.3-1-2.8-1.7-4.3-2.1';
 
-interface TimePartProps {
+interface NumberPartProps {
     label: string;
     value: number;
+    min?: number;
     max: number;
+    /** How many digits it's written with: 2 for hours and minutes, 4 for a year. */
+    digits?: 2 | 4;
     onChange: (value: number) => void;
+    className?: string;
 }
 
-/** Hours or minutes, typed as two digits on a line. Arrow keys step them. */
-const TimePart: React.FC<TimePartProps> = ({ label, value, max, onChange }) => {
+/** A part of the date or time typed on a line: hours, minutes, the year. Arrow keys step it. */
+const NumberPart: React.FC<NumberPartProps> = ({ label, value, min = 0, max, digits = 2, onChange, className }) => {
     const [draft, setDraft] = useState<string | null>(null);
     const commit = (text: string) => {
         const n = parseInt(text, 10);
-        if (!Number.isNaN(n)) onChange(Math.max(0, Math.min(max, n)));
+        if (!Number.isNaN(n)) onChange(Math.max(min, Math.min(max, n)));
         setDraft(null);
     };
     return (
@@ -65,27 +69,29 @@ const TimePart: React.FC<TimePartProps> = ({ label, value, max, onChange }) => {
             type="text"
             inputMode="numeric"
             aria-label={label}
-            maxLength={2}
-            value={draft ?? String(value).padStart(2, '0')}
+            maxLength={digits}
+            value={draft ?? String(value).padStart(digits, '0')}
             onFocus={e => e.currentTarget.select()}
             onChange={e => {
                 const text = e.target.value.replace(/\D/g, '');
                 setDraft(text);
-                if (text.length === 2) commit(text);
+                if (text.length === digits) commit(text);
             }}
             onBlur={() => draft !== null && commit(draft)}
             onKeyDown={e => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     const step = e.key === 'ArrowUp' ? 1 : -1;
-                    onChange((value + step + max + 1) % (max + 1));
+                    // Hours and minutes go round; a year stops at its ends.
+                    const next = value + step;
+                    onChange(digits === 4 ? Math.max(min, Math.min(max, next)) : (next + max + 1) % (max + 1));
                     setDraft(null);
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (draft !== null) commit(draft);
                 }
             }}
-            className="input-base w-12 text-center tabular-nums text-[1.0625rem] font-medium"
+            className={`input-base text-center tabular-nums font-medium ${className ?? 'w-12 text-[1.0625rem]'}`}
         />
     );
 };
@@ -93,7 +99,9 @@ const TimePart: React.FC<TimePartProps> = ({ label, value, max, onChange }) => {
 /**
  * Picks a day on a month's calendar and a time under it, with nothing that
  * opens over anything else. The chosen day is circled in ink as it's chosen.
- * Arrow keys walk the days, Page Up and Page Down the months.
+ * Arrow keys walk the days, Page Up and Page Down the months, and the year is
+ * typed beside the month, so a date years away (a share link that lasts until
+ * 2100) is one field, not hundreds of pages.
  */
 const DateTimePicker: React.FC<DateTimePickerProps> = ({
     isOpen,
@@ -214,6 +222,17 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         year: 'numeric',
         month: 'long',
     });
+    const monthName = new Date(view.year, view.month, 1).toLocaleDateString(locale, { month: 'long' });
+    const setYear = (year: number) => {
+        const next = new Date(selectedDate);
+        const day = next.getDate();
+        next.setDate(1);
+        next.setFullYear(year);
+        next.setDate(Math.min(day, new Date(year, next.getMonth() + 1, 0).getDate()));
+        setView({ year, month: next.getMonth() });
+        setInkKey(k => k + 1);
+        apply(next);
+    };
     const canBack = view.year > firstYear || view.month > 0;
     const canOn = view.year < lastYear || view.month < 11;
 
@@ -222,9 +241,20 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {showDate && (
                 <section aria-labelledby={`${id}-month`}>
                     <div className="flex items-center justify-between mb-2">
-                        <p id={`${id}-month`} className="text-sm font-medium text-[var(--text)]" aria-live="polite">
-                            {monthTitle}
-                        </p>
+                        <div className="flex items-baseline gap-2">
+                            <p id={`${id}-month`} className="text-sm font-medium text-[var(--text)]" aria-live="polite">
+                                {monthName}
+                            </p>
+                            <NumberPart
+                                label={t('time.year')}
+                                value={view.year}
+                                min={firstYear}
+                                max={lastYear}
+                                digits={4}
+                                onChange={setYear}
+                                className="w-14 min-h-0 py-1 text-sm"
+                            />
+                        </div>
                         <div className="flex items-center -me-2">
                             <button
                                 type="button"
@@ -294,7 +324,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {showTime && (
                 <section className="flex items-center gap-3">
                     <span className="text-sm text-[var(--text-muted)] me-auto">{t('time.select')}</span>
-                    <TimePart
+                    <NumberPart
                         label={t('time.hour')}
                         value={selectedDate.getHours()}
                         max={23}
@@ -303,7 +333,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     <span className="text-[var(--text-muted)] -mx-1" aria-hidden="true">
                         :
                     </span>
-                    <TimePart
+                    <NumberPart
                         label={t('time.minute')}
                         value={selectedDate.getMinutes()}
                         max={59}

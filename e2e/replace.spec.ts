@@ -104,7 +104,7 @@ test.describe('complete backup replace (L3 browser)', () => {
         await gotoApp(page);
         await pasteAndReplace(page, JSON.stringify(incoming));
 
-        const dialog = page.getByRole('alertdialog');
+        const dialog = page.locator('[data-prompt="confirm"]');
         await expect(dialog).toContainText('Replace this device from a complete backup?');
         await expect(dialog).toContainText('This backup is from');
         await expect(dialog).toContainText('and holds 12 records.');
@@ -115,7 +115,7 @@ test.describe('complete backup replace (L3 browser)', () => {
         await expect(dialog).not.toContainText('journal');
         await confirmDialog(page, 'Replace everything');
 
-        await expect(page.getByRole('dialog')).toContainText('Complete backup restored.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText('Complete backup restored.');
         await dismissAlert(page);
 
         await expect
@@ -156,12 +156,16 @@ test.describe('complete backup replace (L3 browser)', () => {
             calibration: { method: 'off', historyMode: 'forward' },
         });
         await pasteAndReplace(page, JSON.stringify(incomplete));
-        await expect(page.getByRole('dialog')).toContainText('This is not a complete backup file this app can read.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'This is not a complete backup file this app can read.',
+        );
         await dismissAlert(page);
 
         // A regular records payload is not a replaceable complete backup.
         await pasteAndReplace(page, JSON.stringify({ events: [] }));
-        await expect(page.getByRole('dialog')).toContainText('This is not a complete backup file this app can read.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'This is not a complete backup file this app can read.',
+        );
         await dismissAlert(page);
 
         expect(await readStorage<DoseEventFixture[]>(page, 'hrt-events')).toEqual([event('old-local', 2, old)]);
@@ -181,7 +185,7 @@ test.describe('complete backup replace (L3 browser)', () => {
 
         await gotoApp(page);
         await pasteAndReplace(page, JSON.stringify(incoming));
-        await expect(page.getByRole('alertdialog')).toBeVisible();
+        await expect(page.locator('[data-prompt="confirm"]')).toBeVisible();
         await page.evaluate(() => {
             const original = Storage.prototype.setItem;
             let fired = false;
@@ -195,7 +199,9 @@ test.describe('complete backup replace (L3 browser)', () => {
         });
         await confirmDialog(page, 'Replace everything');
 
-        await expect(page.getByRole('dialog')).toContainText('Restore failed. Nothing on this device was changed.');
+        await expect(page.locator('[data-prompt="alert"]')).toContainText(
+            'Restore failed. Nothing on this device was changed.',
+        );
         await dismissAlert(page);
         expect(await readStorage<DoseEventFixture[]>(page, 'hrt-events')).toEqual([event('old-local', 2, old)]);
         expect(await readStorage(page, 'hrt-weight')).toBe(70);

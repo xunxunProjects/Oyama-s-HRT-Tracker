@@ -52,6 +52,9 @@ interface Prompt {
     /** Where the line goes: a host put into the page under the pressed row,
      *  or null for the banner at the top of the page. */
     host: HTMLElement | null;
+    /** The page the host was put into, to tell a row that went away from a
+     *  page that did. */
+    view: Element | null;
 }
 
 /** What was last pressed, so the prompt it causes can be put under it. Safari
@@ -195,7 +198,14 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
             // One line at a time: a new one takes the old one's place.
             const prev = promptRef.current;
             if (prev?.host && prev.host !== host) prev.host.remove();
-            const next = { type, message, onConfirm: onConfirm ?? null, options: options ?? {}, host };
+            const next = {
+                type,
+                message,
+                onConfirm: onConfirm ?? null,
+                options: options ?? {},
+                host,
+                view: host?.closest('.main-view') ?? null,
+            };
             promptRef.current = next;
             setPrompt(next);
         },
@@ -283,13 +293,23 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         return () => window.removeEventListener('popstate', onPop);
     }, [prompt, dismiss]);
 
-    // The page it was put into went away (another tab, the row deleted): the
-    // question went with it, so it's backed out of.
+    // The row it was put under went away. A question goes with it: whatever it
+    // asked about is gone, or the page is. A result ("Backup merged") stays
+    // on the page it belongs to, moved up to the top, since the row is often
+    // what the action itself cleared away (the paste box an import empties).
     useEffect(() => {
         const host = prompt?.host;
         if (!host) return;
         const watch = new MutationObserver(() => {
-            if (!host.isConnected && promptRef.current?.host === host) dismiss(false);
+            const current = promptRef.current;
+            if (host.isConnected || current?.host !== host) return;
+            if (current.type === 'alert' && current.view?.isConnected) {
+                const moved = { ...current, host: null };
+                promptRef.current = moved;
+                setPrompt(moved);
+                return;
+            }
+            dismiss(false);
         });
         watch.observe(document.body, { childList: true, subtree: true });
         return () => watch.disconnect();

@@ -30,8 +30,10 @@ test.describe('share link expiry (L3 browser)', () => {
         await expect(page.getByRole('button', { name: /Share dosage details/ })).toBeVisible();
 
         await page.getByRole('button', { name: /Expiration date/ }).click();
-        await page.getByRole('button', { name: 'Year', exact: true }).click();
-        await page.getByRole('option', { name: '2030', exact: true }).click();
+        // The calendar's year is typed beside the month; a whole year typed
+        // moves the chosen date there, keeping its month and day.
+        const year = page.getByRole('textbox', { name: 'Year', exact: true });
+        await year.fill('2030');
 
         // The reported 2030 date is now valid, but outside the 365-day
         // security window.
@@ -39,10 +41,9 @@ test.describe('share link expiry (L3 browser)', () => {
             'Security is not guaranteed beyond 365 days. Anyone with the link can open it until it expires.',
         );
 
-        await page.getByRole('button', { name: 'Year', exact: true }).click();
-        // The picker stops at 2100; 2101 is not offered.
-        await expect(page.getByRole('option', { name: '2101', exact: true })).toHaveCount(0);
-        await page.getByRole('option', { name: '2100', exact: true }).click();
+        // The picker stops at 2100: a later year is brought back to it.
+        await year.fill('2101');
+        await expect(year).toHaveValue('2100');
         await expect(page.getByRole('status')).toContainText('Security is not guaranteed beyond 365 days.');
 
         // Creating the link proves the worker accepts an expiry far beyond the
