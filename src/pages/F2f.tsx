@@ -220,7 +220,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
 
     const copyButton = (value: string, label: string) => (
         <button type="button" className={textButton} onClick={() => copy(value, label)}>
-            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} />
+            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} align="end" />
         </button>
     );
 
@@ -235,19 +235,23 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                 {/* Each word kept whole, so a line breaks between them and
                     never right after the -- of --recipient. A word too long
                     for the line (a login code, a file name with the group's
-                    id) may break only between blocks of four. */}
+                    id) may break only between blocks of four, and only when
+                    it doesn't fit on a line of its own: its box moves down
+                    whole first. */}
                 {text.split(' ').map((word, i) => (
                     <React.Fragment key={i}>
                         {i > 0 && ' '}
                         {word.length <= 28 ? (
                             <span className="whitespace-nowrap">{word}</span>
                         ) : (
-                            word.match(/.{1,4}/g)?.map((block, j) => (
-                                <React.Fragment key={j}>
-                                    {j > 0 && <wbr />}
-                                    {block}
-                                </React.Fragment>
-                            ))
+                            <span className="inline-block max-w-full">
+                                {word.match(/.{1,4}/g)?.map((block, j) => (
+                                    <React.Fragment key={j}>
+                                        {j > 0 && <wbr />}
+                                        {block}
+                                    </React.Fragment>
+                                ))}
+                            </span>
                         )}
                     </React.Fragment>
                 ))}
@@ -553,7 +557,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     {/* The code on a line of its own, in groups of four that
                                         wrap between groups on a narrow phone; when it runs out
                                         and Copy share the row under it. */}
-                                    <p className={`font-mono text-sm tabular-nums ${on}`}>
+                                    <p className={`font-mono text-xs tabular-nums ${on}`}>
                                         {groupFingerprint(cliCode.code)}
                                     </p>
                                     <div className="flex items-center justify-between gap-3">
