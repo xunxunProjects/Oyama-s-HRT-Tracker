@@ -32,7 +32,6 @@ const BottomNav: React.FC<{
     const [pill, setPill] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
     // The first placement lands where it belongs; only later ones glide.
     const [placed, setPlaced] = useState(false);
-    const tabIds = tabs.map(tab => tab.id).join(' ');
 
     useLayoutEffect(() => {
         const place = () => {
@@ -58,8 +57,7 @@ const BottomNav: React.FC<{
         const ro = new ResizeObserver(place);
         ro.observe(row);
         return () => ro.disconnect();
-        // The ids, not the array, which is a new one on every render of the app.
-    }, [activeTab, tabIds]);
+    }, [activeTab, tabs]);
 
     useEffect(() => {
         if (!pill || placed) return;
@@ -91,7 +89,7 @@ const BottomNav: React.FC<{
                                 ref={el => {
                                     marks.current[id] = el;
                                 }}
-                                className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 motion-reduce:transition-none ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
+                                className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
                             >
                                 <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
                             </span>

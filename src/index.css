@@ -389,6 +389,22 @@ select:focus-visible {
     }
 }
 
+/* A button that does what a link would, and looks like one. */
+.link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--accent-ink);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+    text-underline-offset: 3px;
+}
+.link-button:hover {
+    text-decoration-color: currentColor;
+}
+
 @layer components {
     /* Fields are lines, not boxes: a hand-drawn rule under the text, and on
        focus an ink stroke drawn over it from left to right (--ink-run /
@@ -421,11 +437,8 @@ select:focus-visible {
     .input-base::placeholder {
         color: var(--text-muted);
     }
-    /* A field Save was refused for (dose_form/refusedField.ts) keeps its line
-       inked in, so it's plain which of a pair is meant; the hint under the
-       fields says why. */
     .input-base:focus,
-    .input-base[aria-invalid="true"] {
+    .input-base.is-inked {
         background-position:
             0 100%,
             0 100%;
@@ -512,9 +525,9 @@ select:focus-visible {
 
 @layer components {
     /* ── choices ─────────────────────────────────────────────────────────────
-       A choice is a line like a field (CustomSelect.tsx): its name, what's
-       chosen, and a chevron. Opened, the options unfold under it in place as
-       plain rows with a tick by the chosen one. Nothing floats over the page. */
+       A choice is a line like a field (Choice.tsx): its name, what's chosen,
+       and a chevron. Opened, the options unfold under it in place as plain rows
+       with a tick by the chosen one. Nothing floats over the page. */
     .choice-trigger {
         display: flex;
         align-items: center;
@@ -634,10 +647,10 @@ select:focus-visible {
     /* ── inline prompts ───────────────────────────────────────────────────────
        There are no pop-ups in the app. "Delete this dose?" and "Saved to the
        cloud" are lines put into the page right under what was pressed
-       (contexts/DialogContext.tsx; PasswordPrompt and the date picker use the
-       same line): what it's about, then the way out and the way on. A row in a
-       hairline list already has rules around it, so there the prompt draws none
-       of its own. In the components layer, so a caller's utilities win. */
+       (contexts/DialogContext.tsx, InlineConfirm.tsx): what it's about, then
+       the way out and the way on. A row in a hairline list already has rules
+       around it, so there the prompt draws none of its own. In the components
+       layer, so a caller's utilities win. */
     .inline-prompt {
         display: flex;
         flex-wrap: wrap;
@@ -647,7 +660,8 @@ select:focus-visible {
         padding: 0.875rem 0;
         border-block: 1px solid var(--border);
     }
-    .settings-section > .inline-prompt-host > .inline-prompt {
+    .settings-section > .inline-prompt-host > .inline-prompt,
+    .settings-section > .inline-prompt {
         border-block: 0;
     }
     .inline-prompt-text {
@@ -690,6 +704,25 @@ select:focus-visible {
         border-block: 0;
     }
 }
+
+/* A destructive action at the foot of a page. Pressed, it gives way to an
+   inline prompt in the same place (InlineConfirm). */
+.danger-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--danger);
+    text-align: start;
+}
+
+/* A dose field Save was refused for (components/DoseForm.tsx). The message
+   under the fields says what's wrong; the field itself stays as it is, so
+   nothing turns red. */
 
 /* A control that sits in a box that clips (DoseForm's template buttons): the
    focus ring is drawn just inside its edge instead of being cut to a sliver. */

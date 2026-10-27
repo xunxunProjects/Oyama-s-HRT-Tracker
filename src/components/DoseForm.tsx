@@ -977,7 +977,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             </div>
                         )}
 
-                        <div ref={fieldsRef} className="mt-2">
+                        <div ref={fieldsRef} className="dose-fields mt-2">
                             {route === Route.injection && (
                                 <InjectionFields
                                     ester={ester}

@@ -26,8 +26,7 @@ interface DialogOptions {
      *  in place of "OK", so the button says what pressing it will do. */
     confirmLabel?: string;
     /** Runs when a confirm is backed out of: the way-out button, Escape, the
-     *  system Back, the page it was asked on going away, or another prompt
-     *  taking its place. */
+     *  system Back, or the page it was asked on going away. */
     onCancel?: () => void;
 }
 
@@ -321,15 +320,10 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
                 host,
                 view: host?.closest(PAGE_AREA) ?? null,
             };
-            // One line at a time: a new one takes the old one's place, and a
-            // question still open is backed out of, so whatever waits on it
-            // hears no. After the swap, so a prompt raised by that cancel
-            // takes this one's place in turn.
-            const prev = promptRef.current;
+            // One line at a time: a new one takes the old one's place.
+            promptRef.current?.host?.remove();
             promptRef.current = next;
             setPrompt(next);
-            prev?.host?.remove();
-            if (prev?.type === 'confirm') prev.options.onCancel?.();
             return () => {
                 if (promptRef.current?.id === id) dismiss(false);
             };
