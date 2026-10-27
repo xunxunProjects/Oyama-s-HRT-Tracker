@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import React, { useEffect, useId, useState } from 'react';
+import { Alert, Busy, ChevronDown } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import { settingsSection } from '../components/SettingsListItem';
 import { useDialog } from '../contexts/DialogContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { BusyLabel, SwapLabel } from '../components/StableLabel';
 import { apiErrorCode } from '../services/apiClient';
 import { f2fService, F2fMember, F2fStatus } from '../services/f2f';
 
@@ -11,14 +13,16 @@ interface F2fProps {
     onBack: () => void;
 }
 
-const card = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4';
-const heading = 'text-sm font-medium text-[var(--text)]';
+const on = 'text-[var(--text)]';
 const muted = 'text-xs leading-relaxed text-[var(--text-muted)]';
-const input =
-    'w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:font-sans placeholder:text-[var(--text-muted)] focus:border-[var(--accent-ink)]';
+const input = 'input-base text-sm placeholder:font-sans';
 const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
+// A fingerprint read out in blocks of four wraps between blocks, never inside one.
+const fprText = 'font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
 const textButton =
-    'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
+    'text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
+// A name and its value on one hairline row.
+const row = 'flex items-baseline justify-between gap-4 py-3 text-[0.9375rem]';
 
 /* The server's codes, in words the reader can act on. Anything unexpected,
    including a bare 500, becomes the one calm "something went wrong" line
@@ -40,9 +44,35 @@ const ERROR_KEYS: Record<string, string> = {
  *  read one out to each other. Copy buttons still copy the raw value. */
 const groupFingerprint = (value: string) => value.replace(/(.{4})(?=.)/g, '$1 ');
 
+/** The heading over a section of the page: sentence case, quiet, close to what it heads. */
+const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <h2 className="group-heading mb-1">{children}</h2>
+);
+
+/** One step of the how-to: its number in the margin, what to do and why, and
+ *  under that the command that does it, ready to copy. */
+const Step: React.FC<{ n: number; title: string; desc: string; children?: React.ReactNode }> = ({
+    n,
+    title,
+    desc,
+    children,
+}) => (
+    <li className="flex gap-3 py-4">
+        <span className="w-5 shrink-0 text-[0.9375rem] leading-[1.375rem] tabular-nums text-[var(--text-muted)]">
+            {n}
+        </span>
+        <div className="min-w-0 flex-1">
+            <p className={`text-[0.9375rem] font-medium leading-[1.375rem] ${on}`}>{title}</p>
+            <p className={`${muted} mt-0.5`}>{desc}</p>
+            {children}
+        </div>
+    </li>
+);
+
 const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
+    const id = useId();
     const [status, setStatus] = useState<F2fStatus | null>(null);
     const [members, setMembers] = useState<F2fMember[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,6 +83,10 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [fingerprint, setFingerprint] = useState('');
     const [copied, setCopied] = useState<string | null>(null);
     const [cliCode, setCliCode] = useState<{ code: string; expires_at: number } | null>(null);
+    // The how-to starts open for someone with no key here yet and folded for
+    // someone who has one. Decided once, on the first load, so uploading a
+    // key doesn't fold it away while the last two steps are still to do.
+    const [guideOpen, setGuideOpen] = useState<boolean | null>(null);
 
     const describe = (err: unknown) => t(ERROR_KEYS[apiErrorCode(err)] ?? 'f2f.error');
 
@@ -66,12 +100,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         const next = await f2fService.status(token);
         setStatus(next);
         setMembers(next.registered && next.cohort ? await f2fService.members(token, next.cohort.id) : []);
+        return next;
     };
 
     const load = async () => {
         setLoading(true);
         try {
-            await fetchAll();
+            const next = await fetchAll();
+            setGuideOpen(open => open ?? !next.registered);
             setLoadError(null);
         } catch (err) {
             setLoadError(describe(err));
@@ -100,7 +136,9 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
 
     const upload = () => {
         const key = publicKey.trim();
-        const fpr = fingerprint.trim();
+        // GPG prints a fingerprint in blocks of four; the server takes it
+        // without the spaces.
+        const fpr = fingerprint.replace(/\s+/g, '');
         if (!key || !fpr) {
             setError(t('f2f.key_required'));
             return;
@@ -171,46 +209,82 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     };
 
     const copyButton = (value: string, label: string) => (
-        <button type="button" className={textButton} onClick={() => copy(value, label)}>
-            {copied === label ? t('f2f.copied') : t('f2f.copy')}
+        <button type="button" className={`${textButton} shrink-0`} onClick={() => copy(value, label)}>
+            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} />
         </button>
     );
 
+    /** A command to run in a terminal, on a quiet filled note, with its own Copy. */
+    const command = (text: string, label: string) => (
+        <div className="callout mt-2 flex items-start justify-between gap-3">
+            <code className={`min-w-0 font-mono text-xs leading-relaxed [overflow-wrap:anywhere] ${on}`}>
+                {/* Each word kept whole, so a line breaks between them and
+                    never right after the -- of --recipient. A word too long
+                    for the line (a file name with the group's id) may still
+                    break inside. */}
+                {text.split(' ').map((word, i) => (
+                    <React.Fragment key={i}>
+                        {i > 0 && ' '}
+                        <span className={word.length <= 28 ? 'whitespace-nowrap' : undefined}>{word}</span>
+                    </React.Fragment>
+                ))}
+            </code>
+            {copyButton(text, label)}
+        </div>
+    );
+
     const form = (
-        <div className="mt-3 space-y-2">
-            <textarea
-                className={`${input} min-h-32 font-mono text-xs`}
-                placeholder={t('f2f.public_key_placeholder')}
-                value={publicKey}
-                onChange={event => setPublicKey(event.target.value)}
-                spellCheck={false}
-            />
-            <input
-                className={`${input} font-mono text-xs`}
-                placeholder={t('f2f.fingerprint_placeholder')}
-                value={fingerprint}
-                onChange={event => setFingerprint(event.target.value)}
-                spellCheck={false}
-            />
-            <button type="button" className="btn-tonal mt-1" onClick={upload} disabled={busy !== null}>
-                {busy === 'upload' && <Loader2 size={15} className="animate-spin" />}
-                {t('f2f.upload')}
+        <div className="mt-3 space-y-4">
+            <div>
+                <label htmlFor={`${id}-key`} className="field-label mb-1.5">
+                    {t('f2f.public_key')}
+                </label>
+                <textarea
+                    id={`${id}-key`}
+                    className={`${input} min-h-32 font-mono text-xs`}
+                    placeholder={t('f2f.public_key_placeholder')}
+                    value={publicKey}
+                    onChange={event => setPublicKey(event.target.value)}
+                    spellCheck={false}
+                />
+            </div>
+            <div>
+                <label htmlFor={`${id}-fpr`} className="field-label">
+                    {t('f2f.fingerprint')}
+                </label>
+                <input
+                    id={`${id}-fpr`}
+                    className={`${input} font-mono text-xs`}
+                    placeholder={t('f2f.fingerprint_placeholder')}
+                    value={fingerprint}
+                    onChange={event => setFingerprint(event.target.value)}
+                    spellCheck={false}
+                    autoComplete="off"
+                />
+            </div>
+            <button type="button" className="btn-tonal" onClick={upload} disabled={busy !== null}>
+                <BusyLabel busy={busy === 'upload'} size={15}>
+                    {t('f2f.upload')}
+                </BusyLabel>
             </button>
         </div>
     );
 
+    const showGuide = guideOpen ?? false;
+    const cohortFile = `hrt-f2f-${status?.cohort?.id ?? 'GROUP'}.asc`;
+
     return (
         <div className="relative pb-32">
             <PageHeader onBack={onBack} title={t('f2f.title')} subtitle={t('f2f.subtitle')} />
-            <div className={`${PAGE_COLUMN} mt-2 space-y-4`}>
+            <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (
                     <div className="flex justify-center py-16">
-                        <Loader2 className="animate-spin text-[var(--text-muted)]" size={20} />
+                        <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
                     </div>
                 ) : loadError ? (
                     <div className="flex flex-col items-center gap-2 py-14 text-center">
                         <p role="alert" className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
-                            <AlertCircle size={15} className="shrink-0 text-[var(--warning)]" />
+                            <Alert size={15} className="shrink-0 text-[var(--warning)]" />
                             {loadError}
                         </p>
                         <button type="button" onClick={load} className="btn-ghost btn-ghost-accent tap-target">
@@ -218,8 +292,8 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                         </button>
                     </div>
                 ) : (
-                    <>
-                        <section className={card}>
+                    <div className="space-y-8">
+                        <div className="space-y-2">
                             <div className="flex items-start justify-between gap-3">
                                 <p className={muted}>{t('f2f.intro')}</p>
                                 <button
@@ -228,162 +302,234 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     onClick={() => run('refresh', async () => {})}
                                     disabled={busy !== null}
                                 >
-                                    {t('f2f.refresh')}
+                                    <BusyLabel busy={busy === 'refresh'} size={13}>
+                                        {t('f2f.refresh')}
+                                    </BusyLabel>
                                 </button>
                             </div>
-                            <p className="mt-2 text-xs leading-relaxed text-[var(--warning)]">{t('f2f.verify_note')}</p>
-                        </section>
+                            <p className="text-xs leading-relaxed text-[var(--warning)]">{t('f2f.verify_note')}</p>
+                        </div>
 
                         {error && (
-                            <p role="alert" className="flex items-start gap-1.5 px-1 text-sm text-[var(--warning)]">
-                                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                            <p role="alert" className="flex items-start gap-1.5 text-sm text-[var(--warning)]">
+                                <Alert size={15} className="mt-0.5 shrink-0" />
                                 <span>{error}</span>
                             </p>
                         )}
 
-                        {status?.registered ? (
-                            <>
-                                <section className={card}>
-                                    <p className={heading}>{t('f2f.registered')}</p>
-                                    <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                                        <dt className={muted}>{t('f2f.seat')}</dt>
-                                        <dd className="tabular-nums text-[var(--text)]">{status.seat}</dd>
-                                        <dt className={muted}>{t('f2f.members')}</dt>
-                                        <dd className="tabular-nums text-[var(--text)]">
+                        {/* The whole of it for someone new to OpenPGP: make a key,
+                            hand over its public half, check fingerprints in
+                            person, then write to each other. A fold in place, so
+                            it's out of the way once it has been followed. */}
+                        <section>
+                            <h2 className="group-heading">
+                                <button
+                                    type="button"
+                                    onClick={() => setGuideOpen(!showGuide)}
+                                    aria-expanded={showGuide}
+                                    aria-controls={`${id}-guide`}
+                                    className="inline-flex items-center gap-1 text-start hover:text-[var(--text)]"
+                                >
+                                    {t('f2f.guide')}
+                                    <ChevronDown
+                                        size={14}
+                                        strokeWidth={1.75}
+                                        className={`chev ${showGuide ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                            </h2>
+                            <div
+                                id={`${id}-guide`}
+                                className="disclosure"
+                                data-open={showGuide}
+                                {...(showGuide ? {} : { inert: '' })}
+                            >
+                                <div className="disclosure-inner">
+                                    <p className={`${muted} mt-1`}>{t('f2f.guide_intro')}</p>
+                                    <ol className={`${settingsSection} mt-1`}>
+                                        <Step n={1} title={t('f2f.step_make')} desc={t('f2f.step_make_desc')}>
+                                            {command(
+                                                `gpg --quick-generate-key "${t('f2f.cmd_name')} <you@example.com>" future-default default never`,
+                                                'cmd-make',
+                                            )}
+                                            <p className={`${muted} mt-2`}>{t('f2f.step_make_apps')}</p>
+                                        </Step>
+                                        <Step n={2} title={t('f2f.step_export')} desc={t('f2f.step_export_desc')}>
+                                            {command('gpg --armor --export you@example.com', 'cmd-export')}
+                                        </Step>
+                                        <Step n={3} title={t('f2f.step_fpr')} desc={t('f2f.step_fpr_desc')}>
+                                            {command('gpg --fingerprint you@example.com', 'cmd-fpr')}
+                                        </Step>
+                                        <Step n={4} title={t('f2f.step_upload')} desc={t('f2f.step_upload_desc')} />
+                                        <Step n={5} title={t('f2f.step_use')} desc={t('f2f.step_use_desc')}>
+                                            {command(`gpg --import ${cohortFile}`, 'cmd-import')}
+                                            {command(
+                                                'gpg --encrypt --armor --recipient FINGERPRINT --recipient FINGERPRINT file.txt',
+                                                'cmd-encrypt',
+                                            )}
+                                        </Step>
+                                    </ol>
+                                </div>
+                            </div>
+                        </section>
+
+                        {status?.registered && (
+                            <section>
+                                <Heading>{t('f2f.registered')}</Heading>
+                                <div className={settingsSection}>
+                                    <div className={row}>
+                                        <span className={on}>{t('f2f.seat')}</span>
+                                        <span className="tabular-nums text-[var(--text-muted)]">{status.seat}</span>
+                                    </div>
+                                    <div className={row}>
+                                        <span className={on}>{t('f2f.members')}</span>
+                                        <span className="tabular-nums text-[var(--text-muted)]">
                                             {status.cohort?.memberCount} / {status.cohort?.totalSeats}
-                                        </dd>
-                                        <dt className={muted}>{t('f2f.state')}</dt>
-                                        <dd className="text-[var(--text)]">{stateLabel(status.cohort?.state)}</dd>
-                                        <dt className={muted}>{t('f2f.cohort')}</dt>
-                                        <dd className={mono}>{status.cohort?.id}</dd>
-                                    </dl>
+                                        </span>
+                                    </div>
+                                    <div className={row}>
+                                        <span className={on}>{t('f2f.state')}</span>
+                                        <span className="text-[var(--text-muted)]">
+                                            {stateLabel(status.cohort?.state)}
+                                        </span>
+                                    </div>
+                                    <div className={row}>
+                                        <span className={`shrink-0 ${on}`}>{t('f2f.cohort')}</span>
+                                        <span className={`${mono} text-end`}>{status.cohort?.id}</span>
+                                    </div>
                                     {status.key && (
-                                        <div className="mt-4 border-t border-[var(--border)] pt-3">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <p className={muted}>{t('f2f.active_key')}</p>
+                                        <div className="py-3">
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <span className={`text-[0.9375rem] ${on}`}>{t('f2f.active_key')}</span>
                                                 {copyButton(status.key.fingerprint, 'own-key')}
                                             </div>
-                                            <p className={`${mono} mt-1`}>{groupFingerprint(status.key.fingerprint)}</p>
-                                            <div className="mt-3 flex flex-wrap gap-2">
-                                                <button
-                                                    type="button"
-                                                    className="btn-ghost"
-                                                    onClick={() =>
-                                                        run('retire', () => f2fService.retire(token, status.key!.id))
-                                                    }
-                                                    disabled={busy !== null}
-                                                >
-                                                    {t('f2f.retire')}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn-ghost"
-                                                    style={{ color: 'var(--warning)' }}
-                                                    onClick={revoke}
-                                                    disabled={busy !== null}
-                                                >
-                                                    {t('f2f.revoke')}
-                                                </button>
-                                            </div>
+                                            <p className={`${fprText} mt-1`}>
+                                                {groupFingerprint(status.key.fingerprint)}
+                                            </p>
                                         </div>
                                     )}
-                                </section>
-
-                                {status.escrow && (
-                                    <section className={card}>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <p className={heading}>{t('f2f.escrow_title')}</p>
-                                            {copyButton(status.escrow.fingerprint, 'escrow')}
-                                        </div>
-                                        <p className={`${muted} mt-1`}>{t('f2f.escrow_desc')}</p>
-                                        <p className={`${mono} mt-2`}>{groupFingerprint(status.escrow.fingerprint)}</p>
-                                    </section>
-                                )}
-
-                                <section className={card}>
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className={heading}>{t('f2f.members_title')}</p>
+                                </div>
+                                {status.key && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
                                         <button
                                             type="button"
-                                            className={textButton}
-                                            onClick={() => void downloadKeyring()}
+                                            className="btn-ghost"
+                                            onClick={() =>
+                                                run('retire', () => f2fService.retire(token, status.key!.id))
+                                            }
                                             disabled={busy !== null}
                                         >
-                                            {t('f2f.download_keyring')}
+                                            {t('f2f.retire')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-ghost"
+                                            style={{ color: 'var(--warning)' }}
+                                            onClick={revoke}
+                                            disabled={busy !== null}
+                                        >
+                                            {t('f2f.revoke')}
                                         </button>
                                     </div>
-                                    <p className={`${muted} mt-1`}>{t('f2f.keyring_help')}</p>
-                                    {members.length === 0 ? (
-                                        <p className={`${muted} mt-3`}>{t('f2f.no_members')}</p>
-                                    ) : (
-                                        <div className="mt-3">
-                                            {members.map(member => (
-                                                <div
-                                                    key={member.seat}
-                                                    className="border-t border-[var(--border)] py-3 last:pb-0"
-                                                >
-                                                    <p className="flex items-baseline gap-3 text-sm text-[var(--text)]">
-                                                        <span className="w-8 shrink-0 tabular-nums text-[var(--text-muted)]">
-                                                            {member.seat}
-                                                        </span>
-                                                        <span className="min-w-0 truncate">{member.username}</span>
-                                                    </p>
-                                                    <div className="mt-1 space-y-1 pl-11">
-                                                        {member.keys.length === 0 ? (
-                                                            <p className={muted}>{t('f2f.not_registered')}</p>
-                                                        ) : (
-                                                            member.keys.map(key => (
-                                                                <div
-                                                                    key={key.fingerprint}
-                                                                    className="flex items-start justify-between gap-3"
-                                                                >
-                                                                    <code className={mono}>
-                                                                        {groupFingerprint(key.fingerprint)}
-                                                                        {key.status !== 'active' && (
-                                                                            <span className="ml-2 font-sans tracking-normal">
-                                                                                {t('f2f.retired')}
-                                                                            </span>
-                                                                        )}
-                                                                    </code>
-                                                                    {copyButton(key.publicKey, key.fingerprint)}
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
-
-                                <section className={card}>
-                                    <p className={heading}>{t('f2f.rotate')}</p>
-                                    <p className={`${muted} mt-1`}>{t('f2f.rotate_note')}</p>
-                                    {form}
-                                </section>
-                            </>
-                        ) : (
-                            <section className={card}>
-                                <p className={heading}>{t('f2f.not_registered')}</p>
-                                {form}
+                                )}
                             </section>
                         )}
 
-                        <section className={card}>
-                            <p className={heading}>{t('f2f.cli_title')}</p>
-                            <p className={`${muted} mt-1`}>{t('f2f.cli_desc')}</p>
+                        {status?.registered && status.escrow && (
+                            <section>
+                                <Heading>{t('f2f.escrow_title')}</Heading>
+                                <p className={muted}>{t('f2f.escrow_desc')}</p>
+                                <div className="mt-2 flex items-start justify-between gap-3">
+                                    <p className={fprText}>{groupFingerprint(status.escrow.fingerprint)}</p>
+                                    {copyButton(status.escrow.fingerprint, 'escrow')}
+                                </div>
+                            </section>
+                        )}
+
+                        {status?.registered && (
+                            <section>
+                                <div className="mb-1 flex items-baseline justify-between gap-3">
+                                    <h2 className="group-heading">{t('f2f.members_title')}</h2>
+                                    <button
+                                        type="button"
+                                        className={textButton}
+                                        onClick={() => void downloadKeyring()}
+                                        disabled={busy !== null}
+                                    >
+                                        <BusyLabel busy={busy === 'keyring'} size={13}>
+                                            {t('f2f.download_keyring')}
+                                        </BusyLabel>
+                                    </button>
+                                </div>
+                                <p className={muted}>{t('f2f.keyring_help')}</p>
+                                {members.length === 0 ? (
+                                    <p className={`${muted} mt-3`}>{t('f2f.no_members')}</p>
+                                ) : (
+                                    <div className={`${settingsSection} mt-1`}>
+                                        {members.map(member => (
+                                            <div key={member.seat} className="py-3">
+                                                <p className="flex items-baseline gap-3 text-[0.9375rem] text-[var(--text)]">
+                                                    <span className="w-8 shrink-0 tabular-nums text-[var(--text-muted)]">
+                                                        {member.seat}
+                                                    </span>
+                                                    <span className="min-w-0 truncate">{member.username}</span>
+                                                </p>
+                                                <div className="mt-1 space-y-1 ps-11">
+                                                    {member.keys.length === 0 ? (
+                                                        <p className={muted}>{t('f2f.not_registered')}</p>
+                                                    ) : (
+                                                        member.keys.map(key => (
+                                                            <div
+                                                                key={key.fingerprint}
+                                                                className="flex items-start justify-between gap-3"
+                                                            >
+                                                                <code className={fprText}>
+                                                                    {groupFingerprint(key.fingerprint)}
+                                                                    {key.status !== 'active' && (
+                                                                        <span className="ms-2 font-sans tracking-normal">
+                                                                            {t('f2f.retired')}
+                                                                        </span>
+                                                                    )}
+                                                                </code>
+                                                                {copyButton(key.publicKey, key.fingerprint)}
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        <section>
+                            <Heading>{status?.registered ? t('f2f.rotate') : t('f2f.your_key')}</Heading>
+                            <p className={muted}>
+                                {status?.registered ? t('f2f.rotate_note') : t('f2f.not_registered')}
+                            </p>
+                            {form}
+                        </section>
+
+                        <section>
+                            <Heading>{t('f2f.cli_title')}</Heading>
+                            <p className={muted}>{t('f2f.cli_desc')}</p>
                             <button
                                 type="button"
                                 className="btn-secondary mt-3"
                                 onClick={() => void generateCliCode()}
                                 disabled={busy !== null}
                             >
-                                {busy === 'cli-code' && <Loader2 size={15} className="animate-spin" />}
-                                {t('f2f.cli_generate')}
+                                <BusyLabel busy={busy === 'cli-code'} size={15}>
+                                    {t('f2f.cli_generate')}
+                                </BusyLabel>
                             </button>
                             {cliCode && (
                                 <div className="mt-3 space-y-2">
-                                    <p className="whitespace-nowrap font-mono text-xs tabular-nums text-[var(--text)]">
+                                    {/* The code on a line of its own, in groups of four that
+                                        wrap between groups on a narrow phone; when it runs out
+                                        and Copy share the row under it. */}
+                                    <p className={`font-mono text-sm tabular-nums ${on}`}>
                                         {groupFingerprint(cliCode.code)}
                                     </p>
                                     <div className="flex items-center justify-between gap-3">
@@ -399,28 +545,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         {copyButton(cliCode.code, 'cli-code')}
                                     </div>
                                     <p className={`${muted} pt-1`}>{t('f2f.cli_help')}</p>
-                                    <code className="block rounded-lg bg-[var(--surface-muted)] p-3 font-mono text-xs leading-relaxed break-words text-[var(--text-muted)]">
-                                        {/* Wrap only between words: a flag like --token-out must not split at its own hyphen. */}
-                                        {[
-                                            'hrt-f2f',
-                                            'login',
-                                            '--server',
-                                            window.location.origin,
-                                            '--code',
-                                            cliCode.code,
-                                            '--token-out',
-                                            '~/.config/hrt-f2f/token',
-                                        ].map((part, index) => (
-                                            <React.Fragment key={index}>
-                                                {index > 0 && ' '}
-                                                <span className="whitespace-nowrap">{part}</span>
-                                            </React.Fragment>
-                                        ))}
-                                    </code>
+                                    {command(
+                                        `hrt-f2f login --server ${window.location.origin} --code ${cliCode.code} --token-out ~/.config/hrt-f2f/token`,
+                                        'cli-command',
+                                    )}
                                 </div>
                             )}
                         </section>
-                    </>
+                    </div>
                 )}
             </div>
         </div>

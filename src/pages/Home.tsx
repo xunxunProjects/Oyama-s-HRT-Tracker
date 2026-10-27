@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info, Share2, ChevronRight } from 'lucide-react';
+import { Info, Share, ChevronRight } from '../components/icons';
 import {
     DoseEvent,
     Ester,
@@ -12,7 +12,6 @@ import {
 } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
-import EstimateInfoModal from '../components/EstimateInfoModal';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import AnimatedNumber from '../components/AnimatedNumber';
 import LevelRail from '../components/LevelRail';
@@ -232,8 +231,6 @@ const Home: React.FC<HomeProps> = ({
 
     return (
         <>
-            <EstimateInfoModal isOpen={isEstimateInfoOpen} onClose={() => setIsEstimateInfoOpen(false)} />
-
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
@@ -249,13 +246,15 @@ const Home: React.FC<HomeProps> = ({
                             <div className="min-w-0 max-w-2xl 2xl:flex-1">
                                 {hasReading && (
                                     <>
-                                        {/* Title row. The whole title opens the explainer, not just
-                    the 13px icon after it. */}
+                                        {/* Title row. The whole title unfolds the explainer under
+                    it, not just the 13px icon after it. */}
                                         <div className="flex items-center justify-between gap-3 mb-4">
                                             <button
                                                 type="button"
-                                                onClick={() => setIsEstimateInfoOpen(true)}
-                                                className={`tap-target group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${muted} hover:text-[var(--text)]`}
+                                                onClick={() => setIsEstimateInfoOpen(open => !open)}
+                                                aria-expanded={isEstimateInfoOpen}
+                                                aria-controls="estimate-explainer"
+                                                className={`tap-target group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${isEstimateInfoOpen ? 'text-[var(--text)]' : muted} hover:text-[var(--text)]`}
                                                 title={t('status.read_me')}
                                             >
                                                 <span className="truncate">{t('status.estimate')}</span>
@@ -276,9 +275,39 @@ const Home: React.FC<HomeProps> = ({
                                                 className={`${muted} tap-target inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 -mr-2 text-xs font-medium hover:text-[var(--text)] hover:bg-[var(--surface-hover)]`}
                                                 title={shareCopy.modalDescription}
                                             >
-                                                <Share2 size={14} strokeWidth={1.75} />
+                                                <Share size={14} strokeWidth={1.75} />
                                                 {shareCopy.action}
                                             </button>
+                                        </div>
+
+                                        {/* What the number is, unfolded in place under the
+                    title that asked. It used to open as a dialog. */}
+                                        <div
+                                            id="estimate-explainer"
+                                            className="disclosure"
+                                            data-open={isEstimateInfoOpen}
+                                            {...(isEstimateInfoOpen ? {} : { inert: '' })}
+                                        >
+                                            <div className="disclosure-inner">
+                                                <div className="pb-5 space-y-3 text-sm leading-relaxed text-[var(--text-muted)] max-w-prose">
+                                                    <p>{t('modal.estimate.p1')}</p>
+                                                    <p className="callout text-[var(--text)] font-medium">
+                                                        {t('modal.estimate.p2')}
+                                                    </p>
+                                                    <p>{t('modal.estimate.p3')}</p>
+                                                    <p className="text-xs">
+                                                        {t('modal.estimate.source')}{' '}
+                                                        <a
+                                                            href="https://transfemscience.org"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-[var(--accent-ink)] underline underline-offset-2"
+                                                        >
+                                                            transfemscience.org
+                                                        </a>
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Readings. A grid rather than two flex columns so each row

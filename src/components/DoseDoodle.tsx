@@ -5,7 +5,7 @@ import React from 'react';
  * page, one flat wash on half the capsule, nothing else: no gradient, no
  * shadow. The paths are deliberately a little unsteady, and the outline
  * overshoots where it closes, the way a pen line does when the hand comes back
- * round to where it started.
+ * round to where it started. No marks radiate off it: the capsule is enough.
  *
  * Sized by the caller in rem (the SVG has no width of its own), so it scales
  * with the rest of the page rather than staying a fixed number of pixels.
@@ -36,10 +36,6 @@ const DoseDoodle: React.FC<{ className?: string }> = ({ className = '' }) => (
             {/* A stroke of shine on the right half */}
             <path d="M56 31.4 C 60 30.6, 64 31, 67.4 30.4" strokeWidth={1.8} />
         </g>
-        {/* Sparks */}
-        <path d="M74 14.6 L 77 8.6" />
-        <path d="M82.6 21.2 L 88.4 18.4" />
-        <path d="M65.4 10.2 L 66.6 4.6" />
         {/* The ground it sits on */}
         <path d="M14 65.4 C 28 63.8, 40 66.6, 54 64.8 S 74 65.6, 83 64.2" strokeWidth={1.8} />
     </svg>

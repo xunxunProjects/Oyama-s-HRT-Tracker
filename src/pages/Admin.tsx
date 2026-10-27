@@ -1,32 +1,34 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
-    Trash2,
-    Loader2,
-    AlertCircle,
+    Trash,
+    Busy,
+    Alert,
     Server,
     Search,
-    KeyRound,
-    PenLine,
+    Password,
+    Pencil,
     ImageOff,
-    X,
+    Close,
     ChevronLeft,
     ChevronRight,
     Cloud,
-    Trash,
     Users,
     ArrowLeft,
-    ShieldCheck,
+    Shield,
     ShieldOff,
     Megaphone,
-} from 'lucide-react';
+} from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { formatBytes } from '../utils/helpers';
 import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope, StorageReport } from '../services/admin';
-import { useDialog } from '../contexts/DialogContext';
+import { useDialog, useInlineHost } from '../contexts/DialogContext';
+import { useEscape } from '../hooks/useEscape';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
 import { apiEndpoint } from '../services/apiClient';
 import { Lang } from '../i18n/translations';
+import { BusyLabel } from '../components/StableLabel';
 
 type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
@@ -71,6 +73,10 @@ const Admin: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchDebounce, setSearchDebounce] = useState('');
     const [panel, setPanel] = useState<UserPanel>(null);
+    // A user's panel opens in the list, right under that user's row, and
+    // moves under another's when their button is pressed.
+    const panelHost = useInlineHost(!!panel, panel && `${panel.type}:${panel.user.id}`);
+    useEscape(() => setPanel(null), !!panel);
 
     const [page, setPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -99,9 +105,24 @@ const Admin: React.FC = () => {
     const [noticeLang, setNoticeLang] = useState<'default' | Lang>('default');
 
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts · Passwords · 2FA · Cloud backups' },
-        { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'Site-wide banner · Per-language text · Schedule' },
-        { id: 'system', label: 'System', Icon: Server, hint: 'Storage · Status · Environment' },
+        {
+            id: 'users',
+            label: 'Users',
+            Icon: Users,
+            hint: 'Accounts, passwords, two-step verification and cloud backups',
+        },
+        {
+            id: 'notice',
+            label: 'Notice',
+            Icon: Megaphone,
+            hint: 'The banner across the site, its words in each language and when it shows',
+        },
+        {
+            id: 'system',
+            label: 'System',
+            Icon: Server,
+            hint: 'How much is stored, how the server is doing and how it is set up',
+        },
     ];
 
     const selectCat = (c: AdminCat) => {
@@ -166,6 +187,12 @@ const Admin: React.FC = () => {
     useEffect(() => {
         setPage(1);
     }, [searchDebounce]);
+
+    // A panel sits under its user's row, which another page or search takes
+    // off the list, so it closes with them.
+    useEffect(() => {
+        setPanel(null);
+    }, [page, searchDebounce]);
 
     const handleDeleteUser = (user: AdminUser) => {
         if (!token) return;
@@ -356,10 +383,10 @@ const Admin: React.FC = () => {
     const renderPanel = () => {
         if (!panel) return null;
 
-        return (
-            <div className="modal-overlay" onClick={() => setPanel(null)}>
-                <div className="modal-shell-wide" onClick={e => e.stopPropagation()}>
-                    <div className="modal-card">
+        const body = (
+            <div className="m-appear border-y border-[var(--border)] py-4">
+                <div>
+                    <div>
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <h3 className={`text-[0.9375rem] font-semibold ${settingsOn}`}>
@@ -367,12 +394,12 @@ const Admin: React.FC = () => {
                                 </h3>
                                 <p className={`text-xs ${settingsMuted} mt-0.5`}>
                                     {panel.type === 'password'
-                                        ? 'Change Password'
+                                        ? 'Change password'
                                         : panel.type === 'edit'
-                                          ? 'Edit Profile'
+                                          ? 'Edit profile'
                                           : panel.type === '2fa'
-                                            ? 'Two-Factor Authentication'
-                                            : 'Cloud Backups'}
+                                            ? 'Two-step verification'
+                                            : 'Cloud backups'}
                                 </p>
                             </div>
                             <button
@@ -380,7 +407,7 @@ const Admin: React.FC = () => {
                                 className={`${iconBtn} -mr-1 -mt-1`}
                                 aria-label="Close"
                             >
-                                <X size={16} strokeWidth={1.5} />
+                                <Close size={16} strokeWidth={1.5} />
                             </button>
                         </div>
 
@@ -407,7 +434,7 @@ const Admin: React.FC = () => {
                                         disabled={newPassword.length < 8}
                                         className="btn-primary"
                                     >
-                                        Update Password
+                                        Update password
                                     </button>
                                 </div>
                             </div>
@@ -431,7 +458,7 @@ const Admin: React.FC = () => {
                                             disabled={!newUsername.trim() || newUsername.trim() === panel.user.username}
                                             className="btn-primary"
                                         >
-                                            Save Username
+                                            Save username
                                         </button>
                                     </div>
                                 </div>
@@ -450,7 +477,7 @@ const Admin: React.FC = () => {
                         {panel.type === '2fa' &&
                             (twoFALoading ? (
                                 <div className="flex justify-center py-12">
-                                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
                                 </div>
                             ) : !twoFA ? (
                                 <p className={`text-sm ${settingsMuted} text-center py-8`}>
@@ -500,7 +527,7 @@ const Admin: React.FC = () => {
                                             disabled={twoFA.passkeys === 0}
                                             className={dangerTextBtn}
                                         >
-                                            Remove All
+                                            Remove all
                                         </button>
                                     </div>
 
@@ -553,7 +580,7 @@ const Admin: React.FC = () => {
                         {panel.type === 'backups' &&
                             (backupsLoading ? (
                                 <div className="flex justify-center py-12">
-                                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
                                 </div>
                             ) : backups.length === 0 ? (
                                 <p className={`text-sm ${settingsMuted} text-center py-8`}>No backups found.</p>
@@ -561,12 +588,12 @@ const Admin: React.FC = () => {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className={`text-xs ${settingsMuted}`}>
-                                            {backups.length} backup(s) ·{' '}
-                                            {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} total
+                                            {backups.length === 1 ? '1 backup' : `${backups.length} backups`} taking{' '}
+                                            {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} in all
                                         </span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-full hover:bg-[var(--surface-hover)] transition-colors"
                                         >
                                             <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>
@@ -582,7 +609,7 @@ const Admin: React.FC = () => {
                                                         {new Date(b.created_at * 1000).toLocaleString()}
                                                     </p>
                                                     <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                                        {formatBytes(b.data_size)} ·{' '}
+                                                        {formatBytes(b.data_size)}, ID{' '}
                                                         <span className="font-mono">{b.id.slice(0, 8)}</span>
                                                     </p>
                                                 </div>
@@ -591,7 +618,7 @@ const Admin: React.FC = () => {
                                                     className={dangerIconBtn}
                                                     title="Delete backup"
                                                 >
-                                                    <Trash2 size={15} strokeWidth={1.5} />
+                                                    <Trash size={15} strokeWidth={1.5} />
                                                 </button>
                                             </div>
                                         ))}
@@ -602,6 +629,8 @@ const Admin: React.FC = () => {
                 </div>
             </div>
         );
+        if (panelHost === undefined) return null;
+        return panelHost ? createPortal(body, panelHost) : body;
     };
 
     // Rendered as plain elements (not a nested component) so typing in the search
@@ -619,17 +648,17 @@ const Admin: React.FC = () => {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full py-2.5 pr-3 pl-9 text-[0.9375rem] bg-[var(--field)] border border-[var(--border)] rounded-lg outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                    className="input-base w-full pl-9 text-[0.9375rem] text-[var(--text)] placeholder:text-[var(--text-muted)]"
                 />
             </div>
 
             {loading && users.length === 0 ? (
                 <div className="flex justify-center py-16">
-                    <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
                 </div>
             ) : error ? (
                 <p className="flex items-center gap-2 text-sm text-[var(--danger)] py-4">
-                    <AlertCircle size={16} strokeWidth={1.5} /> {error}
+                    <Alert size={16} strokeWidth={1.5} /> {error}
                 </p>
             ) : users.length === 0 ? (
                 <p className={`text-sm ${settingsMuted} text-center py-14`}>
@@ -663,7 +692,10 @@ const Admin: React.FC = () => {
                                         {(u.backup_count ?? 0) > 0 && (
                                             <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
                                                 <Cloud size={11} strokeWidth={1.5} />
-                                                {u.backup_count} · {formatBytes(u.total_backup_size || 0)} ·{' '}
+                                                {u.backup_count === 1
+                                                    ? '1 backup'
+                                                    : `${u.backup_count} backups`} taking{' '}
+                                                {formatBytes(u.total_backup_size || 0)}, the last{' '}
                                                 {timeAgo(u.last_backup_at)}
                                             </span>
                                         )}
@@ -672,14 +704,14 @@ const Admin: React.FC = () => {
                                                 className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}
                                                 title="Two-factor authentication enabled"
                                             >
-                                                <ShieldCheck size={11} strokeWidth={1.5} />
+                                                <Shield size={11} strokeWidth={1.5} />
                                                 {[
                                                     (u.has_totp ?? 0) > 0 && 'TOTP',
                                                     (u.passkey_count ?? 0) > 0 &&
                                                         `${u.passkey_count} passkey${u.passkey_count === 1 ? '' : 's'}`,
                                                 ]
                                                     .filter(Boolean)
-                                                    .join(' · ')}
+                                                    .join(' and ')}
                                             </span>
                                         )}
                                     </div>
@@ -687,7 +719,7 @@ const Admin: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-0.5 shrink-0">
-                                <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud Backups">
+                                <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud backups">
                                     <Cloud size={15} strokeWidth={1.5} />
                                 </button>
                                 <button onClick={() => openTwoFAPanel(u)} className={iconBtn} title="Reset 2FA">
@@ -696,19 +728,19 @@ const Admin: React.FC = () => {
                                 <button
                                     onClick={() => openPasswordPanel(u)}
                                     className={iconBtn}
-                                    title="Change Password"
+                                    title="Change password"
                                 >
-                                    <KeyRound size={15} strokeWidth={1.5} />
+                                    <Password size={15} strokeWidth={1.5} />
                                 </button>
-                                <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit Profile">
-                                    <PenLine size={15} strokeWidth={1.5} />
+                                <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit profile">
+                                    <Pencil size={15} strokeWidth={1.5} />
                                 </button>
                                 <button
                                     onClick={() => handleDeleteUser(u)}
                                     className={dangerIconBtn}
-                                    title="Delete User"
+                                    title="Delete user"
                                 >
-                                    <Trash2 size={15} strokeWidth={1.5} />
+                                    <Trash size={15} strokeWidth={1.5} />
                                 </button>
                             </div>
                         </div>
@@ -885,7 +917,7 @@ const Admin: React.FC = () => {
     const noticePreview = noticeLang === 'default' ? noticeBody : noticeI18n[noticeLang]?.trim() || noticeBody;
 
     const noticeWindowLabel = (): string => {
-        if (!notice) return 'Nothing is being shown.';
+        if (!notice) return 'Nothing is being shown';
         const now = Math.floor(Date.now() / 1000);
         if (notice.startsAt != null && now < notice.startsAt)
             return `Scheduled for ${new Date(notice.startsAt * 1000).toLocaleString()}`;
@@ -898,7 +930,7 @@ const Admin: React.FC = () => {
     const renderNotice = () =>
         noticeLoading ? (
             <div className="flex justify-center py-16">
-                <Loader2 className={`animate-spin ${settingsMuted}`} size={20} />
+                <Busy className={`animate-spin ${settingsMuted}`} size={20} />
             </div>
         ) : (
             <div className="space-y-5">
@@ -946,7 +978,7 @@ const Admin: React.FC = () => {
                         className="input-base resize-y"
                     />
                     <p className={`text-xs ${settingsMuted}`}>
-                        {noticeTextFor(noticeLang).length}/2000 · bare https:// links become clickable
+                        {noticeTextFor(noticeLang).length} of 2000 characters. Bare https:// links become clickable
                     </p>
                 </div>
 
@@ -1000,7 +1032,7 @@ const Admin: React.FC = () => {
                         >
                             {noticeLevel === 'warn' ? (
                                 <span className="icon-line">
-                                    <AlertCircle size={14} strokeWidth={1.75} />
+                                    <Alert size={14} strokeWidth={1.75} />
                                 </span>
                             ) : (
                                 <span className="icon-line">
@@ -1015,7 +1047,7 @@ const Admin: React.FC = () => {
                 <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--border)]">
                     <span className={`text-xs ${settingsMuted}`}>
                         {noticeWindowLabel()}
-                        {notice ? ` · rev ${notice.revision}` : ''}
+                        {notice ? `, revision ${notice.revision}` : ''}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
                         <button onClick={clearNotice} disabled={!notice} className={dangerTextBtn}>
@@ -1027,11 +1059,11 @@ const Admin: React.FC = () => {
                             className="btn-primary disabled:opacity-40 disabled:pointer-events-none"
                         >
                             {noticeSaving ? (
-                                <Loader2 size={15} className="animate-spin" />
+                                <Busy size={15} className="animate-spin" />
                             ) : (
                                 <Megaphone size={15} strokeWidth={1.5} />
                             )}
-                            {notice ? 'Update Notice' : 'Publish Notice'}
+                            {notice ? 'Update notice' : 'Publish notice'}
                         </button>
                     </div>
                 </div>
@@ -1048,7 +1080,7 @@ const Admin: React.FC = () => {
                     <p className={rowLabel}>Storage</p>
                     <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>
                         {storage
-                            ? `${formatBytes(storage.payload_bytes)} of payload across ${storage.tables.reduce((n, t) => n + t.rows, 0).toLocaleString()} rows · measured ${timeAgo(storage.measured_at)}`
+                            ? `${formatBytes(storage.payload_bytes)} of payload across ${storage.tables.reduce((n, t) => n + t.rows, 0).toLocaleString()} rows, measured ${timeAgo(storage.measured_at)}`
                             : 'How much of the database each table is. Compare against the D1 plan limit.'}
                     </p>
                     {storage && (
@@ -1067,7 +1099,9 @@ const Admin: React.FC = () => {
                     {storageError && <p className="text-xs text-[var(--danger)] mt-1">{storageError}</p>}
                 </div>
                 <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
-                    {storageLoading ? <Loader2 size={14} className="animate-spin" /> : storage ? 'Refresh' : 'Measure'}
+                    <BusyLabel busy={storageLoading} size={14}>
+                        {storage ? 'Refresh' : 'Measure'}
+                    </BusyLabel>
                 </button>
             </div>
 

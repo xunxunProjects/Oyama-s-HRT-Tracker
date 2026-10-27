@@ -3,7 +3,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, Ester, Route } from '../../logic';
 import { LOCALE_MAP, createDayLabelFormatter, toDayKey } from '../utils/helpers';
 import { useElementSize } from '../hooks/useElementSize';
-import { esterName } from '../utils/regimenText';
+import { doseOf, esterName } from '../utils/regimenText';
 
 /** Local midnight of whatever day a moment falls on. */
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -385,7 +385,7 @@ const DoseHeatmap = ({
                                 key={ester}
                                 className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]"
                             >
-                                {esterName(ester as Ester, t)} · {Number(mg.toFixed(2))} mg
+                                {doseOf(`${Number(mg.toFixed(2))} mg`, esterName(ester as Ester, t), t)}
                             </div>
                         ))}
                     </div>

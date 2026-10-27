@@ -1,10 +1,10 @@
 import React, { useState, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Loader2 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { isValidUsername } from '../utils/username';
+import { BusyLabel } from '../components/StableLabel';
 
 const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
@@ -79,8 +79,7 @@ const EditProfile: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </div>
 
                     <button type="submit" disabled={!canSave} className="btn-primary w-full">
-                        {isLoading && <Loader2 size={16} className="animate-spin" />}
-                        {t('btn.save')}
+                        <BusyLabel busy={isLoading}>{t('btn.save')}</BusyLabel>
                     </button>
                 </form>
             </div>

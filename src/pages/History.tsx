@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AddCancelLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
-import { Plus, Minus, Trash2, ListChecks, Repeat, ChevronDown } from 'lucide-react';
+import { Trash, Select, Repeat, ChevronDown } from '../components/icons';
 import Tick from '../components/Tick';
 import Switch from '../components/Switch';
 import Doodle from '../components/Doodle';
@@ -10,8 +11,9 @@ import { formatTime } from '../utils/helpers';
 import { drugLabel } from '../utils/regimenText';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
+import Stepper from '../components/Stepper';
 import LogDoodle from '../components/LogDoodle';
-import { DoseTemplate } from '../components/DoseFormModal';
+import type { DoseTemplate } from '../components/DoseForm';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 
@@ -53,67 +55,36 @@ const centerRow = (row: HTMLElement) => {
     row.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
 };
 
-/**
- * A number field with − and + on either side, so the batch values can be
- * nudged with a thumb instead of summoning the number pad. Typing still works;
- * the buttons step from whatever is typed and stop at the limits.
- */
-const Stepper: React.FC<{
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    min: number;
-    max?: number;
-    /** Size of one step for a given value and direction. */
-    step: (current: number, dir: 1 | -1) => number;
-    inputStep: string;
-}> = ({ label, value, onChange, min, max = Infinity, step, inputStep }) => {
-    const id = React.useId();
-    const n = parseFloat(value);
-    const current = Number.isFinite(n) ? n : min;
-    const nudge = (dir: 1 | -1) => {
-        const next = Math.min(max, Math.max(min, current + dir * step(current, dir)));
-        onChange(String(Math.round(next * 100) / 100));
-    };
-    const btn =
-        'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)] disabled:opacity-35 disabled:hover:bg-transparent';
+// A day's label, held under the page header while its rows scroll by. It
+// runs the column's full width: as wide as the rows' text only, it sat as a
+// white box on an open row's wash, which showed past its ends. Once held, a
+// short fade under it lets the rows passing beneath dissolve rather than be
+// sliced through a line of text. A marker at the day's top says when it is
+// held: gone above the label's own offset, the label has caught on the header.
+const PinnedDayLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [marker, setMarker] = useState<HTMLDivElement | null>(null);
+    const [held, setHeld] = useState(false);
+    useEffect(() => {
+        const label = marker?.nextElementSibling;
+        if (!marker || !label || typeof IntersectionObserver === 'undefined') return;
+        const top = parseFloat(getComputedStyle(label).top) || 0;
+        const io = new IntersectionObserver(
+            ([entry]) => setHeld(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)),
+            { rootMargin: `-${top}px 0px 0px 0px` },
+        );
+        io.observe(marker);
+        return () => io.disconnect();
+    }, [marker]);
     return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
-                {label}
-            </label>
-            <span className="flex h-11 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--field)] px-1 hover:border-[var(--border-strong)] focus-within:border-[var(--accent-ink)]">
-                <button
-                    type="button"
-                    onClick={() => nudge(-1)}
-                    disabled={current <= min}
-                    aria-label={`${label} −`}
-                    className={btn}
-                >
-                    <Minus size={16} />
-                </button>
-                <input
-                    id={id}
-                    type="number"
-                    inputMode="decimal"
-                    min={min}
-                    max={Number.isFinite(max) ? max : undefined}
-                    step={inputStep}
-                    value={value}
-                    onChange={e => onChange(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-center text-sm font-medium tabular-nums text-[var(--text)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button
-                    type="button"
-                    onClick={() => nudge(1)}
-                    disabled={current >= max}
-                    aria-label={`${label} +`}
-                    className={btn}
-                >
-                    <Plus size={16} />
-                </button>
-            </span>
-        </div>
+        <>
+            <div ref={setMarker} aria-hidden="true" className="h-0" />
+            <div
+                data-held={held}
+                className="sticky top-[5rem] z-10 -mx-6 px-6 md:-mx-8 md:px-8 bg-[var(--bg)] pt-2 pb-1 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-[linear-gradient(var(--bg),transparent)] after:opacity-0 after:content-[''] data-[held=true]:after:opacity-100"
+            >
+                {children}
+            </div>
+        </>
     );
 };
 
@@ -139,6 +110,10 @@ interface HistoryProps {
     quickDoses?: QuickDose[];
     onAddQuickDose?: (dose: QuickDose) => void;
     onDeleteQuickDose?: (id: string) => void;
+    /** A dose to open for editing on arrival, when another page (a dose on
+     *  the Overview's chart) sent someone here to change it. */
+    openEditId?: string | null;
+    onOpenEditHandled?: () => void;
 }
 
 const History: React.FC<HistoryProps> = ({
@@ -157,9 +132,11 @@ const History: React.FC<HistoryProps> = ({
     quickDoses,
     onAddQuickDose,
     onDeleteQuickDose,
+    openEditId,
+    onOpenEditHandled,
 }) => {
     const { showDialog } = useDialog();
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(openEditId ?? null);
 
     // Batch add: repeat the quick-add dose at a fixed interval.
     const [batchOn, setBatchOn] = useState(false);
@@ -208,6 +185,31 @@ const History: React.FC<HistoryProps> = ({
     }, [saved]);
 
     const allEvents = useMemo(() => groupedEvents.flatMap(g => g.events), [groupedEvents]);
+
+    // Sent here to edit one dose: its form is already open (editingId starts
+    // on it), and its row is brought to the middle of the screen, with the
+    // planned section unfolded first if that's where it sits. The request is
+    // taken in hand at once, not when the row is reached: leaving within the
+    // fold left it standing, and the form opened again on the next visit. So
+    // the timer stops only with the page, not when the request is cleared.
+    const centerTimer = useRef(0);
+    useEffect(() => {
+        const timer = centerTimer;
+        return () => window.clearTimeout(timer.current);
+    }, []);
+    useEffect(() => {
+        if (!openEditId) return;
+        setEditingId(openEditId);
+        const ev = allEvents.find(e => e.id === openEditId);
+        if (ev && ev.timeH > Date.now() / 3600000) setPlannedOpen(true);
+        onOpenEditHandled?.();
+        window.clearTimeout(centerTimer.current);
+        centerTimer.current = window.setTimeout(() => {
+            const row = document.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(openEditId)}"]`);
+            if (row) centerRow(row);
+        }, FOLD_MS);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openEditId]);
     const totalRecords = allEvents.length;
     const nowH = Date.now() / 3600000;
 
@@ -324,10 +326,19 @@ const History: React.FC<HistoryProps> = ({
         setSelectedIds(prev => (prev.size === totalRecords ? new Set() : new Set(allEvents.map(e => e.id))));
     };
 
+    // The question names the doses ticked when it was asked. Ticking more, or
+    // fewer, while it's open takes it away, so Delete never removes a set
+    // other than the one it named.
+    const askDelete = useRef<(() => void) | null>(null);
+    useEffect(() => {
+        askDelete.current?.();
+        askDelete.current = null;
+    }, [selectedIds]);
+
     const handleDeleteSelected = () => {
         if (!selectedIds.size) return;
         const msg = t('timeline.batch_delete_confirm').replace('{n}', String(selectedIds.size));
-        showDialog(
+        askDelete.current = showDialog(
             'confirm',
             msg,
             () => {
@@ -352,7 +363,7 @@ const History: React.FC<HistoryProps> = ({
         const wornH = isRemoval ? wornBeforeRemoval.get(ev) : undefined;
         const editOpen = isEditing && !selectMode;
         return (
-            <div key={ev.id} className="border-b border-[var(--border)] last:border-b-0">
+            <div key={ev.id} data-event-id={ev.id} className="border-b border-[var(--border)] last:border-b-0">
                 {/* A button, so a keyboard reaches every record: it opens the
                     record's form, or in select mode ticks it. The drawing at its
                     head says the route, which the first line alone does not when
@@ -493,14 +504,19 @@ const History: React.FC<HistoryProps> = ({
     // A pinned label paints over the rows, so it stops 4px short of them and
     // the rows take the 4px up: the focus ring stands 4px off a row, and the
     // label's own padding hid the top of it on each day's first row.
-    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => (
-        <div key={key} className="mb-6 last:mb-0">
-            <div className={`${pinned ? 'sticky top-[5rem] z-10' : ''} bg-[var(--bg)] pt-2 pb-1`}>
-                <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
+    const renderDay = ({ key, label, events: dayEvents }: DoseDayGroup, pinned: boolean) => {
+        const text = <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>;
+        return (
+            <div key={key} className="mb-4 last:mb-0">
+                {pinned ? (
+                    <PinnedDayLabel>{text}</PinnedDayLabel>
+                ) : (
+                    <div className="bg-[var(--bg)] pt-2 pb-1">{text}</div>
+                )}
+                <div className="pt-1">{dayEvents.map(renderRow)}</div>
             </div>
-            <div className="pt-1">{dayEvents.map(renderRow)}</div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="relative pb-32">
@@ -513,7 +529,9 @@ const History: React.FC<HistoryProps> = ({
                     <span className="block truncate">
                         {selectMode
                             ? t('timeline.selected').replace('{n}', String(selectedIds.size))
-                            : `${totalRecords} ${t('timeline.records')}`}
+                            : totalRecords === 1
+                              ? t('timeline.records_one')
+                              : t('timeline.records_n').replace('{n}', String(totalRecords))}
                     </span>
                 }
                 actions={
@@ -525,7 +543,7 @@ const History: React.FC<HistoryProps> = ({
                                 aria-label={t('timeline.select_all')}
                                 className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
                             >
-                                <ListChecks size={15} strokeWidth={1.5} />
+                                <Select size={15} strokeWidth={1.5} />
                                 <span className={labelOnWide}>{t('timeline.select_all')}</span>
                             </button>
                             <button
@@ -534,7 +552,7 @@ const History: React.FC<HistoryProps> = ({
                                 disabled={!selectedIds.size}
                                 className={`${headerBtn} text-[var(--danger)] disabled:opacity-40 tap-target`}
                             >
-                                <Trash2 size={15} strokeWidth={1.5} className={labelOnWide} />
+                                <Trash size={15} strokeWidth={1.5} className={labelOnWide} />
                                 <span>
                                     {t('btn.delete')}
                                     {selectedIds.size ? ` (${selectedIds.size})` : ''}
@@ -557,7 +575,7 @@ const History: React.FC<HistoryProps> = ({
                                     aria-label={t('timeline.select')}
                                     className={`${headerBtn} ${muted} ${iconOnNarrow} tap-target`}
                                 >
-                                    <ListChecks size={15} strokeWidth={1.5} />
+                                    <Select size={15} strokeWidth={1.5} />
                                     <span className={labelOnWide}>{t('timeline.select')}</span>
                                 </button>
                             )}
@@ -567,8 +585,7 @@ const History: React.FC<HistoryProps> = ({
                                 aria-expanded={isQuickAddOpen}
                                 className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
                             >
-                                <Plus size={15} className={isQuickAddOpen ? 'rotate-45' : ''} />
-                                <span>{isQuickAddOpen ? t('btn.cancel') : t('btn.add') || '添加'}</span>
+                                <AddCancelLabel open={isQuickAddOpen} add={t('btn.add')} cancel={t('btn.cancel')} />
                             </button>
                         </>
                     )

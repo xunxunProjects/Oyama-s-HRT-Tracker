@@ -12,14 +12,16 @@ test('reports malformed pasted JSON without logging an uncaught stack', async ({
     await gotoApp(page);
 
     await page.getByRole('button', { name: 'Settings' }).click();
-    await page.getByRole('tab', { name: 'Data Management' }).click();
-    await page.getByRole('button', { name: 'Import Data' }).click();
-    await page.getByRole('button', { name: /Paste JSON Text/ }).click();
+    await page.getByRole('tab', { name: 'Data management' }).click();
+    await page.getByRole('button', { name: 'Import data' }).click();
+    await page.getByRole('button', { name: /Paste JSON text/ }).click();
     await page.getByRole('textbox', { name: 'Paste JSON content here...' }).fill('{bad json');
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
-    await expect(page.getByRole('dialog')).toContainText('Import failed. Please check that the file is valid.');
-    await page.getByRole('dialog').getByRole('button', { name: 'OK', exact: true }).click();
+    await expect(page.locator('[data-prompt="alert"]')).toContainText(
+        'Import failed. Please check that the file is valid.',
+    );
+    await page.locator('[data-prompt="alert"]').getByRole('button', { name: 'OK', exact: true }).click();
 
     // The alert is the user-facing report; the console should not also carry a
     // raw JSON.parse stack from the expected rejection.

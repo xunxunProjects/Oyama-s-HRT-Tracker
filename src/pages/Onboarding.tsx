@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Close } from '../components/icons';
 import { BODY_WEIGHT_KG_MAX, BODY_WEIGHT_KG_MIN, ExtraKey, Route, isPlausibleBodyWeightKG } from '../../logic';
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
@@ -7,13 +7,14 @@ import Doodle, { DoodleName } from '../components/Doodle';
 import Point, { type MarkState } from '../components/Point';
 import DoseRings from '../components/DoseRings';
 import PlanWizard from '../components/PlanWizard';
+import PageHeader from '../components/PageHeader';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useDialog } from '../contexts/DialogContext';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
 import { PlanItem, PLAN_DRUGS } from '../utils/plan';
-import { frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
+import { asTitle, frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
 
 const ONBOARDING_KEY = 'app-onboarded';
 
@@ -244,7 +245,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
         if (isPlausibleBodyWeightKG(kg) && kg !== weight) onWeightChange(kg);
     };
 
-    // The plan's own questions, opened over the intro the same way the Plan page opens them.
+    // Adding to the plan from the intro: the Plan page's own questions (below).
     const [addingPlan, setAddingPlan] = useState(false);
     const canAddPlan = (Object.keys(PLAN_DRUGS[mode]) as Route[]).some(r =>
         (PLAN_DRUGS[mode][r] ?? []).some(e => !plan.some(i => i.route === r && i.ester === e)),
@@ -401,7 +402,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
             {/* The field is drawn as a figure on a rule, not an .input-base
                 box, so it takes the text-field focus treatment by hand: the
                 rule turns terracotta while the figure is being edited. */}
-            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--accent-ink)]`}>
+            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--text)]`}>
                 <input
                     type="number"
                     inputMode="decimal"
@@ -442,7 +443,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         <div className="min-w-0 flex-1">
                             <p className="text-[0.9375rem] font-medium text-body">{regimenLabel(item, t)}</p>
                             <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">
-                                {frequencyLabel(item, t)}
+                                {asTitle(frequencyLabel(item, t))}
                                 {item.route === Route.gel && `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                             </p>
                         </div>
@@ -458,7 +459,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                             aria-label={t('btn.delete')}
                             className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
                         >
-                            <X size={16} />
+                            <Close size={16} />
                         </button>
                     </div>
                 ))}
@@ -511,8 +512,37 @@ const Onboarding: React.FC<OnboardingProps> = ({
         else go(step + 1);
     };
 
+    // The plan's questions take the intro's place while they run, under a
+    // title whose back arrow backs out of them, the way the Plan page has
+    // them. There is no bottom bar here, so their buttons go to the edge.
+    if (addingPlan) {
+        return (
+            <div
+                data-prompt-area
+                className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
+            >
+                <div aria-hidden="true" className="shrink-0 pt-[env(safe-area-inset-top,0px)]" />
+                <div className="flex flex-1 flex-col overflow-y-auto scrollbar-hide">
+                    <PageHeader onBack={() => setAddingPlan(false)} title={t('plan.add')} />
+                    <PlanWizard
+                        plan={plan}
+                        onAdd={item => {
+                            onAddPlanItem(item);
+                            setAddingPlan(false);
+                        }}
+                        onCancel={() => setAddingPlan(false)}
+                        aboveNav={false}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]">
+        <div
+            data-prompt-area
+            className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
+        >
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
@@ -580,17 +610,6 @@ const Onboarding: React.FC<OnboardingProps> = ({
                     </div>
                 </div>
             </div>
-
-            {addingPlan && (
-                <PlanWizard
-                    plan={plan}
-                    onAdd={item => {
-                        onAddPlanItem(item);
-                        setAddingPlan(false);
-                    }}
-                    onCancel={() => setAddingPlan(false)}
-                />
-            )}
         </div>
     );
 };

@@ -1,7 +1,6 @@
 import React from 'react';
-import { AlertCircle, ArrowRight, ChevronDown } from 'lucide-react';
+import { Alert, ArrowRight, ChevronDown, Labs } from './icons';
 import { DoseAdvisory as Advisory, HormoneLevelAdvisory } from '../../logic';
-import CalibrationCurveIcon from './CalibrationCurveIcon';
 
 // Splits a message after its first sentence. Handles the CJK full stop, which
 // isn't followed by a space, and Latin/Hangul ". ", which is.
@@ -12,7 +11,7 @@ const splitLead = (text: string): [string, string] => {
 
 const alertIcon = (
     <span className="icon-line">
-        <AlertCircle size={16} strokeWidth={1.75} className="text-[var(--warning)]" />
+        <Alert size={16} strokeWidth={1.75} className="text-[var(--warning)]" />
     </span>
 );
 const leadTone = 'font-medium text-[var(--warning)]';
@@ -106,7 +105,7 @@ const DoseAdvisoryNotice: React.FC<{
                     className="group flex items-start gap-2 text-start text-xs text-[var(--text-muted)]"
                 >
                     <span className="icon-line">
-                        <CalibrationCurveIcon size={16} strokeWidth={1.75} className="opacity-80" />
+                        <Labs size={16} strokeWidth={1.75} className="opacity-80" />
                     </span>
                     <span>
                         {t('advisory.calibrate.text')}{' '}

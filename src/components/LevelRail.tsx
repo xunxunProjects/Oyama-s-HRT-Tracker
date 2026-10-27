@@ -30,7 +30,15 @@ const WAVE_MS = 7;
 // Log-spaced because hormone levels are read in ratios: 50 → 100 is as big a
 // move as 400 → 800, and a linear scale let a single high reading squash the
 // whole target band against the left edge.
+// The ticks rise once per visit to the app, like the chart under them, not
+// every time the Overview is come back to.
+let entrancePlayed = false;
+
 const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone = '' }) => {
+    const [still] = React.useState(() => entrancePlayed);
+    React.useEffect(() => {
+        entrancePlayed = true;
+    }, []);
     const [row, setRow] = React.useState<HTMLDivElement | null>(null);
     const { width } = useElementSize(row);
     const count = width ? Math.min(96, Math.max(24, Math.round(width / TICK_PITCH))) : 48;
@@ -47,7 +55,11 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
 
     return (
         // A scale reads left to right whatever the page direction.
-        <div dir="ltr" className="relative select-none pt-5 pb-[18px]" aria-hidden="true">
+        <div
+            dir="ltr"
+            className={`relative select-none pt-5 pb-[18px] ${still ? 'rail-still' : ''}`}
+            aria-hidden="true"
+        >
             {/* The label's own anchor slides from its left edge to its right edge
                 along the scale, so it always sits over the current tick and never
                 runs off either end. Lands once the wave has reached its tick. */}

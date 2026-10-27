@@ -54,7 +54,7 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
                                 aria-label={t('status.weight')}
                                 aria-invalid={showError}
                                 aria-describedby="weight-help"
-                                className="text-4xl font-light tabular-nums text-[var(--text)] w-28 bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--accent-ink)] outline-none pb-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                className="input-base text-4xl font-light tabular-nums text-[var(--text)] w-28 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 placeholder="0.0"
                                 style={{ fontSize: '40px' }}
                                 autoFocus

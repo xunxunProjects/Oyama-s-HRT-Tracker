@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Warning, Retry } from './icons';
 import { Lang, TRANSLATIONS } from '../i18n/translations';
 
 /**
@@ -59,7 +59,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
             return (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
-                    <AlertTriangle size={32} strokeWidth={1.5} className="text-[var(--danger)] mb-4" />
+                    <Warning size={32} strokeWidth={1.5} className="text-[var(--danger)] mb-4" />
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-2">{tr('error.title')}</h2>
                     <p className="text-sm text-[var(--text-muted)] mb-6 max-w-md leading-relaxed">{tr('error.body')}</p>
                     {this.state.error && (
@@ -70,7 +70,7 @@ class ErrorBoundary extends React.Component<Props, State> {
                         </div>
                     )}
                     <button onClick={this.handleReload} className="btn-primary">
-                        <RefreshCw size={15} strokeWidth={1.5} />
+                        <Retry size={15} strokeWidth={1.5} />
                         {tr('error.reload')}
                     </button>
                 </div>

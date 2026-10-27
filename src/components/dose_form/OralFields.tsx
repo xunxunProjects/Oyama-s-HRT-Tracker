@@ -37,7 +37,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                 <div
                     className={`space-y-1.5 ${(ester === Ester.EV && route === Route.oral) || rawOnly ? 'col-span-2' : ''}`}
                 >
-                    <label htmlFor={rawId} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={rawId} className="field-label">
                         {t('field.dose_raw')}
                     </label>
                     <input
@@ -49,7 +49,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         step="0.001"
                         value={rawDose}
                         onChange={e => onRawChange(e.target.value)}
-                        className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="input-base w-full text-[var(--text)] font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
                     />
@@ -58,7 +58,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
 
             {!(ester === Ester.EV && route === Route.oral) && !rawOnly && (
                 <div className={`space-y-1.5 ${ester === Ester.E2 ? 'col-span-2' : ''}`}>
-                    <label htmlFor={e2Id} className="block text-xs font-semibold text-[var(--text-muted)] pl-1">
+                    <label htmlFor={e2Id} className="field-label">
                         {t('field.dose_e2')}
                     </label>
                     <input
@@ -70,7 +70,7 @@ const OralFields: React.FC<OralFieldsProps> = ({
                         step="0.001"
                         value={e2Dose}
                         onChange={e => onE2Change(e.target.value)}
-                        className="w-full p-3 bg-[var(--field)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-md focus:border-[var(--accent-ink)] outline-none font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="input-base w-full font-medium text-[var(--text)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0.0"
                         style={{ fontSize: '16px' }}
                     />

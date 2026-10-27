@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { DoseEvent, LabResult } from '../../logic';
-import { Lock } from 'lucide-react';
+import { Lock } from './icons';
 import { CopyTick } from './Tick';
 import { exportToCSV, exportToPDF } from '../services/export';
 import { settingsSection, rowBleed } from './SettingsListItem';
 import { copyText } from '../utils/clipboard';
 import { MIN_PASSWORD_LENGTH, newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from './PasswordStrengthHint';
+import { SwapLabel } from './StableLabel';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -156,7 +157,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                 </span>
                                 <span className={`${action} flex items-center gap-1`}>
                                     <CopyTick copied={jsonCopied} size={13} />
-                                    {jsonCopied ? t('export.copied') : t('btn.copy')}
+                                    <SwapLabel show={jsonCopied} off={t('btn.copy')} on={t('export.copied')} />
                                 </span>
                             </button>
                         )}
@@ -180,7 +181,11 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                 </span>
                                 {!generatedPassword && (
                                     <span className={action}>
-                                        {showEncrypted ? t('btn.cancel') : t('export.btn_encrypted')}
+                                        <SwapLabel
+                                            show={showEncrypted}
+                                            off={t('export.btn_encrypted')}
+                                            on={t('btn.cancel')}
+                                        />
                                     </span>
                                 )}
                             </button>
@@ -194,7 +199,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                             value={password}
                                             onChange={e => setPassword(e.target.value)}
                                             placeholder={t('export.password_placeholder')}
-                                            className="w-full py-2.5 px-3 pl-9 text-sm bg-[var(--field)] border border-[var(--border)] rounded-lg outline-none focus:border-[var(--accent-ink)] text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                                            className="input-base w-full pl-9 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]"
                                             autoComplete="new-password"
                                             autoCorrect="off"
                                             autoCapitalize="off"

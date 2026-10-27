@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
-import { Plus, ChevronRight, Copy, Check } from 'lucide-react';
+import { ChevronRight } from '../components/icons';
 import {
     LabResult,
     CalibrationMethod,
@@ -25,6 +25,9 @@ import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labRepor
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { copyText } from '../utils/clipboard';
 import { clinicalUnit } from '../utils/clinicalUnit';
+import { AddCancelLabel, SwapLabel } from '../components/StableLabel';
+import { CopyTick } from '../components/Tick';
+import { scrollParent } from '../utils/scrollParent';
 
 interface LabProps {
     t: (key: string) => string;
@@ -46,13 +49,6 @@ interface LabProps {
 // `inert` keeps a collapsed form's inputs out of the tab order; the 0fr row
 // only hides them visually.
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
-
-// The page scrolls inside the app's main column, not the window.
-const scrollParent = (el: HTMLElement | null): HTMLElement | null => {
-    let node = el?.parentElement ?? null;
-    while (node && !/(auto|scroll)/.test(getComputedStyle(node).overflowY)) node = node.parentElement;
-    return node;
-};
 
 const Lab: React.FC<LabProps> = ({
     t,
@@ -154,18 +150,14 @@ const Lab: React.FC<LabProps> = ({
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
                         className={`${headerActionAccent}`}
                     >
-                        <Plus size={15} className={isQuickAddLabOpen ? 'rotate-45' : ''} />
-                        <span>{isQuickAddLabOpen ? t('btn.cancel') : t('lab.add_title')}</span>
+                        <AddCancelLabel open={isQuickAddLabOpen} add={t('lab.add_title')} cancel={t('btn.cancel')} />
                     </button>
                 }
             />
 
             {/* Expandable add form */}
-            <div
-                className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-                {...inertWhen(!isQuickAddLabOpen)}
-            >
-                <div className="overflow-hidden">
+            <div className="disclosure" data-open={isQuickAddLabOpen} {...inertWhen(!isQuickAddLabOpen)}>
+                <div className="disclosure-inner">
                     <div className={`${PAGE_COLUMN} mb-6`}>
                         <LabResultForm
                             // Force remount on open so the values clear and the date resets to "now" (this row never unmounts, only collapses via CSS).
@@ -356,10 +348,10 @@ const Lab: React.FC<LabProps> = ({
                         <div className="flex items-center justify-between gap-4 py-4">
                             <button
                                 onClick={copyDetails}
-                                className="tap-target inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-ink)]"
+                                className="tap-target inline-flex items-center gap-1 text-sm font-medium text-[var(--accent-ink)]"
                             >
-                                {copied ? <Check size={14} /> : <Copy size={14} />}
-                                {copied ? t('lab.copied') : t('lab.copy_details')}
+                                <CopyTick copied={copied} size={14} />
+                                <SwapLabel show={copied} off={t('lab.copy_details')} on={t('lab.copied')} />
                             </button>
                             <button
                                 onClick={onClearLabResults}

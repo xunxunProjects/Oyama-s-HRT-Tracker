@@ -63,7 +63,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                             aria-label={t('age.birth_year')}
                             aria-invalid={showError}
                             aria-describedby="age-help"
-                            className="text-4xl font-light tabular-nums text-[var(--text)] w-32 bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--accent-ink)] outline-none pb-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className="input-base text-4xl font-light tabular-nums text-[var(--text)] w-32 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             placeholder={String(thisYear - 25)}
                             style={{ fontSize: '40px' }}
                             autoFocus
@@ -80,7 +80,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                                 ? fill(t('error.birthYearRange'), { min: BIRTH_YEAR_MIN, max: thisYear })
                                 : valid
                                   ? fill(t('age.this_year'), { n: thisYear - year })
-                                  : `${t('age.birth_year')} · ${range}`}
+                                  : `${t('age.birth_year')} (${range})`}
                         </p>
                     </div>
                     <p className="text-xs text-[var(--text-muted)] max-w-[140px] text-right">{t('age.desc')}</p>

@@ -5,8 +5,8 @@ you, then follow the page. Every page says which version it describes.
 
 | You are...                                                          | Start here                                   | Version to use                                      |
 | ------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| **I use the tracker** — logging doses, labs, weight, or supplies    | [Usage](Usage)                               | Latest release, `v1.5.0`                            |
-| **I deploy it** — a server, a container, or Cloudflare              | [Deployment](Deployment)                     | **Latest release, `v1.5.0`. Do not deploy `main`.** |
+| **I use the tracker** — logging doses, labs, weight, or supplies    | [Usage](Usage)                               | Latest release, `v1.5.1`                            |
+| **I deploy it** — a server, a container, or Cloudflare              | [Deployment](Deployment)                     | **Latest release, `v1.5.1`. Do not deploy `main`.** |
 | **I develop it** — frontend, Worker, API, desktop, or raw transport | [Developers](Developers)                     | `main`, following `CONTRIBUTING.md`                 |
 | **I test its security** — pentest, code review, or a local lab      | [Security-Researchers](Security-Researchers) | **Latest commit on `main`**                         |
 | **I run it locally as a tool** — loopback only, no public port      | [Local-Tool](Local-Tool)                     | Release build + Docker on `127.0.0.1`               |
@@ -37,13 +37,13 @@ do not create yourself.
 
 ## Version policy
 
-- **Production deployments use the latest release, `v1.5.0` (2026-10-14).**
+- **Production deployments use the latest release, `v1.5.1` (2026-10-28).**
   Do not deploy `main`. Unreleased commits have not gone through the release
   checks, and a deployment should be reproducible from a tag.
 - **Security research starts from the latest commit on `main`** (`40233a3` at
   the time of writing, 2026-10-22). Read the commit log before testing so you
-  know what changed. The two Low-severity fixes merged on 2026-10-22 are not in
-  `v1.5.0`; they will be in the next release.
+  know what changed. The two Low-severity fixes merged on 2026-10-22 are in
+  `v1.5.1`, not in `v1.5.0`.
 - **Developers work on `main`** and follow `CONTRIBUTING.md`.
 - **The Tools wiki** covers the command-line clients and has its own
   [version policy](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools/wiki).
@@ -53,5 +53,5 @@ do not create yourself.
 > substitute for blood tests or a clinician. Do not start, stop, or change any
 > medication based on this app alone.
 
-The wiki describes version 1.5.0 of the app. Pages that describe a deployment
+The wiki describes version 1.5.1 of the app. Pages that describe a deployment
 path say whether that path was exercised while writing the page.

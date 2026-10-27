@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Megaphone, X } from 'lucide-react';
+import { Alert, Megaphone, Close } from './icons';
 import { useTranslation } from '../contexts/LanguageContext';
 import { noticeService, noticeText, SiteNotice as Notice } from '../services/notice';
 import { PAGE_COLUMN } from './PageHeader';
@@ -103,7 +103,7 @@ const SiteNoticeBanner: React.FC = () => {
 
     const warn = notice.level === 'warn';
     const tone = warn ? 'text-[var(--warning)]' : 'text-[var(--accent-ink)]';
-    const Icon = warn ? AlertCircle : Megaphone;
+    const Icon = warn ? Alert : Megaphone;
 
     return (
         <div className={`shrink-0 pt-2.5 pb-1.5 text-xs ${tone}`}>
@@ -120,7 +120,7 @@ const SiteNoticeBanner: React.FC = () => {
                     title={t('notice.dismiss')}
                     className="tap-target -mt-[3px] -me-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
                 >
-                    <X size={16} strokeWidth={1.75} />
+                    <Close size={16} strokeWidth={1.75} />
                 </button>
             </div>
         </div>
