@@ -78,7 +78,9 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    // What went wrong, and which button it came from, so it can be said
+    // right under that button.
+    const [error, setError] = useState<{ at: string; text: string } | null>(null);
     const [publicKey, setPublicKey] = useState('');
     const [fingerprint, setFingerprint] = useState('');
     const [copied, setCopied] = useState<string | null>(null);
@@ -89,6 +91,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const [guideOpen, setGuideOpen] = useState<boolean | null>(null);
 
     const describe = (err: unknown) => t(ERROR_KEYS[apiErrorCode(err)] ?? 'f2f.error');
+
+    /** The error from the button at `at`, as a hint line under it, in words. */
+    const errorAt = (at: string) =>
+        error?.at === at ? (
+            <p role="alert" className="field-hint is-error">
+                {error.text}
+            </p>
+        ) : null;
 
     const stateLabel = (state: string | undefined) => {
         const key = `f2f.state_${state}`;
@@ -128,7 +138,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             await action();
             await fetchAll();
         } catch (err) {
-            setError(describe(err));
+            setError({ at: key, text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -140,7 +150,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         // without the spaces.
         const fpr = fingerprint.replace(/\s+/g, '');
         if (!key || !fpr) {
-            setError(t('f2f.key_required'));
+            setError({ at: 'upload', text: t('f2f.key_required') });
             return;
         }
         void run('upload', async () => {
@@ -156,7 +166,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             setCopied(label);
             window.setTimeout(() => setCopied(current => (current === label ? null : current)), 1500);
         } catch {
-            setError(t('f2f.error'));
+            setError({ at: 'copy', text: t('f2f.error') });
         }
     };
 
@@ -177,7 +187,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             link.remove();
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (err) {
-            setError(describe(err));
+            setError({ at: 'keyring', text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -189,7 +199,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
         try {
             setCliCode(await f2fService.createCliCode(token));
         } catch (err) {
-            setError(describe(err));
+            setError({ at: 'cli-code', text: describe(err) });
         } finally {
             setBusy(null);
         }
@@ -274,11 +284,14 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                     autoComplete="off"
                 />
             </div>
-            <button type="button" className="btn-tonal" onClick={upload} disabled={busy !== null}>
-                <BusyLabel busy={busy === 'upload'} size={15}>
-                    {t('f2f.upload')}
-                </BusyLabel>
-            </button>
+            <div>
+                <button type="button" className="btn-tonal" onClick={upload} disabled={busy !== null}>
+                    <BusyLabel busy={busy === 'upload'} size={15}>
+                        {t('f2f.upload')}
+                    </BusyLabel>
+                </button>
+                {errorAt('upload')}
+            </div>
         </div>
     );
 
@@ -319,15 +332,10 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     </BusyLabel>
                                 </button>
                             </div>
+                            {errorAt('refresh')}
+                            {errorAt('copy')}
                             <p className="text-xs leading-relaxed text-[var(--warning)]">{t('f2f.verify_note')}</p>
                         </div>
-
-                        {error && (
-                            <p role="alert" className="flex items-start gap-1.5 text-sm text-[var(--warning)]">
-                                <Alert size={15} className="mt-0.5 shrink-0" />
-                                <span>{error}</span>
-                            </p>
-                        )}
 
                         {/* The whole of it for someone new to OpenPGP: make a key,
                             hand over its public half, check fingerprints in
@@ -444,6 +452,8 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         </button>
                                     </div>
                                 )}
+                                {errorAt('retire')}
+                                {errorAt('revoke')}
                             </section>
                         )}
 
@@ -473,6 +483,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         </BusyLabel>
                                     </button>
                                 </div>
+                                {errorAt('keyring')}
                                 <p className={muted}>{t('f2f.keyring_help')}</p>
                                 {members.length === 0 ? (
                                     <p className={`${muted} mt-3`}>{t('f2f.no_members')}</p>
@@ -536,6 +547,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     {t('f2f.cli_generate')}
                                 </BusyLabel>
                             </button>
+                            {errorAt('cli-code')}
                             {cliCode && (
                                 <div className="mt-3 space-y-2">
                                     {/* The code on a line of its own, in groups of four that
