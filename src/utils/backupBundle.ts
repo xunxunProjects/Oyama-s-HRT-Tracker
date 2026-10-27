@@ -41,7 +41,14 @@ import {
 } from '../../logic';
 import type { AppTheme } from '../constants';
 import type { Lang } from '../i18n/translations';
-import { legacyCpaItem, normalizePlanItem, type PlanItem } from './plan';
+import {
+    PLAN_EVERY_DAYS_MAX,
+    PLAN_TIMES_PER_DAY_MAX,
+    FREQUENCIES,
+    legacyCpaItem,
+    normalizePlanItem,
+    type PlanItem,
+} from './plan';
 import { normalizeSupply, type Pack, type Supply } from './regimen';
 import { cleanDoseMG } from './cleanDose';
 import {
@@ -76,8 +83,8 @@ export const COMPLETE_BACKUP_FORMAT_VERSION = 1;
 
 /** Allowance for a device clock that is a little ahead of the importer. */
 export const ALLOWED_CLOCK_SKEW_MS = 5 * 60 * 1000;
-export const PLAN_TIMES_PER_DAY_MAX = 24;
-export const PLAN_EVERY_DAYS_MAX = 3650;
+// The plan's limits live beside the form that enforces them; import keeps the same ceiling.
+export { PLAN_EVERY_DAYS_MAX, PLAN_TIMES_PER_DAY_MAX };
 
 /** Shown when a failed write could not be fully rolled back. */
 export const PARTIAL_WRITE_MESSAGE = 'Complete backup import failed; partial writes may have occurred.';
@@ -560,14 +567,22 @@ const validatePlan = (raw: unknown, path: string): Validation<PlanItem> => {
     const extras = raw.extras === undefined || raw.extras === null ? {} : raw.extras;
     if (!isObject(extras)) return { error: `${path}: extras must be an object` };
     const everyDays = raw.everyDays;
-    if (!isFiniteNumber(everyDays) || everyDays < 1 || everyDays > PLAN_EVERY_DAYS_MAX) {
-        return { error: `${path}: everyDays must be finite and between 1 and ${PLAN_EVERY_DAYS_MAX}` };
+    // Whole days only, apart from the 3.5-day patch preset: planStatus counts
+    // calendar days while regimensFromPlan counts hours.
+    const presetDays = FREQUENCIES.some(f => f.everyDays === everyDays);
+    if (
+        !isFiniteNumber(everyDays) ||
+        everyDays < 1 ||
+        everyDays > PLAN_EVERY_DAYS_MAX ||
+        (!Number.isInteger(everyDays) && !presetDays)
+    ) {
+        return { error: `${path}: everyDays must be whole days between 1 and ${PLAN_EVERY_DAYS_MAX}` };
     }
-    if (!isFiniteNumber(raw.timesPerDay) || raw.timesPerDay < 1) {
-        return { error: `${path}: timesPerDay must be finite and >= 1` };
+    if (!isFiniteNumber(raw.timesPerDay) || !Number.isInteger(raw.timesPerDay) || raw.timesPerDay < 1) {
+        return { error: `${path}: timesPerDay must be a whole number >= 1` };
     }
-    const timesPerDay = Math.round(raw.timesPerDay);
-    if (timesPerDay < 1 || timesPerDay > PLAN_TIMES_PER_DAY_MAX) {
+    const timesPerDay = raw.timesPerDay;
+    if (timesPerDay > PLAN_TIMES_PER_DAY_MAX) {
         return { error: `${path}: timesPerDay must be between 1 and ${PLAN_TIMES_PER_DAY_MAX}` };
     }
     return {

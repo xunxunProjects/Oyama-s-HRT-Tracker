@@ -7,8 +7,20 @@ import Doodle from './Doodle';
 import DoseRings from './DoseRings';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
-import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, freshDraft } from '../utils/plan';
+import {
+    PlanItem,
+    PlanDraft,
+    CUSTOM_FREQ,
+    FREQUENCIES,
+    PLAN_DRUGS,
+    customFieldsFor,
+    draftToItem,
+    freshDraft,
+    stepReady,
+} from '../utils/plan';
 import { frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
+import CustomFrequencyFields from './CustomFrequencyFields';
+import { inertWhen } from '../utils/inert';
 
 const divider = 'border-b border-[var(--border)]';
 
@@ -84,8 +96,6 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const [draft, setDraft] = useState<PlanDraft | null>(null);
     const [at, setAt] = useState(0);
     const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-    const [allFreq, setAllFreq] = useState(false);
-
     const drugs = draft ? (PLAN_DRUGS[mode][draft.route] ?? []) : [];
     const steps: StepKey[] = [
         'route',
@@ -98,7 +108,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const step = steps[Math.min(at, steps.length - 1)];
     const isLast = at >= steps.length - 1;
     const item = draft && draftToItem(draft, 'draft');
-    const ready = step === 'route' ? !!draft : step === 'dose' ? !!item : true;
+    const ready = stepReady(step, draft);
 
     const go = (next: number) => {
         setDirection(next > at ? 'forward' : 'backward');
@@ -117,7 +127,6 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
     const pickRoute = (route: Route) => {
         const open = free(route);
         setDraft(d => freshDraft(route, d && d.route === route && open.includes(d.ester) ? d.ester : open[0]));
-        setAllFreq(false);
     };
     const pickDrug = (ester: Ester) => setDraft(d => d && freshDraft(d.route, ester));
     const patch = (p: Partial<PlanDraft>) => setDraft(d => d && { ...d, ...p });
@@ -146,8 +155,21 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
                 : regimenLabel(item, t);
 
     const common = draft ? commonFreq(draft.route, draft.ester) : [];
-    const showAllFreq = allFreq || !draft || !common.includes(draft.freq);
+    const custom = draft?.freq === CUSTOM_FREQ;
     const isPatch = draft?.route === Route.patchApply;
+
+    // "Other" replaces itself with the custom rows, so the tapped button goes
+    // inert: hand focus to the first field instead of dropping it on the page.
+    const customFreq = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!custom) return;
+        customFreq.current?.querySelector<HTMLInputElement>('input[type="number"]')?.focus({ preventScroll: true });
+    }, [custom]);
+
+    const openCustom = () => {
+        const preset = FREQUENCIES.find(f => f.key === draft?.freq) ?? { everyDays: 1, timesPerDay: 1 };
+        patch({ freq: CUSTOM_FREQ, ...customFieldsFor(preset) });
+    };
 
     const heading = step === 'dose' && isPatch ? t('plan.q_rate') : t(`plan.q_${step}`);
 
@@ -271,23 +293,28 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
 
                     {step === 'freq' && draft && (
                         <div className="mt-6">
-                            {FREQUENCIES.filter(f => showAllFreq || common.includes(f.key)).map(f => (
+                            {FREQUENCIES.filter(f => common.includes(f.key)).map(f => (
                                 <Row
                                     key={f.key}
                                     on={draft.freq === f.key}
-                                    onClick={() => patch({ freq: f.key })}
+                                    onClick={() => patch({ freq: f.key, ...customFieldsFor(f) })}
                                     title={frequencyLabel(f, t)}
                                 />
                             ))}
-                            {!showAllFreq && (
-                                <button
-                                    type="button"
-                                    onClick={() => setAllFreq(true)}
-                                    className="w-full py-4 text-start text-[0.9375rem] text-muted"
-                                >
-                                    {t('plan.other_freq')}
-                                </button>
-                            )}
+                            {/* "Other" hands its place to the two ways of naming a
+                                rhythm by hand; the tick follows the one being typed. */}
+                            <div className="disclosure" data-open={!custom} {...inertWhen(custom)}>
+                                <div className="disclosure-inner">
+                                    <Row on={false} onClick={openCustom} title={t('plan.other_freq')} />
+                                </div>
+                            </div>
+                            <div className="disclosure" data-open={custom} {...inertWhen(!custom)}>
+                                <div className="disclosure-inner" ref={customFreq}>
+                                    <div className={custom ? 'advisory-unfold' : ''}>
+                                        <CustomFrequencyFields draft={draft} onChange={patch} variant="rows" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

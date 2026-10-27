@@ -780,10 +780,12 @@ describe('complete backup bundle data layer', () => {
             { timesPerDay: Number.NaN },
             { timesPerDay: Number.POSITIVE_INFINITY },
             { timesPerDay: 0 },
+            { timesPerDay: 2.5 },
             { timesPerDay: PLAN_TIMES_PER_DAY_MAX + 1 },
             { everyDays: Number.NaN },
             { everyDays: Number.POSITIVE_INFINITY },
             { everyDays: 0 },
+            { everyDays: 4.5 },
             { everyDays: PLAN_EVERY_DAYS_MAX + 1 },
         ];
         for (const overrides of cases) {
@@ -800,6 +802,25 @@ describe('complete backup bundle data layer', () => {
         ];
         const validPreview = inspectCompleteBackupBundle(valid, context(new MemoryStorage()));
         expect(validPreview.blocked).not.toContain('transfem.plan');
+    });
+
+    it('imports a whole-day custom rhythm and reads it back unchanged', () => {
+        const bundle = build(seed());
+        bundle.modes.transfem.plan = [plan('custom-plan', { everyDays: 4, timesPerDay: 1 })];
+        const target = new MemoryStorage();
+        const result = mergeCompleteBackupBundleToStorage(bundle, context(target));
+        expect(result.blocked).toEqual([]);
+
+        const stored = JSON.parse(target.getItem(key('transfem', 'plan'))!) as { id: string }[];
+        const imported = stored.find(entry => entry.id === 'custom-plan');
+        expect(normalizePlanItem(imported)).toMatchObject({ everyDays: 4, timesPerDay: 1 });
+    });
+
+    it('keeps the 3.5-day patch preset importable', () => {
+        const bundle = build(seed());
+        bundle.modes.transfem.plan = [plan('patch-plan', { everyDays: 3.5, timesPerDay: 1, route: Route.patchApply })];
+        const preview = inspectCompleteBackupBundle(bundle, context(new MemoryStorage()));
+        expect(preview.blocked).not.toContain('transfem.plan');
     });
 
     it('rejects an array above the shared import entry cap', () => {

@@ -5,11 +5,22 @@ import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../co
 import CustomSelect from '../components/CustomSelect';
 import Doodle from '../components/Doodle';
 import PlanWizard from '../components/PlanWizard';
+import CustomFrequencyFields from '../components/CustomFrequencyFields';
 import { settingsSection } from '../components/SettingsListItem';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useDialog } from '../contexts/DialogContext';
-import { PlanItem, PlanDraft, FREQUENCIES, PLAN_DRUGS, draftToItem, itemToDraft } from '../utils/plan';
+import {
+    CUSTOM_FREQ,
+    PlanItem,
+    PlanDraft,
+    FREQUENCIES,
+    PLAN_DRUGS,
+    customFieldsFor,
+    draftToItem,
+    itemToDraft,
+} from '../utils/plan';
+import { inertWhen } from '../utils/inert';
 import { regimenLabel, frequencyLabel, gelSiteName } from '../utils/regimenText';
 
 const on = 'text-[var(--text)]';
@@ -20,7 +31,6 @@ const muted = 'text-[var(--text-muted)]';
 // and a 38px transparent box made the paired fields look unrelated.
 const inputCls = 'input-base tabular-nums';
 const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Amount, rhythm and, for a gel, where it goes; for a sublingual dose, how long it is held. */
 const AmountFields: React.FC<{
@@ -47,9 +57,26 @@ const AmountFields: React.FC<{
         <CustomSelect
             label={t('plan.freq')}
             value={draft.freq}
-            onChange={freq => onChange({ freq })}
-            options={FREQUENCIES.map(f => ({ value: f.key, label: frequencyLabel(f, t) }))}
+            // Choosing either way seeds the custom fields from the rhythm on
+            // screen, so "Custom…" never opens on a value left behind.
+            onChange={key => {
+                if (key === CUSTOM_FREQ && draft.freq === CUSTOM_FREQ) return;
+                const preset = FREQUENCIES.find(f => f.key === (key === CUSTOM_FREQ ? draft.freq : key)) ?? {
+                    everyDays: 1,
+                    timesPerDay: 1,
+                };
+                onChange({ freq: key, ...customFieldsFor(preset) });
+            }}
+            options={[
+                ...FREQUENCIES.map(f => ({ value: f.key, label: frequencyLabel(f, t) })),
+                { value: CUSTOM_FREQ, label: t('plan.custom_freq') },
+            ]}
         />
+        {draft.freq === CUSTOM_FREQ && (
+            <div className="col-span-2">
+                <CustomFrequencyFields draft={draft} onChange={onChange} variant="fields" />
+            </div>
+        )}
         {draft.route === Route.gel && (
             <div className="col-span-2">
                 <CustomSelect

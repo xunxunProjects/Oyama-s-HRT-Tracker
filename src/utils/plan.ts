@@ -25,6 +25,16 @@ export interface Frequency {
     timesPerDay: number;
 }
 
+/** The longest gap between doses and the most doses a day, shared with the backup import. */
+export const PLAN_EVERY_DAYS_MAX = 3650;
+export const PLAN_TIMES_PER_DAY_MAX = 24;
+
+/** A draft key for a rhythm the list below does not carry, entered by hand. */
+export const CUSTOM_FREQ = 'custom';
+
+/** Whether a custom rhythm is one dose every N days, or N doses a day. */
+export type CustomFrequencyKind = 'every' | 'times';
+
 export const FREQUENCIES: readonly Frequency[] = [
     { key: 'd1', everyDays: 1, timesPerDay: 1 },
     { key: 'd2', everyDays: 1, timesPerDay: 2 },
@@ -90,23 +100,79 @@ export interface PlanDraft {
     ester: Ester;
     /** mg, or µg/day for a patch. */
     dose: string;
+    /** A FREQUENCIES key, or CUSTOM_FREQ with the fields below filled in. */
     freq: string;
+    customKind: CustomFrequencyKind;
+    /** Days between doses, while `customKind` is 'every'. Still a string while typed. */
+    customEvery: string;
+    /** Doses a day, while `customKind` is 'times'. */
+    customTimes: string;
     slTier: number;
     /** Index into GEL_SITE_ORDER. */
     gelSite: number;
 }
 
-export const freshDraft = (route: Route, ester: Ester): PlanDraft => ({
-    route,
-    ester,
-    slTier: 2,
-    gelSite: 0,
-    ...usualFor(route, ester),
-});
+/**
+ * The custom fields, filled from a rhythm, so switching either way starts from
+ * what is set. A preset that is not a whole number of days (the 3.5-day patch)
+ * leaves the day box empty: custom intervals are whole days only, so there is
+ * no honest value to prefill.
+ */
+export const customFieldsFor = (f: Pick<Frequency, 'everyDays' | 'timesPerDay'>) =>
+    f.everyDays > 1
+        ? {
+              customKind: 'every' as const,
+              customEvery: Number.isInteger(f.everyDays) ? String(f.everyDays) : '',
+              customTimes: '',
+          }
+        : { customKind: 'times' as const, customEvery: '', customTimes: String(f.timesPerDay) };
+
+/** A whole number of days: calendar scheduling is defined on days, not fractions of one. */
+export const isValidCustomDays = (value: string) => {
+    const n = Number(value);
+    return value.trim() !== '' && Number.isInteger(n) && n >= 1 && n <= PLAN_EVERY_DAYS_MAX;
+};
+
+export const isValidCustomTimes = (value: string) => {
+    const n = Number(value);
+    return value.trim() !== '' && Number.isInteger(n) && n >= 1 && n <= PLAN_TIMES_PER_DAY_MAX;
+};
+
+export const freshDraft = (route: Route, ester: Ester): PlanDraft => {
+    const usual = usualFor(route, ester);
+    const preset = FREQUENCIES.find(f => f.key === usual.freq) ?? { everyDays: 1, timesPerDay: 1 };
+    return {
+        route,
+        ester,
+        slTier: 2,
+        gelSite: 0,
+        ...usual,
+        ...customFieldsFor(preset),
+    };
+};
+
+/**
+ * The rhythm a draft names: a preset, or the one typed under CUSTOM_FREQ.
+ * Null while the typed value is empty or out of range, which is what keeps
+ * Next and Save disabled until the form says something schedulable.
+ */
+export const draftFrequency = (
+    d: Pick<PlanDraft, 'freq' | 'customKind' | 'customEvery' | 'customTimes'>,
+): Frequency | null => {
+    if (d.freq !== CUSTOM_FREQ) return FREQUENCIES.find(f => f.key === d.freq) ?? null;
+    if (d.customKind === 'times') {
+        if (!isValidCustomTimes(d.customTimes)) return null;
+        const n = Number(d.customTimes);
+        return { key: `d${n}`, everyDays: 1, timesPerDay: n };
+    }
+    if (!isValidCustomDays(d.customEvery)) return null;
+    const everyDays = Number(d.customEvery);
+    return { key: `e${everyDays}`, everyDays, timesPerDay: 1 };
+};
 
 export const draftToItem = (d: PlanDraft, id: string): PlanItem | null => {
     const dose = parseFloat(d.dose);
-    const f = FREQUENCIES.find(x => x.key === d.freq);
+    const f = draftFrequency(d);
     if (!(dose > 0) || !f) return null;
     const isPatch = d.route === Route.patchApply;
     const extras: PlanItem['extras'] = isPatch
@@ -127,16 +193,34 @@ export const draftToItem = (d: PlanDraft, id: string): PlanItem | null => {
     };
 };
 
-export const itemToDraft = (i: PlanItem): PlanDraft => ({
-    route: i.route,
-    ester: i.ester,
-    dose: String(
-        i.route === Route.patchApply ? (i.extras[ExtraKey.releaseRateUGPerDay] ?? 0) : Number(i.doseMG.toFixed(3)),
-    ),
-    freq: frequencyKey(i),
-    slTier: i.extras[ExtraKey.sublingualTier] ?? 2,
-    gelSite: i.extras[ExtraKey.gelSite] ?? 0,
-});
+export type PlanStep = 'route' | 'drug' | 'dose' | 'site' | 'hold' | 'freq';
+
+/**
+ * Whether the wizard may leave a step. Only the step being answered is
+ * checked: an invalid custom rhythm on the last step must not lock the
+ * earlier ones, or Back leaves the user with no way out.
+ */
+export const stepReady = (step: PlanStep, draft: PlanDraft | null): boolean => {
+    if (!draft) return false;
+    if (step === 'dose') return parseFloat(draft.dose) > 0;
+    if (step === 'freq') return !!draftToItem(draft, 'draft');
+    return true;
+};
+
+export const itemToDraft = (i: PlanItem): PlanDraft => {
+    const key = frequencyKey(i);
+    return {
+        route: i.route,
+        ester: i.ester,
+        dose: String(
+            i.route === Route.patchApply ? (i.extras[ExtraKey.releaseRateUGPerDay] ?? 0) : Number(i.doseMG.toFixed(3)),
+        ),
+        freq: FREQUENCIES.some(f => f.key === key) ? key : CUSTOM_FREQ,
+        ...customFieldsFor(i),
+        slTier: i.extras[ExtraKey.sublingualTier] ?? 2,
+        gelSite: i.extras[ExtraKey.gelSite] ?? 0,
+    };
+};
 
 export const normalizePlanItem = (raw: any): PlanItem | null => {
     if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string') return null;
@@ -145,9 +229,24 @@ export const normalizePlanItem = (raw: any): PlanItem | null => {
     // unmodelled, so it adds no simulated curve and is never rewritten to E2.
     if (!Object.values(Route).includes(raw.route) || !isDrugCode(raw.ester)) return null;
     const everyDays = Number(raw.everyDays);
-    const timesPerDay = Math.round(Number(raw.timesPerDay));
+    const timesPerDay = Number(raw.timesPerDay);
     const doseMG = Number(raw.doseMG);
-    if (!(everyDays >= 1) || !(timesPerDay >= 1) || !Number.isFinite(doseMG) || doseMG < 0) return null;
+    // Whole days only, apart from the 3.5-day patch preset: planStatus counts
+    // calendar days while regimensFromPlan counts hours, and the two disagree
+    // on a fraction of a day.
+    const presetDays = FREQUENCIES.some(f => f.everyDays === everyDays);
+    if (
+        !Number.isFinite(everyDays) ||
+        everyDays < 1 ||
+        everyDays > PLAN_EVERY_DAYS_MAX ||
+        (!Number.isInteger(everyDays) && !presetDays) ||
+        !Number.isInteger(timesPerDay) ||
+        timesPerDay < 1 ||
+        timesPerDay > PLAN_TIMES_PER_DAY_MAX ||
+        !Number.isFinite(doseMG) ||
+        doseMG < 0
+    )
+        return null;
     return {
         id: raw.id,
         route: raw.route,
