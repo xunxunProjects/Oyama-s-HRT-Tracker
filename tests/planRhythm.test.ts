@@ -105,6 +105,12 @@ describe('plan as a calendar file', () => {
         expect(ics).toContain('DTSTART:20261031T210000');
     });
 
+    it('encodes a plan id before it reaches the calendar UID', () => {
+        const ics = planToCalendar([item({ id: 'p1\r\nBEGIN:VEVENT\r\nSUMMARY:Injected' })], [], words, now);
+        expect(ics).not.toContain('\r\nSUMMARY:Injected');
+        expect(ics).toContain('UID:plan-p1%0D%0ABEGIN%3AVEVENT%0D%0ASUMMARY%3AInjected-0@oyama-tracker');
+    });
+
     it('folds long lines at 75 bytes with CRLF and a leading space', () => {
         const long = { ...words, note: '注'.repeat(60) };
         const ics = planToCalendar([item()], [], long, now);

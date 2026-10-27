@@ -28,6 +28,16 @@ const utc = (d: Date) =>
         .replace(/\.\d{3}/, '');
 const text = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
+/** The id becomes part of a UID line, so encode it rather than letting CR/LF start a new property. */
+const calendarUidPart = (id: string) => {
+    try {
+        return encodeURIComponent(id);
+    } catch {
+        // A malformed UTF-16 string (lone surrogate) makes encodeURIComponent throw.
+        return encodeURIComponent(id.replace(/[\uD800-\uDFFF]/g, '\uFFFD'));
+    }
+};
+
 /** Lines of more than 75 bytes are folded onto continuation lines that start with a space. */
 function fold(line: string): string {
     const enc = new TextEncoder();
@@ -106,7 +116,7 @@ export function planToCalendar(plan: PlanItem[], events: DoseEvent[], words: Cal
         series.forEach((s, k) => {
             lines.push(
                 'BEGIN:VEVENT',
-                `UID:plan-${item.id}-${k}@oyama-tracker`,
+                `UID:plan-${calendarUidPart(item.id)}-${k}@oyama-tracker`,
                 `DTSTAMP:${stamp}`,
                 `DTSTART:${local(s.start)}`,
                 'DURATION:PT15M',
