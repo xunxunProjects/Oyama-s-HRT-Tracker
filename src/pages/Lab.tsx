@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
-import { Plus, ChevronRight } from '../components/icons';
+import { ChevronRight } from '../components/icons';
 import {
     LabResult,
     CalibrationMethod,
@@ -25,7 +25,7 @@ import { labDetailsText, labVsModelPct, sinceDoseLabel } from '../utils/labRepor
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { copyText } from '../utils/clipboard';
 import { clinicalUnit } from '../utils/clinicalUnit';
-import { SwapLabel } from '../components/StableLabel';
+import { AddCancelLabel, SwapLabel } from '../components/StableLabel';
 import { CopyTick } from '../components/Tick';
 
 interface LabProps {
@@ -156,18 +156,14 @@ const Lab: React.FC<LabProps> = ({
                         onClick={() => setIsQuickAddLabOpen(!isQuickAddLabOpen)}
                         className={`${headerActionAccent}`}
                     >
-                        <Plus size={15} className={`chev ${isQuickAddLabOpen ? 'rotate-45' : ''}`} />
-                        <SwapLabel show={isQuickAddLabOpen} off={t('lab.add_title')} on={t('btn.cancel')} />
+                        <AddCancelLabel open={isQuickAddLabOpen} add={t('lab.add_title')} cancel={t('btn.cancel')} />
                     </button>
                 }
             />
 
             {/* Expandable add form */}
-            <div
-                className={`grid ${isQuickAddLabOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-                {...inertWhen(!isQuickAddLabOpen)}
-            >
-                <div className="overflow-hidden">
+            <div className="disclosure" data-open={isQuickAddLabOpen} {...inertWhen(!isQuickAddLabOpen)}>
+                <div className="disclosure-inner">
                     <div className={`${PAGE_COLUMN} mb-6`}>
                         <LabResultForm
                             // Force remount on open so the values clear and the date resets to "now" (this row never unmounts, only collapses via CSS).

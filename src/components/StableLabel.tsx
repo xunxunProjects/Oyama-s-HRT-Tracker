@@ -1,5 +1,5 @@
 import React from 'react';
-import { Busy } from './icons';
+import { Busy, Close, Plus } from './icons';
 
 /**
  * Two labels stacked in one grid cell, only one visible. The cell always takes
@@ -23,6 +23,37 @@ export const SwapLabel: React.FC<{ show: boolean; off: React.ReactNode; on: Reac
             {on}
         </span>
     </span>
+);
+
+/**
+ * The page's add button that, while its form is open, turns into Cancel. The
+ * form unfolding below is the motion; the button only cross-fades from "+ Add"
+ * to "x Cancel" in place. A plus spinning into a cross while the label rolled
+ * up read as a toy next to a calm unfold, so neither travels here.
+ */
+export const AddCancelLabel: React.FC<{ open: boolean; add: React.ReactNode; cancel: React.ReactNode }> = ({
+    open,
+    add,
+    cancel,
+}) => (
+    <>
+        <span className="swap-label grid" aria-hidden="true">
+            <span className="col-start-1 row-start-1" data-shown={!open}>
+                <Plus size={15} />
+            </span>
+            <span className="col-start-1 row-start-1" data-shown={open}>
+                <Close size={15} />
+            </span>
+        </span>
+        <span className="swap-label grid justify-items-start text-start">
+            <span className="col-start-1 row-start-1" data-shown={!open} aria-hidden={open}>
+                {add}
+            </span>
+            <span className="col-start-1 row-start-1" data-shown={open} aria-hidden={!open}>
+                {cancel}
+            </span>
+        </span>
+    </>
 );
 
 /**
