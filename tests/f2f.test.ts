@@ -237,6 +237,14 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
         expect(status.body?.registered).toBe(false);
     });
 
+    it('says the database needs a migration when the F2F tables are missing', async () => {
+        const token = await login('Alice');
+        db.exec('DROP TABLE f2f_keys; DROP TABLE f2f_seats; DROP TABLE f2f_cohorts;');
+        const status = await call('/api/f2f/status', { token });
+        expect(status.response.status).toBe(503);
+        expect(status.body?.code).toBe('SCHEMA_OUTDATED');
+    });
+
     it('assigns the lowest free seat and stores the public key', async () => {
         const token = await login('Alice');
         const result = await upload(token, 1);
