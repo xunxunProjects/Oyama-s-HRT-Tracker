@@ -25,6 +25,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, settingsMuted, settingsOn } from '../components/SettingsListItem';
 import PasswordInputModal from '../components/PasswordInputModal';
 import { copyText } from '../utils/clipboard';
+import { BusyLabel, SwapLabel } from '../components/StableLabel';
 
 interface TwoFactorPageProps {
     token: string;
@@ -89,7 +90,11 @@ const BackupCodesBlock: React.FC<{
                 className={`flex items-center gap-1.5 text-xs font-medium ${on} hover:opacity-70 transition-opacity`}
             >
                 <CopyTick copied={copied} size={12} strokeWidth={1.5} />
-                {copied ? t('account.backup_codes_copied') : t('account.backup_codes_copy_all')}
+                <SwapLabel
+                    show={copied}
+                    off={t('account.backup_codes_copy_all')}
+                    on={t('account.backup_codes_copied')}
+                />
             </button>
             <button
                 onClick={onDownload}
@@ -524,10 +529,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             disabled={disableLoading || !disablePassword || disableCode.length !== 6}
                                             className={`text-sm font-medium ${muted} hover:text-[var(--text)] flex items-center gap-1.5 disabled:opacity-40 transition-colors`}
                                         >
-                                            {disableLoading && (
-                                                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />
-                                            )}
-                                            {t('account.2fa_disable')}
+                                            <BusyLabel busy={disableLoading} size={13}>
+                                                {t('account.2fa_disable')}
+                                            </BusyLabel>
                                         </button>
                                     </form>
                                 </>
@@ -683,10 +687,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                     disabled={loading || code.length !== 6}
                                                     className={`flex-1 py-2.5 ${primaryBtn}`}
                                                 >
-                                                    {loading && (
-                                                        <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
-                                                    )}
-                                                    {t('account.2fa_enable_btn')}
+                                                    <BusyLabel busy={loading} size={14}>
+                                                        {t('account.2fa_enable_btn')}
+                                                    </BusyLabel>
                                                 </button>
                                             </div>
                                         </form>

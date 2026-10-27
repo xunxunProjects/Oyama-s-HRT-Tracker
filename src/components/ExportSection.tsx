@@ -8,6 +8,7 @@ import { settingsSection, rowBleed } from './SettingsListItem';
 import { copyText } from '../utils/clipboard';
 import { MIN_PASSWORD_LENGTH, newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from './PasswordStrengthHint';
+import { SwapLabel } from './StableLabel';
 
 interface ExportSectionProps {
     events: DoseEvent[];
@@ -156,7 +157,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                 </span>
                                 <span className={`${action} flex items-center gap-1`}>
                                     <CopyTick copied={jsonCopied} size={13} />
-                                    {jsonCopied ? t('export.copied') : t('btn.copy')}
+                                    <SwapLabel show={jsonCopied} off={t('btn.copy')} on={t('export.copied')} />
                                 </span>
                             </button>
                         )}

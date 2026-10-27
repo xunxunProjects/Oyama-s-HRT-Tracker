@@ -3,6 +3,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useDialog } from '../contexts/DialogContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { BusyLabel, SwapLabel } from '../components/StableLabel';
 import { apiErrorCode } from '../services/apiClient';
 import { f2fService, F2fMember, F2fStatus } from '../services/f2f';
 
@@ -172,7 +173,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
 
     const copyButton = (value: string, label: string) => (
         <button type="button" className={textButton} onClick={() => copy(value, label)}>
-            {copied === label ? t('f2f.copied') : t('f2f.copy')}
+            <SwapLabel show={copied === label} off={t('f2f.copy')} on={t('f2f.copied')} />
         </button>
     );
 
@@ -193,8 +194,9 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                 spellCheck={false}
             />
             <button type="button" className="btn-tonal mt-1" onClick={upload} disabled={busy !== null}>
-                {busy === 'upload' && <Loader2 size={15} className="animate-spin" />}
-                {t('f2f.upload')}
+                <BusyLabel busy={busy === 'upload'} size={15}>
+                    {t('f2f.upload')}
+                </BusyLabel>
             </button>
         </div>
     );
@@ -378,8 +380,9 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                 onClick={() => void generateCliCode()}
                                 disabled={busy !== null}
                             >
-                                {busy === 'cli-code' && <Loader2 size={15} className="animate-spin" />}
-                                {t('f2f.cli_generate')}
+                                <BusyLabel busy={busy === 'cli-code'} size={15}>
+                                    {t('f2f.cli_generate')}
+                                </BusyLabel>
                             </button>
                             {cliCode && (
                                 <div className="mt-3 space-y-2">

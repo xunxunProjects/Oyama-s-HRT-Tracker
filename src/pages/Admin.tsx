@@ -27,6 +27,7 @@ import { settingsMuted, settingsOn } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
 import { apiEndpoint } from '../services/apiClient';
 import { Lang } from '../i18n/translations';
+import { BusyLabel } from '../components/StableLabel';
 
 type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
@@ -1067,7 +1068,9 @@ const Admin: React.FC = () => {
                     {storageError && <p className="text-xs text-[var(--danger)] mt-1">{storageError}</p>}
                 </div>
                 <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
-                    {storageLoading ? <Loader2 size={14} className="animate-spin" /> : storage ? 'Refresh' : 'Measure'}
+                    <BusyLabel busy={storageLoading} size={14}>
+                        {storage ? 'Refresh' : 'Measure'}
+                    </BusyLabel>
                 </button>
             </div>
 
