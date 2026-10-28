@@ -1,4 +1,5 @@
 import fantuanmtfAvatar from '../assets/fantuanmtf-avatar.webp';
+import laozhongAvatar from '../assets/laozhong-avatar.webp';
 import maintainerAvatar from '../assets/maintainer-avatar.webp';
 
 /**
@@ -75,5 +76,13 @@ export const DEVELOPERS: Developer[] = [
                 value: '0x0Ad817F7Ca658B3D2D83Ab019F2AeA5645a5b672',
             },
         ],
+    },
+    {
+        login: 'LaoZhong-Mihari',
+        avatar: laozhongAvatar,
+        role: 'Original author',
+        bio: 'Created the original HRT-Recorder and the pharmacokinetic model this app builds on. Studies chemistry and biology.',
+        focus: ['PK model', 'Swift', 'Research'],
+        languages: ['Swift', 'TypeScript', 'Python'],
     },
 ];
