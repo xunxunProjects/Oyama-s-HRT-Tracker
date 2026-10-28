@@ -37,6 +37,7 @@
 - [Command-line tools](#command-line-tools)
 - [Self-hosting](#self-hosting)
 - [Contributing](#contributing)
+- [For AI contributors](#for-ai-contributors)
 - [Support](#support)
 - [Legal](#legal)
 
@@ -336,6 +337,12 @@ If you deploy this app publicly, please:
 # Contributing
 
 Contributions are welcome, and you do not need to be a programmer to help. See [CONTRIBUTING.md](./CONTRIBUTING.md) for running the app locally, a map of the code, adding a translation and making a release, and please follow the [Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, see [SECURITY.md](./SECURITY.md).
+
+# For AI contributors
+
+If you are an AI agent working in this repository, read [docs/AI-GUIDE.md](./docs/AI-GUIDE.md) before changing code. It maps the repository structure and modules, the data and trust boundaries, the checks CI runs, and the rules for changing the model, database, API, and deployment scripts.
+
+The guide is in English so different agents and tools can share one canonical reference. This README and [CONTRIBUTING.md](./CONTRIBUTING.md) stay bilingual for people.
 
 # Support
 

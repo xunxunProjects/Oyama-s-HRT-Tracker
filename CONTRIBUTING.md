@@ -123,6 +123,8 @@ npm run tauri:dev
 
 ## Codebase map 代码结构
 
+> **AI agents / AI 开发者:** start with [docs/AI-GUIDE.md](./docs/AI-GUIDE.md) for a structured module map, invariants, and verification commands. 请先阅读这份英文指南，其中包含结构化模块地图、约束与验证命令。
+
 | Path 路径                               | What it is 说明                                                                                                                                                                    |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `index.tsx`, `src/App.tsx`              | Entry point and app shell (navigation, settings, language list). 入口与应用外壳（导航、设置、语言列表）。                                                                          |
