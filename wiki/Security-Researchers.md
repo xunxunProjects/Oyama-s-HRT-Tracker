@@ -7,10 +7,10 @@ fixed, and how to test without touching real data.
 ## Which version to use
 
 Use the **latest commit on `main`**, not the release tag. Security fixes land on
-`main` first. At the time of writing (2026-10-22) the latest commit is
-`40233a3 fix(worker): harden token verification and private response caching
-(#152)`. Read `git log` and `CHANGELOG.md` before you start so you know what is
-new.
+`main` first. Check `git log -1` for the current commit and read `git log` and
+`CHANGELOG.md` before you start so you know what is new. The latest release is
+`v1.5.1` (2026-10-28); the two Low-severity fixes merged on 2026-10-22 are in
+that release, not in `v1.5.0`.
 
 Recent security-relevant changes:
 
@@ -111,7 +111,8 @@ Use the repository's private advisory form:
 The policy in `SECURITY.md` promises an acknowledgement within 7 days and
 accepts reports in English or Chinese. Include the commit, prerequisites,
 request/response evidence, impact, and a minimal reproduction. See
-[Security](Security) for self-hosting hardening and the disclosure policy.
+[Security-Reporting](Security-Reporting) for severity-specific report templates,
+and [Security](Security) for self-hosting hardening and the disclosure policy.
 
 ## Related pages
 

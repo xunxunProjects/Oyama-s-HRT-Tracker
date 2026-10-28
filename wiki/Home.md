@@ -33,6 +33,8 @@ do not create yourself.
 | [Dependencies](Dependencies)                 | Runtime libraries, build tools, external services, and model credits                             |
 | [Security](Security)                         | How to harden a self-hosted instance and how to report a vulnerability                           |
 | [Security-Researchers](Security-Researchers) | Where the latest code is, what was recently fixed, and how to run a safe local lab               |
+| [Security-Reporting](Security-Reporting)     | Report templates for low, medium, high, RCE, information-disclosure, and other findings          |
+| [Recent-Updates](Recent-Updates)             | A transparent index of the last 40 merged pull requests, with unmerged PRs excluded              |
 | [AI-Contributors](AI-Contributors)           | What an AI or a new contributor must check before committing                                     |
 
 ## Version policy
@@ -40,10 +42,11 @@ do not create yourself.
 - **Production deployments use the latest release, `v1.5.1` (2026-10-28).**
   Do not deploy `main`. Unreleased commits have not gone through the release
   checks, and a deployment should be reproducible from a tag.
-- **Security research starts from the latest commit on `main`** (`40233a3` at
-  the time of writing, 2026-10-22). Read the commit log before testing so you
+- **Security research starts from the latest commit on `main`**. Check
+  `git log -1` for the current commit and read the log before testing so you
   know what changed. The two Low-severity fixes merged on 2026-10-22 are in
-  `v1.5.1`, not in `v1.5.0`.
+  `v1.5.1`, not in `v1.5.0`; the `v1.5.1` release also contains the F2F keyring,
+  the raw transport, and the deployment checker.
 - **Developers work on `main`** and follow `CONTRIBUTING.md`.
 - **The Tools wiki** covers the command-line clients and has its own
   [version policy](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker-Tools/wiki).

@@ -19,6 +19,8 @@ problems with a regression test, and publish an advisory once users can
 update. Please allow a reasonable window before public disclosure. The full
 policy, scope, and supported versions are in
 [`SECURITY.md`](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/blob/main/SECURITY.md).
+Use [Security-Reporting](Security-Reporting) to pick a template for a low,
+medium, high, RCE, information-disclosure, or other finding.
 
 For the command-line tools, use the Tools repository's advisory form; its
 security model is documented in the Tools wiki.
