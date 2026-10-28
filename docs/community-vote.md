@@ -112,6 +112,13 @@ deployed before `0013`, both self-service and admin account deletion fail with
 `no such table`. Apply the migration to the preview database before relying on
 a PR preview as well.
 
+The vote handlers and both deletion paths also run a temporary, idempotent
+bootstrap that mirrors `0013` (`CREATE TABLE IF NOT EXISTS` plus the index).
+It exists so a Worker deployed a few minutes ahead of the migration can recover
+without operator credentials. It is **not** a replacement for the migration:
+apply `0013` everywhere, then remove the bootstrap so the migration remains the
+single source of schema truth.
+
 The Docker entrypoint applies pending migrations on startup. Self-hosted
 deployments using the image do not need a separate step.
 

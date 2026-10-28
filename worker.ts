@@ -14,7 +14,12 @@ import {
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
-import { handleCommunityVoteMe, handleCommunityVotePublic, handleCommunityVoteSubmit } from './communityVoteServer';
+import {
+    ensureCommunityVoteSchema,
+    handleCommunityVoteMe,
+    handleCommunityVotePublic,
+    handleCommunityVoteSubmit,
+} from './communityVoteServer';
 
 export interface Env {
     DB: D1Database;
@@ -2914,6 +2919,7 @@ export default {
                         }
 
                         const deletedAt = Math.floor(Date.now() / 1000);
+                        await ensureCommunityVoteSchema(env);
                         await env.DB.batch([
                             env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
@@ -3513,6 +3519,7 @@ export default {
                             .bind(targetId)
                             .first()) as any;
                         const deletedAt = Math.floor(Date.now() / 1000);
+                        await ensureCommunityVoteSchema(env);
                         await env.DB.batch([
                             env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(targetId),

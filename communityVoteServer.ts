@@ -46,6 +46,66 @@ interface AccountRow {
 
 const nowSeconds = (now?: number) => now ?? Math.floor(Date.now() / 1000);
 
+/**
+ * Bootstrap for the deploy-window failure where the Worker goes live before
+ * migration 0013 is applied. This mirrors that migration exactly; the
+ * migration remains the canonical schema. It is idempotent, so once the table
+ * exists both statements are no-ops. Remove this block after operators have
+ * applied 0013 everywhere.
+ */
+const COMMUNITY_VOTE_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS community_vote_ballots (
+    vote_key TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    split_choice TEXT NOT NULL CHECK (split_choice IN ('30-30-40', '25-25-50', '40-40-20', '10-10-80')),
+    currencies TEXT NOT NULL DEFAULT '[]',
+    accept_donations INTEGER NOT NULL CHECK (accept_donations IN (0, 1)),
+    hrt_eligible INTEGER NOT NULL CHECK (hrt_eligible IN (0, 1)),
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    PRIMARY KEY (vote_key, user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)`;
+
+const COMMUNITY_VOTE_INDEX_SQL = `
+CREATE INDEX IF NOT EXISTS idx_community_vote_ballots_user
+    ON community_vote_ballots (user_id)`;
+
+const schemaPromises = new WeakMap<object, Promise<void>>();
+
+async function bootstrapCommunityVoteSchema(env: VoteEnv): Promise<void> {
+    const key = env.DB as unknown as object;
+    const pending = schemaPromises.get(key);
+    if (pending) return pending;
+
+    const promise = (async () => {
+        await env.DB.prepare(COMMUNITY_VOTE_TABLE_SQL).run();
+        await env.DB.prepare(COMMUNITY_VOTE_INDEX_SQL).run();
+    })();
+    schemaPromises.set(key, promise);
+    try {
+        await promise;
+    } catch (err) {
+        // A transient D1 failure should be retried by the next request rather
+        // than cached for the lifetime of the isolate.
+        schemaPromises.delete(key);
+        throw err;
+    }
+}
+
+/**
+ * Best-effort schema preparation. If it fails, the caller's real query still
+ * surfaces the usual SCHEMA_OUTDATED response; a transient bootstrap failure
+ * must not turn into a 500.
+ */
+export async function ensureCommunityVoteSchema(env: VoteEnv): Promise<void> {
+    try {
+        await bootstrapCommunityVoteSchema(env);
+    } catch (err) {
+        console.error('Community vote schema bootstrap failed:', err);
+    }
+}
+
 const response = (status: number, body: unknown): VoteHandlerResult => ({ status, body });
 
 const error = (status: number, code: string, message: string): VoteHandlerResult => response(status, { code, message });
@@ -126,6 +186,7 @@ async function readMyBallot(env: VoteEnv, userId: string): Promise<VoteBallot | 
 
 /** Public proposal status and aggregate tally. No account information. */
 export async function handleCommunityVotePublic(env: VoteEnv, now = nowSeconds()): Promise<VoteHandlerResult> {
+    await ensureCommunityVoteSchema(env);
     const tally = await readTally(env);
     const body: VotePublic = {
         vote: {
@@ -152,6 +213,7 @@ export async function handleCommunityVoteMe(
     userId: string,
     now = nowSeconds(),
 ): Promise<VoteHandlerResult> {
+    await ensureCommunityVoteSchema(env);
     const account = await readAccount(env, userId, now);
     if (!account.found) return error(404, 'ACCOUNT_NOT_FOUND', 'Account not found');
 
@@ -178,6 +240,7 @@ export async function handleCommunityVoteSubmit(
     userId: string,
     now = nowSeconds(),
 ): Promise<VoteHandlerResult> {
+    await ensureCommunityVoteSchema(env);
     if (!isVoteAcceptingBallots(now)) return error(409, 'VOTE_CLOSED', 'Voting has closed');
 
     const parsed = await readSmallJsonBody(request);
