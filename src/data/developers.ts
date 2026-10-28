@@ -72,8 +72,18 @@ export const DEVELOPERS: Developer[] = [
             },
             {
                 kind: 'address',
+                label: 'Monero',
+                value: '85EogNCqzyce44HwxoJaWWPy8g45WENqgYHjHdwNVguTCb7oV8Wjh2vNkGFAGFtf4r67Wh2qHA8TnVJV6Toui9gvEempUZj',
+            },
+            {
+                kind: 'address',
                 label: 'Ethereum',
                 value: '0x0Ad817F7Ca658B3D2D83Ab019F2AeA5645a5b672',
+            },
+            {
+                kind: 'address',
+                label: 'Bitcoin Cash',
+                value: 'qrnyczppcmxkj7r2ajddsvsh6el4s4v9fvfgs0wl9h',
             },
         ],
     },
