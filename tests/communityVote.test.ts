@@ -4,6 +4,8 @@ import {
     COMMUNITY_VOTE_CLOSES_AT,
     COMMUNITY_VOTE_KEY,
     COMMUNITY_VOTE_OPENS_AT,
+    isVoteAcceptingBallots,
+    MIN_HRT_DAYS,
     normalizeAdditionalCurrencies,
     resolveVoteOutcome,
     SPLIT_OPTIONS,
@@ -13,7 +15,7 @@ import {
     type VoteSubmitResponse,
 } from '../communityVote';
 import { handleCommunityVoteMe, handleCommunityVotePublic, handleCommunityVoteSubmit } from '../communityVoteServer';
-import { countHrtDaysSince } from '../src/utils/communityVote';
+import { communityVotePromptState, countHrtDaysSince } from '../src/utils/communityVote';
 
 const DAY = 86_400;
 const NOW = COMMUNITY_VOTE_OPENS_AT + 5 * DAY;
@@ -131,11 +133,20 @@ afterEach(() => {
 });
 
 describe('community vote rules', () => {
-    it('uses inclusive open and close boundaries', () => {
+    it('starts at 08:00 UTC on 29 October and closes at the end of 20 November', () => {
+        expect(COMMUNITY_VOTE_OPENS_AT).toBe(Date.UTC(2026, 9, 29, 8) / 1000);
+        expect(COMMUNITY_VOTE_CLOSES_AT).toBe(Date.UTC(2026, 10, 20, 23, 59, 59) / 1000);
         expect(voteStatusAt(COMMUNITY_VOTE_OPENS_AT - 1)).toBe('upcoming');
         expect(voteStatusAt(COMMUNITY_VOTE_OPENS_AT)).toBe('open');
         expect(voteStatusAt(COMMUNITY_VOTE_CLOSES_AT)).toBe('open');
         expect(voteStatusAt(COMMUNITY_VOTE_CLOSES_AT + 1)).toBe('closed');
+    });
+
+    it('accepts ballots early and stops exactly after the deadline', () => {
+        expect(isVoteAcceptingBallots(COMMUNITY_VOTE_OPENS_AT - 1)).toBe(true);
+        expect(isVoteAcceptingBallots(COMMUNITY_VOTE_OPENS_AT)).toBe(true);
+        expect(isVoteAcceptingBallots(COMMUNITY_VOTE_CLOSES_AT)).toBe(true);
+        expect(isVoteAcceptingBallots(COMMUNITY_VOTE_CLOSES_AT + 1)).toBe(false);
     });
 
     it('keeps every split at one hundred percent', () => {
@@ -218,6 +229,31 @@ describe('community vote outcome', () => {
     });
 });
 
+describe('home page vote prompt', () => {
+    const eligible = {
+        signedIn: true,
+        acceptsBallots: true,
+        hasBallot: false,
+        accountEligible: true,
+        hrtDays: MIN_HRT_DAYS,
+    };
+
+    it('asks signed-out visitors to sign in while ballots are accepted', () => {
+        expect(communityVotePromptState({ ...eligible, signedIn: false })).toBe('signin');
+    });
+
+    it('asks an eligible signed-in account without a ballot to vote', () => {
+        expect(communityVotePromptState(eligible)).toBe('vote');
+    });
+
+    it('hides after a ballot, when ballots are closed, and for ineligible accounts', () => {
+        expect(communityVotePromptState({ ...eligible, hasBallot: true })).toBe('hidden');
+        expect(communityVotePromptState({ ...eligible, acceptsBallots: false })).toBe('hidden');
+        expect(communityVotePromptState({ ...eligible, accountEligible: false })).toBe('hidden');
+        expect(communityVotePromptState({ ...eligible, hrtDays: MIN_HRT_DAYS - 1 })).toBe('hidden');
+    });
+});
+
 describe('local HRT day counting', () => {
     const hourAt = (month: number, day: number, hour: number) => Date.UTC(2026, month - 1, day, hour) / 3_600_000;
 
@@ -271,7 +307,15 @@ describe('community vote handlers', () => {
         expect(body.vote.serverTime).toBe(NOW);
         expect(body.vote.proposedSplit).toBe('30-30-40');
         expect(body.vote.alwaysSupportedCurrency).toBe('monero');
+        expect(body.vote.acceptsBallots).toBe(true);
         expect(body.tally.ballots).toBe(0);
+    });
+
+    it('reports early voting before the official opening', async () => {
+        const result = await handleCommunityVotePublic(envFor(new FakeVoteDb()), COMMUNITY_VOTE_OPENS_AT - 1);
+        const body = result.body as VotePublic;
+        expect(body.vote.status).toBe('upcoming');
+        expect(body.vote.acceptsBallots).toBe(true);
     });
 
     it('reports a missing account', async () => {
@@ -298,14 +342,14 @@ describe('community vote handlers', () => {
         expect(body.ballot).toBeNull();
     });
 
-    it('refuses ballots outside the window and for ineligible accounts', async () => {
+    it('accepts early ballots, refuses late ballots, and refuses ineligible accounts', async () => {
         const db = new FakeVoteDb();
         const env = envFor(db);
         db.users.set(USER_ID, NOW - 30 * DAY);
 
         const early = await handleCommunityVoteSubmit(submit(validBallot), env, USER_ID, COMMUNITY_VOTE_OPENS_AT - 1);
-        expect(early.status).toBe(409);
-        expect(early.body).toMatchObject({ code: 'VOTE_NOT_OPEN' });
+        expect(early.status).toBe(200);
+        expect(db.ballots.size).toBe(1);
 
         const late = await handleCommunityVoteSubmit(submit(validBallot), env, USER_ID, COMMUNITY_VOTE_CLOSES_AT + 1);
         expect(late.status).toBe(409);

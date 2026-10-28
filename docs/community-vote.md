@@ -3,7 +3,10 @@
 The app includes a one-off advisory vote on whether the project should accept
 cryptocurrency donations, how donations would be split, and which currencies to
 support. It lives at **Settings → Community funding** (`settings-community`);
-the page is readable while signed out.
+the page is readable while signed out. While ballots are open, an inline nudge
+at the bottom of **Overview** sends signed-out visitors through sign-in and
+signed-in eligible accounts to the ballot; it disappears once the account has
+voted or cannot vote, and it has no close button.
 
 The constants, option ids, and tally rules are shared by the page and the Worker
 in [`communityVote.ts`](../communityVote.ts), so the proposal and the API cannot
@@ -23,9 +26,14 @@ Monero is always supported and is not part of the currency question. It gives
 anonymous donors a privacy-preserving option even if the vote adds nothing
 else.
 
-The vote window is **2026-10-29 00:00:00 UTC** through
-**2026-11-19 23:59:59 UTC**. Change `COMMUNITY_VOTE_OPENS_AT` and
-`COMMUNITY_VOTE_CLOSES_AT` before deploying if those dates are wrong.
+The official opening is **2026-10-29 08:00:00 UTC**, and the deadline is
+**2026-11-20 23:59:59 UTC**. People who find the page before the official
+opening may vote early: ballots are accepted through the deadline, and
+`isVoteAcceptingBallots` is the single rule the page, the Overview nudge, and
+the Worker use. Before the official opening the public status is still
+`upcoming`; `acceptsBallots` tells clients that early voting is available.
+Change `COMMUNITY_VOTE_OPENS_AT` and `COMMUNITY_VOTE_CLOSES_AT` before
+deploying if those dates are wrong.
 
 ## Eligibility
 
@@ -66,7 +74,7 @@ adds `community_vote_ballots`, keyed by `(vote_key, user_id)`.
 
 | Route              | Auth   | Purpose                                                      |
 | ------------------ | ------ | ------------------------------------------------------------ |
-| `GET /api/vote`    | none   | Proposal window/status and the aggregate tally               |
+| `GET /api/vote`    | none   | Window, `acceptsBallots`, and the aggregate tally            |
 | `GET /api/vote/me` | Bearer | Account age, eligibility, and the signed-in account's ballot |
 | `POST /api/vote`   | Bearer | Create or replace the ballot                                 |
 
@@ -81,8 +89,8 @@ adds `community_vote_ballots`, keyed by `(vote_key, user_id)`.
 }
 ```
 
-The Worker rejects requests outside the window (`VOTE_NOT_OPEN`,
-`VOTE_CLOSED`), unknown options (`INVALID_*`), an unmet local check
+The Worker accepts early ballots, rejects requests after the deadline
+(`VOTE_CLOSED`), unknown options (`INVALID_*`), an unmet local check
 (`HRT_INELIGIBLE`), and accounts younger than ten days (`ACCOUNT_TOO_NEW`).
 The public route is rate-limited per address; the authenticated routes are
 rate-limited per account.

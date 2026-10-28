@@ -6,6 +6,7 @@ import {
     COMMUNITY_VOTE_KEY,
     COMMUNITY_VOTE_OPENS_AT,
     isSplitOptionId,
+    isVoteAcceptingBallots,
     MIN_ACCOUNT_AGE_DAYS,
     MIN_HRT_DAYS,
     normalizeAdditionalCurrencies,
@@ -132,6 +133,7 @@ export async function handleCommunityVotePublic(env: VoteEnv, now = nowSeconds()
             opensAt: COMMUNITY_VOTE_OPENS_AT,
             closesAt: COMMUNITY_VOTE_CLOSES_AT,
             status: voteStatusAt(now),
+            acceptsBallots: isVoteAcceptingBallots(now),
             serverTime: now,
             minAccountAgeDays: MIN_ACCOUNT_AGE_DAYS,
             minHrtDays: MIN_HRT_DAYS,
@@ -176,9 +178,7 @@ export async function handleCommunityVoteSubmit(
     userId: string,
     now = nowSeconds(),
 ): Promise<VoteHandlerResult> {
-    const status = voteStatusAt(now);
-    if (status === 'upcoming') return error(409, 'VOTE_NOT_OPEN', 'Voting has not opened yet');
-    if (status === 'closed') return error(409, 'VOTE_CLOSED', 'Voting has closed');
+    if (!isVoteAcceptingBallots(now)) return error(409, 'VOTE_CLOSED', 'Voting has closed');
 
     const parsed = await readSmallJsonBody(request);
     if (!parsed.ok) {

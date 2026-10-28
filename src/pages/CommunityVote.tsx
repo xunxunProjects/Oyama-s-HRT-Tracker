@@ -36,11 +36,14 @@ const LOCALE: Record<Lang, string> = {
     tr: 'tr',
 };
 
-const formatDate = (seconds: number, lang: Lang) =>
-    new Date(seconds * 1000).toLocaleDateString(LOCALE[lang], {
+const formatDateTime = (seconds: number, lang: Lang) =>
+    new Date(seconds * 1000).toLocaleString(LOCALE[lang], {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
         timeZone: 'UTC',
     });
 
@@ -280,14 +283,15 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
     }, [me]);
 
     const status = vote?.vote.status ?? 'upcoming';
-    const canEdit = status === 'open';
+    const acceptsBallots = vote?.vote.acceptsBallots ?? false;
+    const canEdit = acceptsBallots;
     const accountDaysLeft = Math.max(0, MIN_ACCOUNT_AGE_DAYS - (me?.accountAgeDays ?? 0));
     const hrtDaysLeft = Math.max(0, MIN_HRT_DAYS - hrtDays);
     const accountEligible = !!me?.accountEligible;
     const hrtEligible = hrtDays >= MIN_HRT_DAYS;
     const ballotComplete = splitChoice !== null && acceptDonations !== null;
     const canSubmit =
-        !!token && !!me && status === 'open' && accountEligible && hrtEligible && ballotComplete && !submitting;
+        !!token && !!me && acceptsBallots && accountEligible && hrtEligible && ballotComplete && !submitting;
 
     const voteMessage = (err: unknown): string => {
         const code = apiErrorCode(err);
@@ -373,10 +377,11 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
     }
 
     const { vote: proposal, tally } = vote;
-    const statusLabel = t(`vote.status.${proposal.status}`);
+    const early = proposal.status === 'upcoming' && proposal.acceptsBallots;
+    const statusLabel = early ? t('vote.status.early') : t(`vote.status.${proposal.status}`);
     const dateRange = fill(t('vote.date_range'), {
-        open: formatDate(proposal.opensAt, lang),
-        close: formatDate(proposal.closesAt, lang),
+        open: formatDateTime(proposal.opensAt, lang),
+        close: formatDateTime(proposal.closesAt, lang),
     });
 
     return (
@@ -388,7 +393,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 actions={
                     <span
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            proposal.status === 'open'
+                            proposal.acceptsBallots
                                 ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]'
                                 : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
                         }`}
@@ -449,7 +454,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                     </p>
                 </Section>
 
-                {!token && status === 'open' ? (
+                {!token && acceptsBallots ? (
                     <Card>
                         <h2 className="text-base font-semibold text-[var(--text)]">{t('vote.signin.title')}</h2>
                         <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">

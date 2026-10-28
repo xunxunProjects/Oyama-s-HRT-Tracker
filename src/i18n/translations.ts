@@ -1078,6 +1078,7 @@ export const TRANSLATIONS_BASE = {
         'vote.title': '社区资助投票',
         'vote.status.upcoming': '尚未开始',
         'vote.status.open': '投票中',
+        'vote.status.early': '提前投票',
         'vote.status.closed': '已结束',
         'vote.date_range': '{open} 至 {close}（UTC）',
         'vote.intro':
@@ -1166,6 +1167,13 @@ export const TRANSLATIONS_BASE = {
         'vote.project': '项目',
         'vote.footer': '对提案有疑问，可以在 GitHub 仓库或社区群里提出。',
         'vote.loading': '正在加载投票…',
+        'vote.prompt.title': '社区资助投票',
+        'vote.prompt.unvoted': '你还没有投票',
+        'vote.prompt.signin': '请先登录再投票',
+        'vote.prompt.body': '决定捐赠怎么分配、支持哪些币种，以及是否接受捐赠。',
+        'vote.prompt.early': '现在可以提前投票',
+        'vote.prompt.deadline': '投票截止：{date}（UTC）',
+        'vote.prompt.go': '前往',
     },
 
     en: {
@@ -2290,6 +2298,7 @@ export const TRANSLATIONS_BASE = {
         'vote.title': 'Community funding vote',
         'vote.status.upcoming': 'Not open yet',
         'vote.status.open': 'Voting open',
+        'vote.status.early': 'Early voting',
         'vote.status.closed': 'Closed',
         'vote.date_range': '{open} – {close} (UTC)',
         'vote.intro':
@@ -2385,6 +2394,14 @@ export const TRANSLATIONS_BASE = {
         'vote.project': 'project',
         'vote.footer': 'Questions about the proposal? Ask in the GitHub repository or the community chat.',
         'vote.loading': 'Loading the vote…',
+        'vote.prompt.title': 'Community funding vote',
+        'vote.prompt.unvoted': 'You have not voted yet',
+        'vote.prompt.signin': 'Sign in to vote',
+        'vote.prompt.body':
+            'Decide how donations are split, which currencies to support, and whether to accept donations.',
+        'vote.prompt.early': 'Early voting is open',
+        'vote.prompt.deadline': 'Voting closes {date} (UTC)',
+        'vote.prompt.go': 'Go',
     },
 };
 
@@ -3391,6 +3408,7 @@ const ZH_TW = {
     'vote.title': '社群資助投票',
     'vote.status.upcoming': '尚未開始',
     'vote.status.open': '投票中',
+    'vote.status.early': '提前投票',
     'vote.status.closed': '已結束',
     'vote.date_range': '{open} 至 {close}（UTC）',
     'vote.intro':
@@ -3479,6 +3497,13 @@ const ZH_TW = {
     'vote.project': '專案',
     'vote.footer': '對提案有疑問，可以在 GitHub 儲存庫或社群群組裡提出。',
     'vote.loading': '正在載入投票…',
+    'vote.prompt.title': '社群資助投票',
+    'vote.prompt.unvoted': '你還沒有投票',
+    'vote.prompt.signin': '請先登入再投票',
+    'vote.prompt.body': '決定捐贈怎麼分配、支援哪些幣種，以及是否接受捐贈。',
+    'vote.prompt.early': '現在可以提前投票',
+    'vote.prompt.deadline': '投票截止：{date}（UTC）',
+    'vote.prompt.go': '前往',
 };
 
 export const TRANSLATIONS = {

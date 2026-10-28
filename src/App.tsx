@@ -198,6 +198,9 @@ const AppContent = () => {
     // to find the button they had already pressed.
     const [afterSignIn, setAfterSignIn] = useState<ViewKey | null>(null);
     const [signInReason, setSignInReason] = useState<'share' | 'vote' | undefined>(undefined);
+    // The vote page can be opened from Settings or from the Overview nudge;
+    // its Back button returns to wherever it was opened from.
+    const [communityVoteReturn, setCommunityVoteReturn] = useState<ViewKey>('settings');
     // Navigating to Account can be deferred while the history entry it was
     // opened from unwinds. Only clear the reason once Account was actually
     // reached and then left; otherwise this effect runs on the page that sent
@@ -207,6 +210,14 @@ const AppContent = () => {
         setSignInReason(reason);
         setAfterSignIn(then ?? null);
         handleViewChange('account');
+    };
+    const openCommunityVote = (from: ViewKey) => {
+        setCommunityVoteReturn(from);
+        handleViewChange('settings-community');
+    };
+    const signInForCommunityVote = (from: ViewKey) => {
+        setCommunityVoteReturn(from);
+        requireSignIn('vote', 'settings-community');
     };
     useEffect(() => {
         if (!user || !afterSignIn) return;
@@ -941,6 +952,8 @@ const AppContent = () => {
                             nowH={nowH}
                             onNavigateToForecast={() => handleViewChange('forecast')}
                             supplyLeadDays={supplyLeadDays}
+                            onNavigateToCommunityVote={() => openCommunityVote('home')}
+                            onCommunityVoteSignIn={() => signInForCommunityVote('home')}
                         />
                     )}
 
@@ -1052,7 +1065,7 @@ const AppContent = () => {
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
-                            onNavigateToCommunity={() => handleViewChange('settings-community')}
+                            onNavigateToCommunity={() => openCommunityVote('settings')}
                             weight={weight}
                             birthYear={birthYear}
                             ageBeta={ageBeta}
@@ -1209,8 +1222,8 @@ const AppContent = () => {
 
                     {currentView === 'settings-community' && (
                         <CommunityVote
-                            onBack={() => handleViewChange('settings')}
-                            onSignIn={() => requireSignIn('vote', 'settings-community')}
+                            onBack={() => handleViewChange(communityVoteReturn)}
+                            onSignIn={() => signInForCommunityVote(communityVoteReturn)}
                         />
                     )}
 

@@ -1,4 +1,34 @@
+import { MIN_HRT_DAYS } from '../../communityVote';
 import { toDayKey } from './helpers';
+
+export type CommunityVotePromptState = 'hidden' | 'signin' | 'vote';
+
+interface CommunityVotePromptInput {
+    signedIn: boolean;
+    acceptsBallots: boolean;
+    hasBallot: boolean;
+    accountEligible: boolean;
+    hrtDays: number;
+}
+
+/**
+ * What the Overview nudge should say, if anything. It disappears for anyone
+ * who cannot act on it: ineligible accounts, people who already voted, and
+ * after the deadline. A signed-out visitor only sees it while ballots are
+ * still accepted, so the prompt never leads to a closed vote.
+ */
+export const communityVotePromptState = ({
+    signedIn,
+    acceptsBallots,
+    hasBallot,
+    accountEligible,
+    hrtDays,
+}: CommunityVotePromptInput): CommunityVotePromptState => {
+    if (!acceptsBallots) return 'hidden';
+    if (!signedIn) return 'signin';
+    if (hasBallot || !accountEligible || hrtDays < MIN_HRT_DAYS) return 'hidden';
+    return 'vote';
+};
 
 /**
  * Count the distinct local calendar days on which this account logged a dose,
