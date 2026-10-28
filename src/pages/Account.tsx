@@ -76,7 +76,7 @@ interface AccountProps {
     lastSyncedAt: number | null;
     /** Signed out, and sent here by a feature that needs an account: the form
      *  says which, and why, above itself. */
-    signInReason?: 'share';
+    signInReason?: 'share' | 'vote';
 }
 
 const divider = 'border-b border-[var(--border)]';
@@ -1188,6 +1188,9 @@ const Account: React.FC<AccountProps> = ({
                                 </p>
                             );
                         })()}
+                    {signInReason === 'vote' && (
+                        <p className="mb-5 text-sm leading-relaxed text-[var(--text)]">{t('vote.signin.reason')}</p>
+                    )}
                     {/* What an account is for, before the form asks for one.
                         Bare, the form read as the app requiring it, and said
                         nothing about what it would do with medical records.

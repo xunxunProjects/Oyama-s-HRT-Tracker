@@ -80,7 +80,7 @@ operational consequences.
   calibration live in the browser.
 - **API:** `worker.ts` route groups: public, authenticated user, admin, shares,
   content, tool, F2F.
-- **Storage:** D1 migrations `migrations/0000`–`0012`; R2 avatar/content
+- **Storage:** D1 migrations `migrations/0000`–`0013`; R2 avatar/content
   objects.
 - **Raw transport:** `hrt-server/`, ALPN `hrt/1`, four-byte big-endian length
   plus JSON frames.

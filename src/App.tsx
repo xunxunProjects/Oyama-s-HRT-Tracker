@@ -68,6 +68,7 @@ import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
 import Credits from './pages/Credits';
+import CommunityVote from './pages/CommunityVote';
 import Disclaimer from './pages/Disclaimer';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
@@ -196,8 +197,13 @@ const AppContent = () => {
     // they're in, carries on to where they were going instead of leaving them
     // to find the button they had already pressed.
     const [afterSignIn, setAfterSignIn] = useState<ViewKey | null>(null);
-    const [signInReason, setSignInReason] = useState<'share' | undefined>(undefined);
-    const requireSignIn = (reason?: 'share', then?: ViewKey) => {
+    const [signInReason, setSignInReason] = useState<'share' | 'vote' | undefined>(undefined);
+    // Navigating to Account can be deferred while the history entry it was
+    // opened from unwinds. Only clear the reason once Account was actually
+    // reached and then left; otherwise this effect runs on the page that sent
+    // the user there and wipes the reason before the form can show it.
+    const accountVisited = useRef(false);
+    const requireSignIn = (reason?: 'share' | 'vote', then?: ViewKey) => {
         setSignInReason(reason);
         setAfterSignIn(then ?? null);
         handleViewChange('account');
@@ -212,10 +218,15 @@ const AppContent = () => {
     }, [user, afterSignIn]);
     // Left Account without signing in: the reason no longer applies.
     useEffect(() => {
-        if (currentView === 'account' || (!afterSignIn && !signInReason)) return;
+        if (currentView === 'account') {
+            accountVisited.current = true;
+            return;
+        }
+        if (!accountVisited.current) return;
+        accountVisited.current = false;
         setAfterSignIn(null);
         setSignInReason(undefined);
-    }, [currentView, afterSignIn, signInReason]);
+    }, [currentView]);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
     // --- Auto-sync preference ---
@@ -1041,6 +1052,7 @@ const AppContent = () => {
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
+                            onNavigateToCommunity={() => handleViewChange('settings-community')}
                             weight={weight}
                             birthYear={birthYear}
                             ageBeta={ageBeta}
@@ -1194,6 +1206,13 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
+
+                    {currentView === 'settings-community' && (
+                        <CommunityVote
+                            onBack={() => handleViewChange('settings')}
+                            onSignIn={() => requireSignIn('vote', 'settings-community')}
+                        />
+                    )}
 
                     {currentView === 'settings-disclaimer' && (
                         <Disclaimer onBack={() => handleViewChange('settings')} />

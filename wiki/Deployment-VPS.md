@@ -91,7 +91,7 @@ sudo -u hrt ./node_modules/.bin/wrangler d1 migrations apply \
 ```
 
 `reconcile.mjs` is only needed for a data directory created by an older image;
-it is idempotent. The migration command applies the missing `0000`–`0012`
+it is idempotent. The migration command applies the missing `0000`–`0013`
 migrations.
 
 ## Run under systemd

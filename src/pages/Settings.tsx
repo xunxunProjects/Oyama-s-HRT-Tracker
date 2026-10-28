@@ -24,6 +24,7 @@ interface SettingsProps {
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     onNavigateToCredits: () => void;
+    onNavigateToCommunity: () => void;
     weight: number;
     birthYear: number | null;
     ageBeta: boolean;
@@ -153,6 +154,7 @@ const Settings: React.FC<SettingsProps> = ({
     onShowIntro,
     onNavigateToTransparency,
     onNavigateToCredits,
+    onNavigateToCommunity,
     weight,
     birthYear,
     ageBeta,
@@ -437,6 +439,7 @@ const Settings: React.FC<SettingsProps> = ({
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
                 <NavRow label="Credits" onClick={() => navTo(onNavigateToCredits, 'about')} />
+                <NavRow label={t('settings.community')} onClick={() => navTo(onNavigateToCommunity, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}
