@@ -35,6 +35,8 @@ src-tauri/target/release
 .env.*
 !.env.docker.example
 data/
+# Source data modules (e.g. the Credits developer list) are tracked.
+!src/data/
 
 # Test Data
 test_data_*.json
