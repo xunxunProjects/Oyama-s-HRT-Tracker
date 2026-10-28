@@ -79,6 +79,36 @@ issues; please use the issue templates for those.
 
 关于浓度估算准确性的问题不属于安全问题，请使用 issue 模板提交。
 
+## Release signing 发布签名
+
+Release binaries and checksum files are signed with the project's OpenPGP
+key. The signing key is currently held by **@fantuanmtf**. The Owner,
+**@SmirnovaOyama**, will be added to the Trusted Keys later; once that
+happens, two people will hold Trusted Keys and both will be trusted.
+
+Release downloads include the public key as `xunxunProjects-public.asc` and
+detached `.sig` files next to each binary and checksum file. Verify them
+before running a downloaded binary:
+
+发布二进制与校验和文件使用项目 OpenPGP 密钥签名。签名密钥目前由
+**@fantuanmtf** 持有。Owner **@SmirnovaOyama** 后续也会加入 Trusted Keys；
+此后将有两位持有 Trusted Keys 的人，且两人都是可信任的。
+
+版本下载会附带公钥 `xunxunProjects-public.asc`，以及每个二进制与校验和文件旁的
+分离签名 `.sig`。运行下载的二进制前请先验证：
+
+```bash
+gpg --import xunxunProjects-public.asc
+gpg --verify SHA512SUMS.sig SHA512SUMS
+sha512sum -c SHA512SUMS
+```
+
+GPG signatures verify file integrity and the signer's identity. They are not a
+substitute for Apple notarization or Windows Authenticode.
+
+GPG 签名用于验证文件完整性与签名者身份，不等同于 Apple 公证或 Windows
+Authenticode。
+
 ---
 
 ## Self-hosting securely 安全地自托管
