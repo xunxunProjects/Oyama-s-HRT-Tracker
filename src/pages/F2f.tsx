@@ -386,11 +386,17 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                         </Step>
                                         <Step n={4} title={t('f2f.step_upload')} desc={t('f2f.step_upload_desc')} />
                                         <Step n={5} title={t('f2f.step_use')} desc={t('f2f.step_use_desc')}>
+                                            {/* Each command is copied as it is, so say right
+                                                under it which parts are the reader's to fill in. */}
                                             {command(`gpg --import ${cohortFile}`, 'cmd-import')}
-                                            {command(
-                                                'gpg --encrypt --armor --recipient FINGERPRINT --recipient FINGERPRINT file.txt',
-                                                'cmd-encrypt',
-                                            )}
+                                            <p className={`${muted} mt-1.5`}>{t('f2f.step_import_hint')}</p>
+                                            <div className="mt-2">
+                                                {command(
+                                                    'gpg --encrypt --armor --recipient FINGERPRINT --recipient FINGERPRINT file.txt',
+                                                    'cmd-encrypt',
+                                                )}
+                                            </div>
+                                            <p className={`${muted} mt-1.5`}>{t('f2f.step_encrypt_hint')}</p>
                                         </Step>
                                     </ol>
                                 </div>
