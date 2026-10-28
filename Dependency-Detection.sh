@@ -37,6 +37,9 @@ Exit codes:
 
 This script only checks. It does not install packages, create .env, or start
 containers. See wiki/Deployment.md for the deployment paths.
+
+It also reads package.json: an app version older than 1.5.1 fails the check,
+and a checkout that is not a release tag gets a warning.
 EOF
 }
 
@@ -98,6 +101,44 @@ version_ge() {
 
 version_lt() {
     ! version_ge "$1" "$2"
+}
+
+app_version() {
+    file=$1
+    sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$file" | head -n 1
+}
+
+check_release() {
+    section 'Release'
+
+    if [ ! -f package.json ]; then
+        record 'app version' warn 'package.json not found; run this check from the repository root'
+        return
+    fi
+
+    version=$(app_version package.json)
+    if [ -z "$version" ]; then
+        record 'app version' fail 'could not read "version" from package.json'
+        return
+    fi
+
+    if version_lt "$version" '1.5.1'; then
+        record 'app version' fail "$version is older than 1.5.1; upgrade before deploying"
+    else
+        record 'app version' ok "$version (1.5.1 or newer)"
+    fi
+
+    if [ -e .git ] && command -v git >/dev/null 2>&1; then
+        expected_tag="v$version"
+        tag=$(git describe --tags --exact-match 2>/dev/null || true)
+        case $tag in
+            "$expected_tag") record 'release tag' ok "$tag" ;;
+            v*) record 'release tag' warn "tag $tag does not match app version $version; check out $expected_tag" ;;
+            *) record 'release tag' warn "not a release tag; production should check out $expected_tag" ;;
+        esac
+    else
+        record 'release tag' info 'not a git checkout; cannot verify a release tag'
+    fi
 }
 
 command_ok() {
@@ -191,6 +232,7 @@ secret_problem() {
 }
 
 check_common() {
+    check_release
     section 'Host prerequisites'
 
     command_ok 'Git' git --version || true

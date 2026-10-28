@@ -134,8 +134,10 @@ cd Oyama-s-HRT-Tracker
 ./docker-install.sh                  # asks: loopback, public domain, or LAN
 ```
 
-`Dependency-Detection.sh --docker` checks Docker, Compose, the daemon, `.env`,
-`./data`, and the port; the Docker path does not need Node.js on the host.
+`Dependency-Detection.sh --docker` checks the app version and release tag,
+Docker, Compose, the daemon, `.env`, `./data`, and the port; the Docker path does
+not need Node.js on the host. An app version older than 1.5.1 fails the check,
+and a checkout that is not a release tag gets a warning.
 `docker-install.sh` creates `.env` with a generated `JWT_SECRET` (mode 600),
 prepares `./data` for uid 1000, starts the Compose stack, and waits for
 `/api/transparency`. It never prints the secret. For a public domain it keeps

@@ -43,10 +43,11 @@ cd /opt/hrt-tracker
 ./Dependency-Detection.sh --vps
 ```
 
-It checks Linux, systemd, architecture, Node.js 22.23.4+, npm, Git, the build
-toolchain, OpenSSL, curl, disk and memory, the port, `/opt`, the data directory,
-`.dev.vars` if present, and Caddy or a patched nginx (1.30.6+ or 1.31.7+). It
-never uses sudo and never writes files. `--json` is available for automation.
+It checks the app version in `package.json` (1.5.1 or newer), the release tag,
+Linux, systemd, architecture, Node.js 22.23.4+, npm, Git, the build toolchain,
+OpenSSL, curl, disk and memory, the port, `/opt`, the data directory, `.dev.vars`
+if present, and Caddy or a patched nginx (1.30.6+ or 1.31.7+). It never uses sudo
+and never writes files. `--json` is available for automation.
 
 ## Install
 

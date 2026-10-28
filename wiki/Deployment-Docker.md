@@ -22,9 +22,9 @@ cd Oyama-s-HRT-Tracker
 ./docker-install.sh                  # asks: loopback, domain, or LAN
 ```
 
-The Docker preflight checks Docker, Compose, the daemon, `.env`, `./data`, and
-the port. It does not require Node.js on the host; the app and its build run
-inside the image. `docker-install.sh` creates `.env` with a generated
+The Docker preflight checks the app version in `package.json`, the release tag,
+Docker, Compose, the daemon, `.env`, `./data`, and the port. It does not require
+Node.js on the host; the app and its build run inside the image. `docker-install.sh` creates `.env` with a generated
 `JWT_SECRET` (mode 600), prepares `./data` for uid 1000, starts the stack, and
 waits for `/api/transparency`. It never prints the secret and does not install
 Docker itself. For unattended loopback installs use
