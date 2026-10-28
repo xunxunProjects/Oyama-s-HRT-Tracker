@@ -13,6 +13,7 @@ import {
     ALWAYS_SUPPORTED_CURRENCY,
     MIN_ACCOUNT_AGE_DAYS,
     MIN_HRT_DAYS,
+    MIN_MAINTAINER_SHARE,
     PROPOSED_SPLIT_ID,
     resolveVoteOutcome,
     SPLIT_OPTIONS,
@@ -417,6 +418,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                         <p className="mt-1 text-xs text-[var(--text-muted)]">{t('vote.split.proposed')}</p>
                     </div>
                     <p className="text-xs">{t('vote.split.rule')}</p>
+                    <p className="text-xs">{fill(t('vote.split.floor'), { min: MIN_MAINTAINER_SHARE })}</p>
                 </Section>
 
                 <Section title={t('vote.currency.title')}>

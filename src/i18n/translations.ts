@@ -1092,6 +1092,7 @@ export const TRANSLATIONS_BASE = {
         'vote.split.proposed': '维护者提议',
         'vote.split.option': 'fantuanmtf {fantuan}% / SmirnovaOyama {smirnova}% / {project_label} {project}%',
         'vote.split.rule': '分配方案取票数最多的一项；如果并列，按提议的方案执行。',
+        'vote.split.floor': '每个方案都保证两位维护者各至少 {min}%，其余归项目。',
         'vote.currency.title': '支持哪些币种',
         'vote.currency.body': 'Monero 始终支持，给希望匿名捐赠的人留一条隐私兜底路径。其他币种是否加入由这次投票决定。',
         'vote.currency.monero': 'Monero（XMR）',
@@ -2312,6 +2313,7 @@ export const TRANSLATIONS_BASE = {
         'vote.split.proposed': "Maintainers' proposal",
         'vote.split.option': 'fantuanmtf {fantuan}% / SmirnovaOyama {smirnova}% / {project_label} {project}%',
         'vote.split.rule': 'The split with the most votes wins. If options tie, the proposed split is used.',
+        'vote.split.floor': 'Every option gives each maintainer at least {min}%; the rest goes to the project.',
         'vote.currency.title': 'Which currencies',
         'vote.currency.body':
             'Monero is always supported, so there is a privacy-preserving way to give anonymously. This vote decides whether any other currencies are added.',
@@ -3422,6 +3424,7 @@ const ZH_TW = {
     'vote.split.proposed': '維護者提議',
     'vote.split.option': 'fantuanmtf {fantuan}% / SmirnovaOyama {smirnova}% / {project_label} {project}%',
     'vote.split.rule': '分配方案取票數最多的一項；如果並列，按提議的方案執行。',
+    'vote.split.floor': '每個方案都保證兩位維護者各至少 {min}%，其餘歸專案。',
     'vote.currency.title': '支援哪些幣種',
     'vote.currency.body': 'Monero 始終支援，給希望匿名捐贈的人留一條隱私兜底路徑。其他幣種是否加入由這次投票決定。',
     'vote.currency.monero': 'Monero（XMR）',

@@ -18,9 +18,12 @@ drift apart.
   - `30-30-40` — fantuanmtf 30%, SmirnovaOyama 30%, project 40% (proposed)
   - `25-25-50`
   - `40-40-20`
-  - `0-0-100` — all to the project
+  - `10-10-80` — the minimum-maintainer-share option
 - **Additional currencies** (multi-select): Bitcoin, Ethereum, Bitcoin Cash.
 - **Accept donations** (yes/no).
+
+Every option gives each maintainer at least 10% (`MIN_MAINTAINER_SHARE`); the
+remaining share goes to the project.
 
 Monero is always supported and is not part of the currency question. It gives
 anonymous donors a privacy-preserving option even if the vote adds nothing

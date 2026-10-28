@@ -10,7 +10,7 @@
 CREATE TABLE IF NOT EXISTS community_vote_ballots (
     vote_key TEXT NOT NULL,
     user_id TEXT NOT NULL,
-    split_choice TEXT NOT NULL CHECK (split_choice IN ('30-30-40', '25-25-50', '40-40-20', '0-0-100')),
+    split_choice TEXT NOT NULL CHECK (split_choice IN ('30-30-40', '25-25-50', '40-40-20', '10-10-80')),
     currencies TEXT NOT NULL DEFAULT '[]',
     accept_donations INTEGER NOT NULL CHECK (accept_donations IN (0, 1)),
     hrt_eligible INTEGER NOT NULL CHECK (hrt_eligible IN (0, 1)),

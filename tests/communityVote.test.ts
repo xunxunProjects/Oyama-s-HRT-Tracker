@@ -6,6 +6,7 @@ import {
     COMMUNITY_VOTE_OPENS_AT,
     isVoteAcceptingBallots,
     MIN_HRT_DAYS,
+    MIN_MAINTAINER_SHARE,
     normalizeAdditionalCurrencies,
     resolveVoteOutcome,
     SPLIT_OPTIONS,
@@ -149,9 +150,11 @@ describe('community vote rules', () => {
         expect(isVoteAcceptingBallots(COMMUNITY_VOTE_CLOSES_AT + 1)).toBe(false);
     });
 
-    it('keeps every split at one hundred percent', () => {
+    it('keeps every split at one hundred percent and gives each maintainer at least ten percent', () => {
         for (const option of SPLIT_OPTIONS) {
             expect(option.fantuanmtf + option.smirnovaoyama + option.project).toBe(100);
+            expect(option.fantuanmtf).toBeGreaterThanOrEqual(MIN_MAINTAINER_SHARE);
+            expect(option.smirnovaoyama).toBeGreaterThanOrEqual(MIN_MAINTAINER_SHARE);
         }
     });
 
@@ -171,7 +174,7 @@ describe('community vote rules', () => {
         ]);
 
         expect(tally.ballots).toBe(3);
-        expect(tally.split).toEqual({ '30-30-40': 1, '25-25-50': 1, '40-40-20': 0, '0-0-100': 0 });
+        expect(tally.split).toEqual({ '30-30-40': 1, '25-25-50': 1, '40-40-20': 0, '10-10-80': 0 });
         expect(tally.currencies).toEqual({ bitcoin: 1, ethereum: 2, 'bitcoin-cash': 0 });
         expect(tally.accept).toEqual({ yes: 2, no: 1 });
     });
@@ -191,7 +194,7 @@ describe('community vote outcome', () => {
 
     it('uses the proposed split when every option has the same count', () => {
         expect(
-            outcomeFor([{ splitChoice: '25-25-50' }, { splitChoice: '40-40-20' }, { splitChoice: '0-0-100' }]).split,
+            outcomeFor([{ splitChoice: '25-25-50' }, { splitChoice: '40-40-20' }, { splitChoice: '10-10-80' }]).split,
         ).toBe('30-30-40');
     });
 

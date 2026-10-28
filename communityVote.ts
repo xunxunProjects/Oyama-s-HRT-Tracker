@@ -22,6 +22,9 @@ export const MIN_HRT_DAYS = 5;
 /** The split the maintainers propose. A tie falls back to this option. */
 export const PROPOSED_SPLIT_ID = '30-30-40';
 
+/** Every option gives each maintainer at least this share. */
+export const MIN_MAINTAINER_SHARE = 10;
+
 /**
  * Monero is not part of the currency question. It is always supported, so
  * there is a privacy-preserving way to give even if the vote adds nothing
@@ -33,7 +36,7 @@ export const SPLIT_OPTIONS = [
     { id: '30-30-40', fantuanmtf: 30, smirnovaoyama: 30, project: 40 },
     { id: '25-25-50', fantuanmtf: 25, smirnovaoyama: 25, project: 50 },
     { id: '40-40-20', fantuanmtf: 40, smirnovaoyama: 40, project: 20 },
-    { id: '0-0-100', fantuanmtf: 0, smirnovaoyama: 0, project: 100 },
+    { id: '10-10-80', fantuanmtf: 10, smirnovaoyama: 10, project: 80 },
 ] as const;
 
 export type SplitOptionId = (typeof SPLIT_OPTIONS)[number]['id'];
