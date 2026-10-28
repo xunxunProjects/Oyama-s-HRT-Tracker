@@ -1,12 +1,13 @@
 import React from 'react';
-import { ArrowUpRight } from '../components/icons';
+import { QRCodeSVG } from 'qrcode.react';
+import { ArrowUpRight, Check, ChevronDown, Copy } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle from '../components/Doodle';
 // Bundled with the app, so the page still loads nothing from other sites.
-import maintainerAvatar from '../assets/maintainer-avatar.webp';
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
-import fantuanmtfAvatar from '../assets/fantuanmtf-avatar.webp';
 import llmGirls from '../assets/llm-girls.webp';
+import { DEVELOPERS, type Developer, type Donation } from '../data/developers';
+import { copyText } from '../utils/clipboard';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -146,6 +147,235 @@ const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
     );
 };
 
+const muted = 'text-[var(--text-muted)]';
+const metaLabel = 'text-[11px] font-medium text-[var(--text-muted)]';
+// `inert` keeps a collapsed card's links and buttons out of the tab order;
+// the disclosure only hides them visually.
+const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
+
+const CopyButton: React.FC<{ donation: Donation }> = ({ donation }) => {
+    const [state, setState] = React.useState<'idle' | 'copied' | 'failed'>('idle');
+    const timer = React.useRef<number | null>(null);
+
+    React.useEffect(() => {
+        return () => {
+            if (timer.current !== null) window.clearTimeout(timer.current);
+        };
+    }, []);
+
+    const onCopy = async () => {
+        try {
+            await copyText(donation.value);
+            setState('copied');
+        } catch {
+            setState('failed');
+        }
+        if (timer.current !== null) window.clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => setState('idle'), 2000);
+    };
+
+    const label =
+        state === 'copied'
+            ? `Copied ${donation.label}`
+            : state === 'failed'
+              ? `Could not copy ${donation.label}`
+              : `Copy ${donation.label}`;
+
+    return (
+        <button
+            type="button"
+            onClick={onCopy}
+            aria-label={label}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
+        >
+            {state === 'copied' ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.75} />}
+            <span aria-live="polite">{state === 'copied' ? 'Copied' : state === 'failed' ? 'Failed' : 'Copy'}</span>
+        </button>
+    );
+};
+
+const QrDonation: React.FC<{ donation: Extract<Donation, { kind: 'qr' }> }> = ({ donation }) => {
+    const [open, setOpen] = React.useState(false);
+
+    return (
+        <li>
+            <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                    <p className={`text-xs ${muted}`}>{donation.label}</p>
+                    <p className="mt-0.5 break-all font-mono text-xs text-[var(--text)]">{donation.value}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                    <CopyButton donation={donation} />
+                    <button
+                        type="button"
+                        onClick={() => setOpen(value => !value)}
+                        aria-expanded={open}
+                        className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
+                    >
+                        {open ? 'Hide QR' : 'Show QR'}
+                    </button>
+                </div>
+            </div>
+            {open && (
+                <div className="mt-2 w-fit rounded-lg bg-white p-2">
+                    {donation.image ? (
+                        <img
+                            src={donation.image}
+                            alt={`${donation.label} payment code`}
+                            width={144}
+                            height={144}
+                            className="h-36 w-36"
+                        />
+                    ) : (
+                        <QRCodeSVG value={donation.value} size={144} />
+                    )}
+                </div>
+            )}
+        </li>
+    );
+};
+
+const DonationRow: React.FC<{ donation: Donation }> = ({ donation }) => {
+    if (donation.kind === 'qr') return <QrDonation donation={donation} />;
+
+    if (donation.kind === 'link') {
+        return (
+            <li className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                    <p className={`text-xs ${muted}`}>{donation.label}</p>
+                    <p className="mt-0.5 break-all text-xs text-[var(--text)]">{donation.value}</p>
+                </div>
+                <a
+                    href={donation.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
+                >
+                    Open
+                    <ArrowUpRight size={14} strokeWidth={1.75} />
+                </a>
+            </li>
+        );
+    }
+
+    return (
+        <li className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+                <p className={`text-xs ${muted}`}>
+                    {donation.label}
+                    {donation.network ? ` · ${donation.network}` : ''}
+                </p>
+                <p className="mt-0.5 break-all font-mono text-xs leading-relaxed text-[var(--text)]">
+                    {donation.value}
+                </p>
+            </div>
+            <CopyButton donation={donation} />
+        </li>
+    );
+};
+
+const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
+    const [open, setOpen] = React.useState(false);
+    const panelId = `developer-${developer.login}`;
+    const name = developer.name ?? developer.login;
+
+    return (
+        <div className="border-b border-[var(--border)] last:border-b-0">
+            <button
+                type="button"
+                onClick={() => setOpen(value => !value)}
+                aria-expanded={open}
+                aria-controls={panelId}
+                className="group flex w-full items-center gap-4 py-3.5 text-start"
+            >
+                <img
+                    src={developer.avatar}
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)]"
+                />
+                <span className="min-w-0 flex-1">
+                    <span className="block break-words text-[0.9375rem] text-[var(--text)]">{name}</span>
+                    <span className={`mt-0.5 block text-xs ${muted}`}>{developer.role}</span>
+                </span>
+                <ChevronDown
+                    size={18}
+                    strokeWidth={1.75}
+                    className={`chev shrink-0 ${muted} ${open ? 'rotate-180' : ''}`}
+                />
+            </button>
+            <div id={panelId} className="disclosure" data-open={open} {...inertWhen(!open)}>
+                <div className="disclosure-inner">
+                    <div className="pb-5">
+                        <p className="max-w-prose text-sm leading-relaxed text-[var(--text)]">{developer.bio}</p>
+
+                        {(developer.focus?.length || developer.languages?.length || developer.website) && (
+                            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                                {developer.focus?.length ? (
+                                    <div>
+                                        <p className={metaLabel}>Focus</p>
+                                        <p className="mt-1 text-sm text-[var(--text)]">{developer.focus.join(' · ')}</p>
+                                    </div>
+                                ) : null}
+                                {developer.languages?.length ? (
+                                    <div>
+                                        <p className={metaLabel}>Languages</p>
+                                        <p className="mt-1 text-sm text-[var(--text)]">
+                                            {developer.languages.join(' · ')}
+                                        </p>
+                                    </div>
+                                ) : null}
+                                {developer.website ? (
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className={metaLabel}>Website</p>
+                                        <a
+                                            href={developer.website.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`mt-1 inline-flex max-w-full items-center gap-1 text-sm ${inlineLink}`}
+                                        >
+                                            <span className="break-all">{developer.website.label}</span>
+                                            <ArrowUpRight size={14} strokeWidth={1.75} className="shrink-0" />
+                                        </a>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
+
+                        {developer.donations?.length ? (
+                            <div className="mt-5 rounded-[var(--radius-md)] bg-[var(--surface-muted)] p-3.5">
+                                <p className="text-sm font-medium text-[var(--text)]">Support {name} directly</p>
+                                <p className={`mt-0.5 text-xs ${muted}`}>
+                                    This goes to the developer, not to the project.
+                                </p>
+                                <ul className="mt-3 space-y-3">
+                                    {developer.donations.map(donation => (
+                                        <DonationRow key={donation.label} donation={donation} />
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null}
+
+                        <a
+                            href={`https://github.com/${developer.login}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3.5 py-3 text-sm text-[var(--text)] hover:bg-[var(--surface-hover)]"
+                        >
+                            <span className="min-w-0">
+                                <span className="block font-medium">GitHub</span>
+                                <span className={`mt-0.5 block break-all text-xs ${muted}`}>@{developer.login}</span>
+                            </span>
+                            <ArrowUpRight size={16} strokeWidth={1.75} className={`shrink-0 ${muted}`} />
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface CreditsProps {
     onBack: () => void;
 }
@@ -171,23 +401,20 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </div>
 
-                <h2 className={heading}>Maintainers</h2>
+                <h2 className={heading}>Developers</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                    The people who build and maintain the app. Open a row to read more.
+                </p>
                 <div>
-                    <LinkRow
-                        entry={{
-                            name: 'SmirnovaOyama',
-                            href: 'https://github.com/SmirnovaOyama',
-                            image: maintainerAvatar,
-                        }}
-                    />
-                    <LinkRow
-                        entry={{
-                            name: 'fantuanmtf',
-                            href: 'https://github.com/fantuanmtf',
-                            image: fantuanmtfAvatar,
-                        }}
-                    />
+                    {DEVELOPERS.map(developer => (
+                        <DeveloperRow key={developer.login} developer={developer} />
+                    ))}
                 </div>
+                {DEVELOPERS.some(developer => developer.donations?.length) && (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                        Donations go to the developer personally. The project itself does not accept donations.
+                    </p>
+                )}
 
                 <h2 className={heading}>Contributors</h2>
                 <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-[0.9375rem]">
