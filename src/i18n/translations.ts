@@ -91,13 +91,18 @@ export const TRANSLATIONS_BASE = {
         'f2f.step_make_apps':
             '不想用终端？Windows 上的 Kleopatra、Mac 上的 GPG Keychain 和 Android 上的 OpenKeychain 点几下就能生成同样的密钥',
         'f2f.step_export': '复制你的公钥',
-        'f2f.step_export_desc': '把它输出的全部内容，从 BEGIN 那行到 END 那行，粘贴到下面第一个框里',
+        'f2f.step_export_desc':
+            '把 you@example.com 换成第 1 步用的邮箱再运行，它输出的全部内容，从 BEGIN 那行到 END 那行，粘贴到下面第一个框里',
         'f2f.step_fpr': '复制你的指纹',
-        'f2f.step_fpr_desc': 'pub 下面那行 40 位字母和数字填进第二个框，带空格也没关系',
+        'f2f.step_fpr_desc':
+            '同样把 you@example.com 换成你的邮箱，pub 下面那行 40 位字母和数字填进第二个框，带空格也没关系',
         'f2f.step_upload': '上传，然后当面核对',
         'f2f.step_upload_desc': '小团体见面时，读出你的指纹，再对照这里的名单核对其他人的指纹',
         'f2f.step_use': '互相发送加密内容',
         'f2f.step_use_desc': '下载密钥环并导入，只加密给你核对过的指纹，收到的内容用 gpg --decrypt 打开',
+        'f2f.step_import_hint': '要在文件所在的文件夹里运行，或者把文件名换成完整路径，把文件拖进终端窗口就能填上',
+        'f2f.step_encrypt_hint':
+            '每个 FINGERPRINT 换成一位当面核对过的成员的指纹，不带空格，有几位就写几个 --recipient，file.txt 换成你要加密的文件',
         'f2f.cmd_name': '你的名字',
         'f2f.your_key': '你的公钥',
         'f2f.public_key': '公钥',
@@ -1167,15 +1172,20 @@ export const TRANSLATIONS_BASE = {
             'No terminal? Kleopatra on Windows, GPG Keychain on a Mac and OpenKeychain on Android make the same key with buttons',
         'f2f.step_export': 'Copy your public key',
         'f2f.step_export_desc':
-            'Paste everything this prints, from the BEGIN line to the END line, into the first box below',
+            'Put the email from step 1 in place of you@example.com, then paste everything this prints, from the BEGIN line to the END line, into the first box below',
         'f2f.step_fpr': 'Copy your fingerprint',
-        'f2f.step_fpr_desc': 'The line of 40 letters and digits under pub goes in the second box, spaces are fine',
+        'f2f.step_fpr_desc':
+            'Again with your email in place of you@example.com, the line of 40 letters and digits under pub goes in the second box, spaces are fine',
         'f2f.step_upload': 'Upload it, then check in person',
         'f2f.step_upload_desc':
             "When the group meets, read your fingerprint out and check everyone else's against the list here",
         'f2f.step_use': 'Write to each other',
         'f2f.step_use_desc':
             'Download the keyring and import it, encrypt only to fingerprints you checked, and open what you get with gpg --decrypt',
+        'f2f.step_import_hint':
+            'Run it from the folder the file is in, or swap the file name for its full path, which dragging the file into the terminal window fills in',
+        'f2f.step_encrypt_hint':
+            "Put a checked member's fingerprint, without spaces, in place of each FINGERPRINT, one --recipient per person, and the file you're sending in place of file.txt",
         'f2f.cmd_name': 'Your name',
         'f2f.your_key': 'Your public key',
         'f2f.public_key': 'Public key',
@@ -2289,13 +2299,18 @@ const ZH_TW = {
     'f2f.step_make_apps':
         '不想用終端機？Windows 的 Kleopatra、Mac 的 GPG Keychain 和 Android 的 OpenKeychain 點幾下就能產生同樣的金鑰',
     'f2f.step_export': '複製你的公鑰',
-    'f2f.step_export_desc': '把它輸出的全部內容，從 BEGIN 那行到 END 那行，貼到下面第一個框',
+    'f2f.step_export_desc':
+        '把 you@example.com 換成第 1 步用的電子郵件再執行，它輸出的全部內容，從 BEGIN 那行到 END 那行，貼到下面第一個框',
     'f2f.step_fpr': '複製你的指紋',
-    'f2f.step_fpr_desc': 'pub 下面那行 40 位英文字母和數字填進第二個框，有空格也沒關係',
+    'f2f.step_fpr_desc':
+        '同樣把 you@example.com 換成你的電子郵件，pub 下面那行 40 位英文字母和數字填進第二個框，有空格也沒關係',
     'f2f.step_upload': '上傳，然後當面核對',
     'f2f.step_upload_desc': '小團體見面時，念出你的指紋，再對照這裡的名單核對其他人的指紋',
     'f2f.step_use': '互相傳送加密內容',
     'f2f.step_use_desc': '下載公鑰圈並匯入，只加密給你核對過的指紋，收到的內容用 gpg --decrypt 打開',
+    'f2f.step_import_hint': '要在檔案所在的資料夾裡執行，或者把檔名換成完整路徑，把檔案拖進終端機視窗就能填上',
+    'f2f.step_encrypt_hint':
+        '每個 FINGERPRINT 換成一位當面核對過的成員的指紋，不要空格，有幾位就寫幾個 --recipient，file.txt 換成你要加密的檔案',
     'f2f.cmd_name': '你的名字',
     'f2f.your_key': '你的公鑰',
     'f2f.public_key': '公鑰',
@@ -3280,13 +3295,18 @@ export const TRANSLATIONS = {
         'f2f.step_make_apps':
             '唔想用終端機？Windows 嘅 Kleopatra、Mac 嘅 GPG Keychain 同 Android 嘅 OpenKeychain 撳幾下就整到同樣嘅金鑰',
         'f2f.step_export': '複製你嘅公鑰',
-        'f2f.step_export_desc': '將佢輸出嘅全部內容，由 BEGIN 嗰行到 END 嗰行，貼落下面第一個格',
+        'f2f.step_export_desc':
+            '將 you@example.com 換成第 1 步用嘅電郵再執行，佢輸出嘅全部內容，由 BEGIN 嗰行到 END 嗰行，貼落下面第一個格',
         'f2f.step_fpr': '複製你嘅指紋',
-        'f2f.step_fpr_desc': 'pub 下面嗰行 40 位英文字母同數字填落第二個格，有空格都冇問題',
+        'f2f.step_fpr_desc':
+            '一樣將 you@example.com 換成你嘅電郵，pub 下面嗰行 40 位英文字母同數字填落第二個格，有空格都冇問題',
         'f2f.step_upload': '上載，然後當面核對',
         'f2f.step_upload_desc': '小團體見面嗰陣，讀出你嘅指紋，再對住呢度嘅名單核對其他人嘅指紋',
         'f2f.step_use': '互相傳送加密內容',
         'f2f.step_use_desc': '下載公鑰圈再匯入，淨係加密俾你核對過嘅指紋，收到嘅內容用 gpg --decrypt 打開',
+        'f2f.step_import_hint': '要喺檔案所在嘅資料夾入面執行，或者將檔名換成完整路徑，將檔案拖入終端機視窗就會填好',
+        'f2f.step_encrypt_hint':
+            '每個 FINGERPRINT 換成一位當面核對過嘅成員嘅指紋，唔好有空格，有幾多位就寫幾多個 --recipient，file.txt 換成你要加密嘅檔案',
         'f2f.cmd_name': '你個名',
         'f2f.your_key': '你嘅公鑰',
         'f2f.public_key': '公鑰',
@@ -3956,15 +3976,21 @@ export const TRANSLATIONS = {
         'f2f.step_make_apps':
             'ターミナルを使わない場合は、Windows の Kleopatra、Mac の GPG Keychain、Android の OpenKeychain でもボタン操作で同じ鍵を作れます',
         'f2f.step_export': '公開鍵をコピーする',
-        'f2f.step_export_desc': '表示された内容を BEGIN の行から END の行まですべて、下の 1 つ目の欄に貼り付けます',
+        'f2f.step_export_desc':
+            'you@example.com を手順 1 で使ったメールアドレスに変えて実行し、表示された内容を BEGIN の行から END の行まですべて、下の 1 つ目の欄に貼り付けます',
         'f2f.step_fpr': 'フィンガープリントをコピーする',
-        'f2f.step_fpr_desc': 'pub の下にある 40 文字の英数字を 2 つ目の欄に入れます。スペースが入っていても構いません',
+        'f2f.step_fpr_desc':
+            'ここでも you@example.com を自分のメールアドレスに変えます。pub の下にある 40 文字の英数字を 2 つ目の欄に入れます。スペースが入っていても構いません',
         'f2f.step_upload': 'アップロードして、対面で確かめる',
         'f2f.step_upload_desc':
             'グループで会ったときに自分のフィンガープリントを読み上げ、ほかの人のものをここの一覧と照らし合わせます',
         'f2f.step_use': '暗号化して送り合う',
         'f2f.step_use_desc':
             'キーリングをダウンロードして読み込み、確かめたフィンガープリントにだけ暗号化します。受け取ったものは gpg --decrypt で開けます',
+        'f2f.step_import_hint':
+            'ファイルのあるフォルダで実行するか、ファイル名をフルパスに変えます。ファイルをターミナルのウィンドウにドラッグするとパスが入ります',
+        'f2f.step_encrypt_hint':
+            'FINGERPRINT はそれぞれ、対面で確かめたメンバー 1 人のフィンガープリントにスペースなしで変え、--recipient を人数分並べます。file.txt は暗号化するファイルに変えます',
         'f2f.cmd_name': 'あなたの名前',
         'f2f.your_key': 'あなたの公開鍵',
         'f2f.public_key': '公開鍵',
@@ -4962,14 +4988,20 @@ export const TRANSLATIONS = {
         'f2f.step_make_apps':
             '터미널이 낯설다면 Windows의 Kleopatra, Mac의 GPG Keychain, Android의 OpenKeychain에서도 버튼으로 같은 키를 만들 수 있어요',
         'f2f.step_export': '공개 키 복사하기',
-        'f2f.step_export_desc': '출력된 내용을 BEGIN 줄부터 END 줄까지 모두 아래 첫 번째 칸에 붙여 넣으세요',
+        'f2f.step_export_desc':
+            'you@example.com을 1단계에서 쓴 이메일로 바꿔 실행하고, 출력된 내용을 BEGIN 줄부터 END 줄까지 모두 아래 첫 번째 칸에 붙여 넣으세요',
         'f2f.step_fpr': '지문 복사하기',
-        'f2f.step_fpr_desc': 'pub 아래에 있는 40자리 영문과 숫자를 두 번째 칸에 넣으세요. 띄어쓰기가 있어도 괜찮아요',
+        'f2f.step_fpr_desc':
+            '여기서도 you@example.com을 내 이메일로 바꾸세요. pub 아래에 있는 40자리 영문과 숫자를 두 번째 칸에 넣으세요. 띄어쓰기가 있어도 괜찮아요',
         'f2f.step_upload': '올리고 직접 확인하기',
         'f2f.step_upload_desc': '그룹이 만나면 내 지문을 읽어 주고, 다른 사람의 지문을 여기 목록과 맞춰 보세요',
         'f2f.step_use': '서로 암호화해서 보내기',
         'f2f.step_use_desc':
             '키링을 내려받아 가져온 뒤 확인한 지문에만 암호화하세요. 받은 내용은 gpg --decrypt로 열 수 있어요',
+        'f2f.step_import_hint':
+            '파일이 있는 폴더에서 실행하거나 파일 이름을 전체 경로로 바꾸세요. 파일을 터미널 창으로 끌어다 놓으면 경로가 들어가요',
+        'f2f.step_encrypt_hint':
+            'FINGERPRINT마다 직접 확인한 멤버 한 명의 지문을 띄어쓰기 없이 넣고 --recipient는 사람 수만큼 쓰세요. file.txt는 암호화할 파일로 바꾸세요',
         'f2f.cmd_name': '내 이름',
         'f2f.your_key': '내 공개 키',
         'f2f.public_key': '공개 키',
@@ -5860,6 +5892,7 @@ export const TRANSLATIONS = {
         'account.passkey': '패스키',
     },
     tr: {
+        ...TRANSLATIONS_BASE.en,
         'settings.section.model': 'Tahminlerin dayandığı bilgiler',
         'settings.section.supplies': 'Elinizdekiler',
         'settings.section.display': 'Dil ve görünüm',
@@ -5955,19 +5988,23 @@ export const TRANSLATIONS = {
             "Terminal kullanmıyor musun? Windows'ta Kleopatra, Mac'te GPG Keychain ve Android'de OpenKeychain aynı anahtarı düğmelerle oluşturur",
         'f2f.step_export': 'Açık anahtarını kopyala',
         'f2f.step_export_desc':
-            'Bunun yazdırdığı her şeyi, BEGIN satırından END satırına kadar, aşağıdaki ilk kutuya yapıştır',
+            '1. adımdaki e-postanı you@example.com yerine yazıp çalıştır, sonra bunun yazdırdığı her şeyi, BEGIN satırından END satırına kadar, aşağıdaki ilk kutuya yapıştır',
         'f2f.step_fpr': 'Parmak izini kopyala',
-        'f2f.step_fpr_desc': 'pub altındaki 40 harf ve rakamlık satır ikinci kutuya gider, boşluklar sorun değil',
+        'f2f.step_fpr_desc':
+            'Burada da you@example.com yerine kendi e-postanı yaz, pub altındaki 40 harf ve rakamlık satır ikinci kutuya gider, boşluklar sorun değil',
         'f2f.step_upload': 'Yükle, sonra yüz yüze doğrula',
         'f2f.step_upload_desc':
             'Grup buluştuğunda parmak izini sesli oku ve diğerlerininkini buradaki listeyle karşılaştır',
         'f2f.step_use': 'Şifreleyip gönder',
         'f2f.step_use_desc':
             'Anahtarlığı indirip içe aktar, yalnızca doğruladığın parmak izlerine şifrele ve gelenleri gpg --decrypt ile aç',
+        'f2f.step_import_hint':
+            'Dosyanın bulunduğu klasörde çalıştır ya da dosya adı yerine tam yolunu yaz, dosyayı terminal penceresine sürüklemek yolu senin için yazar',
+        'f2f.step_encrypt_hint':
+            'Her FINGERPRINT yerine yüz yüze doğruladığın bir üyenin parmak izini boşluksuz yaz, kişi başına bir --recipient kullan ve file.txt yerine şifreleyeceğin dosyayı yaz',
         'f2f.cmd_name': 'Adın',
         'f2f.your_key': 'Açık anahtarın',
         'f2f.public_key': 'Açık anahtar',
-        ...TRANSLATIONS_BASE.en,
         'settings.cat_style': 'Kedi renkleri',
         'settings.cat_style.flag': 'Bayrak',
         'settings.cat_style.blue': 'Mavi',
