@@ -10,6 +10,7 @@
 - [Run it locally](Local-Tool)
 - [Developers](Developers)
 - [Security researchers](Security-Researchers)
+- [Vulnerability report templates](Security-Reporting)
 - [AI and contributors](AI-Contributors)
 
 **Reference**
@@ -17,3 +18,4 @@
 - [Architecture](Architecture)
 - [Dependencies](Dependencies)
 - [Security](Security)
+- [Recent merged changes](Recent-Updates)

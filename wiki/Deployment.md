@@ -34,7 +34,9 @@ Two scripts in the repository root keep the first deploy short:
 
 The checker never installs packages, uses sudo, or writes files. It reports
 `ok`, `warn`, and `fail` items and exits non-zero when a required check fails.
-Use `--port N` when the host port is not 8787.
+It also reads `package.json`: an app version older than 1.5.1 is a failure, and
+a checkout that is not a release tag gets a warning so a production host does
+not accidentally deploy `main`. Use `--port N` when the host port is not 8787.
 
 For Docker, `./docker-install.sh` runs the checker, creates or validates `.env`,
 generates `JWT_SECRET` without printing it, prepares `./data` for uid 1000,

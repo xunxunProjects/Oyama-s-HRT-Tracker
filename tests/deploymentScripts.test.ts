@@ -90,7 +90,13 @@ function runScript(
 
 function copyDeployProject(): string {
     const dir = tempDir('hrt-deploy-');
-    for (const file of ['Dependency-Detection.sh', 'docker-install.sh', 'compose.yaml', '.env.docker.example']) {
+    for (const file of [
+        'Dependency-Detection.sh',
+        'docker-install.sh',
+        'compose.yaml',
+        '.env.docker.example',
+        'package.json',
+    ]) {
         copyFileSync(join(repoRoot, file), join(dir, file));
     }
     chmodSync(join(dir, 'Dependency-Detection.sh'), 0o755);
@@ -121,6 +127,25 @@ describe('Dependency-Detection.sh', () => {
         expect(result.status).toBe(1);
         expect(String(result.stdout)).toContain('22.23.3');
         expect(String(result.stdout)).toContain('22.23.4');
+    });
+
+    it('fails an app checkout older than 1.5.1', () => {
+        const dir = copyDeployProject();
+        writeFileSync(join(dir, 'package.json'), JSON.stringify({ version: '1.5.0' }, null, 2));
+        const bin = fakeBin(fakeCommands());
+        const result = runScript('Dependency-Detection.sh', ['--docker'], { PATH: pathWith(bin) }, dir);
+        expect(result.status).toBe(1);
+        expect(String(result.stdout)).toContain('1.5.0');
+        expect(String(result.stdout)).toContain('1.5.1');
+    });
+
+    it('reports the app version and accepts 1.5.1', () => {
+        const dir = copyDeployProject();
+        const bin = fakeBin(fakeCommands());
+        const result = runScript('Dependency-Detection.sh', ['--docker'], { PATH: pathWith(bin) }, dir);
+        expect(result.status).toBe(0);
+        expect(String(result.stdout)).toContain('app version');
+        expect(String(result.stdout)).toContain('1.5.1');
     });
 
     it('accepts a ready Docker host without the Node toolchain', () => {
