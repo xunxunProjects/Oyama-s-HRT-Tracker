@@ -68,6 +68,7 @@ import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
 import Credits from './pages/Credits';
+import CommunityVote from './pages/CommunityVote';
 import Disclaimer from './pages/Disclaimer';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
@@ -196,11 +197,27 @@ const AppContent = () => {
     // they're in, carries on to where they were going instead of leaving them
     // to find the button they had already pressed.
     const [afterSignIn, setAfterSignIn] = useState<ViewKey | null>(null);
-    const [signInReason, setSignInReason] = useState<'share' | undefined>(undefined);
-    const requireSignIn = (reason?: 'share', then?: ViewKey) => {
+    const [signInReason, setSignInReason] = useState<'share' | 'vote' | undefined>(undefined);
+    // The vote page can be opened from Settings or from the Overview nudge;
+    // its Back button returns to wherever it was opened from.
+    const [communityVoteReturn, setCommunityVoteReturn] = useState<ViewKey>('settings');
+    // Navigating to Account can be deferred while the history entry it was
+    // opened from unwinds. Only clear the reason once Account was actually
+    // reached and then left; otherwise this effect runs on the page that sent
+    // the user there and wipes the reason before the form can show it.
+    const accountVisited = useRef(false);
+    const requireSignIn = (reason?: 'share' | 'vote', then?: ViewKey) => {
         setSignInReason(reason);
         setAfterSignIn(then ?? null);
         handleViewChange('account');
+    };
+    const openCommunityVote = (from: ViewKey) => {
+        setCommunityVoteReturn(from);
+        handleViewChange('settings-community');
+    };
+    const signInForCommunityVote = (from: ViewKey) => {
+        setCommunityVoteReturn(from);
+        requireSignIn('vote', 'settings-community');
     };
     useEffect(() => {
         if (!user || !afterSignIn) return;
@@ -212,10 +229,15 @@ const AppContent = () => {
     }, [user, afterSignIn]);
     // Left Account without signing in: the reason no longer applies.
     useEffect(() => {
-        if (currentView === 'account' || (!afterSignIn && !signInReason)) return;
+        if (currentView === 'account') {
+            accountVisited.current = true;
+            return;
+        }
+        if (!accountVisited.current) return;
+        accountVisited.current = false;
         setAfterSignIn(null);
         setSignInReason(undefined);
-    }, [currentView, afterSignIn, signInReason]);
+    }, [currentView]);
     const [pendingImportText, setPendingImportText] = useState<string | null>(null);
 
     // --- Auto-sync preference ---
@@ -930,6 +952,8 @@ const AppContent = () => {
                             nowH={nowH}
                             onNavigateToForecast={() => handleViewChange('forecast')}
                             supplyLeadDays={supplyLeadDays}
+                            onNavigateToCommunityVote={() => openCommunityVote('home')}
+                            onCommunityVoteSignIn={() => signInForCommunityVote('home')}
                         />
                     )}
 
@@ -1041,6 +1065,7 @@ const AppContent = () => {
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
+                            onNavigateToCommunity={() => openCommunityVote('settings')}
                             weight={weight}
                             birthYear={birthYear}
                             ageBeta={ageBeta}
@@ -1194,6 +1219,13 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
+
+                    {currentView === 'settings-community' && (
+                        <CommunityVote
+                            onBack={() => handleViewChange(communityVoteReturn)}
+                            onSignIn={() => signInForCommunityVote(communityVoteReturn)}
+                        />
+                    )}
 
                     {currentView === 'settings-disclaimer' && (
                         <Disclaimer onBack={() => handleViewChange('settings')} />

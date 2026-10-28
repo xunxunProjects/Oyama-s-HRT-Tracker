@@ -53,7 +53,7 @@ at your port and no `webServer`, as described in `CONTRIBUTING.md`.
 | `toolApi.ts`  | Tool-scoped snapshot, version, and login endpoints           |
 | `hrt-server/` | Optional raw `hrt/1` TLS adapter (Node 22)                   |
 | `src-tauri/`  | Tauri 1.8 desktop wrapper                                    |
-| `migrations/` | D1 schema, `0000`–`0012`                                     |
+| `migrations/` | D1 schema, `0000`–`0013`                                     |
 | `tests/`      | Vitest and Worker unit tests                                 |
 | `e2e/`        | Playwright specs and the local Worker launcher               |
 | `docker/`     | Entrypoint, reconcile script, container image support        |
@@ -85,6 +85,7 @@ Route groups:
 | Shares  | `/api/shares`, `/api/shares/live`, `/api/shares/keys`                                                     | Owner session; `/api/shares/access` is public |
 | Content | `/api/content`, `/api/content/:id`                                                                        | Owner session                                 |
 | Admin   | `/api/admin/users`, `/api/admin/storage`, `/api/admin/users/:id/*`                                        | Admin role                                    |
+| Vote    | `GET /api/vote` (public), `GET /api/vote/me`, `POST /api/vote`                                            | None for the tally; Bearer session to vote    |
 | Tool    | `/api/tool/v1/hrt/*`, `/api/tool/v1/f2f/*`                                                                | Tool session or F2F-scoped token              |
 
 The full route inventory is in `worker.ts`; the tool subset is in `toolApi.ts`.

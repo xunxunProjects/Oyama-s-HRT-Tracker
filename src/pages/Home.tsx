@@ -17,6 +17,7 @@ import AnimatedNumber from '../components/AnimatedNumber';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
 import DoseDoodle from '../components/DoseDoodle';
+import CommunityVotePrompt from '../components/CommunityVotePrompt';
 import Doodle from '../components/Doodle';
 import Tick from '../components/Tick';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -65,6 +66,9 @@ interface HomeProps {
     onNavigateToPlan: () => void;
     /** Where a running-low line leads: the stock it is about, to recount or restock. */
     onNavigateToSupplies: () => void;
+    /** Bottom-of-page community vote nudge; opens the vote page or sign-in. */
+    onNavigateToCommunityVote: () => void;
+    onCommunityVoteSignIn: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -97,6 +101,8 @@ const Home: React.FC<HomeProps> = ({
     onUndoPlanLog,
     onNavigateToPlan,
     onNavigateToSupplies,
+    onNavigateToCommunityVote,
+    onCommunityVoteSignIn,
 }) => {
     const isDarkMode =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -737,6 +743,7 @@ const Home: React.FC<HomeProps> = ({
                         </button>
                     </div>
                 )}
+                <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
             </main>
         </>
     );

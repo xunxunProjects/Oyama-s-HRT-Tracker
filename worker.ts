@@ -14,6 +14,7 @@ import {
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
+import { handleCommunityVoteMe, handleCommunityVotePublic, handleCommunityVoteSubmit } from './communityVoteServer';
 
 export interface Env {
     DB: D1Database;
@@ -1199,6 +1200,29 @@ export default {
                     }),
                 );
             }
+            // Community funding vote: the proposal and aggregate tally are
+            // public. Individual ballots are only reachable with a session.
+            if (url.pathname === '/api/vote' && request.method === 'GET') {
+                const clientIP = getClientIP(request, env);
+                const limitKey = clientIP ? `vote:public:${clientIP}` : 'vote:public:global-noip';
+                if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
+                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                        'Retry-After': '60',
+                    });
+                }
+
+                const result = await handleCommunityVotePublic(env);
+                return withSecurityHeaders(
+                    new Response(JSON.stringify(result.body), {
+                        status: result.status,
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-store',
+                        },
+                    }),
+                );
+            }
             // Site notice: the operator's one banner. Public and unauthenticated on
             // purpose — the case this exists for is telling people the domain is
             // moving, and someone who never signs in has to see that too.
@@ -2141,6 +2165,44 @@ export default {
                     return jsonError('FORBIDDEN', 'This token is limited to F2F operations', 403);
                 }
 
+                // --- community funding vote (same session auth) ---
+                if (url.pathname === '/api/vote/me' && request.method === 'GET') {
+                    if (!(await checkRateLimit(env, `vote:me:${userId}`, 60))) {
+                        return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                            'Retry-After': '60',
+                        });
+                    }
+                    const result = await handleCommunityVoteMe(env, userId);
+                    return withSecurityHeaders(
+                        new Response(JSON.stringify(result.body), {
+                            status: result.status,
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json',
+                                'Cache-Control': 'no-store',
+                            },
+                        }),
+                    );
+                }
+                if (url.pathname === '/api/vote' && request.method === 'POST') {
+                    if (!(await checkRateLimit(env, `vote:submit:${userId}`, 10))) {
+                        return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                            'Retry-After': '60',
+                        });
+                    }
+                    const result = await handleCommunityVoteSubmit(request, env, userId);
+                    return withSecurityHeaders(
+                        new Response(JSON.stringify(result.body), {
+                            status: result.status,
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json',
+                                'Cache-Control': 'no-store',
+                            },
+                        }),
+                    );
+                }
+
                 // --- hrt pairing web UI (same session auth) ---
                 if (url.pathname.startsWith('/api/hrt/')) {
                     const userRow = (await env.DB.prepare('SELECT id, username FROM users WHERE id = ?')
@@ -2859,6 +2921,7 @@ export default {
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
                             env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(userId),
+                            env.DB.prepare('DELETE FROM community_vote_ballots WHERE user_id = ?').bind(userId),
                             /* F2F seats are tombstones: never delete the row. */
                             env.DB.prepare(
                                 "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",
@@ -3457,6 +3520,7 @@ export default {
                             env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(targetId),
                             env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(targetId),
+                            env.DB.prepare('DELETE FROM community_vote_ballots WHERE user_id = ?').bind(targetId),
                             /* F2F seats are tombstones: never delete the row. */
                             env.DB.prepare(
                                 "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",

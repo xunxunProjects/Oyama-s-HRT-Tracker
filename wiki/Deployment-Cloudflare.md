@@ -41,9 +41,9 @@ Copy the `database_id` it prints into the `[[d1_databases]]` block of
 `wrangler.toml`, replacing the maintainer's ID. **Keep the name
 `hrt-tracker-prod`**: the npm migration scripts pass that name explicitly.
 
-The repository ships 13 migrations (`migrations/0000` through `0012`). They
+The repository ships 14 migrations (`migrations/0000` through `0013`). They
 create the account, session, backup, share, invitation, rate-limit, pairing,
-and F2F tables. Do not create tables by hand.
+F2F, and community-vote tables. Do not create tables by hand.
 
 ## 3. Create the avatar bucket
 

@@ -103,12 +103,14 @@ Important product constraints:
 | `f2f.ts`                 | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                            |
 | `hrtPairing.ts`          | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                       |
 | `requestInput.ts`        | Client-address extraction and bounded JSON body reads for the Worker.                                                |
+| `communityVote.ts`       | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.            |
+| `communityVoteServer.ts` | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                          |
 
 ### Supporting directories
 
 | Path                                                        | Responsibility                                                                                                        |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `migrations/`                                               | D1 schema history. `0000`–`0012` exist at this snapshot. Add the next number; never edit a shipped migration.         |
+| `migrations/`                                               | D1 schema history. `0000`–`0013` exist at this snapshot. Add the next number; never edit a shipped migration.         |
 | `wrangler.toml`                                             | Worker entry, assets binding, D1/R2 bindings, rate-limit bindings, and cron trigger.                                  |
 | `src-tauri/`                                                | Tauri 1.8 desktop shell (Rust). It wraps the same web build; it is not a second frontend.                             |
 | `hrt-server/`                                               | Optional Node 22 raw TLS adapter for the `hrt/1` protocol. Disabled unless `HRT_RAW_ENABLED=1`.                       |
@@ -140,13 +142,13 @@ Important product constraints:
 
 ### Pages
 
-| Group                 | Files                                                                                                                                                                                                     |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core tracking         | `Home`, `History`, `Lab`, `Plan`, `Forecast`, `Supplies`                                                                                                                                                  |
-| Settings              | `Settings`, `AppearanceSettings`, `LanguageSettings`, `HRTModeSettings`, `WeightSettings`, `AgeSettings`, `PKParams`, `ExportSettings`, `ImportSettings`, `TransparencySettings`, `Credits`, `Disclaimer` |
-| Account and security  | `Account`, `ChangePassword`, `DeleteAccount`, `EditProfile`, `EditAvatar`, `Sessions`, `TwoFactor`, `HrtSecurity`, `F2f`, `Admin`                                                                         |
-| Public and onboarding | `PublicShare`, `Onboarding`                                                                                                                                                                               |
-| Developer/easter egg  | `CatStates`, `MilkTeaEasterEgg` (dev mode only)                                                                                                                                                           |
+| Group                 | Files                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core tracking         | `Home`, `History`, `Lab`, `Plan`, `Forecast`, `Supplies`                                                                                                                                                                   |
+| Settings              | `Settings`, `AppearanceSettings`, `LanguageSettings`, `HRTModeSettings`, `WeightSettings`, `AgeSettings`, `PKParams`, `ExportSettings`, `ImportSettings`, `TransparencySettings`, `Credits`, `CommunityVote`, `Disclaimer` |
+| Account and security  | `Account`, `ChangePassword`, `DeleteAccount`, `EditProfile`, `EditAvatar`, `Sessions`, `TwoFactor`, `HrtSecurity`, `F2f`, `Admin`                                                                                          |
+| Public and onboarding | `PublicShare`, `Onboarding`                                                                                                                                                                                                |
+| Developer/easter egg  | `CatStates`, `MilkTeaEasterEgg` (dev mode only)                                                                                                                                                                            |
 
 ### State and data flow
 
@@ -208,15 +210,16 @@ binding and dispatches `/api/*` in a long, ordered `fetch` handler.
 
 ### Route groups
 
-| Group              | Prefix / examples                                                                                               | Main code       |
-| ------------------ | --------------------------------------------------------------------------------------------------------------- | --------------- |
-| Public             | `/api/register`, `/api/login`, `/api/transparency`, `/api/notice`, passkey options/verify, `/api/shares/access` | `worker.ts`     |
-| Authenticated user | `/api/user/*` (profile, password, sessions, 2FA, avatar), `/api/content*`, `/api/shares*`                       | `worker.ts`     |
-| Admin              | `/api/admin/*` (users, storage, backups, notices, password/username/2FA resets)                                 | `worker.ts`     |
-| Tool               | `/api/tool/v1/*`                                                                                                | `toolApi.ts`    |
-| F2F                | `/api/f2f/*`                                                                                                    | `f2f.ts`        |
-| HRT pairing        | `/api/hrt/*`                                                                                                    | `hrtPairing.ts` |
-| Scheduled          | `scheduled()` every 6 hours: expired sessions, shares, pairing rows, F2F sweep                                  | `worker.ts`     |
+| Group              | Prefix / examples                                                                                               | Main code                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Public             | `/api/register`, `/api/login`, `/api/transparency`, `/api/notice`, passkey options/verify, `/api/shares/access` | `worker.ts`              |
+| Authenticated user | `/api/user/*` (profile, password, sessions, 2FA, avatar), `/api/content*`, `/api/shares*`                       | `worker.ts`              |
+| Admin              | `/api/admin/*` (users, storage, backups, notices, password/username/2FA resets)                                 | `worker.ts`              |
+| Community vote     | `GET /api/vote` (public), `GET /api/vote/me`, `POST /api/vote`                                                  | `communityVoteServer.ts` |
+| Tool               | `/api/tool/v1/*`                                                                                                | `toolApi.ts`             |
+| F2F                | `/api/f2f/*`                                                                                                    | `f2f.ts`                 |
+| HRT pairing        | `/api/hrt/*`                                                                                                    | `hrtPairing.ts`          |
+| Scheduled          | `scheduled()` every 6 hours: expired sessions, shares, pairing rows, F2F sweep                                  | `worker.ts`              |
 
 ### Shared server helpers
 
@@ -313,6 +316,8 @@ acceptance vectors are in
 - Docker: `docker/reconcile.mjs` reconciles an existing volume, then the
   entrypoint applies pending migrations.
 - Test both a fresh database and an upgrade from the previous schema.
+- The community funding vote uses migration `0013`. Its constants and privacy
+  rules are documented in [`community-vote.md`](./community-vote.md).
 
 ## 6. Security and privacy invariants
 
