@@ -16,13 +16,9 @@ describe('Credits developer list', () => {
         }
     });
 
-    it('keeps donation labels unique and values non-empty', () => {
+    it('does not carry personal payment details', () => {
         for (const developer of DEVELOPERS) {
-            const donations = developer.donations ?? [];
-            expect(new Set(donations.map(donation => donation.label)).size).toBe(donations.length);
-            for (const donation of donations) {
-                expect(donation.value.trim()).not.toBe('');
-            }
+            expect('donations' in developer).toBe(false);
         }
     });
 });

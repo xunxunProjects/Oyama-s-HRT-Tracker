@@ -2,20 +2,6 @@ import fantuanmtfAvatar from '../assets/fantuanmtf-avatar.webp';
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
 import maintainerAvatar from '../assets/maintainer-avatar.webp';
 
-/**
- * One way to support a developer personally. A developer can list any mix of
- * these; without donations they get no support block at all.
- *
- * - `address`: a wallet address, shown in full and copyable.
- * - `link`: a payment page, opened in a new tab.
- * - `qr`: a payment code. `value` is encoded into a QR locally, or `image`
- *   points at a bundled payment code.
- */
-export type Donation =
-    | { kind: 'address'; label: string; value: string; network?: string }
-    | { kind: 'link'; label: string; value: string; href: string }
-    | { kind: 'qr'; label: string; value: string; image?: string };
-
 export interface Developer {
     /** GitHub login; also the GitHub portal at the bottom of the card. */
     login: string;
@@ -31,8 +17,6 @@ export interface Developer {
     /** Languages they usually write. */
     languages?: string[];
     website?: { label: string; href: string };
-    /** Personal support only. The project itself has no donation channel. */
-    donations?: Donation[];
 }
 
 /**
@@ -64,28 +48,6 @@ export const DEVELOPERS: Developer[] = [
             label: 'Onion site (Tor only)',
             href: 'http://lgbtqiadfu5epuzzc52vsmw657srrg4ud3b3fm6wtigono5ii3ldw3qd.onion/',
         },
-        donations: [
-            {
-                kind: 'address',
-                label: 'Bitcoin',
-                value: 'bc1qdgfj0rm0tguna4nk36lxmeq45h59hscusrthk2',
-            },
-            {
-                kind: 'address',
-                label: 'Monero',
-                value: '85EogNCqzyce44HwxoJaWWPy8g45WENqgYHjHdwNVguTCb7oV8Wjh2vNkGFAGFtf4r67Wh2qHA8TnVJV6Toui9gvEempUZj',
-            },
-            {
-                kind: 'address',
-                label: 'Ethereum',
-                value: '0x0Ad817F7Ca658B3D2D83Ab019F2AeA5645a5b672',
-            },
-            {
-                kind: 'address',
-                label: 'Bitcoin Cash',
-                value: 'qrnyczppcmxkj7r2ajddsvsh6el4s4v9fvfgs0wl9h',
-            },
-        ],
     },
     {
         login: 'LaoZhong-Mihari',

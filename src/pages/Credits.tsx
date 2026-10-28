@@ -1,13 +1,11 @@
 import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { ArrowUpRight, Check, ChevronDown, Copy } from '../components/icons';
+import { ArrowUpRight, ChevronDown } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle from '../components/Doodle';
 // Bundled with the app, so the page still loads nothing from other sites.
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
 import llmGirls from '../assets/llm-girls.webp';
-import { DEVELOPERS, type Developer, type Donation } from '../data/developers';
-import { copyText } from '../utils/clipboard';
+import { DEVELOPERS, type Developer } from '../data/developers';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -153,127 +151,6 @@ const metaLabel = 'text-[11px] font-medium text-[var(--text-muted)]';
 // the disclosure only hides them visually.
 const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
-const CopyButton: React.FC<{ donation: Donation }> = ({ donation }) => {
-    const [state, setState] = React.useState<'idle' | 'copied' | 'failed'>('idle');
-    const timer = React.useRef<number | null>(null);
-
-    React.useEffect(() => {
-        return () => {
-            if (timer.current !== null) window.clearTimeout(timer.current);
-        };
-    }, []);
-
-    const onCopy = async () => {
-        try {
-            await copyText(donation.value);
-            setState('copied');
-        } catch {
-            setState('failed');
-        }
-        if (timer.current !== null) window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => setState('idle'), 2000);
-    };
-
-    const label =
-        state === 'copied'
-            ? `Copied ${donation.label}`
-            : state === 'failed'
-              ? `Could not copy ${donation.label}`
-              : `Copy ${donation.label}`;
-
-    return (
-        <button
-            type="button"
-            onClick={onCopy}
-            aria-label={label}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
-        >
-            {state === 'copied' ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.75} />}
-            <span aria-live="polite">{state === 'copied' ? 'Copied' : state === 'failed' ? 'Failed' : 'Copy'}</span>
-        </button>
-    );
-};
-
-const QrDonation: React.FC<{ donation: Extract<Donation, { kind: 'qr' }> }> = ({ donation }) => {
-    const [open, setOpen] = React.useState(false);
-
-    return (
-        <li>
-            <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                    <p className={`text-xs ${muted}`}>{donation.label}</p>
-                    <p className="mt-0.5 break-all font-mono text-xs text-[var(--text)]">{donation.value}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                    <CopyButton donation={donation} />
-                    <button
-                        type="button"
-                        onClick={() => setOpen(value => !value)}
-                        aria-expanded={open}
-                        className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
-                    >
-                        {open ? 'Hide QR' : 'Show QR'}
-                    </button>
-                </div>
-            </div>
-            {open && (
-                <div className="mt-2 w-fit rounded-lg bg-white p-2">
-                    {donation.image ? (
-                        <img
-                            src={donation.image}
-                            alt={`${donation.label} payment code`}
-                            width={144}
-                            height={144}
-                            className="h-36 w-36"
-                        />
-                    ) : (
-                        <QRCodeSVG value={donation.value} size={144} />
-                    )}
-                </div>
-            )}
-        </li>
-    );
-};
-
-const DonationRow: React.FC<{ donation: Donation }> = ({ donation }) => {
-    if (donation.kind === 'qr') return <QrDonation donation={donation} />;
-
-    if (donation.kind === 'link') {
-        return (
-            <li className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                    <p className={`text-xs ${muted}`}>{donation.label}</p>
-                    <p className="mt-0.5 break-all text-xs text-[var(--text)]">{donation.value}</p>
-                </div>
-                <a
-                    href={donation.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
-                >
-                    Open
-                    <ArrowUpRight size={14} strokeWidth={1.75} />
-                </a>
-            </li>
-        );
-    }
-
-    return (
-        <li className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-                <p className={`text-xs ${muted}`}>
-                    {donation.label}
-                    {donation.network ? ` · ${donation.network}` : ''}
-                </p>
-                <p className="mt-0.5 break-all font-mono text-xs leading-relaxed text-[var(--text)]">
-                    {donation.value}
-                </p>
-            </div>
-            <CopyButton donation={donation} />
-        </li>
-    );
-};
-
 const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
     const [open, setOpen] = React.useState(false);
     const panelId = `developer-${developer.login}`;
@@ -343,20 +220,6 @@ const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
                             </div>
                         )}
 
-                        {developer.donations?.length ? (
-                            <div className="mt-5 rounded-[var(--radius-md)] bg-[var(--surface-muted)] p-3.5">
-                                <p className="text-sm font-medium text-[var(--text)]">Support {name} directly</p>
-                                <p className={`mt-0.5 text-xs ${muted}`}>
-                                    This goes to the developer, not to the project.
-                                </p>
-                                <ul className="mt-3 space-y-3">
-                                    {developer.donations.map(donation => (
-                                        <DonationRow key={donation.label} donation={donation} />
-                                    ))}
-                                </ul>
-                            </div>
-                        ) : null}
-
                         <a
                             href={`https://github.com/${developer.login}`}
                             target="_blank"
@@ -408,12 +271,6 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         <DeveloperRow key={developer.login} developer={developer} />
                     ))}
                 </div>
-                {DEVELOPERS.some(developer => developer.donations?.length) && (
-                    <p className="mt-2 text-xs text-[var(--text-muted)]">
-                        Donations go to the developer personally. The project itself does not accept donations.
-                    </p>
-                )}
-
                 <h2 className={heading}>Contributors</h2>
                 <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-[0.9375rem]">
                     {CONTRIBUTORS.map(login => (
