@@ -499,9 +499,15 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     The developer wall is for people who have made a long-term commitment to the project. Maintainers,
-                    owners, and the original author qualify automatically. Everyone else joins after 200 of their
-                    commits have landed on <code className="font-mono text-[var(--text)]">main</code> through merged
-                    pull requests.
+                    owners, and the original author qualify automatically. Everyone else qualifies after at least 50
+                    merged pull requests and 200 commits on <code className="font-mono text-[var(--text)]">main</code>.
+                    A pull request that only changes translations, design, documentation, or tests, or that mixes those
+                    changes with code, counts as one commit no matter how many commits it contains.
+                </p>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                    Activity is reviewed over a rolling six-month window. A developer with no commits, pull requests, or
+                    issue activity in that period is removed from the wall. They can return once they are active again.
+                    This applies to every card on the wall.
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     Want to help? Read the{' '}
