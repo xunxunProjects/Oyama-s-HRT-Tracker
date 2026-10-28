@@ -506,8 +506,8 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     Activity is reviewed over a rolling six-month window. A developer with no commits, pull requests, or
-                    issue activity in that period is removed from the wall. They can return once they are active again.
-                    This applies to every card on the wall.
+                    issue activity in that period is removed from the wall. To return, they need 150 new commits and 25
+                    new merged pull requests, counted under the same rule. This applies to every card on the wall.
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     Want to help? Read the{' '}
