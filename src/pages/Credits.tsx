@@ -499,7 +499,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     The developer wall is for people who have made a long-term commitment to the project. Maintainers,
-                    owners, and the original author are listed automatically. Everyone else joins after 200 of their
+                    owners, and the original author qualify automatically. Everyone else joins after 200 of their
                     commits have landed on <code className="font-mono text-[var(--text)]">main</code> through merged
                     pull requests.
                 </p>
