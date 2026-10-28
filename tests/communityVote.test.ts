@@ -48,6 +48,7 @@ class FakeStatement {
 
     async all<T = unknown>(): Promise<{ success: true; results: T[] }> {
         if (this.sql.includes('SELECT split_choice, currencies, accept_donations')) {
+            if (!this.db.schemaReady) throw new Error('D1_ERROR: no such table: community_vote_ballots');
             return { success: true, results: this.db.tallyRows() as T[] };
         }
         throw new Error(`Unsupported SELECT in test fake: ${this.sql}`);
@@ -59,6 +60,7 @@ class FakeStatement {
             return (createdAt === undefined ? null : { created_at: createdAt }) as T | null;
         }
         if (this.sql.includes('SELECT split_choice, currencies, accept_donations, hrt_eligible')) {
+            if (!this.db.schemaReady) throw new Error('D1_ERROR: no such table: community_vote_ballots');
             const ballot = this.db.ballots.get(`${this.params[0]}:${this.params[1]}`);
             return (ballot ? { ...ballot } : null) as T | null;
         }
@@ -66,6 +68,15 @@ class FakeStatement {
     }
 
     async run(): Promise<{ success: true; meta: { changes: number } }> {
+        if (this.sql.includes('CREATE TABLE IF NOT EXISTS community_vote_ballots')) {
+            this.db.schemaStatements.push(this.sql);
+            this.db.schemaReady = true;
+            return { success: true, meta: { changes: 0 } };
+        }
+        if (this.sql.includes('CREATE INDEX IF NOT EXISTS idx_community_vote_ballots_user')) {
+            this.db.schemaStatements.push(this.sql);
+            return { success: true, meta: { changes: 0 } };
+        }
         if (!this.sql.includes('INSERT INTO community_vote_ballots')) {
             throw new Error(`Unsupported write in test fake: ${this.sql}`);
         }
@@ -97,6 +108,8 @@ class FakeStatement {
 class FakeVoteDb {
     readonly users = new Map<string, number>();
     readonly ballots = new Map<string, BallotRow>();
+    schemaReady = true;
+    readonly schemaStatements: string[] = [];
 
     prepare(sql: string): FakeStatement {
         return new FakeStatement(this, sql);
@@ -319,6 +332,34 @@ describe('community vote handlers', () => {
         const body = result.body as VotePublic;
         expect(body.vote.status).toBe('upcoming');
         expect(body.vote.acceptsBallots).toBe(true);
+    });
+
+    it('bootstraps the missing ballot table before serving the public tally', async () => {
+        const db = new FakeVoteDb();
+        db.schemaReady = false;
+
+        const result = await handleCommunityVotePublic(envFor(db), NOW);
+
+        expect(result.status).toBe(200);
+        expect(db.schemaReady).toBe(true);
+        expect(db.schemaStatements[0]).toContain('CREATE TABLE IF NOT EXISTS community_vote_ballots');
+        expect(db.schemaStatements[1]).toContain('CREATE INDEX IF NOT EXISTS idx_community_vote_ballots_user');
+    });
+
+    it('bootstraps the missing ballot table before reading or writing a ballot', async () => {
+        const meDb = new FakeVoteDb();
+        meDb.schemaReady = false;
+        meDb.users.set(USER_ID, NOW - 30 * DAY);
+        const me = await handleCommunityVoteMe(envFor(meDb), USER_ID, NOW);
+        expect(me.status).toBe(200);
+        expect(meDb.schemaReady).toBe(true);
+
+        const submitDb = new FakeVoteDb();
+        submitDb.schemaReady = false;
+        submitDb.users.set(USER_ID, NOW - 30 * DAY);
+        const saved = await handleCommunityVoteSubmit(submit(validBallot), envFor(submitDb), USER_ID, NOW);
+        expect(saved.status).toBe(200);
+        expect(submitDb.schemaReady).toBe(true);
     });
 
     it('reports a missing account', async () => {
