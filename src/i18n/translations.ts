@@ -5892,6 +5892,7 @@ export const TRANSLATIONS = {
         'account.passkey': '패스키',
     },
     tr: {
+        ...TRANSLATIONS_BASE.en,
         'settings.section.model': 'Tahminlerin dayandığı bilgiler',
         'settings.section.supplies': 'Elinizdekiler',
         'settings.section.display': 'Dil ve görünüm',
@@ -6004,7 +6005,6 @@ export const TRANSLATIONS = {
         'f2f.cmd_name': 'Adın',
         'f2f.your_key': 'Açık anahtarın',
         'f2f.public_key': 'Açık anahtar',
-        ...TRANSLATIONS_BASE.en,
         'settings.cat_style': 'Kedi renkleri',
         'settings.cat_style.flag': 'Bayrak',
         'settings.cat_style.blue': 'Mavi',
