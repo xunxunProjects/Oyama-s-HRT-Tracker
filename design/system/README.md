@@ -1,4 +1,4 @@
-# Oyama design system, v3 (1.5.1)
+# Oyama design system, v3 (1.5.2)
 
 v2's colours, type scale, spacing, shapes and the desktop sidebar carry over
 unchanged. v3 overturns the parts that made the app feel generic: a borrowed

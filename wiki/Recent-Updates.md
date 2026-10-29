@@ -4,6 +4,12 @@ This is a transparency report for the last 40 merged pull requests. It is a
 factual index, not a security audit, a release note, or a claim that every change
 is equally important.
 
+> **Current release:** `v1.5.2` (2026-10-30) is a security patch release. It
+> caps decompressed share snapshots at 20 MiB, disables Wrangler's Local
+> Explorer and local observability APIs in the Docker runtime, and refreshes the
+> npm and Rust dependencies. The detailed table below remains the 1.5.1
+> snapshot.
+
 - **Snapshot:** 2026-10-28
 - **Window:** 2026-10-18 to 2026-10-28 (UTC)
 - **Pull requests:** #122 to #175, 40 merged

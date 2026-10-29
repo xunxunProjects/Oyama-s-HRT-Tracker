@@ -1,6 +1,6 @@
 # Deploy with Docker
 
-> **Production: pin the `v1.5.1` release tag.** Do not deploy `main`; build the
+> **Production: pin the `v1.5.2` release tag.** Do not deploy `main`; build the
 > image from a release checkout.
 
 The container runs the complete app: the Worker API under Wrangler's local
@@ -15,7 +15,7 @@ You need Git, Docker, and Docker Compose v2. The repository scripts can do the
 first deploy:
 
 ```bash
-git clone --branch v1.5.1 --depth 1 \
+git clone --branch v1.5.2 --depth 1 \
   https://github.com/xunxunProjects/Oyama-s-HRT-Tracker.git
 cd Oyama-s-HRT-Tracker
 ./Dependency-Detection.sh --docker   # read-only preflight
@@ -113,7 +113,8 @@ previous-secret fallback.
    Both are idempotent.
 3. If raw or escrow features are enabled, checks the service-token file and
    loads or creates the IP/escrow keys.
-4. Writes `.dev.vars` and starts `wrangler dev`.
+4. Writes `.dev.vars` and starts `wrangler dev` with
+   `X_LOCAL_EXPLORER=false` and `X_LOCAL_OBSERVABILITY=false`.
 5. With `HRT_RAW_ENABLED=1`, also starts `node ./hrt-server/server.mjs`. If
    either process exits, the container stops with status 1.
 
@@ -266,4 +267,4 @@ list.
   Docker-only.
 - The Docker and Cloudflare deployment paths were read from the repository and
   not deployed while writing this page. Commands are the ones in the README and
-  entrypoint at version 1.5.1.
+  entrypoint at version 1.5.2.

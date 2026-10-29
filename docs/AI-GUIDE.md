@@ -3,7 +3,7 @@
 > **Audience:** AI coding agents and the people directing them. Read this file
 > before changing code.
 >
-> **Scope:** Oyama's HRT Tracker v1.5.1, commit `05d2fd2`, 2026-10-28. If this
+> **Scope:** Oyama's HRT Tracker v1.5.2, commit `0880de5`, 2026-10-30. If this
 > file disagrees with the code, the code wins. Update this file in the same
 > pull request when a change makes part of it wrong.
 >
