@@ -1024,6 +1024,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
                             {route === Route.gel && (
                                 <GelFields
+                                    ester={ester}
                                     gelSite={gelSite}
                                     setGelSite={setGelSite}
                                     e2Dose={e2Dose}

@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { GEL_SITE_ORDER } from '../../../logic';
+import { Ester, GEL_SITE_ORDER } from '../../../logic';
 import { useHRTMode } from '../../contexts/HRTModeContext';
 import CustomSelect from '../CustomSelect';
+import GelDoseConverter from './GelDoseConverter';
 import { refusedFieldProps } from './refusedField';
 
 interface GelFieldsProps {
+    ester: Ester;
     gelSite: number;
     setGelSite: (val: number) => void;
     e2Dose: string;
@@ -17,6 +19,7 @@ interface GelFieldsProps {
 }
 
 const GelFields: React.FC<GelFieldsProps> = ({
+    ester,
     gelSite,
     setGelSite,
     e2Dose,
@@ -85,6 +88,8 @@ const GelFields: React.FC<GelFieldsProps> = ({
                         )}
                     </p>
                 )}
+                {/* Gel is sold by rulers and pumps, but the model takes mg. */}
+                {ester === Ester.E2 && <GelDoseConverter onApply={onE2Change} />}
             </div>
         </div>
     );
