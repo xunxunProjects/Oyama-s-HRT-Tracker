@@ -37,8 +37,37 @@ const toBase64Url = (bytes: Uint8Array): string =>
 const fromBase64Url = (value: string): Uint8Array =>
     base64ToBytes(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4));
 
-const pipeThrough = async (bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> =>
-    new Uint8Array(await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(stream)).arrayBuffer());
+/**
+ * Decompressed snapshots are not bounded by the ciphertext size: gzip can
+ * expand a link-sized envelope hundreds of times over. Cap the output before
+ * buffering it in the viewer's memory. The schema's largest legal snapshot is
+ * about 14 MiB of JSON, so 20 MiB leaves room without accepting a bomb.
+ */
+export const MAX_DECOMPRESSED_SHARE_BYTES = 20 * 1024 * 1024;
+
+const limitBytes = (limit: number): TransformStream<Uint8Array, Uint8Array> => {
+    let total = 0;
+    return new TransformStream({
+        transform(chunk, controller) {
+            total += chunk.byteLength;
+            if (total > limit) {
+                controller.error(new Error('share snapshot is too large'));
+                return;
+            }
+            controller.enqueue(chunk);
+        },
+    });
+};
+
+const pipeThrough = async (
+    bytes: Uint8Array,
+    stream: CompressionStream | DecompressionStream,
+    maxOutputBytes?: number,
+): Promise<Uint8Array> => {
+    let output: ReadableStream<Uint8Array> = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
+    if (maxOutputBytes !== undefined) output = output.pipeThrough(limitBytes(maxOutputBytes));
+    return new Uint8Array(await new Response(output).arrayBuffer());
+};
 
 /** A fresh link key, base64url so it sits in a URL fragment untouched. */
 export function generateShareKey(): string {
@@ -83,7 +112,8 @@ export async function decryptShareSnapshot(envelope: EncryptedShareSnapshot, key
             base64ToBytes(envelope.data),
             SNAPSHOT_AAD,
         );
-        if (envelope.z === 1) plain = await pipeThrough(plain, new DecompressionStream('gzip'));
+        if (envelope.z === 1)
+            plain = await pipeThrough(plain, new DecompressionStream('gzip'), MAX_DECOMPRESSED_SHARE_BYTES);
         return sanitizeShareSnapshot(JSON.parse(new TextDecoder().decode(plain))).snapshot ?? null;
     } catch {
         return null;
