@@ -1158,7 +1158,7 @@ export const TRANSLATIONS_BASE = {
         'vote.tally.yes': '接受',
         'vote.tally.no': '不接受',
         'vote.tally.pass': '已通过',
-        'vote.list_sep': '、',
+        'list.sep': '、',
         'vote.tally.threshold': '其他币种需要超过 50% 的选票。',
         'vote.tally.not_final': '投票结束前，结果只是实时统计，不是最终结果。',
         'vote.tally.final': '最终结果',
@@ -2381,7 +2381,7 @@ export const TRANSLATIONS_BASE = {
         'vote.tally.yes': 'Yes',
         'vote.tally.no': 'No',
         'vote.tally.pass': 'Passed',
-        'vote.list_sep': ', ',
+        'list.sep': ', ',
         'vote.tally.threshold': 'Another currency needs more than 50% of all ballots.',
         'vote.tally.not_final': 'Until the vote closes, these are live counts, not the final result.',
         'vote.tally.final': 'Final result',
@@ -3487,7 +3487,7 @@ const ZH_TW = {
     'vote.tally.yes': '接受',
     'vote.tally.no': '不接受',
     'vote.tally.pass': '已通過',
-    'vote.list_sep': '、',
+    'list.sep': '、',
     'vote.tally.threshold': '其他幣種需要超過 50% 的選票。',
     'vote.tally.not_final': '投票結束前，結果只是即時統計，不是最終結果。',
     'vote.tally.final': '最終結果',
@@ -3514,6 +3514,7 @@ export const TRANSLATIONS = {
 
     yue: {
         ...ZH_TW,
+        'list.sep': '、',
         'settings.section.model': '估算依據',
         'settings.section.supplies': '存貨',
         'settings.section.display': '語言同顯示',
@@ -4191,6 +4192,7 @@ export const TRANSLATIONS = {
         'app.title': 'HRT Tracker',
     },
     ja: {
+        'list.sep': '、',
         'settings.section.model': '推定に使う情報',
         'settings.section.supplies': '手持ち',
         'settings.section.display': '言語と表示',
@@ -5198,6 +5200,7 @@ export const TRANSLATIONS = {
     },
 
     ko: {
+        'list.sep': ', ',
         'settings.section.model': '추정에 쓰이는 정보',
         'settings.section.supplies': '보유량',
         'settings.section.display': '언어와 표시',
@@ -6190,6 +6193,7 @@ export const TRANSLATIONS = {
     },
     tr: {
         ...TRANSLATIONS_BASE.en,
+        'list.sep': ', ',
         'settings.section.model': 'Tahminlerin dayandığı bilgiler',
         'settings.section.supplies': 'Elinizdekiler',
         'settings.section.display': 'Dil ve görünüm',

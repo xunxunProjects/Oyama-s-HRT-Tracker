@@ -761,7 +761,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                                             currencies: [
                                                 currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
                                                 ...final.added.map(id => currencyLabel(id, t)),
-                                            ].join(t('vote.list_sep')),
+                                            ].join(t('list.sep')),
                                         })}
                                     </p>
                                 )}

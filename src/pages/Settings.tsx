@@ -237,19 +237,19 @@ const Settings: React.FC<SettingsProps> = ({
             id: 'general',
             label: t('settings.group.general'),
             Icon: Sliders,
-            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(', '),
+            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(t('list.sep')),
         },
         {
             id: 'data',
             label: t('settings.group.data'),
             Icon: Database,
-            hint: [t('export.title'), t('import.title')].join(', '),
+            hint: [t('export.title'), t('import.title')].join(t('list.sep')),
         },
         {
             id: 'about',
             label: t('settings.group.about'),
             Icon: Info,
-            hint: [t('drawer.model_title'), t('transparency.title')].join(', '),
+            hint: [t('drawer.model_title'), t('transparency.title')].join(t('list.sep')),
         },
     ];
 
