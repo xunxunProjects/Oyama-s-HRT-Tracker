@@ -1,4 +1,5 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React from 'react';
+import { useSlidingMark } from '../hooks/useSlidingMark';
 
 export interface SegmentedOption<K extends string> {
     id: K;
@@ -30,24 +31,7 @@ function Segmented<K extends string>({
     className?: string;
     'aria-label'?: string;
 }) {
-    const rowRef = useRef<HTMLDivElement>(null);
-    const optionRefs = useRef<Partial<Record<K, HTMLButtonElement | null>>>({});
-    const [thumb, setThumb] = useState<{ left: number; width: number } | null>(null);
-
-    useLayoutEffect(() => {
-        const measure = () => {
-            const el = optionRefs.current[value];
-            if (!el) return;
-            const next = { left: el.offsetLeft, width: el.offsetWidth };
-            setThumb(prev => (prev && prev.left === next.left && prev.width === next.width ? prev : next));
-        };
-        measure();
-        const row = rowRef.current;
-        if (!row || typeof ResizeObserver === 'undefined') return;
-        const ro = new ResizeObserver(measure);
-        ro.observe(row);
-        return () => ro.disconnect();
-    }, [value, options]);
+    const { rowRef, itemRefs: optionRefs, mark: thumb } = useSlidingMark(value, options);
 
     return (
         <div
