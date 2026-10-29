@@ -29,6 +29,7 @@ import { getCloudKey } from '../utils/cloudBackup';
 import { useDialog } from '../contexts/DialogContext';
 import { LOCALE_MAP } from '../utils/helpers';
 import DateTimePicker from '../components/DateTimePicker';
+import { SelectChevron } from '../components/CustomSelect';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
 import { copyText } from '../utils/clipboard';
 import { MAX_SHARE_EXPIRY_YEAR, isLongLivedShare, shareExpiryProblem } from '../../shareExpiry';
@@ -402,10 +403,11 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
                             >
                                 <span className="text-[0.9375rem] text-body">{copy.expiryLabel}</span>
-                                <span className="flex items-center gap-1.5 text-[var(--accent-ink)]">
+                                <span className="flex items-center gap-1.5 text-muted">
                                     <span className="text-sm tabular-nums">
                                         {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                     </span>
+                                    <SelectChevron />
                                 </span>
                             </button>
                             <DateTimePicker

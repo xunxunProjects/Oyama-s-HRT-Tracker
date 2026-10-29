@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useId } from 'react';
+import { ChevronDown } from './icons';
 import Tick from './Tick';
 
 // The things that can be open at once inside a form (this list, the date
@@ -32,6 +33,16 @@ export const useEscapeLayer = (onEscape: () => void, active: boolean) => {
     }, [active]);
 };
 
+/**
+ * The mark at the end of anything that opens a choice: this list, a date.
+ * One size and one pen wherever it is, smaller and lighter than the words it
+ * follows, in their muted colour, and it stays put while the choice is open
+ * (the list unfolding under it already says so).
+ */
+export const SelectChevron: React.FC = () => (
+    <ChevronDown size={16} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
+);
+
 interface Option {
     value: string;
     label: string;
@@ -51,8 +62,7 @@ interface CustomSelectProps {
 
 /**
  * A choice, drawn as a line like a field: its name above, what's chosen on
- * the line in the accent ink, which is all that says it can be changed (no
- * chevron). Pressed, the options unfold under it in
+ * the line, a chevron at the end (SelectChevron). Pressed, the options unfold under it in
  * place, as plain rows with a tick by the chosen one, and fold away again
  * once one is picked. Nothing floats over the form.
  */
@@ -157,7 +167,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             {icon}
                             <span className="font-medium text-sm truncate">{label}</span>
                         </span>
-                        <span id={valueId} className="text-sm text-[var(--accent-ink)] truncate">
+                        <span id={valueId} className="text-sm text-[var(--text-muted)] truncate">
                             {selectedOption?.label}
                         </span>
                     </>
@@ -171,7 +181,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             {selectedOption?.icon && (
                                 <span className="text-[var(--text-muted)]">{selectedOption.icon}</span>
                             )}
-                            <span id={valueId} className="text-sm text-[var(--accent-ink)] truncate">
+                            <span id={valueId} className="text-sm truncate">
                                 {selectedOption?.label || value}
                             </span>
                         </span>
@@ -180,6 +190,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </span>
                     </>
                 )}
+                <SelectChevron />
             </button>
 
             <div className="disclosure disclosure-bleed" data-open={isOpen} {...(isOpen ? {} : { inert: '' })}>

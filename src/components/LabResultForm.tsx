@@ -5,6 +5,7 @@ import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToN
 import { Check, Trash } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
+import { SelectChevron } from './CustomSelect';
 import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
 import { clinicalUnit } from '../utils/clinicalUnit';
@@ -196,8 +197,9 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
                     <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.date')}</span>
-                    <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
+                    <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
+                        <SelectChevron />
                     </div>
                 </button>
                 <DateTimePicker

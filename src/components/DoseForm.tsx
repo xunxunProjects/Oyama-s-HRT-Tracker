@@ -31,7 +31,7 @@ import PatchFields from './dose_form/PatchFields';
 import QuickDoseButtons, { QuickDose } from './dose_form/QuickDoseButtons';
 import { useHRTMode } from '../contexts/HRTModeContext';
 
-import { useEscapeLayer } from './CustomSelect';
+import { useEscapeLayer, SelectChevron } from './CustomSelect';
 import GuideFold from './dose_form/GuideFold';
 import Tick from './Tick';
 import { cleanDoseMG } from '../utils/cleanDose';
@@ -896,7 +896,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         className="w-full flex items-center justify-between py-[18px] border-b border-[var(--border)] text-start"
                     >
                         <span className="text-[0.9375rem] text-[var(--text)]">{t('field.time')}</span>
-                        <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
+                        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                             <span className="text-sm tabular-nums">
                                 {dateStr
                                     ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
@@ -909,6 +909,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                       })
                                     : '—'}
                             </span>
+                            <SelectChevron />
                         </div>
                     </button>
                     <DateTimePicker
