@@ -11,7 +11,8 @@
       of the first, and nothing replays when a page is merely re-rendered.
    3. Ink, not glow. Emphasis is drawn on as a pen stroke (fields, ticks, the
       chosen day) and travels the way you read, left to right. The menus (the
-      sidebar and the bottom bar) don't animate at all.
+      sidebar and the bottom bar) stay put when you change pages; the only
+      motion the sidebar has is opening while it's pointed at.
    4. Settle, don't bounce. Things ease out and stop where they belong; no
       spring, no overshoot.
    5. Reduced motion lands everything on its final frame at once, so nothing
@@ -341,6 +342,53 @@ path.ink-draw {
     transition:
         left var(--duration-base) var(--ease-out),
         width var(--duration-base) var(--ease-out);
+}
+
+/* ── the sidebar ─────────────────────────────────────────────────────────────
+   With a mouse, the wide-window sidebar rests as a strip of icons and opens
+   over the page while it's pointed at, or while a key has moved focus into
+   it (a mouse click leaves focus on the button, so plain :focus-within would
+   keep it open after the pointer has left). Closing, the panel narrows while
+   the labels run to an ellipsis and fade, and only once they've faded do
+   they leave the layout: `display` takes part in the transition through
+   allow-discrete, and @starting-style gives the opening fade its first frame.
+   A browser without those two still narrows and widens; its labels simply
+   appear and go at once. Touch screens, with no pointing, keep the sidebar
+   open as it always was. */
+@media (hover: hover) and (pointer: fine) {
+    .side-nav {
+        --sidebar-width: 5rem;
+    }
+    .side-panel {
+        width: var(--sidebar-width);
+        transition: width var(--duration-slow) var(--ease-out);
+    }
+    .side-label {
+        display: none;
+        min-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition:
+            opacity var(--duration-base) var(--ease-out),
+            display var(--duration-base) allow-discrete;
+    }
+    .side-nav:hover .side-panel,
+    .side-nav:has(:focus-visible) .side-panel {
+        width: 16.25rem;
+    }
+    .side-nav:hover .side-label,
+    .side-nav:has(:focus-visible) .side-label {
+        display: block;
+        opacity: 1;
+    }
+    @starting-style {
+        .side-nav:hover .side-label,
+        .side-nav:has(:focus-visible) .side-label {
+            opacity: 0;
+        }
+    }
 }
 
 /* ── controls ───────────────────────────────────────────────────────────── */
@@ -965,7 +1013,9 @@ path.ink-draw {
     .swap-label > span,
     .check-dot,
     .row-wash,
-    .disclosure {
+    .disclosure,
+    .side-panel,
+    .side-label {
         transition: none;
     }
 }
