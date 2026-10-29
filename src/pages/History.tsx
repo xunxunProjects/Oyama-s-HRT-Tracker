@@ -659,7 +659,7 @@ const History: React.FC<HistoryProps> = ({
             {groupedEvents.length === 0 && !isQuickAddOpen && (
                 <div className={`${PAGE_COLUMN} flex flex-col items-center text-center py-16`}>
                     <LogDoodle className="w-24 h-auto mb-6" />
-                    <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
+                    <p className={`text-sm font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
                     <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
                     <button type="button" onClick={() => setIsQuickAddOpen(true)} className="btn-primary">
                         {t('home.empty_cta')}

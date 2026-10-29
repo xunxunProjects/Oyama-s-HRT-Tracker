@@ -412,7 +412,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                 <section className="border-b border-[var(--border)] pb-8">
                     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                         <div>
-                            <h1 className="text-3xl font-medium tracking-tight text-body md:text-4xl">
+                            <h1 className="text-[1.625rem] font-medium tracking-tight text-body">
                                 {copy.publicTitle}
                             </h1>
                             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{copy.disclaimer}</p>
@@ -444,7 +444,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
 
                 <section className="pb-5 pt-8" aria-labelledby="shared-chart-title">
                     <div className="mb-4 flex items-center justify-between gap-4">
-                        <h2 id="shared-chart-title" className="text-lg font-semibold text-body">
+                        <h2 id="shared-chart-title" className="text-xl font-semibold text-body">
                             {copy.chartTitle}
                         </h2>
                         <span className="text-xs text-muted">{timeZone}</span>
@@ -464,7 +464,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                     of its own, so each day still reads as one line across. */}
                 <section aria-labelledby="shared-history-title" className="max-w-3xl">
                     <div className="mb-4 flex items-end justify-between gap-4">
-                        <h2 id="shared-history-title" className="text-lg font-semibold text-body">
+                        <h2 id="shared-history-title" className="text-xl font-semibold text-body">
                             {copy.historyTitle}
                         </h2>
                         <span className="text-xs tabular-nums text-muted">

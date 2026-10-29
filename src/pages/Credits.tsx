@@ -131,7 +131,7 @@ const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
                 />
             )}
             <span className="min-w-0 flex-1">
-                <span className="block text-[0.9375rem] text-[var(--text)] break-words">{entry.name}</span>
+                <span className="block text-sm text-[var(--text)] break-words">{entry.name}</span>
                 {entry.desc && <span className="block text-xs text-[var(--text-muted)] mt-0.5">{entry.desc}</span>}
             </span>
             <span className="flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]">
@@ -147,7 +147,7 @@ const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
 };
 
 const muted = 'text-[var(--text-muted)]';
-const metaLabel = 'text-[11px] font-medium text-[var(--text-muted)]';
+const metaLabel = 'text-xs font-medium text-[var(--text-muted)]';
 const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
     const [open, setOpen] = React.useState(false);
     const panelId = `developer-${developer.login}`;
@@ -170,7 +170,7 @@ const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
                     className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)]"
                 />
                 <span className="min-w-0 flex-1">
-                    <span className="block break-words text-[0.9375rem] text-[var(--text)]">{name}</span>
+                    <span className="block break-words text-sm text-[var(--text)]">{name}</span>
                     <span className={`mt-0.5 block text-xs ${muted}`}>{developer.role}</span>
                 </span>
                 <ChevronDown
@@ -269,7 +269,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </div>
                 <h2 className={heading}>Contributors</h2>
-                <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-[0.9375rem]">
+                <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-sm">
                     {CONTRIBUTORS.map(login => (
                         <a
                             key={login}
@@ -310,7 +310,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 </div>
 
                 <h2 className={heading}>Open source software</h2>
-                <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 pt-2 text-[0.9375rem]">
+                <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 pt-2 text-sm">
                     {LIBRARIES.map(entry => (
                         <li key={entry.href} className="min-w-0">
                             <a href={entry.href} target="_blank" rel="noopener noreferrer" className={inlineLink}>

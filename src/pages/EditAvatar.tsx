@@ -121,7 +121,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                                 onError={() => setAvatarError(true)}
                             />
                             <div
-                                className={`w-full h-full flex items-center justify-center text-5xl font-light absolute inset-0 ${muted}`}
+                                className={`w-full h-full flex items-center justify-center text-[1.625rem] font-light absolute inset-0 ${muted}`}
                             >
                                 {username.charAt(0).toUpperCase()}
                             </div>

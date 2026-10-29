@@ -65,7 +65,7 @@ const currencyLabel = (id: AdditionalCurrencyId | typeof ALWAYS_SUPPORTED_CURREN
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <section className="border-t border-[var(--border)] pt-7">
-        <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">{title}</h2>
+        <h2 className="text-sm font-semibold text-[var(--text)]">{title}</h2>
         <div className="mt-2 space-y-2.5 text-sm leading-relaxed text-[var(--text-muted)]">{children}</div>
     </section>
 );
@@ -458,7 +458,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 {!token && acceptsBallots ? (
                     <Card>
-                        <h2 className="text-base font-semibold text-[var(--text)]">{t('vote.signin.title')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.signin.title')}</h2>
                         <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">
                             {t('vote.signin.body')}
                         </p>
@@ -469,7 +469,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 ) : (
                     <Card>
                         <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-base font-semibold text-[var(--text)]">
+                            <h2 className="text-sm font-semibold text-[var(--text)]">
                                 {t('vote.eligibility.title')}
                             </h2>
                             {me && (
@@ -557,7 +557,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 {token && me && (
                     <section className="border-t border-[var(--border)] pt-7">
                         <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">
+                            <h2 className="text-sm font-semibold text-[var(--text)]">
                                 {t('vote.ballot.title')}
                             </h2>
                             {me.ballot && (
@@ -707,7 +707,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 <section className="border-t border-[var(--border)] pt-7">
                     <div className="flex items-baseline justify-between gap-4">
-                        <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">{t('vote.tally.title')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.title')}</h2>
                         <span className="text-xs tabular-nums text-[var(--text-muted)]">
                             {fill(t(tally.ballots === 1 ? 'vote.tally.ballots_one' : 'vote.tally.ballots'), {
                                 n: tally.ballots,
@@ -749,7 +749,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 {final && (
                     <Card className="bg-[var(--surface-muted)]">
-                        <h2 className="text-base font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
                         {tally.ballots === 0 ? (
                             <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
                         ) : (

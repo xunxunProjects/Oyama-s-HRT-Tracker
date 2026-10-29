@@ -136,7 +136,7 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
     return (
         <>
             <Head>
-                <h1 className="text-2xl font-semibold text-body">{t('onboarding.how_title')}</h1>
+                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.how_title')}</h1>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
             </Head>
             {/* The three rows below say what the app does; this says it. The
@@ -161,7 +161,7 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
                                 <button
                                     type="button"
                                     onClick={() => play(0)}
-                                    className="ms-auto rounded-md px-1.5 py-0.5 text-[0.75rem] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
+                                    className="ms-auto rounded-md px-1.5 py-0.5 text-xs text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
                                 >
                                     {t('onboarding.how_replay')}
                                 </button>
@@ -181,7 +181,7 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
                         onClick={() => play(i as Beat)}
                     />
                 ))}
-                <p className="mt-5 text-[0.8125rem] leading-relaxed text-muted">{t('onboarding.how_note')}</p>
+                <p className="mt-5 text-xs leading-relaxed text-muted">{t('onboarding.how_note')}</p>
             </Body>
         </>
     );
@@ -308,7 +308,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                 <div className="flex justify-center">
                     <PixelCat pose="donut" size={176} />
                 </div>
-                <h1 className="mt-6 text-2xl font-semibold text-body">{t('onboarding.welcome_title')}</h1>
+                <h1 className="mt-6 text-[1.625rem] font-semibold text-body">{t('onboarding.welcome_title')}</h1>
                 {/* Every translation of the sentence stacked into one grid cell,
                     the inactive ones hidden but still taking up their space, so
                     the box is as tall as the longest one at whatever width this
@@ -356,7 +356,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         aria-pressed={lang === value}
                         className={`flex w-full items-center justify-between gap-4 py-3.5 text-start ${divider} last:border-b-0`}
                     >
-                        <span className={`text-[0.9375rem] text-body ${lang === value ? 'font-semibold' : ''}`}>
+                        <span className={`text-sm text-body ${lang === value ? 'font-semibold' : ''}`}>
                             {label}
                         </span>
                         <Tick on={lang === value} />
@@ -366,7 +366,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
         </div>,
 
         <div key="mode" className="pt-8">
-            <h1 className="text-2xl font-semibold text-body">{t('onboarding.mode_title')}</h1>
+            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.mode_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.mode_subtitle')}</p>
             <div className="mt-6">
                 {modeOptions.map(({ value, labelKey, descKey }) => (
@@ -377,11 +377,11 @@ const Onboarding: React.FC<OnboardingProps> = ({
                     >
                         <span>
                             <span
-                                className={`block text-[0.9375rem] text-body ${mode === value ? 'font-semibold' : ''}`}
+                                className={`block text-sm text-body ${mode === value ? 'font-semibold' : ''}`}
                             >
                                 {t(labelKey)}
                             </span>
-                            <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">
+                            <span className="mt-0.5 block text-xs leading-relaxed text-muted">
                                 {t(descKey)}
                             </span>
                         </span>
@@ -397,7 +397,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
         // install — so Next on its own is an answer, and it is the answer the
         // chart would have used anyway.
         <div key="weight" className="pt-8">
-            <h1 className="text-2xl font-semibold text-body">{t('onboarding.weight_title')}</h1>
+            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.weight_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
             {/* The field is drawn as a figure on a rule, not an .input-base
                 box, so it takes the text-field focus treatment by hand: the
@@ -416,16 +416,16 @@ const Onboarding: React.FC<OnboardingProps> = ({
                     }}
                     onFocus={e => e.currentTarget.select()}
                     aria-label={t('status.weight')}
-                    className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
+                    className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
                 />
-                <span className="shrink-0 text-base text-muted">kg</span>
+                <span className="shrink-0 text-sm text-muted">kg</span>
             </label>
             {/* Always laid out, only shown when wrong: a line appearing and
                 vanishing as a figure passes through "6" on its way to "65"
                 would bob the centred step. An empty field says nothing; Next
                 is just off. */}
             <p
-                className={`mt-3 text-[0.8125rem] leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
+                className={`mt-3 text-xs leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
             >
                 {t('error.weightRange')}
             </p>
@@ -434,15 +434,15 @@ const Onboarding: React.FC<OnboardingProps> = ({
         // Optional, and says so: someone who doesn't know their dose yet, or
         // only wants the log, walks past with Next.
         <div key="plan" className="pt-8">
-            <h1 className="text-2xl font-semibold text-body">{t('onboarding.plan_title')}</h1>
+            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.plan_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.plan_subtitle')}</p>
             <div className="mt-4">
                 {plan.map(item => (
                     <div key={item.id} className={`flex items-center gap-3.5 py-4 ${divider}`}>
                         <Doodle name={item.route} />
                         <div className="min-w-0 flex-1">
-                            <p className="text-[0.9375rem] font-medium text-body">{regimenLabel(item, t)}</p>
-                            <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">
+                            <p className="text-sm font-medium text-body">{regimenLabel(item, t)}</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted">
                                 {asTitle(frequencyLabel(item, t))}
                                 {item.route === Route.gel && `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
                             </p>
@@ -473,14 +473,14 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--accent-ink)]">
                             <Plus size={20} />
                         </span>
-                        <span className="text-[0.9375rem] font-medium text-[var(--accent-ink)]">{t('plan.add')}</span>
+                        <span className="text-sm font-medium text-[var(--accent-ink)]">{t('plan.add')}</span>
                     </button>
                 )}
             </div>
         </div>,
 
         <div key="privacy" className="pt-8">
-            <h1 className="text-2xl font-semibold text-body">{t('onboarding.privacy_title')}</h1>
+            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.privacy_title')}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
             <div className="mt-4">
                 <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
@@ -546,7 +546,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
             <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
-                    className={`rounded-lg px-2 py-1.5 text-[0.8125rem] text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
+                    className={`rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
                     tabIndex={isLast ? -1 : 0}
                 >
                     {t('onboarding.skip')}

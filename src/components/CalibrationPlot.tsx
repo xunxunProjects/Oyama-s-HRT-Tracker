@@ -94,7 +94,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
             <h2 className={`text-sm ${muted}`}>{t('cal.plot.title')}</h2>
 
             {/* Legend — every mark on the plot, named */}
-            <div className={`mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.6875rem] ${muted}`}>
+            <div className={`mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs ${muted}`}>
                 {calibrated && (
                     <span className="flex items-center gap-1.5">
                         <svg width={10} height={10} viewBox="-5 -5 10 10" className="overflow-visible">
@@ -173,7 +173,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                         x={X(v)}
                                         y={mT + ph + 13 * ui}
                                         textAnchor="middle"
-                                        fontSize={10 * ui}
+                                        fontSize={13 * ui}
                                         className={`${mutedFill} tabular-nums`}
                                         opacity={0.8}
                                     >
@@ -183,7 +183,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                         x={mL - 6 * ui}
                                         y={Y(v) + 3.5 * ui}
                                         textAnchor="end"
-                                        fontSize={10 * ui}
+                                        fontSize={13 * ui}
                                         className={`${mutedFill} tabular-nums`}
                                         opacity={0.8}
                                     >
@@ -192,14 +192,14 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                 </g>
                             ))}
                             {/* Axis titles in the corners, pointing along their axis */}
-                            <text x={mL - 6 * ui} y={mT - 9 * ui} fontSize={10.5 * ui} className={mutedFill}>
+                            <text x={mL - 6 * ui} y={mT - 9 * ui} fontSize={13 * ui} className={mutedFill}>
                                 ↑ {t('cal.plot.y')} (pg/mL)
                             </text>
                             <text
                                 x={mL + pw}
                                 y={mT + ph + 31 * ui}
                                 textAnchor="end"
-                                fontSize={10.5 * ui}
+                                fontSize={13 * ui}
                                 className={mutedFill}
                             >
                                 {t('cal.plot.x')} (pg/mL) →
@@ -299,14 +299,14 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                             transform: `translate(${X(hp.cal) > mL + pw * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className={`text-[0.6875rem] ${muted} mb-0.5 whitespace-nowrap tabular-nums`}>
+                        <div className={`text-xs ${muted} mb-0.5 whitespace-nowrap tabular-nums`}>
                             {formatDate(new Date(hp.timeH * 3600000), lang)} {formatTime(new Date(hp.timeH * 3600000))}
                         </div>
                         <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <span className={`text-sm font-medium tabular-nums ${on}`}>{Math.round(hp.obs)}</span>
-                            <span className={`text-[0.6875rem] ${muted}`}>{t('cal.plot.lab')} pg/mL</span>
+                            <span className={`text-xs ${muted}`}>{t('cal.plot.lab')} pg/mL</span>
                         </div>
-                        <div className={`text-[0.6875rem] tabular-nums whitespace-nowrap ${muted}`}>
+                        <div className={`text-xs tabular-nums whitespace-nowrap ${muted}`}>
                             {t('cal.model')} {Math.round(hp.pred)}
                             {calibrated && (
                                 <>

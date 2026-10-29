@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                 <div className="px-[1.375rem] pt-6 pb-5">
                     <h1
                         aria-label="Oyama Tracker"
-                        className="flex items-center gap-3.5 font-sans text-[1.0625rem] leading-none tracking-[-0.02em]"
+                        className="flex items-center gap-3.5 font-sans text-sm leading-none tracking-[-0.02em]"
                     >
                         <img
                             src="/pwa-192x192.png"
@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 onClick={() => onViewChange(item.id)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={item.label}
-                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-[0.9375rem] transition-colors duration-150 motion-reduce:transition-none
+                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
                                 ${
                                     isActive
                                         ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'

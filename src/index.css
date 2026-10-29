@@ -12,8 +12,10 @@
         "SF Pro Display", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
         "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif;
 
-    /* Type scale. The base is 15px (text-sm, body) with 13px captions
-       (text-xs); 12px is the smallest readable size, used deliberately. */
+    /* Type scale: four sizes and no others. 13px captions (text-xs), 15px
+       body (text-sm), 20px section titles (text-xl), 26px page titles
+       (text-[1.625rem]); nothing is set below 13px. The overview's reading
+       figure is the one number drawn larger. */
     --text-xs: 0.8125rem;
     --text-xs--line-height: 1.125rem;
     --text-sm: 0.9375rem;
@@ -165,7 +167,7 @@ h1,
     font-optical-sizing: auto;
 }
 
-/* The sidebar wordmark is 17px, under the 20px line where Display takes over. */
+/* The sidebar wordmark is body size, under the 20px line where Display takes over. */
 h1.font-sans {
     font-family: var(--font-sans);
 }
@@ -350,7 +352,7 @@ select:focus-visible {
     .btn-ghost {
         height: 2rem;
         padding: 0 0.625rem;
-        font-size: 0.875rem;
+        font-size: 0.9375rem;
         color: var(--text-muted);
         background-color: transparent;
         border-radius: var(--radius-full);
@@ -369,7 +371,7 @@ select:focus-visible {
     :is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
         height: 1.875rem;
         padding: 0 0.875rem;
-        font-size: 0.875rem;
+        font-size: 0.9375rem;
         line-height: 1.25rem;
     }
     .btn-primary:active:not(:disabled),
@@ -597,7 +599,7 @@ select:focus-visible {
 }
 .cal-weekday {
     padding-block: 0.25rem;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1rem;
     color: var(--text-muted);
     text-decoration: none;

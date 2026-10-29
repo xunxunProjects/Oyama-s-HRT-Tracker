@@ -72,7 +72,7 @@ const HormoneValueField: React.FC<{
     return (
         <div>
             <div className="flex items-center justify-between mb-3">
-                <label htmlFor={id} className="text-[0.9375rem] text-[var(--text)]">
+                <label htmlFor={id} className="text-sm text-[var(--text)]">
                     {label}
                 </label>
                 <Segmented
@@ -196,7 +196,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     onClick={() => setIsDatePickerOpen(v => !v)}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.date')}</span>
+                    <span className="text-sm text-[var(--text)]">{t('lab.date')}</span>
                     <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
                         <SelectChevron />
@@ -257,7 +257,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     draw at once: one blood sample goes through one lab. */}
                 <div className={`py-[18px] ${divider}`}>
                     <div className="flex items-center justify-between gap-3">
-                        <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.assay')}</span>
+                        <span className="text-sm text-[var(--text)]">{t('lab.assay')}</span>
                         <Segmented<AssayChoice>
                             options={ASSAY_CHOICES.map(a => ({ id: a, label: t(`lab.assay.${a}`) }))}
                             value={assay}

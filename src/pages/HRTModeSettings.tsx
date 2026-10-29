@@ -34,7 +34,7 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
                         >
                             <span>
                                 <span
-                                    className={`block text-[0.9375rem] ${
+                                    className={`block text-sm ${
                                         mode === value ? 'font-semibold text-[var(--text)]' : 'text-[var(--text)]'
                                     }`}
                                 >

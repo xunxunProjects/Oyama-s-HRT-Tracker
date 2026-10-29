@@ -580,18 +580,18 @@ const Account: React.FC<AccountProps> = ({
                                 className={`w-full h-full object-cover absolute inset-0 z-10 ${avatarError ? 'hidden' : 'block'}`}
                                 onError={() => setAvatarError(true)}
                             />
-                            <div className="w-full h-full flex items-center justify-center text-2xl font-light text-[var(--text-muted)] absolute inset-0">
+                            <div className="w-full h-full flex items-center justify-center text-[1.625rem] font-light text-[var(--text-muted)] absolute inset-0">
                                 {user.username.charAt(0).toUpperCase()}
                             </div>
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center z-20">
-                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-[0.6875rem] text-center leading-tight px-1">
+                                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium text-xs text-center leading-tight px-1">
                                     {t('avatar.change')}
                                 </span>
                             </div>
                         </button>
                         <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-[var(--text)] text-lg truncate">
+                                <span className="font-semibold text-[var(--text)] text-sm truncate">
                                     {user.username}
                                 </span>
                                 {user.isAdmin && (
@@ -890,7 +890,7 @@ const Account: React.FC<AccountProps> = ({
                                                                             },
                                                                         ].map(({ label, val }) => (
                                                                             <div key={label} className="text-center">
-                                                                                <p className="text-[0.6875rem] text-[var(--text-muted)] font-medium">
+                                                                                <p className="text-xs text-[var(--text-muted)] font-medium">
                                                                                     {label}
                                                                                 </p>
                                                                                 <p className="text-sm font-semibold text-[var(--text)] mt-0.5 tabular-nums">
@@ -924,7 +924,7 @@ const Account: React.FC<AccountProps> = ({
                                                                                     </div>
                                                                                 ))}
                                                                             {(data.events || []).length > 3 && (
-                                                                                <p className="text-[0.6875rem] text-[var(--text-muted)] text-center py-1.5">
+                                                                                <p className="text-xs text-[var(--text-muted)] text-center py-1.5">
                                                                                     +{(data.events || []).length - 3} …
                                                                                 </p>
                                                                             )}
@@ -937,7 +937,7 @@ const Account: React.FC<AccountProps> = ({
                                                                     >
                                                                         <div className="overflow-hidden">
                                                                             <div className="space-y-2 pt-2">
-                                                                                <p className="text-[0.6875rem] font-semibold text-[var(--text-muted)]">
+                                                                                <p className="text-xs font-semibold text-[var(--text-muted)]">
                                                                                     {t('account.merge_preview')}
                                                                                 </p>
                                                                                 {diff.totalDiff === 0 ? (
@@ -1117,7 +1117,7 @@ const Account: React.FC<AccountProps> = ({
                                                                             <Merge size={13} strokeWidth={1.5} />
                                                                             {t('account.merge')}
                                                                             {diff.total > 0 && (
-                                                                                <span className="text-[0.6875rem] text-[var(--text-muted)] font-medium">
+                                                                                <span className="text-xs text-[var(--text-muted)] font-medium">
                                                                                     +{diff.total}
                                                                                 </span>
                                                                             )}

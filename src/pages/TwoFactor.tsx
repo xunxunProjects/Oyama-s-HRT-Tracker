@@ -545,7 +545,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             <React.Fragment key={s}>
                                                 <div className="flex items-center gap-1.5">
                                                     <div
-                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--text)] bg-[var(--surface-hover)]` : `border-[var(--border)] ${muted}`}`}
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--text)] bg-[var(--surface-hover)]` : `border-[var(--border)] ${muted}`}`}
                                                     >
                                                         {success && s === 'verify' ? (
                                                             <Check size={10} strokeWidth={2} />

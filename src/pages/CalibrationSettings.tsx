@@ -88,14 +88,14 @@ const OptionCard: React.FC<{
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className={`text-[0.9375rem] ${selected ? `font-semibold ${on}` : on}`}>{title}</span>
+                    <span className={`text-sm ${selected ? `font-semibold ${on}` : on}`}>{title}</span>
                     {badge && <span className="text-xs font-medium text-[var(--accent-ink)]">{badge}</span>}
                 </div>
                 {children}
             </div>
 
             {/* The chosen card gets the same drawn tick as every other option list, level with its title. */}
-            <span className="icon-line text-[0.9375rem]">
+            <span className="icon-line text-sm">
                 <Tick on={selected} size={18} />
             </span>
         </div>
@@ -144,11 +144,11 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                             badge={recommended ? t('cal.recommended') : undefined}
                             onClick={() => setMethod(value)}
                         >
-                            <p className={`text-[0.8125rem] leading-snug ${muted} mt-1`}>{t(`cal.desc.${value}`)}</p>
+                            <p className={`text-xs leading-snug ${muted} mt-1`}>{t(`cal.desc.${value}`)}</p>
 
                             <ul className="mt-3 space-y-1.5">
                                 {pros.map(k => (
-                                    <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
+                                    <li key={k} className="flex items-start gap-2 text-xs leading-snug">
                                         <span className="icon-line">
                                             <Check size={13} className="text-[var(--status-positive)]/80" />
                                         </span>
@@ -156,7 +156,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                                     </li>
                                 ))}
                                 {cons.map(k => (
-                                    <li key={k} className="flex items-start gap-2 text-[0.78125rem] leading-snug">
+                                    <li key={k} className="flex items-start gap-2 text-xs leading-snug">
                                         <span className="icon-line">
                                             <Minus size={13} className={muted} />
                                         </span>
@@ -172,7 +172,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                     Only meaningful once a learning method is selected. */}
                 {method !== 'off' && (
                     <div className="mt-8">
-                        <p className={`text-[0.8125rem] font-semibold ${muted} mb-2`}>{t('cal.history')}</p>
+                        <p className={`text-xs font-semibold ${muted} mb-2`}>{t('cal.history')}</p>
                         <div className="space-y-2.5">
                             {HISTORY_MODES.map(({ value: hm, icon }) => (
                                 <OptionCard
@@ -182,7 +182,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                                     title={t(`cal.${hm}`)}
                                     onClick={() => setHistoryMode(hm)}
                                 >
-                                    <p className={`text-[0.8125rem] leading-snug ${muted} mt-1`}>
+                                    <p className={`text-xs leading-snug ${muted} mt-1`}>
                                         {t(`cal.desc.${hm}`)}
                                     </p>
                                 </OptionCard>
@@ -194,7 +194,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                 {/* Current fit */}
                 {showFit && (
                     <div className="mt-8">
-                        <p className={`text-[0.8125rem] font-semibold ${muted} mb-1`}>{t('cal.current')}</p>
+                        <p className={`text-xs font-semibold ${muted} mb-1`}>{t('cal.current')}</p>
                         {stats.map(({ label, value }) => (
                             <div key={label} className={`flex items-center justify-between py-3 ${divider}`}>
                                 <span className={`text-sm ${muted}`}>{label}</span>
@@ -205,7 +205,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                 )}
 
                 {/* Attribution: the learning models mirror those on hrt.transmtf.com. */}
-                <p className={`text-[0.6875rem] leading-snug ${muted} mt-8`}>{t('cal.source')}</p>
+                <p className={`text-xs leading-snug ${muted} mt-8`}>{t('cal.source')}</p>
             </div>
         </div>
     );

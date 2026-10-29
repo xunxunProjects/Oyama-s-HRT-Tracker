@@ -187,7 +187,7 @@ const Lab: React.FC<LabProps> = ({
                     className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--surface-hover)] border-b border-[var(--border)]"
                 >
                     <div className="min-w-0">
-                        <p className={`text-[0.9375rem] ${on}`}>{t('cal.settings')}</p>
+                        <p className={`text-sm ${on}`}>{t('cal.settings')}</p>
                         <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{calSummary}</p>
                     </div>
                     <ChevronRight size={16} className={`${muted} shrink-0`} />
@@ -198,7 +198,7 @@ const Lab: React.FC<LabProps> = ({
                 {labResults.length === 0 ? (
                     <div className="flex flex-col items-center py-16 text-center">
                         <VialDoodle className="w-24 h-auto mb-6" />
-                        <p className={`text-base font-semibold ${on} mb-1`}>{t('lab.empty')}</p>
+                        <p className={`text-sm font-semibold ${on} mb-1`}>{t('lab.empty')}</p>
                         {/* What a lab is for, in the words the intro uses. Only
                             estradiol labs calibrate the curve, so in transmasc
                             mode, where labs are testosterone, it isn't said. */}

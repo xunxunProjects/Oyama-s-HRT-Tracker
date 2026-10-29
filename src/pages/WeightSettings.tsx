@@ -54,12 +54,12 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
                                 aria-label={t('status.weight')}
                                 aria-invalid={showError}
                                 aria-describedby="weight-help"
-                                className="input-base text-4xl font-light tabular-nums text-[var(--text)] w-28 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                className="input-base text-[1.625rem] font-light tabular-nums text-[var(--text)] w-28 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 placeholder="0.0"
                                 style={{ fontSize: '40px' }}
                                 autoFocus
                             />
-                            <span className="text-lg font-medium text-[var(--text-muted)] pb-1">kg</span>
+                            <span className="text-sm font-medium text-[var(--text-muted)] pb-1">kg</span>
                         </div>
                         {/* The range is shown from the start; a value outside it
                             swaps in the full sentence, in place, not in a dialog. */}

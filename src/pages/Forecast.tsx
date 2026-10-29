@@ -338,7 +338,7 @@ const Forecast: React.FC<ForecastProps> = ({
                 <span className={on}>{Math.round(sc.stats[key])}</span>
                 {/* With no history to measure habits from, every run is the same and the range is a point: say nothing. */}
                 {r && Math.round(r[0]) !== Math.round(r[1]) && (
-                    <span className={`block text-[0.6875rem] ${muted}`}>
+                    <span className={`block text-xs ${muted}`}>
                         {Math.round(r[0])}–{Math.round(r[1])}
                     </span>
                 )}
@@ -376,7 +376,7 @@ const Forecast: React.FC<ForecastProps> = ({
                 <section>
                     <p className={`text-xs font-semibold mb-2 ${muted}`}>{t('forecast.current')}</p>
                     {main ? (
-                        <p className={`text-[0.9375rem] ${on}`}>
+                        <p className={`text-sm ${on}`}>
                             <span className="block">{regimenLabel(main, t)}</span>
                             <span className={`block text-xs ${muted}`}>{intervalLabel(main.intervalH, t)}</span>
                         </p>
@@ -474,7 +474,7 @@ const Forecast: React.FC<ForecastProps> = ({
                     {main && (
                         <div className="flex items-center justify-between gap-4">
                             <div>
-                                <p className={`text-[0.9375rem] ${on}`}>{t('forecast.replace')}</p>
+                                <p className={`text-sm ${on}`}>{t('forecast.replace')}</p>
                                 <p className={`text-xs mt-0.5 ${muted}`}>{t('forecast.replace_desc')}</p>
                             </div>
                             <Switch

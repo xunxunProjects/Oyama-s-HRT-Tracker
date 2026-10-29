@@ -95,59 +95,59 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                 {/* Stats */}
                 <div>
                     <div className={rowBase}>
-                        <span className="text-[0.9375rem] text-[var(--text)]">
+                        <span className="text-sm text-[var(--text)]">
                             {t('transparency.stat.total_users')}
                         </span>
-                        <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
+                        <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.total_users)}
                         </span>
                     </div>
 
                     <div className={rowBase}>
-                        <span className="text-[0.9375rem] text-[var(--text)]">
+                        <span className="text-sm text-[var(--text)]">
                             {t('transparency.stat.total_backups')}
                         </span>
-                        <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
+                        <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.total_backups)}
                         </span>
                     </div>
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-[0.9375rem] text-[var(--text)]">
+                            <p className="text-sm text-[var(--text)]">
                                 {t('transparency.stat.new_users_24h')}
                             </p>
                             <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.new_users_7d').replace('{n}', fig(stats?.new_users_7d))}
                             </p>
                         </div>
-                        <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
+                        <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.new_users_24h)}
                         </span>
                     </div>
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-[0.9375rem] text-[var(--text)]">{t('transparency.stat.self_deleted')}</p>
+                            <p className="text-sm text-[var(--text)]">{t('transparency.stat.self_deleted')}</p>
                             <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.self_deleted_7d))}
                             </p>
                         </div>
-                        <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
+                        <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.self_deleted_count)}
                         </span>
                     </div>
 
                     <div className={`${rowBase} border-b-0`}>
                         <div>
-                            <p className="text-[0.9375rem] text-[var(--text)]">
+                            <p className="text-sm text-[var(--text)]">
                                 {t('transparency.stat.admin_deleted')}
                             </p>
                             <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.admin_deleted_7d))}
                             </p>
                         </div>
-                        <span className="text-2xl font-semibold text-[var(--text)] tabular-nums">
+                        <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.admin_deleted_count)}
                         </span>
                     </div>

@@ -36,10 +36,10 @@ const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', onClic
         <>
             <Doodle name={mark} asleep={state === 'asleep'} className="-mt-0.5" />
             <div>
-                <p className={`text-[0.9375rem] font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>
+                <p className={`text-sm font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>
                     {title}
                 </p>
-                <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted">{desc}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted">{desc}</p>
             </div>
         </>
     );

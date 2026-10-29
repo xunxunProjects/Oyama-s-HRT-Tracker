@@ -42,8 +42,8 @@ type UserPanel =
 
 const divider = 'border-b border-[var(--border)]';
 const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
-const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
-const rowValue = `flex items-center gap-1 text-[0.9375rem] ${settingsMuted}`;
+const rowLabel = 'text-sm text-[var(--text)]';
+const rowValue = `flex items-center gap-1 text-sm ${settingsMuted}`;
 const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors`;
 const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--danger)] hover:bg-[var(--surface-hover)] transition-colors`;
 const textBtn =
@@ -390,7 +390,7 @@ const Admin: React.FC = () => {
                     <div>
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className={`text-[0.9375rem] font-semibold ${settingsOn}`}>
+                                <h3 className={`text-sm font-semibold ${settingsOn}`}>
                                     {panel.user.username}
                                 </h3>
                                 <p className={`text-xs ${settingsMuted} mt-0.5`}>
@@ -649,7 +649,7 @@ const Admin: React.FC = () => {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search users..."
-                    className="input-base w-full pl-9 text-[0.9375rem] text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                    className="input-base w-full pl-9 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]"
                 />
             </div>
 
@@ -1027,7 +1027,7 @@ const Admin: React.FC = () => {
                     <div className="space-y-2">
                         <label className={`block text-xs font-medium ${settingsMuted}`}>Preview</label>
                         <p
-                            className={`flex items-start gap-1.5 text-[0.8125rem] leading-snug whitespace-pre-wrap break-words ${
+                            className={`flex items-start gap-1.5 text-xs leading-snug whitespace-pre-wrap break-words ${
                                 noticeLevel === 'warn' ? 'text-[var(--warning)]' : 'text-[var(--accent-ink)]'
                             }`}
                         >
@@ -1142,7 +1142,7 @@ const Admin: React.FC = () => {
                     <button
                         key={id}
                         onClick={() => selectCat(id)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[0.9375rem] text-start
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-start
                             ${
                                 cat === id
                                     ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
@@ -1180,7 +1180,7 @@ const Admin: React.FC = () => {
                                         <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
                                     </div>
                                     <div className="text-start">
-                                        <p className={`text-[0.9375rem] font-medium ${settingsOn}`}>{label}</p>
+                                        <p className={`text-sm font-medium ${settingsOn}`}>{label}</p>
                                         <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>{hint}</p>
                                     </div>
                                 </div>

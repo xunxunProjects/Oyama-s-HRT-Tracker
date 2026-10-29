@@ -99,7 +99,7 @@ const BottomNav: React.FC<{
                                     <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
                                 )}
                             </span>
-                            <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
+                            <span className="whitespace-nowrap text-xs leading-4 font-medium">
                                 {label}
                             </span>
                         </button>

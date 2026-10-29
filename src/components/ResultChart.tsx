@@ -560,7 +560,7 @@ const ResultChart = ({
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width, height]);
     // 12px, the design system's floor for anything meant to be read.
-    const axisFont = 12 * ui;
+    const axisFont = 13 * ui;
 
     // Gutters wide enough for the longest label they hold, so "5000" or
     // "0.50" is never clipped by the edge of the plot. Digits run about 0.6em.
@@ -932,7 +932,7 @@ const ResultChart = ({
             {/* Legend — always visible so each line is labelled, on mobile too.
                 The calibration factor closes it: in the title row it cut the
                 title to "Hormon…" on a phone. Wraps rather than squeezing. */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1 text-[0.75rem] text-[var(--text-muted)]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
                     {primaryMeta.label}
@@ -1336,7 +1336,7 @@ const ResultChart = ({
                             transform: `translate(${X(hoverPt!.t) > mL + plotW * 0.6 ? '-100%' : '0'}, -100%)`,
                         }}
                     >
-                        <div className="text-[0.75rem] text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
+                        <div className="text-xs text-[var(--text-muted)] mb-0.5 whitespace-nowrap">
                             <span className="block">{formatDate(new Date(hoverPt!.t), lang, timeZone)}</span>
                             <span className="block">{formatTime(new Date(hoverPt!.t), timeZone)}</span>
                         </div>
@@ -1346,7 +1346,7 @@ const ResultChart = ({
                                 {hoverPt!.p != null ? hoverPt!.p.toFixed(primaryMeta.decimals) : '--'}
                             </span>
                             {hoverPt!.p != null && (
-                                <span className="text-[0.75rem] text-[var(--text-muted)]">{primaryMeta.unit}</span>
+                                <span className="text-xs text-[var(--text-muted)]">{primaryMeta.unit}</span>
                             )}
                         </div>
                         {hasSecondary && (
@@ -1355,13 +1355,13 @@ const ResultChart = ({
                                     {hoverPt!.s != null ? hoverPt!.s.toFixed(2) : '--'}
                                 </span>
                                 {hoverPt!.s != null && (
-                                    <span className="text-[0.75rem] text-[var(--text-muted)]">ng/mL</span>
+                                    <span className="text-xs text-[var(--text-muted)]">ng/mL</span>
                                 )}
                             </div>
                         )}
                         {/* One line: the lab, and how it sits against the raw model. */}
                         {hoverLab && (
-                            <div className="mt-1 pt-1 border-t border-[var(--border)] flex items-center gap-1.5 text-[0.75rem] whitespace-nowrap tabular-nums">
+                            <div className="mt-1 pt-1 border-t border-[var(--border)] flex items-center gap-1.5 text-xs whitespace-nowrap tabular-nums">
                                 <svg width="10" height="10" viewBox="-5 -5 10 10" aria-label={t('cal.plot.lab')}>
                                     <path
                                         d="M0 -3.5L3.5 0L0 3.5L-3.5 0Z"

@@ -59,13 +59,13 @@ const Row: React.FC<RowProps> = ({ on, onClick, title, desc, note, mark }) => (
         {mark}
         <span className="min-w-0 flex-1">
             <span
-                className={`block text-[0.9375rem] ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}
+                className={`block text-sm ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}
             >
                 {title}
             </span>
-            {desc && <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">{desc}</span>}
+            {desc && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{desc}</span>}
         </span>
-        {note ? <span className="shrink-0 text-[0.8125rem] text-muted">{note}</span> : <Tick on={on} />}
+        {note ? <span className="shrink-0 text-xs text-muted">{note}</span> : <Tick on={on} />}
     </button>
 );
 
@@ -206,7 +206,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                     key={step}
                     className={`mx-auto w-full max-w-md pt-2 pb-8 lg:pt-[6vh] ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
-                    <h1 className="text-2xl font-semibold text-body">{heading}</h1>
+                    <h1 className="text-[1.625rem] font-semibold text-body">{heading}</h1>
                     {draft && soFar && (
                         <div className="mt-3 flex items-center gap-2.5">
                             <Doodle name={draft.route} size={1.75} />
@@ -265,9 +265,9 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                                 }}
                                 onFocus={e => e.currentTarget.select()}
                                 aria-label={heading}
-                                className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
+                                className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
                             />
-                            <span className="shrink-0 text-base text-muted">
+                            <span className="shrink-0 text-sm text-muted">
                                 {isPatch ? `µg${t('regimen.per_day')}` : 'mg'}
                             </span>
                         </label>

@@ -857,7 +857,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
             {/* Header */}
             {!isInline && !hideHeader && (
                 <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center shrink-0">
-                    <h3 className="text-base font-semibold text-[var(--text)]">
+                    <h3 className="text-sm font-semibold text-[var(--text)]">
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
                     <div className="flex gap-2 items-center">
@@ -877,7 +877,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
             {/* Inline Header (Simpler) */}
             {isInline && !hideHeader && (
                 <div className="pb-4 border-b border-[var(--border)] flex justify-between items-center">
-                    <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">
                         {t('timeline.add_title')}
                     </span>
                     {renderLoadTemplateControl()}
@@ -895,7 +895,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         onClick={() => setIsDatePickerOpen(v => !v)}
                         className="w-full flex items-center justify-between py-[18px] border-b border-[var(--border)] text-start"
                     >
-                        <span className="text-[0.9375rem] text-[var(--text)]">{t('field.time')}</span>
+                        <span className="text-sm text-[var(--text)]">{t('field.time')}</span>
                         <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                             <span className="text-sm tabular-nums">
                                 {dateStr
@@ -1220,12 +1220,12 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                                 : t('dose.guide.current_blank')}
                                         </p>
                                         {guideRangeText && (
-                                            <p className="text-[0.6875rem] text-[var(--text-muted)] leading-snug">
+                                            <p className="text-xs text-[var(--text-muted)] leading-snug">
                                                 {t('dose.guide.reference')}: {guideRangeText}
                                             </p>
                                         )}
                                         {doseGuide.showRateHint && (
-                                            <p className="text-[0.6875rem] text-[var(--warning)] leading-snug">
+                                            <p className="text-xs text-[var(--warning)] leading-snug">
                                                 {t('dose.guide.patch_rate_hint')}
                                             </p>
                                         )}

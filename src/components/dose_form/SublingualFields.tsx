@@ -124,7 +124,7 @@ const SublingualFields: React.FC<SublingualFieldsProps> = ({
                                 className="flex-1 h-1 accent-[var(--accent)]"
                             />
                         </div>
-                        <p className="text-[0.6875rem] text-[var(--text-muted)]">
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('sl.theta_approx')}: {thetaFromHold(customHoldValue).toFixed(3)}
                         </p>
                     </div>

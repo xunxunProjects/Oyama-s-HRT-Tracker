@@ -207,7 +207,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             onClick={() => toggleSection(section.key)}
                             className={`w-full flex items-center justify-between py-4 ${divider} text-start`}
                         >
-                            <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
+                            <span className="text-xs font-semibold text-[var(--text-muted)]">
                                 {t(section.titleKey)}
                             </span>
                             <ChevronDown
@@ -290,7 +290,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                 {/* Reset all */}
                 <button onClick={handleReset} className="w-full flex items-center gap-2 py-[18px] text-start">
                     <Undo size={14} className="text-[var(--danger)]" />
-                    <span className="text-[0.9375rem] text-[var(--danger)]">{t('pk.reset')}</span>
+                    <span className="text-sm text-[var(--danger)]">{t('pk.reset')}</span>
                 </button>
             </div>
         </div>

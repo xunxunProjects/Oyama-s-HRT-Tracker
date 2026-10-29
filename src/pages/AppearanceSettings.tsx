@@ -34,7 +34,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ theme, setTheme
                         className="w-full flex items-center justify-between py-4 border-b border-[var(--border)] last:border-b-0 text-start"
                     >
                         <span
-                            className={`text-[0.9375rem] ${
+                            className={`text-sm ${
                                 theme === value ? 'font-semibold text-[var(--text)]' : 'text-[var(--text)]'
                             }`}
                         >

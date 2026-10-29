@@ -74,7 +74,7 @@ const ForecastChart: React.FC<{
         const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width]);
-    const axisFont = 12 * ui;
+    const axisFont = 13 * ui;
     const pad = { l: 40 * ui, r: 8 * ui, t: 22 * ui, b: 24 * ui };
 
     const c = isDarkMode

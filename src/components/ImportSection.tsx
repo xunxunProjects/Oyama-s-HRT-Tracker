@@ -11,7 +11,7 @@ interface ImportSectionProps {
 
 // Each row is one button, so the whole row takes the tap (as on Export).
 const rowBase = 'w-full flex items-start justify-between py-[18px] text-start';
-const rowLabel = 'block text-[0.9375rem] text-[var(--text)]';
+const rowLabel = 'block text-sm text-[var(--text)]';
 const rowDesc = 'block text-xs text-[var(--text-muted)] mt-0.5';
 const action = 'text-sm font-medium text-[var(--accent-ink)] shrink-0 ml-6 mt-0.5';
 
@@ -68,7 +68,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJs
                 merge import: this is the only action that clears categories. */}
             <button onClick={() => replaceFileInputRef.current?.click()} className={`${rowBase} ${rowBleed}`}>
                 <span>
-                    <span className="block text-[0.9375rem] text-[var(--danger)]">
+                    <span className="block text-sm text-[var(--danger)]">
                         {t('import.replace_complete_row')}
                     </span>
                     <span className={rowDesc}>{t('import.replace_complete_desc')}</span>
