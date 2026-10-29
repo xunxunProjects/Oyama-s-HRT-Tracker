@@ -58,9 +58,7 @@ const Step: React.FC<{ n: number; title: string; desc: string; children?: React.
     children,
 }) => (
     <li className="flex gap-3 py-4">
-        <span className="w-5 shrink-0 text-sm leading-[1.375rem] tabular-nums text-[var(--text-muted)]">
-            {n}
-        </span>
+        <span className="w-5 shrink-0 text-sm leading-[1.375rem] tabular-nums text-[var(--text-muted)]">{n}</span>
         <div className="min-w-0 flex-1">
             <p className={`text-sm font-medium leading-[1.375rem] ${on}`}>{title}</p>
             <p className={`${muted} mt-0.5`}>{desc}</p>
