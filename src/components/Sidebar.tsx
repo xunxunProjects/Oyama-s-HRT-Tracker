@@ -18,8 +18,8 @@ interface SidebarProps {
 const DOODLES: Record<string, DoodleName> = {
     home: 'house',
     history: 'notebook',
-    lab: 'vial',
-    settings: 'sliders',
+    lab: 'report',
+    settings: 'gear',
     account: 'person',
 };
 
