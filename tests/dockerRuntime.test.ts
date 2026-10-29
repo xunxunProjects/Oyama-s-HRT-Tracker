@@ -52,4 +52,12 @@ describe('Docker runtime image', () => {
         const missing = modules.filter(file => !copied.has(file));
         expect(missing).toEqual([]);
     });
+
+    it('disables Wrangler Local Explorer in the shipped runtime', () => {
+        const entrypoint = readFileSync(resolve(root, 'docker/entrypoint.sh'), 'utf8');
+        // `wrangler dev` serves an unauthenticated D1/R2 admin API on the same
+        // listener. The Docker image must not expose it.
+        expect(entrypoint).toMatch(/^export X_LOCAL_EXPLORER=false$/m);
+        expect(entrypoint).toMatch(/^export X_LOCAL_OBSERVABILITY=false$/m);
+    });
 });

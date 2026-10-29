@@ -179,6 +179,12 @@ chmod 600 "$vars_file"
 # the proxy in front of it (for example with --network host).
 bind_host="${BIND_HOST:-0.0.0.0}"
 
+# `wrangler dev` also serves an unauthenticated Local Explorer API for D1/R2
+# on the same listener. This image is a production runtime, so disable that
+# API (and the local observability API) before starting the worker.
+export X_LOCAL_EXPLORER=false
+export X_LOCAL_OBSERVABILITY=false
+
 set -- ./node_modules/.bin/wrangler dev \
     --ip "$bind_host" \
     --port "$port" \

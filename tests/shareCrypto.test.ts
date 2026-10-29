@@ -3,12 +3,14 @@ import {
     decryptShareSnapshot,
     encryptShareSnapshot,
     generateShareKey,
+    MAX_DECOMPRESSED_SHARE_BYTES,
     parseShareFragment,
     shareUrlWithKey,
     unwrapShareKey,
     wrapShareKey,
 } from '../src/services/shareCrypto';
 import { sanitizeEncryptedShareSnapshot } from '../shareSnapshotSchema';
+import { aesGcmEncrypt } from '../src/utils/cryptoCompat';
 
 const snapshot = {
     version: 1,
@@ -72,6 +74,49 @@ describe('share link encryption', () => {
         const key = generateShareKey();
         const sealed = await encryptShareSnapshot({ ...snapshot, mode: 'other' }, key);
         expect(await decryptShareSnapshot(sealed, key)).toBeNull();
+    });
+
+    it('refuses a compressed snapshot that expands past the decompression limit', async () => {
+        const key = generateShareKey();
+        // Zeroes compress to a tiny envelope but expand well past the maximum
+        // snapshot size. The viewer must stop before buffering it all.
+        const bomb = new Uint8Array(MAX_DECOMPRESSED_SHARE_BYTES + 1024);
+        const compressed = new Uint8Array(
+            await new Response(new Blob([bomb]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer(),
+        );
+        const keyBytes = Uint8Array.from(atob(key.replace(/-/g, '+').replace(/_/g, '/') + '='), c => c.charCodeAt(0));
+        const iv = new Uint8Array(12);
+        const sealed = {
+            e2ee: 1 as const,
+            z: 1 as const,
+            iv: btoa(String.fromCharCode(...iv)),
+            data: btoa(
+                String.fromCharCode(
+                    ...(await aesGcmEncrypt(
+                        keyBytes,
+                        iv,
+                        compressed,
+                        new TextEncoder().encode('hrt-share-snapshot-v1'),
+                    )),
+                ),
+            ),
+        };
+        expect(sanitizeEncryptedShareSnapshot(sealed).envelope).toEqual(sealed);
+
+        let decompressedBytes = 0;
+        const original = Response.prototype.arrayBuffer;
+        (Response.prototype as any).arrayBuffer = async function (this: Response) {
+            const buffer = await original.call(this);
+            decompressedBytes = buffer.byteLength;
+            return buffer;
+        };
+        try {
+            expect(await decryptShareSnapshot(sealed, key)).toBeNull();
+        } finally {
+            (Response.prototype as any).arrayBuffer = original;
+        }
+        // Before the fix this was the full expansion.
+        expect(decompressedBytes).toBe(0);
     });
 });
 
