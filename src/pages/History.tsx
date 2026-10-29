@@ -16,6 +16,7 @@ import LogDoodle from '../components/LogDoodle';
 import type { DoseTemplate } from '../components/DoseForm';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
+import { inertWhen } from '../utils/inert';
 
 // Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
 const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
@@ -29,7 +30,6 @@ const hoursNow = () => Date.now() / 3600000;
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const headerBtn = headerAction;
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 // On a phone, Select and Select all are only their icon, and Delete only its
 // word. Spelled out in full they cut an English title to "Dose Hist…", and in

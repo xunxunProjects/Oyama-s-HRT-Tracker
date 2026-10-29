@@ -28,6 +28,7 @@ import { clinicalUnit } from '../utils/clinicalUnit';
 import { AddCancelLabel, SwapLabel } from '../components/StableLabel';
 import { CopyTick } from '../components/Tick';
 import { scrollParent } from '../utils/scrollParent';
+import { inertWhen } from '../utils/inert';
 
 interface LabProps {
     t: (key: string) => string;
@@ -45,10 +46,6 @@ interface LabProps {
     onOpenCalibrationSettings: () => void;
     lang: Lang;
 }
-
-// `inert` keeps a collapsed form's inputs out of the tab order; the 0fr row
-// only hides them visually.
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 const Lab: React.FC<LabProps> = ({
     t,
