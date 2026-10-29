@@ -7,6 +7,7 @@ import DoseRings from './DoseRings';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import CustomRhythm from './CustomRhythm';
+import GelDoseConverter from './dose_form/GelDoseConverter';
 import {
     PlanItem,
     PlanDraft,
@@ -250,25 +251,32 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                     )}
 
                     {step === 'dose' && draft && (
-                        <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider}`}>
-                            <input
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                step="any"
-                                value={draft.dose}
-                                onChange={e => patch({ dose: e.target.value })}
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter') forward();
-                                }}
-                                onFocus={e => e.currentTarget.select()}
-                                aria-label={heading}
-                                className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
-                            />
-                            <span className="shrink-0 text-sm text-muted">
-                                {isPatch ? `µg${t('regimen.per_day')}` : 'mg'}
-                            </span>
-                        </label>
+                        <div className="mt-8">
+                            <label className={`flex items-baseline gap-3 pb-2 ${divider}`}>
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    step="any"
+                                    value={draft.dose}
+                                    onChange={e => patch({ dose: e.target.value })}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') forward();
+                                    }}
+                                    onFocus={e => e.currentTarget.select()}
+                                    aria-label={heading}
+                                    className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
+                                />
+                                <span className="shrink-0 text-sm text-muted">
+                                    {isPatch ? `µg${t('regimen.per_day')}` : 'mg'}
+                                </span>
+                            </label>
+                            {draft.route === Route.gel && draft.ester === Ester.E2 && (
+                                <div className="mt-3">
+                                    <GelDoseConverter onApply={mg => patch({ dose: mg })} />
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {step === 'site' && draft && (
