@@ -114,10 +114,10 @@ const TallyCurrencies: React.FC<{ tally: VoteTally; t: (key: string) => string }
                 <div key={id}>
                     <div className="flex items-baseline justify-between gap-4">
                         <span className="text-sm text-[var(--text)]">{currencyLabel(id, t)}</span>
-                        <span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
-                            {tally.ballots > 0 ? `${Math.round((count / tally.ballots) * 100)}%` : '0%'}
-                            {count > 0 && ` · ${count}`}
-                            {passed && ` · ${t('vote.tally.pass')}`}
+                        <span className="flex shrink-0 gap-3 text-xs tabular-nums text-[var(--text-muted)]">
+                            {passed && <span className="text-[var(--accent-ink)]">{t('vote.tally.pass')}</span>}
+                            {count > 0 && <span>{count}</span>}
+                            <span>{tally.ballots > 0 ? `${Math.round((count / tally.ballots) * 100)}%` : '0%'}</span>
                         </span>
                     </div>
                     <Bar value={count} total={tally.ballots} />
@@ -131,15 +131,17 @@ const TallyAccept: React.FC<{ tally: VoteTally; t: (key: string) => string }> = 
     <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-[var(--text)]">{t('vote.tally.yes')}</span>
-            <span className="tabular-nums text-[var(--text-muted)]">
-                {tally.accept.yes} · {tally.ballots > 0 ? Math.round((tally.accept.yes / tally.ballots) * 100) : 0}%
+            <span className="flex gap-3 tabular-nums text-[var(--text-muted)]">
+                <span>{tally.accept.yes}</span>
+                <span>{tally.ballots > 0 ? Math.round((tally.accept.yes / tally.ballots) * 100) : 0}%</span>
             </span>
         </div>
         <Bar value={tally.accept.yes} total={tally.ballots} />
         <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-[var(--text)]">{t('vote.tally.no')}</span>
-            <span className="tabular-nums text-[var(--text-muted)]">
-                {tally.accept.no} · {tally.ballots > 0 ? Math.round((tally.accept.no / tally.ballots) * 100) : 0}%
+            <span className="flex gap-3 tabular-nums text-[var(--text-muted)]">
+                <span>{tally.accept.no}</span>
+                <span>{tally.ballots > 0 ? Math.round((tally.accept.no / tally.ballots) * 100) : 0}%</span>
             </span>
         </div>
         <Bar value={tally.accept.no} total={tally.ballots} />
@@ -764,7 +766,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                                             currencies: [
                                                 currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
                                                 ...final.added.map(id => currencyLabel(id, t)),
-                                            ].join(' · '),
+                                            ].join(t('vote.list_sep')),
                                         })}
                                     </p>
                                 )}

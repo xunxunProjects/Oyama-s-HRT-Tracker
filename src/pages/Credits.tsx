@@ -189,14 +189,14 @@ const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
                                 {developer.focus?.length ? (
                                     <div>
                                         <p className={metaLabel}>Focus</p>
-                                        <p className="mt-1 text-sm text-[var(--text)]">{developer.focus.join(' · ')}</p>
+                                        <p className="mt-1 text-sm text-[var(--text)]">{developer.focus.join(', ')}</p>
                                     </div>
                                 ) : null}
                                 {developer.languages?.length ? (
                                     <div>
                                         <p className={metaLabel}>Languages</p>
                                         <p className="mt-1 text-sm text-[var(--text)]">
-                                            {developer.languages.join(' · ')}
+                                            {developer.languages.join(', ')}
                                         </p>
                                     </div>
                                 ) : null}
