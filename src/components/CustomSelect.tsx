@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useId } from 'react';
-import { ChevronDown } from './icons';
 import Tick from './Tick';
 
 // The things that can be open at once inside a form (this list, the date
@@ -52,7 +51,8 @@ interface CustomSelectProps {
 
 /**
  * A choice, drawn as a line like a field: its name above, what's chosen on
- * the line, a chevron at the end. Pressed, the options unfold under it in
+ * the line in the accent ink, which is all that says it can be changed (no
+ * chevron). Pressed, the options unfold under it in
  * place, as plain rows with a tick by the chosen one, and fold away again
  * once one is picked. Nothing floats over the form.
  */
@@ -157,7 +157,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             {icon}
                             <span className="font-medium text-sm truncate">{label}</span>
                         </span>
-                        <span id={valueId} className="text-sm text-[var(--text-muted)] truncate">
+                        <span id={valueId} className="text-sm text-[var(--accent-ink)] truncate">
                             {selectedOption?.label}
                         </span>
                     </>
@@ -171,7 +171,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                             {selectedOption?.icon && (
                                 <span className="text-[var(--text-muted)]">{selectedOption.icon}</span>
                             )}
-                            <span id={valueId} className="text-sm truncate">
+                            <span id={valueId} className="text-sm text-[var(--accent-ink)] truncate">
                                 {selectedOption?.label || value}
                             </span>
                         </span>
@@ -180,10 +180,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </span>
                     </>
                 )}
-                <ChevronDown
-                    size={18}
-                    className={`chev shrink-0 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
-                />
             </button>
 
             <div className="disclosure disclosure-bleed" data-open={isOpen} {...(isOpen ? {} : { inert: '' })}>

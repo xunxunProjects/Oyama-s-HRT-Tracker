@@ -2,7 +2,7 @@ import React, { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
-import { Check, Trash, ChevronDown } from './icons';
+import { Check, Trash } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
 import Segmented from './Segmented';
@@ -196,9 +196,8 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
                     <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.date')}</span>
-                    <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                    <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
                         <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
-                        <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                     </div>
                 </button>
                 <DateTimePicker

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SwapLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Check, ChevronDown, Eye, EyeOff, Link, Busy, LockKeyhole, Trash } from '../components/icons';
+import { Check, Eye, EyeOff, Link, Busy, LockKeyhole, Trash } from '../components/icons';
 import { CopyTick } from '../components/Tick';
 import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
@@ -402,14 +402,10 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
                             >
                                 <span className="text-[0.9375rem] text-body">{copy.expiryLabel}</span>
-                                <span className="flex items-center gap-1.5 text-muted">
+                                <span className="flex items-center gap-1.5 text-[var(--accent-ink)]">
                                     <span className="text-sm tabular-nums">
                                         {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                     </span>
-                                    <ChevronDown
-                                        size={14}
-                                        className={`chev ${isExpiryPickerOpen ? 'rotate-180' : ''}`}
-                                    />
                                 </span>
                             </button>
                             <DateTimePicker

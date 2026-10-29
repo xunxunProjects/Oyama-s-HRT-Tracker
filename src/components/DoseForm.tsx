@@ -19,7 +19,7 @@ import {
     sublingualThetaFromHold as thetaFromHold,
     sublingualHoldFromTheta as holdFromTheta,
 } from '../../logic';
-import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, ChevronDown, Check, Warning, External, Busy } from './icons';
+import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, Check, Warning, External, Busy } from './icons';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
 import { doseOf, drugLabel, productNames } from '../utils/regimenText';
@@ -896,7 +896,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         className="w-full flex items-center justify-between py-[18px] border-b border-[var(--border)] text-start"
                     >
                         <span className="text-[0.9375rem] text-[var(--text)]">{t('field.time')}</span>
-                        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                        <div className="flex items-center gap-1.5 text-[var(--accent-ink)]">
                             <span className="text-sm tabular-nums">
                                 {dateStr
                                     ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
@@ -909,7 +909,6 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                       })
                                     : '—'}
                             </span>
-                            <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
                         </div>
                     </button>
                     <DateTimePicker
