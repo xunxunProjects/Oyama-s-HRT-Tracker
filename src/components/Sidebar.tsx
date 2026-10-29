@@ -1,5 +1,5 @@
 import React from 'react';
-import Doodle, { type DoodleName } from './Doodle';
+import Doodle, { NAV_DOODLES } from './Doodle';
 
 interface NavItem {
     id: string;
@@ -12,16 +12,6 @@ interface SidebarProps {
     currentView: string;
     onViewChange: (view: any) => void;
 }
-
-// Each page's own drawing, in the hand of the app's illustrations (Doodle.tsx).
-// A page without one (Admin) keeps its line icon.
-const DOODLES: Record<string, DoodleName> = {
-    home: 'house',
-    history: 'notebook',
-    lab: 'report',
-    settings: 'gear',
-    account: 'person',
-};
 
 const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }) => {
     return (
@@ -61,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                     {navItems.map(item => {
                         const isActive = currentView === item.id;
                         const Icon = item.icon;
-                        const doodle = DOODLES[item.id];
+                        const doodle = NAV_DOODLES[item.id];
                         return (
                             <button
                                 key={item.id}

@@ -395,6 +395,16 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     ),
 };
 
+/** Each page's own drawing, for the sidebar and the bottom bar. A page
+ *  without one (Admin) keeps its line icon. */
+export const NAV_DOODLES: Record<string, DoodleName> = {
+    home: 'house',
+    history: 'notebook',
+    lab: 'report',
+    settings: 'gear',
+    account: 'person',
+};
+
 interface DoodleProps {
     name: DoodleName;
     /** Rendered width and height in rem, so it scales with the type beside it. */
