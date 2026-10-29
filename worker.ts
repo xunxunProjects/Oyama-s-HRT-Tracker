@@ -13,6 +13,7 @@ import {
 } from './shareSnapshotSchema';
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
+import { sha256Hex } from './workerUtil';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 import {
     ensureCommunityVoteSchema,
@@ -665,13 +666,6 @@ async function sweepExpiredShares(env: Env): Promise<void> {
         // Best-effort housekeeping — never fail a request over it.
         console.error('Failed to sweep expired shares:', e);
     }
-}
-
-async function sha256Hex(value: string): Promise<string> {
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-    return Array.from(new Uint8Array(digest))
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
 }
 
 /**
