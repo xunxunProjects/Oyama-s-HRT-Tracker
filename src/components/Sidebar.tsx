@@ -54,8 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                 </div>
 
                 {/* Navigation Items. The current page sits on a filled pill with
-                    its drawing in colour; the rest rest in grey and colour in on
-                    hover. In the narrow strip each pill is a square with its
+                    the rest lift to full text on hover; every drawing is in
+                    colour. In the narrow strip each pill is a square with its
                     drawing in the middle. */}
                 <div className="flex-1 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
                     {navItems.map(item => {
@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 onClick={() => onViewChange(item.id)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={item.label}
-                                className={`group w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-[0.9375rem] transition-colors duration-150 motion-reduce:transition-none
+                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-[0.9375rem] transition-colors duration-150 motion-reduce:transition-none
                                 ${
                                     isActive
                                         ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'
@@ -76,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 }`}
                             >
                                 {doodle ? (
-                                    <Doodle name={doodle} size={2.25} className={isActive ? '' : 'nav-doodle-rest'} />
+                                    <Doodle name={doodle} size={2.25} />
                                 ) : (
                                     <span className="grid size-9 shrink-0 place-items-center">
                                         <Icon
