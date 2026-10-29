@@ -1,4 +1,5 @@
 import { apiFetch, apiErrorFrom } from './apiClient';
+import type { BackupMeta } from './cloud';
 
 export interface AdminUser {
     id: string;
@@ -30,12 +31,6 @@ export interface Cleared2FA {
     backupCodes: number;
     /** Sessions revoked alongside, so a stripped factor evicts whoever held one. */
     sessions: number;
-}
-
-export interface BackupMeta {
-    id: string;
-    created_at: number;
-    data_size: number;
 }
 
 export interface StorageTable {

@@ -60,6 +60,8 @@ import {
     TOMBSTONE_MAX_PER_KIND,
     TOMBSTONE_TTL_MS,
     emptyTombstones,
+    hasOwn,
+    nullMap,
     pruneTombstoneMap,
     pruneTombstones,
     type ModeKey,
@@ -81,17 +83,6 @@ export const PLAN_EVERY_DAYS_MAX = 3650;
 
 /** Shown when a failed write could not be fully rolled back. */
 export const PARTIAL_WRITE_MESSAGE = 'Complete backup import failed; partial writes may have occurred.';
-
-export type PortablePreferenceKey =
-    'app-theme' | 'hrt-lang' | 'app-show-prediction' | 'app-hide-site-label' | 'hrt-supply-lead-days';
-
-export const PORTABLE_PREFERENCE_KEYS: readonly PortablePreferenceKey[] = [
-    'app-theme',
-    'hrt-lang',
-    'app-show-prediction',
-    'app-hide-site-label',
-    'hrt-supply-lead-days',
-];
 
 /**
  * Only confirmed keys leave the device. `app-auto-backup`, `app-dev-mode`,
@@ -159,9 +150,6 @@ export interface CompleteBackupContext {
     /** Injection point for tests; defaults to Date.now(). */
     now?: number;
 }
-
-export type BundleCategory =
-    'events' | 'labResults' | 'doseTemplates' | 'deletions' | 'quickDoses' | 'supplies' | 'plan';
 
 export interface BundleCounts {
     events: number;
@@ -334,8 +322,6 @@ const FORBIDDEN_IDS: ReadonlySet<string> = new Set([...Object.getOwnPropertyName
 const isRecordId = (value: unknown): value is string =>
     typeof value === 'string' && value !== '' && !FORBIDDEN_IDS.has(value);
 
-const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
-
 const ACCOUNT_TAG = /^[0-9a-f]{64}$/;
 
 /**
@@ -346,8 +332,6 @@ const ACCOUNT_TAG = /^[0-9a-f]{64}$/;
  */
 export const completeBackupAccountTag = (owner: string): string | undefined =>
     owner === 'local' ? undefined : bytesToHex(sha256(utf8ToBytes(`${COMPLETE_BACKUP_FORMAT}/account/${owner}`)));
-
-const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
 
 const isStamp = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0;
 

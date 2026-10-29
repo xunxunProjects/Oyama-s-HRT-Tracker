@@ -103,6 +103,7 @@ Important product constraints:
 | `f2f.ts`                 | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                            |
 | `hrtPairing.ts`          | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                       |
 | `requestInput.ts`        | Client-address extraction and bounded JSON body reads for the Worker.                                                |
+| `workerUtil.ts`          | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                     |
 | `communityVote.ts`       | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.            |
 | `communityVoteServer.ts` | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                          |
 
@@ -226,6 +227,8 @@ binding and dispatches `/api/*` in a long, ordered `fetch` handler.
 - `requestInput.ts`: `getClientIP()` and the bounded JSON reader. Every small
   JSON body should go through `readSmallJsonBody()`; do not buffer an
   unbounded request body.
+- `workerUtil.ts`: the `json()`/`error()` responses, `sha256Hex`, hex and base64
+  helpers, and `constantTimeEqual`. Import these rather than adding a copy.
 - `passwordStrength.ts`: password length/byte limits and the strength estimate.
 - `shareExpiry.ts`: share expiry bounds.
 - `shareSnapshotSchema.ts`: sender-side and viewer-side snapshot validation.

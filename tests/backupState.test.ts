@@ -5,25 +5,12 @@ import {
     sanitizeImportedEvents,
     sanitizeImportedLabResults,
     sanitizeImportedTemplates,
-    type StorageLike,
 } from '../src/utils/backupState';
 import { defaultPack, normalizeSupply, packKindsFor, packUnitMG } from '../src/utils/regimen';
 import { normalizePlanItem } from '../src/utils/plan';
 import { DOSE_MG_MAX, Route, Ester } from '../logic';
 import { emptyTombstones, type SyncState } from '../src/utils/syncMerge';
-
-class MemoryStorage implements StorageLike {
-    readonly map = new Map<string, string>();
-    getItem(key: string): string | null {
-        return this.map.get(key) ?? null;
-    }
-    setItem(key: string, value: string): void {
-        this.map.set(key, value);
-    }
-    removeItem(key: string): void {
-        this.map.delete(key);
-    }
-}
+import { MemoryStorage } from './memoryStorage';
 
 class FailingStorage extends MemoryStorage {
     constructor(private readonly failKey: string) {

@@ -13,6 +13,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { Regimen, Supply, Pack, PackKind, supplyStatus, packKindsFor, defaultPack, packUnitMG } from '../utils/regimen';
 import { supplyLabel, intervalLabel, dueLabel, fill, fillNodes, remainingLabel, packUnit } from '../utils/regimenText';
 import { usualFor } from '../utils/plan';
+import { inertWhen } from '../utils/inert';
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
@@ -25,7 +26,6 @@ const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
 // The same pair the lab form closes with.
 const cancelBtn = 'min-w-[88px] px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] rounded-md';
 const confirmBtn = 'btn-primary min-w-[88px]';
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Everything that can be stocked, per mode: the forms the dose form can log. */
 const STOCKABLE: Record<'transfem' | 'transmasc', [Route, Ester][]> = {

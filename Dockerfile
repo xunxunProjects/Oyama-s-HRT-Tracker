@@ -30,6 +30,7 @@ COPY --from=build /app/backupPolicy.ts ./backupPolicy.ts
 COPY --from=build /app/shareSnapshotSchema.ts ./shareSnapshotSchema.ts
 COPY --from=build /app/passwordStrength.ts ./passwordStrength.ts
 COPY --from=build /app/requestInput.ts ./requestInput.ts
+COPY --from=build /app/workerUtil.ts ./workerUtil.ts
 COPY --from=build /app/shareExpiry.ts ./shareExpiry.ts
 COPY --from=build /app/communityVote.ts ./communityVote.ts
 COPY --from=build /app/communityVoteServer.ts ./communityVoteServer.ts

@@ -80,6 +80,9 @@ export const formatBytes = (bytes: number): string => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
+/** A patch's wear in days, trimmed of trailing zeros: "3.5" or "7", not "3.50". */
+export const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
+
 // No locale: `hour12: false` with two-digit fields renders "14:05" identically
 // in all seven of the app's locales, so threading `lang` through here would
 // change three call sites and no pixels.

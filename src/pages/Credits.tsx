@@ -6,6 +6,7 @@ import Doodle from '../components/Doodle';
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
 import llmGirls from '../assets/llm-girls.webp';
 import { DEVELOPERS, type Developer } from '../data/developers';
+import { inertWhen } from '../utils/inert';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
 // page loads nothing from GitHub or anywhere else, so opening it tells no
@@ -147,10 +148,6 @@ const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
 
 const muted = 'text-[var(--text-muted)]';
 const metaLabel = 'text-[11px] font-medium text-[var(--text-muted)]';
-// `inert` keeps a collapsed card's links and buttons out of the tab order;
-// the disclosure only hides them visually.
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
-
 const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
     const [open, setOpen] = React.useState(false);
     const panelId = `developer-${developer.login}`;

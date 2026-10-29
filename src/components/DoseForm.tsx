@@ -35,6 +35,7 @@ import { useEscapeLayer } from './CustomSelect';
 import GuideFold from './dose_form/GuideFold';
 import Tick from './Tick';
 import { cleanDoseMG } from '../utils/cleanDose';
+import { inertWhen } from '../utils/inert';
 
 export interface DoseTemplate {
     id: string;
@@ -92,9 +93,6 @@ interface DoseFormProps {
      *  one, and recent use shows whether it is already running high. */
     events?: DoseEvent[];
 }
-
-// A folded-away part leaves the tab order with it (as in Plan and Supplies).
-const inertWhen = (hidden: boolean) => (hidden ? ({ inert: '' } as Record<string, unknown>) : {});
 
 // A stored dose as it is put back into a field: "12.5", not "12.500". Still
 // cut at three places, so a value an older version drifted (12.499934) comes

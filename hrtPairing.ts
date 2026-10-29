@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
+import { b64decode, b64encode, constantTimeEqual, error, json, nowSeconds, randomHex, sha256Hex } from './workerUtil';
 
 const PAIR_TTL_SECONDS = 300;
 const PAIR_WINDOW_SECONDS = 10 * 60;
@@ -51,61 +52,6 @@ interface PairRequestRow {
     denied_at: number | null;
     session_id: string | null;
     token_issued_at: number | null;
-}
-
-const nowSeconds = () => Math.floor(Date.now() / 1000);
-
-const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
-            'X-Content-Type-Options': 'nosniff',
-        },
-    });
-
-const error = (code: string, message: string, status = 400) => json({ code, message }, status);
-
-function hex(bytes: Uint8Array): string {
-    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function randomHex(bytes: number): string {
-    return hex(crypto.getRandomValues(new Uint8Array(bytes)));
-}
-
-async function sha256Hex(value: Uint8Array | string): Promise<string> {
-    const bytes = typeof value === 'string' ? encoder.encode(value) : value;
-    return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
-}
-
-function constantTimeEqual(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    let difference = 0;
-    for (let index = 0; index < a.length; index += 1) {
-        difference |= a.charCodeAt(index) ^ b.charCodeAt(index);
-    }
-    return difference === 0;
-}
-
-function b64encode(bytes: Uint8Array): string {
-    let text = '';
-    for (const byte of bytes) text += String.fromCharCode(byte);
-    return btoa(text);
-}
-
-function b64decode(value: string): Uint8Array | null {
-    try {
-        const text = atob(value);
-        const bytes = new Uint8Array(text.length);
-        for (let index = 0; index < text.length; index += 1) {
-            bytes[index] = text.charCodeAt(index);
-        }
-        return bytes;
-    } catch {
-        return null;
-    }
 }
 
 export function hrtCapability(env: Env): { supported: boolean; version: number } {

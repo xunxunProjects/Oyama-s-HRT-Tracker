@@ -21,7 +21,8 @@ import {
 } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { formatBytes } from '../utils/helpers';
-import { adminService, AdminUser, AdminUser2FA, BackupMeta, TwoFactorScope, StorageReport } from '../services/admin';
+import { adminService, AdminUser, AdminUser2FA, TwoFactorScope, StorageReport } from '../services/admin';
+import type { BackupMeta } from '../services/cloud';
 import { useDialog, useInlineHost } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
 import { settingsMuted, settingsOn } from '../components/SettingsListItem';

@@ -1,4 +1,4 @@
-import { apiEndpoint, apiErrorFrom } from './apiClient';
+import { apiEndpoint, apiRequest } from './apiClient';
 
 export interface HrtStatus {
     holdUntil: number | null;
@@ -38,21 +38,6 @@ export interface HrtTrustedIp {
     lastUsedAt: number | null;
 }
 
-async function request<T>(token: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-    const response = await fetch(apiEndpoint(path), {
-        method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
-        headers: {
-            Authorization: `Bearer ${token}`,
-            ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        },
-        ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
-    });
-    if (!response.ok) {
-        throw await apiErrorFrom(response);
-    }
-    return (await response.json()) as T;
-}
-
 export const hrtService = {
     /** Public: whether this deployment has the hrt-tool pairing surface enabled. */
     capability: async (): Promise<boolean> => {
@@ -67,17 +52,19 @@ export const hrtService = {
             return false;
         }
     },
-    status: (token: string) => request<HrtStatus>(token, '/api/hrt/status'),
-    requests: async (token: string) => (await request<{ requests: HrtRequest[] }>(token, '/api/hrt/requests')).requests,
+    status: (token: string) => apiRequest<HrtStatus>(token, '/api/hrt/status'),
+    requests: async (token: string) =>
+        (await apiRequest<{ requests: HrtRequest[] }>(token, '/api/hrt/requests')).requests,
     approve: (token: string, id: string, code: string) =>
-        request<{ ok: true }>(token, `/api/hrt/requests/${id}/approve`, { body: { code } }),
-    deny: (token: string, id: string) => request<{ ok: true }>(token, `/api/hrt/requests/${id}/deny`, { body: {} }),
-    devices: async (token: string) => (await request<{ devices: HrtDevice[] }>(token, '/api/hrt/devices')).devices,
-    revoke: (token: string, id: string) => request<{ ok: true }>(token, `/api/hrt/devices/${id}/revoke`, { body: {} }),
+        apiRequest<{ ok: true }>(token, `/api/hrt/requests/${id}/approve`, { body: { code } }),
+    deny: (token: string, id: string) => apiRequest<{ ok: true }>(token, `/api/hrt/requests/${id}/deny`, { body: {} }),
+    devices: async (token: string) => (await apiRequest<{ devices: HrtDevice[] }>(token, '/api/hrt/devices')).devices,
+    revoke: (token: string, id: string) =>
+        apiRequest<{ ok: true }>(token, `/api/hrt/devices/${id}/revoke`, { body: {} }),
     trustedIps: async (token: string) =>
-        (await request<{ trustedIps: HrtTrustedIp[] }>(token, '/api/hrt/trusted-ips')).trustedIps,
+        (await apiRequest<{ trustedIps: HrtTrustedIp[] }>(token, '/api/hrt/trusted-ips')).trustedIps,
     addTrustedIp: (token: string, ip: string, label: string, password: string) =>
-        request<{ ok: true }>(token, '/api/hrt/trusted-ips', { body: { ip, label, password } }),
+        apiRequest<{ ok: true }>(token, '/api/hrt/trusted-ips', { body: { ip, label, password } }),
     removeTrustedIp: (token: string, id: string) =>
-        request<{ ok: true }>(token, `/api/hrt/trusted-ips/${id}`, { method: 'DELETE' }),
+        apiRequest<{ ok: true }>(token, `/api/hrt/trusted-ips/${id}`, { method: 'DELETE' }),
 };

@@ -15,6 +15,7 @@ import { SignJWT } from 'jose';
 import * as openpgp from 'openpgp';
 import { getClientIP, readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
+import { b64decode, b64encode, constantTimeEqual, error, json, nowSeconds, randomHex, sha256Hex } from './workerUtil';
 
 const COHORT_SIZE = 100;
 const CLI_CODE_TTL_SECONDS = 10 * 60;
@@ -51,32 +52,6 @@ class F2fError extends Error {
     }
 }
 
-function b64decode(value: string): Uint8Array | null {
-    try {
-        return Uint8Array.from(atob(value), char => char.charCodeAt(0));
-    } catch {
-        return null;
-    }
-}
-
-function b64encode(bytes: Uint8Array): string {
-    let binary = '';
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return btoa(binary);
-}
-
-async function sha256Hex(value: string): Promise<string> {
-    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)));
-    return Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function constantTimeEqual(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    let diff = 0;
-    for (let index = 0; index < a.length; index++) diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
-    return diff === 0;
-}
-
 async function escrowCryptoKey(env: Env): Promise<CryptoKey> {
     const bytes = env.HRT_ESCROW_KEY ? b64decode(env.HRT_ESCROW_KEY) : null;
     if (!bytes || bytes.length !== 32) {
@@ -102,20 +77,6 @@ interface SeatRow {
     seat: number;
     status: string;
 }
-
-const nowSeconds = () => Math.floor(Date.now() / 1000);
-
-const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
-            'X-Content-Type-Options': 'nosniff',
-        },
-    });
-
-const error = (code: string, message: string, status = 400) => json({ code, message }, status);
 
 function hasUnsafeControl(value: string): boolean {
     for (const char of value) {
@@ -738,11 +699,6 @@ async function cohortKeyring(env: Env, user: F2fUser, cohortId: string): Promise
             'X-Content-Type-Options': 'nosniff',
         },
     });
-}
-
-function randomHex(byteCount: number): string {
-    const bytes = crypto.getRandomValues(new Uint8Array(byteCount));
-    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 async function createCliCode(env: Env, user: F2fUser): Promise<Response> {

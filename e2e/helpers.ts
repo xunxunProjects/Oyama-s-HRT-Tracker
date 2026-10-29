@@ -1,7 +1,6 @@
 import { expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-export const APP_ORIGIN = 'http://127.0.0.1:3000';
 export const API_ORIGIN = 'http://127.0.0.1:8787';
 export const SYNTHETIC_PASSWORD = 'Synthetic-E2E-Pass-2026!';
 
@@ -92,8 +91,6 @@ export interface BundleFixture {
     calibration: { method: string; historyMode: string };
     preferences: Record<string, unknown>;
 }
-
-const MODE_KEYS: ModeKey[] = ['transfem', 'transmasc'];
 
 /** A plausible time in hours since the epoch, close to the test's "now". */
 export const nowHours = (): number => Math.floor(Date.now() / 3_600_000);
@@ -193,10 +190,6 @@ export async function pasteAndReplace(page: Page, text: string): Promise<void> {
     }
     await box.fill(text);
     await page.getByRole('button', { name: 'Replace device', exact: true }).click();
-}
-
-export function dialogMessage(page: Page): ReturnType<Page['locator']> {
-    return page.locator('#app-dialog-message');
 }
 
 export async function confirmDialog(page: Page, buttonName: string): Promise<void> {
@@ -316,5 +309,3 @@ export function stableBundle(bundle: BundleFixture): unknown {
         preferences: bundle.preferences,
     };
 }
-
-export const modeKeys = MODE_KEYS;

@@ -80,6 +80,30 @@ export function apiEndpoint(path: string): string {
 }
 
 /**
+ * A JSON call made with the session token: a GET, or a POST when there is a
+ * body, unless `method` says otherwise. A non-2xx response throws an ApiError.
+ * Plain `fetch`, not apiFetch, so a 401 here does not raise UNAUTHORIZED_EVENT.
+ */
+export async function apiRequest<T>(
+    token: string,
+    path: string,
+    init: { method?: string; body?: unknown } = {},
+): Promise<T> {
+    const response = await fetch(apiEndpoint(path), {
+        method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
+        headers: {
+            Authorization: `Bearer ${token}`,
+            ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
+        ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+    });
+    if (!response.ok) {
+        throw await apiErrorFrom(response);
+    }
+    return (await response.json()) as T;
+}
+
+/**
  * Thin wrapper around `fetch` for talking to our API.
  *
  * A path like "/api/login" goes through `apiEndpoint`, so callers can pass

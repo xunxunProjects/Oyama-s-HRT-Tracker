@@ -23,6 +23,7 @@ import {
     itemToDraft,
 } from '../utils/plan';
 import { asTitle, regimenLabel, frequencyLabel, gelSiteName } from '../utils/regimenText';
+import { inertWhen } from '../utils/inert';
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
@@ -30,7 +31,6 @@ const muted = 'text-[var(--text-muted)]';
 // field label over a line, so the paired fields read as one form.
 const inputCls = 'input-base tabular-nums';
 const labelCls = 'field-label';
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
 
 /** Amount, rhythm and, for a gel, where it goes; for a sublingual dose, how long it is held. */
 const AmountFields: React.FC<{

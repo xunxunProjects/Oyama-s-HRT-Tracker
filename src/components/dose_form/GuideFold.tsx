@@ -1,7 +1,6 @@
 import React from 'react';
 import { ChevronDown } from '../icons';
-
-const inertWhen = (closed: boolean) => (closed ? ({ inert: '' } as Record<string, unknown>) : {});
+import { inertWhen } from '../../utils/inert';
 
 /**
  * Reference text in the dose form (the injection guide, the CPA hint): its

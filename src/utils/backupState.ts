@@ -8,6 +8,7 @@ import {
     DOSE_MG_MAX,
     EVENT_TIME_H_MAX,
     EVENT_TIME_H_MIN,
+    isDrugCode,
     isLabAssay,
     sanitizePKParams,
     isPlausibleBodyWeightKG,
@@ -89,9 +90,6 @@ export interface AppliedSyncedState {
 }
 
 export const MAX_IMPORT_ENTRIES = 20000;
-const DRUG_CODE = /^[A-Za-z0-9_]{1,24}$/;
-
-export const isDrugCode = (v: unknown): v is Ester => typeof v === 'string' && DRUG_CODE.test(v);
 
 /** Carry a record's edit stamp through sanitising; absent or junk becomes undefined. */
 export const keepStamp = (raw: any): number | undefined => {
@@ -99,6 +97,15 @@ export const keepStamp = (raw: any): number | undefined => {
     return Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
+// Storage keys are namespaced by account as well as by HRT mode. Without the
+// account half, a shared device (family tablet, clinic kiosk, installed PWA)
+// showed the previous user's full dose history to whoever signed in next, and
+// the auto-backup then encrypted those records under the new account's key and
+// uploaded them.
+//
+// Signed-out keys keep their original, un-prefixed names, so records written
+// before this change — and by anyone who never signs in — are still found
+// exactly where they were.
 export const nsFor = (owner: string, suffix: string): string =>
     owner === 'local' ? `hrt-${suffix}` : `hrt-u${owner}-${suffix}`;
 
