@@ -1,7 +1,6 @@
 import { expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-export const APP_ORIGIN = 'http://127.0.0.1:3000';
 export const API_ORIGIN = 'http://127.0.0.1:8787';
 export const SYNTHETIC_PASSWORD = 'Synthetic-E2E-Pass-2026!';
 
@@ -195,10 +194,6 @@ export async function pasteAndReplace(page: Page, text: string): Promise<void> {
     await page.getByRole('button', { name: 'Replace device', exact: true }).click();
 }
 
-export function dialogMessage(page: Page): ReturnType<Page['locator']> {
-    return page.locator('#app-dialog-message');
-}
-
 export async function confirmDialog(page: Page, buttonName: string): Promise<void> {
     const dialog = page.locator('[data-prompt="confirm"]');
     await expect(dialog).toBeVisible();
@@ -316,5 +311,3 @@ export function stableBundle(bundle: BundleFixture): unknown {
         preferences: bundle.preferences,
     };
 }
-
-export const modeKeys = MODE_KEYS;

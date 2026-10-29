@@ -1,4 +1,3 @@
-import React from 'react';
 import { Icon, type IconProps, type IconComponent } from './Icon';
 import type { GlyphName } from './glyphs';
 
@@ -36,7 +35,6 @@ export const Retry = glyph('retry', 'Retry');
 export const Undo = glyph('undo', 'Undo');
 export const Repeat = glyph('repeat', 'Repeat');
 export const Download = glyph('download', 'Download');
-export const Upload = glyph('upload', 'Upload');
 export const Logout = glyph('logout', 'Logout');
 export const Share = glyph('share', 'Share');
 export const Link = glyph('link', 'Link');

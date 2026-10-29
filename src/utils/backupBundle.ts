@@ -82,17 +82,6 @@ export const PLAN_EVERY_DAYS_MAX = 3650;
 /** Shown when a failed write could not be fully rolled back. */
 export const PARTIAL_WRITE_MESSAGE = 'Complete backup import failed; partial writes may have occurred.';
 
-export type PortablePreferenceKey =
-    'app-theme' | 'hrt-lang' | 'app-show-prediction' | 'app-hide-site-label' | 'hrt-supply-lead-days';
-
-export const PORTABLE_PREFERENCE_KEYS: readonly PortablePreferenceKey[] = [
-    'app-theme',
-    'hrt-lang',
-    'app-show-prediction',
-    'app-hide-site-label',
-    'hrt-supply-lead-days',
-];
-
 /**
  * Only confirmed keys leave the device. `app-auto-backup`, `app-dev-mode`,
  * onboarding/site-notice flags, and every credential stay excluded by
@@ -159,9 +148,6 @@ export interface CompleteBackupContext {
     /** Injection point for tests; defaults to Date.now(). */
     now?: number;
 }
-
-export type BundleCategory =
-    'events' | 'labResults' | 'doseTemplates' | 'deletions' | 'quickDoses' | 'supplies' | 'plan';
 
 export interface BundleCounts {
     events: number;

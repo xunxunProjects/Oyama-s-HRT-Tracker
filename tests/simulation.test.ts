@@ -92,7 +92,7 @@ describe('runSimulation: superposition and scaling', () => {
         const t0 = NOW_H - 50;
         const twice = runSimulation([dose(Route.oral, Ester.E2, 2, t0), dose(Route.oral, Ester.E2, 2, t0)], BW)!;
         const once = runSimulation([dose(Route.oral, Ester.E2, 4, t0)], BW)!;
-        twice.timeH.forEach((t, i) => expect(twice.concPGmL_E2[i]).toBeCloseTo(once.concPGmL_E2[i], 9));
+        twice.timeH.forEach((_, i) => expect(twice.concPGmL_E2[i]).toBeCloseTo(once.concPGmL_E2[i], 9));
     });
 
     it('concentration scales linearly with dose and inversely with body weight', () => {
