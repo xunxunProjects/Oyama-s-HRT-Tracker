@@ -68,7 +68,7 @@ const BottomNav: React.FC<{
     }, [pill, placed]);
 
     return (
-        <nav className="bottom-nav glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-md)]">
+        <nav className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]">
             <div ref={rowRef} className="relative flex items-stretch p-1.5 gap-0.5">
                 {pill && (
                     <span
