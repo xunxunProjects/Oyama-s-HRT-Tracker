@@ -161,7 +161,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                                 key={`${r.anon_id}-${r.created_at}-${idx}`}
                                 className="flex items-center justify-between py-3"
                             >
-                                <span className="font-mono text-sm text-[var(--text)]">user_{r.anon_id}***</span>
+                                <span className="text-sm text-[var(--text)]">user_{r.anon_id}***</span>
                                 <span className="text-xs text-[var(--text-muted)] tabular-nums">
                                     {formatRelative(r.created_at, now, t)}
                                 </span>

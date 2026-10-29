@@ -98,7 +98,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJs
                 {showPaste && (
                     <div className="pb-4 space-y-3">
                         <textarea
-                            className="w-full h-28 p-3 bg-[var(--field)] border-(length:--hairline) border-[var(--border)] rounded-md outline-none focus:border-[var(--border-strong)] font-mono text-[var(--text)] placeholder:text-[var(--text-muted)] resize-none"
+                            className="w-full h-28 p-3 bg-[var(--field)] border-(length:--hairline) border-[var(--border)] rounded-md outline-none focus:border-[var(--border-strong)] text-[var(--text)] placeholder:text-[var(--text-muted)] resize-none"
                             style={{ fontSize: '16px' }}
                             placeholder={t('import.paste_hint')}
                             value={text}

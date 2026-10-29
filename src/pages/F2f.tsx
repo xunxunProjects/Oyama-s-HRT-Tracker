@@ -16,9 +16,9 @@ interface F2fProps {
 const on = 'text-[var(--text)]';
 const muted = 'text-xs leading-relaxed text-[var(--text-muted)]';
 const input = 'input-base text-sm placeholder:font-sans';
-const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
+const mono = 'break-all font-mono text-xs text-[var(--text-muted)] tabular-nums';
 // A fingerprint read out in blocks of four wraps between blocks, never inside one.
-const fprText = 'font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
+const fprText = 'font-mono text-xs text-[var(--text-muted)] tabular-nums';
 const textButton =
     'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
 // A name and its value on one hairline row.

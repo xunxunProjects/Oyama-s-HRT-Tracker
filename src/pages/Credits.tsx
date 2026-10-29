@@ -354,7 +354,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     The developer wall is for people who have made a long-term commitment to the project. Maintainers,
                     owners, and the original author qualify automatically. Everyone else qualifies after at least 50
-                    merged pull requests and 200 commits on <code className="font-mono text-[var(--text)]">main</code>.
+                    merged pull requests and 200 commits on <span className="text-[var(--text)]">main</span>.
                     A pull request that only changes translations, design, documentation, or tests, or that mixes those
                     changes with code, counts as one commit no matter how many commits it contains.
                 </p>
