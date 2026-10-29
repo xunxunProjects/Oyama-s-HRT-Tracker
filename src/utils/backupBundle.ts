@@ -60,6 +60,8 @@ import {
     TOMBSTONE_MAX_PER_KIND,
     TOMBSTONE_TTL_MS,
     emptyTombstones,
+    hasOwn,
+    nullMap,
     pruneTombstoneMap,
     pruneTombstones,
     type ModeKey,
@@ -320,8 +322,6 @@ const FORBIDDEN_IDS: ReadonlySet<string> = new Set([...Object.getOwnPropertyName
 const isRecordId = (value: unknown): value is string =>
     typeof value === 'string' && value !== '' && !FORBIDDEN_IDS.has(value);
 
-const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
-
 const ACCOUNT_TAG = /^[0-9a-f]{64}$/;
 
 /**
@@ -332,8 +332,6 @@ const ACCOUNT_TAG = /^[0-9a-f]{64}$/;
  */
 export const completeBackupAccountTag = (owner: string): string | undefined =>
     owner === 'local' ? undefined : bytesToHex(sha256(utf8ToBytes(`${COMPLETE_BACKUP_FORMAT}/account/${owner}`)));
-
-const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
 
 const isStamp = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0;
 

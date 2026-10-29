@@ -97,10 +97,10 @@ export const TOMBSTONE_MAX_PER_KIND = 5000;
 
 // --- Shapes -----------------------------------------------------------------
 
-const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
+export const hasOwn = (record: object, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key);
 
 /** Tombstone maps use no prototype so an id like `toString` cannot read an inherited value. */
-const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
+export const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
 
 export function emptyTombstones(): Tombstones {
     return { events: nullMap(), labResults: nullMap(), doseTemplates: nullMap() };

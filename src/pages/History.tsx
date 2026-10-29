@@ -7,7 +7,7 @@ import Switch from '../components/Switch';
 import Doodle from '../components/Doodle';
 import { v4 as uuidv4 } from 'uuid';
 import { DoseEvent, Route, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster } from '../../logic';
-import { formatTime } from '../utils/helpers';
+import { formatTime, formatWearDays } from '../utils/helpers';
 import { drugLabel } from '../utils/regimenText';
 import { useDialog } from '../contexts/DialogContext';
 import DoseForm from '../components/DoseForm';
@@ -17,9 +17,6 @@ import type { DoseTemplate } from '../components/DoseForm';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 import { inertWhen } from '../utils/inert';
-
-// Trim trailing zeros so wear durations read "3.5" / "7" rather than "3.50".
-const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
 const MAX_BATCH_COUNT = 365;
 

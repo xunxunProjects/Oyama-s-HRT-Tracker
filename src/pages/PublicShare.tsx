@@ -5,7 +5,7 @@ import Doodle from '../components/Doodle';
 import ResultChart from '../components/ResultChart';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
-import { LOCALE_MAP } from '../utils/helpers';
+import { LOCALE_MAP, formatWearDays } from '../utils/helpers';
 import { drugLabel } from '../utils/regimenText';
 import { LockedShare, SHARE_KEY_INVALID, ShareApiError, ShareDetails, sharingService } from '../services/sharing';
 
@@ -23,8 +23,6 @@ type ShareState =
     | { kind: 'unavailable' }
     | { kind: 'badKey' }
     | { kind: 'rateLimited'; retryAt: number };
-
-const formatWearDays = (days: number): string => (Math.round(days * 100) / 100).toString();
 
 const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     const { lang, t } = useTranslation();

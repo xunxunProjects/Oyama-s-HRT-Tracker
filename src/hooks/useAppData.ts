@@ -25,6 +25,8 @@ import {
     QuickDose,
     applySyncedStateToStorage,
     buildExportPayloadFromStorage,
+    modeKeyFor,
+    nsFor,
     readTombstonesFromStorage,
     writeTombstonesToStorage,
 } from '../utils/backupState';
@@ -43,20 +45,6 @@ import { RecordKind, SyncState, Tombstones } from '../utils/syncMerge';
 
 /** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
 const LOCAL_OWNER = 'local';
-
-// Storage keys are namespaced by account as well as by HRT mode. Without the
-// account half, a shared device (family tablet, clinic kiosk, installed PWA)
-// showed the previous user's full dose history to whoever signed in next, and
-// the auto-backup then encrypted those records under the new account's key and
-// uploaded them.
-//
-// Signed-out keys keep their original, un-prefixed names, so records written
-// before this change — and by anyone who never signs in — are still found
-// exactly where they were.
-const nsFor = (owner: string, suffix: string) => (owner === LOCAL_OWNER ? `hrt-${suffix}` : `hrt-u${owner}-${suffix}`);
-
-const modeKeyFor = (owner: string, mode: 'transfem' | 'transmasc', suffix: string) =>
-    nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
 const MODE_SUFFIXES = [
     'events',
