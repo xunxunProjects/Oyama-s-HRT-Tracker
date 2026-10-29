@@ -230,10 +230,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                         {t(field.labelKey)}
                                                     </span>
                                                     {changed && (
-                                                        <span
-                                                            className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0"
-                                                            title={t('pk.modified')}
-                                                        />
+                                                        <span className="text-xs text-[var(--accent-ink)]">
+                                                            {t('pk.modified')}
+                                                        </span>
                                                     )}
                                                 </div>
                                                 <span className="text-xs text-[var(--text-muted)]">

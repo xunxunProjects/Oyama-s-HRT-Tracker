@@ -952,7 +952,7 @@ const Admin: React.FC = () => {
                         >
                             {label}
                             {id !== 'default' && noticeTextFor(id).trim() && (
-                                <span className="w-1 h-1 rounded-full bg-[var(--accent)]" />
+                                <span className="text-xs text-[var(--accent-ink)]">on</span>
                             )}
                         </button>
                     ))}

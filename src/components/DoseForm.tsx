@@ -1169,8 +1169,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                         </span>
                                     }
                                     lead={
-                                        <span className="mt-2.5 flex items-start gap-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
-                                            <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
+                                        <span className="mt-2.5 block text-xs text-[var(--text-muted)] leading-relaxed">
                                             {t('dose.guide.cpa_hint.rec')}
                                         </span>
                                     }
