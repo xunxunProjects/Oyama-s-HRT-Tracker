@@ -2,9 +2,10 @@ import React, { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToNgDl } from '../../logic';
-import { Check, Trash, ChevronDown } from './icons';
+import { Check, Trash } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
+import { SelectChevron } from './CustomSelect';
 import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
 import { clinicalUnit } from '../utils/clinicalUnit';
@@ -31,7 +32,7 @@ type AssayChoice = LabAssay | 'unknown';
 const ASSAY_CHOICES: AssayChoice[] = ['unknown', ...LAB_ASSAYS];
 const withAssay = (choice: AssayChoice) => (choice === 'unknown' ? {} : { assay: choice });
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 const E2_UNITS: LabUnit[] = ['pmol/l', 'pg/ml'];
 const T_UNITS: LabUnit[] = ['ng/dl', 'nmol/l'];
@@ -71,7 +72,7 @@ const HormoneValueField: React.FC<{
     return (
         <div>
             <div className="flex items-center justify-between mb-3">
-                <label htmlFor={id} className="text-[0.9375rem] text-[var(--text)]">
+                <label htmlFor={id} className="text-sm text-[var(--text)]">
                     {label}
                 </label>
                 <Segmented
@@ -195,10 +196,10 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     onClick={() => setIsDatePickerOpen(v => !v)}
                     className={`w-full flex items-center justify-between py-[18px] ${divider} text-start`}
                 >
-                    <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.date')}</span>
+                    <span className="text-sm text-[var(--text)]">{t('lab.date')}</span>
                     <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
-                        <ChevronDown size={14} className={`chev ${isDatePickerOpen ? 'rotate-180' : ''}`} />
+                        <SelectChevron />
                     </div>
                 </button>
                 <DateTimePicker
@@ -256,7 +257,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     draw at once: one blood sample goes through one lab. */}
                 <div className={`py-[18px] ${divider}`}>
                     <div className="flex items-center justify-between gap-3">
-                        <span className="text-[0.9375rem] text-[var(--text)]">{t('lab.assay')}</span>
+                        <span className="text-sm text-[var(--text)]">{t('lab.assay')}</span>
                         <Segmented<AssayChoice>
                             options={ASSAY_CHOICES.map(a => ({ id: a, label: t(`lab.assay.${a}`) }))}
                             value={assay}

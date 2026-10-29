@@ -59,8 +59,8 @@ type SettingsCat = 'general' | 'data' | 'about';
 type MobileView = 'list' | SettingsCat;
 
 const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
-const rowLabel = 'text-[0.9375rem] text-[var(--text)]';
-const rowValue = 'flex items-center gap-1 text-[0.9375rem] text-[var(--text-muted)]';
+const rowLabel = 'text-sm text-[var(--text)]';
+const rowValue = 'flex items-center gap-1 text-sm text-[var(--text-muted)]';
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 
@@ -237,19 +237,19 @@ const Settings: React.FC<SettingsProps> = ({
             id: 'general',
             label: t('settings.group.general'),
             Icon: Sliders,
-            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(', '),
+            hint: [t('status.weight'), t('settings.theme'), t('settings.prediction')].join(t('list.sep')),
         },
         {
             id: 'data',
             label: t('settings.group.data'),
             Icon: Database,
-            hint: [t('export.title'), t('import.title')].join(', '),
+            hint: [t('export.title'), t('import.title')].join(t('list.sep')),
         },
         {
             id: 'about',
             label: t('settings.group.about'),
             Icon: Info,
-            hint: [t('drawer.model_title'), t('transparency.title')].join(', '),
+            hint: [t('drawer.model_title'), t('transparency.title')].join(t('list.sep')),
         },
     ];
 
@@ -345,7 +345,7 @@ const Settings: React.FC<SettingsProps> = ({
                                     aria-label={t(`settings.cat_style.${id}`)}
                                     title={t(`settings.cat_style.${id}`)}
                                     aria-pressed={catStyle === id}
-                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--border)] ${
+                                    className={`h-6 w-6 shrink-0 rounded-full border-(length:--hairline) border-[var(--border)] ${
                                         catStyle === id
                                             ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
                                             : ''
@@ -402,7 +402,7 @@ const Settings: React.FC<SettingsProps> = ({
                     disabled={!events.length}
                     className={`${rowBase} ${events.length ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}
                 >
-                    <span className={`text-[0.9375rem] ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
+                    <span className={`text-sm ${events.length ? 'text-[var(--danger)]' : rowLabel}`}>
                         {t('drawer.clear')}
                     </span>
                     {events.length > 0 && (
@@ -504,7 +504,7 @@ const Settings: React.FC<SettingsProps> = ({
                                                 <Icon size={20} strokeWidth={1.75} className={muted} />
                                             </div>
                                             <div className="text-start">
-                                                <p className={`text-[0.9375rem] font-medium ${on}`}>{label}</p>
+                                                <p className={`text-sm font-medium ${on}`}>{label}</p>
                                                 <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
                                             </div>
                                         </div>

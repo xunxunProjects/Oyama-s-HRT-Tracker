@@ -11,11 +11,11 @@ export const PAGE_COLUMN = 'mx-auto w-full max-w-2xl px-6 md:px-8';
 
 /** A text button for the right side of a PageHeader (Select, Edit…): a capsule, its icon close to its words. */
 export const headerAction =
-    'inline-flex h-8 items-center gap-1 px-2.5 text-[0.875rem] font-medium rounded-full hover:bg-[var(--surface-hover)]';
+    'inline-flex h-8 items-center gap-1 px-2.5 text-sm font-medium rounded-full hover:bg-[var(--surface-hover)]';
 
 /** The same button for the action that does the page's job (Add, Log…): terracotta, with a tonal hover. */
 export const headerActionAccent =
-    'inline-flex h-8 items-center gap-1 px-2.5 text-[0.875rem] font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
+    'inline-flex h-8 items-center gap-1 px-2.5 text-sm font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]';
 
 const on = 'text-[var(--text)]';
 const muted = 'text-[var(--text-muted)]';
@@ -55,7 +55,7 @@ const PageHeader: React.FC<{
         <>
             <div ref={setMarker} aria-hidden="true" className="h-0" />
             <div
-                className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_-1px_0_var(--border)]' : ''}`}
+                className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_calc(-1*var(--hairline))_0_var(--border)]' : ''}`}
             >
                 <div className={`${PAGE_COLUMN} pt-4 pb-3 flex items-end justify-between gap-4`}>
                     <div className="min-w-0 flex-1">

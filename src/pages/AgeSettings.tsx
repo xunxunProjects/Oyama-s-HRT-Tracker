@@ -44,7 +44,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
         onBack();
     };
 
-    const divider = 'border-b border-[var(--border)]';
+    const divider = 'border-b-(length:--hairline) border-[var(--border)]';
     const range = `${BIRTH_YEAR_MIN}–${thisYear}`;
 
     return (
@@ -63,7 +63,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                             aria-label={t('age.birth_year')}
                             aria-invalid={showError}
                             aria-describedby="age-help"
-                            className="input-base text-4xl font-light tabular-nums text-[var(--text)] w-32 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className="input-base text-[1.625rem] font-light tabular-nums text-[var(--text)] w-32 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             placeholder={String(thisYear - 25)}
                             style={{ fontSize: '40px' }}
                             autoFocus
@@ -86,7 +86,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                     <p className="text-xs text-[var(--text-muted)] max-w-[140px] text-right">{t('age.desc')}</p>
                 </div>
 
-                <p className="mt-4 text-[0.8125rem] leading-relaxed text-[var(--text-muted)]">
+                <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
                     {fill(t('age.explain'), { ref: AGE_REF_YEARS })}
                 </p>
 

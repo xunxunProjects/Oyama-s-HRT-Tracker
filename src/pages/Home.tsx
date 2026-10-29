@@ -246,7 +246,7 @@ const Home: React.FC<HomeProps> = ({
                 the second reading sat over the heatmap, a full desktop away from
                 the first, and each plan row's button from its sentence. */}
             {showHeader && (
-                <header className="pt-6 pb-5 border-b border-[var(--border)]">
+                <header className="pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)]">
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${events.length ? '2xl:max-w-[74rem]' : ''}`}>
                         <div className="2xl:flex 2xl:gap-10">
                             <div className="min-w-0 max-w-2xl 2xl:flex-1">
@@ -334,9 +334,7 @@ const Home: React.FC<HomeProps> = ({
                             a line of their own under it they cost the height
                             the move freed. So there they sit up by the label. */}
                                                 <div className="col-start-1 row-start-1 flex min-w-0 items-end gap-3">
-                                                    <p className={`text-[0.8125rem] font-medium ${muted}`}>
-                                                        {primary.label}
-                                                    </p>
+                                                    <p className={`text-xs font-medium ${muted}`}>{primary.label}</p>
                                                     {companion && cats && (
                                                         <span className="-mb-1 flex @min-[32rem]:hidden">{cats}</span>
                                                     )}
@@ -407,7 +405,7 @@ const Home: React.FC<HomeProps> = ({
                                                     <>
                                                         {companion.label && (
                                                             <p
-                                                                className={`col-start-2 row-start-1 text-right text-[0.8125rem] font-medium ${muted}`}
+                                                                className={`col-start-2 row-start-1 text-right text-xs font-medium ${muted}`}
                                                             >
                                                                 {companion.label}
                                                             </p>
@@ -688,7 +686,7 @@ const Home: React.FC<HomeProps> = ({
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />
-                        <p className={`text-base font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
+                        <p className={`text-sm font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
                         {/* Balanced, so short centred copy breaks evenly rather
                             than leaving one character alone on a second line. */}
                         <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>

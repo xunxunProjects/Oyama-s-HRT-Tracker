@@ -65,7 +65,7 @@ const PasswordPrompt = ({
                     type={masked ? 'password' : 'text'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="input-base mt-2 font-mono"
+                    className="input-base mt-2"
                     placeholder={t('auth.password')}
                     aria-label={t('auth.password')}
                     aria-invalid={error ? true : undefined}

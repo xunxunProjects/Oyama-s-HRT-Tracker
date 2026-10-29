@@ -33,6 +33,16 @@ export const useEscapeLayer = (onEscape: () => void, active: boolean) => {
     }, [active]);
 };
 
+/**
+ * The mark at the end of anything that opens a choice: this list, a date.
+ * One size and one pen wherever it is, smaller and lighter than the words it
+ * follows, in their muted colour, and it stays put while the choice is open
+ * (the list unfolding under it already says so).
+ */
+export const SelectChevron: React.FC = () => (
+    <ChevronDown size={16} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
+);
+
 interface Option {
     value: string;
     label: string;
@@ -52,7 +62,7 @@ interface CustomSelectProps {
 
 /**
  * A choice, drawn as a line like a field: its name above, what's chosen on
- * the line, a chevron at the end. Pressed, the options unfold under it in
+ * the line, a chevron at the end (SelectChevron). Pressed, the options unfold under it in
  * place, as plain rows with a tick by the chosen one, and fold away again
  * once one is picked. Nothing floats over the form.
  */
@@ -180,10 +190,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </span>
                     </>
                 )}
-                <ChevronDown
-                    size={18}
-                    className={`chev shrink-0 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`}
-                />
+                <SelectChevron />
             </button>
 
             <div className="disclosure disclosure-bleed" data-open={isOpen} {...(isOpen ? {} : { inert: '' })}>

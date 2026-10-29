@@ -10,7 +10,7 @@ interface HrtSecurityProps {
     onBack: () => void;
 }
 
-const card = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4';
+const card = 'rounded-xl border-(length:--hairline) border-[var(--border)] bg-[var(--surface)] p-4';
 const heading = 'text-sm font-semibold text-[var(--text)]';
 const muted = 'text-xs text-[var(--text-muted)]';
 const input = 'input-base text-sm';
@@ -152,7 +152,10 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                             ) : (
                                 <div className="mt-3 space-y-3">
                                     {requests.map(request => (
-                                        <div key={request.id} className="rounded-lg border border-[var(--border)] p-3">
+                                        <div
+                                            key={request.id}
+                                            className="rounded-lg border-(length:--hairline) border-[var(--border)] p-3"
+                                        >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <p className="text-sm font-medium text-[var(--text)]">
@@ -253,7 +256,7 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                                     trustedIps.map(entry => (
                                         <div
                                             key={entry.id}
-                                            className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2"
+                                            className="flex items-center justify-between gap-3 rounded-lg border-(length:--hairline) border-[var(--border)] px-3 py-2"
                                         >
                                             <div>
                                                 <p className="text-sm text-[var(--text)]">{entry.label}</p>
@@ -285,7 +288,7 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
                                     devices.map(device => (
                                         <div
                                             key={device.id}
-                                            className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2"
+                                            className="flex items-center justify-between gap-3 rounded-lg border-(length:--hairline) border-[var(--border)] px-3 py-2"
                                         >
                                             <div>
                                                 <p className="text-sm text-[var(--text)]">

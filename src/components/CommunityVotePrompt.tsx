@@ -129,17 +129,13 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
     return (
         <section
             aria-labelledby="community-vote-prompt-title"
-            className="mt-10 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] p-5"
+            className="mt-10 rounded-[var(--radius-lg)] border-(length:--hairline) border-[var(--border)] bg-[var(--surface-muted)] p-5"
         >
             <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs font-medium text-[var(--accent-ink)]">{t('vote.prompt.title')}</p>
-                {early && (
-                    <span className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent-ink)]">
-                        {t('vote.prompt.early')}
-                    </span>
-                )}
+                {early && <span className="text-xs text-[var(--text-muted)]">{t('vote.prompt.early')}</span>}
             </div>
-            <h2 id="community-vote-prompt-title" className="mt-2 text-base font-semibold text-[var(--text)]">
+            <h2 id="community-vote-prompt-title" className="mt-2 text-sm font-semibold text-[var(--text)]">
                 {title}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">{t('vote.prompt.body')}</p>

@@ -36,7 +36,11 @@ function Tabs<K extends string>({
     const { rowRef, itemRefs: tabRefs, mark: bar } = useSlidingMark(value, tabs);
 
     return (
-        <div ref={rowRef} role="tablist" className={`relative flex gap-6 border-b border-[var(--border)] ${className}`}>
+        <div
+            ref={rowRef}
+            role="tablist"
+            className={`relative flex gap-6 border-b-(length:--hairline) border-[var(--border)] ${className}`}
+        >
             {tabs.map(({ id, label, icon }) => {
                 const selected = id === value;
                 return (

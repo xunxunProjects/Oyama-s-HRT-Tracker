@@ -478,7 +478,7 @@ const Supplies: React.FC<SuppliesProps> = ({
                 )}
 
                 <section className="flex items-center justify-between gap-4">
-                    <p className={`text-[0.9375rem] ${on}`}>{t('supplies.lead')}</p>
+                    <p className={`text-sm ${on}`}>{t('supplies.lead')}</p>
                     <Segmented
                         options={LEAD_DAYS.map(d => ({ id: String(d), label: fill(t('supplies.days'), { n: d }) }))}
                         value={String(LEAD_DAYS.includes(leadDays as (typeof LEAD_DAYS)[number]) ? leadDays : 14)}

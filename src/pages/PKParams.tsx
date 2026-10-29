@@ -85,7 +85,7 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
     },
 ];
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 const FIELDS = SECTIONS.flatMap(s => s.fields);
 const clampTo = (f: FieldDef, n: number) => Math.max(f.min, Math.min(f.max, n));
@@ -193,7 +193,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
             <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
-                <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--border)]">
+                <div className="flex items-start gap-2 mb-6 pb-4 border-b-(length:--hairline) border-[var(--border)]">
                     <span className="icon-line text-sm">
                         <Warning size={13} className="text-[var(--warning)]" />
                     </span>
@@ -207,7 +207,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                             onClick={() => toggleSection(section.key)}
                             className={`w-full flex items-center justify-between py-4 ${divider} text-start`}
                         >
-                            <span className="text-[0.8125rem] font-semibold text-[var(--text-muted)]">
+                            <span className="text-xs font-semibold text-[var(--text-muted)]">
                                 {t(section.titleKey)}
                             </span>
                             <ChevronDown
@@ -230,10 +230,9 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                                                         {t(field.labelKey)}
                                                     </span>
                                                     {changed && (
-                                                        <span
-                                                            className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0"
-                                                            title={t('pk.modified')}
-                                                        />
+                                                        <span className="text-xs text-[var(--accent-ink)]">
+                                                            {t('pk.modified')}
+                                                        </span>
                                                     )}
                                                 </div>
                                                 <span className="text-xs text-[var(--text-muted)]">
@@ -290,7 +289,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
                 {/* Reset all */}
                 <button onClick={handleReset} className="w-full flex items-center gap-2 py-[18px] text-start">
                     <Undo size={14} className="text-[var(--danger)]" />
-                    <span className="text-[0.9375rem] text-[var(--danger)]">{t('pk.reset')}</span>
+                    <span className="text-sm text-[var(--danger)]">{t('pk.reset')}</span>
                 </button>
             </div>
         </div>

@@ -110,7 +110,7 @@ const QuickDoseButtons: React.FC<QuickDoseButtonsProps> = ({
                         aria-label={`${t('btn.delete')} ${formatValue(dose.value)} ${unit}`}
                         className="tap-target absolute -top-1.5 -right-1.5 w-4 h-4 rounded-md flex items-center justify-center
  bg-[var(--surface-hover)]
- text-muted border border-[var(--border)]
+ text-muted border-(length:--hairline) border-[var(--border)]
                             opacity-0 group-hover:opacity-100 focus-visible:opacity-100
                             pointer-coarse:inset-auto pointer-coarse:w-6 pointer-coarse:h-6 pointer-coarse:opacity-100 pointer-coarse:bg-transparent pointer-coarse:border-transparent"
                     >

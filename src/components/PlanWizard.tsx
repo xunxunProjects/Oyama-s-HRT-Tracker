@@ -21,7 +21,7 @@ import {
 import { asTitle, frequencyLabel, gelSiteName, productNames, regimenLabel, supplyLabel } from '../utils/regimenText';
 import { scrollParent } from '../utils/scrollParent';
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 type StepKey = 'route' | 'drug' | 'dose' | 'site' | 'hold' | 'freq';
 
@@ -58,14 +58,12 @@ const Row: React.FC<RowProps> = ({ on, onClick, title, desc, note, mark }) => (
     >
         {mark}
         <span className="min-w-0 flex-1">
-            <span
-                className={`block text-[0.9375rem] ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}
-            >
+            <span className={`block text-sm ${note ? 'text-muted' : 'text-body'} ${on ? 'font-semibold' : ''}`}>
                 {title}
             </span>
-            {desc && <span className="mt-0.5 block text-[0.8125rem] leading-relaxed text-muted">{desc}</span>}
+            {desc && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{desc}</span>}
         </span>
-        {note ? <span className="shrink-0 text-[0.8125rem] text-muted">{note}</span> : <Tick on={on} />}
+        {note ? <span className="shrink-0 text-xs text-muted">{note}</span> : <Tick on={on} />}
     </button>
 );
 
@@ -206,7 +204,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                     key={step}
                     className={`mx-auto w-full max-w-md pt-2 pb-8 lg:pt-[6vh] ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
-                    <h1 className="text-2xl font-semibold text-body">{heading}</h1>
+                    <h1 className="text-[1.625rem] font-semibold text-body">{heading}</h1>
                     {draft && soFar && (
                         <div className="mt-3 flex items-center gap-2.5">
                             <Doodle name={draft.route} size={1.75} />
@@ -265,9 +263,9 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                                 }}
                                 onFocus={e => e.currentTarget.select()}
                                 aria-label={heading}
-                                className="figure-input min-w-0 flex-1 bg-transparent text-4xl font-semibold tabular-nums text-body outline-none select-text"
+                                className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
                             />
-                            <span className="shrink-0 text-base text-muted">
+                            <span className="shrink-0 text-sm text-muted">
                                 {isPatch ? `µg${t('regimen.per_day')}` : 'mg'}
                             </span>
                         </label>
@@ -338,7 +336,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
             </div>
 
             <div
-                className={`sticky bottom-0 shrink-0 border-t border-[var(--border)] glass glass-bar px-6 pt-4 ${aboveNav ? 'pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'}`}
+                className={`sticky bottom-0 shrink-0 border-t-(length:--hairline) border-[var(--border)] glass glass-bar px-6 pt-4 ${aboveNav ? 'pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'}`}
             >
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">

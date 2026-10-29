@@ -68,7 +68,7 @@ const BottomNav: React.FC<{
     }, [pill, placed]);
 
     return (
-        <nav className="bottom-nav glass fixed left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-md)]">
+        <nav className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]">
             <div ref={rowRef} className="relative flex items-stretch p-1.5 gap-0.5">
                 {pill && (
                     <span
@@ -99,9 +99,7 @@ const BottomNav: React.FC<{
                                     <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
                                 )}
                             </span>
-                            <span className="whitespace-nowrap text-[0.6875rem] leading-[0.875rem] font-medium tracking-[0.01em] max-[340px]:text-[0.625rem]">
-                                {label}
-                            </span>
+                            <span className="whitespace-nowrap text-xs leading-4 font-medium">{label}</span>
                         </button>
                     );
                 })}

@@ -94,7 +94,7 @@ const NumberPart: React.FC<NumberPartProps> = ({ label, value, min = 0, max, dig
                     if (draft !== null) finish(draft);
                 }
             }}
-            className={`input-base text-center tabular-nums font-medium ${className ?? 'w-12 text-[1.0625rem]'}`}
+            className={`input-base text-center tabular-nums font-medium ${className ?? 'w-12 text-sm'}`}
         />
     );
 };

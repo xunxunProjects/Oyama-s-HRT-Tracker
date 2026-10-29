@@ -107,7 +107,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     };
 
     const otherSessions = sessions.filter(s => !s.is_current);
-    const divider = 'border-b border-[var(--border)]';
+    const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
     return (
         <div className="relative pb-32">
@@ -154,7 +154,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             )}
                                         </div>
                                         {os && <p className={`mt-0.5 text-xs ${settingsMuted}`}>{os}</p>}
-                                        <p className={`mt-1 font-mono text-xs tracking-wide ${settingsMuted}`}>
+                                        <p className={`mt-1 font-mono text-xs ${settingsMuted}`}>
                                             {maskIpAddress(s.ip)}
                                         </p>
                                         <p className={`mt-0.5 text-xs ${settingsMuted}`}>

@@ -121,14 +121,14 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
                                 onError={() => setAvatarError(true)}
                             />
                             <div
-                                className={`w-full h-full flex items-center justify-center text-5xl font-light absolute inset-0 ${muted}`}
+                                className={`w-full h-full flex items-center justify-center text-[1.625rem] font-light absolute inset-0 ${muted}`}
                             >
                                 {username.charAt(0).toUpperCase()}
                             </div>
                         </div>
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-1 px-5 py-2.5 text-sm font-medium rounded-full border border-[var(--border)] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)] transition-colors"
+                            className="flex items-center gap-1 px-5 py-2.5 text-sm font-medium rounded-full border-(length:--hairline) border-[var(--border)] text-[var(--accent-ink)] hover:bg-[var(--surface-hover)] transition-colors"
                         >
                             <ImagePlus size={16} />
                             {t('avatar.change')}

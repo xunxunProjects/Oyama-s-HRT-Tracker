@@ -64,14 +64,16 @@ const currencyLabel = (id: AdditionalCurrencyId | typeof ALWAYS_SUPPORTED_CURREN
 };
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <section className="border-t border-[var(--border)] pt-7">
-        <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">{title}</h2>
+    <section className="border-t-(length:--hairline) border-[var(--border)] pt-7">
+        <h2 className="text-sm font-semibold text-[var(--text)]">{title}</h2>
         <div className="mt-2 space-y-2.5 text-sm leading-relaxed text-[var(--text-muted)]">{children}</div>
     </section>
 );
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-    <div className={`rounded-[var(--radius-lg)] border border-[var(--border)] p-5 ${className}`}>{children}</div>
+    <div className={`rounded-[var(--radius-lg)] border-(length:--hairline) border-[var(--border)] p-5 ${className}`}>
+        {children}
+    </div>
 );
 
 const Bar: React.FC<{ value: number; total: number }> = ({ value, total }) => (
@@ -112,10 +114,10 @@ const TallyCurrencies: React.FC<{ tally: VoteTally; t: (key: string) => string }
                 <div key={id}>
                     <div className="flex items-baseline justify-between gap-4">
                         <span className="text-sm text-[var(--text)]">{currencyLabel(id, t)}</span>
-                        <span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
-                            {tally.ballots > 0 ? `${Math.round((count / tally.ballots) * 100)}%` : '0%'}
-                            {count > 0 && ` · ${count}`}
-                            {passed && ` · ${t('vote.tally.pass')}`}
+                        <span className="flex shrink-0 gap-3 text-xs tabular-nums text-[var(--text-muted)]">
+                            {passed && <span className="text-[var(--accent-ink)]">{t('vote.tally.pass')}</span>}
+                            {count > 0 && <span>{count}</span>}
+                            <span>{tally.ballots > 0 ? `${Math.round((count / tally.ballots) * 100)}%` : '0%'}</span>
                         </span>
                     </div>
                     <Bar value={count} total={tally.ballots} />
@@ -129,15 +131,17 @@ const TallyAccept: React.FC<{ tally: VoteTally; t: (key: string) => string }> = 
     <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-[var(--text)]">{t('vote.tally.yes')}</span>
-            <span className="tabular-nums text-[var(--text-muted)]">
-                {tally.accept.yes} · {tally.ballots > 0 ? Math.round((tally.accept.yes / tally.ballots) * 100) : 0}%
+            <span className="flex gap-3 tabular-nums text-[var(--text-muted)]">
+                <span>{tally.accept.yes}</span>
+                <span>{tally.ballots > 0 ? Math.round((tally.accept.yes / tally.ballots) * 100) : 0}%</span>
             </span>
         </div>
         <Bar value={tally.accept.yes} total={tally.ballots} />
         <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-[var(--text)]">{t('vote.tally.no')}</span>
-            <span className="tabular-nums text-[var(--text-muted)]">
-                {tally.accept.no} · {tally.ballots > 0 ? Math.round((tally.accept.no / tally.ballots) * 100) : 0}%
+            <span className="flex gap-3 tabular-nums text-[var(--text-muted)]">
+                <span>{tally.accept.no}</span>
+                <span>{tally.ballots > 0 ? Math.round((tally.accept.no / tally.ballots) * 100) : 0}%</span>
             </span>
         </div>
         <Bar value={tally.accept.no} total={tally.ballots} />
@@ -393,10 +397,8 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 subtitle={dateRange}
                 actions={
                     <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            proposal.acceptsBallots
-                                ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]'
-                                : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
+                        className={`text-sm ${
+                            proposal.acceptsBallots ? 'text-[var(--accent-ink)]' : 'text-[var(--text-muted)]'
                         }`}
                     >
                         {statusLabel}
@@ -423,16 +425,13 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 <Section title={t('vote.currency.title')}>
                     <p>{t('vote.currency.body')}</p>
-                    <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-[var(--accent-ink)]">
                             <Lock size={14} />
                             {currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t)}
                         </span>
                         {ADDITIONAL_CURRENCIES.map(id => (
-                            <span
-                                key={id}
-                                className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-muted)]"
-                            >
+                            <span key={id} className="text-sm text-[var(--text-muted)]">
                                 {currencyLabel(id, t)}
                             </span>
                         ))}
@@ -458,7 +457,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 {!token && acceptsBallots ? (
                     <Card>
-                        <h2 className="text-base font-semibold text-[var(--text)]">{t('vote.signin.title')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.signin.title')}</h2>
                         <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">
                             {t('vote.signin.body')}
                         </p>
@@ -469,9 +468,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 ) : (
                     <Card>
                         <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-base font-semibold text-[var(--text)]">
-                                {t('vote.eligibility.title')}
-                            </h2>
+                            <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.eligibility.title')}</h2>
                             {me && (
                                 <span
                                     className={`text-xs font-medium ${
@@ -555,11 +552,9 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 )}
 
                 {token && me && (
-                    <section className="border-t border-[var(--border)] pt-7">
+                    <section className="border-t-(length:--hairline) border-[var(--border)] pt-7">
                         <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">
-                                {t('vote.ballot.title')}
-                            </h2>
+                            <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.ballot.title')}</h2>
                             {me.ballot && (
                                 <span className="text-xs text-[var(--accent-ink)]">{t('vote.ballot.your_ballot')}</span>
                             )}
@@ -631,7 +626,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                                     {ADDITIONAL_CURRENCIES.map(id => (
                                         <label
                                             key={id}
-                                            className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3.5 hover:bg-[var(--surface-hover)]"
+                                            className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border-(length:--hairline) border-[var(--border)] p-3.5 hover:bg-[var(--surface-hover)]"
                                         >
                                             <input
                                                 type="checkbox"
@@ -705,9 +700,9 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                     </section>
                 )}
 
-                <section className="border-t border-[var(--border)] pt-7">
+                <section className="border-t-(length:--hairline) border-[var(--border)] pt-7">
                     <div className="flex items-baseline justify-between gap-4">
-                        <h2 className="text-[1.0625rem] font-semibold text-[var(--text)]">{t('vote.tally.title')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.title')}</h2>
                         <span className="text-xs tabular-nums text-[var(--text-muted)]">
                             {fill(t(tally.ballots === 1 ? 'vote.tally.ballots_one' : 'vote.tally.ballots'), {
                                 n: tally.ballots,
@@ -749,7 +744,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 {final && (
                     <Card className="bg-[var(--surface-muted)]">
-                        <h2 className="text-base font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
                         {tally.ballots === 0 ? (
                             <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
                         ) : (
@@ -766,7 +761,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                                             currencies: [
                                                 currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
                                                 ...final.added.map(id => currencyLabel(id, t)),
-                                            ].join(' · '),
+                                            ].join(t('list.sep')),
                                         })}
                                     </p>
                                 )}
@@ -778,7 +773,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                     </Card>
                 )}
 
-                <p className="border-t border-[var(--border)] pt-5 text-xs leading-relaxed text-[var(--text-muted)]">
+                <p className="border-t-(length:--hairline) border-[var(--border)] pt-5 text-xs leading-relaxed text-[var(--text-muted)]">
                     {t('vote.footer')}
                 </p>
             </div>

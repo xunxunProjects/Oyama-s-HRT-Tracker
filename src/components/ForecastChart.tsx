@@ -74,7 +74,7 @@ const ForecastChart: React.FC<{
         const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return Number.isFinite(px) && px > 0 ? px / 16 : 1;
     }, [width]);
-    const axisFont = 12 * ui;
+    const axisFont = 13 * ui;
     const pad = { l: 40 * ui, r: 8 * ui, t: 22 * ui, b: 24 * ui };
 
     const c = isDarkMode
@@ -584,7 +584,7 @@ const ForecastChart: React.FC<{
                 {hoverH !== null && readout && readout.length > 0 && (
                     <div
                         ref={setTipEl}
-                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{
                             // Right of the line when it fits, left of it when it
                             // doesn't, and never past either edge.

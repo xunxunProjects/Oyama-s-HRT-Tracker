@@ -16,13 +16,13 @@ interface F2fProps {
 const on = 'text-[var(--text)]';
 const muted = 'text-xs leading-relaxed text-[var(--text-muted)]';
 const input = 'input-base text-sm placeholder:font-sans';
-const mono = 'break-all font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
+const mono = 'break-all font-mono text-xs text-[var(--text-muted)] tabular-nums';
 // A fingerprint read out in blocks of four wraps between blocks, never inside one.
-const fprText = 'font-mono text-xs tracking-wide text-[var(--text-muted)] tabular-nums';
+const fprText = 'font-mono text-xs text-[var(--text-muted)] tabular-nums';
 const textButton =
     'shrink-0 whitespace-nowrap text-xs font-medium text-[var(--accent-ink)] hover:opacity-80 disabled:opacity-40 transition-opacity';
 // A name and its value on one hairline row.
-const row = 'flex items-baseline justify-between gap-4 py-3 text-[0.9375rem]';
+const row = 'flex items-baseline justify-between gap-4 py-3 text-sm';
 
 /* The server's codes, in words the reader can act on. Anything unexpected,
    including a bare 500, becomes the one calm "something went wrong" line
@@ -58,11 +58,9 @@ const Step: React.FC<{ n: number; title: string; desc: string; children?: React.
     children,
 }) => (
     <li className="flex gap-3 py-4">
-        <span className="w-5 shrink-0 text-[0.9375rem] leading-[1.375rem] tabular-nums text-[var(--text-muted)]">
-            {n}
-        </span>
+        <span className="w-5 shrink-0 text-sm leading-[1.375rem] tabular-nums text-[var(--text-muted)]">{n}</span>
         <div className="min-w-0 flex-1">
-            <p className={`text-[0.9375rem] font-medium leading-[1.375rem] ${on}`}>{title}</p>
+            <p className={`text-sm font-medium leading-[1.375rem] ${on}`}>{title}</p>
             <p className={`${muted} mt-0.5`}>{desc}</p>
             {children}
         </div>
@@ -430,7 +428,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     {status.key && (
                                         <div className="py-3">
                                             <div className="flex items-baseline justify-between gap-3">
-                                                <span className={`text-[0.9375rem] ${on}`}>{t('f2f.active_key')}</span>
+                                                <span className={`text-sm ${on}`}>{t('f2f.active_key')}</span>
                                                 {copyButton(status.key.fingerprint, 'own-key')}
                                             </div>
                                             <p className={`${fprText} mt-1`}>
@@ -501,7 +499,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
                                     <div className={`${settingsSection} mt-1`}>
                                         {members.map(member => (
                                             <div key={member.seat} className="py-3">
-                                                <p className="flex items-baseline gap-3 text-[0.9375rem] text-[var(--text)]">
+                                                <p className="flex items-baseline gap-3 text-sm text-[var(--text)]">
                                                     <span className="w-8 shrink-0 tabular-nums text-[var(--text-muted)]">
                                                         {member.seat}
                                                     </span>

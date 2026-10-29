@@ -309,7 +309,7 @@ const DoseHeatmap = ({
                                 className="chart-appear"
                                 x={x(m.col)}
                                 y={header - 5 * ui}
-                                fontSize={12 * ui}
+                                fontSize={13 * ui}
                                 fill={c.axis}
                             >
                                 {m.label}
@@ -323,7 +323,7 @@ const DoseHeatmap = ({
                                 x={gutter - 6 * ui}
                                 y={y(w.row) + cell / 2 + 4 * ui}
                                 textAnchor="end"
-                                fontSize={12 * ui}
+                                fontSize={13 * ui}
                                 fill={c.axis}
                             >
                                 {w.label}
@@ -369,12 +369,10 @@ const DoseHeatmap = ({
                 {hover && (
                     <div
                         ref={setTipEl}
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{ left: tipLeft, top: tipTop }}
                     >
-                        <div className="text-[0.75rem] whitespace-nowrap text-[var(--text-muted)]">
-                            {dayLabel(hover.date)}
-                        </div>
+                        <div className="text-xs whitespace-nowrap text-[var(--text-muted)]">{dayLabel(hover.date)}</div>
                         <div className="text-xs font-medium whitespace-nowrap text-[var(--text)]">
                             {hover.count > 0 ? doseLabel(hover.count) : t('heatmap.none')}
                         </div>
@@ -383,7 +381,7 @@ const DoseHeatmap = ({
                         {hoverMg.map(([ester, mg]) => (
                             <div
                                 key={ester}
-                                className="text-[0.75rem] whitespace-nowrap tabular-nums text-[var(--text-muted)]"
+                                className="text-xs whitespace-nowrap tabular-nums text-[var(--text-muted)]"
                             >
                                 {doseOf(`${Number(mg.toFixed(2))} mg`, esterName(ester as Ester, t), t)}
                             </div>

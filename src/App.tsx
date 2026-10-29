@@ -893,7 +893,7 @@ const AppContent = () => {
                     it still keeps its top padding, which is what holds the content
                     clear of a notch or status bar. */}
                 <div
-                    className={`md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${hideSiteLabel ? '' : 'pb-1 text-center text-[0.6875rem] font-medium tracking-wide text-muted select-none'}`}
+                    className={`md:hidden shrink-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${hideSiteLabel ? '' : 'pb-1 text-center text-xs font-medium tracking-wide text-muted select-none'}`}
                 >
                     {!hideSiteLabel && window.location.hostname}
                 </div>

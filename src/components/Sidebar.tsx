@@ -20,14 +20,14 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
         // only holds the strip's room in the layout; the panel inside it is
         // what widens, so the page never reflows under the pointer.
         <nav className="side-nav hidden md:block relative w-[var(--sidebar-width)] h-full shrink-0">
-            <div className="side-panel absolute inset-y-0 start-0 z-40 flex w-full flex-col bg-[var(--bg-subtle)] border-e border-[var(--border)]">
+            <div className="side-panel absolute inset-y-0 start-0 z-40 flex w-full flex-col bg-[var(--bg-subtle)] border-e-(length:--hairline) border-[var(--border)]">
                 {/* Logo: the app icon in a rounded tile, then the name. The
                     tile is the drawings' size and centred over them, so it
                     stays in line with them in the narrow strip too. */}
                 <div className="px-[1.375rem] pt-6 pb-5">
                     <h1
                         aria-label="Oyama Tracker"
-                        className="flex items-center gap-3.5 font-sans text-[1.0625rem] leading-none tracking-[-0.02em]"
+                        className="flex items-center gap-3.5 font-sans text-sm leading-none tracking-[-0.02em]"
                     >
                         <img
                             src="/pwa-192x192.png"
@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 onClick={() => onViewChange(item.id)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={item.label}
-                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-[0.9375rem] transition-colors duration-150 motion-reduce:transition-none
+                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
                                 ${
                                     isActive
                                         ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'

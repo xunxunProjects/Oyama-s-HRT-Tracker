@@ -104,7 +104,7 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
             ).map(([i, v]) => (
                 <span
                     key={v}
-                    className="rail-label absolute bottom-0 -translate-x-1/2 text-[0.75rem] font-medium leading-none tabular-nums text-[var(--text-muted)]"
+                    className="rail-label absolute bottom-0 -translate-x-1/2 text-xs font-medium leading-none tabular-nums text-[var(--text-muted)]"
                     style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
                 >
                     {v}

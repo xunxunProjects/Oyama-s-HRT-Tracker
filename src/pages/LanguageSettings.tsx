@@ -25,10 +25,10 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ lang, setLang, lang
                         key={value}
                         onClick={() => setLang(value as Lang)}
                         aria-pressed={lang === value}
-                        className="w-full flex items-center justify-between py-4 border-b border-[var(--border)] last:border-b-0 text-start"
+                        className="w-full flex items-center justify-between py-4 border-b-(length:--hairline) border-[var(--border)] last:border-b-0 text-start"
                     >
                         <span
-                            className={`text-[0.9375rem] ${
+                            className={`text-sm ${
                                 lang === value ? 'font-semibold text-[var(--text)]' : 'text-[var(--text)]'
                             }`}
                         >
