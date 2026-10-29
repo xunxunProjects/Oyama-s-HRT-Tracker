@@ -92,8 +92,6 @@ export interface BundleFixture {
     preferences: Record<string, unknown>;
 }
 
-const MODE_KEYS: ModeKey[] = ['transfem', 'transmasc'];
-
 /** A plausible time in hours since the epoch, close to the test's "now". */
 export const nowHours = (): number => Math.floor(Date.now() / 3_600_000);
 
