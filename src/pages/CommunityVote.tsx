@@ -397,10 +397,8 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                 subtitle={dateRange}
                 actions={
                     <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            proposal.acceptsBallots
-                                ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]'
-                                : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
+                        className={`text-sm ${
+                            proposal.acceptsBallots ? 'text-[var(--accent-ink)]' : 'text-[var(--text-muted)]'
                         }`}
                     >
                         {statusLabel}
@@ -427,16 +425,13 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
                 <Section title={t('vote.currency.title')}>
                     <p>{t('vote.currency.body')}</p>
-                    <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-[var(--accent-ink)]">
                             <Lock size={14} />
                             {currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t)}
                         </span>
                         {ADDITIONAL_CURRENCIES.map(id => (
-                            <span
-                                key={id}
-                                className="rounded-full border-(length:--hairline) border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-muted)]"
-                            >
+                            <span key={id} className="text-sm text-[var(--text-muted)]">
                                 {currencyLabel(id, t)}
                             </span>
                         ))}
