@@ -22,7 +22,7 @@ import {
     type CompleteBackupBundle,
     type CompleteBackupContext,
 } from '../src/utils/backupBundle';
-import { MAX_IMPORT_ENTRIES, modeKeyFor, type StorageLike } from '../src/utils/backupState';
+import { MAX_IMPORT_ENTRIES, modeKeyFor } from '../src/utils/backupState';
 import {
     TOMBSTONE_MAX_PER_KIND,
     TOMBSTONE_TTL_MS,
@@ -33,28 +33,13 @@ import {
     type Tombstones,
 } from '../src/utils/syncMerge';
 import { normalizePlanItem, regimensFromPlan } from '../src/utils/plan';
+import { MemoryStorage } from './memoryStorage';
 
 /** Synthetic values only. No fixture contains real health data or secrets. */
 const OWNER = 'local';
 const CREATED_AT = '2030-01-01T00:00:00.000Z';
 const NOW = Date.UTC(2030, 0, 2);
 const TOMBSTONE_AT = NOW - 60_000;
-
-class MemoryStorage implements StorageLike {
-    readonly map = new Map<string, string>();
-    getItem(key: string): string | null {
-        return this.map.get(key) ?? null;
-    }
-    setItem(key: string, value: string): void {
-        this.map.set(key, value);
-    }
-    removeItem(key: string): void {
-        this.map.delete(key);
-    }
-    snapshot(): string {
-        return JSON.stringify([...this.map.entries()].sort(([a], [b]) => a.localeCompare(b)));
-    }
-}
 
 /** Fails selected setItem calls so a mid-import write error can be tested. */
 class FlakyStorage extends MemoryStorage {

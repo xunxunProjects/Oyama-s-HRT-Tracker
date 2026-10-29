@@ -3,70 +3,10 @@ import * as openpgp from 'openpgp';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { handleF2fWeb, sweepF2fCohorts } from '../f2f';
 import worker, { type Env } from '../worker';
-
-interface SqliteDatabase {
-    exec(sql: string): void;
-    prepare(sql: string): {
-        get(...values: unknown[]): unknown;
-        run(...values: unknown[]): { changes: number | bigint };
-        all(...values: unknown[]): unknown[];
-    };
-}
-
-const sqliteSpecifier = 'node:sqlite';
-const fsSpecifier = 'node:fs';
-let sqliteModule: { DatabaseSync: new (path: string, options?: Record<string, unknown>) => SqliteDatabase } | null =
-    null;
-let fsModule: { readdirSync: (path: URL) => string[]; readFileSync: (path: URL, encoding: 'utf8') => string } | null =
-    null;
-try {
-    sqliteModule = (await import(/* @vite-ignore */ sqliteSpecifier)) as typeof sqliteModule;
-} catch {
-    sqliteModule = null;
-}
-try {
-    fsModule = (await import(/* @vite-ignore */ fsSpecifier)) as typeof fsModule;
-} catch {
-    fsModule = null;
-}
+import { d1, hasSqlite, migratedDatabase, type SqliteDatabase } from './sqliteD1';
 
 const JWT_SECRET = 'K7fQ2vRm9pLxT4wYzA6bC1dE8fG3hJ5n';
 const PASSWORD = 'violet harbor tiny lantern';
-
-function d1(db: SqliteDatabase) {
-    return {
-        async batch(statements: Array<{ run(): Promise<unknown> }>) {
-            const results = [];
-            for (const statement of statements) results.push(await statement.run());
-            return results;
-        },
-        prepare(sql: string) {
-            const order: number[] = [];
-            const rewritten = sql.replace(/\?(\d+)/g, (_match, index: string) => {
-                order.push(Number(index));
-                return '?';
-            });
-            let args: unknown[] = [];
-            const statement = {
-                bind(...values: unknown[]) {
-                    args = order.length > 0 ? order.map(index => values[index - 1]) : values;
-                    return statement;
-                },
-                async first() {
-                    return db.prepare(rewritten).get(...args) ?? null;
-                },
-                async run() {
-                    const result = db.prepare(rewritten).run(...args);
-                    return { success: true, meta: { changes: Number(result.changes) } };
-                },
-                async all() {
-                    return { success: true, results: db.prepare(rewritten).all(...args) };
-                },
-            };
-            return statement;
-        },
-    };
-}
 
 interface TestKey {
     publicKey: string;
@@ -168,7 +108,7 @@ const directUpload = async (userId: string, value: number) => {
     return handleF2fWeb(request, env, url, { userId, username: `user-${userId}` });
 };
 
-describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
+describe.skipIf(!hasSqlite)('/f2f cohorts', () => {
     beforeAll(async () => {
         for (let value = 1; value <= 101; value++) {
             const pair = await openpgp.generateKey({
@@ -202,14 +142,7 @@ describe.skipIf(!sqliteModule || !fsModule)('/f2f cohorts', () => {
     }, 120_000);
 
     beforeEach(async () => {
-        db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
-        const migrationDir = new URL('../migrations/', import.meta.url);
-        for (const file of fsModule!
-            .readdirSync(migrationDir)
-            .filter(name => name.endsWith('.sql'))
-            .sort()) {
-            db.exec(fsModule!.readFileSync(new URL(file, migrationDir), 'utf8'));
-        }
+        db = migratedDatabase();
         for (const [id, name] of [
             ['user-1', 'Alice'],
             ['user-2', 'Bob'],

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import bcrypt from 'bcryptjs';
 import worker, { type Env } from '../worker';
+import { d1, hasSqlite, migratedDatabase, type SqliteDatabase } from './sqliteD1';
 
 // Sign-in lock policy under test: the fifth consecutive miss on an account
 // (wrong password or wrong second factor) locks it for 15 minutes, further
@@ -10,61 +11,9 @@ import worker, { type Env } from '../worker';
 // migration applied, through a thin D1-shaped adapter: this checks the SQL and
 // the flow, not D1's deployment behavior.
 
-interface SqliteDatabase {
-    exec(sql: string): void;
-    prepare(sql: string): {
-        get(...values: unknown[]): unknown;
-        run(...values: unknown[]): { changes: number | bigint };
-        all(...values: unknown[]): unknown[];
-    };
-}
-
-const sqliteSpecifier = 'node:sqlite';
-const fsSpecifier = 'node:fs';
-let sqliteModule: { DatabaseSync: new (path: string, options?: Record<string, unknown>) => SqliteDatabase } | null =
-    null;
-let fsModule: { readdirSync: (path: URL) => string[]; readFileSync: (path: URL, encoding: 'utf8') => string } | null =
-    null;
-try {
-    sqliteModule = (await import(/* @vite-ignore */ sqliteSpecifier)) as typeof sqliteModule;
-} catch {
-    sqliteModule = null;
-}
-try {
-    fsModule = (await import(/* @vite-ignore */ fsSpecifier)) as typeof fsModule;
-} catch {
-    fsModule = null;
-}
-
 const JWT_SECRET = 'K7fQ2vRm9pLxT4wYzA6bC1dE8fG3hJ5n';
 const PASSWORD = 'violet harbor tiny lantern';
 const WRONG = 'not the password at all';
-
-// The subset of D1's statement API the login and register paths use.
-function d1(db: SqliteDatabase) {
-    return {
-        prepare(sql: string) {
-            let args: unknown[] = [];
-            const statement = {
-                bind(...values: unknown[]) {
-                    args = values;
-                    return statement;
-                },
-                async first() {
-                    return db.prepare(sql).get(...args) ?? null;
-                },
-                async run() {
-                    const result = db.prepare(sql).run(...args);
-                    return { success: true, meta: { changes: Number(result.changes) } };
-                },
-                async all() {
-                    return { success: true, results: db.prepare(sql).all(...args) };
-                },
-            };
-            return statement;
-        },
-    };
-}
 
 let db: SqliteDatabase;
 let env: Env;
@@ -92,16 +41,9 @@ const backoffRow = (account: string) =>
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
-describe.skipIf(!sqliteModule || !fsModule)('sign-in lock', () => {
+describe.skipIf(!hasSqlite)('sign-in lock', () => {
     beforeEach(() => {
-        db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
-        const migrationDir = new URL('../migrations/', import.meta.url);
-        for (const file of fsModule!
-            .readdirSync(migrationDir)
-            .filter(name => name.endsWith('.sql'))
-            .sort()) {
-            db.exec(fsModule!.readFileSync(new URL(file, migrationDir), 'utf8'));
-        }
+        db = migratedDatabase();
         db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
             'user-1',
             'Alice',

@@ -6,33 +6,13 @@ import {
     type ImportActiveRecords,
     type ImportStorageContext,
 } from '../src/utils/backupImport';
-import {
-    buildExportPayloadFromStorage,
-    modeKeyFor,
-    readTombstonesFromStorage,
-    type StorageLike,
-} from '../src/utils/backupState';
+import { buildExportPayloadFromStorage, modeKeyFor, readTombstonesFromStorage } from '../src/utils/backupState';
 import { emptyTombstones, type ModeKey, type Tombstones } from '../src/utils/syncMerge';
+import { MemoryStorage } from './memoryStorage';
 
 /** Synthetic values only. No fixture here contains real health data or secrets. */
 const OWNER = 'synthetic-user';
 const NOW = 1_900_000_000_000;
-
-class MemoryStorage implements StorageLike {
-    readonly map = new Map<string, string>();
-    getItem(key: string): string | null {
-        return this.map.get(key) ?? null;
-    }
-    setItem(key: string, value: string): void {
-        this.map.set(key, value);
-    }
-    removeItem(key: string): void {
-        this.map.delete(key);
-    }
-    snapshot(): string {
-        return JSON.stringify([...this.map.entries()].sort(([a], [b]) => a.localeCompare(b)));
-    }
-}
 
 const key = (mode: ModeKey, suffix: string) => modeKeyFor(OWNER, mode, suffix);
 

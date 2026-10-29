@@ -1,76 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import bcrypt from 'bcryptjs';
 import worker, { type Env } from '../worker';
+import { d1, migratedDatabase, type SqliteDatabase } from './sqliteD1';
 
 // /api/tool/v1 contract tests. They run against a real SQLite engine
-// (node:sqlite) with every migration applied, through the same thin
-// D1-shaped adapter the login-lockout tests use.
-
-interface SqliteDatabase {
-    exec(sql: string): void;
-    prepare(sql: string): {
-        get(...values: unknown[]): unknown;
-        run(...values: unknown[]): { changes: number | bigint };
-        all(...values: unknown[]): unknown[];
-    };
-}
-
-const sqliteSpecifier = 'node:sqlite';
-const fsSpecifier = 'node:fs';
-let sqliteModule: { DatabaseSync: new (path: string, options?: Record<string, unknown>) => SqliteDatabase } | null =
-    null;
-let fsModule: { readdirSync: (path: URL) => string[]; readFileSync: (path: URL, encoding: 'utf8') => string } | null =
-    null;
-try {
-    sqliteModule = (await import(/* @vite-ignore */ sqliteSpecifier)) as typeof sqliteModule;
-} catch {
-    sqliteModule = null;
-}
-try {
-    fsModule = (await import(/* @vite-ignore */ fsSpecifier)) as typeof fsModule;
-} catch {
-    fsModule = null;
-}
+// (node:sqlite) with every migration applied, through the D1-shaped
+// adapter in sqliteD1.ts.
 
 const JWT_SECRET = 'K7fQ2vRm9pLxT4wYzA6bC1dE8fG3hJ5n';
 const PASSWORD = 'violet harbor tiny lantern';
-
-function d1(db: SqliteDatabase) {
-    return {
-        async batch(statements: Array<{ run(): Promise<unknown> }>) {
-            const results = [];
-            for (const statement of statements) results.push(await statement.run());
-            return results;
-        },
-        prepare(sql: string) {
-            // D1 accepts ?1/?2 numbered parameters; node:sqlite does not, so
-            // rewrite them to plain ? and reorder the bound values.
-            const order: number[] = [];
-            const rewritten = sql.replace(/\?(\d+)/g, (_match, index: string) => {
-                order.push(Number(index));
-                return '?';
-            });
-            let args: unknown[] = [];
-            const statement = {
-                bind(...values: unknown[]) {
-                    args = order.length > 0 ? order.map(index => values[index - 1]) : values;
-                    return statement;
-                },
-                async first() {
-                    return db.prepare(rewritten).get(...args) ?? null;
-                },
-                async run() {
-                    const result = db.prepare(rewritten).run(...args);
-                    return { success: true, meta: { changes: Number(result.changes) } };
-                },
-                async all() {
-                    return { success: true, results: db.prepare(rewritten).all(...args) };
-                },
-            };
-            return statement;
-        },
-    };
-}
 
 let db: SqliteDatabase;
 let env: Env;
@@ -104,14 +42,7 @@ const login = async (password = PASSWORD) => {
 
 describe('/api/tool/v1', () => {
     beforeEach(async () => {
-        db = new sqliteModule!.DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
-        const migrationDir = new URL('../migrations/', import.meta.url);
-        for (const file of fsModule!
-            .readdirSync(migrationDir)
-            .filter(name => name.endsWith('.sql'))
-            .sort()) {
-            db.exec(fsModule!.readFileSync(new URL(file, migrationDir), 'utf8'));
-        }
+        db = migratedDatabase();
         db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)').run(
             'user-1',
             'Alice',
