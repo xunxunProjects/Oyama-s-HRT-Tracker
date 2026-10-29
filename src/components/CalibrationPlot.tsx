@@ -90,7 +90,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
     const r = 4.5 * ui;
 
     return (
-        <section className="py-5 border-t border-[var(--border)]">
+        <section className="py-5 border-t-(length:--hairline) border-[var(--border)]">
             <h2 className={`text-sm ${muted}`}>{t('cal.plot.title')}</h2>
 
             {/* Legend — every mark on the plot, named */}
@@ -292,7 +292,7 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
 
                 {hp && (
                     <div
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{
                             left: X(hp.cal),
                             top: Y(hp.obs) - 12 * ui,

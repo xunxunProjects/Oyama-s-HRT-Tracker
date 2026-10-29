@@ -223,7 +223,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                     </button>
 
                                     {generatedPassword && (
-                                        <div className="mt-2 border border-[var(--border)] rounded-lg p-3 space-y-2">
+                                        <div className="mt-2 border-(length:--hairline) border-[var(--border)] rounded-lg p-3 space-y-2">
                                             <p className="text-xs font-semibold text-[var(--text)]">
                                                 {t('export.password_title')}
                                             </p>

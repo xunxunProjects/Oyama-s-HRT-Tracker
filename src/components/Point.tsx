@@ -1,7 +1,7 @@
 import React from 'react';
 import Doodle, { DoodleName } from './Doodle';
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 /** A row of the intro's chart step relative to the chart: its beat still to come, playing, or played. */
 export type MarkState = 'asleep' | 'playing' | 'done';
@@ -36,9 +36,7 @@ const Point: React.FC<PointProps> = ({ mark, title, desc, state = 'done', onClic
         <>
             <Doodle name={mark} asleep={state === 'asleep'} className="-mt-0.5" />
             <div>
-                <p className={`text-sm font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>
-                    {title}
-                </p>
+                <p className={`text-sm font-medium ${state === 'asleep' ? 'text-muted' : 'text-body'}`}>{title}</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted">{desc}</p>
             </div>
         </>

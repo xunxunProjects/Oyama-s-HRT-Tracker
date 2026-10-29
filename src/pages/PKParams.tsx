@@ -85,7 +85,7 @@ const SECTIONS: { key: SectionKey; titleKey: string; fields: FieldDef[] }[] = [
     },
 ];
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 const FIELDS = SECTIONS.flatMap(s => s.fields);
 const clampTo = (f: FieldDef, n: number) => Math.max(f.min, Math.min(f.max, n));
@@ -193,7 +193,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
 
             <div className={`${PAGE_COLUMN} mt-4`}>
                 {/* Warning */}
-                <div className="flex items-start gap-2 mb-6 pb-4 border-b border-[var(--border)]">
+                <div className="flex items-start gap-2 mb-6 pb-4 border-b-(length:--hairline) border-[var(--border)]">
                     <span className="icon-line text-sm">
                         <Warning size={13} className="text-[var(--warning)]" />
                     </span>

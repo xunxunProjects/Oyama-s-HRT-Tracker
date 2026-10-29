@@ -584,7 +584,7 @@ const ForecastChart: React.FC<{
                 {hoverH !== null && readout && readout.length > 0 && (
                     <div
                         ref={setTipEl}
-                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-10 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{
                             // Right of the line when it fits, left of it when it
                             // doesn't, and never past either edge.

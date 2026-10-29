@@ -257,7 +257,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                         <label className="sr-only" htmlFor="created-share-link">
                             {copy.copy}
                         </label>
-                        <div className="flex flex-col gap-1 border-b border-[var(--border)] py-1 sm:flex-row sm:items-center sm:gap-3">
+                        <div className="flex flex-col gap-1 border-b-(length:--hairline) border-[var(--border)] py-1 sm:flex-row sm:items-center sm:gap-3">
                             <input
                                 ref={linkInputRef}
                                 id="created-share-link"
@@ -285,14 +285,11 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                         )}
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="border-b border-[var(--border)] pb-6">
+                    <form onSubmit={handleSubmit} className="border-b-(length:--hairline) border-[var(--border)] pb-6">
                         <div className="callout mb-5">{liveEnabled ? copy.liveSnapshotNote : copy.snapshotNote}</div>
 
-                        <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--border)] py-[18px]">
-                            <label
-                                htmlFor="share-live-toggle"
-                                className="cursor-pointer text-sm font-medium text-body"
-                            >
+                        <div className="mb-5 flex items-center justify-between gap-4 border-b-(length:--hairline) border-[var(--border)] py-[18px]">
+                            <label htmlFor="share-live-toggle" className="cursor-pointer text-sm font-medium text-body">
                                 {copy.liveToggle}
                             </label>
                             <Switch id="share-live-toggle" checked={liveEnabled} onChange={setLiveEnabled} />
@@ -361,7 +358,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                                 </span>
                                             </div>
                                             <div
-                                                className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[var(--border)] bg-[var(--accent-subtle)]"
+                                                className="mt-2 h-2 w-full overflow-hidden rounded-full border-(length:--hairline) border-[var(--border)] bg-[var(--accent-subtle)]"
                                                 role="progressbar"
                                                 aria-label={copy.entropyLabel}
                                                 aria-valuemin={0}
@@ -400,7 +397,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 type="button"
                                 onClick={() => setIsExpiryPickerOpen(value => !value)}
                                 aria-expanded={isExpiryPickerOpen}
-                                className="flex w-full items-center justify-between border-b border-[var(--border)] py-[18px] text-start"
+                                className="flex w-full items-center justify-between border-b-(length:--hairline) border-[var(--border)] py-[18px] text-start"
                             >
                                 <span className="text-sm text-body">{copy.expiryLabel}</span>
                                 <span className="flex items-center gap-1.5 text-muted">
@@ -467,11 +464,11 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                     ) : shares.length === 0 ? (
                         <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
                     ) : (
-                        <div className="mt-3 border-t border-[var(--border)]">
+                        <div className="mt-3 border-t-(length:--hairline) border-[var(--border)]">
                             {shares.map(share => (
                                 <div
                                     key={share.id}
-                                    className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0"
+                                    className="flex items-center gap-3 border-b-(length:--hairline) border-[var(--border)] py-3.5 last:border-b-0"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">

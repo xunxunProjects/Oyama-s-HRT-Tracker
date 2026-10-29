@@ -16,7 +16,7 @@ interface CalibrationSettingsProps {
 
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 interface MethodDef {
     value: CalibrationMethod;
@@ -182,9 +182,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
                                     title={t(`cal.${hm}`)}
                                     onClick={() => setHistoryMode(hm)}
                                 >
-                                    <p className={`text-xs leading-snug ${muted} mt-1`}>
-                                        {t(`cal.desc.${hm}`)}
-                                    </p>
+                                    <p className={`text-xs leading-snug ${muted} mt-1`}>{t(`cal.desc.${hm}`)}</p>
                                 </OptionCard>
                             ))}
                         </div>

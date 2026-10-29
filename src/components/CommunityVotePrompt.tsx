@@ -129,7 +129,7 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
     return (
         <section
             aria-labelledby="community-vote-prompt-title"
-            className="mt-10 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] p-5"
+            className="mt-10 rounded-[var(--radius-lg)] border-(length:--hairline) border-[var(--border)] bg-[var(--surface-muted)] p-5"
         >
             <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs font-medium text-[var(--accent-ink)]">{t('vote.prompt.title')}</p>

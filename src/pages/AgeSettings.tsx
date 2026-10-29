@@ -44,7 +44,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
         onBack();
     };
 
-    const divider = 'border-b border-[var(--border)]';
+    const divider = 'border-b-(length:--hairline) border-[var(--border)]';
     const range = `${BIRTH_YEAR_MIN}–${thisYear}`;
 
     return (

@@ -116,7 +116,7 @@ const heading = 'mt-8 mb-1 text-xs font-medium text-[var(--text-muted)]';
 const inlineLink =
     'text-[var(--text)] underline decoration-[var(--border)] underline-offset-[3px] hover:decoration-current break-words';
 const row =
-    'group flex items-center justify-between gap-4 py-3.5 border-b border-[var(--border)] last:border-b-0 text-start';
+    'group flex items-center justify-between gap-4 py-3.5 border-b-(length:--hairline) border-[var(--border)] last:border-b-0 text-start';
 
 const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
     return (
@@ -154,7 +154,7 @@ const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
     const name = developer.name ?? developer.login;
 
     return (
-        <div className="border-b border-[var(--border)] last:border-b-0">
+        <div className="border-b-(length:--hairline) border-[var(--border)] last:border-b-0">
             <button
                 type="button"
                 onClick={() => setOpen(value => !value)}
@@ -221,7 +221,7 @@ const DeveloperRow: React.FC<{ developer: Developer }> = ({ developer }) => {
                             href={`https://github.com/${developer.login}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3.5 py-3 text-sm text-[var(--text)] hover:bg-[var(--surface-hover)]"
+                            className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border-(length:--hairline) border-[var(--border)] px-3.5 py-3 text-sm text-[var(--text)] hover:bg-[var(--surface-hover)]"
                         >
                             <span className="min-w-0">
                                 <span className="block font-medium">GitHub</span>
@@ -269,7 +269,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                     ))}
                 </div>
                 <h2 className={heading}>Contributors</h2>
-                <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b border-[var(--border)] text-sm">
+                <p className="flex flex-wrap gap-x-4 gap-y-2 pt-2 pb-3.5 border-b-(length:--hairline) border-[var(--border)] text-sm">
                     {CONTRIBUTORS.map(login => (
                         <a
                             key={login}

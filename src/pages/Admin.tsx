@@ -40,7 +40,7 @@ type UserPanel =
     | { type: 'backups'; user: AdminUser }
     | { type: '2fa'; user: AdminUser };
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
 const rowLabel = 'text-sm text-[var(--text)]';
 const rowValue = `flex items-center gap-1 text-sm ${settingsMuted}`;
@@ -385,14 +385,12 @@ const Admin: React.FC = () => {
         if (!panel) return null;
 
         const body = (
-            <div className="m-appear border-y border-[var(--border)] py-4">
+            <div className="m-appear border-y-(length:--hairline) border-[var(--border)] py-4">
                 <div>
                     <div>
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className={`text-sm font-semibold ${settingsOn}`}>
-                                    {panel.user.username}
-                                </h3>
+                                <h3 className={`text-sm font-semibold ${settingsOn}`}>{panel.user.username}</h3>
                                 <p className={`text-xs ${settingsMuted} mt-0.5`}>
                                     {panel.type === 'password'
                                         ? 'Change password'
@@ -463,7 +461,7 @@ const Admin: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className={`border-t border-[var(--border)] pt-4 space-y-2`}>
+                                <div className={`border-t-(length:--hairline) border-[var(--border)] pt-4 space-y-2`}>
                                     <label className={`block text-xs font-medium ${settingsMuted}`}>Avatar</label>
                                     <button
                                         onClick={() => handleResetAvatar(panel.user)}
@@ -556,7 +554,7 @@ const Admin: React.FC = () => {
                                         </button>
                                     </div>
 
-                                    <div className="flex items-end justify-between gap-4 pt-4 border-t border-[var(--border)]">
+                                    <div className="flex items-end justify-between gap-4 pt-4 border-t-(length:--hairline) border-[var(--border)]">
                                         <p className="text-xs text-[var(--danger)] leading-relaxed">
                                             Erasing a factor drops this account back to its password alone. Confirm who
                                             is asking before you do it.
@@ -594,7 +592,7 @@ const Admin: React.FC = () => {
                                         </span>
                                         <button
                                             onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border border-[var(--border)] rounded-full hover:bg-[var(--surface-hover)] transition-colors"
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border-(length:--hairline) border-[var(--border)] rounded-full hover:bg-[var(--surface-hover)] transition-colors"
                                         >
                                             <Trash size={13} strokeWidth={1.5} /> Purge All
                                         </button>
@@ -1045,7 +1043,7 @@ const Admin: React.FC = () => {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between gap-3 pt-2 border-t-(length:--hairline) border-[var(--border)]">
                     <span className={`text-xs ${settingsMuted}`}>
                         {noticeWindowLabel()}
                         {notice ? `, revision ${notice.revision}` : ''}
@@ -1136,7 +1134,7 @@ const Admin: React.FC = () => {
     return (
         <div className="flex pt-8 pb-32 min-h-full">
             {/* ── Left category nav (desktop) ─────────────────────────── */}
-            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r border-[var(--border)]">
+            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r-(length:--hairline) border-[var(--border)]">
                 <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>Admin</p>
                 {cats.map(({ id, label, Icon }) => (
                     <button

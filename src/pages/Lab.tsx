@@ -184,7 +184,7 @@ const Lab: React.FC<LabProps> = ({
                 {/* Calibration settings entry — always available; how labs feed the estimate */}
                 <button
                     onClick={onOpenCalibrationSettings}
-                    className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--surface-hover)] border-b border-[var(--border)]"
+                    className="w-full flex items-center justify-between gap-3 py-4 text-start outline-none focus:outline-none focus-visible:outline-none hover:bg-[var(--surface-hover)] border-b-(length:--hairline) border-[var(--border)]"
                 >
                     <div className="min-w-0">
                         <p className={`text-sm ${on}`}>{t('cal.settings')}</p>
@@ -245,7 +245,10 @@ const Lab: React.FC<LabProps> = ({
                                 const pct = cmp?.pct ?? 0;
                                 const timing = labDoseContext(res, events);
                                 return (
-                                    <div key={res.id} className="border-b border-[var(--border)] last:border-b-0">
+                                    <div
+                                        key={res.id}
+                                        className="border-b-(length:--hairline) border-[var(--border)] last:border-b-0"
+                                    >
                                         {/* A button, so the row opens its edit form (and
                                             with it Delete) from the keyboard too. Its parts
                                             are spans, the only kind a button may hold. */}

@@ -498,6 +498,18 @@ select:focus-visible {
     }
 }
 
+/* A rule between things is half a pixel wherever the screen can draw one
+   (2x and up), and a whole pixel where it can't. Fields keep their 1px
+   outline: that one has to be found. */
+:root {
+    --hairline: 1px;
+}
+@media (min-resolution: 2dppx) {
+    :root {
+        --hairline: 0.5px;
+    }
+}
+
 /* A run of rows divided by hairlines between each pair, never above the
    first or below the last. A row with a leading icon sets --divider-inset so
    the rule starts where its text does; a row that bleeds into the gutter for
@@ -520,7 +532,7 @@ select:focus-visible {
     top: 0;
     inset-inline-start: calc(var(--row-bleed, 0px) + var(--divider-inset, 0px));
     inset-inline-end: var(--row-bleed, 0px);
-    height: 1px;
+    height: var(--hairline);
     background-color: var(--border);
     pointer-events: none;
 }
@@ -660,7 +672,7 @@ select:focus-visible {
         justify-content: space-between;
         gap: 0.625rem 1rem;
         padding: 0.875rem 0;
-        border-block: 1px solid var(--border);
+        border-block: var(--hairline) solid var(--border);
     }
     .settings-section > .inline-prompt-host > .inline-prompt,
     .settings-section > .inline-prompt {
@@ -700,7 +712,7 @@ select:focus-visible {
         position: sticky;
         top: 0;
         z-index: 30;
-        border-bottom: 1px solid var(--border);
+        border-bottom: var(--hairline) solid var(--border);
     }
     .prompt-banner .inline-prompt {
         border-block: 0;

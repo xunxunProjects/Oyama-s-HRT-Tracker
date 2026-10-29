@@ -20,7 +20,7 @@ interface TransparencyStats {
 
 const REFRESH_INTERVAL_MS = 30_000;
 
-const rowBase = 'flex items-baseline justify-between py-[18px] border-b border-[var(--border)]';
+const rowBase = 'flex items-baseline justify-between py-[18px] border-b-(length:--hairline) border-[var(--border)]';
 
 interface TransparencySettingsProps {
     onBack: () => void;
@@ -95,18 +95,14 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                 {/* Stats */}
                 <div>
                     <div className={rowBase}>
-                        <span className="text-sm text-[var(--text)]">
-                            {t('transparency.stat.total_users')}
-                        </span>
+                        <span className="text-sm text-[var(--text)]">{t('transparency.stat.total_users')}</span>
                         <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.total_users)}
                         </span>
                     </div>
 
                     <div className={rowBase}>
-                        <span className="text-sm text-[var(--text)]">
-                            {t('transparency.stat.total_backups')}
-                        </span>
+                        <span className="text-sm text-[var(--text)]">{t('transparency.stat.total_backups')}</span>
                         <span className="text-[1.625rem] font-semibold text-[var(--text)] tabular-nums">
                             {fig(stats?.total_backups)}
                         </span>
@@ -114,9 +110,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={rowBase}>
                         <div>
-                            <p className="text-sm text-[var(--text)]">
-                                {t('transparency.stat.new_users_24h')}
-                            </p>
+                            <p className="text-sm text-[var(--text)]">{t('transparency.stat.new_users_24h')}</p>
                             <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.new_users_7d').replace('{n}', fig(stats?.new_users_7d))}
                             </p>
@@ -140,9 +134,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
 
                     <div className={`${rowBase} border-b-0`}>
                         <div>
-                            <p className="text-sm text-[var(--text)]">
-                                {t('transparency.stat.admin_deleted')}
-                            </p>
+                            <p className="text-sm text-[var(--text)]">{t('transparency.stat.admin_deleted')}</p>
                             <p className="text-xs tabular-nums text-[var(--text-muted)] mt-0.5">
                                 {t('transparency.stat.delta_7d').replace('{n}', fig(stats?.admin_deleted_7d))}
                             </p>
@@ -158,7 +150,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                     {t('transparency.recent.title')}
                 </h2>
 
-                <div className="divide-y divide-[var(--border)]">
+                <div className="divide-y-(length:--hairline) divide-[var(--border)]">
                     {stats && (stats.recent_registrations ?? []).length === 0 ? (
                         <p className="py-6 text-sm text-center text-[var(--text-muted)]">
                             {t('transparency.recent.empty')}

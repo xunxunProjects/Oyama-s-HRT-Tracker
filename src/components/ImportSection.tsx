@@ -68,9 +68,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJs
                 merge import: this is the only action that clears categories. */}
             <button onClick={() => replaceFileInputRef.current?.click()} className={`${rowBase} ${rowBleed}`}>
                 <span>
-                    <span className="block text-sm text-[var(--danger)]">
-                        {t('import.replace_complete_row')}
-                    </span>
+                    <span className="block text-sm text-[var(--danger)]">{t('import.replace_complete_row')}</span>
                     <span className={rowDesc}>{t('import.replace_complete_desc')}</span>
                 </span>
                 <span className="text-sm font-medium text-[var(--danger)] shrink-0 ml-6 mt-0.5">
@@ -100,7 +98,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJs
                 {showPaste && (
                     <div className="pb-4 space-y-3">
                         <textarea
-                            className="w-full h-28 p-3 bg-[var(--field)] border border-[var(--border)] rounded-md outline-none focus:border-[var(--border-strong)] font-mono text-[var(--text)] placeholder:text-[var(--text-muted)] resize-none"
+                            className="w-full h-28 p-3 bg-[var(--field)] border-(length:--hairline) border-[var(--border)] rounded-md outline-none focus:border-[var(--border-strong)] font-mono text-[var(--text)] placeholder:text-[var(--text-muted)] resize-none"
                             style={{ fontSize: '16px' }}
                             placeholder={t('import.paste_hint')}
                             value={text}

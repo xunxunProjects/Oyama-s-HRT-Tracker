@@ -81,7 +81,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                                     <button
                                         key={opt.raw}
                                         onClick={() => choose(catIdx, optIdx)}
-                                        className="w-full flex items-center justify-between py-3 border-b border-[var(--border)] last:border-b-0 text-start"
+                                        className="w-full flex items-center justify-between py-3 border-b-(length:--hairline) border-[var(--border)] last:border-b-0 text-start"
                                     >
                                         <span className="flex items-center gap-2 text-sm">
                                             <span className={isSelected ? `font-semibold ${on}` : on}>{opt.label}</span>
@@ -104,7 +104,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
                     </div>
                 ))}
 
-                <div className="rounded-xl border border-dashed border-[var(--border)] p-5">
+                <div className="rounded-xl border-(length:--hairline) border-dashed border-[var(--border)] p-5">
                     <p className={`text-sm font-semibold ${on} mb-3`}>{t('milktea.receipt_title')}</p>
                     <div className="font-mono text-xs leading-relaxed">
                         <p className={on}>{t('milktea.title')}</p>

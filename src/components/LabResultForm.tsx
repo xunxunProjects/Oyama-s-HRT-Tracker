@@ -32,7 +32,7 @@ type AssayChoice = LabAssay | 'unknown';
 const ASSAY_CHOICES: AssayChoice[] = ['unknown', ...LAB_ASSAYS];
 const withAssay = (choice: AssayChoice) => (choice === 'unknown' ? {} : { assay: choice });
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 const E2_UNITS: LabUnit[] = ['pmol/l', 'pg/ml'];
 const T_UNITS: LabUnit[] = ['ng/dl', 'nmol/l'];

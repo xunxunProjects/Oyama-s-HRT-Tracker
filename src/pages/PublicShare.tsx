@@ -231,7 +231,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
         return (
             <PublicShell>
                 <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-6 py-16">
-                    <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-xs)]">
+                    <div className="w-full rounded-xl border-(length:--hairline) border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-xs)]">
                         <div className="mb-5 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-subtle)] text-[var(--on-accent-subtle)]">
                             <LockKeyhole size={18} strokeWidth={1.75} />
                         </div>
@@ -409,17 +409,15 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
     return (
         <PublicShell>
             <main className="mx-auto max-w-5xl px-6 pb-20 pt-10 md:px-8 md:pt-14">
-                <section className="border-b border-[var(--border)] pb-8">
+                <section className="border-b-(length:--hairline) border-[var(--border)] pb-8">
                     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                         <div>
-                            <h1 className="text-[1.625rem] font-medium tracking-tight text-body">
-                                {copy.publicTitle}
-                            </h1>
+                            <h1 className="text-[1.625rem] font-medium tracking-tight text-body">{copy.publicTitle}</h1>
                             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{copy.disclaimer}</p>
                         </div>
                         {details.passwordRequired && (
                             <div className="flex shrink-0 flex-wrap gap-2 text-xs text-muted">
-                                <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 py-1.5">
+                                <span className="inline-flex items-center gap-1.5 rounded-md border-(length:--hairline) border-[var(--border)] px-2.5 py-1.5">
                                     <LockKeyhole size={12} /> {copy.protected}
                                 </span>
                             </div>
@@ -479,7 +477,7 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                             {groups.map(group => (
                                 <li
                                     key={group.key}
-                                    className="mb-6 last:mb-0 lg:mb-0 lg:grid lg:grid-cols-[9rem_minmax(0,1fr)] lg:gap-x-10 lg:border-t lg:border-[var(--border)]"
+                                    className="mb-6 last:mb-0 lg:mb-0 lg:grid lg:grid-cols-[9rem_minmax(0,1fr)] lg:gap-x-10 lg:border-t-(length:--hairline) lg:border-[var(--border)]"
                                 >
                                     <h3 className="pb-1 pt-2 text-xs font-semibold text-muted lg:pt-[1.1rem]">
                                         {group.label}
@@ -512,7 +510,7 @@ const DoseHistoryRow = ({ event, time, wornH }: { event: DoseEvent; time: string
     const wearHours = event.extras[ExtraKey.patchWearH];
 
     return (
-        <div className="flex items-center gap-3 border-b border-[var(--border)] py-3.5 last:border-b-0">
+        <div className="flex items-center gap-3 border-b-(length:--hairline) border-[var(--border)] py-3.5 last:border-b-0">
             <Doodle name={event.route} size={1.75} />
             <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">

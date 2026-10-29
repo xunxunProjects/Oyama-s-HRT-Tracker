@@ -776,13 +776,13 @@ const DoseForm: React.FC<DoseFormProps> = ({
                 {showTemplateMenu && (
                     <div
                         ref={templateMenuRef}
-                        className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50"
+                        className="absolute right-0 top-full mt-1 bg-[var(--field)] rounded-xl border-(length:--hairline) border-[var(--border)] w-64 max-h-64 overflow-y-auto z-50"
                     >
                         <div className="py-1">
                             {templates.map((template: DoseTemplate) => (
                                 <div
                                     key={template.id}
-                                    className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b border-[var(--border)] last:border-b-0"
+                                    className="group flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-hover)] border-b-(length:--hairline) border-[var(--border)] last:border-b-0"
                                 >
                                     <button
                                         type="button"
@@ -856,7 +856,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
             {/* Header */}
             {!isInline && !hideHeader && (
-                <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center shrink-0">
+                <div className="px-6 py-4 border-b-(length:--hairline) border-[var(--border)] flex justify-between items-center shrink-0">
                     <h3 className="text-sm font-semibold text-[var(--text)]">
                         {eventToEdit ? t('modal.dose.edit_title') : t('modal.dose.add_title')}
                     </h3>
@@ -876,10 +876,8 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
             {/* Inline Header (Simpler) */}
             {isInline && !hideHeader && (
-                <div className="pb-4 border-b border-[var(--border)] flex justify-between items-center">
-                    <span className="text-xs font-semibold text-[var(--text-muted)]">
-                        {t('timeline.add_title')}
-                    </span>
+                <div className="pb-4 border-b-(length:--hairline) border-[var(--border)] flex justify-between items-center">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">{t('timeline.add_title')}</span>
                     {renderLoadTemplateControl()}
                 </div>
             )}
@@ -893,7 +891,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         ref={timeButtonRef}
                         type="button"
                         onClick={() => setIsDatePickerOpen(v => !v)}
-                        className="w-full flex items-center justify-between py-[18px] border-b border-[var(--border)] text-start"
+                        className="w-full flex items-center justify-between py-[18px] border-b-(length:--hairline) border-[var(--border)] text-start"
                     >
                         <span className="text-sm text-[var(--text)]">{t('field.time')}</span>
                         <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
@@ -1059,7 +1057,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
                         {/* Injection-specific guide from mtf.wiki */}
                         {route === Route.injection && !isTransmasc && isEstradiolEster(ester) && (
-                            <div className="mt-3 border-t border-[var(--border)] pt-3">
+                            <div className="mt-3 border-t-(length:--hairline) border-[var(--border)] pt-3">
                                 {/* The safety warning stays in view; the rest folds. */}
                                 <GuideFold
                                     icon={
@@ -1158,7 +1156,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
                         {/* CPA dosage hint: the recommended dose stays in view, the two other regimens fold. */}
                         {ester === Ester.CPA && (
-                            <div className="mt-3 p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)]">
+                            <div className="mt-3 p-3 rounded-[var(--radius-lg)] border-(length:--hairline) border-[var(--border)] bg-[var(--surface-muted)]">
                                 <GuideFold
                                     icon={
                                         <span className="icon-line text-sm me-1">
@@ -1198,7 +1196,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             "enter a dose" and bare thresholds on every new form. */}
                         {doseGuide &&
                             (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
-                                <div className="mt-2 pt-2 border-t border-[var(--border)] flex gap-2">
+                                <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)] flex gap-2">
                                     <span className="icon-line text-xs">
                                         <Info className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                                     </span>
@@ -1235,7 +1233,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
 
                         {/* Recent-use heads-up — logged doses already running high */}
                         {doseAdvisory && (
-                            <div className="mt-2 pt-2 border-t border-[var(--border)]">
+                            <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)]">
                                 <DoseAdvisoryLine advisory={doseAdvisory} t={t} />
                             </div>
                         )}
@@ -1251,7 +1249,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                 Cancel and Save (the edit form in the list) keep a row of their
                 own, where neither label has to wrap. */}
             <div
-                className={`flex flex-wrap gap-x-2 gap-y-2 justify-between items-center shrink-0 border-t border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}
+                className={`flex flex-wrap gap-x-2 gap-y-2 justify-between items-center shrink-0 border-t-(length:--hairline) border-[var(--border)] ${!isInline ? 'px-6 py-3' : hideHeader ? 'py-2' : 'py-3'}`}
             >
                 {/* Says what the tick shows, for anyone who can't see it. */}
                 <span role="status" className="sr-only">

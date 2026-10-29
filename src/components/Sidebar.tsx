@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
         // only holds the strip's room in the layout; the panel inside it is
         // what widens, so the page never reflows under the pointer.
         <nav className="side-nav hidden md:block relative w-[var(--sidebar-width)] h-full shrink-0">
-            <div className="side-panel absolute inset-y-0 start-0 z-40 flex w-full flex-col bg-[var(--bg-subtle)] border-e border-[var(--border)]">
+            <div className="side-panel absolute inset-y-0 start-0 z-40 flex w-full flex-col bg-[var(--bg-subtle)] border-e-(length:--hairline) border-[var(--border)]">
                 {/* Logo: the app icon in a rounded tile, then the name. The
                     tile is the drawings' size and centred over them, so it
                     stays in line with them in the narrow strip too. */}

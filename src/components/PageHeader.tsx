@@ -55,7 +55,7 @@ const PageHeader: React.FC<{
         <>
             <div ref={setMarker} aria-hidden="true" className="h-0" />
             <div
-                className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_-1px_0_var(--border)]' : ''}`}
+                className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_calc(-1*var(--hairline))_0_var(--border)]' : ''}`}
             >
                 <div className={`${PAGE_COLUMN} pt-4 pb-3 flex items-end justify-between gap-4`}>
                     <div className="min-w-0 flex-1">

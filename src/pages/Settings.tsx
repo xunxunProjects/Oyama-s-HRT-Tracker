@@ -345,7 +345,7 @@ const Settings: React.FC<SettingsProps> = ({
                                     aria-label={t(`settings.cat_style.${id}`)}
                                     title={t(`settings.cat_style.${id}`)}
                                     aria-pressed={catStyle === id}
-                                    className={`h-6 w-6 shrink-0 rounded-full border border-[var(--border)] ${
+                                    className={`h-6 w-6 shrink-0 rounded-full border-(length:--hairline) border-[var(--border)] ${
                                         catStyle === id
                                             ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
                                             : ''

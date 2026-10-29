@@ -369,12 +369,10 @@ const DoseHeatmap = ({
                 {hover && (
                     <div
                         ref={setTipEl}
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{ left: tipLeft, top: tipTop }}
                     >
-                        <div className="text-xs whitespace-nowrap text-[var(--text-muted)]">
-                            {dayLabel(hover.date)}
-                        </div>
+                        <div className="text-xs whitespace-nowrap text-[var(--text-muted)]">{dayLabel(hover.date)}</div>
                         <div className="text-xs font-medium whitespace-nowrap text-[var(--text)]">
                             {hover.count > 0 ? doseLabel(hover.count) : t('heatmap.none')}
                         </div>

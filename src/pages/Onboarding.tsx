@@ -46,7 +46,7 @@ export const markOnboardingSeen = (): void => {
     localStorage.setItem(ONBOARDING_KEY, 'true');
 };
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 /**
  * The three slots of the "how it works" step, and the only step that splits in
@@ -356,9 +356,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         aria-pressed={lang === value}
                         className={`flex w-full items-center justify-between gap-4 py-3.5 text-start ${divider} last:border-b-0`}
                     >
-                        <span className={`text-sm text-body ${lang === value ? 'font-semibold' : ''}`}>
-                            {label}
-                        </span>
+                        <span className={`text-sm text-body ${lang === value ? 'font-semibold' : ''}`}>{label}</span>
                         <Tick on={lang === value} />
                     </button>
                 ))}
@@ -376,14 +374,10 @@ const Onboarding: React.FC<OnboardingProps> = ({
                         className={`flex w-full items-center justify-between gap-4 py-4 text-start ${divider} last:border-b-0`}
                     >
                         <span>
-                            <span
-                                className={`block text-sm text-body ${mode === value ? 'font-semibold' : ''}`}
-                            >
+                            <span className={`block text-sm text-body ${mode === value ? 'font-semibold' : ''}`}>
                                 {t(labelKey)}
                             </span>
-                            <span className="mt-0.5 block text-xs leading-relaxed text-muted">
-                                {t(descKey)}
-                            </span>
+                            <span className="mt-0.5 block text-xs leading-relaxed text-muted">{t(descKey)}</span>
                         </span>
                         <Tick on={mode === value} />
                     </button>
@@ -590,7 +584,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                 16px gutters and a closer gap so two labels and the rings
                 still fit side by side in every language. */}
             <div
-                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-[var(--border)] max-[360px]:px-4`}
+                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t-(length:--hairline) border-[var(--border)] max-[360px]:px-4`}
             >
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
                     <div className="justify-self-start">

@@ -79,7 +79,7 @@ interface AccountProps {
     signInReason?: 'share' | 'vote';
 }
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 const sectionLabelBase = 'text-xs font-semibold mb-2 block';
 const sectionLabel = `${sectionLabelBase} text-[var(--text-muted)]`;
 const iconCls = 'text-[var(--text-muted)] shrink-0';
@@ -1391,7 +1391,7 @@ const Account: React.FC<AccountProps> = ({
                                                             handlePasskeyLogin(acceptedPasswordRef.current ?? undefined)
                                                         }
                                                         disabled={passkeyLoading}
-                                                        className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                                        className="w-full py-2.5 text-sm font-medium border-(length:--hairline) border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                                     >
                                                         <BusyLabel busy={passkeyLoading}>
                                                             {t('auth.passkey_as_2fa')}
@@ -1422,7 +1422,7 @@ const Account: React.FC<AccountProps> = ({
                                         type="button"
                                         onClick={() => handlePasskeyLogin()}
                                         disabled={passkeyLoading}
-                                        className="w-full py-2.5 text-sm font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="w-full py-2.5 text-sm font-medium border-(length:--hairline) border-[var(--border)] rounded-md hover:bg-[var(--surface-hover)] text-[var(--text)] disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         <BusyLabel busy={passkeyLoading}>{t('auth.passkey_login')}</BusyLabel>
                                     </button>

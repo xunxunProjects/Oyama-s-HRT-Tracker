@@ -360,7 +360,11 @@ const History: React.FC<HistoryProps> = ({
         const wornH = isRemoval ? wornBeforeRemoval.get(ev) : undefined;
         const editOpen = isEditing && !selectMode;
         return (
-            <div key={ev.id} data-event-id={ev.id} className="border-b border-[var(--border)] last:border-b-0">
+            <div
+                key={ev.id}
+                data-event-id={ev.id}
+                className="border-b-(length:--hairline) border-[var(--border)] last:border-b-0"
+            >
                 {/* A button, so a keyboard reaches every record: it opens the
                     record's form, or in select mode ticks it. The drawing at its
                     head says the route, which the first line alone does not when
@@ -671,7 +675,7 @@ const History: React.FC<HistoryProps> = ({
                 <div className={`${PAGE_COLUMN} mb-2`}>
                     {/* Ruled off from the list below, so open it still reads as
                         apart from the doses already taken. */}
-                    <div className="border-b border-[var(--border)]">
+                    <div className="border-b-(length:--hairline) border-[var(--border)]">
                         <button
                             type="button"
                             onClick={() => setPlannedOpen(o => !o)}

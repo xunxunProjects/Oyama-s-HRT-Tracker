@@ -1329,7 +1329,7 @@ const ResultChart = ({
                 {/* Hover tooltip */}
                 {showHover && (
                     <div
-                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)]"
+                        className="absolute z-20 pointer-events-none px-2.5 py-1.5 rounded-md bg-[var(--surface)] border-(length:--hairline) border-[var(--border)]"
                         style={{
                             left: Math.min(Math.max(X(hoverPt!.t), mL + 4), mL + plotW - 4),
                             top: Math.max(YP(hoverPt!.p ?? 0) - 12, 8),
@@ -1354,14 +1354,12 @@ const ResultChart = ({
                                 <span className="text-xs font-medium tabular-nums" style={{ color: c.second }}>
                                     {hoverPt!.s != null ? hoverPt!.s.toFixed(2) : '--'}
                                 </span>
-                                {hoverPt!.s != null && (
-                                    <span className="text-xs text-[var(--text-muted)]">ng/mL</span>
-                                )}
+                                {hoverPt!.s != null && <span className="text-xs text-[var(--text-muted)]">ng/mL</span>}
                             </div>
                         )}
                         {/* One line: the lab, and how it sits against the raw model. */}
                         {hoverLab && (
-                            <div className="mt-1 pt-1 border-t border-[var(--border)] flex items-center gap-1.5 text-xs whitespace-nowrap tabular-nums">
+                            <div className="mt-1 pt-1 border-t-(length:--hairline) border-[var(--border)] flex items-center gap-1.5 text-xs whitespace-nowrap tabular-nums">
                                 <svg width="10" height="10" viewBox="-5 -5 10 10" aria-label={t('cal.plot.lab')}>
                                     <path
                                         d="M0 -3.5L3.5 0L0 3.5L-3.5 0Z"

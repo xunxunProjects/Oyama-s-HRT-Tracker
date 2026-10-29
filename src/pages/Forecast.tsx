@@ -42,7 +42,7 @@ const muted = 'text-[var(--text-muted)]';
 // and a 38px transparent box made the paired fields look unrelated.
 const inputCls = 'input-base tabular-nums';
 const labelCls = `block text-xs font-medium mb-1.5 ${on}`;
-const cell = 'py-2.5 border-b border-[var(--border)]';
+const cell = 'py-2.5 border-b-(length:--hairline) border-[var(--border)]';
 
 /** Which drugs each route can carry, per mode: what the dose form offers, minus the antiandrogen. */
 const DRUGS: Record<'transfem' | 'transmasc', Partial<Record<Route, Ester[]>>> = {

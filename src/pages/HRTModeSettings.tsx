@@ -30,7 +30,7 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
                             key={value}
                             onClick={() => setMode(value)}
                             aria-pressed={mode === value}
-                            className="w-full flex items-center justify-between gap-4 py-4 border-b border-[var(--border)] last:border-b-0 text-start"
+                            className="w-full flex items-center justify-between gap-4 py-4 border-b-(length:--hairline) border-[var(--border)] last:border-b-0 text-start"
                         >
                             <span>
                                 <span

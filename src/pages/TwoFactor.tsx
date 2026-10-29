@@ -50,7 +50,7 @@ function detectDeviceName(): string {
     return ''; // the caller substitutes a translated fallback
 }
 
-const divider = 'border-b border-[var(--border)]';
+const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 const muted = settingsMuted;
 const on = settingsOn;
 const inputCls = 'input-base text-sm';
@@ -545,7 +545,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             <React.Fragment key={s}>
                                                 <div className="flex items-center gap-1.5">
                                                     <div
-                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium shrink-0 border ${step === s || (success && s === 'verify') ? `${on} border-[var(--text)] bg-[var(--surface-hover)]` : `border-[var(--border)] ${muted}`}`}
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium shrink-0 border-(length:--hairline) ${step === s || (success && s === 'verify') ? `${on} border-[var(--text)] bg-[var(--surface-hover)]` : `border-[var(--border)] ${muted}`}`}
                                                     >
                                                         {success && s === 'verify' ? (
                                                             <Check size={10} strokeWidth={2} />
@@ -678,7 +678,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 <button
                                                     type="button"
                                                     onClick={() => setStep('scan')}
-                                                    className={`flex-1 py-2.5 text-sm font-medium ${muted} border border-[var(--border)] rounded-md`}
+                                                    className={`flex-1 py-2.5 text-sm font-medium ${muted} border-(length:--hairline) border-[var(--border)] rounded-md`}
                                                 >
                                                     ← {t('account.2fa_step_scan')}
                                                 </button>
@@ -697,7 +697,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
 
                                     {success && (
                                         <div className="flex flex-col items-center gap-3 py-4 text-center">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-hover)]">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-(length:--hairline) border-[var(--border)] bg-[var(--surface-hover)]">
                                                 <Check size={18} strokeWidth={1.5} className={on} />
                                             </div>
                                             <p className={`font-medium ${on}`}>{t('account.2fa_enabled_success')}</p>
