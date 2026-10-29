@@ -114,6 +114,16 @@ svg.ink-icon {
     filter: grayscale(1) opacity(0.45);
 }
 
+/* A sidebar page that isn't the current one: its drawing in grey, coloured
+   in while it's pointed at. */
+.nav-doodle-rest {
+    filter: grayscale(1) opacity(0.8);
+    transition: filter var(--duration-quick) var(--ease-out);
+}
+.group:hover .nav-doodle-rest {
+    filter: none;
+}
+
 /* Base Styles */
 html {
     font-size: calc(16px * var(--ui-scale));

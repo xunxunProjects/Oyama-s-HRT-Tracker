@@ -30,7 +30,20 @@ const Line: React.FC<{ d: string; w?: number }> = ({ d, w }) => <path d={d} stro
  * so there is no ground line, and the wash is what the row is about: the
  * liquid, half the capsule, the tablet, the gel, the pad, the sample.
  */
-export type DoodleName = Route | 'syringe' | 'chart' | 'vial' | 'lock' | 'cloud' | 'caution' | 'code' | 'heart';
+export type DoodleName =
+    | Route
+    | 'syringe'
+    | 'chart'
+    | 'vial'
+    | 'lock'
+    | 'cloud'
+    | 'caution'
+    | 'code'
+    | 'heart'
+    | 'house'
+    | 'notebook'
+    | 'sliders'
+    | 'person';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // A syringe drawn with volume, needle down to the left: a plump barrel
@@ -285,6 +298,81 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
                 d="M20 31 C 14 26.6, 8.4 22.4, 8.6 16.4 C 8.8 12, 12.4 9.4, 15.8 9.8 C 18 10, 19.4 11.6, 20 13.4 C 20.8 11.4, 22.4 9.8, 24.8 9.8 C 28.4 9.8, 31.6 12.6, 31.2 17 C 30.8 22.6, 25.6 26.8, 20 31 Z"
             />
             <Line d="M20 31 C 14 26.6, 8.4 22.4, 8.6 16.4 C 8.8 12, 12.4 9.4, 15.8 9.8 C 18 10, 19.4 11.6, 20 13.4 C 20.8 11.4, 22.4 9.8, 24.8 9.8 C 28.4 9.8, 31.6 12.6, 31.2 17 C 30.8 22.6, 25.6 26.8, 19.6 31.4" />
+        </>
+    ),
+
+    // ── The sidebar's pages ───────────────────────────────────────────────
+    // Labs is the vial above; these are the other four.
+
+    // A house with a chimney, its door a shade deeper than the walls.
+    house: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M11.2 18 C 14 15.4, 17 12.2, 20 9.4 C 23 12.2, 26 15, 28.9 17.8 C 29.2 22.6, 28.8 27.6, 29.2 32.2 C 23 32.6, 17 31.9, 11 32.2 C 11.4 27.4, 10.8 22.6, 11.2 18 Z"
+            />
+            <path
+                className={SHADE}
+                stroke="none"
+                d="M17.6 32.2 C 17.4 29.6, 17.6 27, 17.5 25 C 19.2 24.6, 21 24.6, 22.6 25 C 22.8 27.2, 22.5 29.8, 22.7 32.3 Z"
+            />
+            {/* Chimney, behind the roof */}
+            <Line d="M25.4 13.6 C 25.3 12.2, 25.5 10.8, 25.3 9.6 C 26.3 9.4, 27.3 9.4, 28.2 9.6 C 28.3 11.6, 28.1 14, 28.2 16.2" />
+            {/* Roof, overshooting at the eaves */}
+            <Line d="M7.4 20.8 C 11.6 16.8, 15.8 12.8, 20 8.8 C 24.2 12.6, 28.4 16.4, 32.8 20.6" />
+            {/* Walls */}
+            <Line d="M11.2 17.8 C 10.8 22.6, 11.4 27.6, 11 32.2 C 17 32.6, 23 31.9, 29.2 32.3 C 28.8 27.4, 29.3 22.4, 28.9 17.6" />
+            {/* Door */}
+            <Line
+                d="M17.6 32.2 C 17.4 29.6, 17.6 27, 17.5 25 C 19.2 24.6, 21 24.6, 22.6 25 C 22.8 27.2, 22.5 29.8, 22.7 32.3"
+                w={1.6}
+            />
+        </>
+    ),
+    // The dose log: a notebook page, the first line ticked off.
+    notebook: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M11.6 7.8 C 17 7.4, 23.4 8, 29 7.6 C 30.6 7.6, 31.4 8.6, 31.4 10.2 C 31 17, 31.6 25, 31.2 30.6 C 31.2 32, 30.2 32.8, 28.8 32.6 C 23 32.9, 17 32.4, 11.4 32.8 C 9.8 32.8, 9 31.8, 9 30.4 C 9.4 23.6, 8.8 16.6, 9.2 10.2 C 9.1 8.6, 10 7.7, 11.6 7.8 Z"
+            />
+            <Line d="M11.6 7.8 C 17 7.4, 23.4 8, 29 7.6 C 30.6 7.6, 31.4 8.6, 31.4 10.2 C 31 17, 31.6 25, 31.2 30.6 C 31.2 32, 30.2 32.8, 28.8 32.6 C 23 32.9, 17 32.4, 11.4 32.8 C 9.8 32.8, 9 31.8, 9 30.4 C 9.4 23.6, 8.8 16.6, 9.2 10.2 C 9.1 8.6, 10 7.7, 12.2 7.7" />
+            {/* The tick */}
+            <Line d="M13.4 14.6 C 14.2 15.3, 14.9 16.1, 15.6 17 C 16.8 15.3, 18 13.8, 19.6 12.4" w={1.8} />
+            {/* Lines, the last one shorter */}
+            <Line d="M22 15.2 C 23.8 15, 25.8 15.3, 27.6 15.1" w={1.5} />
+            <Line d="M13.4 21.4 C 18 21.1, 23 21.5, 27.6 21.2" w={1.5} />
+            <Line d="M13.4 26.8 C 16.8 26.6, 20.4 26.9, 23.4 26.7" w={1.5} />
+        </>
+    ),
+    // Settings: two sliders, their knobs set at different places.
+    sliders: (
+        <>
+            <Line d="M7 14.2 C 15.6 13.8, 24.4 14.5, 33 14" />
+            <Line d="M7 26.2 C 15.6 25.8, 24.4 26.5, 33 26" />
+            <path
+                className={SHADE}
+                d="M15 9 C 18 8.9, 20.1 11.3, 20 14.1 C 20 17, 17.8 19.1, 14.9 19 C 12 19, 10 16.8, 10 14 C 10.1 11.1, 12.2 9, 15.5 9.1"
+            />
+            <path
+                className={WASH}
+                d="M25 21 C 28 20.9, 30.1 23.3, 30 26.1 C 30 29, 27.8 31.1, 24.9 31 C 22 31, 20 28.8, 20 26 C 20.1 23.1, 22.2 21, 25.5 21.1"
+            />
+        </>
+    ),
+    // Account: someone's head and shoulders.
+    person: (
+        <>
+            <path
+                className={WASH}
+                d="M9.6 32.2 C 10 26.6, 14.4 23.2, 20 23.2 C 25.8 23.2, 30 26.8, 30.4 32 C 23.4 32.5, 16.6 31.9, 9.2 32.3"
+            />
+            <path
+                className={SHADE}
+                d="M20 8.6 C 23.4 8.5, 25.9 11.2, 25.8 14.6 C 25.8 18, 23.2 20.6, 19.9 20.5 C 16.6 20.5, 14.1 17.9, 14.2 14.6 C 14.2 11.2, 16.8 8.5, 20.6 8.7"
+            />
         </>
     ),
 };

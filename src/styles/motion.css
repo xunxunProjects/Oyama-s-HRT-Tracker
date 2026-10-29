@@ -344,7 +344,7 @@ path.ink-draw {
    open as it always was. */
 @media (hover: hover) and (pointer: fine) {
     .side-nav {
-        --sidebar-width: 4.25rem;
+        --sidebar-width: 5rem;
     }
     .side-panel {
         width: var(--sidebar-width);
