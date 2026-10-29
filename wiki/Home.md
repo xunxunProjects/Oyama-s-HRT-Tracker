@@ -5,8 +5,8 @@ you, then follow the page. Every page says which version it describes.
 
 | You are...                                                          | Start here                                   | Version to use                                      |
 | ------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| **I use the tracker** — logging doses, labs, weight, or supplies    | [Usage](Usage)                               | Latest release, `v1.5.1`                            |
-| **I deploy it** — a server, a container, or Cloudflare              | [Deployment](Deployment)                     | **Latest release, `v1.5.1`. Do not deploy `main`.** |
+| **I use the tracker** — logging doses, labs, weight, or supplies    | [Usage](Usage)                               | Latest release, `v1.5.2`                            |
+| **I deploy it** — a server, a container, or Cloudflare              | [Deployment](Deployment)                     | **Latest release, `v1.5.2`. Do not deploy `main`.** |
 | **I develop it** — frontend, Worker, API, desktop, or raw transport | [Developers](Developers)                     | `main`, following `CONTRIBUTING.md`                 |
 | **I test its security** — pentest, code review, or a local lab      | [Security-Researchers](Security-Researchers) | **Latest commit on `main`**                         |
 | **I run it locally as a tool** — loopback only, no public port      | [Local-Tool](Local-Tool)                     | Release build + Docker on `127.0.0.1`               |
@@ -39,9 +39,12 @@ do not create yourself.
 
 ## Version policy
 
-- **Production deployments use the latest release, `v1.5.1` (2026-10-28).**
+- **Production deployments use the latest release, `v1.5.2` (2026-10-30).**
   Do not deploy `main`. Unreleased commits have not gone through the release
-  checks, and a deployment should be reproducible from a tag.
+  checks, and a deployment should be reproducible from a tag. `v1.5.2` is a
+  security release: it caps decompressed share snapshots at 20 MiB and disables
+  Wrangler's Local Explorer and local observability APIs in the Docker runtime.
+  It also refreshes the npm and Rust dependency trees.
 - **Security research starts from the latest commit on `main`**. Check
   `git log -1` for the current commit and read the log before testing so you
   know what changed. The two Low-severity fixes merged on 2026-10-22 are in
@@ -56,5 +59,5 @@ do not create yourself.
 > substitute for blood tests or a clinician. Do not start, stop, or change any
 > medication based on this app alone.
 
-The wiki describes version 1.5.1 of the app. Pages that describe a deployment
+The wiki describes version 1.5.2 of the app. Pages that describe a deployment
 path say whether that path was exercised while writing the page.

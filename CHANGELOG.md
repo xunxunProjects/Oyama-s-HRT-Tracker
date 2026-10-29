@@ -8,6 +8,21 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.5.2
+
+- A security patch release. Share links now stop decompressing a snapshot once
+  it passes 20 MiB, so a crafted link can no longer exhaust the recipient's
+  browser memory. The Docker runtime disables Wrangler's Local Explorer and
+  local observability APIs, which were reachable without authentication when
+  the container listened on a LAN interface. npm and Rust dependencies were
+  refreshed; `npm audit --omit=dev` is clean and `cargo audit` exits 0. No major
+  framework migration is included.
+
+  安全补丁版本。分享链接解压超过 20 MiB 时会立即停止，构造的链接不能再耗尽接收方浏览器内存。
+  Docker 运行时会关闭 Wrangler 的 Local Explorer 和本地可观测性接口；容器监听局域网时，这两个接口
+  原本无需认证即可访问。npm 与 Rust 依赖已刷新；`npm audit --omit=dev` 无漏洞，`cargo audit`
+  退出码为 0。没有包含大版本框架迁移。
+
 ## 1.5.1
 
 - A new look, drawn by hand. Every icon in the app is now its own, drawn with

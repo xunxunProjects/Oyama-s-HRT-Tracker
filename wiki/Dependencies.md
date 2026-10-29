@@ -3,7 +3,7 @@
 This page lists what the tracker uses directly and why. It is an overview, not
 a lockfile: the exact resolved versions are in `package-lock.json`,
 `src-tauri/Cargo.lock`, and the Docker/Workers build logs. Ranges below match
-`package.json` at version 1.5.1.
+`package.json` at version 1.5.2.
 
 ## Runtime libraries
 
@@ -13,12 +13,12 @@ a lockfile: the exact resolved versions are in `package-lock.json`,
 | `@noble/ciphers`     | `^2.4.0`  | Symmetric primitives behind encrypted backups and shares |
 | `@noble/hashes`      | `^2.4.0`  | Hash primitives used by the crypto code                  |
 | `bcryptjs`           | `^3.0.3`  | Password hashing in the Worker                           |
-| `jose`               | `^6.1.3`  | JWT signing and verification for sessions                |
+| `jose`               | `^6.2.14` | JWT signing and verification for sessions                |
 | `openpgp`            | `^6.3.2`  | F2F keyrings and escrow operations in the browser        |
 | `qrcode.react`       | `^4.1.0`  | Pairing QR codes                                         |
 | `jspdf`              | `^4.1.0`  | PDF export                                               |
-| `jspdf-autotable`    | `^5.0.7`  | Tables in the PDF export                                 |
-| `react-easy-crop`    | `^5.5.6`  | Avatar cropping                                          |
+| `jspdf-autotable`    | `^5.0.9`  | Tables in the PDF export                                 |
+| `react-easy-crop`    | `^5.5.7`  | Avatar cropping                                          |
 | `uuid`               | `^11.1.1` | Client-side identifiers                                  |
 
 The cryptography is deliberately split: the browser holds the keys and does
@@ -30,18 +30,18 @@ never needs a library that can decrypt a backup.
 | Package                                                                             | Version                                                | Used for                                |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------- |
 | `typescript`                                                                        | `~5.8.2`                                               | Type checking                           |
-| `vite`                                                                              | `^6.2.0`                                               | Development server and production build |
-| `@vitejs/plugin-react`                                                              | `^5.0.0`                                               | React support in Vite                   |
-| `vite-plugin-pwa`                                                                   | `^1.2.0`                                               | Manifest and service worker             |
-| `tailwindcss`, `@tailwindcss/postcss`, `postcss`                                    | `^4.1.18`, `^4.1.18`, `^8.5.6`                         | Styling                                 |
+| `vite`                                                                              | `^6.4.5`                                               | Development server and production build |
+| `@vitejs/plugin-react`                                                              | `^5.2.0`                                               | React support in Vite                   |
+| `vite-plugin-pwa`                                                                   | `^1.3.0`                                               | Manifest and service worker             |
+| `tailwindcss`, `@tailwindcss/postcss`, `postcss`                                    | `^4.3.3`, `^4.3.3`, `^8.5.32`                          | Styling                                 |
 | `vitest`                                                                            | `^4.1.12`                                              | Unit tests                              |
 | `@playwright/test`                                                                  | `^1.64.1`                                              | End-to-end tests                        |
-| `wrangler`                                                                          | `^4.147.0`                                             | Local Worker, D1/R2, migrations, deploy |
-| `@cloudflare/workers-types`                                                         | `^5.20261005.1`                                        | Worker API types                        |
-| `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `globals` | `^10.12.0`, `^10.0.1`, `^8.71.1`, `^7.1.1`, `^17.13.0` | Linting                                 |
+| `wrangler`                                                                          | `^4.155.0`                                             | Local Worker, D1/R2, migrations, deploy |
+| `@cloudflare/workers-types`                                                         | `^5.20261029.1`                                        | Worker API types                        |
+| `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `globals` | `^10.13.0`, `^10.0.1`, `^8.72.1`, `^7.1.1`, `^17.13.0` | Linting                                 |
 | `prettier`                                                                          | `^3.9.10`                                              | Formatting                              |
 | `@tauri-apps/cli`                                                                   | `^1.6.3`                                               | Desktop build                           |
-| `@types/node`, `@types/react`, `@types/react-dom`                                   | `^22.14.0`, `^18.3.31`, `^18.3.7`                      | Type definitions                        |
+| `@types/node`, `@types/react`, `@types/react-dom`                                   | `^22.20.5`, `^18.3.31`, `^18.3.7`                      | Type definitions                        |
 
 ## Desktop
 
@@ -65,12 +65,13 @@ Tauri 2 migration needs its own reviewed change rather than an emergency bump.
   [Deployment-VPS](Deployment-VPS#tls-reverse-proxy).
 - **`npm audit --omit=dev` is clean.** Development-only audit findings are
   still fixed promptly; `vitest` is kept at 4.1.12 or later.
-- **Rust lockfile audited.** `cargo audit` reports no vulnerabilities after
-  the 2026-10-23 refresh: `bytes` 1.11.1+, `crossbeam-epoch` 0.9.20+, `tar`
-  0.4.45+, `time` 0.3.47+, and `quick-xml` 0.41.0+ through `plist` 1.10.0.
-  Two `rand` "unsound" warnings remain; they are library warnings rather than
-  a reachable path in this desktop wrapper. `tests/rustDependencies.test.ts`
-  keeps the fixed floors from regressing.
+- **Rust lockfile audited.** `cargo audit` exits 0 after the 2026-10-29
+  `cargo update`: `anyhow` 1.0.104 and `tokio` 1.54.1 remove the known
+  advisories. The remaining warnings are unmaintained `fxhash` 0.2.1,
+  `instant` 0.1.13, and `proc-macro-error` 1.0.4, plus unsound `glib` 0.15.12
+  and `rand` 0.7.3. They are Tauri 1.x legacy dependencies, not reachable paths
+  in this desktop wrapper; removing them requires the Tauri 2 migration.
+  `tests/rustDependencies.test.ts` keeps the fixed floors from regressing.
 
 ## Platform services
 

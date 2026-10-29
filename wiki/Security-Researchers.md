@@ -9,22 +9,26 @@ fixed, and how to test without touching real data.
 Use the **latest commit on `main`**, not the release tag. Security fixes land on
 `main` first. Check `git log -1` for the current commit and read `git log` and
 `CHANGELOG.md` before you start so you know what is new. The latest release is
-`v1.5.1` (2026-10-28); the two Low-severity fixes merged on 2026-10-22 are in
-that release, not in `v1.5.0`.
+`v1.5.2` (2026-10-30). It caps decompressed share snapshots at 20 MiB, disables
+Wrangler's Local Explorer and local observability APIs in the Docker runtime,
+and refreshes the npm and Rust dependency trees. The two Low-severity fixes
+merged on 2026-10-22 are in `v1.5.1`, not in `v1.5.0`.
 
 Recent security-relevant changes:
 
 | Date       | Change           | Why it matters                                                                                                          |
 | ---------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 2026-10-28 | `v1.5.1`         | Latest release; contains the two Low-severity fixes from 2026-10-22                                                     |
+| 2026-10-30 | `v1.5.2`         | Latest release; share-link decompression cap, Docker Local Explorer disabled, dependency refresh                        |
+| 2026-10-28 | `v1.5.1`         | Previous release; contains the two Low-severity fixes from 2026-10-22                                                   |
 | 2026-10-22 | `40233a3` (#152) | `alg:none` JWTs now return 401 instead of 500; private session/2FA/passkey responses now send `Cache-Control: no-store` |
 | 2026-10-22 | `2f5fd93` (#151) | Wiki and deployment documentation                                                                                       |
 | 2026-10-14 | `v1.5.0`         | Previous release; predates the two Low-severity fixes above                                                             |
 | 2026-10-21 | Tools #3         | Tools wiki and 0.1.1 release engineering                                                                                |
 
-The latest release, `v1.5.1`, contains the 2026-10-22 fixes; `v1.5.0` does
-not. If a deployed instance needs those fixes, upgrade it to `v1.5.1`. Do not
-deploy `main` to production just to pick up an unreleased fix.
+The latest release, `v1.5.2`, contains the share-link decompression cap and the
+Docker Local Explorer mitigation. `v1.5.1` contains the 2026-10-22 fixes;
+`v1.5.0` does not. If a deployed instance needs those fixes, upgrade it to
+`v1.5.2`. Do not deploy `main` to production just to pick up an unreleased fix.
 
 ## Scope
 

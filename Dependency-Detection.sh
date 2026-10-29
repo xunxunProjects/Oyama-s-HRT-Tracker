@@ -38,7 +38,7 @@ Exit codes:
 This script only checks. It does not install packages, create .env, or start
 containers. See wiki/Deployment.md for the deployment paths.
 
-It also reads package.json: an app version older than 1.5.1 fails the check,
+It also reads package.json: an app version older than 1.5.2 fails the check,
 and a checkout that is not a release tag gets a warning.
 EOF
 }
@@ -122,10 +122,10 @@ check_release() {
         return
     fi
 
-    if version_lt "$version" '1.5.1'; then
-        record 'app version' fail "$version is older than 1.5.1; upgrade before deploying"
+    if version_lt "$version" '1.5.2'; then
+        record 'app version' fail "$version is older than 1.5.2; upgrade before deploying"
     else
-        record 'app version' ok "$version (1.5.1 or newer)"
+        record 'app version' ok "$version (1.5.2 or newer)"
     fi
 
     if [ -e .git ] && command -v git >/dev/null 2>&1; then
