@@ -444,7 +444,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
     const lowOnCodes = backupRemaining !== null && backupRemaining <= 2;
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             {/* Header */}
             <PageHeader onBack={onBack} title={t('account.2fa')} />
 

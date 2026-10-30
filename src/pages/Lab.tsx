@@ -138,7 +138,7 @@ const Lab: React.FC<LabProps> = ({
                     .join(', ');
 
     return (
-        <div ref={rootRef} className="relative pb-32">
+        <div ref={rootRef} className="relative md:pb-32">
             {/* Header */}
             <PageHeader
                 title={t('lab.title')}

@@ -183,18 +183,27 @@ h1.font-sans {
 }
 
 .scroll-pb-nav {
-    /* floating nav: bar height + bottom gap + breathing room */
-    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     /* Where the browser stops when it scrolls a focused element into view:
        clear of the sticky page header and History's day label under it
        (5rem + 2.75rem), and of the floating nav. */
     scroll-padding-top: 7.75rem;
-    scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(var(--nav-clearance) + env(safe-area-inset-bottom, 0px));
+}
+/* The floating nav's clearance as a last item rather than padding: Safari
+   drops a flex scroller's bottom padding from what it lets you scroll to, so
+   the end of a page could stay under the bar. */
+.scroll-pb-nav::after {
+    content: "";
+    display: block;
+    flex-shrink: 0;
+    height: calc(var(--nav-clearance) + env(safe-area-inset-bottom, 0px));
 }
 @media (min-width: 768px) {
     .scroll-pb-nav {
-        padding-bottom: 0;
         scroll-padding-bottom: 0;
+    }
+    .scroll-pb-nav::after {
+        content: none;
     }
 }
 

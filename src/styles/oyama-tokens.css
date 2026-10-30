@@ -136,7 +136,10 @@
     --control-height-sm: 32px;
     --field-height: 44px;
     --row-min-height: 56px;
-    --nav-clearance: 104px;
+    /* What a page leaves free at its foot on a phone: the bottom bar as tall
+       as it really is (--nav-h, measured by BottomNav), the gap under it, and
+       room to breathe above it. Pages keep their own pb-32 for the desktop. */
+    --nav-clearance: calc(var(--nav-h, 70px) + 2.25rem);
     --menu-max-height: 320px;
     --z-header: 20;
     --z-nav: 40;

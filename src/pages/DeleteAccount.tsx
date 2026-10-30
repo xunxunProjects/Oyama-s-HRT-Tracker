@@ -70,7 +70,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const exportPath = [t('nav.settings'), t('settings.group.data'), t('export.title')].join(' › ');
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('account.delete_account')} />
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>

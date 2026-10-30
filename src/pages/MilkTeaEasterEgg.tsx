@@ -67,7 +67,7 @@ const MilkTeaEasterEgg: React.FC<MilkTeaEasterEggProps> = ({ onBack }) => {
     };
 
     return (
-        <div className="pb-32">
+        <div className="md:pb-32">
             <PageHeader onBack={onBack} title={t('milktea.title')} />
 
             <div className={`${PAGE_COLUMN} space-y-8`}>

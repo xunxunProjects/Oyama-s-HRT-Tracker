@@ -180,7 +180,7 @@ const PKParamsPage: React.FC<PKParamsPageProps> = ({ pkParams, onSave, onReset, 
     const isCustomized = (key: keyof PKCustomParams) => draft[key] !== DEFAULT_PK_PARAMS[key];
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader
                 onBack={handleBack}
                 title={t('pk.title')}
