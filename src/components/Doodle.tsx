@@ -395,7 +395,7 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     ),
 };
 
-/** Each page's own drawing, for the sidebar and the bottom bar. A page
+/** Each page's own drawing, for the sidebar. A page
  *  without one (Admin) keeps its line icon. */
 export const NAV_DOODLES: Record<string, DoodleName> = {
     home: 'house',
