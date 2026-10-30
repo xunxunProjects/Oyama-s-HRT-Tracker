@@ -28,7 +28,7 @@ jobs:
     name: Rust check
     # Tauri 1 needs webkit2gtk 4.0 on Linux, which current Ubuntu images no
     # longer ship; macOS needs nothing extra.
-    runs-on: macos-latest
+    runs-on: macos-14
     timeout-minutes: 30
     steps:
       - name: Check out repository
