@@ -358,7 +358,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
     if (loading && !vote) {
         return (
-            <div className="pb-32">
+            <div className="md:pb-32">
                 <PageHeader onBack={onBack} title={t('vote.title')} />
                 <div className={`${PAGE_COLUMN} mt-3`}>
                     <p className="text-sm text-[var(--text-muted)]">{t('vote.loading')}</p>
@@ -369,7 +369,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
 
     if (!vote) {
         return (
-            <div className="pb-32">
+            <div className="md:pb-32">
                 <PageHeader onBack={onBack} title={t('vote.title')} />
                 <div className={`${PAGE_COLUMN} mt-3`}>
                     <p className="text-sm text-[var(--danger)]">{error ?? t('vote.error.load')}</p>
@@ -390,7 +390,7 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
     });
 
     return (
-        <div className="pb-32">
+        <div className="md:pb-32">
             <PageHeader
                 onBack={onBack}
                 title={t('vote.title')}

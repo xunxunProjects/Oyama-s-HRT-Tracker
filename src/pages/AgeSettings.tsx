@@ -48,7 +48,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
     const range = `${BIRTH_YEAR_MIN}–${thisYear}`;
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('settings.age')} />
 
             <form onSubmit={handleSubmit} noValidate className={`${PAGE_COLUMN} mt-4`}>

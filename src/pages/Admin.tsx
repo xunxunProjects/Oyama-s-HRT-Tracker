@@ -1132,7 +1132,7 @@ const Admin: React.FC = () => {
         id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem();
 
     return (
-        <div className="flex pt-8 pb-32 min-h-full">
+        <div className="flex pt-8 md:pb-32 min-h-full">
             {/* ── Left category nav (desktop) ─────────────────────────── */}
             <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r-(length:--hairline) border-[var(--border)]">
                 <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>Admin</p>
@@ -1163,7 +1163,7 @@ const Admin: React.FC = () => {
             {/* self-start + own bottom padding: the shell's `min-h-full` makes its
                 height definite, so a stretched `flex-1` child never reports its own
                 overflow to the scroller and the last rows hide under the nav island. */}
-            <div className="md:hidden flex-1 self-start px-6 pb-32">
+            <div className="md:hidden flex-1 self-start px-6">
                 {mobileView === 'list' ? (
                     <>
                         <h1

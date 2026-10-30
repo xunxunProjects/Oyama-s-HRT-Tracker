@@ -559,7 +559,7 @@ const Account: React.FC<AccountProps> = ({
     const authAnim = useSwitchAnimation(isLogin ? 'sign-in' : 'sign-up', AUTH_TABS);
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader title={t('account.title')} />
 
             {user ? (

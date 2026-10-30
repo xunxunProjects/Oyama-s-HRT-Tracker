@@ -22,7 +22,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ theme, setTheme
     ];
 
     return (
-        <div className="relative space-y-4 pb-32">
+        <div className="relative space-y-4 md:pb-32">
             <PageHeader onBack={onBack} title={t('settings.theme')} />
 
             <div className={PAGE_COLUMN}>

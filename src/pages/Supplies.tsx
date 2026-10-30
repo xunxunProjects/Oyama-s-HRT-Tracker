@@ -297,7 +297,7 @@ const Supplies: React.FC<SuppliesProps> = ({
     };
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader
                 onBack={onBack}
                 title={t('supplies.title')}

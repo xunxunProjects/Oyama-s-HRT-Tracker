@@ -520,7 +520,7 @@ const History: React.FC<HistoryProps> = ({
     };
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader
                 title={t('timeline.title')}
                 // Always one line: wrapped, it grew the header past the 5rem

@@ -301,7 +301,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
     const cohortFile = `hrt-f2f-${status?.cohort?.id ?? 'GROUP'}.asc`;
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('f2f.title')} subtitle={t('f2f.subtitle')} />
             <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (

@@ -370,7 +370,7 @@ const Forecast: React.FC<ForecastProps> = ({
     const planTabs = plans.map((p, i) => ({ id: p.id, label: planName(i) }));
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('forecast.title')} />
             <div className={`${PAGE_COLUMN} mt-3 space-y-8`}>
                 <section>
