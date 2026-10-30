@@ -597,13 +597,13 @@ const ResultChart = ({
     const [mL] = useEasedPair([mLTarget, mLTarget], false);
     const mR = mL;
     // Room above the plot for the "now" line's label.
-    const mT = 24 * ui;
+    const mT = 32 * ui;
     const mB = 26 * ui;
     const plotW = Math.max(0, width - mL - mR);
     const plotH = Math.max(0, height - mT - mB);
     // Split, the two plots share the window and the dates along the bottom,
     // with a gap between them and the lower one about a third of the height.
-    const gapH = hasSecondary ? 32 * ui : 0;
+    const gapH = hasSecondary ? 42 * ui : 0;
     const sH = hasSecondary ? Math.round((plotH - gapH) * 0.36) : 0;
     const pH = Math.max(0, plotH - gapH - sH);
     const sTop = mT + pH + gapH;
@@ -935,6 +935,36 @@ const ResultChart = ({
         return <div className="h-72 md:h-96" aria-hidden="true" />;
     }
 
+    // Each plot names its line above itself, starting where the page column
+    // does (the plot bleeds past it by its negative margin), with a swatch
+    // drawn the way the line is.
+    const colX = plotEl ? Math.max(0, -parseFloat(getComputedStyle(plotEl).marginLeft) || 0) : 0;
+    const textW = (str: string) => [...str].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e80 ? 1 : 0.6), 0) * axisFont;
+    const seriesLabels = [
+        {
+            key: 'p',
+            y: mT - 14 * ui,
+            text: `${primaryMeta.label} ${primaryMeta.unit}`,
+            color: c.primary,
+            weight: 2,
+            dash: isMono && primaryIsCPA ? '2 5' : undefined,
+        },
+        ...(hasSecondary
+            ? [
+                  {
+                      key: 's',
+                      y: sTop - 14 * ui,
+                      text: `${t('label.cpa_chart')} ng/mL`,
+                      color: c.second,
+                      weight: 1.5,
+                      dash: isMono ? '2 5' : undefined,
+                  },
+              ]
+            : []),
+    ];
+    // "Now" gives way where it would run into the upper plot's name.
+    const nowLabelFits = X(now) - textW(t('time.now')) / 2 - 8 * ui > colX + 20 * ui + textW(seriesLabels[0].text);
+
     // The target band as drawn, clamped to the plot; null while it is entirely off-screen.
     const band = (() => {
         if (!primaryTarget) return null;
@@ -948,7 +978,7 @@ const ResultChart = ({
     return (
         <div className="w-full">
             {/* Header: title + range chips — flat, matching the page */}
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-3 mb-1">
                 <h2 className="text-sm font-medium text-[var(--text)] truncate">{title ?? t('chart.title')}</h2>
                 <Segmented
                     options={rangeOpts.map(o => ({ id: o.key, label: o.label }))}
@@ -956,45 +986,6 @@ const ResultChart = ({
                     onChange={selectRange}
                     aria-label={title ?? t('chart.title')}
                 />
-            </div>
-
-            {/* Legend — always visible so each line is labelled, on mobile too.
-                The calibration factor closes it: in the title row it cut the
-                title to "Hormon…" on a phone. Wraps rather than squeezing. */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1 text-xs text-[var(--text-muted)]">
-                <span className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-[2px] rounded-full" style={{ background: c.primary }} />
-                    {primaryMeta.label}
-                </span>
-                {hasSecondary && (
-                    <span className="flex items-center gap-1.5">
-                        <span
-                            className="w-3.5 h-[2px] rounded-full"
-                            style={{
-                                background: isMono
-                                    ? `repeating-linear-gradient(90deg, ${c.second} 0, ${c.second} 2px, transparent 2px, transparent 5px)`
-                                    : c.second,
-                            }}
-                        />
-                        {t('label.cpa_chart')}
-                    </span>
-                )}
-                {showAhead && (
-                    <span className="flex items-center gap-1.5">
-                        <span
-                            className="w-3.5 h-[2px]"
-                            style={{
-                                background: `repeating-linear-gradient(90deg, ${c.axis} 0, ${c.axis} 5px, transparent 5px, transparent 9px)`,
-                            }}
-                        />
-                        {t(`chart.ahead_${aheadBasis}`)}
-                    </span>
-                )}
-                {Math.abs(calFactor - 1) > 0.001 && (
-                    <span className="ms-auto tabular-nums">
-                        {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
-                    </span>
-                )}
             </div>
 
             {/* Plot */}
@@ -1195,12 +1186,39 @@ const ResultChart = ({
 
                         {/* "Now" over the top of its dashed line, in the room
                             left above the plot for it. */}
-                        {now >= t0 && now <= t1 && (
+                        {seriesLabels.map(l => (
+                            <g key={`name-${l.key}`} className="chart-appear" pointerEvents="none">
+                                <line
+                                    x1={colX}
+                                    y1={l.y - 4 * ui}
+                                    x2={colX + 14 * ui}
+                                    y2={l.y - 4 * ui}
+                                    stroke={l.color}
+                                    strokeWidth={l.weight}
+                                    strokeLinecap="round"
+                                    strokeDasharray={l.dash}
+                                />
+                                <text
+                                    x={colX + 20 * ui}
+                                    y={l.y}
+                                    fontSize={axisFont}
+                                    fill={c.axis}
+                                    paintOrder="stroke"
+                                    stroke={c.dot}
+                                    strokeWidth={3 * ui}
+                                    strokeLinejoin="round"
+                                >
+                                    {l.text}
+                                </text>
+                            </g>
+                        ))}
+
+                        {now >= t0 && now <= t1 && nowLabelFits && (
                             <text
                                 className="chart-appear"
                                 style={{ animationDelay: sweepDelay(X(now)) }}
                                 x={X(now)}
-                                y={mT - 9 * ui}
+                                y={mT - 14 * ui}
                                 textAnchor="middle"
                                 fontSize={axisFont}
                                 fill={c.axis}
@@ -1284,20 +1302,30 @@ const ResultChart = ({
                                 </text>
                             )}
 
-                            {/* "Now" line + dot */}
-                            {now >= t0 && now <= t1 && (
-                                <line
-                                    className="chart-appear"
-                                    style={{ animationDelay: sweepDelay(X(now)) }}
-                                    x1={X(now)}
-                                    y1={mT}
-                                    x2={X(now)}
-                                    y2={mT + plotH}
-                                    stroke={c.axis}
-                                    strokeWidth={1}
-                                    strokeDasharray="2 4"
-                                />
-                            )}
+                            {/* "Now" line + dot, one line per plot so it leaves
+                                the lower plot's name in the gap alone */}
+                            {now >= t0 &&
+                                now <= t1 &&
+                                (hasSecondary
+                                    ? [
+                                          [mT, mT + pH],
+                                          [sTop, sTop + sH],
+                                      ]
+                                    : [[mT, mT + plotH]]
+                                ).map(([y1, y2]) => (
+                                    <line
+                                        key={`now-${y1}`}
+                                        className="chart-appear"
+                                        style={{ animationDelay: sweepDelay(X(now)) }}
+                                        x1={X(now)}
+                                        y1={y1}
+                                        x2={X(now)}
+                                        y2={y2}
+                                        stroke={c.axis}
+                                        strokeWidth={1}
+                                        strokeDasharray="2 4"
+                                    />
+                                ))}
                             {nowValS != null && now >= t0 && now <= t1 && (
                                 <circle
                                     className="chart-mark"
@@ -1461,6 +1489,30 @@ const ResultChart = ({
                     </div>
                 )}
             </div>
+
+            {/* What the dashed part assumes, and the calibration factor, under
+                the dates. Each plot names its own line, so no legend sits
+                between the title and the curves. */}
+            {(showAhead || Math.abs(calFactor - 1) > 0.001) && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-[var(--text-muted)]">
+                    {showAhead && (
+                        <span className="flex items-center gap-1.5">
+                            <span
+                                className="w-3.5 h-[2px]"
+                                style={{
+                                    background: `repeating-linear-gradient(90deg, ${c.axis} 0, ${c.axis} 5px, transparent 5px, transparent 9px)`,
+                                }}
+                            />
+                            {t(`chart.ahead_${aheadBasis}`)}
+                        </span>
+                    )}
+                    {Math.abs(calFactor - 1) > 0.001 && (
+                        <span className="ms-auto tabular-nums">
+                            {t('chart.cal_factor').replace('{n}', calFactor.toFixed(2))}
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
