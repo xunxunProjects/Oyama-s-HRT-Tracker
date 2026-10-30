@@ -29,7 +29,7 @@ const ExportSettings: React.FC<ExportSettingsProps> = ({
     const { t } = useTranslation();
 
     return (
-        <div className="relative space-y-4 pb-32">
+        <div className="relative space-y-4 md:pb-32">
             <PageHeader onBack={onBack} title={t('export.title')} />
 
             <div className={PAGE_COLUMN}>

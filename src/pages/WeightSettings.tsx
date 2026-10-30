@@ -38,7 +38,7 @@ const WeightSettings: React.FC<WeightSettingsProps> = ({ weight, onSave, onBack 
     const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('status.weight')} />
 
             <form onSubmit={handleSubmit} noValidate className={`${PAGE_COLUMN} mt-4`}>

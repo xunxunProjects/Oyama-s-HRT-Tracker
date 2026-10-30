@@ -72,7 +72,7 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
     const fig = (v: number | undefined) => (stats ? (v ?? 0).toLocaleString() : '–');
 
     return (
-        <div className="pb-32">
+        <div className="md:pb-32">
             {/* Header */}
             <PageHeader onBack={onBack} title={t('transparency.title')} />
 

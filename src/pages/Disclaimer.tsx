@@ -9,7 +9,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 const Disclaimer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
     return (
-        <div className="pb-32">
+        <div className="md:pb-32">
             <PageHeader title={t('disclaimer.title')} onBack={onBack} />
             <div className={`${PAGE_COLUMN} mt-3 space-y-4 text-sm leading-relaxed`}>
                 <p className="text-[var(--text)]">{t('disclaimer.text.intro')}</p>

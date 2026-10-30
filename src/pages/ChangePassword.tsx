@@ -67,7 +67,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const errorId = `${id}-error`;
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('account.change_password')} />
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>

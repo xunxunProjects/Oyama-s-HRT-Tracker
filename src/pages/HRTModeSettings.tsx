@@ -20,7 +20,7 @@ const HRTModeSettings: React.FC<HRTModeSettingsProps> = ({ onBack }) => {
     ] as const;
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('settings.hrt_mode')} />
 
             <div className={`${PAGE_COLUMN} mt-4`}>

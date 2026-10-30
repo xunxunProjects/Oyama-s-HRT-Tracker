@@ -99,7 +99,7 @@ const EditAvatar: React.FC<{ username: string; token: string; onBack: () => void
     };
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('avatar.title')} />
 
             <div className={`${PAGE_COLUMN} mt-4 space-y-5 [&>*]:max-w-md`}>

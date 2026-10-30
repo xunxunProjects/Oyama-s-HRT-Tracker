@@ -482,7 +482,7 @@ const Settings: React.FC<SettingsProps> = ({
     };
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             {/* ── Mobile: the category list, then one category ─────────── */}
             <div className="md:hidden">
                 {/* Keyed so drilling in slides forward and backing out slides back. */}

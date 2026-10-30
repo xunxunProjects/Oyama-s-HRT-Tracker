@@ -242,7 +242,7 @@ interface CreditsProps {
 
 const Credits: React.FC<CreditsProps> = ({ onBack }) => {
     return (
-        <div lang="en" dir="ltr" className="pb-32">
+        <div lang="en" dir="ltr" className="md:pb-32">
             <PageHeader onBack={onBack} title="Credits" />
 
             <div className={PAGE_COLUMN}>
