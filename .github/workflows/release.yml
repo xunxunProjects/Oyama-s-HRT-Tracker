@@ -76,7 +76,7 @@ jobs:
       matrix:
         include:
           - name: macOS
-            os: macos-latest
+            os: macos-14
             # One .dmg that runs on both Apple silicon and Intel Macs.
             rust-targets: aarch64-apple-darwin x86_64-apple-darwin
             build-args: --target universal-apple-darwin
