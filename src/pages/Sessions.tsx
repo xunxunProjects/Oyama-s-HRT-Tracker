@@ -110,7 +110,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
     const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('account.sessions')} subtitle={t('account.sessions_desc')} />
 
             <div className={`${PAGE_COLUMN} mt-2`}>

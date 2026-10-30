@@ -681,7 +681,7 @@ const Home: React.FC<HomeProps> = ({
                 Only widened once there's data — the empty state centres itself
                 on this container and should stay in the narrow column. */}
             <main
-                className={`w-full mx-auto max-w-2xl px-6 pt-5 pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${events.length ? '2xl:max-w-[74rem]' : ''}`}
             >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">

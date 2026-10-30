@@ -84,22 +84,31 @@ const niceStep = (raw: number): number => {
     return nice * mag;
 };
 
-// Build a padded, tick-friendly [min, max] domain from observed values.
-const buildYDomain = (min: number, max: number): [number, number] => {
-    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= 0) return [0, 1];
+// Build a padded, tick-friendly [min, max] domain from observed values,
+// around `steps` gridlines. The span never drops below `minSpan`, so a curve
+// that has all but washed out is not blown up to fill the plot.
+const buildYDomain = (min: number, max: number, steps = 4, minSpan = 0): [number, number] => {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= 0) return [0, Math.max(1, minSpan)];
+    if (max - min < minSpan) {
+        const mid = (min + max) / 2;
+        min = Math.max(0, mid - minSpan / 2);
+        max = min + minSpan;
+    }
     if (max === min) max = max + (max * 0.15 || 1);
     const pad = (max - min) * 0.12;
-    const step = niceStep((max - min + 2 * pad) / 4);
+    const step = niceStep((max - min + 2 * pad) / steps);
     const lo = Math.max(0, Math.floor((min - pad) / step) * step);
     let hi = Math.ceil((max + pad) / step) * step;
     if (hi <= lo) hi = lo + step;
     return [lo, hi];
 };
 
-const ticksFor = ([lo, hi]: [number, number]): number[] => {
-    const step = niceStep((hi - lo) / 4);
+const ticksFor = ([lo, hi]: [number, number], steps = 4): number[] => {
+    const step = niceStep((hi - lo) / steps);
     const out: number[] = [];
-    for (let v = lo; v <= hi + step * 0.5; v += step) out.push(Math.round(v / step) * step);
+    // From the first whole step: an autoscaled axis need not start at zero.
+    for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 0.5; v += step)
+        out.push(Math.round(v / step) * step);
     return out;
 };
 
@@ -234,7 +243,7 @@ const valueAt = (
     return a + (b - a) * f;
 };
 
-// The cyproterone axis never tops out below this (ng/mL). Autoscaled to the
+// The cyproterone axis never spans less than this (ng/mL). Autoscaled to the
 // tail of a dose washing out, the curve would otherwise fill the plot.
 const CPA_AXIS_MIN = 1;
 
@@ -514,40 +523,52 @@ const ResultChart = ({
     // Not to whatever is mid-stretch on screen, which kept re-aiming the axis
     // every frame of a range change, and not to the neighbouring sample just
     // outside the window, which could stretch the axis to a peak off-screen.
-    const windowMax = useMemo(() => {
-        let p = -Infinity,
-            s = -Infinity;
-        const take = (d: { p: number | null; s: number | null } | null) => {
-            if (!d) return;
-            if (d.p != null && d.p > p) p = d.p;
-            if (d.s != null && d.s > s) s = d.s;
+    // Both ends follow the window, not just the top: pinned to zero, a level
+    // swinging between 250 and 300 was a flat line along the top of the plot.
+    const windowExtent = useMemo(() => {
+        const e = { pLo: Infinity, pHi: -Infinity, sLo: Infinity, sHi: -Infinity };
+        const take = (key: 'p' | 's', v: number | null | undefined) => {
+            if (v == null || !Number.isFinite(v)) return;
+            if (key === 'p') {
+                e.pLo = Math.min(e.pLo, v);
+                e.pHi = Math.max(e.pHi, v);
+            } else {
+                e.sLo = Math.min(e.sLo, v);
+                e.sHi = Math.max(e.sHi, v);
+            }
         };
-        take({ p: valueAt(data, 'p', t0), s: valueAt(data, 's', t0) });
-        take({ p: valueAt(data, 'p', t1), s: valueAt(data, 's', t1) });
-        for (const d of data) if (d.t >= t0 && d.t <= t1) take(d);
-        for (const l of allLabPoints) if (l.t >= t0 && l.t <= t1 && l.v > p) p = l.v;
-        for (const m of allMarkers) {
-            if (m.t < t0 || m.t > t1) continue;
-            if (m.axis === 'p' && m.v > p) p = m.v;
-            if (m.axis === 's' && m.v > s) s = m.v;
+        for (const time of [t0, t1]) {
+            take('p', valueAt(data, 'p', time));
+            take('s', valueAt(data, 's', time));
         }
-        return { p, s };
+        for (const d of data) {
+            if (d.t < t0 || d.t > t1) continue;
+            take('p', d.p);
+            take('s', d.s);
+        }
+        for (const l of allLabPoints) if (l.t >= t0 && l.t <= t1) take('p', l.v);
+        for (const m of allMarkers) if (m.t >= t0 && m.t <= t1) take(m.axis, m.v);
+        return e;
     }, [data, allLabPoints, allMarkers, t0, t1]);
 
-    const yPrimary = useMemo(() => {
-        // Keep the target band's lower edge on-screen so "below target" reads clearly,
-        // without forcing the whole (often much higher) band into view.
-        const mx = Math.max(windowMax.p, primaryTarget ? primaryTarget.low * 1.05 : CPA_AXIS_MIN);
-        return buildYDomain(0, mx);
-    }, [windowMax, primaryTarget]);
+    // With cyproterone beside estradiol the chart splits in two, estradiol
+    // above and cyproterone below, each on its own axis: on one shared plot
+    // the two scales crossed and neither could be read against its numbers.
+    // The lower plot is the smaller one and steps in fewer gridlines.
+    const S_STEPS = 3;
+
+    const yPrimary = useMemo(
+        () => buildYDomain(windowExtent.pLo, windowExtent.pHi, 4, isTransmasc ? 100 : primaryIsCPA ? CPA_AXIS_MIN : 20),
+        [windowExtent, isTransmasc, primaryIsCPA],
+    );
 
     const ySecondary = useMemo(() => {
         if (!hasSecondary) return [0, 1] as [number, number];
-        return buildYDomain(0, Math.max(CPA_AXIS_MIN, windowMax.s));
-    }, [windowMax, hasSecondary]);
-    // The right-hand axis is only labelled while the window holds a level of
+        return buildYDomain(windowExtent.sLo, windowExtent.sHi, S_STEPS, CPA_AXIS_MIN);
+    }, [windowExtent, hasSecondary]);
+    // The lower axis is only labelled while the window holds a level of
     // cyproterone worth reading; the curve itself is drawn either way.
-    const cpaInView = hasSecondary && cpaMeaningful(windowMax.s);
+    const cpaInView = hasSecondary && cpaMeaningful(windowExtent.sHi);
 
     // Layout. The plot is drawn in raw SVG units, so unlike the rest of the UI
     // it does not follow the root font size. Reading that size back keeps the
@@ -566,19 +587,26 @@ const ResultChart = ({
     // "0.50" is never clipped by the edge of the plot. Digits run about 0.6em.
     const labelW = (vals: number[]) => Math.max(0, ...vals.map(v => fmtAxis(v).length)) * axisFont * 0.6;
     const yTickVals = useMemo(() => ticksFor(yPrimary), [yPrimary]);
-    const ysTickVals = useMemo(() => (cpaInView ? ticksFor(ySecondary) : []), [cpaInView, ySecondary]);
-    const mLTarget = Math.max(32 * ui, labelW(yTickVals) + 12 * ui);
-    // At least the left gutter, so the plot stays centred in the column and
-    // the last date label, centred on the plot's right edge, has room to
-    // finish; wider when the cyproterone axis needs it.
-    const mRTarget = Math.max(mLTarget, labelW(ysTickVals) + 12 * ui);
+    const ysTickVals = useMemo(() => (cpaInView ? ticksFor(ySecondary, S_STEPS) : []), [cpaInView, ySecondary]);
+    // Both plots' numbers sit in the left gutter, one above the other.
+    const mLTarget = Math.max(32 * ui, labelW([...yTickVals, ...ysTickVals]) + 12 * ui);
     // A gutter that widens for "1000" eases with the axes rather than jumping
-    // the whole plot sideways at the start of a range change.
-    const [mL, mR] = useEasedPair([mLTarget, mRTarget], false);
-    const mT = 14 * ui;
+    // the whole plot sideways at the start of a range change. The right one
+    // matches it, so the plot stays centred in the column and the last date
+    // label, centred on the plot's right edge, has room to finish.
+    const [mL] = useEasedPair([mLTarget, mLTarget], false);
+    const mR = mL;
+    // Room above the plot for the "now" line's label.
+    const mT = 24 * ui;
     const mB = 26 * ui;
     const plotW = Math.max(0, width - mL - mR);
     const plotH = Math.max(0, height - mT - mB);
+    // Split, the two plots share the window and the dates along the bottom,
+    // with a gap between them and the lower one about a third of the height.
+    const gapH = hasSecondary ? 32 * ui : 0;
+    const sH = hasSecondary ? Math.round((plotH - gapH) * 0.36) : 0;
+    const pH = Math.max(0, plotH - gapH - sH);
+    const sTop = mT + pH + gapH;
 
     // Entrance timing. A marker at x is delayed by however long the sweep takes
     // to reach it, so it lands with the line rather than ahead of it.
@@ -592,8 +620,8 @@ const ResultChart = ({
     const [vs0, vs1] = useEasedPair(ySecondary, false);
 
     const X = (time: number) => mL + (vt1 === vt0 ? 0 : ((time - vt0) / (vt1 - vt0)) * plotW);
-    const YP = (v: number) => mT + plotH - ((v - vy0) / (vy1 - vy0)) * plotH;
-    const YS = (v: number) => mT + plotH - ((v - vs0) / (vs1 - vs0)) * plotH;
+    const YP = (v: number) => mT + pH - ((v - vy0) / (vy1 - vy0)) * pH;
+    const YS = (v: number) => sTop + sH - ((v - vs0) / (vs1 - vs0)) * sH;
 
     // Monotone cubic Hermite interpolation (Fritsch–Carlson), the same curve
     // family as d3's curveMonotoneX: smoothly connects the sample points
@@ -714,7 +742,8 @@ const ResultChart = ({
 
     // Mid-rescale an incoming set can be crushed together. Its rules still
     // read; the numbers wait until there is room to hold them.
-    const roomFor = (vals: number[]) => vals.length < 2 || Math.abs(YP(vals[0]) - YP(vals[1])) >= 26 * ui;
+    const roomFor = (vals: number[], y: (v: number) => number, gap = 26) =>
+        vals.length < 2 || Math.abs(y(vals[0]) - y(vals[1])) >= gap * ui;
 
     // "Now" position on the primary curve.
     const nowVal = useMemo(() => {
@@ -909,10 +938,10 @@ const ResultChart = ({
     // The target band as drawn, clamped to the plot; null while it is entirely off-screen.
     const band = (() => {
         if (!primaryTarget) return null;
-        const yHi = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.high)));
-        const yLo = Math.max(mT, Math.min(mT + plotH, YP(primaryTarget.low)));
+        const yHi = Math.max(mT, Math.min(mT + pH, YP(primaryTarget.high)));
+        const yLo = Math.max(mT, Math.min(mT + pH, YP(primaryTarget.low)));
         if (yLo - yHi < 0.5) return null;
-        const inView = (y: number) => y >= mT - 0.5 && y <= mT + plotH + 0.5;
+        const inView = (y: number) => y >= mT - 0.5 && y <= mT + pH + 0.5;
         return { yHi, yLo, lowEdge: inView(YP(primaryTarget.low)), highEdge: inView(YP(primaryTarget.high)) };
     })();
 
@@ -969,7 +998,11 @@ const ResultChart = ({
             </div>
 
             {/* Plot */}
-            <div ref={setPlotEl} className="relative h-72 md:h-96 -mx-4 md:-mx-6 select-none touch-pan-y">
+            {/* Taller when split, so neither plot is squeezed thinner than a glance can read. */}
+            <div
+                ref={setPlotEl}
+                className={`relative ${hasSecondary ? 'h-[22rem] md:h-[28rem]' : 'h-72 md:h-96'} -mx-4 md:-mx-6 select-none touch-pan-y`}
+            >
                 {width > 0 && (
                     <svg
                         width={width}
@@ -988,6 +1021,13 @@ const ResultChart = ({
                             </clipPath>
                             <clipPath id={`clip-${clipId}`}>
                                 <rect x={mL} y={mT - 4} width={plotW} height={plotH + 8} />
+                            </clipPath>
+                            {/* Each curve kept to its own plot while an axis eases. */}
+                            <clipPath id={`clip-p-${clipId}`}>
+                                <rect x={mL} y={mT - 4} width={plotW} height={pH + 8} />
+                            </clipPath>
+                            <clipPath id={`clip-s-${clipId}`}>
+                                <rect x={mL} y={sTop - 4} width={plotW} height={sH + 8} />
                             </clipPath>
                         </defs>
 
@@ -1043,7 +1083,7 @@ const ResultChart = ({
                                 <g key={`yg-${tag}`} opacity={o}>
                                     {set.map((v, i) => {
                                         const y = YP(v);
-                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
+                                        if (y < mT - 0.5 || y > mT + pH + 0.5) return null;
                                         return (
                                             <g
                                                 key={`yp-${i}`}
@@ -1058,7 +1098,7 @@ const ResultChart = ({
                                                     stroke={c.grid}
                                                     strokeWidth={1}
                                                 />
-                                                {roomFor(set) && (
+                                                {roomFor(set, YP) && (
                                                     <text
                                                         x={mL - 8 * ui}
                                                         y={y + 4 * ui}
@@ -1076,36 +1116,51 @@ const ResultChart = ({
                             ),
                         )}
 
-                        {/* Secondary (CPA) axis labels */}
-                        {(
-                            [
-                                ['out', ysFade.prev, 1 - ysFade.u],
-                                ['in', ysFade.next, ysFade.u],
-                            ] as const
-                        ).map(([tag, set, o]) =>
-                            o <= 0.002 ? null : (
-                                <g key={`ysg-${tag}`} opacity={o}>
-                                    {set.map((v, i) => {
-                                        const y = YS(v);
-                                        if (y < mT - 0.5 || y > mT + plotH + 0.5) return null;
-                                        return (
-                                            <text
-                                                key={`ys-${i}`}
-                                                className={tag === 'in' ? 'chart-appear' : undefined}
-                                                style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
-                                                x={mL + plotW + 8 * ui}
-                                                y={y + 4 * ui}
-                                                textAnchor="start"
-                                                fontSize={axisFont}
-                                                fill={c.faint}
-                                            >
-                                                {fmtAxis(v)}
-                                            </text>
-                                        );
-                                    })}
-                                </g>
-                            ),
-                        )}
+                        {/* The lower (cyproterone) plot's grid and labels, on
+                            the same treatment as the upper one's */}
+                        {hasSecondary &&
+                            (
+                                [
+                                    ['out', ysFade.prev, 1 - ysFade.u],
+                                    ['in', ysFade.next, ysFade.u],
+                                ] as const
+                            ).map(([tag, set, o]) =>
+                                o <= 0.002 ? null : (
+                                    <g key={`ysg-${tag}`} opacity={o}>
+                                        {set.map((v, i) => {
+                                            const y = YS(v);
+                                            if (y < sTop - 0.5 || y > sTop + sH + 0.5) return null;
+                                            return (
+                                                <g
+                                                    key={`ys-${i}`}
+                                                    className={tag === 'in' ? 'chart-appear' : undefined}
+                                                    style={tag === 'in' ? { animationDelay: `${i * 45}ms` } : undefined}
+                                                >
+                                                    <line
+                                                        x1={mL}
+                                                        y1={y}
+                                                        x2={mL + plotW}
+                                                        y2={y}
+                                                        stroke={c.grid}
+                                                        strokeWidth={1}
+                                                    />
+                                                    {roomFor(set, YS, 18) && (
+                                                        <text
+                                                            x={mL - 8 * ui}
+                                                            y={y + 4 * ui}
+                                                            textAnchor="end"
+                                                            fontSize={axisFont}
+                                                            fill={c.axis}
+                                                        >
+                                                            {fmtAxis(v)}
+                                                        </text>
+                                                    )}
+                                                </g>
+                                            );
+                                        })}
+                                    </g>
+                                ),
+                            )}
 
                         {/* X axis labels, on the same treatment */}
                         {(
@@ -1138,32 +1193,51 @@ const ResultChart = ({
                             ),
                         )}
 
+                        {/* "Now" over the top of its dashed line, in the room
+                            left above the plot for it. */}
+                        {now >= t0 && now <= t1 && (
+                            <text
+                                className="chart-appear"
+                                style={{ animationDelay: sweepDelay(X(now)) }}
+                                x={X(now)}
+                                y={mT - 9 * ui}
+                                textAnchor="middle"
+                                fontSize={axisFont}
+                                fill={c.axis}
+                                pointerEvents="none"
+                            >
+                                {t('time.now')}
+                            </text>
+                        )}
+
                         <g clipPath={`url(#clip-${clipId})`}>
                             <g clipPath={`url(#sweep-${clipId})`}>
-                                {/* Primary curve — dotted in mono when it's the CPA series */}
-                                <path
-                                    d={linePath('p', false)}
-                                    fill="none"
-                                    stroke={c.primary}
-                                    strokeWidth={2}
-                                    strokeLinejoin="round"
-                                    strokeLinecap="round"
-                                    strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined}
-                                />
-                                <path
-                                    d={linePath('p', true)}
-                                    fill="none"
-                                    stroke={c.primary}
-                                    strokeWidth={2}
-                                    strokeLinejoin="round"
-                                    strokeLinecap="round"
-                                    strokeDasharray={isMono && primaryIsCPA ? '2 5' : AHEAD_DASH}
-                                    opacity={AHEAD_OPACITY}
-                                />
+                                <g clipPath={`url(#clip-p-${clipId})`}>
+                                    {/* Primary curve — dotted in mono when it's the CPA series */}
+                                    <path
+                                        d={linePath('p', false)}
+                                        fill="none"
+                                        stroke={c.primary}
+                                        strokeWidth={2}
+                                        strokeLinejoin="round"
+                                        strokeLinecap="round"
+                                        strokeDasharray={isMono && primaryIsCPA ? '2 5' : undefined}
+                                    />
+                                    <path
+                                        d={linePath('p', true)}
+                                        fill="none"
+                                        stroke={c.primary}
+                                        strokeWidth={2}
+                                        strokeLinejoin="round"
+                                        strokeLinecap="round"
+                                        strokeDasharray={isMono && primaryIsCPA ? '2 5' : AHEAD_DASH}
+                                        opacity={AHEAD_OPACITY}
+                                    />
+                                </g>
 
-                                {/* Secondary curve (CPA) — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
+                                {/* Secondary curve (CPA), in the lower plot — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
                                 {hasSecondary && (
-                                    <>
+                                    <g clipPath={`url(#clip-s-${clipId})`}>
                                         <path
                                             d={linePath('s', false)}
                                             fill="none"
@@ -1183,7 +1257,7 @@ const ResultChart = ({
                                             strokeDasharray={isMono ? '2 5' : AHEAD_DASH}
                                             opacity={AHEAD_OPACITY}
                                         />
-                                    </>
+                                    </g>
                                 )}
                             </g>
 
@@ -1197,7 +1271,7 @@ const ResultChart = ({
                                     className="chart-appear"
                                     style={{ animationDelay: '120ms' }}
                                     x={mL + 4 * ui}
-                                    y={Math.min(mT + plotH - 3 * ui, band.yHi + 14 * ui)}
+                                    y={Math.min(mT + pH - 3 * ui, band.yHi + 14 * ui)}
                                     fontSize={axisFont}
                                     fill={c.axis}
                                     paintOrder="stroke"

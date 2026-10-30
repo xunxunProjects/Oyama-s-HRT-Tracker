@@ -129,7 +129,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
         : [];
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('cal.settings')} />
 
             <div className={`${PAGE_COLUMN} mt-4`}>

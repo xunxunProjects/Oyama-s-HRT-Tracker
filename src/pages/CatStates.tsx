@@ -26,7 +26,7 @@ const CatStates: React.FC<CatStatesProps> = ({ onBack }) => {
     const { catState } = usePixelCats();
 
     return (
-        <div className="relative pb-32">
+        <div className="relative md:pb-32">
             <PageHeader onBack={onBack} title={t('settings.cat_states')} />
 
             <div className={PAGE_COLUMN}>

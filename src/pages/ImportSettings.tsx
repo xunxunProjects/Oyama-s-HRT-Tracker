@@ -22,7 +22,7 @@ const ImportSettings: React.FC<ImportSettingsProps> = ({ onImportJson, onReplace
     const completeNote = t('import.complete_note');
 
     return (
-        <div className="relative space-y-4 pb-32">
+        <div className="relative space-y-4 md:pb-32">
             <PageHeader onBack={onBack} title={t('import.title')} />
 
             <div className={PAGE_COLUMN}>

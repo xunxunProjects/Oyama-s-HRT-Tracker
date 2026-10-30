@@ -27,6 +27,7 @@ const BottomNav: React.FC<{
     activeTab: string;
     onSelect: (id: string) => void;
 }> = ({ tabs, activeTab, onSelect }) => {
+    const navRef = useRef<HTMLElement>(null);
     const rowRef = useRef<HTMLDivElement>(null);
     const marks = useRef<Record<string, HTMLSpanElement | null>>({});
     const [pill, setPill] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -59,6 +60,26 @@ const BottomNav: React.FC<{
         return () => ro.disconnect();
     }, [activeTab, tabs]);
 
+    // The bar's real height, for the page's bottom clearance (--nav-clearance):
+    // larger text or a longer label makes it taller than any fixed figure.
+    useLayoutEffect(() => {
+        const nav = navRef.current;
+        if (!nav) return;
+        const root = document.documentElement;
+        const measure = () => {
+            const h = nav.offsetHeight;
+            if (h > 0) root.style.setProperty('--nav-h', `${h}px`);
+        };
+        measure();
+        if (typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(measure);
+        ro.observe(nav);
+        return () => {
+            ro.disconnect();
+            root.style.removeProperty('--nav-h');
+        };
+    }, []);
+
     useEffect(() => {
         if (!pill || placed) return;
         const frame = requestAnimationFrame(() => setPlaced(true));
@@ -66,7 +87,10 @@ const BottomNav: React.FC<{
     }, [pill, placed]);
 
     return (
-        <nav className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]">
+        <nav
+            ref={navRef}
+            className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]"
+        >
             <div ref={rowRef} className="relative flex items-stretch p-1.5 gap-0.5">
                 {pill && (
                     <span
