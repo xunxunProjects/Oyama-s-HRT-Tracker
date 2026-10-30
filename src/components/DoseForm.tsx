@@ -883,7 +883,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
             )}
 
             <div
-                className={`space-y-4 flex-1 overflow-y-auto ${!isInline ? 'px-6 pb-4' : hideHeader ? 'pb-2' : 'pb-4'}`}
+                className={`space-y-4 flex-1 ${!isInline ? 'overflow-y-auto px-6 pb-4' : hideHeader ? 'pb-2' : 'pb-4'}`}
             >
                 {/* Time */}
                 <div ref={timeRowRef}>
