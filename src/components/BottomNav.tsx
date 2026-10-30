@@ -1,5 +1,4 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Doodle, { NAV_DOODLES } from './Doodle';
 
 interface NavTab {
     id: string;
@@ -11,8 +10,7 @@ interface NavTab {
  * The bottom bar on a phone: a frosted floating island that content scrolls
  * visibly beneath. The current tab's icon sits in a tonal terracotta pill,
  * and the pill is the bar's one motion: tap another tab and it glides there
- * (.chip-slide). Each tab shows its page's drawing (Doodle.tsx), the same as
- * the sidebar's. The page itself is
+ * (.chip-slide), the icon taking its colour as it arrives. The page itself is
  * simply there; nothing else in the bar moves, and nothing does on the first
  * render.
  *
@@ -91,13 +89,9 @@ const BottomNav: React.FC<{
                                 ref={el => {
                                     marks.current[id] = el;
                                 }}
-                                className={`relative z-10 grid h-[34px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
+                                className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
                             >
-                                {NAV_DOODLES[id] ? (
-                                    <Doodle name={NAV_DOODLES[id]} size={2} />
-                                ) : (
-                                    <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
-                                )}
+                                <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
                             </span>
                             <span className="whitespace-nowrap text-xs leading-4 font-medium">{label}</span>
                         </button>
