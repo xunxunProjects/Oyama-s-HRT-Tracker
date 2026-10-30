@@ -183,15 +183,13 @@ const Home: React.FC<HomeProps> = ({
         'font-display inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
     const fullSize =
         'text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)]';
-    // Side by side in a column narrower than 32rem (every phone), the second
-    // reading stays at 2rem and the first shrinks with the column below about
-    // 18.5rem, so a four-digit estradiol peak still clears the cyproterone
-    // figure on a 320px screen. From 32rem both take the reading scale again:
-    // 40px, then 52px, then 64px.
-    const companionSize =
-        'text-[2rem] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
-    const pairedPrimarySize =
-        'text-[min(var(--text-reading-sm-size),13.5cqw)] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
+    // Side by side the two readings are always one size, so they read as a
+    // pair on one baseline. In a column narrower than 32rem (every phone) that
+    // size follows the column, up to the reading scale's 40px, so a four-digit
+    // estradiol peak still clears the cyproterone figure on a 320px screen.
+    // From 32rem both take the reading scale: 40px, then 52px, then 64px.
+    const pairedSize =
+        'text-[min(var(--text-reading-sm-size),10cqw)] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
@@ -333,12 +331,9 @@ const Home: React.FC<HomeProps> = ({
                             number's line has no room left for the cats, and on
                             a line of their own under it they cost the height
                             the move freed. So there they sit up by the label. */}
-                                                <div className="col-start-1 row-start-1 flex min-w-0 items-end gap-3">
-                                                    <p className={`text-xs font-medium ${muted}`}>{primary.label}</p>
-                                                    {companion && cats && (
-                                                        <span className="-mb-1 flex @min-[32rem]:hidden">{cats}</span>
-                                                    )}
-                                                </div>
+                                                <p className={`col-start-1 row-start-1 text-xs font-medium ${muted}`}>
+                                                    {primary.label}
+                                                </p>
 
                                                 {/* Number and unit sit in a slot wide enough for a
                             four-digit reading (two for the second column), so a
@@ -348,7 +343,7 @@ const Home: React.FC<HomeProps> = ({
                             reader skips, so it is said here, after the unit. */}
                                                 <div className="col-start-1 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                                                     <span
-                                                        className={`${readingSlot} ${companion ? pairedPrimarySize : fullSize}`}
+                                                        className={`${readingSlot} ${companion ? pairedSize : fullSize}`}
                                                         style={{
                                                             minWidth: companion
                                                                 ? undefined
@@ -378,17 +373,12 @@ const Home: React.FC<HomeProps> = ({
                                                             <span className={dim}>--</span>
                                                         )}
                                                     </span>
-                                                    {companion && cats ? (
-                                                        <span className="hidden self-end @min-[32rem]:flex">
-                                                            {cats}
-                                                        </span>
-                                                    ) : (
-                                                        cats
-                                                    )}
+                                                    {!companion && cats}
                                                 </div>
 
                                                 {/* The scale belongs to the first reading and runs the
-                            full width under both. */}
+                            full width under both: kept to the first reading's
+                            column on a phone, its 100 and 200 ran together. */}
                                                 {primary.value > 0 && (
                                                     <div className="col-span-2 col-start-1 row-start-3 mt-0.5">
                                                         <LevelRail
@@ -411,7 +401,7 @@ const Home: React.FC<HomeProps> = ({
                                                             </p>
                                                         )}
                                                         <span
-                                                            className={`${readingSlot} ${companionSize} col-start-2 row-start-2 justify-end whitespace-nowrap`}
+                                                            className={`${readingSlot} ${pairedSize} col-start-2 row-start-2 justify-end whitespace-nowrap`}
                                                             style={{ minWidth: slotWidth(2, companion.decimals) }}
                                                         >
                                                             {companion.value > 0 ? (
@@ -649,7 +639,10 @@ const Home: React.FC<HomeProps> = ({
                                                 </button>
                                             );
                                         })}
-                                        <div className="pt-1.5">
+                                        {/* Beside a second reading the cats have no room on the
+                                            number's line, so they sit at the end of this one,
+                                            away from both readings' labels. */}
+                                        <div className="pt-1.5 flex items-end justify-between gap-3">
                                             <button
                                                 type="button"
                                                 onClick={onNavigateToPlan}
@@ -658,6 +651,7 @@ const Home: React.FC<HomeProps> = ({
                                                 {t('plan.title')}
                                                 <ChevronRight size={15} />
                                             </button>
+                                            {hasReading && companion && cats}
                                         </div>
                                     </div>
                                 )}
