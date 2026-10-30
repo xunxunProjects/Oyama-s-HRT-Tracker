@@ -189,7 +189,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="overflow-y-auto flex-1">
+            <div className="flex-1">
                 {/* Date row */}
                 <button
                     type="button"
