@@ -53,8 +53,10 @@ The deployment pages carry the exact commands; this is the checklist.
       a secure context.
 - [ ] Keep the app port on loopback and put a TLS-terminating proxy (or a
       Tor/I2P daemon) in front. Do not expose `:8787` directly.
-- [ ] Set `TRUSTED_IP_SOURCE` to match the proxy, and make the proxy overwrite
-      the client-address header. Otherwise clients can choose their own
+- [ ] Leave `TRUSTED_IP_SOURCE` at `none` unless a trusted edge/proxy is
+      actually in front. Set `cf` only behind Cloudflare or `x-forwarded-for`
+      only behind exactly one trusted proxy, and make that layer overwrite or
+      append the client-address header. Otherwise clients can choose their own
       address, or every visitor shares one rate-limit bucket.
 - [ ] Set `PUBLIC_APP_ORIGIN` when the proxy changes the `Host` header.
 - [ ] If `hrt://` is enabled, keep the certificate, key, and service token at

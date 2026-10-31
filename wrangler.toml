@@ -21,6 +21,12 @@ run_worker_first = ["/*", "!/assets/*"]
 enabled = true
 head_sampling_rate = 1
 
+# Cloudflare's edge sets CF-Connecting-IP and a client cannot. Self-hosted
+# Docker overrides this with `none` in its generated .dev.vars unless the
+# operator explicitly opts into a trusted proxy header.
+[vars]
+TRUSTED_IP_SOURCE = "cf"
+
 # Required secrets (set via `wrangler secret put <NAME>`):
 #   JWT_SECRET      — random string ≥ 32 chars, used to sign auth tokens
 #   ADMIN_USERNAME  — (optional) username for the built-in admin account

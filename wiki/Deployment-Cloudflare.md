@@ -111,9 +111,11 @@ Secrets are not the same as variables:
 | Secret   | `wrangler secret put` or the dashboard       | `JWT_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`        |
 | Variable | `[vars]` in `wrangler.toml` or the dashboard | `PUBLIC_APP_ORIGIN`, `TRUSTED_IP_SOURCE`, `ENVIRONMENT` |
 
-`TRUSTED_IP_SOURCE` defaults to `cf`, which reads `CF-Connecting-IP`. On
-Cloudflare that header is set by the edge. Only change it if you put another
-proxy in front of the Worker.
+The committed `wrangler.toml` sets `TRUSTED_IP_SOURCE=cf`, which reads
+`CF-Connecting-IP`. On Cloudflare that header is set by the edge. The code
+default is `none`; keep the Cloudflare variable only for a Worker that really
+is behind the Cloudflare edge. If you put another proxy in front, configure the
+matching source and make that proxy overwrite the header.
 
 ## Deploy on every push (optional)
 
