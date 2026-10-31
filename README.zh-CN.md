@@ -197,13 +197,12 @@ Tor/I2P 守护进程）。
 容器使用 Wrangler 的本地 workerd 运行时以及本地持久化 D1/R2 资源，不会连接
 Cloudflare 生产数据库或存储桶。
 
-`TRUSTED_IP_SOURCE` 也是可选项。默认 `cf`，读取 `CF-Connecting-IP` 头。不在
-Cloudflare 后面时，容器只在请求没带这个头时才自己补上，所以要让反向代理用客户端
-地址覆盖它（Caddy：`header_up CF-Connecting-IP {remote_host}`，nginx：
-`proxy_set_header CF-Connecting-IP $remote_addr;`），否则客户端可以自己填一个，
-或者在代理后面所有访客共用代理的地址。也可以设为 `x-forwarded-for`，读取
-`X-Forwarded-For` 的最后一跳，也就是前面那一层代理加上的地址；Tor/I2P 镜像等完全
-没有客户端地址的场景设为 `none`，每个接口共用一个限额。
+`TRUSTED_IP_SOURCE` 也是可选项。默认是 `none`，因为客户端可以自己设置
+`CF-Connecting-IP` 或 `X-Forwarded-For`。只有当 Cloudflare 确实在前面、并且
+其边缘会覆盖 `CF-Connecting-IP` 时才设为 `cf`；只有当恰好一层可信反向代理在前面、
+并且它会追加客户端地址时才设为 `x-forwarded-for`。设为 `none` 时，每个接口共用
+一个限额，而不是按地址分别限额。`docker-install.sh` 会按模式设置对应的值；如果
+手工配置代理，要让代理覆盖对应的头，而不是把客户端的值原样传进来。
 
 `PUBLIC_APP_ORIGIN`（例如 `https://hrt.example.com`）也是可选项。分享链接会用这个
 地址；代理没有把浏览器的 `Host` 头传进来时，通行密钥登录也认这个地址。

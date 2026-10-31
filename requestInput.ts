@@ -11,19 +11,27 @@ export const MAX_JSON_BODY_BYTES = 64 * 1024;
 
 /**
  * The client address for rate-limit keys and session records, or null when the
- * deployment has none (TRUSTED_IP_SOURCE=none, Tor/I2P mirrors). Callers must
- * cope with null by not keying an address bucket on a shared 'unknown'.
+ * deployment has none. Callers must cope with null by not keying an address
+ * bucket on a shared 'unknown'.
+ *
+ * Both headers are client-controlled unless something trusted in front of the
+ * app overwrites them. `cf` and `x-forwarded-for` are therefore opt-in: the
+ * default is `none`, not a guessed header. A deployment behind Cloudflare sets
+ * `cf`; one behind exactly one trusted reverse proxy sets `x-forwarded-for`.
  */
 export function getClientIP(request: Request, env: { TRUSTED_IP_SOURCE?: string }): string | null {
-    const source = (env.TRUSTED_IP_SOURCE || 'cf').trim().toLowerCase();
-    if (source === 'none' || source === 'off') return null;
+    const source = (env.TRUSTED_IP_SOURCE || 'none').trim().toLowerCase();
     if (source === 'x-forwarded-for' || source === 'xff') {
         // The proxy appends the address it saw to whatever the client sent, so
         // only the last hop is one it vouches for.
         const last = request.headers.get('X-Forwarded-For')?.split(',').pop()?.trim();
         return last || null;
     }
-    return request.headers.get('CF-Connecting-IP')?.trim() || null;
+    // Only the explicitly configured Cloudflare source is trusted. An unknown
+    // or misspelled value must fail closed instead of silently reading a
+    // client-supplied header.
+    if (source === 'cf') return request.headers.get('CF-Connecting-IP')?.trim() || null;
+    return null;
 }
 
 /**

@@ -73,7 +73,7 @@ format cannot represent it.
 | `JWT_SECRET`                       | Yes      | Signs sign-in tokens. At least 32 characters, at least 8 distinct characters, and none of the words `secret`, `fallback-secret`, `fallback_secret`, `test-secret`, `dev-secret`, `default`, `password`, `123456`, or `changeme` in any case. Generate with `openssl rand -base64 48`. |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | No       | Built-in administrator. Set both or neither. The username is compared case-insensitively and is reserved even if the password is empty.                                                                                                                                               |
 | `PUBLIC_APP_ORIGIN`                | No       | Public origin for share links and passkey sign-in, for example `https://hrt.example.com`.                                                                                                                                                                                             |
-| `TRUSTED_IP_SOURCE`                | No       | `cf` (default), `x-forwarded-for`, or `none`. Controls where per-address rate limits read the client address.                                                                                                                                                                         |
+| `TRUSTED_IP_SOURCE`                | No       | `none` (default), `cf`, or `x-forwarded-for`. Controls where per-address rate limits read the client address. Only set `cf` behind Cloudflare or `x-forwarded-for` behind exactly one trusted proxy; both headers are client-controlled otherwise.                                    |
 | `HRT_BIND_HOST`                    | No       | Host address Compose publishes on. Default `127.0.0.1`; use `0.0.0.0` only for a trusted LAN without TLS.                                                                                                                                                                             |
 | `HRT_PORT`                         | No       | Host port Compose publishes. Default `8787`; the container still listens on `PORT=8787` internally.                                                                                                                                                                                   |
 | `ENVIRONMENT`                      | No       | Only `development` makes a 500 response include the error text. The container leaves it unset, so it behaves as production.                                                                                                                                                           |
@@ -155,12 +155,16 @@ the normal setup. `./docker-install.sh --mode proxy --domain ... --proxy ...`
 sets the matching `PUBLIC_APP_ORIGIN` and `TRUSTED_IP_SOURCE` values and prints
 a starting-point snippet; finish and reload the proxy yourself.
 
-- **Caddy**: add `header_up CF-Connecting-IP {remote_host}` inside
-  `reverse_proxy` when `TRUSTED_IP_SOURCE=cf`.
-- **nginx**: use 1.30.6+ or 1.31.7+ (the 2026-10-14 security release) and add
+- **Caddy**: the generated proxy mode sets `TRUSTED_IP_SOURCE=x-forwarded-for`;
+  let Caddy append to `X-Forwarded-For`. If you instead choose `cf`, add
+  `header_up CF-Connecting-IP {remote_host}` inside `reverse_proxy`.
+- **nginx**: use 1.30.6+ or 1.31.7+ (the 2026-10-14 security release); the
+  generated snippet appends `X-Forwarded-For`. If you instead choose `cf`, add
   `proxy_set_header CF-Connecting-IP $remote_addr;` in the proxying `location`.
-- Alternatively set `TRUSTED_IP_SOURCE=x-forwarded-for` and let the single
-  proxy append the address, or `none` on a Tor/I2P mirror.
+- Keep the default `none` when no trusted edge/proxy sits in front, for
+  example on a Tor/I2P mirror. A client can send either header itself, so
+  enabling one of the header sources without the matching proxy lets it choose
+  its own rate-limit bucket.
 
 Passkey sign-in accepts the request's own origin, `https://<host>` when the
 Worker is reached over plain http through a TLS proxy, or
