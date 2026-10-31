@@ -7,6 +7,9 @@ the three production paths, or use the local path for development.
 > deploy `main`; it may contain unreleased changes. `v1.5.2` is a security
 > release: it caps decompressed share snapshots at 20 MiB and disables
 > Wrangler's Local Explorer and local observability APIs in the Docker runtime.
+> The VPS-native unit in [Deployment-VPS](Deployment-VPS) sets the same switches
+> and its proxy example blocks `/cdn-cgi/*`; apply those lines if your unit
+> predates them.
 > It also refreshes the npm and Rust dependency trees. If you need a fix that is
 > only on `main`, wait for the next release rather than deploying an untagged
 > commit.

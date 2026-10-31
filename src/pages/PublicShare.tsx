@@ -7,7 +7,14 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { getShareCopy } from '../i18n/share';
 import { LOCALE_MAP, formatWearDays } from '../utils/helpers';
 import { drugLabel } from '../utils/regimenText';
-import { LockedShare, SHARE_KEY_INVALID, ShareApiError, ShareDetails, sharingService } from '../services/sharing';
+import {
+    LockedShare,
+    SHARE_KEY_INVALID,
+    ShareApiError,
+    ShareDetails,
+    isTerminalLiveShareError,
+    sharingService,
+} from '../services/sharing';
 
 interface PublicShareProps {
     token: string | null;
@@ -38,6 +45,9 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     const [unlockBlockedUntil, setUnlockBlockedUntil] = useState(0);
     const unlockedPasswordRef = useRef('');
     const viewerPassRef = useRef('');
+    // Latest decrypted details, used to skip a live refresh that returns the
+    // same sealed envelope.
+    const detailsRef = useRef<ShareDetails | null>(null);
 
     const formatTime = (ms: number) =>
         new Intl.DateTimeFormat(LOCALE_MAP[lang] || 'en-US', { hour: 'numeric', minute: '2-digit' }).format(ms);
@@ -75,6 +85,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
     useEffect(() => {
         let cancelled = false;
         unlockedPasswordRef.current = '';
+        detailsRef.current = null;
         setPassword('');
         setPasswordError(null);
 
@@ -90,11 +101,18 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             .open(token, shareKey)
             .then(result => {
                 if (cancelled) return;
-                if ('snapshot' in result) setState({ kind: 'ready', details: result });
-                else setState({ kind: 'locked', meta: result });
+                if ('snapshot' in result) {
+                    detailsRef.current = result;
+                    setState({ kind: 'ready', details: result });
+                } else {
+                    setState({ kind: 'locked', meta: result });
+                }
             })
             .catch(error => {
-                if (!cancelled) setState(classifyError(error));
+                if (!cancelled) {
+                    detailsRef.current = null;
+                    setState(classifyError(error));
+                }
             });
         return () => {
             cancelled = true;
@@ -130,6 +148,7 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             const details = await sharingService.unlock(token, shareKey, password);
             unlockedPasswordRef.current = password;
             viewerPassRef.current = details.viewerPass ?? '';
+            detailsRef.current = details;
             setState({ kind: 'ready', details });
             setPassword('');
         } catch (error) {
@@ -158,24 +177,26 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             try {
                 // The viewer pass lets this read skip the password check, so a
                 // lock someone else tripped on this link does not stop it.
+                const previous = detailsRef.current ?? undefined;
                 const result = unlockedPasswordRef.current
                     ? await sharingService.unlock(
                           token,
                           shareKey,
                           unlockedPasswordRef.current,
                           viewerPassRef.current || undefined,
+                          previous,
                       )
-                    : await sharingService.open(token, shareKey);
+                    : await sharingService.open(token, shareKey, previous);
                 if (!cancelled && 'snapshot' in result) {
+                    detailsRef.current = result;
                     if (result.viewerPass) viewerPassRef.current = result.viewerPass;
                     setState({ kind: 'ready', details: result });
                 }
             } catch (error) {
                 if (cancelled) return;
-                if (error instanceof ShareApiError && (error.status === 410 || error.code === 'SHARE_EXPIRED')) {
-                    setState({ kind: 'expired' });
-                } else if (error instanceof ShareApiError && error.status === 404) {
-                    setState({ kind: 'unavailable' });
+                if (isTerminalLiveShareError(error)) {
+                    detailsRef.current = null;
+                    setState(classifyError(error));
                 } else if (error instanceof ShareApiError && error.status === 429) {
                     retryAfter = Date.now() + (error.retryAfterMs ?? 60_000);
                 }
