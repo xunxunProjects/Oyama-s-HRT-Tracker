@@ -1,6 +1,9 @@
 import { HRTMode } from '../../logic';
 import { EncryptedShareSnapshot, sanitizeShareSnapshot } from '../../shareSnapshotSchema';
 import { aesGcmDecrypt, aesGcmEncrypt, randomBytes } from '../utils/cryptoCompat';
+import { MAX_DECOMPRESSED_SHARE_BYTES, decompressGzipWithLimit, pipeThrough } from './boundedDecompression';
+
+export { MAX_DECOMPRESSED_SHARE_BYTES };
 
 // End-to-end encryption for dosage share links.
 //
@@ -21,6 +24,34 @@ const WRAP_AAD = new TextEncoder().encode('hrt-share-key-v1');
 
 const SHARE_KEY_REGEX = /^[A-Za-z0-9_-]{43}$/; // 32 bytes, base64url
 
+export const MAX_SHARE_JSON_DEPTH = 64;
+
+/** Cheap scan so pathological nesting is rejected before JSON.parse allocates it. */
+function exceedsJsonDepth(text: string, maxDepth: number): boolean {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text.charCodeAt(i);
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            } else if (ch === 0x5c) {
+                escaped = true; // backslash
+            } else if (ch === 0x22) {
+                inString = false; // quote
+            }
+            continue;
+        }
+        if (ch === 0x22) inString = true;
+        else if (ch === 0x5b || ch === 0x7b) {
+            depth++;
+            if (depth > maxDepth) return true;
+        } else if (ch === 0x5d || ch === 0x7d) depth--;
+    }
+    return false;
+}
+
 const bytesToBase64 = (bytes: Uint8Array): string => {
     let binary = '';
     for (let i = 0; i < bytes.length; i += 0x8000) {
@@ -36,38 +67,6 @@ const toBase64Url = (bytes: Uint8Array): string =>
 
 const fromBase64Url = (value: string): Uint8Array =>
     base64ToBytes(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4));
-
-/**
- * Decompressed snapshots are not bounded by the ciphertext size: gzip can
- * expand a link-sized envelope hundreds of times over. Cap the output before
- * buffering it in the viewer's memory. The schema's largest legal snapshot is
- * about 14 MiB of JSON, so 20 MiB leaves room without accepting a bomb.
- */
-export const MAX_DECOMPRESSED_SHARE_BYTES = 20 * 1024 * 1024;
-
-const limitBytes = (limit: number): TransformStream<Uint8Array, Uint8Array> => {
-    let total = 0;
-    return new TransformStream({
-        transform(chunk, controller) {
-            total += chunk.byteLength;
-            if (total > limit) {
-                controller.error(new Error('share snapshot is too large'));
-                return;
-            }
-            controller.enqueue(chunk);
-        },
-    });
-};
-
-const pipeThrough = async (
-    bytes: Uint8Array,
-    stream: CompressionStream | DecompressionStream,
-    maxOutputBytes?: number,
-): Promise<Uint8Array> => {
-    let output: ReadableStream<Uint8Array> = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
-    if (maxOutputBytes !== undefined) output = output.pipeThrough(limitBytes(maxOutputBytes));
-    return new Uint8Array(await new Response(output).arrayBuffer());
-};
 
 /** A fresh link key, base64url so it sits in a URL fragment untouched. */
 export function generateShareKey(): string {
@@ -103,7 +102,11 @@ export async function encryptShareSnapshot(snapshot: unknown, key: string): Prom
  * the same check the server used to run on plaintext shares. Returns null for
  * a wrong or truncated key, tampered ciphertext, or a payload of the wrong shape.
  */
-export async function decryptShareSnapshot(envelope: EncryptedShareSnapshot, key: string) {
+export async function decryptShareSnapshot(
+    envelope: EncryptedShareSnapshot,
+    key: string,
+    maxDecompressedBytes: number = MAX_DECOMPRESSED_SHARE_BYTES,
+) {
     if (!isShareKey(key)) return null;
     try {
         let plain: Uint8Array = await aesGcmDecrypt(
@@ -112,9 +115,10 @@ export async function decryptShareSnapshot(envelope: EncryptedShareSnapshot, key
             base64ToBytes(envelope.data),
             SNAPSHOT_AAD,
         );
-        if (envelope.z === 1)
-            plain = await pipeThrough(plain, new DecompressionStream('gzip'), MAX_DECOMPRESSED_SHARE_BYTES);
-        return sanitizeShareSnapshot(JSON.parse(new TextDecoder().decode(plain))).snapshot ?? null;
+        if (envelope.z === 1) plain = await decompressGzipWithLimit(plain, maxDecompressedBytes);
+        const text = new TextDecoder().decode(plain);
+        if (exceedsJsonDepth(text, MAX_SHARE_JSON_DEPTH)) return null;
+        return sanitizeShareSnapshot(JSON.parse(text)).snapshot ?? null;
     } catch {
         return null;
     }

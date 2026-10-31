@@ -109,6 +109,9 @@ Type=simple
 User=hrt
 Group=hrt
 WorkingDirectory=/opt/hrt-tracker
+# `wrangler dev` otherwise serves an unauthenticated D1/R2 admin API.
+Environment=X_LOCAL_EXPLORER=false
+Environment=X_LOCAL_OBSERVABILITY=false
 ExecStart=/usr/bin/npx wrangler dev --ip 127.0.0.1 --port 8787 \
   --persist-to /var/lib/hrt-tracker
 Restart=on-failure
@@ -139,9 +142,16 @@ Caddy example (`/etc/caddy/Caddyfile`):
 
 ```caddyfile
 hrt.example.com {
+    @wrangler_admin path /cdn-cgi/*
+    respond @wrangler_admin 404
     reverse_proxy 127.0.0.1:8787
 }
 ```
+
+The `@wrangler_admin` matcher is defense in depth: the systemd unit above
+already turns both admin surfaces off, and the proxy must not forward them even
+if a future launch command forgets the environment variables. If you use nginx,
+add the equivalent `location /cdn-cgi/ { return 404; }` before the proxy pass.
 
 Caddy obtains a certificate and appends the client address to
 `X-Forwarded-For`; set `TRUSTED_IP_SOURCE='x-forwarded-for'` in `.dev.vars`.
