@@ -28,6 +28,8 @@ export interface ShareDetails {
     snapshot: SharedDosageSnapshot;
     /** Proof this browser gave the right password; sent back on later reads instead of re-checking it. */
     viewerPass?: string;
+    /** IV of the sealed payload, used to skip re-decrypting an unchanged live share. */
+    envelopeFingerprint?: string;
 }
 
 /** What the access endpoint returns before the viewer decrypts anything. */
@@ -88,6 +90,14 @@ export class ShareApiError extends Error {
 /** Thrown when a link's key is missing or does not open what the server sent. */
 export const SHARE_KEY_INVALID = 'SHARE_KEY_INVALID';
 
+/** Errors that cannot be fixed by polling again: deleted, expired, or a bad key. */
+export const isTerminalLiveShareError = (error: unknown): boolean =>
+    error instanceof ShareApiError &&
+    (error.status === 410 ||
+        error.status === 404 ||
+        error.code === 'SHARE_EXPIRED' ||
+        error.code === SHARE_KEY_INVALID);
+
 /**
  * Prepare a snapshot for one link and seal it with that link's key. The
  * server used to rebuild every snapshot field by field so nothing but dosage
@@ -107,11 +117,23 @@ export async function sealSnapshotForLink(
     return encryptShareSnapshot(sanitized.snapshot, key);
 }
 
-const openDetails = async (raw: RawShareDetails, key: string | null): Promise<ShareDetails> => {
+const openDetails = async (
+    raw: RawShareDetails,
+    key: string | null,
+    previous?: ShareDetails,
+): Promise<ShareDetails> => {
     if (raw.encryptedSnapshot) {
+        // Live links re-fetch the same ciphertext every 10s. The IV is unique
+        // per sealed payload, so an unchanged IV means there is nothing new to
+        // decrypt or decompress.
+        if (previous?.envelopeFingerprint === raw.encryptedSnapshot.iv) return previous;
         const snapshot = key ? await decryptShareSnapshot(raw.encryptedSnapshot, key) : null;
         if (!snapshot) throw new ShareApiError(400, SHARE_KEY_INVALID, 'The link key is missing or wrong');
-        return { ...raw, snapshot: snapshot as unknown as SharedDosageSnapshot };
+        return {
+            ...raw,
+            snapshot: snapshot as unknown as SharedDosageSnapshot,
+            envelopeFingerprint: raw.encryptedSnapshot.iv,
+        };
     }
     if (!raw.snapshot) throw new ShareApiError(404, 'SHARE_NOT_FOUND', 'Share not found');
     return { ...raw, snapshot: raw.snapshot };
@@ -157,7 +179,7 @@ export const sharingService = {
         return (await response.json()) as CreatedShare;
     },
 
-    async open(token: string, key: string | null): Promise<ShareDetails | LockedShare> {
+    async open(token: string, key: string | null, previous?: ShareDetails): Promise<ShareDetails | LockedShare> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
@@ -172,10 +194,16 @@ export const sharingService = {
             if (body.code === 'PASSWORD_REQUIRED' || body.passwordRequired) return body;
         }
         if (!response.ok) throw await readError(response);
-        return openDetails((await response.json()) as RawShareDetails, key);
+        return openDetails((await response.json()) as RawShareDetails, key, previous);
     },
 
-    async unlock(token: string, key: string | null, password: string, viewerPass?: string): Promise<ShareDetails> {
+    async unlock(
+        token: string,
+        key: string | null,
+        password: string,
+        viewerPass?: string,
+        previous?: ShareDetails,
+    ): Promise<ShareDetails> {
         const response = await fetch(apiEndpoint('/api/shares/access'), {
             method: 'POST',
             headers: {
@@ -186,7 +214,7 @@ export const sharingService = {
             body: JSON.stringify({ token, password, viewerPass }),
         });
         if (!response.ok) throw await readError(response);
-        return openDetails((await response.json()) as RawShareDetails, key);
+        return openDetails((await response.json()) as RawShareDetails, key, previous);
     },
 
     async list(authToken: string): Promise<ShareSummary[]> {

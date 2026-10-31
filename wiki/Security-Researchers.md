@@ -11,8 +11,10 @@ Use the **latest commit on `main`**, not the release tag. Security fixes land on
 `CHANGELOG.md` before you start so you know what is new. The latest release is
 `v1.5.2` (2026-10-30). It caps decompressed share snapshots at 20 MiB, disables
 Wrangler's Local Explorer and local observability APIs in the Docker runtime,
-and refreshes the npm and Rust dependency trees. The two Low-severity fixes
-merged on 2026-10-22 are in `v1.5.1`, not in `v1.5.0`.
+and refreshes the npm and Rust dependency trees. The VPS-native unit and proxy
+example in [Deployment-VPS](Deployment-VPS) apply the same switches and block
+`/cdn-cgi/*`; apply those lines if your unit predates them. The two
+Low-severity fixes merged on 2026-10-22 are in `v1.5.1`, not in `v1.5.0`.
 
 Recent security-relevant changes:
 

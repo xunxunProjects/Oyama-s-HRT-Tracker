@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
     decryptShareSnapshot,
     encryptShareSnapshot,
@@ -117,6 +117,28 @@ describe('share link encryption', () => {
         }
         // Before the fix this was the full expansion.
         expect(decompressedBytes).toBe(0);
+    });
+
+    it('accepts output exactly at the limit and rejects one byte over', async () => {
+        const key = generateShareKey();
+        const sealed = await encryptShareSnapshot(snapshot, key);
+        const exact = new TextEncoder().encode(JSON.stringify(snapshot)).byteLength;
+        expect(await decryptShareSnapshot(sealed, key, exact)).toEqual(snapshot);
+        expect(await decryptShareSnapshot(sealed, key, exact - 1)).toBeNull();
+    });
+
+    it('rejects deeply nested JSON before parsing it', async () => {
+        const key = generateShareKey();
+        let deep: unknown = 1;
+        for (let i = 0; i < 100; i++) deep = [deep];
+        const sealed = await encryptShareSnapshot(deep, key);
+        const parse = vi.spyOn(JSON, 'parse');
+        try {
+            expect(await decryptShareSnapshot(sealed, key)).toBeNull();
+            expect(parse).not.toHaveBeenCalled();
+        } finally {
+            parse.mockRestore();
+        }
     });
 });
 
