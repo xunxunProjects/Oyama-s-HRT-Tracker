@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { PHONE_TAB_ICONS } from './PhoneTabIcons';
 
 interface NavTab {
     id: string;
@@ -99,7 +100,8 @@ const BottomNav: React.FC<{
                         style={pill}
                     />
                 )}
-                {tabs.map(({ id, icon: TabIcon, label }) => {
+                {tabs.map(({ id, icon, label }) => {
+                    const TabIcon = PHONE_TAB_ICONS[id] ?? icon;
                     const isActive = activeTab === id;
                     return (
                         <button
