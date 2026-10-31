@@ -1,4 +1,5 @@
 import { aesGcmDecrypt, aesGcmEncrypt, pbkdf2Sha256, randomBytes } from './src/utils/cryptoCompat';
+import { MAX_DECOMPRESSED_BACKUP_BYTES, decompressGzipWithLimit } from './src/services/boundedDecompression';
 
 // --- Types & Enums ---
 
@@ -1219,15 +1220,16 @@ export function computeCalibration(
 
 // --- Compression Utilities ---
 
-export async function decompressData(base64: string): Promise<string> {
+export async function decompressData(
+    base64: string,
+    maxOutputBytes: number = MAX_DECOMPRESSED_BACKUP_BYTES,
+): Promise<string> {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    const response = new Response(stream);
-    return await response.text();
+    return new TextDecoder().decode(await decompressGzipWithLimit(bytes, maxOutputBytes));
 }
 
 const CorePK = {
