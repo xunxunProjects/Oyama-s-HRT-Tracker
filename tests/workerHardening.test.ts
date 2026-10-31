@@ -53,10 +53,20 @@ describe('getClientIP', () => {
         expect(getClientIP(request, { TRUSTED_IP_SOURCE: 'x-forwarded-for' } as Env)).toBe('203.0.113.7');
     });
 
-    it('reads CF-Connecting-IP by default and nothing when set to none', () => {
+    it('does not trust a client-supplied CF-Connecting-IP by default', () => {
         const request = withHeaders({ 'CF-Connecting-IP': '198.51.100.2', 'X-Forwarded-For': '6.6.6.6' });
-        expect(getClientIP(request, {} as Env)).toBe('198.51.100.2');
+        expect(getClientIP(request, {} as Env)).toBeNull();
         expect(getClientIP(request, { TRUSTED_IP_SOURCE: 'none' } as Env)).toBeNull();
+    });
+
+    it('reads CF-Connecting-IP only when the Cloudflare source is explicit', () => {
+        const request = withHeaders({ 'CF-Connecting-IP': '198.51.100.2', 'X-Forwarded-For': '6.6.6.6' });
+        expect(getClientIP(request, { TRUSTED_IP_SOURCE: 'cf' } as Env)).toBe('198.51.100.2');
+    });
+
+    it('fails closed for an unknown source instead of falling back to CF-Connecting-IP', () => {
+        const request = withHeaders({ 'CF-Connecting-IP': '198.51.100.2' });
+        expect(getClientIP(request, { TRUSTED_IP_SOURCE: 'cloudflare' } as Env)).toBeNull();
     });
 });
 

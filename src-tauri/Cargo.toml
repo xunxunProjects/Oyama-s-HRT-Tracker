@@ -1,6 +1,6 @@
 [package]
 name = "hrt-tracker"
-version = "1.5.2"
+version = "1.5.3"
 description = "Oyama's HRT Tracker desktop app"
 authors = ["SmirnovaOyama"]
 license = "MIT"
