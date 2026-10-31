@@ -142,12 +142,12 @@ umask 077
     if [ -n "${ADMIN_PASSWORD:-}" ]; then
         dotenv_line ADMIN_PASSWORD "$ADMIN_PASSWORD"
     fi
-    # Optional rate-limit IP source: 'cf' (default; the proxy in front must
-    # overwrite CF-Connecting-IP), 'x-forwarded-for' behind exactly one proxy
-    # you control, or 'none' on a mirror without client IPs.
-    if [ -n "${TRUSTED_IP_SOURCE:-}" ]; then
-        dotenv_line TRUSTED_IP_SOURCE "$TRUSTED_IP_SOURCE"
-    fi
+    # Rate-limit IP source. Default to 'none': a client can set
+    # CF-Connecting-IP or X-Forwarded-For itself, so a self-hosted container
+    # must opt in only when a trusted edge/proxy overwrites the header.
+    # 'cf' is correct only behind Cloudflare; 'x-forwarded-for' only behind
+    # exactly one trusted reverse proxy that appends the address.
+    dotenv_line TRUSTED_IP_SOURCE "${TRUSTED_IP_SOURCE:-none}"
     # Optional public address, for example https://hrt.example.com. Share links
     # point here, and passkeys accept it when the proxy in front does not pass
     # the browser's Host header through.

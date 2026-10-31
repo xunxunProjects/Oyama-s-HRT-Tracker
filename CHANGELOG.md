@@ -8,6 +8,20 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.5.3
+
+- A security patch release. `TRUSTED_IP_SOURCE` now defaults to `none`, so a
+  self-hosted deployment no longer trusts a client-supplied
+  `CF-Connecting-IP` or `X-Forwarded-For` header unless the operator
+  explicitly chooses a source. The Docker entrypoint writes `none` unless the
+  environment opts in, Cloudflare keeps `cf` in `wrangler.toml`, and unknown
+  source values now fail closed. No database or wire-format change.
+
+  安全补丁版本。`TRUSTED_IP_SOURCE` 现在默认是 `none`，自托管部署不会再默认信任
+  客户端自己填写的 `CF-Connecting-IP` 或 `X-Forwarded-For` 头，除非部署者明确选择
+  来源。Docker 入口在未显式设置时写入 `none`，Cloudflare 通过 `wrangler.toml`
+  保留 `cf`，未知取值会直接失败关闭。没有数据库或传输格式变更。
+
 ## 1.5.2
 
 - A security patch release. Share links now stop decompressing a snapshot once

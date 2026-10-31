@@ -519,6 +519,7 @@ describe.skipIf(!hasSqlite)('/f2f cohorts', () => {
     it('rate-limits CLI registration code exchange', async () => {
         env = {
             ...env,
+            TRUSTED_IP_SOURCE: 'cf',
             RL_PER_MINUTE_10: { limit: async () => ({ success: false }) },
         } as unknown as Env;
         const result = await call('/api/f2f/cli/token', {

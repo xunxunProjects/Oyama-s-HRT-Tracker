@@ -90,10 +90,11 @@ session metadata, so protect the database and the host.
    binding and put a proxy in front. Never expose the app port directly to the
    internet; `--mode lan` is only for a trusted network.
 3. **Client address source.** Per-address rate limits need the real client
-   address. Set `TRUSTED_IP_SOURCE` to `cf`, `x-forwarded-for`, or `none` to
-   match what sits in front. A proxy must overwrite `CF-Connecting-IP` or
-   append to `X-Forwarded-For`; otherwise a client can choose its own address
-   or every visitor shares one.
+   address. `TRUSTED_IP_SOURCE` defaults to `none`, which gives one shared
+   bucket per endpoint. Set `cf` only behind Cloudflare, or `x-forwarded-for`
+   only behind exactly one trusted proxy that appends the address. A proxy
+   must overwrite `CF-Connecting-IP` or append to `X-Forwarded-For`; otherwise
+   a client can choose its own address or every visitor shares one.
 4. **`JWT_SECRET`.** Generate a long random value and keep it out of git.
    Changing it signs every session out. The Worker rejects weak or well-known
    values with a 503.

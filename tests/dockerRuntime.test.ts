@@ -60,4 +60,14 @@ describe('Docker runtime image', () => {
         expect(entrypoint).toMatch(/^export X_LOCAL_EXPLORER=false$/m);
         expect(entrypoint).toMatch(/^export X_LOCAL_OBSERVABILITY=false$/m);
     });
+
+    it('defaults a self-hosted container to no trusted client-IP header', () => {
+        const entrypoint = readFileSync(resolve(root, 'docker/entrypoint.sh'), 'utf8');
+        expect(entrypoint).toContain('dotenv_line TRUSTED_IP_SOURCE "${TRUSTED_IP_SOURCE:-none}"');
+    });
+
+    it('keeps the committed Cloudflare configuration on the CF header', () => {
+        const wrangler = readFileSync(resolve(root, 'wrangler.toml'), 'utf8');
+        expect(wrangler).toMatch(/\[vars\][\s\S]*TRUSTED_IP_SOURCE = "cf"/);
+    });
 });

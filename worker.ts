@@ -34,20 +34,20 @@ export interface Env {
     ENVIRONMENT?: string;
     /**
      * Which header carries the client address. One of:
-     *   'cf' (default)     — CF-Connecting-IP. On Cloudflare the edge sets it and
-     *                        a client cannot. Under `wrangler dev` (Docker) the
-     *                        runtime only fills it in when the request has none,
-     *                        so a proxy in front must overwrite it, or a client
-     *                        can pick its own address
+     *   'none' (default)   — no client address. Per-address buckets become one
+     *                        shared bucket per endpoint, sized for everyone; the
+     *                        share-access address bucket is skipped. This is the
+     *                        safe default because both headers below are
+     *                        client-controlled without a trusted edge/proxy.
+     *   'cf'               — CF-Connecting-IP. Only set this when Cloudflare is
+     *                        actually in front and its edge overwrites the
+     *                        header; otherwise a client can pick its own address.
      *   'x-forwarded-for'  — the last X-Forwarded-For hop, the one the single
      *                        reverse proxy in front appended; earlier hops came
-     *                        from the client
-     *   'none'             — no client address (Tor/I2P mirrors). Per-address
-     *                        buckets become one shared bucket per endpoint,
-     *                        sized for everyone; the share-access address
-     *                        bucket is skipped
-     * Anything else is treated as the default. Per-account and per-link limits
-     * apply whatever this is set to.
+     *                        from the client. Only set this behind exactly one
+     *                        trusted proxy that appends the address.
+     * Anything else fails closed to no client address. Per-account and
+     * per-link limits apply whatever this is set to.
      */
     TRUSTED_IP_SOURCE?: string;
     /**
