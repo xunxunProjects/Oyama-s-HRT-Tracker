@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, ArrowRight, ChevronDown, Labs } from './icons';
+import { Alert, ChevronDown } from './icons';
 import { DoseAdvisory as Advisory, HormoneLevelAdvisory } from '../../logic';
 
 // Splits a message after its first sentence. Handles the CJK full stop, which
@@ -83,45 +83,17 @@ export const HormoneLevelAdvisoryLine: React.FC<{ advisory: HormoneLevelAdvisory
 // Plain-text lines above the chart:
 //   • dose warning — logged doses (a hard fact) running clearly high
 //   • hormone-level warning — latest E2 + T labs both low or both high at once
-//   • calibrate nudge — no lab yet to anchor the estimate
 const DoseAdvisoryNotice: React.FC<{
     advisory: Advisory | null;
     hormoneAdvisory?: HormoneLevelAdvisory | null;
-    showCalibrate: boolean;
-    onCalibrate: () => void;
     t: (k: string) => string;
-}> = ({ advisory, hormoneAdvisory, showCalibrate, onCalibrate, t }) => {
-    if (!advisory && !hormoneAdvisory && !showCalibrate) return null;
+}> = ({ advisory, hormoneAdvisory, t }) => {
+    if (!advisory && !hormoneAdvisory) return null;
 
     return (
         <div className="space-y-3.5">
             {advisory && <DoseAdvisoryLine advisory={advisory} t={t} />}
             {hormoneAdvisory && <HormoneLevelAdvisoryLine advisory={hormoneAdvisory} t={t} />}
-            {showCalibrate && (
-                // The calibration glyph is the Lab tab's own nav icon, so the
-                // nudge points at the place it takes you.
-                <button
-                    onClick={onCalibrate}
-                    className="group flex items-start gap-2 text-start text-xs text-[var(--text-muted)]"
-                >
-                    <span className="icon-line">
-                        <Labs size={16} strokeWidth={1.75} className="opacity-80" />
-                    </span>
-                    <span>
-                        {t('advisory.calibrate.text')}{' '}
-                        <span className="font-medium text-[var(--accent-ink)]">
-                            <span className="underline decoration-transparent underline-offset-2 transition-colors group-hover:decoration-current">
-                                {t('advisory.calibrate.cta')}
-                            </span>
-                            <ArrowRight
-                                size={14}
-                                strokeWidth={2}
-                                className="ms-0.5 inline-block align-[-2px] transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100"
-                            />
-                        </span>
-                    </span>
-                </button>
-            )}
         </div>
     );
 };
