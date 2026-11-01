@@ -276,6 +276,18 @@ path.ink-draw {
 .swap-label > span[data-shown="false"][data-from="below"] {
     translate: 0 0.45em;
 }
+/* SwapLabel fit (and AddCancelLabel): the cell is as wide as the label shown
+   and slides to the next one's width, each label kept on one line. The one on
+   its way in is cut at the cell's edge while it grows into it, rather than
+   spilling over the icon or button beside it. */
+.swap-label-fit {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: clip;
+    transition: width var(--duration-base) var(--ease-out);
+}
+.swap-label-fit > span {
+    white-space: nowrap;
+}
 
 /* Waiting. The mark only shows once a wait has gone on for 300ms, so a quick
    save never flashes it, then turns slowly. */
@@ -1011,6 +1023,7 @@ path.ink-draw {
     .tick-draw[data-on="true"] path,
     .copy-glyph,
     .swap-label > span,
+    .swap-label-fit,
     .check-dot,
     .row-wash,
     .disclosure,
