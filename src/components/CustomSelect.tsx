@@ -36,11 +36,16 @@ export const useEscapeLayer = (onEscape: () => void, active: boolean) => {
 /**
  * The mark at the end of anything that opens a choice: this list, a date.
  * One size and one pen wherever it is, smaller and lighter than the words it
- * follows, in their muted colour, and it stays put while the choice is open
- * (the list unfolding under it already says so).
+ * follows, in their muted colour. It turns over while the choice is open, as
+ * every disclosure's chevron does (.chev): left still, it was the one mark in
+ * the app that didn't answer the press.
  */
-export const SelectChevron: React.FC = () => (
-    <ChevronDown size={16} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
+export const SelectChevron: React.FC<{ open: boolean }> = ({ open }) => (
+    <ChevronDown
+        size={16}
+        strokeWidth={1.75}
+        className={`chev shrink-0 text-[var(--text-muted)] ${open ? 'rotate-180' : ''}`}
+    />
 );
 
 interface Option {
@@ -190,7 +195,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </span>
                     </>
                 )}
-                <SelectChevron />
+                <SelectChevron open={isOpen} />
             </button>
 
             <div className="disclosure disclosure-bleed" data-open={isOpen} {...(isOpen ? {} : { inert: '' })}>
