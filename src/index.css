@@ -417,7 +417,7 @@ select:focus-visible {
 }
 
 @layer components {
-    /* Fields are lines, not boxes: a hand-drawn rule under the text, and on
+    /* Fields are lines, not boxes: a straight rule under the text, and on
        focus an ink stroke drawn over it from left to right (--ink-run /
        --ink-rule in the tokens). Nothing lights up: no glow, no ring, no
        terracotta, and no red line on an error, which the hint under the

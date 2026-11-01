@@ -62,7 +62,7 @@ glint, so the one route that's a needle reads as a solid thing in the hand.
 
 ## Fields
 
-`.input-base` is a line, not a box: a hand-drawn rule (`--ink-rule`) under the
+`.input-base` is a line, not a box: a straight rule (`--ink-rule`) under the
 text, and on focus an ink stroke (`--ink-stroke`) drawn over it from left to
 right in `--duration-ink`. Labels are `.field-label` above the line; hints and
 errors are `.field-hint` / `.field-hint.is-error` under it. A text area keeps
