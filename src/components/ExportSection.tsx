@@ -157,7 +157,13 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                 </span>
                                 <span className={`${action} flex items-center gap-1`}>
                                     <CopyTick copied={jsonCopied} size={13} />
-                                    <SwapLabel show={jsonCopied} off={t('btn.copy')} on={t('export.copied')} />
+                                    <SwapLabel
+                                        show={jsonCopied}
+                                        off={t('btn.copy')}
+                                        on={t('export.copied')}
+                                        fit
+                                        align="end"
+                                    />
                                 </span>
                             </button>
                         )}
@@ -185,6 +191,7 @@ const ExportSection: React.FC<ExportSectionProps> = ({
                                             show={showEncrypted}
                                             off={t('export.btn_encrypted')}
                                             on={t('btn.cancel')}
+                                            align="end"
                                         />
                                     </span>
                                 )}

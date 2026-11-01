@@ -94,6 +94,7 @@ const BackupCodesBlock: React.FC<{
                     show={copied}
                     off={t('account.backup_codes_copy_all')}
                     on={t('account.backup_codes_copied')}
+                    fit
                 />
             </button>
             <button
