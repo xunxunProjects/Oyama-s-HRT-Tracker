@@ -907,7 +907,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                                       })
                                     : '—'}
                             </span>
-                            <SelectChevron />
+                            <SelectChevron open={isDatePickerOpen} />
                         </div>
                     </button>
                     <DateTimePicker

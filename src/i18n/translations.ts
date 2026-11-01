@@ -179,8 +179,7 @@ export const TRANSLATIONS_BASE = {
             '最近 CPA 的用量看起来有点高，再加量并不会更好地压低睾酮，风险却会慢慢累积。请不要着急，这可能是本软件估测不准，可以去医院测一下激素六项校准数值，并注意最近的用药剂量。',
         'advisory.e2_cpa.body':
             '最近雌二醇和 CPA 的用量看起来都有点高。雌二醇偏高主要牵涉血栓方面的风险，CPA 偏高的风险会随时间慢慢累积。请不要着急，这可能是本软件估测不准，可以去医院测一下激素六项校准数值，并注意最近的用药剂量。',
-        'advisory.calibrate.text': '这是模型的估算值。',
-        'advisory.calibrate.cta': '添加血检结果来校准',
+        'advisory.calibrate.cta': '添加血检结果',
         'advisory.hormone_both_low.body':
             '最近的雌二醇和睾酮化验值都偏低，两项性激素同时不足，长期可能影响骨密度、情绪和血管舒缩症状（比如潮热）。这也可能只是抽血时间点的问题，建议结合最近的用药情况和医生讨论一下。',
         'advisory.hormone_both_high.body':
@@ -1379,8 +1378,7 @@ export const TRANSLATIONS_BASE = {
             "Your recent cyproterone dose looks a bit high. More doesn't block testosterone any better, and the risk builds up gradually. Please don't worry, this app's estimate could be off. A hormone blood test at a clinic can help calibrate the numbers, and it's worth keeping an eye on your recent dosing.",
         'advisory.e2_cpa.body':
             "Your recent estradiol and cyproterone doses both look a bit high. Estradiol mainly adds some clotting risk, while cyproterone's risk builds up over time. Please don't worry, this app's estimate could be off. A hormone blood test at a clinic can help calibrate the numbers, and it's worth keeping an eye on your recent dosing.",
-        'advisory.calibrate.text': 'This is a model estimate.',
-        'advisory.calibrate.cta': 'Add a blood test to calibrate',
+        'advisory.calibrate.cta': 'Add a blood test',
         'advisory.hormone_both_low.body':
             "Your most recent estradiol and testosterone labs are both running low. Having both sex hormones low at once, over time, can affect bone density, mood, and vasomotor symptoms like hot flashes. This could just be draw timing, so it's worth discussing your recent dosing with a doctor.",
         'advisory.hormone_both_high.body':
@@ -2609,8 +2607,7 @@ const ZH_TW = {
         '最近 CPA 的用量看起來有點高，再加量並不會更好地壓低睪固酮，風險卻會慢慢累積。請不要著急，這可能是本軟體估測不準，可以去醫院測一下激素六項校準數值，並注意最近的用藥劑量。',
     'advisory.e2_cpa.body':
         '最近雌二醇和 CPA 的用量看起來都有點高。雌二醇偏高主要牽涉血栓方面的風險，CPA 偏高的風險會隨時間慢慢累積。請不要著急，這可能是本軟體估測不準，可以去醫院測一下激素六項校準數值，並注意最近的用藥劑量。',
-    'advisory.calibrate.text': '這是模型的估算值。',
-    'advisory.calibrate.cta': '新增血檢結果來校準',
+    'advisory.calibrate.cta': '新增血檢結果',
     'advisory.hormone_both_low.body':
         '最近的雌二醇和睪固酮化驗值都偏低，兩項性激素同時不足，長期可能影響骨密度、情緒和血管舒縮症狀（比如潮熱）。這也可能只是抽血時間點的問題，建議結合最近的用藥情況和醫生討論一下。',
     'advisory.hormone_both_high.body':
@@ -3721,8 +3718,7 @@ export const TRANSLATIONS = {
             '最近 CPA 的用量看起來有點高，再加量並不會更好地壓低睪酮，風險卻會慢慢累積。請不要著急，這可能是本軟件估測不準，可以去醫院測一下激素六項校準數值，並注意最近的用藥劑量。',
         'advisory.e2_cpa.body':
             '最近雌二醇和 CPA 的用量看起來都有點高。雌二醇偏高主要牽涉血栓方面的風險，CPA 偏高的風險會隨時間慢慢累積。請不要著急，這可能是本軟件估測不準，可以去醫院測一下激素六項校準數值，並注意最近的用藥劑量。',
-        'advisory.calibrate.text': '這是模型的估算值。',
-        'advisory.calibrate.cta': '新增血檢結果來校準',
+        'advisory.calibrate.cta': '新增血檢結果',
         'advisory.hormone_both_low.body':
             '最近嘅雌二醇同睪固酮化驗值都偏低，兩項性激素同時不足，長期可能影響骨密度、情緒同血管舒縮症狀（好似潮熱）。呢個都可能只係抽血時間點嘅問題，建議結合最近嘅用藥情況同醫生傾吓。',
         'advisory.hormone_both_high.body':
@@ -4436,8 +4432,7 @@ export const TRANSLATIONS = {
             '最近の CPA の量が少し多めに見えます。増やしてもテストステロン抑制が強くなるわけではなく、リスクだけがじわじわ上がります。どうか心配しないでください。このアプリの推定値がずれている可能性があります。病院でホルモンの血液検査を受けると数値を補正でき、最近の服用量にも気をつけてみてください。',
         'advisory.e2_cpa.body':
             '最近のエストラジオールと CPA の量が、どちらも少し多めに見えます。エストラジオールは主に血栓のリスクを、CPA は時間とともに積み重なるリスクをそれぞれ伴います。どうか心配しないでください。このアプリの推定値がずれている可能性があります。病院でホルモンの血液検査を受けると数値を補正でき、最近の服用量にも気をつけてみてください。',
-        'advisory.calibrate.text': 'これはモデルの推定値です。',
-        'advisory.calibrate.cta': '血液検査の結果を追加して調整',
+        'advisory.calibrate.cta': '血液検査を追加',
         'advisory.hormone_both_low.body':
             '最近のエストラジオールとテストステロンの検査値が、どちらも低めです。両方のホルモンが同時に低いと、長期的には骨密度や気分、ほてりなどの血管運動症状に影響することがあります。採血のタイミングによる可能性もあるので、最近の服用量とあわせて医師と相談してみてください。',
         'advisory.hormone_both_high.body':
@@ -5441,8 +5436,7 @@ export const TRANSLATIONS = {
             '최근 CPA 용량이 조금 많아 보여요. 늘려도 테스토스테론 억제가 더 강해지진 않고, 위험만 서서히 올라가요. 너무 걱정하지 마세요. 이 앱의 추정치가 부정확할 수 있어요. 병원에서 호르몬 혈액 검사를 받으면 수치를 보정할 수 있고, 최근 복용량도 한번 살펴봐 주세요.',
         'advisory.e2_cpa.body':
             '최근 에스트라디올과 CPA 용량이 둘 다 조금 많아 보여요. 에스트라디올은 주로 혈전 위험을, CPA는 시간이 지나며 쌓이는 위험을 각각 더해요. 너무 걱정하지 마세요. 이 앱의 추정치가 부정확할 수 있어요. 병원에서 호르몬 혈액 검사를 받으면 수치를 보정할 수 있고, 최근 복용량도 한번 살펴봐 주세요.',
-        'advisory.calibrate.text': '이건 모델 추정치예요.',
-        'advisory.calibrate.cta': '혈액 검사 결과를 추가해 보정하기',
+        'advisory.calibrate.cta': '혈액 검사 추가',
         'advisory.hormone_both_low.body':
             '최근 에스트라디올과 테스토스테론 수치가 둘 다 낮게 나왔어요. 두 성호르몬이 동시에 낮으면 장기적으로 골밀도, 기분, 안면홍조 같은 혈관운동 증상에 영향을 줄 수 있어요. 채혈 시점 때문일 수도 있으니 최근 복용량과 함께 의사와 상의해 보세요.',
         'advisory.hormone_both_high.body':
@@ -6472,8 +6466,7 @@ export const TRANSLATIONS = {
             'Son CPA dozun biraz yüksek görünüyor. Artırmak testosteronu daha iyi baskılamıyor, risk zamanla yavaşça artıyor. Lütfen endişelenme, bu uygulamanın tahmini yanlış olabilir. Bir klinikte hormon kan testi yaptırmak rakamları kalibre etmene yardımcı olabilir; son dozunu da gözden geçirmekte fayda var.',
         'advisory.e2_cpa.body':
             "Son östradiol ve CPA dozların ikisi de biraz yüksek görünüyor. Östradiol daha çok pıhtı riski taşırken, CPA'nın riski zamanla birikiyor. Lütfen endişelenme, bu uygulamanın tahmini yanlış olabilir. Bir klinikte hormon kan testi yaptırmak rakamları kalibre etmene yardımcı olabilir; son dozunu da gözden geçirmekte fayda var.",
-        'advisory.calibrate.text': 'Bu bir model tahmini.',
-        'advisory.calibrate.cta': 'Kalibre etmek için kan tahlili ekle',
+        'advisory.calibrate.cta': 'Kan tahlili ekle',
         'advisory.hormone_both_low.body':
             'Son östradiol ve testosteron tahlillerin ikisi de düşük görünüyor. İki cinsiyet hormonunun aynı anda düşük olması, zamanla kemik yoğunluğunu, ruh halini ve ateş basması gibi vazomotor belirtileri etkileyebilir. Bu, kan alma zamanlamasından da kaynaklanabilir; son dozlarınla birlikte bir doktorla konuşmakta fayda var.',
         'advisory.hormone_both_high.body':
