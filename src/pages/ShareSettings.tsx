@@ -405,7 +405,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     <span className="text-sm tabular-nums">
                                         {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                     </span>
-                                    <SelectChevron />
+                                    <SelectChevron open={isExpiryPickerOpen} />
                                 </span>
                             </button>
                             <DateTimePicker
