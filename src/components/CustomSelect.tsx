@@ -36,11 +36,16 @@ export const useEscapeLayer = (onEscape: () => void, active: boolean) => {
 /**
  * The mark at the end of anything that opens a choice: this list, a date.
  * One size and one pen wherever it is, smaller and lighter than the words it
- * follows, in their muted colour, and it stays put while the choice is open
- * (the list unfolding under it already says so).
+ * follows, in their muted colour. It turns over while the choice is open, as
+ * every disclosure's chevron does (.chev): left still, it was the one mark in
+ * the app that didn't answer the press.
  */
-export const SelectChevron: React.FC = () => (
-    <ChevronDown size={16} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
+export const SelectChevron: React.FC<{ open: boolean }> = ({ open }) => (
+    <ChevronDown
+        size={16}
+        strokeWidth={1.75}
+        className={`chev shrink-0 text-[var(--text-muted)] ${open ? 'rotate-180' : ''}`}
+    />
 );
 
 interface Option {
@@ -63,12 +68,16 @@ interface CustomSelectProps {
 /**
  * A choice, drawn as a line like a field: its name above, what's chosen on
  * the line, a chevron at the end (SelectChevron). Pressed, the options unfold under it in
- * place, as plain rows with a tick by the chosen one, and fold away again
- * once one is picked. Nothing floats over the form.
+ * place, as plain rows with a tick by the chosen one. Nothing floats over the form.
+ *
+ * Picking a row moves the tick to it and the list stays open, as the date
+ * picker does; it folds away only when its line is pressed again (or on
+ * Escape). Folding on the pick, or on a press anywhere else, shut the list
+ * under the finger and pulled the form up with it, even for a touch that
+ * only meant to scroll.
  */
 const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, label, icon, labelledBy }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const labelId = useId();
@@ -76,29 +85,13 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
     const listId = useId();
     const nameId = label && !icon ? labelId : labelledBy;
 
-    // A press anywhere else folds the list away, as a choice left alone would.
-    useEffect(() => {
-        if (!isOpen) return;
-        const onPress = (event: PointerEvent) => {
-            if (containerRef.current?.contains(event.target as Node)) return;
-            setIsOpen(false);
-        };
-        document.addEventListener('pointerdown', onPress);
-        return () => document.removeEventListener('pointerdown', onPress);
-    }, [isOpen]);
-
     const selectedOption = options.find(o => o.value === value);
 
-    // Closing from the keyboard or by choosing hands focus back to the line,
-    // so the next Tab carries on through the form from where the list was.
+    // Closing from the keyboard hands focus back to the line, so the next Tab
+    // carries on through the form from where the list was.
     const close = () => {
         setIsOpen(false);
         triggerRef.current?.focus();
-    };
-
-    const handleSelect = (val: string) => {
-        onChange(val);
-        close();
     };
 
     useEscapeLayer(close, isOpen);
@@ -136,7 +129,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
     };
 
     return (
-        <div className="flex flex-col" ref={containerRef}>
+        <div className="flex flex-col">
             {label && !icon && (
                 <label id={labelId} className="field-label">
                     {label}
@@ -190,7 +183,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                         </span>
                     </>
                 )}
-                <SelectChevron />
+                <SelectChevron open={isOpen} />
             </button>
 
             <div className="disclosure disclosure-bleed" data-open={isOpen} {...(isOpen ? {} : { inert: '' })}>
@@ -210,7 +203,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                                 tabIndex={-1}
                                 role="option"
                                 aria-selected={opt.value === value}
-                                onClick={() => handleSelect(opt.value)}
+                                onClick={() => onChange(opt.value)}
                                 className="choice-option row-bleed"
                             >
                                 {opt.icon && <span className="text-[var(--text-muted)]">{opt.icon}</span>}

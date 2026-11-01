@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { ChevronDown, ChevronUp } from './icons';
+import { ChevronDown } from './icons';
 import { settingsSection, rowBleed } from './SettingsListItem';
 
 interface ImportSectionProps {
@@ -91,7 +91,7 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImportJson, onReplaceJs
                         <span className={rowDesc}>{t('import.paste_hint')}</span>
                     </span>
                     <span className="shrink-0 ml-6 mt-0.5 p-1 text-[var(--text-muted)]">
-                        {showPaste ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        <ChevronDown size={16} className={`chev ${showPaste ? 'rotate-180' : ''}`} />
                     </span>
                 </button>
 

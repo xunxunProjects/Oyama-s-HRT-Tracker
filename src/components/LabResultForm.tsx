@@ -199,7 +199,7 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
                     <span className="text-sm text-[var(--text)]">{t('lab.date')}</span>
                     <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                         <span className="text-sm tabular-nums">{dateStr ? formatWhen(new Date(dateStr)) : '—'}</span>
-                        <SelectChevron />
+                        <SelectChevron open={isDatePickerOpen} />
                     </div>
                 </button>
                 <DateTimePicker

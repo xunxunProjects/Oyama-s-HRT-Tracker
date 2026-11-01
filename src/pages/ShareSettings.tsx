@@ -266,8 +266,9 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 className="min-w-0 flex-1 select-all truncate border-0 bg-transparent py-2.5 font-mono text-xs text-body outline-none"
                                 onFocus={event => event.currentTarget.select()}
                             />
-                            {/* Both labels share one grid cell so the button keeps a single
-                                    width across the copy → copied swap, in every locale. */}
+                            {/* The button fits the word shown and slides to the new width
+                                    across the copy → copied swap (SwapLabel fit), so its fill
+                                    never holds an empty end. */}
                             <button
                                 type="button"
                                 onClick={handleCopy}
@@ -275,7 +276,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                             >
                                 <span className="inline-flex items-center gap-1">
                                     <CopyTick copied={copied} size={14} />
-                                    <SwapLabel show={copied} off={copy.copy} on={copy.copied} />
+                                    <SwapLabel show={copied} off={copy.copy} on={copy.copied} fit align="end" />
                                 </span>
                             </button>
                         </div>
@@ -404,7 +405,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                     <span className="text-sm tabular-nums">
                                         {expiresAtInput ? formatStamp(new Date(expiresAtInput).getTime(), lang) : '—'}
                                     </span>
-                                    <SelectChevron />
+                                    <SelectChevron open={isExpiryPickerOpen} />
                                 </span>
                             </button>
                             <DateTimePicker
