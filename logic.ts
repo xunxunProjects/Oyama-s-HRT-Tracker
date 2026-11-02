@@ -140,6 +140,11 @@ export interface SimulationResult {
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
     auc: number;
+    // Only when asked for (runSimulation's swallowedE2): the part of
+    // concPGmL_E2 that was swallowed, from oral doses and the swallowed share
+    // of sublingual ones, so it passed the liver before the rest of the body.
+    // The SHBG model in shbg.ts reads it.
+    concPGmL_E2_swallowed?: number[];
 }
 
 // --- Lab Results & Calibration ---
@@ -2465,6 +2470,9 @@ function resolvePatchWearH(event: DoseEvent, allEvents: DoseEvent[]): number {
 // Model Solver
 class PrecomputedEventModel {
     private model: (t: number) => number;
+    // The swallowed part of model(t): all of it for an oral dose, the slow
+    // branch of a sublingual one, none for any other route.
+    private swallowedModel: (t: number) => number = () => 0;
 
     constructor(event: DoseEvent, allEvents: DoseEvent[], params: PKParams) {
         const startTime = event.timeH;
@@ -2514,29 +2522,35 @@ class PrecomputedEventModel {
                     if (params.k2 > 0) return _analytic3C(tau, dose, params.F, params.k1_fast, params.k2, params.k3);
                     return oneCompAmount(tau, dose, params);
                 };
+                if (event.route === Route.oral) this.swallowedModel = this.model;
                 break;
-            case Route.sublingual:
+            case Route.sublingual: {
+                const doseF = dose * params.Frac_fast;
+                const doseS = dose * (1.0 - params.Frac_fast);
+
+                // Dual-branch first-order helper (same closed form as oneCompAmount).
+                const fastAmount = (tau: number) =>
+                    params.k2 > 0
+                        ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
+                        : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
+
+                // Swallowed (gut) fraction follows the oral route's path.
+                const slowAmount = (tau: number) =>
+                    (params.k2_slow ?? 0) > 0
+                        ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
+                        : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
+
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
-                    const doseF = dose * params.Frac_fast;
-                    const doseS = dose * (1.0 - params.Frac_fast);
-
-                    // Dual-branch first-order helper (same closed form as oneCompAmount).
-                    const fastAmount =
-                        params.k2 > 0
-                            ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
-                            : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
-
-                    // Swallowed (gut) fraction follows the oral route's path.
-                    const slowAmount =
-                        (params.k2_slow ?? 0) > 0
-                            ? _analytic3C(tau, doseS, params.F_slow, params.k1_slow, params.k2_slow!, params.k3)
-                            : _analytic2C(tau, doseS, params.F_slow, params.k1_slow, params.k3);
-
-                    return fastAmount + slowAmount;
+                    return fastAmount(tau) + slowAmount(tau);
+                };
+                this.swallowedModel = (timeH: number) => {
+                    const tau = timeH - startTime;
+                    return tau < 0 ? 0 : slowAmount(tau);
                 };
                 break;
+            }
             case Route.patchApply:
                 const wearH = resolvePatchWearH(event, allEvents);
 
@@ -2569,6 +2583,10 @@ class PrecomputedEventModel {
 
     amount(timeH: number): number {
         return this.model(timeH);
+    }
+
+    swallowedAmount(timeH: number): number {
+        return this.swallowedModel(timeH);
     }
 }
 
@@ -2608,11 +2626,15 @@ function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: Dose
     return Math.ceil(13.816 / kMin);
 }
 
-/** `birthYear`: for the age adjustment (see AGE_REF_YEARS); null, or one isPlausibleBirthYear rejects, leaves it out. */
+/**
+ * `birthYear`: for the age adjustment (see AGE_REF_YEARS); null, or one isPlausibleBirthYear rejects, leaves it out.
+ * `swallowedE2`: also return concPGmL_E2_swallowed, for the SHBG model in shbg.ts.
+ */
 export function runSimulation(
     events: DoseEvent[],
     bodyWeightKG: number,
     birthYear: number | null = null,
+    options: { swallowedE2?: boolean } = {},
 ): SimulationResult | null {
     // Unmodelled drugs, and codes this build doesn't know, have no parameters
     // of their own: let through, they would fall into the estradiol branches
@@ -2654,6 +2676,7 @@ export function runSimulation(
     const concPGmL_E2: number[] = [];
     const concPGmL_CPA: number[] = []; // Will store in ng/mL (not pg/mL)
     const concNGdL_T: number[] = []; // Total testosterone in ng/dL
+    const concPGmL_E2_swallowed: number[] = [];
     let auc = 0;
 
     const stepSize = (endTime - startTime) / (steps - 1);
@@ -2719,6 +2742,7 @@ export function runSimulation(
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
         let totalAmountMG_T = 0;
+        let swallowedAmountMG_E2 = 0;
 
         for (const { model, ester } of active) {
             const amount = model.amount(t);
@@ -2728,6 +2752,7 @@ export function runSimulation(
                 totalAmountMG_T += amount;
             } else {
                 totalAmountMG_E2 += amount;
+                if (options.swallowedE2) swallowedAmountMG_E2 += model.swallowedAmount(t);
             }
         }
 
@@ -2748,6 +2773,7 @@ export function runSimulation(
         concPGmL_E2.push(currentConc_E2); // pg/mL
         concPGmL_CPA.push(currentConc_CPA); // ng/mL
         concNGdL_T.push(currentConc_T); // ng/dL
+        if (options.swallowedE2) concPGmL_E2_swallowed.push((swallowedAmountMG_E2 * 1e9) / plasmaVolumeML_E2);
 
         if (i > 0) {
             const dt = t - allTimes[i - 1];
@@ -2755,7 +2781,9 @@ export function runSimulation(
         }
     }
 
-    return { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concNGdL_T, auc };
+    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concNGdL_T, auc };
+    if (options.swallowedE2) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
+    return result;
 }
 
 export function interpolateConcentration_E2(sim: SimulationResult, hour: number): number | null {
