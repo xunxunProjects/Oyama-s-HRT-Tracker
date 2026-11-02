@@ -490,6 +490,42 @@ $$
 
 ---
 
+## 19) 比卡鲁胺（Bicalutamide，口服，可选子模型，默认关闭）
+
+- **状态**：比卡鲁胺是 `UNMODELLED_DRUGS` 中第一个获得 PK 子模型的抗雄激素（issue #206 §3）。模型为单室、一级吸收、线性，输出单位 ng/mL，时间轴与现有模拟一致。默认关闭，与 `shbg.ts` 的 off-by-default 一致；通过 `runSimulation(..., { bicalutamide: true })`（或含 "bica"/"bicalutamide" 的等价开关）启用。启用前比卡鲁胺仍按未建模处理（不画曲线）。
+
+- **模型**：单室 Bateman 吸收-清除：
+  $$
+  C(t)=\frac{F\,D}{V_d}\frac{k_a}{k_a-k_e}\left(e^{-k_e t}-e^{-k_a t}\right),\qquad k_e=\frac{\ln 2}{t_{1/2}}.
+  $$
+  代码实现为 `_analytic2C(tau, dose, F, ka, ke)`，`F = 1`（绝对生物利用度未知，但 `F` 折入 `V_d/F`）。
+
+- **参数**（代码常量 `BICALUTAMIDE_ORAL`，不在 PK 参数页；来源：Casodex 说明书 Table 3，活性 R-对映体；`CL/F ≈ 0.8 L/h` 取自 issue #206 §2 的标称值）：
+
+| 参数 | 值 | 含义 |
+| --- | ---: | --- |
+| $t_{1/2}$ | $5.8\ \mathrm{d}$ | 终末半衰期 |
+| $CL/F$ | $0.8\ \mathrm{L\,h^{-1}}$ | 表观口服清除率 |
+| $k_e$ | $\ln 2/(5.8\times24)\approx 0.00498\ \mathrm{h^{-1}}$ | 消除速率 |
+| $V_d/F$ | $(CL/F)/k_e\approx 160.7\ \mathrm{L}$（≈2.30 L·kg⁻¹） | 表观分布容积 |
+| $T_{\max}$ | $\approx 31\ \mathrm{h}$ | 达峰时间 |
+| $k_a$ | $\approx 0.1026\ \mathrm{h^{-1}}$ | 由 $T_{\max}$ 与 $k_e$ 反推：$T_{\max}=\ln(k_a/k_e)/(k_a-k_e)$ |
+| $F$ | 1 | 折入 $V_d/F$ |
+
+- **§3 反推校验步骤**：
+  1. 取 $D$、报告的 $\mathrm{AUC}_{0-\infty}$、$C_{\max}$、$T_{\max}$、$t_{1/2}$。
+  2. $CL/F = D/\mathrm{AUC}_{0-\infty}$，$V_d/F = (CL/F)/k_e = D\,t_{1/2}/(\mathrm{AUC}_{0-\infty}\ln 2)$。
+  3. 由 $T_{\max}$ 与 $k_e$ 反推 $k_a$。
+  4. 代回 $C(t)$ 重算 $\mathrm{AUC}$ 与 $C_{\max}$，相对误差 $<10\%$ 方可接受。
+  
+  本实现以 $CL/F = 0.8\ \mathrm{L/h}$、$t_{1/2}=5.8\ \mathrm{d}$、$T_{\max}=31\ \mathrm{h}$ 自检：AUC 与公式值一致（误差 $<10\%$），$T_{\max}$ 落在 31 h 附近，$C_{\max}$ 与闭式解一致（误差 $<10\%$）；50 mg qd 连续给药数周后蓄积（非数小时达稳态）。
+
+- **不参与**：SHBG 诱导项（比卡鲁胺不是雌二醇，不驱动 `shbgCurve`）；`e2_kClear` 化验校准（化验只测 E2，校准倍数不作用于比卡鲁胺；其 $k_e$ 也不随 `e2_kClear` 变化）。原因：化验与 SHBG 子模型均以雌二醇为中心，比卡鲁胺既非雌二醇也非睾酮，且为弱/无 SHBG 诱导。
+
+- **局限**：活性 R-对映体占稳态血药浓度约 99%，本模型未拆分对映体（按 R-对映体参数建模）；食物效应 clinically 不显著；蛋白结合 96% 未显式建模；绝对生物利用度未知。GnRH 激动剂合用时的相互作用未建模。
+
+- **接入**：`resolveParams` 仅口服路由返回 $k_a$、$k_e$；其他路由返回零参数；`getBioavailabilityMultiplier` 仅口服返回 1。`PrecomputedEventModel` 口服分支对 `Ester.BICA` 直接用 `_analytic2C`。`runSimulation` 通过 `concPGmL_BICA`（ng/mL）输出，并提供 `interpolateConcentration_BICA`。
+
 ## 14) 睾酮（跨男模式）
 - **范围**：`T_ESTERS` 包括 T（未酯化，用于凝胶/贴片）、TC、TE、TU。`runSimulation` 把它们单独累加为总睾酮曲线 `concNGdL_T`（ng/dL）。跨男模式下，单次记录表单只提供注射（TC/TE/TU）与凝胶（T）；计划与预测页的药物列表另含 T 贴片。口服、舌下睾酮与未酯化 T 注射不建模（`resolveParams` 返回零参数）。
 - **剂量与 F**：剂量同样按酯 mg 存储；`getToE2Factor` 对睾酮酯返回 MW(T)/MW(酯)（TC 0.6990、TE 0.7200、TU 0.6315、T 1.0），各路由的 `F` 都乘以它。
@@ -517,7 +553,7 @@ $$
 ---
 
 ## 15) 其他辅助用药（只记录，不建模）
-- `Ester` 枚举里还有六种药：螺内酯 SPIRO、比卡鲁胺 BICA、醋酸甲羟孕酮 MPA、雷洛昔芬 RLX（表单在口服路由提供），以及 GnRH 激动剂亮丙瑞林 LEUP、曲普瑞林 TRIP（在注射路由提供）。
+- `Ester` 枚举里还有五种仍只记录不建模的药：螺内酯 SPIRO、醋酸甲羟孕酮 MPA、雷洛昔芬 RLX（表单在口服路由提供），以及 GnRH 激动剂亮丙瑞林 LEUP、曲普瑞林 TRIP（在注射路由提供）。比卡鲁胺 BICA 已有可选 PK 子模型（§19），默认关闭。
 - 它们都在 `UNMODELLED_DRUGS` 中：可以记录、排进计划，但 `runSimulation` 一开始就把它们剔除，所以不画曲线，也不计入任何浓度估计、AUC 或校准。较新版本记录的、本版本不认识的药物代码（`isKnownEster` 为假）同样按未建模处理。
 - 它们的剂量按输入的数值原样保存（`getToE2Factor` 对它们返回 1.0）。
 - **实际参与模拟的只有**：雌二醇各形式（E2、EB、EV、EC、EN、EU）、CPA，以及睾酮各形式（T、TC、TE、TU）。

@@ -82,7 +82,9 @@ describe('drug classification', () => {
         }
         expect(isEstradiolEster(Ester.CPA)).toBe(false);
         expect(isUnmodelledDrug(Ester.CPA)).toBe(false);
-        for (const e of [Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX]) {
+        expect(isEstradiolEster(Ester.BICA)).toBe(false);
+        expect(isUnmodelledDrug(Ester.BICA)).toBe(false);
+        for (const e of [Ester.SPIRO, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX]) {
             expect(isUnmodelledDrug(e)).toBe(true);
             expect(isEstradiolEster(e)).toBe(false);
         }
