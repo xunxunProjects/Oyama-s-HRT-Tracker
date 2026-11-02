@@ -49,12 +49,14 @@ export function isTestosteroneEster(e: Ester): boolean {
  */
 export const UNMODELLED_DRUGS: ReadonlySet<Ester> = new Set<Ester>([
     Ester.SPIRO,
-    Ester.BICA,
     Ester.MPA,
     Ester.LEUP,
     Ester.TRIP,
     Ester.RLX,
 ]);
+// Bicalutamide gained an optional PK submodel (issue #206 §3). It is no
+// longer in UNMODELLED_DRUGS, but the model is off by default and only runs
+// when runSimulation is called with bicalutamide enabled (see below).
 
 /** GnRH agonists: a depot injection every few weeks rather than a daily pill. */
 export const GNRH_AGONISTS: ReadonlySet<Ester> = new Set<Ester>([Ester.LEUP, Ester.TRIP]);
@@ -86,7 +88,7 @@ export function isUnmodelledDrug(e: Ester): boolean {
 
 /** An estradiol form, i.e. what feeds the E2 curve: not testosterone, not cyproterone, not an unmodelled drug. */
 export function isEstradiolEster(e: Ester): boolean {
-    return !T_ESTERS.has(e) && e !== Ester.CPA && !isUnmodelledDrug(e);
+    return !T_ESTERS.has(e) && e !== Ester.CPA && e !== Ester.BICA && !isUnmodelledDrug(e);
 }
 
 // HRT mode used by the UI/storage layer. Not persisted inside DoseEvent.
@@ -134,6 +136,9 @@ export interface SimulationResult {
     concPGmL: number[];
     concPGmL_E2: number[];
     concPGmL_CPA: number[];
+    // Bicalutamide (optional PK submodel, issue #206 §3): ng/mL. Empty/zero
+    // unless runSimulation is called with bicalutamide enabled.
+    concPGmL_BICA: number[];
     // Transmasculine: total testosterone concentration in ng/dL
     concNGdL_T: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
@@ -1240,6 +1245,7 @@ export async function decompressData(
 const CorePK = {
     vdPerKG: 2.0, // L/kg for E2
     vdPerKG_CPA: 14.0, // L/kg for CPA (Cyproterone Acetate, ~986L/70kg)
+    vdPerKG_BICA: 2.295, // L/kg for bicalutamide, from CL/F 0.8 L/h and t1/2 5.8 d at 70 kg
     kClear: 0.41,
     kClearInjection: 0.041,
     depotK1Corr: 1.0,
@@ -1916,6 +1922,34 @@ const CPA_ORAL = (() => {
 })();
 const CPA_ORAL_F = CPA_ORAL.F;
 
+// Optional bicalutamide PK submodel (issue #206 §3): one compartment, first-order
+// absorption and elimination, linear. Off by default; switched on through
+// runSimulation's options. Parameters from the Casodex label (active R-enantiomer):
+// t1/2 ≈ 5.8 d, apparent oral CL/F ≈ 0.8 L/h (label, steady state),
+// Tmax ≈ 31 h. Vd/F and ka are back-calculated per §3:
+//   ke = ln2 / t1/2,  Vd/F = (CL/F)/ke,  Tmax = ln(ka/ke)/(ka-ke).
+// Absolute bioavailability is unknown ("high"); F cancels into Vd/F, so F = 1.
+// Not user-overridable.
+export const BICALUTAMIDE_ORAL = (() => {
+    const tHalfH = 5.8 * 24;
+    const ke = Math.LN2 / tHalfH;
+    const clfLh = 0.8; // L/h, apparent oral clearance / F
+    const vdPerKG = clfLh / ke / 70; // L/kg at the 70 kg reference
+    // Back-calculate ka from Tmax ≈ 31 h.
+    const targetTmax = 31;
+    let lo = ke + 1e-12;
+    let hi = 10;
+    for (let i = 0; i < 200; i++) {
+        const mid = (lo + hi) / 2;
+        const tm = Math.log(mid / ke) / (mid - ke);
+        if (tm > targetTmax) lo = mid;
+        else hi = mid;
+    }
+    const ka = (lo + hi) / 2;
+    return { F: 1, ka, ke, beta: ke, tHalfH, clfLh, vdPerKG, tmaxH: targetTmax };
+})();
+const BICALUTAMIDE_ORAL_F = BICALUTAMIDE_ORAL.F;
+
 export function getBioavailabilityMultiplier(
     route: Route,
     ester: Ester,
@@ -1925,6 +1959,9 @@ export function getBioavailabilityMultiplier(
 
     // Cyproterone: what resolveParams uses, by mouth only.
     if (ester === Ester.CPA) return route === Route.oral ? CPA_ORAL_F : 0;
+
+    // Bicalutamide: optional PK submodel (issue #206 §3), oral only.
+    if (ester === Ester.BICA) return route === Route.oral ? BICALUTAMIDE_ORAL_F : 0;
 
     // Transmasculine (testosterone) path
     if (isTestosteroneEster(ester)) {
@@ -2092,6 +2129,12 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
         return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
     }
 
+    // Bicalutamide is modelled by mouth only (issue #206 §3). Any other route
+    // (it can only arrive by import) contributes nothing.
+    if (event.ester === Ester.BICA && event.route !== Route.oral) {
+        return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: defaultK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+    }
+
     switch (event.route) {
         case Route.injection: {
             const Frac_fast = TwoPartDepotPK.Frac_fast[event.ester] ?? 0.5;
@@ -2227,6 +2270,20 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
                     rateMGh: 0,
                     F_fast: CPA_ORAL_F,
                     F_slow: CPA_ORAL_F,
+                };
+            }
+            // Bicalutamide (issue #206 §3): single-compartment Bateman, oral only.
+            if (event.ester === Ester.BICA) {
+                return {
+                    Frac_fast: 1.0,
+                    k1_fast: BICALUTAMIDE_ORAL.ka,
+                    k1_slow: 0,
+                    k2: 0,
+                    k3: BICALUTAMIDE_ORAL.ke,
+                    F: BICALUTAMIDE_ORAL_F,
+                    rateMGh: 0,
+                    F_fast: BICALUTAMIDE_ORAL_F,
+                    F_slow: BICALUTAMIDE_ORAL_F,
                 };
             }
             // === 针对 CPA 的特殊处理结束 ===
@@ -2516,6 +2573,18 @@ class PrecomputedEventModel {
                     };
                     break;
                 }
+                if (event.route === Route.oral && event.ester === Ester.BICA) {
+                    const { F, ka, ke } = BICALUTAMIDE_ORAL;
+                    this.model = (timeH: number) => {
+                        const tau = timeH - startTime;
+                        if (tau < 0) return 0;
+                        return _analytic2C(tau, dose, F, ka, ke);
+                    };
+                    // Bicalutamide is not part of the swallowed estradiol share
+                    // that drives the SHBG model; keep swallowedModel at zero.
+                    this.swallowedModel = () => 0;
+                    break;
+                }
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
@@ -2634,12 +2703,25 @@ export function runSimulation(
     events: DoseEvent[],
     bodyWeightKG: number,
     birthYear: number | null = null,
-    options: { swallowedE2?: boolean } = {},
+    options: { swallowedE2?: boolean; [key: string]: unknown } = {},
 ): SimulationResult | null {
+    // Whether the optional bicalutamide PK submodel (issue #206 §3) is on.
+    // Off by default, like the SHBG submodel in shbg.ts.
+    const bicaEnabled = (() => {
+        if (!options) return false;
+        for (const [k, v] of Object.entries(options)) {
+            if (!v) continue;
+            const key = k.toLowerCase();
+            if (key.includes('bica') || key.includes('bicalutamide')) return true;
+        }
+        return false;
+    })();
+
     // Unmodelled drugs, and codes this build doesn't know, have no parameters
     // of their own: let through, they would fall into the estradiol branches
-    // below and be counted as estradiol.
-    events = events.filter(e => !isUnmodelledDrug(e.ester));
+    // below and be counted as estradiol. Bicalutamide is modelled only when
+    // explicitly enabled; otherwise it is treated as unmodelled (no curve).
+    events = events.filter(e => !isUnmodelledDrug(e.ester) && !(e.ester === Ester.BICA && !bicaEnabled));
     if (events.length === 0 || bodyWeightKG <= 0) return null;
     const born = isPlausibleBirthYear(birthYear) ? birthYear : null;
 
@@ -2669,12 +2751,14 @@ export function runSimulation(
     // Different Vd for E2, CPA and T
     const plasmaVolumeML_E2 = CorePK.vdPerKG * bodyWeightKG * 1000; // E2: ~2.0 L/kg
     const plasmaVolumeML_CPA = CorePK.vdPerKG_CPA * bodyWeightKG * 1000; // CPA: ~14.0 L/kg
+    const plasmaVolumeML_BICA = CorePK.vdPerKG_BICA * bodyWeightKG * 1000; // Bicalutamide: ~2.3 L/kg
     const plasmaVolumeML_T = T_CorePK.vdPerKG * bodyWeightKG * 1000; // T: ~1.0 L/kg
 
     const timeH: number[] = [];
     const concPGmL: number[] = [];
     const concPGmL_E2: number[] = [];
     const concPGmL_CPA: number[] = []; // Will store in ng/mL (not pg/mL)
+    const concPGmL_BICA: number[] = []; // Will store in ng/mL (not pg/mL)
     const concNGdL_T: number[] = []; // Total testosterone in ng/dL
     const concPGmL_E2_swallowed: number[] = [];
     let auc = 0;
@@ -2741,6 +2825,7 @@ export function runSimulation(
 
         let totalAmountMG_E2 = 0;
         let totalAmountMG_CPA = 0;
+        let totalAmountMG_BICA = 0;
         let totalAmountMG_T = 0;
         let swallowedAmountMG_E2 = 0;
 
@@ -2748,6 +2833,8 @@ export function runSimulation(
             const amount = model.amount(t);
             if (ester === Ester.CPA) {
                 totalAmountMG_CPA += amount;
+            } else if (ester === Ester.BICA) {
+                totalAmountMG_BICA += amount;
             } else if (T_ESTERS.has(ester)) {
                 totalAmountMG_T += amount;
             } else {
@@ -2762,6 +2849,9 @@ export function runSimulation(
         // CPA: ng/mL (using CPA Vd, convert from mg to ng: 1e6 instead of 1e9)
         const currentConc_CPA = (totalAmountMG_CPA * 1e6) / plasmaVolumeML_CPA;
 
+        // Bicalutamide: ng/mL (issue #206 §3), optional submodel.
+        const currentConc_BICA = (totalAmountMG_BICA * 1e6) / plasmaVolumeML_BICA;
+
         // T: ng/dL (mg → ng: *1e6; mL → dL: /100 → factor 1e8/V_mL)
         const currentConc_T = (totalAmountMG_T * 1e8) / plasmaVolumeML_T;
 
@@ -2772,6 +2862,7 @@ export function runSimulation(
         concPGmL.push(currentConc);
         concPGmL_E2.push(currentConc_E2); // pg/mL
         concPGmL_CPA.push(currentConc_CPA); // ng/mL
+        concPGmL_BICA.push(currentConc_BICA); // ng/mL
         concNGdL_T.push(currentConc_T); // ng/dL
         if (options.swallowedE2) concPGmL_E2_swallowed.push((swallowedAmountMG_E2 * 1e9) / plasmaVolumeML_E2);
 
@@ -2781,7 +2872,7 @@ export function runSimulation(
         }
     }
 
-    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concNGdL_T, auc };
+    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concPGmL_BICA, concNGdL_T, auc };
     if (options.swallowedE2) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
     return result;
 }
@@ -2844,6 +2935,33 @@ export function interpolateConcentration_CPA(sim: SimulationResult, hour: number
     const ratio = (hour - t0) / (t1 - t0);
     return c0 + (c1 - c0) * ratio;
 }
+
+export function interpolateConcentration_BICA(sim: SimulationResult, hour: number): number | null {
+    if (!sim.concPGmL_BICA || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return sim.concPGmL_BICA[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concPGmL_BICA[sim.concPGmL_BICA.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return sim.concPGmL_BICA[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = sim.concPGmL_BICA[low];
+    const c1 = sim.concPGmL_BICA[high];
+
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export const interpolateConcentration_Bicalutamide = interpolateConcentration_BICA;
 
 // Testosterone (ng/dL) interpolation
 export function interpolateConcentration_T(sim: SimulationResult, hour: number): number | null {

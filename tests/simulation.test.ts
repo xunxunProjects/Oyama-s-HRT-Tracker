@@ -203,6 +203,7 @@ describe('interpolateConcentration_*', () => {
         concPGmL: [0, 0, 0],
         concPGmL_E2: [100, 200, 50],
         concPGmL_CPA: [1, 3, 2],
+        concPGmL_BICA: [0, 0, 0],
         concNGdL_T: [500, 300, 700],
         auc: 0,
     };
@@ -233,6 +234,7 @@ describe('interpolateConcentration_*', () => {
             concPGmL: [],
             concPGmL_E2: [],
             concPGmL_CPA: [],
+            concPGmL_BICA: [],
             concNGdL_T: [],
             auc: 0,
         };

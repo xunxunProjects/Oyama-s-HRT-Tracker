@@ -356,7 +356,7 @@ describe('testosterone routes', () => {
 });
 
 describe('unmodelled drugs', () => {
-    it.each([Ester.SPIRO, Ester.BICA, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX])(
+    it.each([Ester.SPIRO, Ester.MPA, Ester.LEUP, Ester.TRIP, Ester.RLX])(
         '%s draws no curve and does not count as estradiol',
         ester => {
             expect(runSimulation([dose(Route.oral, ester, 100, NOW_H - 10)], BW)).toBeNull();
