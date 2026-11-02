@@ -93,7 +93,7 @@ Important product constraints:
 | `src/data/developers.ts` | Credits data for the developer wall.                                                                                 |
 | `src/constants.ts`       | Shared UI constants.                                                                                                 |
 | `logic.ts`               | Pharmacokinetic model, dose/lab types, simulation, calibration, and model validation. Shared with tests.             |
-| `worker.ts`              | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`.               |
+| `shbg.ts`                | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.     |     | `worker.ts` | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`. |
 | `toolApi.ts`             | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                   |
 | `contentStore.ts`        | Content-row SQL shared by the website and tool APIs, including retention pruning.                                    |
 | `backupPolicy.ts`        | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                          |
