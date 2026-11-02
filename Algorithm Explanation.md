@@ -526,6 +526,32 @@ $$
 
 - **接入**：`resolveParams` 仅口服路由返回 $k_a$、$k_e$；其他路由返回零参数；`getBioavailabilityMultiplier` 仅口服返回 1。`PrecomputedEventModel` 口服分支对 `Ester.BICA` 直接用 `_analytic2C`。`runSimulation` 通过 `concPGmL_BICA`（ng/mL）输出，并提供 `interpolateConcentration_BICA`。
 
+## 20) 内源性睾酮压制（transfem，辅助抗雄激素，默认锚定基线）
+
+- **状态**：雌二醇通过下丘脑/垂体负反馈压制 LH/FSH，从而降低内源性睾酮。生理剂量下仅为**部分**压制（transfemscience.org intro；Leinung 2018：E2 < 50 pg/mL 时 TT ~160 ng/dL，E2 100–150 pg/mL 时 ~50 ng/dL）；完全压制到女性范围通常需要超生理剂量雌二醇或抗雄激素/GnRH 激动剂（Misakian 2025 PMID 40639470：睾丸未切除者注射雌二醇单药 82.6% 达 TT < 50 ng/dL）。睾丸切除后睾酮降至 ~10–30 ng/dL 并在继续雌二醇下稳定（van der Sluis 2022 PMID 36201493）。因此本模型把雌二醇的压制作为**抗雄激素的辅助前提**，而非替代。
+
+- **模型**：给定基线睾酮 $T_0$（ng/dL，来自用户首次血检），在雌二醇浓度 $E$（pg/mL）下的剩余分数
+  $$
+  r(E)=\frac{1}{1+\left(\frac{E}{E_0}\right)^{k}},\qquad E_0\approx 13.5\ \text{pg/mL},\ k\approx 0.815,
+  $$
+  校准到 $r(200)\approx 0.10$、$r(500)\approx 0.05$。抗雄激素存在时进一步降低（辅助前提）：
+  $$
+  r_{\text{combined}}(E,\text{AA})=
+  \begin{cases}
+  r(E), & \text{AA 缺失},\\
+  \min(r(E),\,0.3\,r(E)), & \text{AA 存在}.
+  \end{cases}
+  $$
+  预期睾酮：
+  $$
+  \hat T(t)=T_0\cdot r_{\text{combined}}(E(t),\text{AA}(t))+T_{\text{exo}}(t).
+  $$
+  未提供基线时行为不变（曲线保持外源性贡献，transfem 无 T 剂量时为 0）。
+
+- **代码**：`logic.ts` 中 `estradiolTestosteroneSuppressionFactor`、`combinedTestosteroneSuppressionFactor`、`expectedTestosteroneNgDl`；`runSimulation` 通过 `options.testosteroneBaselineNgDl`（或 `testosteroneBaseline`/`ttBaseline`）与 `options.antiandrogen` 启用。默认关闭。输出仍为 `concNGdL_T`（ng/dL），`interpolateConcentration_T` 不变。
+
+- **局限**：群体稳态近似，未解析 LH/FSH 动力学；必须锚定个体首次血检 $T_0$；抗雄激素的额外降低因子为近似；GnRH 激动剂/拮抗剂的压制未单独建模（按抗雄激素处理）。UI 存储 $T_0$、血检录入、开关与轨迹视图留待后续 issue（tag @SmirnovaOyama）。
+
 ## 14) 睾酮（跨男模式）
 - **范围**：`T_ESTERS` 包括 T（未酯化，用于凝胶/贴片）、TC、TE、TU。`runSimulation` 把它们单独累加为总睾酮曲线 `concNGdL_T`（ng/dL）。跨男模式下，单次记录表单只提供注射（TC/TE/TU）与凝胶（T）；计划与预测页的药物列表另含 T 贴片。口服、舌下睾酮与未酯化 T 注射不建模（`resolveParams` 返回零参数）。
 - **剂量与 F**：剂量同样按酯 mg 存储；`getToE2Factor` 对睾酮酯返回 MW(T)/MW(酯)（TC 0.6990、TE 0.7200、TU 0.6315、T 1.0），各路由的 `F` 都乘以它。
