@@ -779,8 +779,13 @@ describe('small corrections', () => {
         expect(sublingualThetaFromHold(30)).toBeCloseTo(0.343, 3);
         expect(sublingualThetaFromHold(60)).toBeCloseTo(0.453, 3);
         expect(sublingualThetaFromHold(1)).toBe(0);
-        for (const h of [2, 5, 10, 15, 20, 30, 45, 60]) {
-            expect(sublingualHoldFromTheta(sublingualThetaFromHold(h))).toBeCloseTo(h, 6);
+        // The hold comes back exactly as typed, not as 29.999999999999993
+        // (issue #201: a new dose after a 30-minute one showed that).
+        for (let h = 1; h <= 60; h += 0.5) {
+            expect(sublingualHoldFromTheta(sublingualThetaFromHold(h))).toBe(h);
+        }
+        for (const h of [7.25, 12.3, 33.33]) {
+            expect(sublingualHoldFromTheta(sublingualThetaFromHold(h))).toBe(h);
         }
         // A θ saved while the line still ran on shows the longest hold offered.
         expect(sublingualHoldFromTheta(0.81)).toBe(60);
@@ -789,6 +794,7 @@ describe('small corrections', () => {
     it('a custom sublingual hold reads the tiers in effect, custom ones included', () => {
         applyPKOverrides({ ...DEFAULT_PK_PARAMS, e2_sl_standard: 0.15 });
         expect(sublingualThetaFromHold(10)).toBeCloseTo(0.15, 12);
-        expect(sublingualHoldFromTheta(0.15)).toBeCloseTo(10, 12);
+        expect(sublingualHoldFromTheta(0.15)).toBe(10);
+        expect(sublingualHoldFromTheta(sublingualThetaFromHold(30))).toBe(30);
     });
 });
