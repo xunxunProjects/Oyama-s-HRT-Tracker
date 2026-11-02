@@ -1781,9 +1781,15 @@ export function sublingualThetaFromHold(holdMin: number): number {
  * The hold time in minutes behind a stored custom θ, for showing it again: the
  * inverse of sublingualThetaFromHold, up to the 60 minutes the dose form
  * offers. A θ no hold of 60 minutes or less reaches (one saved while the
- * straight line still ran on) shows as 60.
+ * straight line still ran on) shows as 60. Rounded to hundredths of a minute:
+ * the inverse lands a few ulps off (30 comes back as 29.999999999999993), and
+ * the dose form puts this number in the hold field as it is.
  */
 export function sublingualHoldFromTheta(theta: number): number {
+    return Math.round(_slHoldFromTheta(theta) * 100) / 100;
+}
+
+function _slHoldFromTheta(theta: number): number {
     const pts = _slHoldPoints();
     const last = pts[pts.length - 1];
     if (theta > last.theta) {
