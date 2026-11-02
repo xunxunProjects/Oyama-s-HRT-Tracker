@@ -29,7 +29,13 @@ describe('bicalutamide optional PK submodel (issue #206 §3)', () => {
         const sim = runSimulation([dose(Route.oral, Ester.BICA, D, NOW_H - 1000)], BW, null, {
             bicalutamide: true,
         })!;
-        const { cmax, tmaxH } = scan(sim, read, NOW_H - 1000, NOW_H - 1000 + 200, 0.5);
+        const { cmax, tmaxH } = scan(
+            sim,
+            (_s, t) => interpolateConcentration_BICA(sim, t)!,
+            NOW_H - 1000,
+            NOW_H - 1000 + 200,
+            0.5,
+        );
         const auc = trapz(sim.timeH, sim.concPGmL_BICA);
         const aucExpected = (D / BICALUTAMIDE_ORAL.clfLh) * 1000; // ng*h/mL
         expect(relErr(auc, aucExpected)).toBeLessThan(0.1);
