@@ -2717,6 +2717,36 @@ export function runSimulation(
         return false;
     })();
 
+    // Optional endogenous testosterone suppression (adjunct to antiandrogens).
+    // When a baseline testosterone (ng/dL, e.g. from the user's first blood
+    // test) is supplied via options, the T curve is anchored to it and scaled
+    // by the estradiol-driven suppression factor instead of being left at 0.
+    const ttBaselineNgDl = (() => {
+        if (!options) return null;
+        for (const [k, v] of Object.entries(options)) {
+            const key = k.toLowerCase();
+            if (
+                key === 'testosteronebaseline' ||
+                key === 'testosteronebaselinengdl' ||
+                key === 'ttbaseline' ||
+                key === 'ttbaselinengdl'
+            ) {
+                const n = typeof v === 'number' ? v : Number(v);
+                if (Number.isFinite(n) && n >= 0) return n;
+            }
+        }
+        return null;
+    })();
+    const ttAntiandrogenPresent = (() => {
+        if (!options) return false;
+        for (const [k, v] of Object.entries(options)) {
+            if (!v) continue;
+            const key = k.toLowerCase();
+            if (key.includes('antiandrogen')) return true;
+        }
+        return false;
+    })();
+
     // Unmodelled drugs, and codes this build doesn't know, have no parameters
     // of their own: let through, they would fall into the estradiol branches
     // below and be counted as estradiol. Bicalutamide is modelled only when
@@ -2852,8 +2882,17 @@ export function runSimulation(
         // Bicalutamide: ng/mL (issue #206 §3), optional submodel.
         const currentConc_BICA = (totalAmountMG_BICA * 1e6) / plasmaVolumeML_BICA;
 
-        // T: ng/dL (mg → ng: *1e6; mL → dL: /100 → factor 1e8/V_mL)
-        const currentConc_T = (totalAmountMG_T * 1e8) / plasmaVolumeML_T;
+        // T: ng/dL (mg → ng: *1e6; mL → dL: /100 → factor 1e8/V_mL).
+        // Optional endogenous suppression (adjunct to antiandrogens): when a
+        // baseline testosterone is supplied via options, anchor the curve to it
+        // and scale by the estradiol-driven suppression factor, so the T line
+        // reflects the drug's reduction of an initial measured level rather
+        // than being left at 0.
+        let currentConc_T = (totalAmountMG_T * 1e8) / plasmaVolumeML_T;
+        if (ttBaselineNgDl !== null) {
+            currentConc_T +=
+                ttBaselineNgDl * combinedTestosteroneSuppressionFactor(currentConc_E2, ttAntiandrogenPresent);
+        }
 
         // Total in pg/mL (convert CPA from ng/mL to pg/mL for compatibility)
         const currentConc = currentConc_E2 + currentConc_CPA * 1000;
@@ -2985,6 +3024,60 @@ export function interpolateConcentration_T(sim: SimulationResult, hour: number):
     if (t1 === t0) return c0;
     const ratio = (hour - t0) / (t1 - t0);
     return c0 + (c1 - c0) * ratio;
+}
+
+// --- Testosterone suppression by feminizing therapy (adjunct to antiandrogens) ---
+//
+// Estradiol suppresses endogenous testosterone via hypothalamic/pituitary
+// negative feedback (LH/FSH). On its own it is only a partial suppressor at
+// physiological levels: ~90% suppression (~50 ng/dL residual) at E2 ~200 pg/mL,
+// ~95% (~20-30 ng/dL) at ~500 pg/mL; lower levels suppress less
+// (transfemscience.org intro; Leinung 2018; Misakian 2025 PMID 40639470).
+// It is therefore modelled here as an *adjunct* to antiandrogens (CPA, GnRH
+// agonists, ...), not as a standalone substitute for them.
+//
+// The factor below is the fraction of a person's baseline (pre-therapy)
+// testosterone still present at a given estradiol concentration. It is a
+// population-level, steady-state approximation; it does not resolve the
+// LH/FSH kinetics and must be anchored to a measured baseline (first blood
+// test) in any individual use. Antiandrogens add a further reduction on top
+// (combinedTestosteroneSuppressionFactor).
+//
+// Fit: r(E2) = 1 / (1 + (E2 / E0)^k), calibrated to r(200 pg/mL) ≈ 0.10
+// and r(500 pg/mL) ≈ 0.05 (see issue spec).
+
+export const TT_SUPPRESSION_E0_PGML = 13.5; // pg/mL, population fit constant
+export const TT_SUPPRESSION_K = 0.815; // dimensionless, population fit exponent
+
+/** Fraction of baseline testosterone remaining at estradiol concentration e2PgMl. */
+export function estradiolTestosteroneSuppressionFactor(e2PgMl: number): number {
+    if (!Number.isFinite(e2PgMl) || e2PgMl <= 0) return 1;
+    const r = 1 / (1 + Math.pow(e2PgMl / TT_SUPPRESSION_E0_PGML, TT_SUPPRESSION_K));
+    return Math.min(1, Math.max(0, r));
+}
+
+/**
+ * Combined suppression factor when an antiandrogen is also present. The
+ * antiandrogen contributes an additional reduction on top of estradiol's
+ * partial effect (adjunct premise). The extra factor is a population
+ * approximation: with an effective antiandrogen the residual is pushed down to
+ * roughly a third of the estradiol-only residual.
+ */
+export function combinedTestosteroneSuppressionFactor(e2PgMl: number, antiandrogenPresent: boolean): number {
+    const e2Factor = estradiolTestosteroneSuppressionFactor(e2PgMl);
+    if (!antiandrogenPresent) return e2Factor;
+    return Math.min(e2Factor, e2Factor * 0.3);
+}
+
+/** Expected testosterone (ng/dL) from a measured baseline under a given E2 level. */
+export function expectedTestosteroneNgDl(
+    baselineNgDl: number,
+    e2PgMl: number,
+    antiandrogenPresent: boolean = false,
+): number {
+    if (!Number.isFinite(baselineNgDl) || baselineNgDl < 0) return 0;
+    const factor = combinedTestosteroneSuppressionFactor(e2PgMl, antiandrogenPresent);
+    return baselineNgDl * factor;
 }
 
 // --- Encryption Utils ---
