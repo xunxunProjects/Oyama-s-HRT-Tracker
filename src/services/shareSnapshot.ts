@@ -77,6 +77,7 @@ export const buildSharedDosageSnapshot = ({
         sharedSimulation = {
             timeH: indexes.map(index => simulation.timeH[index]),
             concPGmL_CPA: indexes.map(index => simulation.concPGmL_CPA[index]),
+            concPGmL_BICA: indexes.map(index => simulation.concPGmL_BICA[index]),
             concNGdL_T: indexes.map(index => simulation.concNGdL_T[index]),
             concPGmL_E2: calibratedE2,
             concPGmL: calibratedE2,
