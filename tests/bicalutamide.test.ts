@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    BICALUTAMIDE_ORAL,
-    Ester,
-    Route,
-    interpolateConcentration_BICA,
-    runSimulation,
-} from '../logic';
+import { BICALUTAMIDE_ORAL, Ester, Route, interpolateConcentration_BICA, runSimulation } from '../logic';
 import { BW, NOW_H, dose, regimen, relErr, scan, trapz } from './helpers';
 
 const DAY = 24;
@@ -35,7 +29,6 @@ describe('bicalutamide optional PK submodel (issue #206 §3)', () => {
         const sim = runSimulation([dose(Route.oral, Ester.BICA, D, NOW_H - 1000)], BW, null, {
             bicalutamide: true,
         })!;
-        const read = (_s: any, t: number) => interpolateConcentration_BICA(sim, t)!;
         const { cmax, tmaxH } = scan(sim, read, NOW_H - 1000, NOW_H - 1000 + 200, 0.5);
         const auc = trapz(sim.timeH, sim.concPGmL_BICA);
         const aucExpected = (D / BICALUTAMIDE_ORAL.clfLh) * 1000; // ng*h/mL
@@ -53,7 +46,6 @@ describe('bicalutamide optional PK submodel (issue #206 §3)', () => {
         const sim = runSimulation(regimen(Route.oral, Ester.BICA, 50, DAY, 60, t0 + 59 * DAY), BW, null, {
             bicalutamide: true,
         })!;
-        const read = (_s: any, t: number) => interpolateConcentration_BICA(sim, t)!;
         const early = interpolateConcentration_BICA(sim, t0 + 3 * DAY)!;
         const late = interpolateConcentration_BICA(sim, t0 + 55 * DAY)!;
         expect(late).toBeGreaterThan(3 * early);
