@@ -79,16 +79,22 @@ Run with `SHBG_REPORT=1 npx vitest run tests/shbgScenarios.test.ts` to print
 the tables reproduced in `Algorithm Explanation.md` §18.4–18.5.
 
 Headline: chronic oral E2 lowers free-E2 AUC by about 25–37% relative to a
-constant free fraction; patch and injection stay below about 17%; the effect
-is strongly route- and dose-dependent.
+constant free fraction, weekly EV 5 mg by about 16% and a 100 µg/day patch by
+about 7%, so by the issue's 10% rule only the patch can keep a constant free
+fraction. Changes of regimen fail the rule as well: even against SHBG measured
+just before the change, free-E2 AUC differs by −15.5% to +38.9% once SHBG
+settles at its new level. The effect is strongly route- and dose-dependent.
 
 ## 4. Sensitivity
 
 One-at-a-time variations over SHBG half-life, baseline SHBG, binding
 constants, stoichiometry, albumin, and induction strength are reported in
-`Algorithm Explanation.md` §18.5. SHBG turnover half-life barely matters over
-12 weeks; baseline SHBG and binding constants dominate the baseline free
-fraction.
+`Algorithm Explanation.md` §18.5. The SHBG half-life changes no steady state,
+but it sets how fast free E2 moves after a change of regimen: 7 days after a
+switch from oral 6 mg/day to a 200 µg/day patch, free-E2 AUC is 9.6% above
+the value with SHBG held at its pre-switch level for a 14-day half-life, 17.5%
+for the default 7 days and 27.7% for 3.5 days. Baseline SHBG and binding
+constants dominate the baseline free fraction.
 
 ## 5. Limitations
 
