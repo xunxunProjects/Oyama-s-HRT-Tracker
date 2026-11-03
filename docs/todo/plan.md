@@ -36,4 +36,12 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 
 ## Status
 
-- Phase 0: in progress (this PR).
+- Phase 0: done (PR #216).
+- Phase 1.1 oral TU: done (PR #218).
+- Phase 2.1 free/bioavailable T calc: done (PR #220).
+- Phase 4.1 gonadectomy state: done (PR #228).
+- Phase 5.1 Hct step: done (PR #222).
+- Phase 6.1 amenorrhea hazard: done (PR #224).
+- Phase 7.1 body-comp step: done (PR #226).
+- Tests: 100k robustness (PR #230), 500k cross-validation (PR #232).
+- Remaining: 1.2 nasal gel, 1.3 pellet, 1.4 SC flag, 1.5 TU transit, Phase 3 dynamic SHBG, Phase 8 other drugs, Phase 9 calibration, Phase 10 validation, plus wiring of all pure functions into runSimulation/calibration.
