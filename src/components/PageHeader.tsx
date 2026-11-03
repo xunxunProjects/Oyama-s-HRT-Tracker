@@ -32,13 +32,17 @@ const muted = 'text-[var(--text-muted)]';
  * the title and then "Back": the arrow alone said nothing, so the button was
  * announced as just the page's name. The visible title comes first, so
  * someone driving it by voice can still say what they see.
+ *
+ * `columnClassName` lets a page with a second rail (OpSec's contents) keep
+ * the title aligned with the article while the body grows wider.
  */
 const PageHeader: React.FC<{
     title: React.ReactNode;
     subtitle?: React.ReactNode;
     onBack?: () => void;
     actions?: React.ReactNode;
-}> = ({ title, subtitle, onBack, actions }) => {
+    columnClassName?: string;
+}> = ({ title, subtitle, onBack, actions, columnClassName = PAGE_COLUMN }) => {
     const { t } = useTranslation();
     // A zero-height marker just above the sticky bar: once it has scrolled out
     // of view, content is passing under the bar and the hairline shows.
@@ -57,7 +61,7 @@ const PageHeader: React.FC<{
             <div
                 className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_calc(-1*var(--hairline))_0_var(--border)]' : ''}`}
             >
-                <div className={`${PAGE_COLUMN} pt-4 pb-3 flex items-end justify-between gap-4`}>
+                <div className={`${columnClassName} pt-4 pb-3 flex items-end justify-between gap-4`}>
                     <div className="min-w-0 flex-1">
                         {onBack ? (
                             <button
