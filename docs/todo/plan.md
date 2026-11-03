@@ -18,7 +18,12 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 ## Phases
 
 1. **Phase 0 — Literature parameter extraction** (docs only). Extract per-formulation PK parameters (D, AUC, Cmax, Tmax, t1/2, Vd/F, CL/F, ka) from labels/papers into `docs/todo/parameters.md`.
-2. **Phase 1 — Multi-formulation T PK** (code). Oral TU (lymphatic), nasal gel (pulsed 3×/day), pellet/implant (zero-order release), SC route flag, transit compartments for TU.
+2. **Phase 1 — Multi-formulation T PK** (code), split into sub-phases:
+   - 1.1 Oral TU (one-compartment oral, low F) — **done (PR #218)**.
+   - 1.2 Nasal gel (pulsed 3×/day) — needs `Route.nasal` + intraday dosing.
+   - 1.3 Pellet/implant (zero-order release) — needs depot state.
+   - 1.4 SC route flag for existing esters (ka adjustment).
+   - 1.5 Transit compartments for TU (replace single depot).
 3. **Phase 2 — Free/bioavailable T** (code). Vermeulen-style from total T + SHBG + albumin; reuse `shbg.ts` math.
 4. **Phase 3 — Dynamic SHBG wired to T** (code).
 5. **Phase 4 — Gonadectomy/uterus state variable G** (code).

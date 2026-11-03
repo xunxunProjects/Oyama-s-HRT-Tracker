@@ -1981,6 +1981,11 @@ export function getBioavailabilityMultiplier(
             }
             case Route.patchApply:
                 return T_PatchPK.F * mwFactor;
+            case Route.oral:
+                // Oral testosterone undecanoate (self-emulsifying). Other T
+                // esters are not given by mouth. Bioavailability is low and
+                // variable (label range ~3-7% relative to IM); use the mid-point.
+                return ester === Ester.TU ? 0.05 * mwFactor : 0;
             case Route.patchRemove:
             default:
                 return 0;
@@ -2117,6 +2122,17 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
             }
             case Route.patchRemove:
                 return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+            case Route.oral:
+                if (event.ester !== Ester.TU) {
+                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                }
+                {
+                    const F = getBioavailabilityMultiplier(Route.oral, event.ester, extras);
+                    // One-compartment oral model: ka ~0.4 h^-1 (Tmax ~2-3 h),
+                    // cleared at the fast native rate. Lymphatic/meal-fat
+                    // effects are deferred to a later sub-phase.
+                    return { Frac_fast: 1.0, k1_fast: 0.4, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                }
             default:
                 // Oral / sublingual T not supported in this MVP — fall through to zeroed params.
                 return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
