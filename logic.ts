@@ -10,6 +10,9 @@ export enum Route {
     patchRemove = 'patchRemove',
     gel = 'gel',
     oral = 'oral',
+    nasal = 'nasal',
+    sc = 'sc',
+    pellet = 'pellet',
 }
 
 export enum Ester {
@@ -2129,6 +2132,17 @@ export function getBioavailabilityMultiplier(
                 // esters are not given by mouth. Bioavailability is low and
                 // variable (label range ~3-7% relative to IM); use the mid-point.
                 return ester === Ester.TU ? 0.05 * mwFactor : 0;
+            case Route.nasal:
+                // Nasal testosterone gel (Natesto): fast absorption, low dose
+                // 3x/day. Bioavailability ~6-10% relative to IM.
+                return ester === Ester.T ? 0.08 * mwFactor : 0;
+            case Route.sc: {
+                if (ester === Ester.T) return 0;
+                const formationSc = _getTInjFF(ester);
+                return formationSc * mwFactor;
+            }
+            case Route.pellet:
+                return 1.0 * mwFactor;
             case Route.patchRemove:
             default:
                 return 0;
@@ -2271,11 +2285,41 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
                 }
                 {
                     const F = getBioavailabilityMultiplier(Route.oral, event.ester, extras);
-                    // One-compartment oral model: ka ~0.4 h^-1 (Tmax ~2-3 h),
-                    // cleared at the fast native rate. Lymphatic/meal-fat
-                    // effects are deferred to a later sub-phase.
                     return { Frac_fast: 1.0, k1_fast: 0.4, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
                 }
+            case Route.nasal:
+                if (event.ester !== Ester.T) {
+                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                }
+                {
+                    const F = getBioavailabilityMultiplier(Route.nasal, event.ester, extras);
+                    return { Frac_fast: 1.0, k1_fast: 2.0, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                }
+            case Route.sc: {
+                if (event.ester === Ester.T) {
+                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                }
+                const Frac_fastSc = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;
+                const k1_fastSc = ((T_DepotPK.k1_fast as any)[event.ester] ?? 0.025) * 0.5;
+                const k1_slowSc = ((T_DepotPK.k1_slow as any)[event.ester] ?? 0.005) * 0.5;
+                const k2Sc = (T_EsterPK.k2 as any)[event.ester] ?? 0.2;
+                const FSc = getBioavailabilityMultiplier(Route.sc, event.ester, extras);
+                return { Frac_fast: Frac_fastSc, k1_fast: k1_fastSc, k1_slow: k1_slowSc, k2: k2Sc, k3: tK3, F: FSc, rateMGh: 0, F_fast: FSc, F_slow: FSc };
+            }
+            case Route.pellet: {
+                const FP = getBioavailabilityMultiplier(Route.pellet, event.ester, extras);
+                const releaseRateUGPerDayP = extras[ExtraKey.releaseRateUGPerDay];
+                const rateMGhP =
+                    typeof releaseRateUGPerDayP === 'number' &&
+                    Number.isFinite(releaseRateUGPerDayP) &&
+                    releaseRateUGPerDayP > 0
+                        ? (releaseRateUGPerDayP / 24 / 1000) * FP
+                        : 0.05 * FP; // default slow release
+                if (rateMGhP > 0) {
+                    return { Frac_fast: 1.0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: FP, rateMGh: rateMGhP, F_fast: FP, F_slow: FP };
+                }
+                return { Frac_fast: 1.0, k1_fast: 0.001, k1_slow: 0, k2: 0, k3: tK3, F: FP, rateMGh: 0, F_fast: FP, F_slow: FP };
+            }
             default:
                 // Oral / sublingual T not supported in this MVP — fall through to zeroed params.
                 return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
@@ -2696,6 +2740,7 @@ class PrecomputedEventModel {
 
         switch (event.route) {
             case Route.injection:
+            case Route.sc:
                 this.model = (timeH: number) => {
                     const tau = timeH - startTime;
                     if (tau < 0) return 0;
@@ -2721,6 +2766,7 @@ class PrecomputedEventModel {
                 break;
             case Route.gel:
             case Route.oral:
+            case Route.nasal:
                 if (event.route === Route.oral && event.ester === Ester.CPA) {
                     const { F, ka, alpha, beta, wFast, wSlow } = CPA_ORAL;
                     this.model = (timeH: number) => {
@@ -2780,6 +2826,7 @@ class PrecomputedEventModel {
                 break;
             }
             case Route.patchApply:
+            case Route.pellet:
                 const wearH = resolvePatchWearH(event, allEvents);
 
                 this.model = (timeH: number) => {
@@ -2831,7 +2878,7 @@ function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvents: Dose
     // For patches: account for wear duration + post-removal decay. Resolve the
     // wear of this very event: two patches applied at the same moment can come
     // off at different times.
-    if (event.route === Route.patchApply) {
+    if (event.route === Route.patchApply || event.route === Route.pellet) {
         const wearH = resolvePatchWearH(event, allEvents);
         if (wearH >= Number.MAX_VALUE) return Infinity; // Worn indefinitely, always contributes
         const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
