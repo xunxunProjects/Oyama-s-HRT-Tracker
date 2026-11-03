@@ -42,6 +42,37 @@ export function isTestosteroneEster(e: Ester): boolean {
     return T_ESTERS.has(e);
 }
 
+// --- Free / bioavailable testosterone (Vermeulen-style) ---
+//
+// Total testosterone is the sum of free, SHBG-bound and albumin-bound
+// fractions. Solving the binding equilibria gives a quadratic in free T.
+// Constants are the standard Vermeulen values: K_SHBG ~ 1 L/nmol and
+// K_Alb ~ 3.6e-5 L/nmol (with albumin converted to nmol/L of binding sites).
+// Inputs: totalT in ng/dL, shbg in nmol/L, albumin in g/dL.
+export function freeTestosteroneNgDl(totalTNgDl: number, shbgNmolL: number, albuminGDl: number): number {
+    const T = totalTNgDl / 28.84; // nmol/L
+    const S = shbgNmolL;
+    const albGL = albuminGDl * 10; // g/L
+    const albSites = albGL * 1e9 / 66500; // nmol/L of albumin binding sites
+    const Kshbg = 1.0; // L/nmol
+    const Kalb = 3.6e-5; // L/nmol
+    const albFactor = Kalb * albSites;
+    const a = Kshbg * (1 + albFactor);
+    const b = 1 + Kshbg * S + albFactor - Kshbg * T;
+    const disc = b * b + 4 * a * T;
+    const ft = (-b + Math.sqrt(disc)) / (2 * a);
+    return ft * 28.84;
+}
+
+export function bioavailableTestosteroneNgDl(totalTNgDl: number, shbgNmolL: number, albuminGDl: number): number {
+    const ft = freeTestosteroneNgDl(totalTNgDl, shbgNmolL, albuminGDl);
+    const albGL = albuminGDl * 10;
+    const albSites = albGL * 1e9 / 66500;
+    const albFactor = 3.6e-5 * albSites;
+    // albumin-bound = free * albFactor (linear, low-affinity regime)
+    return ft * (1 + albFactor);
+}
+
 /**
  * Drugs the plan and the log carry with no level model behind them. Their
  * doses are tracked as taken or not and nothing more: the simulation leaves
