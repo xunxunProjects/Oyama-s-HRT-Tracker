@@ -248,6 +248,64 @@ export interface Exposure {
     cmin: number;
 }
 
+// --- Testosterone-driven SHBG suppression (Phase 3) ---
+//
+// Androgens suppress hepatic SHBG synthesis (the mirror image of estradiol's
+// induction). Modelled as a Hill suppression on the synthesis target:
+//   factor = 1 - smax * C^h / (sc50^h + C^h)
+export interface TShbgSuppression {
+    /** Maximum fractional suppression of SHBG synthesis (0..1). */
+    smax: number;
+    /** Total testosterone (ng/dL) giving half the maximum suppression. */
+    sc50: number;
+    /** Hill coefficient. */
+    hill: number;
+}
+
+export const DEFAULT_T_SHBG_SUPPRESSION: TShbgSuppression = {
+    smax: 0.4,
+    sc50: 600,
+    hill: 1,
+};
+
+export function shbgSuppressionFactor(totalTNgDl: number, params: TShbgSuppression = DEFAULT_T_SHBG_SUPPRESSION): number {
+    const c = Math.max(0, totalTNgDl);
+    const drive = params.sc50 > 0 ? (c / params.sc50) ** params.hill : 0;
+    return 1 - (params.smax * drive) / (1 + drive);
+}
+
+/**
+ * Combined SHBG curve under both estradiol induction and testosterone
+ * suppression. Target = baseline * (1 + e2Rise) * shbgSuppressionFactor(T).
+ */
+export function shbgCurveCombined(
+    sim: SimulationResult,
+    e2Model: ShbgModel = DEFAULT_SHBG_MODEL,
+    tParams: TShbgSuppression = DEFAULT_T_SHBG_SUPPRESSION,
+): number[] {
+    const swallowed = sim.concPGmL_E2_swallowed;
+    if (!swallowed) throw new Error('shbgCurveCombined needs runSimulation(..., { swallowedE2: true })');
+    const k = Math.LN2 / e2Model.halfLifeH;
+    const target = sim.concPGmL_E2.map((total, i) => {
+        const e2Rise = shbgRise(Math.max(0, swallowed[i]), Math.max(0, total - swallowed[i]), e2Model.induction);
+        const tFactor = shbgSuppressionFactor(sim.concNGdL_T[i] ?? 0, tParams);
+        return e2Model.baselineNM * (1 + e2Rise) * tFactor;
+    });
+    const shbg = [e2Model.baselineNM];
+    for (let i = 1; i < target.length; i++) {
+        const kdt = k * (sim.timeH[i] - sim.timeH[i - 1]);
+        const prev = shbg[i - 1];
+        if (!(kdt > 0)) {
+            shbg.push(prev);
+            continue;
+        }
+        const decay = Math.exp(-kdt);
+        const lag = -Math.expm1(-kdt) / kdt;
+        shbg.push(target[i] + (prev - target[i - 1]) * decay - (target[i] - target[i - 1]) * lag);
+    }
+    return shbg;
+}
+
 /** AUC (trapezoids), peak and trough of a curve over [fromH, toH], reading both ends by linear interpolation. */
 export function exposureOver(timeH: number[], values: number[], fromH: number, toH: number): Exposure {
     const at = (t: number) => {
