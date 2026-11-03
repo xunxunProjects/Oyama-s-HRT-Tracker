@@ -70,6 +70,7 @@ import TransparencySettings from './pages/TransparencySettings';
 import Credits from './pages/Credits';
 import CommunityVote from './pages/CommunityVote';
 import Disclaimer from './pages/Disclaimer';
+import OpSec from './pages/OpSec';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
@@ -1062,6 +1063,7 @@ const AppContent = () => {
                             events={events}
                             showDialog={showDialog}
                             onNavigateToDisclaimer={() => handleViewChange('settings-disclaimer')}
+                            onNavigateToOpSec={() => handleViewChange('settings-opsec')}
                             onShowIntro={() => setShowOnboarding(true)}
                             onNavigateToTransparency={() => handleViewChange('settings-transparency')}
                             onNavigateToCredits={() => handleViewChange('settings-credits')}
@@ -1226,6 +1228,8 @@ const AppContent = () => {
                             onSignIn={() => signInForCommunityVote(communityVoteReturn)}
                         />
                     )}
+
+                    {currentView === 'settings-opsec' && <OpSec onBack={() => handleViewChange('settings')} />}
 
                     {currentView === 'settings-disclaimer' && (
                         <Disclaimer onBack={() => handleViewChange('settings')} />
