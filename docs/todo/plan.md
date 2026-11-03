@@ -38,6 +38,10 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 
 - Phase 0: done (PR #216).
 - Phase 1.1 oral TU: done (PR #218).
+- Phase 1.2 nasal gel: done (PR #235).
+- Phase 1.3 pellet/implant: done (PR #235).
+- Phase 1.4 SC route: done (PR #235).
+- Phase 1.5 transit compartments for TU: deferred (requires numerical solver; tracked as future work).
 - Phase 2.1 free/bioavailable T calc: done (PR #220).
 - Phase 4.1 gonadectomy state: done (PR #228).
 - Phase 5.1 Hct step: done (PR #222).
