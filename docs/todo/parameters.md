@@ -4,56 +4,56 @@ Companion to `docs/todo/plan.md` and issue #215. Values are from labels/SmPCs an
 
 ## Testosterone esters — injection
 
-| Formulation | Route | t1/2 terminal | Tmax | Cmax (typical) | Vd/F | CL/F | ka | Source |
-|---|---|---|---|---|---|---|---|---|
-| Testosterone cypionate (TC) | IM | ~8 d (label) | 24–48 h | — | 14 L/kg (repo) | — | 0.025 h⁻¹ (repo) | Depo-Testosterone label [R4]; repo T_DepotPK |
-| Testosterone enanthate (TE) | IM | ~4–5 d | 24–48 h | — | 14 L/kg (repo) | — | 0.035 h⁻¹ (repo) | repo T_DepotPK |
-| Testosterone undecanoate (TU) | IM/SC | release 50–90 d (Nebido) | ~7 d (1000 mg) | ~37 nmol/L peak SS | — | — | 0.036 h⁻¹ (repo hydrolysis) | Nebido label; repo T_DepotPK/T_EsterPK; [7] |
+| Formulation                   | Route | t1/2 terminal            | Tmax           | Cmax (typical)     | Vd/F           | CL/F | ka                          | Source                                       |
+| ----------------------------- | ----- | ------------------------ | -------------- | ------------------ | -------------- | ---- | --------------------------- | -------------------------------------------- |
+| Testosterone cypionate (TC)   | IM    | ~8 d (label)             | 24–48 h        | —                  | 14 L/kg (repo) | —    | 0.025 h⁻¹ (repo)            | Depo-Testosterone label [R4]; repo T_DepotPK |
+| Testosterone enanthate (TE)   | IM    | ~4–5 d                   | 24–48 h        | —                  | 14 L/kg (repo) | —    | 0.035 h⁻¹ (repo)            | repo T_DepotPK                               |
+| Testosterone undecanoate (TU) | IM/SC | release 50–90 d (Nebido) | ~7 d (1000 mg) | ~37 nmol/L peak SS | —              | —    | 0.036 h⁻¹ (repo hydrolysis) | Nebido label; repo T_DepotPK/T_EsterPK; [7]  |
 
 ## Gel / patch / nasal / pellet / oral
 
-| Formulation | Route | Dose | t1/2 / release | Tmax | Steady-state level | Notes | Source |
-|---|---|---|---|---|---|---|---|
-| Testosterone gel 1% (AndroGel) | TD daily | 50 mg/day | — | 4 h | ~555 ng/dL Cavg (70 kg) | washout 48–72 h | AndroGel 1.62% label [R5]; repo |
-| Testosterone patch (Androderm) | TD daily | 5 mg/day | — | — | 500–700 ng/dL | — | repo DOSE_CEILING |
-| Testosterone nasal gel (Natesto) | IN 3×/day | 11 mg/nostril | — | ~1–2 h | normal range | no secondary transference | [3] |
-| Testosterone pellets | SC implant | 6×100/200 mg | release ~3–6 months | — | — | flip-flop kinetics | [4][5] |
-| Oral TU (self-emulsifying) | PO | 220 mg BID | — | — | normal range | meal-fat dependent, lymphatic | [1][2] |
-| SC injection of TU | SC | 1000 mg | — | — | non-inferior to IM | acceptable route | [6][7] |
+| Formulation                      | Route      | Dose          | t1/2 / release      | Tmax   | Steady-state level      | Notes                         | Source                          |
+| -------------------------------- | ---------- | ------------- | ------------------- | ------ | ----------------------- | ----------------------------- | ------------------------------- |
+| Testosterone gel 1% (AndroGel)   | TD daily   | 50 mg/day     | —                   | 4 h    | ~555 ng/dL Cavg (70 kg) | washout 48–72 h               | AndroGel 1.62% label [R5]; repo |
+| Testosterone patch (Androderm)   | TD daily   | 5 mg/day      | —                   | —      | 500–700 ng/dL           | —                             | repo DOSE_CEILING               |
+| Testosterone nasal gel (Natesto) | IN 3×/day  | 11 mg/nostril | —                   | ~1–2 h | normal range            | no secondary transference     | [3]                             |
+| Testosterone pellets             | SC implant | 6×100/200 mg  | release ~3–6 months | —      | —                       | flip-flop kinetics            | [4][5]                          |
+| Oral TU (self-emulsifying)       | PO         | 220 mg BID    | —                   | —      | normal range            | meal-fat dependent, lymphatic | [1][2]                          |
+| SC injection of TU               | SC         | 1000 mg       | —                   | —      | non-inferior to IM      | acceptable route              | [6][7]                          |
 
 ## Free T / binding
 
-| Parameter | Value / method | Source |
-|---|---|---|
-| Binding model | Vermeulen: total T = free + Alb-bound + SHBG-bound | [14][15] |
-| K_SHBG, K_Alb | literature priors + local calibration | transmasc doc §6 |
-| SHBG dynamic | estrogen-driven; T may raise or lower | [14] |
+| Parameter     | Value / method                                     | Source           |
+| ------------- | -------------------------------------------------- | ---------------- |
+| Binding model | Vermeulen: total T = free + Alb-bound + SHBG-bound | [14][15]         |
+| K_SHBG, K_Alb | literature priors + local calibration              | transmasc doc §6 |
+| SHBG dynamic  | estrogen-driven; T may raise or lower              | [14]             |
 
 ## Hematocrit / erythrocytosis
 
-| Item | Value | Source |
-|---|---|---|
-| Year-1 erythrocytosis incidence | ~11% | [18] |
-| Long-term cumulative rise | continues after year 1 | [17] |
-| Route effect | injectable > gel > patch | [16] |
-| Mitigation tested | 100 mg cypionate | [19] |
-| Advisory thresholds | Hct > 0.50 flag; > 0.54 strong flag | Endocrine Society / UCSF |
+| Item                            | Value                               | Source                   |
+| ------------------------------- | ----------------------------------- | ------------------------ |
+| Year-1 erythrocytosis incidence | ~11%                                | [18]                     |
+| Long-term cumulative rise       | continues after year 1              | [17]                     |
+| Route effect                    | injectable > gel > patch            | [16]                     |
+| Mitigation tested               | 100 mg cypionate                    | [19]                     |
+| Advisory thresholds             | Hct > 0.50 flag; > 0.54 strong flag | Endocrine Society / UCSF |
 
 ## Body composition
 
-| Item | Observation | Source |
-|---|---|---|
+| Item                                                  | Observation      | Source                    |
+| ----------------------------------------------------- | ---------------- | ------------------------- |
 | Lean mass gain + visceral fat gain coexist over years | longitudinal MRI | [20] (transmasc doc [R9]) |
-| Early changes within 3–6 months | Thai cohort | [21] |
+| Early changes within 3–6 months                       | Thai cohort      | [21]                      |
 
 ## Uterus / ovaries / gonadectomy
 
-| Item | Observation | Source |
-|---|---|---|
-| Histopathology on T: atrophy common, not universal; bleeding can persist | — | [8][9] |
-| Post-BSO testosterone management concerns in young adults | case series | [10] |
-| Knowledge gaps flagged | — | [11] |
-| Pregnancy possible on T; amenorrhea ≠ anovulation | — | [12][13] |
+| Item                                                                     | Observation | Source   |
+| ------------------------------------------------------------------------ | ----------- | -------- |
+| Histopathology on T: atrophy common, not universal; bleeding can persist | —           | [8][9]   |
+| Post-BSO testosterone management concerns in young adults                | case series | [10]     |
+| Knowledge gaps flagged                                                   | —           | [11]     |
+| Pregnancy possible on T; amenorrhea ≠ anovulation                        | —           | [12][13] |
 
 ## References
 

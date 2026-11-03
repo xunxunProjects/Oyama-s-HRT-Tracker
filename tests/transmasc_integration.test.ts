@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Ester, Route, integrateTransmascState, runSimulation } from '../logic';
-import { BW, NOW_H, dose, regimen } from './helpers';
+import { BW, NOW_H, regimen } from './helpers';
 
 describe('transmasculine state integration (Phase 2/4/5/6/7 wiring)', () => {
     it('produces finite arrays aligned with sim', () => {

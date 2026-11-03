@@ -3,7 +3,16 @@ import { ekfStep, mipdDoseAdjust } from '../logic';
 
 describe('calibration stack (Phase 9.1)', () => {
     it('EKF reduces uncertainty after measurement', () => {
-        const s = ekfStep({ x: 1, P: 4 }, 1.1, (x) => x, (x) => x, 1, 1, 0.1, 0.5);
+        const s = ekfStep(
+            { x: 1, P: 4 },
+            1.1,
+            x => x,
+            x => x,
+            1,
+            1,
+            0.1,
+            0.5,
+        );
         expect(s.P).toBeLessThan(4);
         expect(Number.isFinite(s.x)).toBe(true);
     });

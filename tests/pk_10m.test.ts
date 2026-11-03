@@ -36,7 +36,13 @@ describe('PK 10M robustness', () => {
             const haz = amenorrheaHazard(rand(0, 1500), rand(0, 200));
             if (!Number.isFinite(haz) || haz < 0) errors++;
 
-            const tc = transitCompartmentAmount(rand(0, 48), rand(1, 1000), rand(0.01, 0.5), rand(0.1, 2), Math.floor(rand(1, 6)));
+            const tc = transitCompartmentAmount(
+                rand(0, 48),
+                rand(1, 1000),
+                rand(0.01, 0.5),
+                rand(0.1, 2),
+                Math.floor(rand(1, 6)),
+            );
             if (!Number.isFinite(tc) || tc < 0) errors++;
 
             const dht = dhtFromTestosterone(rand(0, 1000), rand(0, 1));
