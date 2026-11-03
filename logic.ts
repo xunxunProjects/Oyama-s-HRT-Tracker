@@ -345,6 +345,9 @@ export interface SimulationResult {
     concPGmL_BICA: number[];
     // Transmasculine: total testosterone concentration in ng/dL
     concNGdL_T: number[];
+    // Transmasculine: free testosterone (Vermeulen) in ng/dL, derived from
+    // concNGdL_T with default SHBG/albumin. Optional for backward compat.
+    concNGdL_T_free?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -3175,7 +3178,8 @@ export function runSimulation(
         }
     }
 
-    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concPGmL_BICA, concNGdL_T, auc };
+    const concNGdL_T_free = concNGdL_T.map((c) => freeTestosteroneNgDl(c, 30, 4.3));
+    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concPGmL_BICA, concNGdL_T, concNGdL_T_free, auc };
     if (options.swallowedE2) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
     return result;
 }
@@ -3234,6 +3238,29 @@ export function interpolateConcentration_CPA(sim: SimulationResult, hour: number
     const c0 = sim.concPGmL_CPA[low];
     const c1 = sim.concPGmL_CPA[high];
 
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export function interpolateConcentration_T_free(sim: SimulationResult, hour: number): number | null {
+    if (!sim.concNGdL_T_free || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return sim.concNGdL_T_free[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concNGdL_T_free[sim.concNGdL_T_free.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return sim.concNGdL_T_free[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = sim.concNGdL_T_free[low];
+    const c1 = sim.concNGdL_T_free[high];
     if (t1 === t0) return c0;
     const ratio = (hour - t0) / (t1 - t0);
     return c0 + (c1 - c0) * ratio;
