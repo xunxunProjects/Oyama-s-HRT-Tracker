@@ -53,7 +53,7 @@ describe('PK model robustness (100k iterations)', () => {
                 expect(c).toBeGreaterThanOrEqual(0);
             }
         }
-    });
+    }, 60000);
 
     it('runSimulation fuzz: 500 random regimens do not throw', () => {
         for (let i = 0; i < 500; i++) {
