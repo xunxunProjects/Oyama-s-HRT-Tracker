@@ -31,8 +31,8 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 7. **Phase 6 — Amenorrhea time-to-event** (code). Hazard function done (PR #224); integration remains.
 8. **Phase 7 — Body-composition slow variables** (code). Step function done (PR #226); integration remains.
 9. **Phase 8 — Other drugs** (code). 5α-reductase inhibition (PR #241) and GnRH depot desensitisation (PR #243) done.
-10. **Phase 9 — Calibration stack** (EKF/OU-Kalman/MIPD, assay platform) (code).
-11. **Phase 10 — Validation** (VPC, calibration, sensitivity, scenarios) (docs + tests).
+10. **Phase 9 — Calibration stack** (code). Scalar EKF + MIPD done (PR #249); OU-Kalman/assay platform remain.
+11. **Phase 10 — Validation** (docs + tests). Scaffolding + integration wrapper done (PR #249).
 
 ## Status
 
