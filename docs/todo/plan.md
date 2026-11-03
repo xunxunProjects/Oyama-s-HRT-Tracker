@@ -27,7 +27,7 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 3. **Phase 2 — Free/bioavailable T** (code). Vermeulen-style from total T + SHBG + albumin; reuse `shbg.ts` math. Pure calculation done (PR #220); wiring into simulation/calibration remains.
 4. **Phase 3 — Dynamic SHBG wired to T** (code).
 5. **Phase 4 — Gonadectomy/uterus state variable G** (code).
-6. **Phase 5 — Hematocrit turnover PD** (code).
+6. **Phase 5 — Hematocrit turnover PD** (code). Step function done (PR #222); integration into runSimulation/calibration remains.
 7. **Phase 6 — Amenorrhea time-to-event** (code).
 8. **Phase 7 — Body-composition slow variables** (code).
 9. **Phase 8 — Other drugs** (finasteride/dutasteride 5α-reductase term; GnRH agonist depot + desensitisation) (code).
