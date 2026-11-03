@@ -24,7 +24,7 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
    - 1.3 Pellet/implant (zero-order release) — needs depot state.
    - 1.4 SC route flag for existing esters (ka adjustment).
    - 1.5 Transit compartments for TU (replace single depot).
-3. **Phase 2 — Free/bioavailable T** (code). Vermeulen-style from total T + SHBG + albumin; reuse `shbg.ts` math.
+3. **Phase 2 — Free/bioavailable T** (code). Vermeulen-style from total T + SHBG + albumin; reuse `shbg.ts` math. Pure calculation done (PR #220); wiring into simulation/calibration remains.
 4. **Phase 3 — Dynamic SHBG wired to T** (code).
 5. **Phase 4 — Gonadectomy/uterus state variable G** (code).
 6. **Phase 5 — Hematocrit turnover PD** (code).
