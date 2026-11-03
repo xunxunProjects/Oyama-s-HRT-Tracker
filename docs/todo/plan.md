@@ -30,7 +30,7 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 6. **Phase 5 — Hematocrit turnover PD** (code). Step function done (PR #222); integration into runSimulation/calibration remains.
 7. **Phase 6 — Amenorrhea time-to-event** (code). Hazard function done (PR #224); integration remains.
 8. **Phase 7 — Body-composition slow variables** (code). Step function done (PR #226); integration remains.
-9. **Phase 8 — Other drugs** (finasteride/dutasteride 5α-reductase term; GnRH agonist depot + desensitisation) (code).
+9. **Phase 8 — Other drugs** (code). 5α-reductase inhibition term done (PR #241); GnRH agonist depot remains.
 10. **Phase 9 — Calibration stack** (EKF/OU-Kalman/MIPD, assay platform) (code).
 11. **Phase 10 — Validation** (VPC, calibration, sensitivity, scenarios) (docs + tests).
 
