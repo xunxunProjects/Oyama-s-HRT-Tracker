@@ -42,6 +42,7 @@ export type ViewKey =
     | 'settings-credits'
     | 'settings-community'
     | 'settings-disclaimer'
+    | 'settings-opsec'
     | 'settings-milk-tea'
     | 'settings-cat-states'
     | 'forecast'
@@ -65,6 +66,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-export': 'settings',
     'settings-import': 'settings',
     'settings-transparency': 'settings',
+    'settings-opsec': 'settings',
     'settings-credits': 'settings',
     'settings-community': 'settings',
     'settings-disclaimer': 'settings',
@@ -128,6 +130,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings-export',
     'settings-import',
     'settings-transparency',
+    'settings-opsec',
     'settings-credits',
     'settings-community',
     'settings-disclaimer',
