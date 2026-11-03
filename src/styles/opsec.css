@@ -1,0 +1,468 @@
+/* ── OpSec reading view ─────────────────────────────────────────────────────
+   A quieter, paper-like reading surface for the operations & security guide:
+   self-hosted Lora for prose, Merriweather for headings, warm ink on a cream
+   page, GitHub-style callouts, and a curved contents rail on the right. The
+   fonts are subset to latin + latin-ext; CJK falls through to a serif stack so
+   the page keeps the same editorial voice in every language. */
+
+@font-face {
+    font-family: "Lora";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/lora-normal-latin-ext.woff2") format("woff2");
+    unicode-range:
+        U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+        U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: "Lora";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/lora-normal-latin.woff2") format("woff2");
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+        U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Lora";
+    font-style: italic;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/lora-italic-latin-ext.woff2") format("woff2");
+    unicode-range:
+        U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+        U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: "Lora";
+    font-style: italic;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/lora-italic-latin.woff2") format("woff2");
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+        U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Merriweather";
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url("/fonts/merriweather-normal-latin-ext.woff2") format("woff2");
+    unicode-range:
+        U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+        U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: "Merriweather";
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url("/fonts/merriweather-normal-latin.woff2") format("woff2");
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+        U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.opsec-page {
+    /* Warm paper, warm ink. The accent is the app's terracotta, so the page
+       still belongs to Oyama without borrowing the whole UI palette. */
+    --opsec-paper: oklch(98.5% 0.012 84);
+    --opsec-paper-deep: oklch(96.6% 0.018 82);
+    --opsec-surface: oklch(99.3% 0.007 85);
+    --opsec-ink: oklch(29% 0.022 58);
+    --opsec-muted: oklch(47% 0.022 58);
+    --opsec-faint: oklch(62% 0.018 60);
+    --opsec-rule: oklch(88% 0.018 80);
+    --opsec-rule-strong: oklch(74% 0.028 70);
+    --opsec-accent: oklch(55.5% 0.118 38);
+    --opsec-note: oklch(52% 0.12 250);
+    --opsec-tip: oklch(50% 0.11 160);
+    --opsec-important: oklch(52% 0.16 295);
+    --opsec-warning: oklch(56% 0.13 65);
+    --opsec-caution: oklch(54% 0.18 28);
+    --opsec-font-body:
+        "Lora", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+    --opsec-font-heading:
+        "Merriweather", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+    --opsec-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    /* The sticky header is inside this page, so give its glass the paper. */
+    --surface-glass-bar: color-mix(in oklch, var(--opsec-paper) 82%, transparent);
+
+    position: relative;
+    min-height: 100%;
+    background-color: var(--opsec-paper);
+    background-image:
+        radial-gradient(
+            120% 72% at 12% -10%,
+            color-mix(in oklch, var(--opsec-accent) 7%, transparent),
+            transparent 62%
+        ),
+        radial-gradient(90% 60% at 100% 4%, color-mix(in oklch, var(--opsec-note) 4%, transparent), transparent 58%);
+    color: var(--opsec-ink);
+    font-family: var(--opsec-font-body);
+    font-size: 1.0625rem;
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.dark .opsec-page {
+    --opsec-paper: oklch(22.5% 0.012 60);
+    --opsec-paper-deep: oklch(20% 0.012 60);
+    --opsec-surface: oklch(26.5% 0.014 62);
+    --opsec-ink: oklch(94% 0.012 82);
+    --opsec-muted: oklch(76% 0.014 78);
+    --opsec-faint: oklch(62% 0.014 74);
+    --opsec-rule: oklch(34% 0.014 62);
+    --opsec-rule-strong: oklch(48% 0.018 66);
+    --opsec-accent: oklch(78% 0.09 45);
+    --opsec-note: oklch(78% 0.1 250);
+    --opsec-tip: oklch(78% 0.1 160);
+    --opsec-important: oklch(79% 0.11 300);
+    --opsec-warning: oklch(82% 0.12 78);
+    --opsec-caution: oklch(76% 0.14 28);
+    --surface-glass-bar: color-mix(in oklch, var(--opsec-paper) 82%, transparent);
+}
+
+/* The page's one display utility (PageHeader) follows the reading face. */
+.opsec-page .font-display {
+    font-family: var(--opsec-font-heading);
+    letter-spacing: -0.015em;
+}
+.opsec-page .glass-bar .font-display {
+    color: var(--opsec-ink);
+}
+
+/* ── prose ─────────────────────────────────────────────────────────────── */
+
+.opsec-prose {
+    font-family: var(--opsec-font-body);
+    min-width: 0;
+}
+.opsec-prose h2,
+.opsec-prose h3 {
+    font-family: var(--opsec-font-heading);
+    color: var(--opsec-ink);
+    font-weight: 600;
+    text-wrap: balance;
+}
+.opsec-prose h2 {
+    margin: 3.5rem 0 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--opsec-rule);
+    font-size: 1.5rem;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+}
+.opsec-prose h2:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+.opsec-prose h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin: 2.75rem 0 0.9rem;
+    font-size: 1.1875rem;
+    line-height: 1.55;
+    letter-spacing: -0.012em;
+}
+.opsec-section-index {
+    flex: none;
+    color: var(--opsec-accent);
+    font-family: var(--opsec-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+}
+.opsec-section-body > * + * {
+    margin-top: 1em;
+}
+.opsec-section-body p {
+    color: var(--opsec-ink);
+}
+.opsec-section-body ul,
+.opsec-section-body ol {
+    margin: 1em 0 0;
+    padding-inline-start: 1.35em;
+    color: var(--opsec-ink);
+}
+.opsec-section-body ul {
+    list-style: disc;
+}
+.opsec-section-body ol {
+    list-style: decimal;
+}
+.opsec-section-body li + li {
+    margin-top: 0.55em;
+}
+.opsec-section-body li::marker {
+    color: var(--opsec-accent);
+}
+.opsec-section-body strong {
+    font-weight: 600;
+}
+.opsec-section-body em {
+    font-style: italic;
+}
+
+.opsec-intro {
+    margin: 1.5rem 0 2.5rem;
+    color: var(--opsec-ink);
+    font-size: 1.1875rem;
+    line-height: 1.85;
+    text-wrap: pretty;
+}
+
+.opsec-disclaimer {
+    margin-top: 1rem;
+    padding: 1.15rem 1.35rem;
+    background: color-mix(in oklch, var(--opsec-surface) 88%, transparent);
+    border: 1px solid var(--opsec-rule);
+    border-radius: 14px;
+}
+.opsec-disclaimer h2 {
+    margin: 0 0 0.6rem;
+    padding: 0;
+    border: 0;
+    color: var(--opsec-ink);
+    font-family: var(--opsec-font-heading);
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.opsec-disclaimer p {
+    color: var(--opsec-muted);
+    font-size: 0.8125rem;
+    line-height: 1.75;
+}
+.opsec-disclaimer p + p {
+    margin-top: 0.6rem;
+}
+
+.opsec-quote {
+    margin: 1.5rem 0;
+    padding: 0.35rem 0 0.35rem 1.25rem;
+    border-inline-start: 2px solid var(--opsec-accent);
+    color: var(--opsec-muted);
+    font-family: var(--opsec-font-body);
+    font-size: 1.0625rem;
+    font-style: italic;
+    line-height: 1.8;
+}
+
+/* ── callouts ──────────────────────────────────────────────────────────── */
+
+.opsec-callout {
+    --callout-color: var(--opsec-note);
+    margin: 1.5rem 0;
+    padding: 0.95rem 1.1rem 1rem;
+    background:
+        linear-gradient(90deg, color-mix(in oklch, var(--callout-color) 10%, transparent), transparent 42%),
+        color-mix(in oklch, var(--opsec-surface) 78%, var(--callout-color) 4%);
+    border: 1px solid color-mix(in oklch, var(--callout-color) 26%, var(--opsec-rule));
+    border-inline-start: 3px solid var(--callout-color);
+    border-radius: 12px;
+}
+.opsec-callout--note {
+    --callout-color: var(--opsec-note);
+}
+.opsec-callout--tip {
+    --callout-color: var(--opsec-tip);
+}
+.opsec-callout--important {
+    --callout-color: var(--opsec-important);
+}
+.opsec-callout--warning {
+    --callout-color: var(--opsec-warning);
+}
+.opsec-callout--caution {
+    --callout-color: var(--opsec-caution);
+}
+.opsec-callout-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+    color: var(--callout-color);
+}
+.opsec-callout-icon {
+    flex: none;
+}
+.opsec-callout-label {
+    font-family: var(--opsec-font-mono);
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+}
+.opsec-callout-text {
+    margin: 0;
+    color: var(--opsec-ink);
+    font-size: 0.9375rem;
+    line-height: 1.75;
+}
+
+/* ── the curved contents rail ──────────────────────────────────────────── */
+
+.opsec-rail {
+    position: sticky;
+    top: 6.75rem;
+    align-self: start;
+    width: 11rem;
+    padding-top: 0.25rem;
+    user-select: none;
+}
+.opsec-rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    color: var(--opsec-faint);
+    font-family: var(--opsec-font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.opsec-rail-count {
+    color: var(--opsec-accent);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+}
+.opsec-rail-track {
+    --rail-ease: cubic-bezier(0.65, 0, 0.35, 1);
+    position: relative;
+    width: 11rem;
+    height: 34rem;
+}
+.opsec-rail-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+.opsec-rail-path {
+    fill: none;
+    stroke: var(--opsec-rule);
+    stroke-width: 1;
+}
+.opsec-rail-progress {
+    fill: none;
+    stroke: var(--opsec-accent);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 460ms var(--rail-ease);
+}
+.opsec-rail-focus {
+    pointer-events: none;
+}
+.opsec-rail-focus-halo {
+    fill: color-mix(in oklch, var(--opsec-accent) 12%, transparent);
+}
+.opsec-rail-focus-ring {
+    fill: none;
+    stroke: var(--opsec-accent);
+    stroke-width: 1.25;
+}
+.opsec-rail-dot {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+}
+.opsec-rail-dot-mark {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 9999px;
+    background: var(--opsec-rule-strong);
+    transition:
+        transform 200ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+        width 460ms var(--rail-ease),
+        height 460ms var(--rail-ease),
+        background-color 200ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+.opsec-rail-dot:hover .opsec-rail-dot-mark,
+.opsec-rail-dot:focus-visible .opsec-rail-dot-mark {
+    transform: scale(1.35);
+    background: var(--opsec-accent);
+}
+.opsec-rail-dot.is-past .opsec-rail-dot-mark {
+    background: color-mix(in oklch, var(--opsec-accent) 55%, var(--opsec-rule-strong));
+}
+.opsec-rail-dot.is-active .opsec-rail-dot-mark {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--opsec-accent);
+}
+.opsec-rail-dot:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 9999px;
+}
+.opsec-rail-label {
+    position: absolute;
+    right: calc(100% + 0.65rem);
+    top: 50%;
+    width: 8.5rem;
+    transform: translateY(-50%);
+    color: var(--opsec-muted);
+    font-family: var(--opsec-font-heading);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: right;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 180ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+        visibility 180ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+.opsec-rail-label.is-visible {
+    color: var(--opsec-ink);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* The page's bottom clearance (the floating nav's spacer in App) sits outside
+   .opsec-page, so paint the scroller itself while this page is mounted. */
+.main-view:has(.opsec-page) {
+    background-color: oklch(98.5% 0.012 84);
+    /* The global 7.75rem padding is for History's day label; this page only
+       has the sticky title, and the sections carry their own scroll margin. */
+    scroll-padding-top: 0;
+}
+.dark .main-view:has(.opsec-page) {
+    background-color: oklch(22.5% 0.012 60);
+}
+
+@media (max-height: 720px) {
+    .opsec-page .opsec-rail {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .opsec-rail-progress,
+    .opsec-rail-dot-mark,
+    .opsec-rail-label {
+        transition: none;
+    }
+}
