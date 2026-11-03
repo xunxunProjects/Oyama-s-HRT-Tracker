@@ -19,7 +19,7 @@ interface OpSecProps {
 }
 
 const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
-    const { t, lang } = useTranslation();
+    const { lang } = useTranslation();
     const content = getOpSecContent(lang);
     const basic = content.sections.filter(s => s.level === 'basic');
     const advanced = content.sections.filter(s => s.level === 'advanced');
@@ -28,6 +28,15 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
         <div className="md:pb-32">
             <PageHeader onBack={onBack} title={content.title} />
             <div className={`${PAGE_COLUMN} mt-3 space-y-6 text-sm leading-relaxed`}>
+                <section className="space-y-2 rounded-xl border-(length:--hairline) border-[var(--border-strong)] bg-[var(--surface)] p-4">
+                    <h2 className="text-sm font-semibold text-[var(--text)]">{content.disclaimerTitle}</h2>
+                    {content.disclaimer.map((paragraph, i) => (
+                        <p key={i} className="text-xs text-[var(--text-muted)]">
+                            {paragraph}
+                        </p>
+                    ))}
+                </section>
+
                 <p className="text-[var(--text)]">{content.intro}</p>
 
                 <h2 className="text-base font-semibold text-[var(--text)] mt-2">{content.basicHeading}</h2>
@@ -98,14 +107,6 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
                         })}
                     </section>
                 ))}
-
-                <div className="pt-4 border-t-(length:--hairline) border-[var(--border)] space-y-1">
-                    {content.references.map((r, i) => (
-                        <p key={i} className="text-xs text-[var(--text-muted)] break-words">
-                            {r}
-                        </p>
-                    ))}
-                </div>
             </div>
         </div>
     );
