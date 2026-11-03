@@ -664,7 +664,7 @@ export const TRANSLATIONS_BASE = {
         'disclaimer.text.point2': '即使内容准确无误，也可能不适用于你的健康状况。',
         'disclaimer.text.point3': '若有任何健康疑虑，请咨询具备资质的医务人员。',
         'drawer.disclaimer': '免责声明',
-
+        'opsec.title': '日常操作与安全',
         'lab.title': '检查记录',
         'cal.settings': '校准设置',
         'cal.current': '当前拟合',
@@ -1868,7 +1868,7 @@ export const TRANSLATIONS_BASE = {
         'time.days': '{n}d ago',
 
         'disclaimer.title': 'Disclaimer',
-        'disclaimer.text.intro':
+        'opsec.title': 'Everyday Operations & Security',        'disclaimer.text.intro':
             "Oyama's HRT Tracker does not provide medical advice. Although Oyama's HRT Tracker includes some medical-related content, it does not guarantee its accuracy or timeliness. It may not be fully applicable to your specific situation. Please note:",
         'disclaimer.text.point1':
             'Medical information is for reference only and cannot replace the diagnosis or treatment advice of qualified medical personnel.',
@@ -2880,6 +2880,7 @@ const ZH_TW = {
     'disclaimer.text.point2': '即使內容準確無誤，也可能不適用於你的健康狀況。',
     'disclaimer.text.point3': '若有任何健康疑慮，請諮詢具備資質的醫務人員。',
     'drawer.disclaimer': '免責聲明',
+    'opsec.title': '日常操作與安全',
 
     'lab.title': '檢驗結果',
     'lab.add_title': '新增檢驗結果',
@@ -3959,6 +3960,7 @@ export const TRANSLATIONS = {
         'disclaimer.text.point2': '即使內容準確，都未必啱你嘅健康狀況。',
         'disclaimer.text.point3': '如果有任何健康疑慮，請諮詢合資格嘅醫護人員。',
         'drawer.disclaimer': '免責聲明',
+        'opsec.title': '日常操作與安全',
 
         'lab.title': '檢驗結果',
         'lab.add_title': '新增檢驗結果',
@@ -4708,6 +4710,7 @@ export const TRANSLATIONS = {
         'disclaimer.text.point2': '内容が正確であっても、お客様の健康状態に当てはまるとは限りません。',
         'disclaimer.text.point3': '健康上の懸念がある場合は、資格のある医療従事者にご相談ください。',
         'drawer.disclaimer': '免責事項',
+        'opsec.title': '日常操作與安全',
 
         'lab.title': '検査結果',
         'lab.add_title': '検査結果の追加',
@@ -5488,6 +5491,7 @@ export const TRANSLATIONS = {
         'drawer.model_confirm': '외부 웹사이트(mahiro.uk)를 방문하려고 합니다. 계속하시겠습니까?',
         'drawer.github_confirm': '외부 웹사이트(github.com)를 방문하려고 합니다. 계속하시겠습니까?',
         'drawer.disclaimer': '면책 조항',
+        'opsec.title': '일상 운영과 보안',
 
         'import.title': '데이터 가져오기',
         'export.title': '데이터 내보내기',
@@ -6517,6 +6521,7 @@ export const TRANSLATIONS = {
         'drawer.model_confirm': 'Üçüncü taraf web sitesini (mahiro.uk) ziyaret edeceksiniz. Devam edilsin mi?',
         'drawer.github_confirm': 'Üçüncü taraf web sitesini (github.com) ziyaret edeceksiniz. Devam edilsin mi?',
         'drawer.disclaimer': 'Sorumluluk reddi',
+        'opsec.title': 'Günlük İşlemler ve Güvenlik',
 
         'import.title': 'Veri içe aktar',
         'export.title': 'Veri dışa aktar',
