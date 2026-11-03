@@ -129,6 +129,39 @@ export function amenorrheaHazard(avgTNgDl: number, e2PgMl: number, params: Ameno
     return h0 + hT * sigmoid(avgTNgDl - thetaT) + hE * sigmoid(thetaE - e2PgMl);
 }
 
+// --- Body composition slow variables (Phase 7.1) ---
+//
+// dM/dt = k_gain_M * E(avg) - k_loss_M * M
+// dF_visc/dt = k_gain_F * E(avg) - k_turn_F * F_visc
+// Exposure E is a 0..1 normalised drive from the 90-d rolling average.
+export interface BodyCompParams {
+    kGainM: number;
+    kLossM: number;
+    kGainF: number;
+    kTurnF: number;
+}
+
+export const DEFAULT_BODY_COMP_PARAMS: BodyCompParams = {
+    kGainM: 0.001,
+    kLossM: 0.0005,
+    kGainF: 0.0008,
+    kTurnF: 0.0004,
+};
+
+export function bodyCompStep(
+    m: number,
+    fVisc: number,
+    exposure: number, // 0..1 normalised
+    dtDays: number,
+    params: BodyCompParams = DEFAULT_BODY_COMP_PARAMS,
+): { m: number; fVisc: number } {
+    const { kGainM, kLossM, kGainF, kTurnF } = params;
+    const e = Math.max(0, Math.min(1, exposure));
+    const dm = kGainM * e - kLossM * m;
+    const df = kGainF * e - kTurnF * fVisc;
+    return { m: m + dm * dtDays, fVisc: fVisc + df * dtDays };
+}
+
 /**
  * Drugs the plan and the log carry with no level model behind them. Their
  * doses are tracked as taken or not and nothing more: the simulation leaves
