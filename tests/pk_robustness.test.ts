@@ -10,7 +10,7 @@ import {
     interpolateConcentration_T,
     runSimulation,
 } from '../logic';
-import { BW, NOW_H, dose, regimen } from './helpers';
+import { BW, NOW_H, regimen } from './helpers';
 
 function rand(min: number, max: number): number {
     return min + Math.random() * (max - min);

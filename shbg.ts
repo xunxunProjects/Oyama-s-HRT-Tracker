@@ -268,7 +268,10 @@ export const DEFAULT_T_SHBG_SUPPRESSION: TShbgSuppression = {
     hill: 1,
 };
 
-export function shbgSuppressionFactor(totalTNgDl: number, params: TShbgSuppression = DEFAULT_T_SHBG_SUPPRESSION): number {
+export function shbgSuppressionFactor(
+    totalTNgDl: number,
+    params: TShbgSuppression = DEFAULT_T_SHBG_SUPPRESSION,
+): number {
     const c = Math.max(0, totalTNgDl);
     const drive = params.sc50 > 0 ? (c / params.sc50) ** params.hill : 0;
     return 1 - (params.smax * drive) / (1 + drive);
