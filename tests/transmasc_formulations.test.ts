@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Ester, Route, interpolateConcentration_T, runSimulation } from '../logic';
-import { BW, NOW_H, dose, regimen } from './helpers';
+import { BW, NOW_H, regimen } from './helpers';
 
 describe('transmasculine formulations (Phase 1.2-1.4)', () => {
     it('nasal T produces finite positive concentration', () => {
@@ -18,7 +18,16 @@ describe('transmasculine formulations (Phase 1.2-1.4)', () => {
     });
 
     it('pellet produces finite positive concentration', () => {
-        const ev = [{ id: 'pellet-1', route: Route.pellet, ester: Ester.TE, doseMG: 750, timeH: NOW_H - 24 * 30, extras: { releaseRateUGPerDay: 10000 } }];
+        const ev = [
+            {
+                id: 'pellet-1',
+                route: Route.pellet,
+                ester: Ester.TE,
+                doseMG: 750,
+                timeH: NOW_H - 24 * 30,
+                extras: { releaseRateUGPerDay: 10000 },
+            },
+        ];
         const sim = runSimulation(ev as any, BW)!;
         const c = interpolateConcentration_T(sim, NOW_H - 1);
         expect(Number.isFinite(c)).toBe(true);

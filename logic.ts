@@ -56,7 +56,7 @@ export function freeTestosteroneNgDl(totalTNgDl: number, shbgNmolL: number, albu
     const T = totalTNgDl / 28.84; // nmol/L
     const S = shbgNmolL;
     const albGL = albuminGDl * 10; // g/L
-    const albSites = albGL * 1e9 / 66500; // nmol/L of albumin binding sites
+    const albSites = (albGL * 1e9) / 66500; // nmol/L of albumin binding sites
     const Kshbg = 1.0; // L/nmol
     const Kalb = 3.6e-5; // L/nmol
     const albFactor = Kalb * albSites;
@@ -70,7 +70,7 @@ export function freeTestosteroneNgDl(totalTNgDl: number, shbgNmolL: number, albu
 export function bioavailableTestosteroneNgDl(totalTNgDl: number, shbgNmolL: number, albuminGDl: number): number {
     const ft = freeTestosteroneNgDl(totalTNgDl, shbgNmolL, albuminGDl);
     const albGL = albuminGDl * 10;
-    const albSites = albGL * 1e9 / 66500;
+    const albSites = (albGL * 1e9) / 66500;
     const albFactor = 3.6e-5 * albSites;
     // albumin-bound = free * albFactor (linear, low-affinity regime)
     return ft * (1 + albFactor);
@@ -127,7 +127,11 @@ function sigmoid(x: number): number {
     return 1 / (1 + Math.exp(-x));
 }
 
-export function amenorrheaHazard(avgTNgDl: number, e2PgMl: number, params: AmenorrheaParams = DEFAULT_AMENORRHEA_PARAMS): number {
+export function amenorrheaHazard(
+    avgTNgDl: number,
+    e2PgMl: number,
+    params: AmenorrheaParams = DEFAULT_AMENORRHEA_PARAMS,
+): number {
     const { h0, hT, hE, thetaT, thetaE } = params;
     return h0 + hT * sigmoid(avgTNgDl - thetaT) + hE * sigmoid(thetaE - e2PgMl);
 }
@@ -212,7 +216,7 @@ export function transitCompartmentAmount(t: number, dose: number, F: number, k: 
     // factorial(n-1)
     let fact = 1;
     for (let i = 2; i <= n - 1; i++) fact *= i;
-    return dose * F * Math.pow(k, n) * Math.pow(t, n - 1) * Math.exp(-k * t) / fact;
+    return (dose * F * Math.pow(k, n) * Math.pow(t, n - 1) * Math.exp(-k * t)) / fact;
 }
 
 export function dhtFromTestosterone(freeTNgDl: number, inhibition: number): number {
@@ -2342,30 +2346,90 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
                 return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
             case Route.oral:
                 if (event.ester !== Ester.TU) {
-                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                    return {
+                        Frac_fast: 0,
+                        k1_fast: 0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F: 0,
+                        rateMGh: 0,
+                        F_fast: 0,
+                        F_slow: 0,
+                    };
                 }
                 {
                     const F = getBioavailabilityMultiplier(Route.oral, event.ester, extras);
-                    return { Frac_fast: 1.0, k1_fast: 0.4, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                    return {
+                        Frac_fast: 1.0,
+                        k1_fast: 0.4,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F,
+                        rateMGh: 0,
+                        F_fast: F,
+                        F_slow: F,
+                    };
                 }
             case Route.nasal:
                 if (event.ester !== Ester.T) {
-                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                    return {
+                        Frac_fast: 0,
+                        k1_fast: 0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F: 0,
+                        rateMGh: 0,
+                        F_fast: 0,
+                        F_slow: 0,
+                    };
                 }
                 {
                     const F = getBioavailabilityMultiplier(Route.nasal, event.ester, extras);
-                    return { Frac_fast: 1.0, k1_fast: 2.0, k1_slow: 0, k2: 0, k3: tK3, F, rateMGh: 0, F_fast: F, F_slow: F };
+                    return {
+                        Frac_fast: 1.0,
+                        k1_fast: 2.0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F,
+                        rateMGh: 0,
+                        F_fast: F,
+                        F_slow: F,
+                    };
                 }
             case Route.sc: {
                 if (event.ester === Ester.T) {
-                    return { Frac_fast: 0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: 0, rateMGh: 0, F_fast: 0, F_slow: 0 };
+                    return {
+                        Frac_fast: 0,
+                        k1_fast: 0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F: 0,
+                        rateMGh: 0,
+                        F_fast: 0,
+                        F_slow: 0,
+                    };
                 }
                 const Frac_fastSc = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;
                 const k1_fastSc = ((T_DepotPK.k1_fast as any)[event.ester] ?? 0.025) * 0.5;
                 const k1_slowSc = ((T_DepotPK.k1_slow as any)[event.ester] ?? 0.005) * 0.5;
                 const k2Sc = (T_EsterPK.k2 as any)[event.ester] ?? 0.2;
                 const FSc = getBioavailabilityMultiplier(Route.sc, event.ester, extras);
-                return { Frac_fast: Frac_fastSc, k1_fast: k1_fastSc, k1_slow: k1_slowSc, k2: k2Sc, k3: tK3, F: FSc, rateMGh: 0, F_fast: FSc, F_slow: FSc };
+                return {
+                    Frac_fast: Frac_fastSc,
+                    k1_fast: k1_fastSc,
+                    k1_slow: k1_slowSc,
+                    k2: k2Sc,
+                    k3: tK3,
+                    F: FSc,
+                    rateMGh: 0,
+                    F_fast: FSc,
+                    F_slow: FSc,
+                };
             }
             case Route.pellet: {
                 const FP = getBioavailabilityMultiplier(Route.pellet, event.ester, extras);
@@ -2377,9 +2441,29 @@ function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
                         ? (releaseRateUGPerDayP / 24 / 1000) * FP
                         : 0.05 * FP; // default slow release
                 if (rateMGhP > 0) {
-                    return { Frac_fast: 1.0, k1_fast: 0, k1_slow: 0, k2: 0, k3: tK3, F: FP, rateMGh: rateMGhP, F_fast: FP, F_slow: FP };
+                    return {
+                        Frac_fast: 1.0,
+                        k1_fast: 0,
+                        k1_slow: 0,
+                        k2: 0,
+                        k3: tK3,
+                        F: FP,
+                        rateMGh: rateMGhP,
+                        F_fast: FP,
+                        F_slow: FP,
+                    };
                 }
-                return { Frac_fast: 1.0, k1_fast: 0.001, k1_slow: 0, k2: 0, k3: tK3, F: FP, rateMGh: 0, F_fast: FP, F_slow: FP };
+                return {
+                    Frac_fast: 1.0,
+                    k1_fast: 0.001,
+                    k1_slow: 0,
+                    k2: 0,
+                    k3: tK3,
+                    F: FP,
+                    rateMGh: 0,
+                    F_fast: FP,
+                    F_slow: FP,
+                };
             }
             default:
                 // Oral / sublingual T not supported in this MVP — fall through to zeroed params.
@@ -3178,8 +3262,17 @@ export function runSimulation(
         }
     }
 
-    const concNGdL_T_free = concNGdL_T.map((c) => freeTestosteroneNgDl(c, 30, 4.3));
-    const result: SimulationResult = { timeH, concPGmL, concPGmL_E2, concPGmL_CPA, concPGmL_BICA, concNGdL_T, concNGdL_T_free, auc };
+    const concNGdL_T_free = concNGdL_T.map(c => freeTestosteroneNgDl(c, 30, 4.3));
+    const result: SimulationResult = {
+        timeH,
+        concPGmL,
+        concPGmL_E2,
+        concPGmL_CPA,
+        concPGmL_BICA,
+        concNGdL_T,
+        concNGdL_T_free,
+        auc,
+    };
     if (options.swallowedE2) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
     return result;
 }
@@ -3287,7 +3380,8 @@ export function integrateTransmascState(
         h = i === 0 ? hct0 : hctStep(h, freeT, dtH);
         const exposure = Math.max(0, Math.min(1, freeT / scale));
         const bc = bodyCompStep(m, f, exposure, dtH / 24);
-        m = bc.m; f = bc.fVisc;
+        m = bc.m;
+        f = bc.fVisc;
         const haz = amenorrheaHazard(totalT, e2);
         cumHazard += haz * (dtH / 24); // per-day hazard integrated over days
         const prob = 1 - Math.exp(-cumHazard);
@@ -3301,7 +3395,10 @@ export function integrateTransmascState(
 }
 
 // --- Calibration stack (Phase 9.1): scalar EKF + MIPD dose adjustment ---
-export interface EKFState { x: number; P: number; }
+export interface EKFState {
+    x: number;
+    P: number;
+}
 export function ekfStep(
     state: EKFState,
     z: number,

@@ -24,7 +24,8 @@ describe('PK cross-validation 500k', () => {
 
             // RK4 numerical
             const N = Math.max(10, Math.ceil(t * Math.max(ka, ke) * 4) + 10);
-            let G = D, A = 0;
+            let G = D,
+                A = 0;
             if (t > 0) {
                 const dt = t / N;
                 for (let s = 0; s < N; s++) {
