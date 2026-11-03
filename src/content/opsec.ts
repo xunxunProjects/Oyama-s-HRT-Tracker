@@ -1,11 +1,17 @@
 export type OpSecLang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr';
 
+/** The Markdown alert family: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
+ *  `[!WARNING]`, `[!CAUTION]`. `warn` blocks default to `warning`; content
+ *  that needs a softer or harsher register can say which one it is. */
+export type OpSecCalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution';
+
 export type OpSecBlock =
     | { type: 'p'; text: string }
     | { type: 'ul'; items: string[] }
     | { type: 'ol'; items: string[] }
     | { type: 'quote'; text: string }
-    | { type: 'warn'; text: string };
+    | { type: 'warn'; kind?: OpSecCalloutKind; text: string }
+    | { type: 'callout'; kind: OpSecCalloutKind; title?: string; text: string };
 
 export interface OpSecSection {
     id: string;
@@ -16,6 +22,7 @@ export interface OpSecSection {
 
 export interface OpSecContent {
     title: string;
+    contentsLabel: string;
     disclaimerTitle: string;
     disclaimer: string[];
     intro: string;
@@ -27,6 +34,7 @@ export interface OpSecContent {
 
 const ZH: OpSecContent = {
     title: '日常操作与安全',
+    contentsLabel: '目录',
     disclaimerTitle: '免责声明（请先阅读）',
     disclaimer: [
         '本指南由社区成员根据公开资料和常见安全实践整理，是一般性的科普与自我保护建议，不是项目组的官方教程、官方政策或官方收款指南，也不代表项目组对任何工具、服务、币种或平台的背书。',
@@ -64,6 +72,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'note',
                     text: '不要追求“绝对安全”。世界上没有绝对安全的系统，只有把风险降到可接受程度的方案。过度防护让你与世隔绝，也是一种失败。',
                 },
             ],
@@ -111,6 +120,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'warning',
                     text: '真正的工作人员不会私信问你要密码、验证码或恢复码。验证码就是账号本身，谁拿走谁就能登录。',
                 },
             ],
@@ -158,6 +168,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'warning',
                     text: '端到端加密只保护传输过程，不保护已经解锁的手机、截图、对方转发和云端备份。工具选对只是第一步，习惯才是关键。',
                 },
             ],
@@ -220,6 +231,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'note',
                     text: '安全不是“通过一次检查就永远安全”，而是持续降低概率、限制损失。请把官网当作“可信度较高，但仍需保持警惕”的工具，而不是保险箱。',
                 },
             ],
@@ -251,6 +263,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: '本节讲的是个人资金保护和隐私，不是洗钱、逃税、规避制裁或诈骗的教程。隐私技术本身无罪，但滥用技术的行为有罪。请遵守当地法律。',
                 },
                 {
@@ -288,6 +301,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'tip',
                     text: '真正尊重你的人，不会因为你说“我需要先核实一下”而生气。会因此暴怒、威胁或催促的人，本身就值得警惕。',
                 },
             ],
@@ -353,6 +367,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: '人设不是犯罪工具。不要用它诈骗、冒充他人、逃避法律责任或伤害别人。它的用途是保护隐私，不是欺骗。',
                 },
                 {
@@ -424,6 +439,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '被殴打、被威胁、被赶出家门不是“应该承受的代价”。如果你正在经历这些，先联系可信的成年人、老师、医生、社工或当地 LGBTQ+ / 跨性别支持组织；有立即危险时打当地报警或急救电话。不要一个人扛。',
                 },
             ],
@@ -473,6 +489,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '不要因为“说自己是 femboy 比较安全”就强迫自己接受这个标签，也不要假装成另一个真实存在的人。即使你认为“说 femboy 会被打得轻一点”，被打仍然是暴力，不是你需要接受的成本；如果环境危险，优先离开和求助。',
                 },
             ],
@@ -496,10 +513,12 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '高危险行为警告：不要用催吐、催吐药、刺激咽喉、憋尿、脱水、擅自吃药或装晕倒来逃避体检。催吐可能导致误吸、窒息、食管撕裂、电解质紊乱、心律不齐和牙齿腐蚀；呕吐后立刻躺下睡觉尤其危险，可能在睡梦中被呕吐物呛住。不要用“吐完就没事”来判断安全。',
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '如果已经呕吐：先漱口，保持坐姿或侧卧，少量喝水，告诉可信的成年人；如果反复呕吐、胸痛、腹痛、呕血、头晕到站不稳或意识不清，立即就医。不要马上独自睡觉，也不要因为一次“成功”就重复。',
                 },
                 {
@@ -508,6 +527,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: '如果学校强制集体脱衣检查、羞辱你或泄露你的医疗信息，记录时间、地点、在场人员和原话，告诉可信监护人、医生、学校心理老师或当地教育部门/法律援助。不要一个人对抗。',
                 },
             ],
@@ -527,6 +547,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '如果你反复出现自杀想法、已经有计划或自伤冲动：这比任何证明都优先。联系当地急救或危机热线、去急诊、告诉可信的成年人，尽量不要独处。不要为了“保持记录干净”而隐瞒；在评估里隐瞒严重症状，可能让你在最危险的时候得不到帮助。',
                 },
                 {
@@ -604,6 +625,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: '和执法部门打交道时：不要撒谎，少说，要求律师。不撒谎不会让你多损失什么；编造可能让你失去一切。本指南绝不建议伪造文件、冒充官员或妨碍司法程序。',
                 },
             ],
@@ -626,6 +648,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: '不要试图用违法手段“以暴制暴”或伪造身份反击。那会把你自己置于更大的风险里，也会让真正需要帮助的人更难被相信。',
                 },
             ],
@@ -635,6 +658,7 @@ const ZH: OpSecContent = {
 
 const EN: OpSecContent = {
     title: 'Everyday Operations & Security',
+    contentsLabel: 'On this page',
     disclaimerTitle: 'Disclaimer (please read first)',
     disclaimer: [
         'This guide was compiled by community members from public materials and common security practices. It is general educational and self-protection information, not an official tutorial, official policy, or official donation guide from the project, and it does not represent the project’s endorsement of any tool, service, coin, or platform.',
@@ -672,6 +696,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'note',
                     text: 'Do not chase “absolute security.” No system in the world is absolutely secure; there are only ways to reduce risk to an acceptable level. Protecting yourself so hard that you become isolated is also a failure.',
                 },
             ],
@@ -719,6 +744,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'warning',
                     text: 'Real staff will never DM you for your password, verification code, or recovery code. A verification code is the account itself; whoever takes it can sign in as you.',
                 },
             ],
@@ -766,6 +792,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'warning',
                     text: 'End-to-end encryption protects the transport only. It does not protect an unlocked phone, a screenshot, a forwarded message, or a cloud backup. The right tool is step one; habits matter more.',
                 },
             ],
@@ -828,6 +855,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'note',
                     text: 'Security is not a one-time check that makes you safe forever. It is the ongoing work of lowering probability and limiting damage. Treat the official site as a relatively trustworthy tool that still deserves caution — not as a vault.',
                 },
             ],
@@ -859,6 +887,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: 'This section is about personal money protection and privacy. It is not a tutorial for money laundering, tax evasion, sanctions evasion, or fraud. Privacy technology itself is not a crime; abusing it is. Follow local law.',
                 },
                 {
@@ -896,6 +925,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'tip',
                     text: 'People who genuinely respect you will not get angry because you say “I need to verify this first.” Anyone who explodes, threatens, or pressures you at that point is already a red flag.',
                 },
             ],
@@ -961,6 +991,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: 'A persona is not a crime tool. Do not use it to defraud, impersonate someone, evade legal responsibility, or harm others. Its purpose is privacy, not deception.',
                 },
                 {
@@ -1032,6 +1063,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'Being hit, threatened, or thrown out of the house is not “the price you pay.” If you are experiencing this, contact a trusted adult, teacher, doctor, social worker, or local LGBTQ+ / trans support organization. If you are in immediate danger, call your local emergency number. Do not carry this alone.',
                 },
             ],
@@ -1081,6 +1113,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'Do not force yourself to accept the femboy label just because it seems safer, and do not pretend to be a specific real person. Even if you think “saying femboy will get me hit less,” being hit is still violence, not a cost you are required to pay. If the environment is dangerous, prioritize leaving and getting help.',
                 },
             ],
@@ -1104,10 +1137,12 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'High-risk behavior warning: do not use induced vomiting, emetics, throat stimulation, holding urine, dehydration, taking medication on your own, or faking a collapse to avoid a health check. Induced vomiting can cause aspiration, choking, esophageal tears, electrolyte imbalance, heart rhythm problems, and tooth erosion. Lying down to sleep right after vomiting is especially dangerous because you can choke on vomit during sleep. Do not use “I threw up, so I’m fine” as a safety test.',
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'If you have already vomited: rinse your mouth, stay upright or on your side, sip water, and tell a trusted adult. Seek urgent medical care for repeated vomiting, chest or abdominal pain, vomiting blood, dizziness that makes it hard to stand, or confusion. Do not sleep alone right away, and do not repeat it because it “worked” once.',
                 },
                 {
@@ -1116,6 +1151,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: 'If a school forces group undressing, humiliates you, or discloses your medical information, record the time, place, people present, and exact words, and tell a trusted guardian, doctor, school counselor, local education authority, or legal aid. Do not face it alone.',
                 },
             ],
@@ -1135,6 +1171,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'If you have recurrent suicidal thoughts, a plan, or urges to self-harm: that takes priority over any letter. Contact local emergency services or a crisis line, go to an emergency department, tell a trusted adult, and try not to be alone. Do not hide it to “keep your record clean”; hiding severe symptoms during an assessment can leave you without help when you are most at risk.',
                 },
                 {
@@ -1212,6 +1249,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'important',
                     text: 'When dealing with law enforcement: do not lie, say little, and ask for a lawyer. Not lying will not cost you anything extra; making things up can cost you everything. This guide never suggests forging documents, impersonating officials, or obstructing legal proceedings.',
                 },
             ],
@@ -1234,6 +1272,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'warn',
+                    kind: 'caution',
                     text: 'Do not use illegal means to “fight fire with fire” or forge an identity to strike back. That puts you at greater risk and makes it harder for people who genuinely need help to be believed.',
                 },
             ],
@@ -1244,6 +1283,7 @@ const EN: OpSecContent = {
 const ZH_TW: OpSecContent = {
     ...ZH,
     title: '日常操作與安全',
+    contentsLabel: '目錄',
     basicHeading: '基礎：先保護好自己',
     advancedHeading: '進階：高風險與應急處置',
 };
