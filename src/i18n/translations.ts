@@ -1868,7 +1868,8 @@ export const TRANSLATIONS_BASE = {
         'time.days': '{n}d ago',
 
         'disclaimer.title': 'Disclaimer',
-        'opsec.title': 'Everyday Operations & Security',        'disclaimer.text.intro':
+        'opsec.title': 'Everyday Operations & Security',
+        'disclaimer.text.intro':
             "Oyama's HRT Tracker does not provide medical advice. Although Oyama's HRT Tracker includes some medical-related content, it does not guarantee its accuracy or timeliness. It may not be fully applicable to your specific situation. Please note:",
         'disclaimer.text.point1':
             'Medical information is for reference only and cannot replace the diagnosis or treatment advice of qualified medical personnel.',
