@@ -11,12 +11,15 @@ export type OpSecBlock =
     | { type: 'ol'; items: string[] }
     | { type: 'quote'; text: string }
     | { type: 'warn'; kind?: OpSecCalloutKind; text: string }
-    | { type: 'callout'; kind: OpSecCalloutKind; title?: string; text: string };
+    | { type: 'callout'; kind: OpSecCalloutKind; title?: string; text: string }
+    /** Display math. `text` is a LaTeX expression rendered by KaTeX; the
+     *  optional caption is plain prose and is not part of the formula. */
+    | { type: 'math'; text: string; caption?: string };
 
 export interface OpSecSection {
     id: string;
     title: string;
-    level: 'basic' | 'advanced';
+    level: 'basic' | 'advanced' | 'extended';
     blocks: OpSecBlock[];
 }
 
@@ -29,6 +32,8 @@ export interface OpSecContent {
     basicHeading: string;
     advancedHeading: string;
     advancedNote: string;
+    extendedHeading: string;
+    extendedNote: string;
     sections: OpSecSection[];
 }
 
@@ -51,6 +56,9 @@ const ZH: OpSecContent = {
     advancedHeading: '进阶：高风险与应急处置',
     advancedNote:
         '下面这部分针对更极端的情况：被系统性针对、被跟踪、面临真实人身威胁，或怀疑设备与账号已经失守。大多数成员可能一辈子都用不上；请按自己的实际情况取用，只用于正当自卫，不要做违法的事。如果人身安全受到威胁，优先联系当地警方、法律援助或可信赖的专业机构。',
+    extendedHeading: '扩展知识：数学、匿名网络与共识机制',
+    extendedNote:
+        '下面这些是扩展阅读，不要求学会，也不影响你使用前面的清单。它们解释“为什么”：匿名不是一个开关，而是一组假设；数学公式只是帮助理解，不是操作指南。看不懂可以跳过，需要时再回来查。',
     sections: [
         {
             id: 'threat-model',
@@ -653,6 +661,368 @@ const ZH: OpSecContent = {
                 },
             ],
         },
+        {
+            id: 'extended-math',
+            title: '数学小抄：熵、方差、相关与互信息',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '这一节只回答“这个量在问什么”，不要求推导。看不懂公式可以只看每段的第一句话；这些概念主要用于描述不确定性、相似性和关联强度。',
+                },
+                {
+                    type: 'p',
+                    text: '香农熵衡量一个随机变量有多不确定。如果 X 是公平硬币，正反各一半，熵是 1 bit；如果 X 永远等于某个值，熵是 0。熵越高，越难猜。',
+                },
+                {
+                    type: 'math',
+                    text: 'H(X) = -\\sum_{x} p(x)\\log_2 p(x)',
+                    caption: '香农熵：概率越分散，不确定性越大。',
+                },
+                {
+                    type: 'p',
+                    text: '匿名集也可以用熵来描述。如果攻击者认为 N 个候选者等概率，匿名集的熵就是 log2 N；候选集每缩小一半，就少 1 bit。',
+                },
+                {
+                    type: 'math',
+                    text: 'H_{\\text{anon}} = \\log_2 N',
+                    caption: '等概率匿名集：候选者越多，熵越高。',
+                },
+                {
+                    type: 'p',
+                    text: '互信息衡量“知道 Y 之后，X 的不确定性减少了多少”。如果 X 和 Y 独立，互信息是 0；如果 Y 完全决定 X，互信息等于 X 的熵。它不是因果关系，只是统计依赖。',
+                },
+                {
+                    type: 'math',
+                    text: 'I(X;Y) = \\sum_{x,y} p(x,y)\\log_2\\frac{p(x,y)}{p(x)p(y)}',
+                    caption: '互信息：两个变量共享多少信息。',
+                },
+                {
+                    type: 'p',
+                    text: '方差衡量数值围绕均值的离散程度；协方差衡量两个变量是否同向变化；皮尔逊相关系数是把协方差标准化到 -1 到 1 之间。',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Var}(X)=\\mathbb{E}[(X-\\mu)^2],\\qquad \\rho_{X,Y}=\\frac{\\operatorname{Cov}(X,Y)}{\\sigma_X\\sigma_Y}',
+                    caption: '方差、协方差与皮尔逊相关系数。',
+                },
+                {
+                    type: 'p',
+                    text: '皮尔逊系数只捕捉线性关系。两个变量可能有很强的非线性关系，r 仍然接近 0。相关也不等于因果。在流量分析里，攻击者常用时间、包大小、方向的相似度来配对入口和出口；这些相似度可以看成相关性的一种应用。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '公式不是魔法。样本偏差、时间窗口、数据预处理和攻击者掌握的旁路信息，都会改变结论。看到“统计显著”先问：样本怎么来的，假设是什么，能不能被别的解释推翻。',
+                },
+            ],
+        },
+        {
+            id: 'extended-rsa',
+            title: 'RSA：大整数分解与欧拉函数',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'RSA 的安全性建立在一个不对称上：把两个大质数乘起来很容易，把乘积分解回两个质数很难。公钥里有模数 n，私钥需要知道 n 的质因数。',
+                },
+                {
+                    type: 'math',
+                    text: 'n=pq,\\qquad \\varphi(n)=(p-1)(q-1)',
+                    caption: 'RSA 模数与欧拉函数；p、q 是两个大质数。',
+                },
+                {
+                    type: 'p',
+                    text: '欧拉函数 φ(n) 表示 1 到 n 之间与 n 互质的整数个数。RSA 选一个公钥指数 e，再求私钥指数 d，使两者在模 φ(n) 下互为逆元。',
+                },
+                {
+                    type: 'math',
+                    text: 'e d \\equiv 1 \\pmod{\\varphi(n)}',
+                    caption: '公钥指数与私钥指数的关系。',
+                },
+                {
+                    type: 'p',
+                    text: '加密和解密分别是一次模幂运算。只看公式会觉得简单，但真正难的是：不知道 p、q 时，怎样从 n 求出 d。',
+                },
+                {
+                    type: 'math',
+                    text: 'c \\equiv m^e \\pmod n,\\qquad m \\equiv c^d \\pmod n',
+                    caption: 'textbook RSA 的加密与解密；实际使用必须加填充。',
+                },
+                {
+                    type: 'p',
+                    text: '欧拉定理是这套运算能用的原因之一：当 a 与 n 互质时，a 的 φ(n) 次方在模 n 下等于 1。',
+                },
+                {
+                    type: 'math',
+                    text: 'a^{\\varphi(n)} \\equiv 1 \\pmod n \\quad (\\gcd(a,n)=1)',
+                    caption: '欧拉定理。',
+                },
+                {
+                    type: 'p',
+                    text: '经典计算机上最好的通用分解算法是数域筛法一类的亚指数算法，不是多项式时间。2048 位、3072 位 RSA 目前仍被认为经典计算上安全，但这不等于永远安全：密钥太短、实现有漏洞、随机数质量差，都会让“数学上难”变成“工程上已经被打开”。',
+                },
+                {
+                    type: 'p',
+                    text: 'Shor 算法在足够大、可容错的量子计算机上可以多项式时间分解大整数，也可以求离散对数。它威胁的不只是 RSA，还包括 Diffie-Hellman、ECDH、ECDSA、EdDSA 等。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要自己实现 RSA，也不要用“教科书 RSA”直接加密消息。没有 OAEP 填充的 RSA 是确定性的、可延展的；签名也需要 PSS 等合适方案。用经过审计的库和协议，不要发明自己的填充。',
+                },
+            ],
+        },
+        {
+            id: 'extended-ecc',
+            title: 'ECC 与 Shor：椭圆曲线为什么也怕量子计算机',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '椭圆曲线密码（ECC）不是“更复杂的 RSA”，而是换了一个数学难题：在有限域上的椭圆曲线群中，已知点 P 和 Q=kP，求标量 k 很难。这叫椭圆曲线离散对数问题（ECDLP）。',
+                },
+                {
+                    type: 'math',
+                    text: 'y^2 \\equiv x^3 + ax + b \\pmod p',
+                    caption: '有限域上的一条椭圆曲线（需满足非奇异条件）。',
+                },
+                {
+                    type: 'math',
+                    text: 'Q = kP',
+                    caption: '标量乘法；已知 P、Q 求 k 是 ECDLP。',
+                },
+                {
+                    type: 'p',
+                    text: '因为难度的“浓度”更高，ECC 用更短的密钥就能达到和 RSA 相近的经典安全水平，所以手机、TLS、Signal、区块链钱包里到处都是它。但 Shor 算法同样能解离散对数，椭圆曲线并不天然抗量子。',
+                },
+                {
+                    type: 'p',
+                    text: 'Shor 的核心是找周期。以分解 N 为例，选一个与 N 互质的 a，考察 a 的幂在模 N 下的周期 r：',
+                },
+                {
+                    type: 'math',
+                    text: 'f(x)=a^x \\bmod N,\\qquad f(x+r)=f(x)',
+                    caption: 'Shor 把分解问题转化为周期发现问题。',
+                },
+                {
+                    type: 'p',
+                    text: '量子傅里叶变换可以高效找到 r；有了 r，再用最大公约数就可能拆出 N 的因子。',
+                },
+                {
+                    type: 'math',
+                    text: '\\gcd(a^{r/2}\\pm 1, N)',
+                    caption: '知道周期后，经典后处理可以得到因子（不一定一次成功）。',
+                },
+                {
+                    type: 'p',
+                    text: 'Grover 算法常被拿来和 Shor 一起说，但它只给无结构搜索平方根级加速，主要影响对称密钥和哈希的安全余量，不会像 Shor 那样直接破掉 RSA/ECC。',
+                },
+                {
+                    type: 'p',
+                    text: '后量子迁移不是“装一个插件”。目前的方向包括 ML-KEM（Kyber）、ML-DSA（Dilithium）、SLH-DSA（SPHINCS+）等标准，以及把经典算法和后量子算法混用的混合方案。迁移要改协议、证书、库和硬件，周期很长。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '“抗量子”是一个迁移过程，不是某个币或某个 App 的宣传标签。看到自称抗量子的项目，先问：它具体替换了哪一层？密钥和签名方案是什么？有没有独立审计？',
+                },
+            ],
+        },
+        {
+            id: 'extended-tor',
+            title: 'Tor：入口、出口与网桥轮换',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Tor 把流量放进一条由入口（guard）、中间节点和出口组成的电路。每个节点只知道相邻的一跳；正常情况下，没有一个节点同时知道“你是谁”和“你要去哪里”。',
+                },
+                {
+                    type: 'p',
+                    text: '但匿名性不是绝对的。如果同一个对手同时掌握或观察你的入口和出口，并且能对时间、包大小、方向做流量关联，它就可能把电路两端对上。这就是端到端关联攻击。掌握两端不等于每次都能成功，但风险会显著上升。',
+                },
+                {
+                    type: 'p',
+                    text: '入口 guard 长期固定，是为了减少你被恶意 guard 选中的概率；但长期观察同一个 guard 也会给对手更多样本。网桥主要用于绕过封锁，长期使用同一个网桥可能被枚举、封锁或关联。轮换网桥、使用 pluggable transports 可以降低这类风险，但不要频繁到破坏 guard 的安全假设。',
+                },
+                {
+                    type: 'p',
+                    text: 'Tor 隐藏的是网络层来源，不是你的浏览器指纹。登录同一个账号、使用相同语言/时区/字体、下载并打开文件、复制粘贴独特文本，都可能把两次访问关联起来。',
+                },
+                {
+                    type: 'p',
+                    text: '出口节点能看到未加密的 HTTP、DNS 和一些明文协议；HTTPS 保护内容，但域名、时间、流量大小仍然可能泄露。需要更强保护时，应该用端到端加密的应用层协议，而不是只依赖 Tor。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Tor 是隐私工具，不是违法工具。它保护记者、幸存者、少数群体和普通人的正常浏览；但用它做诈骗、骚扰或规避合法监管，后果由你自己承担。',
+                },
+            ],
+        },
+        {
+            id: 'extended-i2p',
+            title: 'I2P 与女巫攻击',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'I2P 使用“大蒜路由”：消息可以包含多条加密的“瓣”，穿过单向隧道。它默认不提供通往普通互联网的出口，更偏向内部服务（eepsite）和点对点应用。',
+                },
+                {
+                    type: 'p',
+                    text: '女巫攻击（Sybil attack）是指攻击者批量伪造身份或节点，让自己在网络中被选中的概率变高。攻击者控制的节点越多，或节点选择算法越可预测，它越容易同时出现在一条隧道或一个分布式哈希表的关键位置，进而做关联、封锁或日蚀攻击。',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{all-adversary}} \\approx f^L',
+                    caption: '简化模型：攻击者控制节点比例 f，隧道长度 L；真实选择更复杂，但多样化仍然重要。',
+                },
+                {
+                    type: 'p',
+                    text: '防御手段包括工作量证明、质押、信誉、节点多样性、限制 floodfill、增加隧道长度、改进 peer 选择等。没有一种能彻底消除女巫攻击，只能提高成本、降低集中度。',
+                },
+                {
+                    type: 'p',
+                    text: 'I2P 不是“升级版 Tor”，两者目标不同：Tor 更像通用出口代理，I2P 更像暗网内部网络。选择哪个取决于你要访问什么、威胁模型是什么，以及你是否能接受更小的生态。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '“节点数量多”不等于安全。攻击者可以租云主机、批量注册，也可以长期潜伏。看一个网络是否抗女巫，要看身份成本、选择算法和去中心化程度，而不是只看节点总数。',
+                },
+            ],
+        },
+        {
+            id: 'extended-dcnet',
+            title: 'DC-Net、阻塞攻击与 Freenet',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'DC-Net（Dining Cryptographers，用餐密码学家）追求信息论匿名：即使攻击者有无限计算能力，只要协议假设成立，也分不出是谁发的消息。参与者两两共享密钥，每人广播一个掩码后的值；所有值异或后，其他人的掩码相互抵消，只剩发送者的消息。',
+                },
+                {
+                    type: 'math',
+                    text: 'M_i = m_i \\oplus \\bigoplus_{j\\ne i} k_{ij}',
+                    caption: '每个参与者广播自己消息与所有共享密钥的异或。',
+                },
+                {
+                    type: 'math',
+                    text: '\\bigoplus_i M_i = \\bigoplus_i m_i',
+                    caption: '所有广播异或后，成对密钥抵消；若只有一人发消息，就只剩那条消息。',
+                },
+                {
+                    type: 'p',
+                    text: '“信息论安全”不等于“部署就安全”。它依赖安全的成对信道、参与者诚实、广播可靠、没有合谋等假设。现实里这些假设很容易被打破。',
+                },
+                {
+                    type: 'p',
+                    text: '阻塞攻击是 DC-Net 的经典问题：恶意参与者拒绝发送、发送畸形数据或反复中断，让协议无法完成。轻则服务瘫痪，重则通过反复重试和时间差缩小匿名集。解决方法包括 blame 协议、匿名检测、超时和冗余，但都会增加复杂度与成本。',
+                },
+                {
+                    type: 'p',
+                    text: 'Freenet 有两种连接模式。OpenNet 允许节点连接陌生人，加入容易、网络大，但也更容易被女巫、流量分析和恶意内容利用；DarkNet 只连接你信任的朋友，对外部攻击更稳，但网络更小，也可能被渗透、被社工、被信任图谱慢慢去匿名化。',
+                },
+                {
+                    type: 'p',
+                    text: '现代威胁模型下，OpenNet 不适合承担强匿名需求。DarkNet 也不是“绝对安全”：长期流量关联、内容指纹、恶意文件、被查获的节点、聊天记录和人为失误，都可能把“匿名”变回“可关联”。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'DC-Net 的信息论安全是协议层面的结论，不是对你使用的某个客户端、某个插件的背书。实现漏洞、身份认证、广播层和元数据，任何一个环节出问题，都会让纸面上的安全性失效。',
+                },
+            ],
+        },
+        {
+            id: 'extended-monero',
+            title: 'Monero 的多签与匿名性',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Monero 默认把隐私放在协议层：环签名隐藏“是谁花的”，stealth address 隐藏“发给谁”，RingCT 隐藏“花了多少”。这比“在透明账本上再套一个混币器”更接近默认隐私。',
+                },
+                {
+                    type: 'p',
+                    text: '环签名让验证者知道签名来自一组公钥中的某一个，但不知道具体是哪一个。环越大，候选集越大；但候选集的质量比数量更重要，如果诱饵很容易被识别，实际匿名集就会缩水。',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Verify}(\\sigma,\\{P_1,\\ldots,P_n\\})=1',
+                    caption: '环签名：验证通过只说明“这 n 个公钥中有一个签了”，不说明是哪一个。',
+                },
+                {
+                    type: 'p',
+                    text: '为了防止同一笔输出被花两次，Monero 使用密钥镜像（key image）。它由私钥和对应公钥的哈希生成，验证者能检查它是否重复，但不能从它反推出私钥。',
+                },
+                {
+                    type: 'math',
+                    text: 'I = k\\,\\mathcal{H}_p(P)',
+                    caption: '密钥镜像的简化形式；实际构造还包含域分离等细节。',
+                },
+                {
+                    type: 'p',
+                    text: '多签（multisig）解决的是另一件事：M-of-N 个密钥共同控制一笔资金，达到 M 个签名才能花。它适合共同托管、escrow、组织金库和防单点失窃，但多签本身不会让交易更匿名；它改变的是密钥管理，不是账本可见性。',
+                },
+                {
+                    type: 'p',
+                    text: 'Monero 用 PoW（RandomX）维护共识；Bitcoin 也是 PoW，但 Bitcoin 的账本透明，地址是假名而不是匿名。把“隐私币”当成法律护盾是危险的：交易所可能拒绝入金、冻结资产，链上分析加上 KYC、IP 和时间信息仍然可能定位到你。',
+                },
+                {
+                    type: 'p',
+                    text: '多签的风险包括：密钥丢失、持有人合谋、实现漏洞、协调过程中的元数据、恢复流程复杂。第一次用小额测试，确认地址、签名流程和备份都能恢复，再考虑大额。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '“默认隐私”不等于“不可追踪”。链上隐私只覆盖链上部分；交易所 KYC、网络元数据、钱包备份、聊天记录和人为失误，往往比密码学更容易出卖一个人。',
+                },
+            ],
+        },
+        {
+            id: 'extended-consensus',
+            title: 'PoW、PoS、PoA，以及比特币为什么能被追踪',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '共识机制决定“谁有权写下一块”，不决定“交易是否隐私”。把 PoW、PoS、PoA 当成隐私功能，是最常见的概念混淆之一。',
+                },
+                {
+                    type: 'p',
+                    text: 'PoW（工作量证明）用算力和能源竞争记账权，攻击者要掌握大量算力才能重组链；PoS（权益证明）用质押的经济价值选 proposer/attester，作恶会被罚没；PoA（权威证明）由被授权的验证者记账，适合联盟链或测试网，信任模型更中心化。',
+                },
+                {
+                    type: 'math',
+                    text: '\\mathbb{E}[T_{\\text{PoW}}]=\\frac{D}{h},\\qquad P_i^{\\text{PoS}}=\\frac{s_i}{\\sum_j s_j}',
+                    caption: '简化直觉：PoW 的出块时间与难度/算力有关；PoS 被选中的概率与质押比例有关。',
+                },
+                {
+                    type: 'p',
+                    text: '很多隐私币确实用 PoW：有的为了避免预挖和 ICO 的中心化，有的为了抗 ASIC（例如 Monero 的 RandomX），有的只是历史路径依赖。但“大多数 PoW 币都是隐私币”不成立——绝大多数 PoW 项目并不是隐私币。两者是相关，不是因果。',
+                },
+                {
+                    type: 'p',
+                    text: 'Bitcoin 是假名，不是匿名。它的 UTXO 账本公开、永久、可追溯。链上分析常用这些线索：共同输入（多个地址一起花，可能属于同一钱包）、找零地址、交易时间、金额习惯、地址复用、交易所 KYC、IP 和节点观测、以及链下聊天记录。只要其中一两个点对上，假名就可能变回真人。',
+                },
+                {
+                    type: 'p',
+                    text: '有人问：ETH 是 PoS，是不是就不会被冻结？更准确的说法是：ETH 协议层没有银行式“冻结某个地址”的按钮，但冻结和审查可以发生在很多层——验证者和中继可以拒绝打包，质押会被罚没，USDC/USDT 等合约可以由发行方冻结余额，交易所可以冻结出入金，跨链桥可以暂停，RPC 和前端也可以屏蔽。PoS 不是抗冻结魔法。',
+                },
+                {
+                    type: 'p',
+                    text: 'PoS 的“最终性”让回滚很贵，但这只说明链层重组困难，不代表任何地址都能无条件交易。抗审查是概率、经济和社会层的综合结果，不是某个共识算法的单一属性。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '做威胁模型时，不要把“共识机制”当成“隐私”或“抗审查”的同义词。你还要考虑：链上分析、交易所合规、稳定币发行方、RPC 提供方、钱包前端、网络层和你自己的操作习惯。',
+                },
+            ],
+        },
     ],
 };
 
@@ -675,6 +1045,9 @@ const EN: OpSecContent = {
     advancedHeading: 'Advanced: high-risk scenarios and incident response',
     advancedNote:
         'The following section is for more extreme situations: systematic targeting, stalking, a real physical threat, or a suspicion that your device or accounts have already been compromised. Most members may never need it. Use it according to your own situation, only for legitimate self-defense, and never do anything illegal. If your physical safety is threatened, contact local law enforcement, legal aid, or a trusted professional organization first.',
+    extendedHeading: 'Extended knowledge: math, anonymity networks, and consensus',
+    extendedNote:
+        'The following pages are optional background reading. You do not need to learn the formulas, and none of it is required to use the checklists above. They explain why anonymity is not a switch but a set of assumptions. The math is here to make the ideas easier to picture, not to serve as an operating manual. Skip anything that is not useful to you and come back later if you need it.',
     sections: [
         {
             id: 'threat-model',
@@ -1277,6 +1650,373 @@ const EN: OpSecContent = {
                 },
             ],
         },
+        {
+            id: 'extended-math',
+            title: 'A math crib sheet: entropy, variance, correlation, and mutual information',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'This section answers only “what is this quantity asking?” You do not need to derive anything. If a formula looks unfriendly, read the first sentence of each paragraph and move on. These ideas are mainly useful for describing uncertainty, similarity, and the strength of an association.',
+                },
+                {
+                    type: 'p',
+                    text: 'Shannon entropy measures how uncertain a random variable is. A fair coin has one bit of entropy; a variable that is always the same value has zero. The higher the entropy, the harder the value is to guess.',
+                },
+                {
+                    type: 'math',
+                    text: 'H(X) = -\\sum_{x} p(x)\\log_2 p(x)',
+                    caption: 'Shannon entropy: more spread-out probabilities mean more uncertainty.',
+                },
+                {
+                    type: 'p',
+                    text: 'Anonymity sets can also be described with entropy. If an attacker thinks N candidates are equally likely, the anonymity-set entropy is log2 N; every time the candidate set halves, one bit is lost.',
+                },
+                {
+                    type: 'math',
+                    text: 'H_{\\text{anon}} = \\log_2 N',
+                    caption: 'Uniform anonymity set: more candidates, more entropy.',
+                },
+                {
+                    type: 'p',
+                    text: 'Mutual information measures how much knowing Y reduces uncertainty about X. It is zero when X and Y are independent, and equals the entropy of X when Y determines X completely. It is a statistical dependence, not proof of causation.',
+                },
+                {
+                    type: 'math',
+                    text: 'I(X;Y) = \\sum_{x,y} p(x,y)\\log_2\\frac{p(x,y)}{p(x)p(y)}',
+                    caption: 'Mutual information: how much information two variables share.',
+                },
+                {
+                    type: 'p',
+                    text: 'Variance measures how spread out values are around their mean. Covariance measures whether two variables tend to move together. The Pearson correlation coefficient is covariance normalized to the range -1 to 1.',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Var}(X)=\\mathbb{E}[(X-\\mu)^2],\\qquad \\rho_{X,Y}=\\frac{\\operatorname{Cov}(X,Y)}{\\sigma_X\\sigma_Y}',
+                    caption: 'Variance, covariance, and the Pearson correlation coefficient.',
+                },
+                {
+                    type: 'p',
+                    text: 'Pearson only captures linear relationships. Two variables can be strongly related in a non-linear way and still have r near zero. Correlation is not causation either. In traffic analysis, an attacker often compares timing, packet sizes, and direction to pair an entry stream with an exit stream; that is a practical application of similarity and correlation.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: 'Formulas are not magic. Sampling bias, the time window, preprocessing, and side information can all change the conclusion. When you see “statistically significant,” ask where the sample came from, what assumptions were made, and whether another explanation fits.',
+                },
+            ],
+        },
+        {
+            id: 'extended-rsa',
+            title: 'RSA: integer factorization and Euler’s totient',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'RSA rests on an asymmetry: multiplying two large primes is easy, but factoring the product back into those primes is hard. The public key contains the modulus n; the private key depends on knowing the factors of n.',
+                },
+                {
+                    type: 'math',
+                    text: 'n=pq,\\qquad \\varphi(n)=(p-1)(q-1)',
+                    caption: 'RSA modulus and Euler’s totient; p and q are large primes.',
+                },
+                {
+                    type: 'p',
+                    text: 'Euler’s totient φ(n) counts the integers from 1 to n that are coprime to n. RSA chooses a public exponent e and computes a private exponent d that is its inverse modulo φ(n).',
+                },
+                {
+                    type: 'math',
+                    text: 'e d \\equiv 1 \\pmod{\\varphi(n)}',
+                    caption: 'The relationship between the public and private exponents.',
+                },
+                {
+                    type: 'p',
+                    text: 'Encryption and decryption are modular exponentiations. The formulas look simple; the hard part is that without p and q, you cannot efficiently compute d from n.',
+                },
+                {
+                    type: 'math',
+                    text: 'c \\equiv m^e \\pmod n,\\qquad m \\equiv c^d \\pmod n',
+                    caption: 'Textbook RSA encryption and decryption; real systems must add padding.',
+                },
+                {
+                    type: 'p',
+                    text: 'Euler’s theorem is one reason the arithmetic works: when a and n are coprime, a raised to φ(n) is congruent to 1 modulo n.',
+                },
+                {
+                    type: 'math',
+                    text: 'a^{\\varphi(n)} \\equiv 1 \\pmod n \\quad (\\gcd(a,n)=1)',
+                    caption: 'Euler’s theorem.',
+                },
+                {
+                    type: 'p',
+                    text: 'The best general-purpose classical factoring algorithms, such as the number field sieve, are sub-exponential rather than polynomial. RSA with 2048 or 3072 bits is still considered classically secure, but that is not the same as “safe forever”: short keys, implementation bugs, and poor randomness can turn a hard mathematical problem into an engineering failure.',
+                },
+                {
+                    type: 'p',
+                    text: 'Shor’s algorithm can factor large integers and compute discrete logarithms in polynomial time on a sufficiently large fault-tolerant quantum computer. It threatens not only RSA but also Diffie-Hellman, ECDH, ECDSA, EdDSA, and related schemes.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'Do not implement RSA yourself, and do not encrypt messages with textbook RSA. Without padding such as OAEP, RSA is deterministic and malleable; signatures also need a proper scheme such as PSS. Use audited libraries and protocols instead of inventing your own padding.',
+                },
+            ],
+        },
+        {
+            id: 'extended-ecc',
+            title: 'ECC and Shor: why elliptic curves also fear quantum computers',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Elliptic-curve cryptography (ECC) is not “RSA with more steps.” It uses a different hard problem: in the group of points on an elliptic curve over a finite field, given P and Q=kP, finding the scalar k is hard. This is the elliptic-curve discrete logarithm problem (ECDLP).',
+                },
+                {
+                    type: 'math',
+                    text: 'y^2 \\equiv x^3 + ax + b \\pmod p',
+                    caption: 'An elliptic curve over a finite field (with a non-singularity condition).',
+                },
+                {
+                    type: 'math',
+                    text: 'Q = kP',
+                    caption: 'Scalar multiplication; recovering k from P and Q is ECDLP.',
+                },
+                {
+                    type: 'p',
+                    text: 'Because the difficulty is more concentrated, ECC reaches classical security comparable to RSA with much shorter keys. That is why it is everywhere: phones, TLS, Signal, and blockchain wallets. But Shor’s algorithm also solves discrete logarithms; elliptic curves are not automatically post-quantum.',
+                },
+                {
+                    type: 'p',
+                    text: 'At the heart of Shor is period finding. To factor N, choose an a coprime to N and look at the period r of powers of a modulo N:',
+                },
+                {
+                    type: 'math',
+                    text: 'f(x)=a^x \\bmod N,\\qquad f(x+r)=f(x)',
+                    caption: 'Shor turns factoring into a period-finding problem.',
+                },
+                {
+                    type: 'p',
+                    text: 'The quantum Fourier transform can find r efficiently. Once r is known, a greatest-common-divisor calculation may recover factors of N.',
+                },
+                {
+                    type: 'math',
+                    text: '\\gcd(a^{r/2}\\pm 1, N)',
+                    caption: 'Classical post-processing after the period is known (it may need retries).',
+                },
+                {
+                    type: 'p',
+                    text: 'Grover’s algorithm is often mentioned alongside Shor, but it gives only a square-root speedup for unstructured search. It mainly affects the safety margin of symmetric keys and hashes; it does not break RSA or ECC outright the way Shor does.',
+                },
+                {
+                    type: 'p',
+                    text: 'Post-quantum migration is not a plugin. Current directions include standards such as ML-KEM (Kyber), ML-DSA (Dilithium), and SLH-DSA (SPHINCS+), plus hybrid schemes that combine classical and post-quantum algorithms. Migration touches protocols, certificates, libraries, and hardware, so it takes years.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '“Quantum-resistant” is a migration process, not a label you can trust because a coin or an app uses it. When a project claims it, ask which layer was replaced, which key and signature schemes are used, and whether there has been an independent audit.',
+                },
+            ],
+        },
+        {
+            id: 'extended-tor',
+            title: 'Tor: entry, exit, and bridge rotation',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Tor places traffic into a circuit made of an entry guard, a middle relay, and an exit. Each relay knows only its adjacent hop; in the normal case, no single relay knows both who you are and where you are going.',
+                },
+                {
+                    type: 'p',
+                    text: 'Anonymity is not absolute. If the same adversary controls or observes both your entry and your exit, and can correlate timing, packet sizes, and direction, it may be able to match the two ends of the circuit. This is an end-to-end correlation attack. Controlling both ends does not guarantee success every time, but it raises the risk substantially.',
+                },
+                {
+                    type: 'p',
+                    text: 'Keeping a long-term entry guard reduces the chance of repeatedly choosing a malicious guard, but long observation of the same guard also gives an adversary more samples. Bridges are mainly for circumvention; using the same bridge for a long time can make it easier to enumerate, block, or correlate. Rotating bridges and using pluggable transports can reduce that risk, but do not rotate so often that you undermine the guard security model.',
+                },
+                {
+                    type: 'p',
+                    text: 'Tor hides your network origin, not your browser fingerprint. Logging into the same account, using the same language, time zone, fonts, downloading and opening files, or pasting a distinctive block of text can all link two visits.',
+                },
+                {
+                    type: 'p',
+                    text: 'An exit relay can see unencrypted HTTP, DNS, and some plaintext protocols. HTTPS protects content, but domain names, timing, and traffic size can still leak. If you need stronger protection, use an end-to-end encrypted application protocol rather than relying on Tor alone.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Tor is a privacy tool, not a crime tool. It protects journalists, survivors, minorities, and ordinary people going about their lives. If you use it for fraud, harassment, or evading lawful oversight, the consequences are yours.',
+                },
+            ],
+        },
+        {
+            id: 'extended-i2p',
+            title: 'I2P and Sybil attacks',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'I2P uses garlic routing: a message can contain multiple encrypted “cloves” and travel through unidirectional tunnels. By default it does not provide an exit to the ordinary internet; it is aimed more at internal services (eepsites) and peer-to-peer applications.',
+                },
+                {
+                    type: 'p',
+                    text: 'A Sybil attack is when an adversary creates many fake identities or nodes to increase the chance of being selected. The more nodes the adversary controls, or the more predictable the selection algorithm, the easier it is to appear repeatedly in a tunnel or at key positions in a distributed hash table, enabling correlation, blocking, or eclipse attacks.',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{all-adversary}} \\approx f^L',
+                    caption:
+                        'Simplified model: adversary controls fraction f of nodes and a tunnel has length L; real selection is more complex, but diversity still matters.',
+                },
+                {
+                    type: 'p',
+                    text: 'Defenses include proof of work, staking, reputation, node diversity, floodfill restrictions, longer tunnels, and better peer selection. None eliminates Sybil attacks completely; they only raise the cost and reduce centralization.',
+                },
+                {
+                    type: 'p',
+                    text: 'I2P is not an “upgraded Tor.” Their goals differ: Tor is closer to a general-purpose exit proxy, while I2P is more of an internal darknet. Which one to use depends on what you need to reach, your threat model, and whether you can accept a smaller ecosystem.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '“More nodes” does not automatically mean “safer.” An adversary can rent cloud hosts, register in bulk, and lurk for a long time. Whether a network resists Sybil attacks depends on identity cost, selection algorithms, and decentralization, not just the node count.',
+                },
+            ],
+        },
+        {
+            id: 'extended-dcnet',
+            title: 'DC-Net, blocking attacks, and Freenet',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'DC-Net (Dining Cryptographers) aims for information-theoretic anonymity: even an adversary with unlimited computing power cannot tell who sent a message, provided the protocol assumptions hold. Participants share pairwise keys and broadcast masked values; when all values are XORed, everyone else’s masks cancel and only the sender’s message remains.',
+                },
+                {
+                    type: 'math',
+                    text: 'M_i = m_i \\oplus \\bigoplus_{j\\ne i} k_{ij}',
+                    caption: 'Each participant broadcasts their message XORed with all shared keys.',
+                },
+                {
+                    type: 'math',
+                    text: '\\bigoplus_i M_i = \\bigoplus_i m_i',
+                    caption:
+                        'XORing every broadcast cancels the pairwise keys; if only one person sends, only that message remains.',
+                },
+                {
+                    type: 'p',
+                    text: '“Information-theoretic security” does not mean “secure in deployment.” It depends on secure pairwise channels, honest participants, reliable broadcast, and no collusion. Those assumptions are easy to break in the real world.',
+                },
+                {
+                    type: 'p',
+                    text: 'The blocking attack is DC-Net’s classic weakness: a malicious participant refuses to send, sends malformed data, or repeatedly interrupts, preventing the protocol from completing. At best this is a denial of service; at worst, repeated retries and timing differences shrink the anonymity set. Blame protocols, anonymous detection, timeouts, and redundancy can help, but they add complexity and cost.',
+                },
+                {
+                    type: 'p',
+                    text: 'Freenet has two connection modes. OpenNet lets nodes connect to strangers: it is easy to join and the network is larger, but it is more exposed to Sybil attacks, traffic analysis, and malicious content. DarkNet connects only to people you trust: it is more resistant to outsiders, but smaller and vulnerable to infiltration, social engineering, and gradual deanonymization through the trust graph.',
+                },
+                {
+                    type: 'p',
+                    text: 'Under modern threat models, OpenNet is not suitable for strong anonymity. DarkNet is not “absolutely safe” either: long-term traffic correlation, content fingerprints, malicious files, seized nodes, chat logs, and human error can all turn “anonymous” back into “linked.”',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'DC-Net’s information-theoretic guarantee is a statement about the protocol, not an endorsement of a particular client or plugin. A bug in the implementation, identity authentication, broadcast layer, or metadata can defeat the paper security.',
+                },
+            ],
+        },
+        {
+            id: 'extended-monero',
+            title: 'Monero multisig and anonymity',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Monero puts privacy into the protocol by default: ring signatures hide who spent, stealth addresses hide who received, and RingCT hides how much was spent. That is closer to default privacy than bolting a mixer onto a transparent ledger.',
+                },
+                {
+                    type: 'p',
+                    text: 'A ring signature lets a verifier know that one key out of a set signed, without learning which one. A larger ring means a larger candidate set, but quality matters more than size: if the decoys are easy to identify, the effective anonymity set shrinks.',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Verify}(\\sigma,\\{P_1,\\ldots,P_n\\})=1',
+                    caption:
+                        'Ring signature: verification only shows that one of the n public keys signed, not which one.',
+                },
+                {
+                    type: 'p',
+                    text: 'To prevent the same output from being spent twice, Monero uses a key image. It is derived from the private key and a hash of the corresponding public key. Verifiers can check whether it has already appeared, but cannot recover the private key from it.',
+                },
+                {
+                    type: 'math',
+                    text: 'I = k\\,\\mathcal{H}_p(P)',
+                    caption:
+                        'Simplified key image; the real construction also includes domain separation and other details.',
+                },
+                {
+                    type: 'p',
+                    text: 'Multisig solves a different problem: M-of-N keys jointly control funds, and at least M signatures are required to spend. It is useful for shared custody, escrow, organizational treasuries, and reducing single-key theft risk. Multisig does not make a transaction more anonymous by itself; it changes key management, not ledger visibility.',
+                },
+                {
+                    type: 'p',
+                    text: 'Monero uses proof of work (RandomX) for consensus. Bitcoin also uses proof of work, but Bitcoin’s ledger is transparent and its addresses are pseudonymous rather than anonymous. Treating a “privacy coin” as a legal shield is dangerous: exchanges may refuse deposits or freeze assets, and chain analysis combined with KYC, IP, and timing data can still locate you.',
+                },
+                {
+                    type: 'p',
+                    text: 'Multisig risks include lost keys, collusion among holders, implementation bugs, metadata during coordination, and complicated recovery. Test with a small amount first; confirm that addresses, signing, and backups all recover before trusting it with serious money.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '“Private by default” does not mean “untraceable.” On-chain privacy covers only the on-chain part. Exchange KYC, network metadata, wallet backups, chat logs, and human error are often easier ways to identify a person than breaking the cryptography.',
+                },
+            ],
+        },
+        {
+            id: 'extended-consensus',
+            title: 'PoW, PoS, PoA, and why Bitcoin can be traced',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'A consensus mechanism decides who may write the next block. It does not decide whether transactions are private. Confusing PoW, PoS, or PoA with a privacy feature is one of the most common category errors in crypto.',
+                },
+                {
+                    type: 'p',
+                    text: 'Proof of work (PoW) uses computing power and energy to compete for the right to produce blocks; an attacker needs a large share of hash power to reorganize the chain. Proof of stake (PoS) uses staked economic value to select proposers and attesters, with slashing for misbehavior. Proof of authority (PoA) uses authorized validators, which suits consortium chains or testnets but has a more centralized trust model.',
+                },
+                {
+                    type: 'math',
+                    text: '\\mathbb{E}[T_{\\text{PoW}}]=\\frac{D}{h},\\qquad P_i^{\\text{PoS}}=\\frac{s_i}{\\sum_j s_j}',
+                    caption:
+                        'Simplified intuition: PoW block time depends on difficulty and hash rate; in PoS the chance of being selected depends on the stake share.',
+                },
+                {
+                    type: 'p',
+                    text: 'Many privacy coins do use PoW: some wanted to avoid pre-mines and ICO centralization, some wanted ASIC resistance (for example, Monero’s RandomX), and some simply inherited the choice. But it is false that “most PoW coins are privacy coins” — the vast majority of PoW projects are not privacy coins. The correlation is not causation.',
+                },
+                {
+                    type: 'p',
+                    text: 'Bitcoin is pseudonymous, not anonymous. Its UTXO ledger is public, permanent, and traceable. Chain analysis commonly uses common-input ownership (addresses spent together may belong to one wallet), change addresses, timing, amount patterns, address reuse, exchange KYC, IP and node observation, and off-chain chat logs. If a couple of those line up, a pseudonym can become a person.',
+                },
+                {
+                    type: 'p',
+                    text: 'People sometimes ask: since Ethereum is PoS, can’t its addresses avoid being frozen? More precisely: the Ethereum protocol has no bank-style “freeze this address” button, but freezing and censorship can happen at many layers. Validators and relays can refuse to include a transaction; staked funds can be slashed; stablecoin contracts such as USDC and USDT can freeze balances at the issuer’s direction; exchanges can freeze deposits and withdrawals; bridges can pause; RPC providers and frontends can block access. PoS is not anti-freeze magic.',
+                },
+                {
+                    type: 'p',
+                    text: 'PoS finality makes reorgs expensive, but that only means chain-level reversal is hard; it does not mean every address can transact unconditionally. Censorship resistance is a combined property of the protocol, the economy, and the social layer, not a single feature of a consensus algorithm.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'When you build a threat model, do not treat “consensus mechanism” as a synonym for “privacy” or “censorship resistance.” You also need to consider chain analysis, exchange compliance, stablecoin issuers, RPC providers, wallet frontends, the network layer, and your own operational habits.',
+                },
+            ],
+        },
     ],
 };
 
@@ -1286,6 +2026,9 @@ const ZH_TW: OpSecContent = {
     contentsLabel: '目錄',
     basicHeading: '基礎：先保護好自己',
     advancedHeading: '進階：高風險與應急處置',
+    extendedHeading: '延伸知識：數學、匿名網路與共識機制',
+    extendedNote:
+        '下面這些是延伸閱讀，不要求學會，也不影響你使用前面的清單。它們解釋「為什麼」：匿名不是一個開關，而是一組假設；數學公式只是幫助理解，不是操作指南。看不懂可以跳過，需要時再回來查。',
 };
 
 const CONTENT: Record<string, OpSecContent> = {
