@@ -27,6 +27,7 @@
     "@noble/ciphers": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "bcryptjs": "^3.0.3",
+    "framer-motion": "^14.9.1",
     "jose": "^6.2.14",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.9",
