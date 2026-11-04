@@ -170,6 +170,45 @@ export function bodyCompStep(
     return { m: m + dm * dtDays, fVisc: fVisc + df * dtDays };
 }
 
+// --- Body composition curve (A4): integrate slow variables over a simulation ---
+export function bodyCompCurve(
+    sim: SimulationResult,
+    params: BodyCompParams = DEFAULT_BODY_COMP_PARAMS,
+    windowH: number = 90 * 24,
+    scalePgMl: number = 200,
+): { m: number[]; fVisc: number[] } {
+    const n = sim.timeH.length;
+    const mArr: number[] = new Array(n);
+    const fArr: number[] = new Array(n);
+    // Prefix sums for O(1) windowed averages.
+    const prefix: number[] = new Array(n + 1);
+    prefix[0] = 0;
+    for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + sim.concPGmL_E2[i];
+
+    let m = 0;
+    let f = 0;
+    let left = 0;
+    for (let i = 0; i < n; i++) {
+        const t = sim.timeH[i];
+        const cutoff = t - windowH;
+        while (left > 0 && sim.timeH[left - 1] >= cutoff) left--; // not needed, kept for safety
+        while (left < i && sim.timeH[left] < cutoff) left++;
+        const cnt = i - left + 1;
+        const sum = prefix[i + 1] - prefix[left];
+        const avg = cnt > 0 ? sum / cnt : 0;
+        const exposure = Math.max(0, Math.min(1, avg / scalePgMl));
+        const dtDays = i > 0 ? (sim.timeH[i] - sim.timeH[i - 1]) / 24 : 0;
+        if (i > 0) {
+            const bc = bodyCompStep(m, f, exposure, dtDays, params);
+            m = bc.m;
+            f = bc.fVisc;
+        }
+        mArr[i] = m;
+        fArr[i] = f;
+    }
+    return { m: mArr, fVisc: fArr };
+}
+
 // --- Gonadectomy / uterus state (Phase 4.1) ---
 export type GonadectomyState = 'intact' | 'hysterectomy-only' | 'bso';
 
@@ -373,6 +412,11 @@ export interface SimulationResult {
     // baseline is supplied.
     endogenousTNgDl?: number[];
     endogenousT_ngDl?: number[];
+    // Transfeminine: body-composition slow variables (relative units).
+    muscleM?: number[];
+    bodyCompM?: number[];
+    visceralFat?: number[];
+    bodyCompFVisc?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -4005,6 +4049,13 @@ export function runSimulation(
             result.endogenousT_ngDl = result.endogenousTNgDl;
         }
     }
+
+    // Body composition (A4): slow variables driven by 90-d rolling E2 average.
+    const bc = bodyCompCurve(result, DEFAULT_BODY_COMP_PARAMS);
+    result.muscleM = bc.m;
+    result.bodyCompM = bc.m;
+    result.visceralFat = bc.fVisc;
+    result.bodyCompFVisc = bc.fVisc;
     return result;
 }
 
