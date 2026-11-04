@@ -513,6 +513,19 @@ export interface SimulationResult {
     lipidLDL?: number[];
     // Transfeminine: VTE / coagulation risk flag (0..1).
     vteRisk?: number[];
+    // Transmasculine: bioavailable testosterone (ng/dL) = free + albumin-bound.
+    concNGdL_T_bioavailable?: number[];
+    // Transmasculine: hematocrit (fraction) over the simulation.
+    hct?: number[];
+    // Transmasculine: amenorrhea probability over the simulation.
+    amenorrheaProb?: number[];
+    // Transmasculine: body-composition slow variables (relative units).
+    tMuscle?: number[];
+    tVisceralFat?: number[];
+    // Transmasculine: endogenous E2 from T aromatization (pg/mL).
+    endogenousE2PgMl?: number[];
+    // Transmasculine: DHT (ng/dL) from 5-alpha reduction.
+    dhtNgDl?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -4237,6 +4250,20 @@ export function runSimulation(
 
     // VTE / coagulation risk (A8).
     result.vteRisk = vteRiskCurve(result, DEFAULT_VTE_PARAMS);
+
+    // Plan B transmasculine wiring: only when testosterone is present.
+    const hasT = result.concNGdL_T.some(v => v > 0);
+    if (hasT) {
+        result.concNGdL_T_free = result.concNGdL_T_free ?? result.concNGdL_T.map(c => freeTestosteroneNgDl(c, 30, 4.3));
+        result.concNGdL_T_bioavailable = result.concNGdL_T.map(c => bioavailableTestosteroneNgDl(c, 30, 4.3));
+        const integ = integrateTransmascState(result, {});
+        result.hct = integ.hct;
+        result.amenorrheaProb = integ.amenorrheaProb;
+        result.tMuscle = integ.muscle;
+        result.tVisceralFat = integ.viscFat;
+        result.endogenousE2PgMl = result.concNGdL_T.map(c => endogenousBackground('intact', 1, 0.05 * c).e2Endo);
+        result.dhtNgDl = result.concNGdL_T.map(c => dhtFromTestosterone(c, 0));
+    }
 
     return result;
 }
