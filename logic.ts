@@ -3996,7 +3996,8 @@ export function interpolateConcentration_E2_free(sim: SimulationResult, hour: nu
 export function interpolateConcentration_E2_bioavailable(sim: SimulationResult, hour: number): number | null {
     if (!sim.concPGmL_E2_bioavailable || !sim.timeH.length) return null;
     if (hour <= sim.timeH[0]) return sim.concPGmL_E2_bioavailable[0];
-    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concPGmL_E2_bioavailable[sim.concPGmL_E2_bioavailable.length - 1];
+    if (hour >= sim.timeH[sim.timeH.length - 1])
+        return sim.concPGmL_E2_bioavailable[sim.concPGmL_E2_bioavailable.length - 1];
 
     let low = 0;
     let high = sim.timeH.length - 1;
