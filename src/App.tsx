@@ -71,6 +71,7 @@ import Credits from './pages/Credits';
 import CommunityVote from './pages/CommunityVote';
 import Disclaimer from './pages/Disclaimer';
 import OpSec from './pages/OpSec';
+import PKVisualization from './pages/PKVisualization';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import PublicShare from './pages/PublicShare';
@@ -1075,6 +1076,7 @@ const AppContent = () => {
                             setAgeBeta={setAgeBeta}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
+                            onNavigateToPKViz={() => handleViewChange('settings-pk-viz')}
                             onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
                             onNavigateToLanguage={() => handleViewChange('settings-language')}
                             onNavigateToAppearance={() => handleViewChange('settings-appearance')}
@@ -1231,6 +1233,8 @@ const AppContent = () => {
                     )}
 
                     {currentView === 'settings-opsec' && <OpSec onBack={() => handleViewChange('settings')} />}
+
+                    {currentView === 'settings-pk-viz' && <PKVisualization onBack={() => handleViewChange('settings')} />}
 
                     {currentView === 'settings-disclaimer' && (
                         <Disclaimer onBack={() => handleViewChange('settings')} />
