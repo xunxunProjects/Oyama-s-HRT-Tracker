@@ -2,7 +2,7 @@ import type { RequestContext } from '../../../worker';
 
 const SESSION_IDLE_TIMEOUT_SECONDS = 3 * 24 * 60 * 60;
 const SESSION_JWT_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
-const LIVE_SESSION_SQL = `created_at > ?1 - ${SESSION_JWT_LIFETIME_SECONDS} AND last_used_at > ?1 - ${SESSION_IDLE_TIMEOUT_SECONDS}`;
+export const LIVE_SESSION_SQL = `created_at > ?1 - ${SESSION_JWT_LIFETIME_SECONDS} AND last_used_at > ?1 - ${SESSION_IDLE_TIMEOUT_SECONDS}`;
 
 export async function handleSessionsRoute(
     ctx: RequestContext,
