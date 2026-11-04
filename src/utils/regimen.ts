@@ -446,8 +446,10 @@ function steadyAfter(timeH: number[], value: number[], fromH: number, cycleH: nu
  * Range: each run drops projected doses at the person's measured miss rate,
  * moves each by their measured timing spread, and scales the whole run by a
  * draw from the calibration's own error (none when there are no blood tests,
- * rather than a borrowed population figure). The band is the 10th to 90th
- * percentile across runs, hour by hour.
+ * rather than a borrowed population figure). Full Bayes supplies a posterior
+ * SD for every hour, so its draw is scaled hour by hour: narrow near the blood
+ * tests, wider as they age. The other methods use their constant fit error.
+ * The band is the 10th to 90th percentile across runs, hour by hour.
  */
 function simulateScenario(
     input: ForecastInput,
@@ -475,11 +477,12 @@ function simulateScenario(
     if (!sim || !sim.timeH.length) return null;
 
     let factor: (h: number) => number = () => 1;
+    let factorSd: ((h: number) => number) | null = null;
     let value: number[];
     if (isTransmasc) {
         value = sim.timeH.map((_, i) => sim.concNGdL_T?.[i] ?? 0);
     } else {
-        factor = computeCalibration(
+        const calibration = computeCalibration(
             sim,
             all,
             weight,
@@ -487,7 +490,9 @@ function simulateScenario(
             calibrationMethod,
             calibrationHistoryMode,
             birthYear,
-        ).factorFn;
+        );
+        factor = calibration.factorFn;
+        factorSd = calibration.factorSdFn ?? null;
         value = sim.timeH.map((h, i) => sim.concPGmL_E2[i] * factor(h));
     }
 
@@ -508,7 +513,10 @@ function simulateScenario(
         peaks: number[] = [],
         averages: number[] = [];
     for (let run = 0; run < RUNS; run++) {
-        const scale = Math.exp(sigma * gauss());
+        // One draw per run, taken first, so the random sequence (and every
+        // other method's band) is unchanged.
+        const z = gauss();
+        const scale = Math.exp(sigma * z);
         const shifted: DoseEvent[] = [];
         for (const e of projected) {
             if (rand() < habits.missRate) continue;
@@ -522,7 +530,9 @@ function simulateScenario(
         );
         if (!runSim || !runSim.timeH.length) continue;
         const raw = isTransmasc ? runSim.timeH.map((_, i) => runSim.concNGdL_T?.[i] ?? 0) : runSim.concPGmL_E2;
-        const vals = grid.map(h => interp(runSim.timeH, raw, h) * factor(h) * scale);
+        const vals = grid.map(
+            h => interp(runSim.timeH, raw, h) * factor(h) * (factorSd ? Math.exp(factorSd(h) * z) : scale),
+        );
         vals.forEach((v, i) => perHour[i].push(v));
         const s = statsOn(grid, vals, statFromH, statToH, target);
         if (s) {

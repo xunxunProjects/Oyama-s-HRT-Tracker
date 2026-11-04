@@ -419,6 +419,8 @@ describe('lab calibration reports and draws the same thing', () => {
         ['mipd', 'retrospective'],
         ['ou_kalman', 'forward'],
         ['ou_kalman', 'retrospective'],
+        ['bayes', 'forward'],
+        ['bayes', 'retrospective'],
     ] as const)('%s %s: the reported fit error describes the drawn curve', (method, mode) => {
         const truth = withClearance(1.4);
         const labs = LAB_TIMES.map((t, i) => lab(t, E2(truth, t)! * (i % 2 ? 1.3 : 0.9)));
