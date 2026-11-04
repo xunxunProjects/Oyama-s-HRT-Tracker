@@ -23,6 +23,7 @@ import { handleSessionsRoute } from './src/server/routes/sessions';
 import { handleTwoFactorRoute } from './src/server/routes/twoFactor';
 import { handlePasskeysRoute } from './src/server/routes/passkeys';
 import { handleUserProfileRoute } from './src/server/routes/userProfile';
+import { handleContentRoute } from './src/server/routes/content';
 import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
@@ -1703,92 +1704,22 @@ export default {
                 }
 
                 // Content
-                if (url.pathname.startsWith('/api/content')) {
-                    // Metadata only. This used to also serve every retained body when
-                    // `meta=1` was omitted — up to MAX_CLOUD_BACKUPS × 2 MiB — for a caller
-                    // that no longer existed. Bodies come one at a time from /api/content/:id.
-                    if (url.pathname === '/api/content' && request.method === 'GET') {
-                        const content = await listContent(env, userId);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify(content), {
-                                status: 200,
-                                headers: {
-                                    ...corsHeaders,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-store',
-                                },
-                            }),
-                        );
-                    }
-                    if (url.pathname === '/api/content' && request.method === 'POST') {
-                        // Same guard the share endpoints already apply. Without it this
-                        // buffered, parsed and re-serialised whatever was sent against the
-                        // isolate's memory ceiling, with no rate limit on the path either.
-                        if (!(await checkRateLimit(env, `content-write:${userId}`, 20))) {
-                            return jsonError('RATE_LIMITED', 'Too many backups. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        }
-                        // Streamed and cancelled at the cap: the old text() read
-                        // buffered a chunked body in full before the byte check.
-                        const parsedBody = await readSmallJsonBody(request, MAX_CLOUD_BACKUP_BYTES);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Backup exceeds the 2 MiB limit', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const data = (parsedBody.value as { data?: unknown } | null)?.data;
-                        // `JSON.stringify(undefined)` is undefined, which the D1 bind below
-                        // rejects with a 500 — reject it here as the 400 it actually is.
-                        if (data === undefined) {
-                            return jsonError('INVALID_REQUEST', 'Missing data', 400);
-                        }
-                        const id = await storeContent(env, userId, data);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Content saved', id }), {
-                                status: 201,
-                                headers: {
-                                    ...corsHeaders,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-store',
-                                },
-                            }),
-                        );
-                    }
-                    // Delete a specific backup (user can only delete their own)
-                    if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'DELETE') {
-                        const backupId = url.pathname.split('/').pop();
-                        await env.DB.prepare('DELETE FROM content WHERE id = ? AND user_id = ?')
-                            .bind(backupId, userId)
-                            .run();
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Backup deleted' }), {
-                                status: 200,
-                                headers: {
-                                    ...corsHeaders,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-store',
-                                },
-                            }),
-                        );
-                    }
-                    // Load a specific backup by ID
-                    if (url.pathname.match(/^\/api\/content\/[^/]+$/) && request.method === 'GET') {
-                        const backupId = url.pathname.split('/').pop()!;
-                        const row = await getContent(env, userId, backupId);
-                        if (!row) return jsonError('NOT_FOUND', 'Not found', 404);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify(row), {
-                                status: 200,
-                                headers: {
-                                    ...corsHeaders,
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'no-store',
-                                },
-                            }),
-                        );
-                    }
-                }
+                const contentResponse = await handleContentRoute(
+                    createRequestContext(
+                        request,
+                        env,
+                        ctx,
+                        jwtSecret,
+                        corsHeaders,
+                        privateCacheHeaders,
+                        withSecurityHeaders,
+                        jsonError,
+                        shareJson,
+                        sessionInvalid,
+                    ),
+                    userId,
+                );
+                if (contentResponse) return contentResponse;
 
                 // Profile / Password / Delete Me
                 const userProfileResponse = await handleUserProfileRoute(
