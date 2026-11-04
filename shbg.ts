@@ -20,7 +20,7 @@
  * better than a constant free fraction (§18 has the scenarios, the
  * sensitivity analysis and the decision rule).
  */
-import type { SimulationResult } from './logic';
+import type { SimulationResult } from './src/domain/types';
 
 /** mol/L of estradiol per pg/mL (MW 272.38). */
 const MOLAR_PER_PG_ML = 1e-9 / 272.38;
