@@ -1,5 +1,6 @@
 import type { RequestContext } from '../../../worker';
 import { hrtCapability } from '../../../hrtPairing';
+import { exchangeF2fCliCode } from '../../../f2f';
 import { handleCommunityVotePublic } from '../../../communityVoteServer';
 import { getClientIP } from '../../../requestInput';
 import { checkRateLimit } from '../rateLimit';
@@ -156,6 +157,62 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
                 },
             }),
         );
+    }
+
+    // Avatar GET (public)
+    if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET') {
+        const clientIP = getClientIP(request, env);
+        if (!(await checkRateLimit(env, clientIP ? `avatar:${clientIP}` : 'avatar:global-noip', 300))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+        const username = url.pathname.split('/').pop();
+        const genericNotFound = () => jsonError('NOT_FOUND', 'Not found', 404);
+
+        try {
+            const user = (await env.DB.prepare('SELECT id FROM users WHERE username = ?')
+                .bind(username)
+                .first()) as any;
+            const userId = user ? user.id : username === 'Admin' ? 'admin' : null;
+            if (!userId) return genericNotFound();
+
+            const object = await env.AVATAR_BUCKET.get(`hrt-tracker-user-avatar/${userId}`);
+            if (!object) {
+                return withSecurityHeaders(
+                    new Response(null, {
+                        status: 204,
+                        headers: {
+                            'Access-Control-Allow-Origin': '*',
+                            'Cache-Control': 'no-store',
+                        },
+                    }),
+                );
+            }
+
+            const headers = new Headers();
+            object.writeHttpMetadata(headers);
+            headers.set('Access-Control-Allow-Origin', '*');
+            headers.set('Cache-Control', 'public, max-age=3600');
+            return withSecurityHeaders(new Response(object.body, { headers }));
+        } catch (e) {
+            return genericNotFound();
+        }
+    }
+
+    // F2F CLI token exchange (public)
+    if (url.pathname === '/api/f2f/cli/token') {
+        if (request.method !== 'POST') {
+            return jsonError('INVALID_REQUEST', 'method not allowed', 405);
+        }
+        const clientIP = getClientIP(request, env);
+        const limitKey = clientIP ? `f2f-cli-token:${clientIP}` : 'f2f-cli-token:global-noip';
+        if (!(await checkRateLimit(env, limitKey, clientIP ? 10 : 30))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+        return withSecurityHeaders(await exchangeF2fCliCode(request, env, ctx.jwtSecret));
     }
 
     return null;
