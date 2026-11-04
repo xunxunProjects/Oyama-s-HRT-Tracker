@@ -50,6 +50,9 @@ export default defineConfig(() => {
                     // Shared pages require the network API and should always load the
                     // current application shell instead of an older precached shell.
                     navigateFallbackDenylist: [/^\/share(?:\/|$)/],
+                    // The main bundle exceeds the default 2 MiB precache limit; raise
+                    // it so the app shell can still be precached for offline use.
+                    maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
                 },
             }),
         ],
