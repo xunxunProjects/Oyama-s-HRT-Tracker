@@ -1,6 +1,9 @@
-import { Ester } from '../types';
-import { DEFAULT_PK_PARAMS } from '../constants';
+import { Ester, Route } from '../types';
+import type { PkRouteModule } from '../shared/module';
+import { DEFAULT_PK_PARAMS, T_DepotPK, T_EsterPK, getToE2Factor } from '../constants';
 import { _activePKParams } from '../shared/activeParams';
+import { tClearance, zeroPKParams } from '../shared/params';
+import { buildTwoPartAmount } from '../shared/amounts';
 
 export function _getTInjFF(ester: Ester): number {
     const p = _activePKParams;
@@ -10,24 +13,24 @@ export function _getTInjFF(ester: Ester): number {
     return DEFAULT_PK_PARAMS.t_ff_TE;
 }
 
-// Oral cyproterone acetate, from the Androcur 50 mg SmPC, section 5.2
-// (https://www.medicines.org.uk/emc/product/15996/smpc/print): bioavailability
-// 88%; two 50 mg tablets give "maximum serum levels of about 285 ng/ml at about
-// 3 hours"; terminal half-life 43.9 h; total clearance 3.5 ml/min/kg.
-//
-// Absorbed at ka, it then leaves the blood in two phases, so the response to
-// the absorbed amount, read through the 14 L/kg volume the CPA curve uses, is
-// (wFast·e^(−αt) + wSlow·e^(−βt)) / V. The integral of the bracket, wFast/α + wSlow/β, is V/CL
-// = 14 / (0.0035·60) = 66.7 h, which fixes total exposure at the label's
-// clearance. ka = 0.5/h and α = 0.25/h (a 2.8 h first phase) put the peak at 3 h,
-// and wFast is the weight that makes it 285 ng/mL; about a third of the exposure
-// is in the first phase. The model used to put the whole dose straight into the
-// slow phase with F = 0.7, which kept total exposure near (0.7x) but made the
-// 100 mg peak about 67 ng/mL.
-//
-// All of this is single-dose data. Low doses likely read low: the Dianette
-// (Diane-35) label gives 15 ng/mL at 1.6 h after 2 mg
-// (https://www.medicines.org.uk/emc/product/1122/smpc), where the model peaks
-// at about 5.7 ng/mL at 3 h at 70 kg, and a linear model fitted to 100 mg
-// cannot follow both.
-// Levels on daily dosing have not been checked against multiple-dose studies.
+export const tInjectionModule: PkRouteModule = {
+    routes: [Route.injection],
+    esters: [Ester.T, Ester.TC, Ester.TE, Ester.TU],
+    bioavailability(_route, ester) {
+        return ester === Ester.T ? 0 : _getTInjFF(ester) * getToE2Factor(ester);
+    },
+    resolveParams(event, birthYear) {
+        const k3 = tClearance(event, birthYear);
+        if (event.ester === Ester.T) return zeroPKParams(k3);
+
+        const Frac_fast = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;
+        const k1_fast = (T_DepotPK.k1_fast as any)[event.ester] ?? 0.025;
+        const k1_slow = (T_DepotPK.k1_slow as any)[event.ester] ?? 0.005;
+        const k2 = (T_EsterPK.k2 as any)[event.ester] ?? 0.2;
+        const F = _getTInjFF(event.ester) * getToE2Factor(event.ester);
+        return { Frac_fast, k1_fast, k1_slow, k2, k3, F, rateMGh: 0, F_fast: F, F_slow: F };
+    },
+    buildAmount(event, _allEvents, params) {
+        return buildTwoPartAmount(event, params);
+    },
+};

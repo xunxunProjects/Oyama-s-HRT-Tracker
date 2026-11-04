@@ -1,5 +1,9 @@
-import { OralPK, SL_TIER_ORDER, SublingualTierParams } from '../constants';
+import { Ester, ExtraKey, Route } from '../types';
+import type { PkRouteModule } from '../shared/module';
+import { EsterPK, OralPK, SL_TIER_ORDER, SublingualTierParams, getToE2Factor } from '../constants';
 import { _activePKParams } from '../shared/activeParams';
+import { e2Clearance } from '../shared/params';
+import { buildSublingualAmount } from '../shared/amounts';
 
 export function _getSLTheta(tierKey: string): number {
     const p = _activePKParams;
@@ -104,3 +108,65 @@ function _slHoldPoints(): { hold: number; theta: number }[] {
         (a, b) => a.hold - b.hold,
     );
 }
+
+export const e2SublingualModule: PkRouteModule = {
+    routes: [Route.sublingual],
+    esters: [Ester.E2, Ester.EB, Ester.EV, Ester.EC, Ester.EN, Ester.EU],
+    bioavailability(_route, ester, extras) {
+        let theta = _activePKParams.e2_sl_standard;
+        if (extras[ExtraKey.sublingualTheta] !== undefined) {
+            const customTheta = extras[ExtraKey.sublingualTheta];
+            if (typeof customTheta === 'number' && Number.isFinite(customTheta)) {
+                theta = Math.min(1, Math.max(0, customTheta));
+            }
+        } else if (extras[ExtraKey.sublingualTier] !== undefined) {
+            const tierIdx = Math.min(
+                SL_TIER_ORDER.length - 1,
+                Math.max(0, Math.round(extras[ExtraKey.sublingualTier]!)),
+            );
+            const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
+            theta = _getSLTheta(tierKey);
+        }
+        return (theta + (1 - theta) * _activePKParams.e2_oral_bio) * getToE2Factor(ester);
+    },
+    resolveParams(event, birthYear) {
+        const extras = event.extras ?? {};
+        let theta = _activePKParams.e2_sl_standard;
+        if (extras[ExtraKey.sublingualTheta] !== undefined) {
+            const customTheta = extras[ExtraKey.sublingualTheta];
+            if (typeof customTheta === 'number' && Number.isFinite(customTheta)) {
+                theta = Math.min(1, Math.max(0, customTheta));
+            }
+        } else if (extras[ExtraKey.sublingualTier] !== undefined) {
+            const tierRaw = extras[ExtraKey.sublingualTier];
+            if (typeof tierRaw === 'number' && Number.isFinite(tierRaw)) {
+                const tierIdx = Math.min(SL_TIER_ORDER.length - 1, Math.max(0, Math.round(tierRaw)));
+                const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
+                theta = _getSLTheta(tierKey);
+            }
+        }
+        const toE2 = getToE2Factor(event.ester);
+        const k1_fast = OralPK.kAbsSL;
+        const k1_slow = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
+        const k2 = EsterPK.k2[event.ester] ?? 0;
+        const k2_slow = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
+        const F_fast = toE2;
+        const F_slow = _activePKParams.e2_oral_bio * toE2;
+        const F = theta * F_fast + (1 - theta) * F_slow;
+        return {
+            Frac_fast: theta,
+            k1_fast,
+            k1_slow,
+            k2,
+            k2_slow,
+            k3: e2Clearance(event, birthYear),
+            F,
+            rateMGh: 0,
+            F_fast,
+            F_slow,
+        };
+    },
+    buildAmount(event, _allEvents, params) {
+        return buildSublingualAmount(event, params);
+    },
+};
