@@ -20,9 +20,7 @@ describe('extractLatexVariables', () => {
     });
 
     it('ignores LaTeX commands and text/mathrm labels', () => {
-        expect(
-            extractLatexVariables('\\text{dose} = D \\mathrm{mg},\\; \\exp(x)'),
-        ).toEqual(['D', 'x']);
+        expect(extractLatexVariables('\\text{dose} = D \\mathrm{mg},\\; \\exp(x)')).toEqual(['D', 'x']);
     });
 
     it('handles braced subscripts', () => {

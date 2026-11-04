@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import {
-    LazyMotion,
-    domAnimation,
-    m,
-    useSpring,
-    useTransform,
-    useReducedMotion,
-} from 'framer-motion';
+import { LazyMotion, domAnimation, m, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 
 import {
     MAX_ANIMATION_MS,
@@ -52,7 +45,7 @@ function VariableItem({
     reducedMotion: boolean;
 }) {
     const spring = useSpring(initial, reducedMotion ? { duration: 0 } : SPRING_CONFIG);
-    const formatted = useTransform(spring, (v) => v.toFixed(decimals));
+    const formatted = useTransform(spring, v => v.toFixed(decimals));
     const variants = reducedMotion
         ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0, transition: { duration: 0 } } }
         : itemVariants;
@@ -62,7 +55,10 @@ function VariableItem({
     }, [spring, value]);
 
     return (
-        <m.li variants={variants} className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1 text-sm">
+        <m.li
+            variants={variants}
+            className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1 text-sm"
+        >
             <span className="font-mono text-[var(--text-muted)]">{name}</span>
             <m.span className="tabular-nums font-semibold text-[var(--text)]">{formatted}</m.span>
         </m.li>
@@ -73,7 +69,7 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
     const reducedMotion = useReducedMotion();
     const vars = useMemo(() => extractLatexVariables(latex), [latex]);
     const animatedVars = useMemo(
-        () => vars.filter((name) => Object.prototype.hasOwnProperty.call(values, name)),
+        () => vars.filter(name => Object.prototype.hasOwnProperty.call(values, name)),
         [vars, values],
     );
 
@@ -97,7 +93,7 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
     useEffect(() => {
         setPrevValues(prevValuesRef.current);
         prevValuesRef.current = values;
-        setRunId((id) => id + 1);
+        setRunId(id => id + 1);
     }, [signature]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const activeContainerVariants = reducedMotion
@@ -127,7 +123,7 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
                         initial="hidden"
                         animate="visible"
                     >
-                        {animatedVars.map((name) => (
+                        {animatedVars.map(name => (
                             <VariableItem
                                 key={`${runId}-${name}`}
                                 name={name}

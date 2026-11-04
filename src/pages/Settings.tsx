@@ -446,10 +446,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow label={t('settings.community')} onClick={() => navTo(onNavigateToCommunity, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 <NavRow label={t('opsec.title')} onClick={() => navTo(onNavigateToOpSec, 'about')} />
-                <NavRow
-                    label={t('pk_viz.nav')}
-                    onClick={() => navTo(onNavigateToPKViz ?? (() => {}), 'about')}
-                />
+                <NavRow label={t('pk_viz.nav')} onClick={() => navTo(onNavigateToPKViz ?? (() => {}), 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}
                 <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />

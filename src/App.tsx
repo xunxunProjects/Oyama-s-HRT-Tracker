@@ -1234,7 +1234,9 @@ const AppContent = () => {
 
                     {currentView === 'settings-opsec' && <OpSec onBack={() => handleViewChange('settings')} />}
 
-                    {currentView === 'settings-pk-viz' && <PKVisualization onBack={() => handleViewChange('settings')} />}
+                    {currentView === 'settings-pk-viz' && (
+                        <PKVisualization onBack={() => handleViewChange('settings')} />
+                    )}
 
                     {currentView === 'settings-disclaimer' && (
                         <Disclaimer onBack={() => handleViewChange('settings')} />

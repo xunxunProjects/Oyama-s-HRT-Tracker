@@ -17,8 +17,7 @@ const MODEL_PARAMS: Record<ModelId, { F: number; ka: number; ke: number; Vd: num
     't-gel': { F: 0.1, ka: 0.8, ke: 0.05, Vd: 900 },
 };
 
-const LATEX =
-    'C(t)=\\frac{F\\cdot D}{V_d}\\cdot\\frac{k_a}{k_a-k_e}\\left(e^{-k_e t}-e^{-k_a t}\\right)';
+const LATEX = 'C(t)=\\frac{F\\cdot D}{V_d}\\cdot\\frac{k_a}{k_a-k_e}\\left(e^{-k_e t}-e^{-k_a t}\\right)';
 
 export default function PKVisualization({ onBack }: { onBack: () => void }) {
     const { t } = useTranslation();
@@ -45,7 +44,7 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
         const D = dose;
         const t = tHour;
         if (Math.abs(ka - ke) < 1e-9) return 0;
-        return (F * D / Vd) * (ka / (ka - ke)) * (Math.exp(-ke * t) - Math.exp(-ka * t));
+        return ((F * D) / Vd) * (ka / (ka - ke)) * (Math.exp(-ke * t) - Math.exp(-ka * t));
     }, [params, dose]);
 
     return (
@@ -58,9 +57,9 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
                         {t('pk_viz.model')}
                     </label>
                     <Segmented
-                        options={MODELS.map((m) => ({ id: m.id, label: m.label }))}
+                        options={MODELS.map(m => ({ id: m.id, label: m.label }))}
                         value={model}
-                        onChange={(id) => setModel(id as ModelId)}
+                        onChange={id => setModel(id as ModelId)}
                         aria-label={t('pk_viz.model')}
                     />
                 </div>
@@ -76,7 +75,7 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
                         max={10}
                         step={0.5}
                         value={dose}
-                        onChange={(e) => setDose(Number(e.target.value))}
+                        onChange={e => setDose(Number(e.target.value))}
                         className="w-full"
                         aria-label={t('pk_viz.dose')}
                     />
