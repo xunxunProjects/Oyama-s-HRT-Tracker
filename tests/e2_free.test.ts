@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Ester, ExtraKey, Route, runSimulation, interpolateConcentration_E2_free } from '../logic';
+import { Ester, Route, runSimulation, interpolateConcentration_E2_free } from '../logic';
 import { DEFAULT_BINDING, DEFAULT_SHBG_MODEL, bindEstradiol } from '../shbg';
-import { BW, NOW_H, dose, regimen, relErr } from './helpers';
-
-const DAY = 24;
+import { BW, NOW_H, dose } from './helpers';
 
 describe('free/bioavailable estradiol wired into SimulationResult (A1)', () => {
     it('populates concPGmL_E2_free and bioavailable arrays', () => {
