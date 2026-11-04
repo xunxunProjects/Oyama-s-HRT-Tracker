@@ -1381,50 +1381,6 @@ export default {
                 );
             }
 
-            // Avatar GET (Public)
-            if (url.pathname.startsWith('/api/user/avatar/') && request.method === 'GET') {
-                const clientIP = getClientIP(request, env);
-                if (!(await checkRateLimit(env, clientIP ? `avatar:${clientIP}` : 'avatar:global-noip', 300))) {
-                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
-                        'Retry-After': '60',
-                    });
-                }
-                const username = url.pathname.split('/').pop();
-                const genericNotFound = () => jsonError('NOT_FOUND', 'Not found', 404);
-
-                try {
-                    const user = (await env.DB.prepare('SELECT id FROM users WHERE username = ?')
-                        .bind(username)
-                        .first()) as any;
-                    const userId = user ? user.id : username === 'Admin' ? 'admin' : null;
-                    if (!userId) return genericNotFound();
-
-                    const object = await env.AVATAR_BUCKET.get(`hrt-tracker-user-avatar/${userId}`);
-                    if (!object) {
-                        // The account exists but has no avatar yet. A 204 keeps the
-                        // client's initial fallback without logging a 404 on every
-                        // Account render; an unknown username still 404s above.
-                        return withSecurityHeaders(
-                            new Response(null, {
-                                status: 204,
-                                headers: {
-                                    'Access-Control-Allow-Origin': '*',
-                                    'Cache-Control': 'no-store',
-                                },
-                            }),
-                        );
-                    }
-
-                    const headers = new Headers();
-                    object.writeHttpMetadata(headers);
-                    headers.set('Access-Control-Allow-Origin', '*');
-                    headers.set('Cache-Control', 'public, max-age=3600');
-                    return withSecurityHeaders(new Response(object.body, { headers }));
-                } catch (e) {
-                    return genericNotFound();
-                }
-            }
-
             // POST /api/auth/passkey-options — generate WebAuthn auth challenge (public, no JWT)
             if (url.pathname === '/api/auth/passkey-options' && request.method === 'POST') {
                 const clientIP = getClientIP(request, env);
@@ -1602,23 +1558,6 @@ export default {
                         },
                     ),
                 );
-            }
-
-            // Exchange a one-time code from the web UI for an F2F-scoped
-            // session. This is deliberately public: the CLI has no session
-            // yet, and the code is the credential.
-            if (url.pathname === '/api/f2f/cli/token') {
-                if (request.method !== 'POST') {
-                    return jsonError('INVALID_REQUEST', 'method not allowed', 405);
-                }
-                const clientIP = getClientIP(request, env);
-                const limitKey = clientIP ? `f2f-cli-token:${clientIP}` : 'f2f-cli-token:global-noip';
-                if (!(await checkRateLimit(env, limitKey, clientIP ? 10 : 30))) {
-                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
-                        'Retry-After': '60',
-                    });
-                }
-                return withSecurityHeaders(await exchangeF2fCliCode(request, env, jwtSecret));
             }
 
             // -- Protected API Routes --
