@@ -43,6 +43,7 @@ COPY --from=build /app/src/server/routes/sessions.ts ./src/server/routes/session
 COPY --from=build /app/src/server/routes/twoFactor.ts ./src/server/routes/twoFactor.ts
 COPY --from=build /app/src/server/routes/passkeys.ts ./src/server/routes/passkeys.ts
 COPY --from=build /app/src/server/routes/userProfile.ts ./src/server/routes/userProfile.ts
+COPY --from=build /app/src/server/routes/content.ts ./src/server/routes/content.ts
 COPY --from=build /app/src/server/totp.ts ./src/server/totp.ts
 COPY --from=build /app/src/server/webauthn.ts ./src/server/webauthn.ts
 COPY --from=build /app/src/server/validation.ts ./src/server/validation.ts
