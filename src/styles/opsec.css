@@ -257,6 +257,36 @@
     line-height: 1.8;
 }
 
+/* ── display math ──────────────────────────────────────────────────────── */
+
+.opsec-math {
+    margin: 1.5rem 0;
+    padding: 1rem 1.15rem 0.9rem;
+    background: color-mix(in oklch, var(--opsec-surface) 86%, transparent);
+    border: 1px solid var(--opsec-rule);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+.opsec-math-body {
+    min-width: max-content;
+    color: var(--opsec-ink);
+}
+.opsec-math .katex-display {
+    margin: 0;
+}
+.opsec-math .katex {
+    color: var(--opsec-ink);
+}
+.opsec-math-caption {
+    margin-top: 0.7rem;
+    color: var(--opsec-muted);
+    font-family: var(--opsec-font-body);
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    text-align: center;
+    text-wrap: pretty;
+}
+
 /* ── callouts ──────────────────────────────────────────────────────────── */
 
 .opsec-callout {

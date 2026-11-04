@@ -1,4 +1,6 @@
 import React from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getOpSecContent, type OpSecBlock, type OpSecCalloutKind, type OpSecSection } from '../content/opsec';
@@ -36,6 +38,26 @@ const Callout: React.FC<{ kind: OpSecCalloutKind; text: string }> = ({ kind, tex
     );
 };
 
+const MathBlock: React.FC<{ text: string; caption?: string }> = ({ text, caption }) => {
+    const html = React.useMemo(
+        () =>
+            katex.renderToString(text, {
+                displayMode: true,
+                throwOnError: false,
+                strict: 'ignore',
+                trust: false,
+            }),
+        [text],
+    );
+
+    return (
+        <figure className="opsec-math">
+            <div className="opsec-math-body" dangerouslySetInnerHTML={{ __html: html }} />
+            {caption ? <figcaption className="opsec-math-caption">{caption}</figcaption> : null}
+        </figure>
+    );
+};
+
 const Block: React.FC<{ block: OpSecBlock }> = ({ block }) => {
     switch (block.type) {
         case 'p':
@@ -57,6 +79,8 @@ const Block: React.FC<{ block: OpSecBlock }> = ({ block }) => {
             return <Callout kind={block.kind ?? 'warning'} text={block.text} />;
         case 'callout':
             return <Callout kind={block.kind} text={block.text} />;
+        case 'math':
+            return <MathBlock text={block.text} caption={block.caption} />;
         default:
             return null;
     }
@@ -235,7 +259,8 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
     const content = getOpSecContent(lang);
     const basic = React.useMemo(() => content.sections.filter(s => s.level === 'basic'), [content]);
     const advanced = React.useMemo(() => content.sections.filter(s => s.level === 'advanced'), [content]);
-    const allSections = React.useMemo(() => [...basic, ...advanced], [basic, advanced]);
+    const extended = React.useMemo(() => content.sections.filter(s => s.level === 'extended'), [content]);
+    const allSections = React.useMemo(() => [...basic, ...advanced, ...extended], [basic, advanced, extended]);
     const [active, setActive] = React.useState(0);
     const articleRef = React.useRef<HTMLElement | null>(null);
 
@@ -307,6 +332,12 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
                         <Callout kind="important" text={content.advancedNote} />
                         {advanced.map((section, i) => (
                             <Section key={section.id} section={section} index={basic.length + i} />
+                        ))}
+
+                        <h2>{content.extendedHeading}</h2>
+                        <Callout kind="note" text={content.extendedNote} />
+                        {extended.map((section, i) => (
+                            <Section key={section.id} section={section} index={basic.length + advanced.length + i} />
                         ))}
                     </article>
 
