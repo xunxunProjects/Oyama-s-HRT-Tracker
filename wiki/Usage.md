@@ -44,8 +44,8 @@ model and draw no curve.
 
 - Record a blood test with its date, value, unit, and assay. The app converts
   between the units it supports and shows the result next to the estimate.
-- Estradiol can be calibrated against your labs with EKF, OU-Kalman, or MIPD,
-  or you can edit the model parameters by hand under Settings. Calibration is
+- Estradiol can be calibrated against your labs with EKF, OU-Kalman, MIPD, or
+  Full Bayes, or you can edit the model parameters by hand under Settings. Calibration is
   optional; the uncalibrated curve remains available.
 - Lab results are personal data. They are not included in share links, and
   backups are encrypted before they leave the browser.

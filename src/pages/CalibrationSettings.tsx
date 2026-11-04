@@ -1,9 +1,20 @@
 import React from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tick from '../components/Tick';
-import { Check, Minus, Off, Gauge, Radar, Wind, Rewind, FastForward, type IconComponent } from '../components/icons';
+import {
+    Check,
+    Minus,
+    Off,
+    Gauge,
+    Radar,
+    Wind,
+    Merge,
+    Rewind,
+    FastForward,
+    type IconComponent,
+} from '../components/icons';
 import { useTranslation } from '../contexts/LanguageContext';
-import { CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
+import { BayesDriftFamily, CalibrationMethod, CalibrationHistoryMode, CalibrationResult } from '../../logic';
 
 interface CalibrationSettingsProps {
     method: CalibrationMethod;
@@ -26,10 +37,11 @@ interface MethodDef {
     cons: string[];
 }
 
-// The three learning estimators mirror the calibration models on
+// The first three learning estimators mirror the calibration models on
 // hrt.transmtf.com (EKF parameter learning, OU-Kalman dynamic calibration,
 // Hybrid-MIPD Bayesian fit), reimplemented over this engine's two identifiable
-// parameters: a personal amplitude and a personal clearance.
+// parameters: a personal amplitude and a personal clearance. Full Bayes is this
+// app's own: it averages over several of those stories at once.
 const METHODS: MethodDef[] = [
     { value: 'off', icon: Off, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
     {
@@ -46,10 +58,22 @@ const METHODS: MethodDef[] = [
         pros: ['cal.ou_kalman.pro.1', 'cal.ou_kalman.pro.2'],
         cons: ['cal.ou_kalman.con.1'],
     },
+    {
+        value: 'bayes',
+        icon: Merge,
+        pros: ['cal.bayes.pro.1', 'cal.bayes.pro.2'],
+        cons: ['cal.bayes.con.1'],
+    },
 ];
 
-// Only EKF and MIPD fit a personal clearance; OU-Kalman corrects amplitude only.
-const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd';
+// EKF, MIPD and Full Bayes fit a personal clearance; OU-Kalman corrects amplitude only.
+const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd' || m === 'bayes';
+
+// The drift memory the labs favour most, for the Full Bayes summary.
+const likeliestDrift = (drift: Record<BayesDriftFamily, number>): [BayesDriftFamily, number] =>
+    (Object.entries(drift) as [BayesDriftFamily, number][]).reduce((best, entry) =>
+        entry[1] > best[1] ? entry : best,
+    );
 
 const HISTORY_MODES: { value: CalibrationHistoryMode; icon: IconComponent }[] = [
     { value: 'retrospective', icon: Rewind },
@@ -115,16 +139,40 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
     const showFit = method !== 'off' && calibration.points.length > 0;
     const signedPct = (p: number) => `${p >= 0 ? '+' : ''}${p.toFixed(0)}%`;
 
+    const drift = calibration.drift ? likeliestDrift(calibration.drift) : null;
+    // The interval describes the whole correction at the latest lab (amplitude
+    // and clearance shape together), so it is shown beside that correction
+    // rather than beside the amplitude, which it need not contain.
+    const latestLabH = calibration.points.length ? calibration.points[calibration.points.length - 1].timeH : null;
     const stats: { label: string; value: string }[] = showFit
         ? [
               { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
+              ...(calibration.latestInterval && latestLabH !== null
+                  ? [
+                        {
+                            label: t('cal.interval'),
+                            value: `×${calibration.factorFn(latestLabH).toFixed(2)} (×${calibration.latestInterval[0].toFixed(2)}–×${calibration.latestInterval[1].toFixed(2)})`,
+                        },
+                    ]
+                  : []),
               ...(fitsClearance(method)
                   ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }]
+                  : []),
+              ...(drift
+                  ? [
+                        {
+                            label: t('cal.drift'),
+                            value: `${t(`cal.drift.${drift[0]}`)} · ${(drift[1] * 100).toFixed(0)}%`,
+                        },
+                    ]
                   : []),
               ...(calibration.fitErrPct !== null
                   ? [{ label: t('cal.fit'), value: `±${calibration.fitErrPct.toFixed(0)}%` }]
                   : []),
               { label: t('cal.labs'), value: String(calibration.n) },
+              ...(calibration.discounted
+                  ? [{ label: t('cal.discounted'), value: String(calibration.discounted) }]
+                  : []),
           ]
         : [];
 

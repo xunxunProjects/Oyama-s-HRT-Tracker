@@ -77,7 +77,9 @@ describe('geometricMeanRatio', () => {
 
 describe('normalizeCalibrationMethod', () => {
     it('keeps current ids, maps legacy ones and defaults to mipd', () => {
-        for (const m of ['off', 'ekf', 'ou_kalman', 'mipd'] as const) expect(normalizeCalibrationMethod(m)).toBe(m);
+        for (const m of ['off', 'ekf', 'ou_kalman', 'mipd', 'bayes'] as const) {
+            expect(normalizeCalibrationMethod(m)).toBe(m);
+        }
         expect(normalizeCalibrationMethod('average')).toBe('mipd');
         expect(normalizeCalibrationMethod('adaptive')).toBe('ekf');
         expect(normalizeCalibrationMethod(undefined)).toBe('mipd');
@@ -87,7 +89,7 @@ describe('normalizeCalibrationMethod', () => {
 });
 
 describe('computeCalibration', () => {
-    const METHODS: CalibrationMethod[] = ['ekf', 'ou_kalman', 'mipd'];
+    const METHODS: CalibrationMethod[] = ['ekf', 'ou_kalman', 'mipd', 'bayes'];
     const labsAt = (scale: number, times = LAB_TIMES) => times.map(t => lab(t, model(t) * scale));
 
     it('off, or no usable labs, returns the identity', () => {
@@ -157,7 +159,7 @@ describe('computeCalibration', () => {
 
     it('clearance only moves once there are at least three labs', () => {
         const two = LAB_TIMES.slice(-2);
-        for (const method of ['ekf', 'mipd'] as const) {
+        for (const method of ['ekf', 'mipd', 'bayes'] as const) {
             const cal = computeCalibration(sim, events, BW, labsAt(1.5, two), method);
             expect(cal.kMul).toBeCloseTo(1, 3);
             expect(cal.halfLifeDeltaPct).toBeCloseTo(0, 1);
@@ -172,7 +174,7 @@ describe('computeCalibration', () => {
             e2_kClearInj: DEFAULT_PK_PARAMS.e2_kClearInj * 1.5,
         })!;
         const labs = LAB_TIMES.map(t => lab(t, E2(truth, t)! * 1.2));
-        for (const method of ['ekf', 'mipd'] as const) {
+        for (const method of ['ekf', 'mipd', 'bayes'] as const) {
             const cal = computeCalibration(sim, events, BW, labs, method);
             expect(cal.kMul).toBeGreaterThan(1.1);
             expect(cal.halfLifeDeltaPct).toBeLessThan(0);
@@ -194,13 +196,16 @@ describe('computeCalibration', () => {
     });
 
     describe('history modes', () => {
-        it.each(['ekf', 'mipd', 'ou_kalman'] as const)('%s forward: no correction before the first lab', method => {
-            const cal = computeCalibration(sim, events, BW, labsAt(2), method, 'forward');
-            expect(cal.factorFn(LAB_TIMES[0] - 1)).toBe(1);
-            expect(cal.factorFn(LAB_TIMES[0] + 1)).toBeGreaterThan(1.2);
-        });
+        it.each(['ekf', 'mipd', 'ou_kalman', 'bayes'] as const)(
+            '%s forward: no correction before the first lab',
+            method => {
+                const cal = computeCalibration(sim, events, BW, labsAt(2), method, 'forward');
+                expect(cal.factorFn(LAB_TIMES[0] - 1)).toBe(1);
+                expect(cal.factorFn(LAB_TIMES[0] + 1)).toBeGreaterThan(1.2);
+            },
+        );
 
-        it.each(['ekf', 'mipd', 'ou_kalman'] as const)(
+        it.each(['ekf', 'mipd', 'ou_kalman', 'bayes'] as const)(
             '%s forward: adding a later lab never rewrites the past',
             method => {
                 const early = labsAt(2, LAB_TIMES.slice(0, 3));
