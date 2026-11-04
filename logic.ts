@@ -209,6 +209,97 @@ export function bodyCompCurve(
     return { m: mArr, fVisc: fArr };
 }
 
+// --- Lipid / hepatic steatosis slow variable (A5) ---
+export interface LipidParams {
+    kIn: number; // baseline LDL production (mg/dL per day)
+    kOut: number; // clearance (per day)
+    beta: number; // E2 sensitivity
+}
+export const DEFAULT_LIPID_PARAMS: LipidParams = {
+    kIn: 2.0,
+    kOut: 0.02,
+    beta: 0.3,
+};
+
+export function lipidCurve(
+    sim: SimulationResult,
+    params: LipidParams = DEFAULT_LIPID_PARAMS,
+    windowH: number = 180 * 24,
+    scalePgMl: number = 200,
+): number[] {
+    const n = sim.timeH.length;
+    const out: number[] = new Array(n);
+    const prefix: number[] = new Array(n + 1);
+    prefix[0] = 0;
+    for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + sim.concPGmL_E2[i];
+    let ldl = 100;
+    let left = 0;
+    for (let i = 0; i < n; i++) {
+        const t = sim.timeH[i];
+        const cutoff = t - windowH;
+        while (left < i && sim.timeH[left] < cutoff) left++;
+        const cnt = i - left + 1;
+        const sum = prefix[i + 1] - prefix[left];
+        const avg = cnt > 0 ? sum / cnt : 0;
+        const exposure = Math.max(0, Math.min(1, avg / scalePgMl));
+        const dtDays = i > 0 ? (sim.timeH[i] - sim.timeH[i - 1]) / 24 : 0;
+        if (i > 0) {
+            const dldl = params.kIn * (1 + params.beta * exposure) - params.kOut * ldl;
+            ldl = ldl + dldl * dtDays;
+            if (!Number.isFinite(ldl) || ldl < 0) ldl = Math.max(0, ldl);
+        }
+        out[i] = ldl;
+    }
+    return out;
+}
+
+// --- VTE / coagulation risk flag (A8) ---
+export interface VTEParams {
+    beta0: number;
+    beta1: number;
+    beta2: number;
+}
+export const DEFAULT_VTE_PARAMS: VTEParams = {
+    beta0: -3.0,
+    beta1: 0.02,
+    beta2: 0.1,
+};
+
+export function logistic(x: number): number {
+    if (x >= 0) {
+        const z = Math.exp(-x);
+        return 1 / (1 + z);
+    }
+    const z = Math.exp(x);
+    return z / (1 + z);
+}
+
+export function vteRiskCurve(
+    sim: SimulationResult,
+    params: VTEParams = DEFAULT_VTE_PARAMS,
+    windowH: number = 90 * 24,
+    _scalePgMl: number = 200,
+    covariates: number = 0,
+): number[] {
+    const n = sim.timeH.length;
+    const out: number[] = new Array(n);
+    const prefix: number[] = new Array(n + 1);
+    prefix[0] = 0;
+    for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + sim.concPGmL_E2[i];
+    let left = 0;
+    for (let i = 0; i < n; i++) {
+        const t = sim.timeH[i];
+        const cutoff = t - windowH;
+        while (left < i && sim.timeH[left] < cutoff) left++;
+        const cnt = i - left + 1;
+        const sum = prefix[i + 1] - prefix[left];
+        const avg = cnt > 0 ? sum / cnt : 0;
+        const x = params.beta0 + params.beta1 * avg + params.beta2 * covariates;
+        out[i] = logistic(x);
+    }
+    return out;
+}
+
 // --- Gonadectomy / uterus state (Phase 4.1) ---
 export type GonadectomyState = 'intact' | 'hysterectomy-only' | 'bso';
 
@@ -417,6 +508,11 @@ export interface SimulationResult {
     bodyCompM?: number[];
     visceralFat?: number[];
     bodyCompFVisc?: number[];
+    // Transfeminine: lipid/hepatic steatosis slow variable (LDL, mg/dL).
+    ldl?: number[];
+    lipidLDL?: number[];
+    // Transfeminine: VTE / coagulation risk flag (0..1).
+    vteRisk?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -448,6 +544,33 @@ export type LabAssay = 'lcms' | 'immuno';
 export const LAB_ASSAYS: readonly LabAssay[] = ['immuno', 'lcms'];
 export const isLabAssay = (v: unknown): v is LabAssay => v === 'lcms' || v === 'immuno';
 
+// --- Assay platform error model (A6) ---
+export interface AssayPlatformParams {
+    sigmaImmuno: number; // pg/mL additive floor / SD
+    sigmaLcms: number;
+}
+export const DEFAULT_ASSAY_PLATFORM_PARAMS: AssayPlatformParams = {
+    sigmaImmuno: 8,
+    sigmaLcms: 2,
+};
+
+export function assayPlatformSigma(
+    platform: LabAssay | 'unknown' = 'unknown',
+    params: AssayPlatformParams = DEFAULT_ASSAY_PLATFORM_PARAMS,
+): number {
+    if (platform === 'immuno') return params.sigmaImmuno;
+    if (platform === 'lcms') return params.sigmaLcms;
+    return (params.sigmaImmuno + params.sigmaLcms) / 2;
+}
+
+export function assayPlatformNoise(
+    c: number,
+    platform: LabAssay | 'unknown' = 'unknown',
+    params: AssayPlatformParams = DEFAULT_ASSAY_PLATFORM_PARAMS,
+): { mean: number; sigma: number } {
+    return { mean: c, sigma: assayPlatformSigma(platform, params) };
+}
+
 export function convertToPgMl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 'nmol/l'): number {
     if (unit === 'pg/ml') return val;
     if (unit === 'pmol/l') return val / 3.671;
@@ -463,6 +586,33 @@ export function convertToNgDl(val: number, unit: 'pg/ml' | 'pmol/l' | 'ng/dl' | 
 
 export function isT_LabUnit(unit: LabResult['unit']): boolean {
     return unit === 'ng/dl' || unit === 'nmol/l';
+}
+
+// --- E2 PK parameter debugging helpers (A9) ---
+export const E2_PK_UNIT_FACTORS = {
+    pgMlToPmolL: 3.671,
+    pmolLToPgMl: 1 / 3.671,
+    tNgDlToNmolL: 1 / 28.842,
+    tNmolLToNgDl: 28.842,
+} as const;
+
+export function e2PgMlToPmolL(pgMl: number): number {
+    return pgMl * E2_PK_UNIT_FACTORS.pgMlToPmolL;
+}
+export function e2PmolLToPgMl(pmolL: number): number {
+    return pmolL * E2_PK_UNIT_FACTORS.pmolLToPgMl;
+}
+
+export const E2_PK_SAMPLING_OFFSETS_H = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
+
+export function validateE2PKParams(params: unknown): boolean {
+    if (!params || typeof params !== 'object') return false;
+    const p = params as Record<string, unknown>;
+    // Accept any PKCustomParams-like object with finite numeric fields.
+    for (const v of Object.values(p)) {
+        if (typeof v === 'number' && !Number.isFinite(v)) return false;
+    }
+    return true;
 }
 
 // --- Dose advisory ("you've taken a lot" heads-up) ---
@@ -2553,6 +2703,30 @@ export function ageAtH(birthYear: number, timeH: number): number {
 }
 
 /** Multiplier on the clearance of free estradiol or testosterone at `timeH`; 1 with no year of birth. */
+export interface PopPKCovariateParams {
+    clExponent: number;
+    vExponent: number;
+    refWeightKG: number;
+}
+export const DEFAULT_POP_PK_COVARIATE_PARAMS: PopPKCovariateParams = {
+    clExponent: 0.75,
+    vExponent: 1.0,
+    refWeightKG: 70,
+};
+
+export function popPKCovariateFactors(
+    weightKG: number,
+    _ageYears: number | null = null,
+    _shbgNmolL: number | null = null,
+    params: PopPKCovariateParams = DEFAULT_POP_PK_COVARIATE_PARAMS,
+): { clFactor: number; vFactor: number } {
+    const w = Math.max(1, weightKG || params.refWeightKG);
+    const ratio = w / params.refWeightKG;
+    const clFactor = Math.pow(ratio, params.clExponent);
+    const vFactor = Math.pow(ratio, params.vExponent);
+    return { clFactor, vFactor };
+}
+
 export function ageClearanceMultiplier(hormone: 'e2' | 't', birthYear: number | null, timeH: number): number {
     if (birthYear === null) return 1;
     const [lo, hi] = AGE_RANGE_YEARS;
@@ -4056,6 +4230,14 @@ export function runSimulation(
     result.bodyCompM = bc.m;
     result.visceralFat = bc.fVisc;
     result.bodyCompFVisc = bc.fVisc;
+
+    // Lipid / hepatic (A5).
+    result.ldl = lipidCurve(result, DEFAULT_LIPID_PARAMS);
+    result.lipidLDL = result.ldl;
+
+    // VTE / coagulation risk (A8).
+    result.vteRisk = vteRiskCurve(result, DEFAULT_VTE_PARAMS);
+
     return result;
 }
 
