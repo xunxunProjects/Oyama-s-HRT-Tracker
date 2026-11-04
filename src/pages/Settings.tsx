@@ -23,6 +23,7 @@ interface SettingsProps {
     onNavigateToDisclaimer: () => void;
     onNavigateToOpSec: () => void;
     onNavigateToPKCalc?: () => void;
+    onNavigateToPKViz?: () => void;
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     onNavigateToCredits: () => void;
@@ -155,6 +156,7 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToDisclaimer,
     onNavigateToOpSec,
     onNavigateToPKCalc,
+    onNavigateToPKViz,
     onShowIntro,
     onNavigateToTransparency,
     onNavigateToCredits,
@@ -447,6 +449,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 <NavRow label={t('opsec.title')} onClick={() => navTo(onNavigateToOpSec, 'about')} />
                 <NavRow label={t('pk_calc.nav')} onClick={() => navTo(onNavigateToPKCalc ?? (() => {}), 'about')} />
+                <NavRow label={t('pk_viz.nav')} onClick={() => navTo(onNavigateToPKViz ?? (() => {}), 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}
                 <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
