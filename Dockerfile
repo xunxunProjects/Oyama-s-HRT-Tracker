@@ -39,6 +39,7 @@ COPY --from=build /app/src/server/notice.ts ./src/server/notice.ts
 COPY --from=build /app/src/server/rateLimit.ts ./src/server/rateLimit.ts
 COPY --from=build /app/src/server/routes/public.ts ./src/server/routes/public.ts
 COPY --from=build /app/src/server/routes/sharesAccess.ts ./src/server/routes/sharesAccess.ts
+COPY --from=build /app/src/server/routes/sessions.ts ./src/server/routes/sessions.ts
 COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/hrt-server ./hrt-server
