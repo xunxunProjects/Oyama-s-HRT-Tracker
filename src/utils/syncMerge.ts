@@ -25,7 +25,9 @@
  *     backup between them forever.
  *
  * Scalars that aren't records — body weight, year of birth, PK overrides — carry their own
- * last-write timestamp and are resolved last-write-wins.
+ * last-write timestamp and are resolved last-write-wins. Each mode's medication
+ * plan is treated the same way, as one value: it is a short list edited as a
+ * whole, so the newer plan replaces the older one rather than being unioned.
  */
 
 import { isPlausibleBirthYear, isTestosteroneEster, isT_LabUnit } from '../../logic';
@@ -46,6 +48,10 @@ export interface ModeBlock {
     labResults: any[];
     doseTemplates: any[];
     deletions: Tombstones;
+    /** The medication plan. `undefined` = the payload said nothing about it. */
+    plan?: any[];
+    /** Epoch ms of the last plan edit; 1 for a plan saved before plans synced. */
+    planUpdatedAt?: number;
 }
 
 export interface SyncState {
@@ -227,6 +233,11 @@ export function normalizeSyncState(payload: unknown): SyncState {
                 doseTemplates: asArray(block.doseTemplates),
                 deletions: sanitizeTombstones(block.deletions),
             };
+            if (Array.isArray(block.plan)) {
+                state.modes[m].plan = block.plan;
+                // Same floor as the scalars: an unstamped plan beats no plan.
+                state.modes[m].planUpdatedAt = asTimestamp(block.planUpdatedAt) || 1;
+            }
         }
     } else {
         routeFlatPayload(p, state.modes);
@@ -426,6 +437,16 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
             ),
             deletions,
         };
+        const plan = resolveScalar(
+            local.modes[m].plan,
+            local.modes[m].planUpdatedAt ?? 0,
+            remote.modes[m].plan,
+            remote.modes[m].planUpdatedAt ?? 0,
+        );
+        if (plan.value !== undefined) {
+            merged.modes[m].plan = plan.value;
+            merged.modes[m].planUpdatedAt = plan.at;
+        }
     }
 
     const weight = resolveScalar(local.weight, local.weightUpdatedAt, remote.weight, remote.weightUpdatedAt);
@@ -465,6 +486,7 @@ export function hasContent(state: SyncState): boolean {
             if ((block[kind] as any[]).length > 0) return true;
             if (Object.keys(block.deletions[kind]).length > 0) return true;
         }
+        if ((block.plan?.length ?? 0) > 0 || (block.planUpdatedAt ?? 0) > 1) return true;
     }
     return state.weightUpdatedAt > 1 || state.birthYearUpdatedAt > 1 || state.pkParamsUpdatedAt > 1;
 }
@@ -492,6 +514,7 @@ export function fingerprintState(state: SyncState): string {
             parts.push(`${m}.${kind}:${rows.join(';')}`);
             parts.push(`${m}.${kind}.del:${Object.keys(block.deletions[kind]).sort().join(';')}`);
         }
+        parts.push(`${m}.plan:${block.plan === undefined ? '' : stableString(block.plan)}`);
     }
     parts.push(`weight:${state.weight === undefined ? '' : stableString(state.weight)}`);
     parts.push(`birthYear:${state.birthYear === undefined ? '' : stableString(state.birthYear)}`);
