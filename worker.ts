@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
-import { handleHrtService, handleHrtWeb, hrtCapability, hrtDeviceMatchesToken } from './hrtPairing';
+import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
 import { exchangeF2fCliCode, handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
@@ -15,65 +15,11 @@ import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordSt
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
 import { sha256Hex } from './workerUtil';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
-import {
-    ensureCommunityVoteSchema,
-    handleCommunityVoteMe,
-    handleCommunityVotePublic,
-    handleCommunityVoteSubmit,
-} from './communityVoteServer';
+import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSubmit } from './communityVoteServer';
+import { handlePublicRoutes } from './src/server/routes/public';
 
-export interface Env {
-    DB: D1Database;
-    ASSETS: Fetcher;
-    JWT_SECRET: string;
-    ADMIN_USERNAME?: string;
-    ADMIN_PASSWORD?: string;
-    PUBLIC_APP_ORIGIN?: string;
-    AVATAR_BUCKET: R2Bucket;
-    /** Set to 'development' only in local config; anything else means production. */
-    ENVIRONMENT?: string;
-    /**
-     * Which header carries the client address. One of:
-     *   'none' (default)   — no client address. Per-address buckets become one
-     *                        shared bucket per endpoint, sized for everyone; the
-     *                        share-access address bucket is skipped. This is the
-     *                        safe default because both headers below are
-     *                        client-controlled without a trusted edge/proxy.
-     *   'cf'               — CF-Connecting-IP. Only set this when Cloudflare is
-     *                        actually in front and its edge overwrites the
-     *                        header; otherwise a client can pick its own address.
-     *   'x-forwarded-for'  — the last X-Forwarded-For hop, the one the single
-     *                        reverse proxy in front appended; earlier hops came
-     *                        from the client. Only set this behind exactly one
-     *                        trusted proxy that appends the address.
-     * Anything else fails closed to no client address. Per-account and
-     * per-link limits apply whatever this is set to.
-     */
-    TRUSTED_IP_SOURCE?: string;
-    /**
-     * Optional hrt:// raw transport. The raw adapter runs as a separate
-     * self-hosted process; Cloudflare deployments leave this off. The service
-     * token is shared only with that loopback process, and HRT_IP_KEY is a
-     * base64 32-byte AES-GCM key used to encrypt pairing IPs at rest.
-     */
-    HRT_RAW_ENABLED?: string;
-    HRT_SERVICE_TOKEN?: string;
-    HRT_IP_KEY?: string;
-    /** '1' makes every new F2F cohort reserve an operator-provisioned escrow key. */
-    HRT_F2F_ESCROW?: string;
-    /** Base64 of 32 bytes; wraps the escrow private keys at rest. */
-    HRT_ESCROW_KEY?: string;
-    /**
-     * Rate Limiting bindings, one per requests-per-minute class (wrangler.toml).
-     * Keys are prefixed per endpoint, so endpoints with the same ceiling share a
-     * binding without sharing a bucket.
-     */
-    RL_PER_MINUTE_10?: RateLimit;
-    RL_PER_MINUTE_20?: RateLimit;
-    RL_PER_MINUTE_30?: RateLimit;
-    RL_PER_MINUTE_60?: RateLimit;
-    RL_PER_MINUTE_300?: RateLimit;
-}
+import type { Env } from './src/server/env';
+export type { Env } from './src/server/env';
 
 // Rate limiting through the Workers Rate Limiting binding: enforced at the
 // edge, in memory, with no storage behind it. This used to be a table in D1,
@@ -87,38 +33,7 @@ export interface Env {
 // class matches is used. A missing binding is a configuration hole, not a
 // runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
 // still serves — it is logged once per isolate so it can't stay quiet.
-const RATE_LIMIT_CLASSES: Record<number, keyof Env> = {
-    10: 'RL_PER_MINUTE_10',
-    20: 'RL_PER_MINUTE_20',
-    30: 'RL_PER_MINUTE_30',
-    60: 'RL_PER_MINUTE_60',
-    300: 'RL_PER_MINUTE_300',
-};
-const missingLimiterReported = new Set<string>();
-
-/** True when the caller is within `perMinute` requests a minute for `key`. */
-async function checkRateLimit(env: Env, key: string, perMinute: number): Promise<boolean> {
-    const bindingName = RATE_LIMIT_CLASSES[perMinute];
-    const limiter = bindingName ? (env[bindingName] as RateLimit | undefined) : undefined;
-    if (!limiter) {
-        const what = bindingName ?? `no class for ${perMinute}/min`;
-        if (!missingLimiterReported.has(what)) {
-            missingLimiterReported.add(what);
-            console.error(`Rate limiting binding missing (${what}); requests are NOT being limited.`);
-        }
-        return true;
-    }
-    try {
-        const { success } = await limiter.limit({ key });
-        return success;
-    } catch (e) {
-        // The binding itself erroring is an infrastructure fault. Failing open
-        // here is a deliberate choice: the alternative locks every user out over
-        // an outage in a component that isn't the database.
-        console.error('Rate limit check failed:', e);
-        return true;
-    }
-}
+import { checkRateLimit } from './src/server/rateLimit';
 
 /**
  * Every endpoint that bcrypt-compares the account password shares one
@@ -151,6 +66,51 @@ function withSecurityHeaders(response: Response): Response {
         "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';",
     );
     return newResponse;
+}
+
+// --- Request context for extracted route modules ---
+// Route modules under src/server/routes/* receive a RequestContext instead of
+// reaching into the fetch closure. This keeps security-sensitive helpers
+// (withSecurityHeaders, jsonError, ...) in one place.
+export interface RequestContext {
+    request: Request;
+    env: Env;
+    ctx: ExecutionContext;
+    url: URL;
+    jwtSecret: string;
+    corsHeaders: Record<string, string>;
+    privateCacheHeaders: Record<string, string>;
+    withSecurityHeaders: (response: Response) => Response;
+    jsonError: (code: string, message: string, status: number, extraHeaders?: Record<string, string>) => Response;
+    shareJson: (body: unknown, status?: number, extraHeaders?: Record<string, string>) => Response;
+    sessionInvalid: (message: string) => Response;
+}
+
+export function createRequestContext(
+    request: Request,
+    env: Env,
+    execCtx: ExecutionContext,
+    jwtSecret: string,
+    corsHeaders: Record<string, string>,
+    privateCacheHeaders: Record<string, string>,
+    withSecurityHeadersFn: (response: Response) => Response,
+    jsonErrorFn: (code: string, message: string, status: number, extraHeaders?: Record<string, string>) => Response,
+    shareJsonFn: (body: unknown, status?: number, extraHeaders?: Record<string, string>) => Response,
+    sessionInvalidFn: (message: string) => Response,
+): RequestContext {
+    return {
+        request,
+        env,
+        ctx: execCtx,
+        url: new URL(request.url),
+        jwtSecret,
+        corsHeaders,
+        privateCacheHeaders,
+        withSecurityHeaders: withSecurityHeadersFn,
+        jsonError: jsonErrorFn,
+        shareJson: shareJsonFn,
+        sessionInvalid: sessionInvalidFn,
+    };
 }
 
 /**
@@ -544,37 +504,7 @@ async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: nu
 const NOTICE_LANGS = ['zh', 'zh-TW', 'yue', 'en', 'ja', 'ko', 'tr'] as const;
 const MAX_NOTICE_BODY = 2000;
 
-interface SiteNoticeRow {
-    body: string;
-    body_i18n: string | null;
-    level: string;
-    starts_at: number | null;
-    expires_at: number | null;
-    revision: number;
-    updated_at: number;
-}
-
-const NOTICE_COLUMNS = 'body, body_i18n, level, starts_at, expires_at, revision, updated_at';
-
-/** Wire shape for both the public and the admin read. */
-function serializeNotice(row: SiteNoticeRow) {
-    let i18n: Record<string, string> | null = null;
-    try {
-        const parsed = row.body_i18n ? JSON.parse(row.body_i18n) : null;
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) i18n = parsed;
-    } catch {
-        // A body_i18n that will not parse costs the overrides, not the notice.
-    }
-    return {
-        body: row.body,
-        i18n,
-        level: row.level === 'warn' ? 'warn' : 'info',
-        revision: row.revision,
-        startsAt: row.starts_at,
-        expiresAt: row.expires_at,
-        updatedAt: row.updated_at,
-    };
-}
+import { NOTICE_COLUMNS, type SiteNoticeRow, serializeNotice } from './src/server/notice';
 
 // --- Backup codes ---
 
@@ -1092,177 +1022,22 @@ export default {
 
             // -- Public API Routes --
 
-            // Whether the hrt-tool pairing surface is configured on this
-            // deployment. The Account page uses it to hide an entry that would
-            // otherwise lead to a page whose four API calls all 404.
-            if (url.pathname === '/api/hrt/capability' && request.method === 'GET') {
-                return withSecurityHeaders(
-                    new Response(JSON.stringify({ supported: hrtCapability(env).supported }), {
-                        status: 200,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-                    }),
-                );
-            }
-
-            // Transparency: public aggregate stats. No PII exposed.
-            if (url.pathname === '/api/transparency' && request.method === 'GET') {
-                // Per-address where an address exists; a single wider bucket
-                // otherwise, so a no-address mirror degrades in speed, not in
-                // availability. See getClientIP.
-                const clientIP = getClientIP(request, env);
-                const limitKey = clientIP ? `transparency:${clientIP}` : 'transparency:global-noip';
-                if (!(await checkRateLimit(env, limitKey, clientIP ? 30 : 60))) {
-                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
-                        'Retry-After': '60',
-                    });
-                }
-
-                const now = Math.floor(Date.now() / 1000);
-                const day = 86400;
-                const HOUR = 3600;
-
-                const [
-                    totalUsersRow,
-                    totalBackupsRow,
-                    newUsers7dRow,
-                    newUsers24hRow,
-                    adminDelRow,
-                    selfDelRow,
-                    adminDel7dRow,
-                    selfDel7dRow,
-                    recentRows,
-                ] = await Promise.all([
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin'").first<{ n: number }>(),
-                    env.DB.prepare('SELECT COUNT(*) AS n FROM content').first<{ n: number }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin' AND created_at >= ?")
-                        .bind(now - 7 * day)
-                        .first<{ n: number }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE id != 'admin' AND created_at >= ?")
-                        .bind(now - day)
-                        .first<{ n: number }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'admin'").first<{
-                        n: number;
-                    }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'self'").first<{
-                        n: number;
-                    }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'admin' AND deleted_at >= ?")
-                        .bind(now - 7 * day)
-                        .first<{ n: number }>(),
-                    env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'self' AND deleted_at >= ?")
-                        .bind(now - 7 * day)
-                        .first<{ n: number }>(),
-                    // Recent registrations — anonymized. We expose only a short
-                    // non-reversible prefix of the hex-only portion of the UUID plus
-                    // the creation timestamp. No username is ever returned.
-                    env.DB.prepare(
-                        "SELECT id, created_at FROM users WHERE id != 'admin' ORDER BY created_at DESC LIMIT 10",
-                    ).all<{ id: string; created_at: number }>(),
-                ]);
-
-                const recent = (recentRows.results || []).map(r => ({
-                    // Only hex chars, first 4 — enough to visually distinguish entries
-                    // but too short to enable enumeration.
-                    anon_id: String(r.id)
-                        .replace(/[^a-f0-9]/gi, '')
-                        .slice(0, 4)
-                        .toLowerCase()
-                        .padEnd(4, '0'),
-                    // Round timestamp to the nearest hour. The UI only displays
-                    // coarse relative times ("X hours ago"), and rounding prevents
-                    // an attacker from correlating an exact registration moment
-                    // with an external signal to re-identify an anonymized entry.
-                    created_at: Math.floor((r.created_at ?? 0) / HOUR) * HOUR,
-                }));
-
-                const body = {
-                    total_users: totalUsersRow?.n ?? 0,
-                    total_backups: totalBackupsRow?.n ?? 0,
-                    new_users_24h: newUsers24hRow?.n ?? 0,
-                    new_users_7d: newUsers7dRow?.n ?? 0,
-                    admin_deleted_count: adminDelRow?.n ?? 0,
-                    self_deleted_count: selfDelRow?.n ?? 0,
-                    admin_deleted_7d: adminDel7dRow?.n ?? 0,
-                    self_deleted_7d: selfDel7dRow?.n ?? 0,
-                    recent_registrations: recent,
-                    server_time: now,
-                };
-
-                return withSecurityHeaders(
-                    new Response(JSON.stringify(body), {
-                        status: 200,
-                        headers: {
-                            ...corsHeaders,
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'public, max-age=15',
-                        },
-                    }),
-                );
-            }
-            // Community funding vote: the proposal and aggregate tally are
-            // public. Individual ballots are only reachable with a session.
-            if (url.pathname === '/api/vote' && request.method === 'GET') {
-                const clientIP = getClientIP(request, env);
-                const limitKey = clientIP ? `vote:public:${clientIP}` : 'vote:public:global-noip';
-                if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
-                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
-                        'Retry-After': '60',
-                    });
-                }
-
-                const result = await handleCommunityVotePublic(env);
-                return withSecurityHeaders(
-                    new Response(JSON.stringify(result.body), {
-                        status: result.status,
-                        headers: {
-                            ...corsHeaders,
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'no-store',
-                        },
-                    }),
-                );
-            }
-            // Site notice: the operator's one banner. Public and unauthenticated on
-            // purpose — the case this exists for is telling people the domain is
-            // moving, and someone who never signs in has to see that too.
-            if (url.pathname === '/api/notice' && request.method === 'GET') {
-                // Per-address where available, one wider shared bucket where not
-                // (the notice is polled by every open client).
-                const clientIP = getClientIP(request, env);
-                const limitKey = clientIP ? `notice:${clientIP}` : 'notice:global-noip';
-                if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
-                    return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
-                        'Retry-After': '60',
-                    });
-                }
-
-                const row = await env.DB.prepare(
-                    `SELECT ${NOTICE_COLUMNS} FROM site_notice WHERE id = 1`,
-                ).first<SiteNoticeRow>();
-
-                // Cleared, not yet due, or past its expiry all report "no notice"
-                // rather than 404 — the client treats them identically, and a 404 would
-                // read in the logs as though something were broken.
-                const nowTs = Math.floor(Date.now() / 1000);
-                const live =
-                    !!row &&
-                    !!row.body &&
-                    (row.starts_at == null || nowTs >= row.starts_at) &&
-                    (row.expires_at == null || nowTs < row.expires_at);
-
-                return withSecurityHeaders(
-                    new Response(JSON.stringify({ notice: live ? serializeNotice(row!) : null }), {
-                        status: 200,
-                        headers: {
-                            ...corsHeaders,
-                            'Content-Type': 'application/json',
-                            // Short: an operator who posts or corrects a notice wants it out
-                            // now, and the body is a few hundred bytes.
-                            'Cache-Control': 'public, max-age=60',
-                        },
-                    }),
-                );
-            }
+            // Public API routes (extracted to src/server/routes/public.ts)
+            const publicResponse = await handlePublicRoutes(
+                createRequestContext(
+                    request,
+                    env,
+                    ctx,
+                    jwtSecret,
+                    corsHeaders,
+                    privateCacheHeaders,
+                    withSecurityHeaders,
+                    jsonError,
+                    shareJson,
+                    sessionInvalid,
+                ),
+            );
+            if (publicResponse) return publicResponse;
 
             // Register
             if (url.pathname === '/api/register' && request.method === 'POST') {
