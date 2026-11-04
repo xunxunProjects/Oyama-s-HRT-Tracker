@@ -30,6 +30,7 @@
     "jose": "^6.2.14",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.9",
+    "katex": "^0.19.1",
     "openpgp": "^6.3.2",
     "qrcode.react": "^4.1.0",
     "react": "^18.3.1",
