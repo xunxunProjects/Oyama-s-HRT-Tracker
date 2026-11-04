@@ -105,6 +105,7 @@ interface Options {
     weight: unknown;
     birthYear: unknown;
     pkParams: unknown;
+    plan: unknown;
 }
 
 /** Debounce before pushing a local edit, long enough to absorb a burst of them. */
@@ -165,6 +166,7 @@ export const useCloudSync = ({
     weight,
     birthYear,
     pkParams,
+    plan,
 }: Options): CloudSyncState => {
     // The reported half of the state. `syncNow` is grafted on at the end so
     // the setters below stay plain data.
@@ -522,7 +524,7 @@ export const useCloudSync = ({
             if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, weight, birthYear, pkParams]);
+    }, [events, labResults, doseTemplates, weight, birthYear, pkParams, plan]);
 
     const syncNow = useCallback(async () => {
         const outcome = await runSync(true);

@@ -16,6 +16,7 @@ import {
 } from '../../logic';
 import { MODE_KEYS, ModeKey, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from './syncMerge';
 import { cleanDoseMG } from './cleanDose';
+import { legacyCpaItem, normalizePlanItem, type PlanItem } from './plan';
 
 /** Minimal storage surface used by the pure backup helpers. */
 export interface StorageLike {
@@ -51,6 +52,8 @@ export interface ActiveBackupState {
     weight: number;
     birthYear: number | null;
     pkParams: PKCustomParams | null;
+    /** The active mode's medication plan, when the caller holds it in memory. */
+    plan?: PlanItem[];
 }
 
 export interface ExportPayload {
@@ -68,6 +71,9 @@ export interface ExportPayload {
             labResults: LabResult[];
             doseTemplates: DoseTemplate[];
             deletions: Tombstones;
+            /** Left out while this device has never had a plan, so it can't erase another device's. */
+            plan?: PlanItem[];
+            planUpdatedAt?: number;
         }
     >;
     events: DoseEvent[];
@@ -83,6 +89,8 @@ export interface AppliedSyncedState {
         labResults: LabResult[];
         doseTemplates: DoseTemplate[];
         deletions: Tombstones;
+        /** Set when the synced state carried a plan for this mode. */
+        plan?: PlanItem[];
     };
     weight?: number;
     birthYear?: number | null;
@@ -211,6 +219,36 @@ export const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
         .filter((item): item is DoseTemplate => item !== null);
 };
 
+/**
+ * A mode's stored plan, read the way the app loads it: before plans were kept
+ * per mode, cyproterone had a standalone choice, and that still counts as the
+ * feminizing plan. `undefined` when there is no plan at all.
+ */
+export const readPlanFromStorage = (storage: StorageLike, owner: string, mode: ModeKey): PlanItem[] | undefined => {
+    const raw = storage.getItem(modeKeyFor(owner, mode, 'plan'));
+    if (raw === null) {
+        const cpa = mode === 'transfem' ? legacyCpaItem(storage.getItem(nsFor(owner, 'cpa-plan'))) : null;
+        return cpa ? [cpa] : undefined;
+    }
+    const items = loadJSONFromStorage<unknown>(storage, modeKeyFor(owner, mode, 'plan'), []);
+    return (Array.isArray(items) ? items : []).map(normalizePlanItem).filter((x): x is PlanItem => x !== null);
+};
+
+/** When the plan was last edited on this device; 0 if never since plans began to sync. */
+export const readPlanStamp = (storage: StorageLike, owner: string, mode: ModeKey): number =>
+    Number(storage.getItem(modeKeyFor(owner, mode, 'plan-at'))) || 0;
+
+/**
+ * The plan as the sync payload carries it. A device that has never had a plan
+ * says nothing, rather than "no plan", so signing in on a new phone can't wipe
+ * the plan another device holds. Clearing a plan does stamp it, so that does
+ * reach other devices.
+ */
+const planFields = (plan: PlanItem[] | undefined, stamp: number): { plan?: PlanItem[]; planUpdatedAt?: number } => {
+    if (plan === undefined || (plan.length === 0 && stamp === 0)) return {};
+    return { plan, planUpdatedAt: stamp || undefined };
+};
+
 export const buildExportPayloadFromStorage = (
     storage: StorageLike,
     owner: string,
@@ -223,6 +261,7 @@ export const buildExportPayloadFromStorage = (
         labResults: loadJSONFromStorage<LabResult[]>(storage, modeKeyFor(owner, m, 'lab-results'), []),
         doseTemplates: loadJSONFromStorage<DoseTemplate[]>(storage, modeKeyFor(owner, m, 'dose-templates'), []),
         deletions: readTombstonesFromStorage(storage, owner, m),
+        ...planFields(readPlanFromStorage(storage, owner, m), readPlanStamp(storage, owner, m)),
     });
     const modes = {
         transfem: readMode('transfem'),
@@ -234,6 +273,10 @@ export const buildExportPayloadFromStorage = (
         labResults: active.labResults,
         doseTemplates: active.doseTemplates,
         deletions: readTombstonesFromStorage(storage, owner, activeMode),
+        ...planFields(
+            active.plan ?? readPlanFromStorage(storage, owner, activeMode),
+            readPlanStamp(storage, owner, activeMode),
+        ),
     };
 
     return {
@@ -275,6 +318,10 @@ export const applySyncedStateToStorage = (
         labResults: sanitizeImportedLabResults(state.modes[m].labResults),
         doseTemplates: sanitizeImportedTemplates(state.modes[m].doseTemplates),
         deletions: sanitizeTombstones(state.modes[m].deletions),
+        plan: Array.isArray(state.modes[m].plan)
+            ? (state.modes[m].plan as unknown[]).map(normalizePlanItem).filter((x): x is PlanItem => x !== null)
+            : undefined,
+        planUpdatedAt: state.modes[m].planUpdatedAt ?? 0,
     }));
 
     for (const block of clean) {
@@ -282,6 +329,13 @@ export const applySyncedStateToStorage = (
         storage.setItem(modeKeyFor(owner, block.m, 'events'), JSON.stringify(block.events));
         storage.setItem(modeKeyFor(owner, block.m, 'lab-results'), JSON.stringify(block.labResults));
         storage.setItem(modeKeyFor(owner, block.m, 'dose-templates'), JSON.stringify(block.doseTemplates));
+        if (block.plan !== undefined) {
+            storage.setItem(modeKeyFor(owner, block.m, 'plan'), JSON.stringify(block.plan));
+            if (block.planUpdatedAt > 0) {
+                storage.setItem(modeKeyFor(owner, block.m, 'plan-at'), String(block.planUpdatedAt));
+            }
+            if (block.m === 'transfem') storage.removeItem(nsFor(owner, 'cpa-plan'));
+        }
     }
 
     const active = clean.find(block => block.m === activeMode);
