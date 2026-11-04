@@ -52,6 +52,7 @@ const MODE_SUFFIXES = [
     'dose-templates',
     'quick-doses',
     'plan',
+    'plan-at',
     'supplies',
     'deletions',
 ] as const;
@@ -248,7 +249,8 @@ export const useAppData = (
         }
     });
 
-    // The medication plan, entered by the person. Kept on this device, like supplies.
+    // The medication plan, entered by the person. Synced as one value per mode:
+    // every edit stamps `plan-at`, and the newer plan wins (see syncMerge).
     const loadPlan = (m: 'transfem' | 'transmasc'): PlanItem[] => {
         if (localStorage.getItem(keyFor(m, 'plan')) === null && m === 'transfem') {
             const cpa = legacyCpaItem(localStorage.getItem(sharedKey('cpa-plan')));
@@ -678,11 +680,17 @@ export const useAppData = (
             prev.some(s => s.id === supply.id) ? prev.map(s => (s.id === supply.id ? supply : s)) : [...prev, supply],
         );
     const deleteSupply = (id: string) => setSupplies(prev => prev.filter(s => s.id !== id));
-    const savePlanItem = (item: PlanItem) =>
+    const touchPlan = () => localStorage.setItem(keyFor(mode, 'plan-at'), String(Date.now()));
+    const savePlanItem = (item: PlanItem) => {
+        touchPlan();
         setPlan(prev =>
             prev.some(i => i.id === item.id) ? prev.map(i => (i.id === item.id ? item : i)) : [...prev, item],
         );
-    const deletePlanItem = (id: string) => setPlan(prev => prev.filter(i => i.id !== id));
+    };
+    const deletePlanItem = (id: string) => {
+        touchPlan();
+        setPlan(prev => prev.filter(i => i.id !== id));
+    };
     const deleteQuickDose = (id: string) => setQuickDoses(prev => prev.filter(d => d.id !== id));
 
     const touchPkParams = () => localStorage.setItem(sharedKey('pk-params-at'), String(Date.now()));
@@ -760,6 +768,7 @@ export const useAppData = (
             weight,
             birthYear,
             pkParams,
+            plan,
         });
 
     const completeBackupActive = (): CompleteBackupActive => ({
@@ -810,7 +819,10 @@ export const useAppData = (
         if (active?.doseTemplates !== undefined) setDoseTemplates(active.doseTemplates);
         if (active?.quickDoses !== undefined) setQuickDoses(active.quickDoses);
         if (active?.supplies !== undefined) setSupplies(active.supplies);
-        if (active?.plan !== undefined) setPlan(active.plan);
+        if (active?.plan !== undefined) {
+            touchPlan();
+            setPlan(active.plan);
+        }
         if (result.weight !== undefined) setWeightState(result.weight);
         if (result.pkParams !== undefined) setPkParamsState(result.pkParams);
         if (result.calibration) {
@@ -838,7 +850,10 @@ export const useAppData = (
         if (active?.doseTemplates !== undefined) setDoseTemplates(active.doseTemplates);
         if (active?.quickDoses !== undefined) setQuickDoses(active.quickDoses);
         if (active?.supplies !== undefined) setSupplies(active.supplies);
-        if (active?.plan !== undefined) setPlan(active.plan);
+        if (active?.plan !== undefined) {
+            touchPlan();
+            setPlan(active.plan);
+        }
         if (result.weight !== undefined) setWeightState(result.weight);
         if (result.pkParams !== undefined) setPkParamsState(result.pkParams);
         setCalibrationMethodState(result.calibration.method);
@@ -864,6 +879,7 @@ export const useAppData = (
         setEvents(applied.active.events);
         setLabResults(applied.active.labResults);
         setDoseTemplates(applied.active.doseTemplates);
+        if (applied.active.plan !== undefined) setPlan(applied.active.plan);
         if (applied.weight !== undefined) setWeightState(applied.weight);
         if (applied.birthYear !== undefined) setBirthYearState(applied.birthYear);
         if (applied.pkParams !== undefined) setPkParamsState(applied.pkParams);

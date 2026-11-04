@@ -340,6 +340,7 @@ const AppContent = () => {
         weight,
         birthYear,
         pkParams,
+        plan,
     });
 
     // --- Theme Effect ---
