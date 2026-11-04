@@ -51,7 +51,7 @@ describe('PK 10M robustness', () => {
             const g = gnrhSuppression(rand(0, 365));
             if (!Number.isFinite(g) || g < 0) errors++;
         }
-        // eslint-disable-next-line no-console
+
         console.log('10M error count:', errors);
         expect(errors).toBeLessThan(600);
     }, 600000);

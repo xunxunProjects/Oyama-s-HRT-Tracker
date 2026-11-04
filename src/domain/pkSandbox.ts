@@ -236,7 +236,7 @@ export function computePkSandbox(id: string, partial: Partial<PkSandboxInputs> =
     const timeBelow200H = firstBelow(200);
     const timeBelow100H = firstBelow(100);
 
-    const fmt = (n: number, d = 2) => Number.isFinite(n) ? n.toFixed(d) : String(n);
+    const fmt = (n: number, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : String(n));
     const derivation: DerivationStep[] = [
         {
             title: 'Dose',
