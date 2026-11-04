@@ -150,7 +150,6 @@ export function derSigToRaw(der: Uint8Array): Uint8Array<ArrayBuffer> {
     return raw;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function verifyPasskeyAssertion(
     clientDataJSONb64: string,
     authenticatorDatab64: string,

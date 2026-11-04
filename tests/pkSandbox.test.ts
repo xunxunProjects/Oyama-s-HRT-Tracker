@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Ester, ExtraKey, Route, interpolateConcentration_E2, runSimulation } from '../logic';
-import { PK_SANDBOX_MODELS, buildSandboxEvent, computePkSandbox, type PkSandboxModel } from '../logic';
+import { interpolateConcentration_E2, runSimulation } from '../logic';
+import { PK_SANDBOX_MODELS, buildSandboxEvent, computePkSandbox } from '../logic';
 
 const model = (id: string) => PK_SANDBOX_MODELS.find(m => m.id === id)!;
 

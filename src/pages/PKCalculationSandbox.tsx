@@ -215,7 +215,6 @@ const PKCalculationSandbox: React.FC<Props> = ({ onBack }) => {
                 <p className="text-xs text-[var(--text-muted)]">
                     教学演示用，简化模型，不作为给药依据。参数仅影响本页计算，不会写回全局 PK 参数。
                 </p>
-
             </div>
         </div>
     );

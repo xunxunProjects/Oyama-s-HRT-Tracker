@@ -60,6 +60,14 @@ export default defineConfig(
         },
     },
     {
+        files: ['src/server/**/*.{ts,tsx}'],
+        rules: {
+            '@typescript-eslint/no-unused-vars': 'warn',
+            '@typescript-eslint/no-explicit-any': 'warn',
+            'prefer-const': 'warn',
+        },
+    },
+    {
         files: ['logic.ts', 'src/components/CustomSelect.tsx'],
         rules: {
             'no-useless-assignment': 'warn',
@@ -75,6 +83,7 @@ export default defineConfig(
         files: ['worker.ts'],
         rules: {
             'prefer-const': 'warn',
+            '@typescript-eslint/no-unused-vars': 'warn',
         },
     },
     {
