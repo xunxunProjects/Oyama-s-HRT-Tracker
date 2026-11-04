@@ -45,6 +45,7 @@ COPY --from=build /app/src/server/routes/passkeys.ts ./src/server/routes/passkey
 COPY --from=build /app/src/server/routes/userProfile.ts ./src/server/routes/userProfile.ts
 COPY --from=build /app/src/server/routes/content.ts ./src/server/routes/content.ts
 COPY --from=build /app/src/server/routes/shares.ts ./src/server/routes/shares.ts
+COPY --from=build /app/src/server/routes/admin.ts ./src/server/routes/admin.ts
 COPY --from=build /app/src/server/shareConstants.ts ./src/server/shareConstants.ts
 COPY --from=build /app/src/server/shareHelpers.ts ./src/server/shareHelpers.ts
 COPY --from=build /app/src/server/totp.ts ./src/server/totp.ts
