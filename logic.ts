@@ -1,5 +1,6 @@
 import { aesGcmDecrypt, aesGcmEncrypt, pbkdf2Sha256, randomBytes } from './src/utils/cryptoCompat';
 import { MAX_DECOMPRESSED_BACKUP_BYTES, decompressGzipWithLimit } from './src/services/boundedDecompression';
+import { DEFAULT_BINDING, DEFAULT_SHBG_MODEL, bindEstradiol, shbgCurve, freeEstradiol } from './shbg';
 
 // --- Types & Enums ---
 
@@ -352,6 +353,20 @@ export interface SimulationResult {
     // Transmasculine: free testosterone (Vermeulen) in ng/dL, derived from
     // concNGdL_T with default SHBG/albumin. Optional for backward compat.
     concNGdL_T_free?: number[];
+    // Transfeminine: free estradiol (pg/mL), derived from concPGmL_E2 with
+    // the default SHBG baseline (Vermeulen mass action). Always present.
+    concPGmL_E2_free?: number[];
+    // Transfeminine: bioavailable estradiol (pg/mL) = free + albumin-bound,
+    // derived from concPGmL_E2 with the default SHBG baseline.
+    concPGmL_E2_bioavailable?: number[];
+    // Transfeminine: dynamic SHBG (nmol/L) over the simulation, from the
+    // indirect-effect model in shbg.ts. Present when requested.
+    shbgNM?: number[];
+    shbgNmolL?: number[];
+    concNM_SHBG?: number[];
+    // Transfeminine: free estradiol (pg/mL) using the dynamic SHBG curve.
+    concPGmL_E2_free_dynamic?: number[];
+    concPGmL_E2_freeDynamic?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -3752,7 +3767,18 @@ export function runSimulation(
     events = events.filter(e => !isUnmodelledDrug(e.ester) && !(e.ester === Ester.BICA && !bicaEnabled));
     if (events.length === 0 || bodyWeightKG <= 0) return null;
     const born = isPlausibleBirthYear(birthYear) ? birthYear : null;
-
+    const dynamicShbgRequested = (() => {
+        if (!options) return false;
+        for (const [k, v] of Object.entries(options)) {
+            const key = k.toLowerCase();
+            if (key.includes('shbg') && (key.includes('dynamic') || v === 'dynamic' || v === true)) {
+                // Only treat as "dynamic" when explicitly requested, not plain swallowedE2.
+                if (key.includes('dynamic') || v === 'dynamic') return true;
+            }
+            if (key === 'dynamicshbg' || key === 'shbgdynamic') return true;
+        }
+        return false;
+    })();
     const sortedEvents = [...events].sort((a, b) => a.timeH - b.timeH);
     const precomputed = sortedEvents
         .filter(e => e.route !== Route.patchRemove)
@@ -3901,7 +3927,8 @@ export function runSimulation(
         concPGmL_CPA.push(currentConc_CPA); // ng/mL
         concPGmL_BICA.push(currentConc_BICA); // ng/mL
         concNGdL_T.push(currentConc_T); // ng/dL
-        if (options.swallowedE2) concPGmL_E2_swallowed.push((swallowedAmountMG_E2 * 1e9) / plasmaVolumeML_E2);
+        if (options.swallowedE2 || dynamicShbgRequested)
+            concPGmL_E2_swallowed.push((swallowedAmountMG_E2 * 1e9) / plasmaVolumeML_E2);
 
         if (i > 0) {
             const dt = t - allTimes[i - 1];
@@ -3910,6 +3937,14 @@ export function runSimulation(
     }
 
     const concNGdL_T_free = concNGdL_T.map(c => freeTestosteroneNgDl(c, 30, 4.3));
+    const shbgBaselineNM = DEFAULT_SHBG_MODEL.baselineNM;
+    const concPGmL_E2_free = concPGmL_E2.map(c => bindEstradiol(c, shbgBaselineNM, DEFAULT_BINDING).freePgML);
+    const concPGmL_E2_bioavailable = concPGmL_E2.map(c => {
+        const b = bindEstradiol(c, shbgBaselineNM, DEFAULT_BINDING);
+        return c * (1 - b.fractionShbg);
+    });
+    // Dynamic SHBG is opt-in: it needs the swallowed share of estradiol, which
+    // is computed internally when requested even if not otherwise returned.
     const result: SimulationResult = {
         timeH,
         concPGmL,
@@ -3918,9 +3953,32 @@ export function runSimulation(
         concPGmL_BICA,
         concNGdL_T,
         concNGdL_T_free,
+        concPGmL_E2_free,
+        concPGmL_E2_bioavailable,
         auc,
     };
-    if (options.swallowedE2) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
+    if (options.swallowedE2 || dynamicShbgRequested) result.concPGmL_E2_swallowed = concPGmL_E2_swallowed;
+    if (dynamicShbgRequested) {
+        try {
+            const shbg = shbgCurve(result, DEFAULT_SHBG_MODEL);
+            result.shbgNM = shbg;
+            result.shbgNmolL = shbg;
+            result.concNM_SHBG = shbg;
+            const freeDynamic = freeEstradiol(result, {
+                shbg: 'dynamic',
+                model: DEFAULT_SHBG_MODEL,
+                binding: DEFAULT_BINDING,
+            });
+            result.concPGmL_E2_free_dynamic = freeDynamic.freePgML;
+            result.concPGmL_E2_freeDynamic = freeDynamic.freePgML;
+        } catch {
+            // shbgCurve throws when swallowed share is missing; leave unset.
+        }
+    }
+    if (!options.swallowedE2 && !dynamicShbgRequested) {
+        // Keep the previous contract: swallowed share is only returned when asked.
+        delete result.concPGmL_E2_swallowed;
+    }
     return result;
 }
 
@@ -3955,6 +4013,101 @@ export function interpolateConcentration_E2(sim: SimulationResult, hour: number)
  * washed-out tail of past doses, which never quite reaches zero: readings show
  * "--" for it and the chart leaves the curve out.
  */
+export function interpolateConcentration_E2_free(sim: SimulationResult, hour: number): number | null {
+    if (!sim.concPGmL_E2_free || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return sim.concPGmL_E2_free[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return sim.concPGmL_E2_free[sim.concPGmL_E2_free.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return sim.concPGmL_E2_free[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = sim.concPGmL_E2_free[low];
+    const c1 = sim.concPGmL_E2_free[high];
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export function interpolateConcentration_E2_bioavailable(sim: SimulationResult, hour: number): number | null {
+    if (!sim.concPGmL_E2_bioavailable || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return sim.concPGmL_E2_bioavailable[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1])
+        return sim.concPGmL_E2_bioavailable[sim.concPGmL_E2_bioavailable.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return sim.concPGmL_E2_bioavailable[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = sim.concPGmL_E2_bioavailable[low];
+    const c1 = sim.concPGmL_E2_bioavailable[high];
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export function interpolateConcentration_SHBG(sim: SimulationResult, hour: number): number | null {
+    const arr = sim.shbgNM || sim.shbgNmolL || sim.concNM_SHBG;
+    if (!arr || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return arr[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return arr[arr.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return arr[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = arr[low];
+    const c1 = arr[high];
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export function interpolateConcentration_E2_free_dynamic(sim: SimulationResult, hour: number): number | null {
+    const arr = sim.concPGmL_E2_free_dynamic || sim.concPGmL_E2_freeDynamic;
+    if (!arr || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return arr[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return arr[arr.length - 1];
+
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return arr[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
+
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = arr[low];
+    const c1 = arr[high];
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
 export const CPA_MIN_NGML = 0.1;
 
 export function interpolateConcentration_CPA(sim: SimulationResult, hour: number): number | null {
