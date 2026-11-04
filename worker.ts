@@ -18,6 +18,7 @@ import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSubmit } from './communityVoteServer';
 import { handlePublicRoutes } from './src/server/routes/public';
 import { handleSessionsRoute } from './src/server/routes/sessions';
+import { handleTwoFactorRoute } from './src/server/routes/twoFactor';
 import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
@@ -35,17 +36,24 @@ export type { Env } from './src/server/env';
 // class matches is used. A missing binding is a configuration hole, not a
 // runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
 // still serves — it is logged once per isolate so it can't stay quiet.
-import { checkRateLimit } from './src/server/rateLimit';
+import { checkRateLimit, passwordCheckAllowed } from './src/server/rateLimit';
+import {
+    base32Decode,
+    base32Encode,
+    consumeTOTP,
+    generateAndStoreBackupCodes,
+    generateTOTPSecret,
+    hmacSha256Hex,
+    matchTOTPStep,
+    verifyAndConsumeBackupCode,
+    verifyTOTP,
+} from './src/server/totp';
 
 /**
  * Every endpoint that bcrypt-compares the account password shares one
  * per-user bucket, so a stolen session plus a guessed password cannot turn
  * 2FA/passkey/password endpoints into an unthrottled oracle.
  */
-async function passwordCheckAllowed(env: Env, userId: string): Promise<boolean> {
-    return checkRateLimit(env, `password-check:${userId}`, 10);
-}
-
 function withSecurityHeaders(response: Response): Response {
     const newResponse = new Response(response.body, response);
     newResponse.headers.set('X-Content-Type-Options', 'nosniff');
@@ -365,99 +373,6 @@ function getValidatedJWTSecret(env: Env): string {
 // Lazily ensure the transparency deletion_log table exists.
 // This lets the feature deploy without requiring a manual migration on
 // existing databases. Cached per worker instance.
-// --- TOTP Helpers (RFC 6238 / RFC 4226) ---
-const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-
-function base32Decode(input: string): Uint8Array<ArrayBuffer> {
-    const clean = input.toUpperCase().replace(/\s/g, '').replace(/=+$/, '');
-    const bytes: number[] = [];
-    let buf = 0,
-        bitsLeft = 0;
-    for (let i = 0; i < clean.length; i++) {
-        const val = BASE32_CHARS.indexOf(clean[i]);
-        if (val < 0) throw new Error(`Invalid base32 char: ${clean[i]}`);
-        buf = (buf << 5) | val;
-        bitsLeft += 5;
-        if (bitsLeft >= 8) {
-            bitsLeft -= 8;
-            bytes.push((buf >> bitsLeft) & 0xff);
-        }
-    }
-    return new Uint8Array(bytes);
-}
-
-function base32Encode(bytes: Uint8Array): string {
-    let result = '';
-    let buf = 0,
-        bitsLeft = 0;
-    for (const byte of bytes) {
-        buf = (buf << 8) | byte;
-        bitsLeft += 8;
-        while (bitsLeft >= 5) {
-            bitsLeft -= 5;
-            result += BASE32_CHARS[(buf >> bitsLeft) & 0x1f];
-        }
-    }
-    if (bitsLeft > 0) result += BASE32_CHARS[(buf << (5 - bitsLeft)) & 0x1f];
-    return result;
-}
-
-function generateTOTPSecret(): string {
-    const bytes = new Uint8Array(20);
-    crypto.getRandomValues(bytes);
-    return base32Encode(bytes);
-}
-
-async function hotp(secret: string, counter: number): Promise<string> {
-    const keyBytes = base32Decode(secret);
-    const counterBuf = new ArrayBuffer(8);
-    const view = new DataView(counterBuf);
-    view.setUint32(0, Math.floor(counter / 0x100000000), false);
-    view.setUint32(4, counter % 0x100000000, false);
-    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
-    const sig = await crypto.subtle.sign('HMAC', key, counterBuf);
-    const hmac = new Uint8Array(sig);
-    const offset = hmac[hmac.length - 1] & 0x0f;
-    const code = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16) | (hmac[offset + 2] << 8) | hmac[offset + 3];
-    return (code % 1_000_000).toString().padStart(6, '0');
-}
-
-async function verifyTOTP(secret: string, token: string, windowSize = 1): Promise<boolean> {
-    return (await matchTOTPStep(secret, token, windowSize)) !== null;
-}
-
-/** The 30-second step a code matches, or null. Needed so it can be consumed. */
-async function matchTOTPStep(secret: string, token: string, windowSize = 1): Promise<number | null> {
-    if (!/^\d{6}$/.test(token)) return null;
-    const T = Math.floor(Date.now() / 1000 / 30);
-    for (let i = -windowSize; i <= windowSize; i++) {
-        if ((await hotp(secret, T + i)) === token) return T + i;
-    }
-    return null;
-}
-
-/**
- * Verify a TOTP code and burn it, so the same six digits can't be presented
- * twice. The ±1 step window means a code stayed valid for up to 90 seconds;
- * without consumption, anyone who observed one inside that window could reuse
- * it. RFC 6238 §5.2 requires one-time acceptance. Backup codes already did this
- * via their used_at column — this brings TOTP in line.
- */
-async function consumeTOTP(env: Env, userId: string, secret: string, token: string): Promise<boolean> {
-    const step = await matchTOTPStep(secret, token);
-    if (step === null) return false;
-    // Claim the step in the same statement that tests it. As a SELECT, then a
-    // compare, then an UPDATE this was three round-trips with no transaction
-    // between them, so two requests presenting the same six digits both read the
-    // old totp_last_step and both succeeded — precisely the replay the function
-    // exists to prevent.
-    const res = await env.DB.prepare(
-        'UPDATE users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)',
-    )
-        .bind(step, userId, step)
-        .run();
-    return (res.meta?.changes ?? 0) > 0;
-}
 
 // Schema lives in migrations/ and nowhere else. The worker used to carry a
 // CREATE TABLE IF NOT EXISTS / ALTER TABLE mirror of it that ran lazily on
@@ -507,65 +422,6 @@ const NOTICE_LANGS = ['zh', 'zh-TW', 'yue', 'en', 'ja', 'ko', 'tr'] as const;
 const MAX_NOTICE_BODY = 2000;
 
 import { NOTICE_COLUMNS, type SiteNoticeRow, serializeNotice } from './src/server/notice';
-
-// --- Backup codes ---
-
-async function hmacSha256Hex(key: string, data: string): Promise<string> {
-    const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(key),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign'],
-    );
-    const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
-    return Array.from(new Uint8Array(sig))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
-
-function generateRawBackupCode(): string {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no ambiguous chars (0/O 1/I/L)
-    const rand = crypto.getRandomValues(new Uint8Array(12));
-    let code = '';
-    for (let i = 0; i < 12; i++) {
-        if (i === 4 || i === 8) code += '-';
-        code += chars[rand[i] % chars.length];
-    }
-    return code; // format: XXXX-XXXX-XXXX
-}
-
-async function generateAndStoreBackupCodes(env: Env, userId: string, jwtSecret: string): Promise<string[]> {
-    await env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId).run();
-    const codes: string[] = [];
-    for (let i = 0; i < 8; i++) {
-        const code = generateRawBackupCode();
-        const normalized = code.replace(/-/g, '').toLowerCase();
-        const hash = await hmacSha256Hex(jwtSecret, normalized);
-        const id = crypto.randomUUID();
-        await env.DB.prepare('INSERT INTO backup_codes (id, user_id, code_hash) VALUES (?, ?, ?)')
-            .bind(id, userId, hash)
-            .run();
-        codes.push(code);
-    }
-    return codes;
-}
-
-async function verifyAndConsumeBackupCode(env: Env, userId: string, code: string, jwtSecret: string): Promise<boolean> {
-    const normalized = code.trim().replace(/[-\s]/g, '').toLowerCase();
-    const hash = await hmacSha256Hex(jwtSecret, normalized);
-    // Burn the code in the statement that finds it. Selecting `used_at IS NULL`
-    // and then updating in a second round-trip let two concurrent requests both
-    // see the same unused row and both spend it, so one single-use code was worth
-    // as many logins as an attacker could fire in parallel.
-    const res = await env.DB.prepare(
-        `UPDATE backup_codes SET used_at = ?
-     WHERE id = (SELECT id FROM backup_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL LIMIT 1)`,
-    )
-        .bind(Math.floor(Date.now() / 1000), userId, hash)
-        .run();
-    return (res.meta?.changes ?? 0) > 0;
-}
 
 // --- Dosage share snapshots ---
 
@@ -3015,218 +2871,23 @@ export default {
                 if (sessionsResponse) return sessionsResponse;
 
                 // --- Two-Factor Authentication (TOTP) ---
-                if (url.pathname.startsWith('/api/user/2fa')) {
-                    // GET /api/user/2fa/status
-                    if (url.pathname === '/api/user/2fa/status' && request.method === 'GET') {
-                        const row = (await env.DB.prepare('SELECT totp_secret FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const pkRow = (await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const passkeyCount = pkRow?.cnt ?? 0;
-                        return withSecurityHeaders(
-                            new Response(
-                                JSON.stringify({
-                                    enabled: !!row?.totp_secret || passkeyCount > 0,
-                                    totp: !!row?.totp_secret,
-                                    passkey: passkeyCount > 0,
-                                }),
-                                {
-                                    status: 200,
-                                    headers: {
-                                        ...corsHeaders,
-                                        ...privateCacheHeaders,
-                                        'Content-Type': 'application/json',
-                                    },
-                                },
-                            ),
-                        );
-                    }
-
-                    // POST /api/user/2fa/setup — generate a new TOTP secret (not saved yet)
-                    if (url.pathname === '/api/user/2fa/setup' && request.method === 'POST') {
-                        const userRow = (await env.DB.prepare('SELECT username FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const username = userRow?.username ?? userId;
-                        const totpSecret = generateTOTPSecret();
-                        const issuer = 'HRT Tracker';
-                        const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(username)}?secret=${totpSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ secret: totpSecret, uri }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // POST /api/user/2fa/enable — verify code and save secret to DB
-                    if (url.pathname === '/api/user/2fa/enable' && request.method === 'POST') {
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { secret: totpSecret, code, password, currentCode } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (!totpSecret || !code) return jsonError('INVALID_REQUEST', 'Missing secret or code', 400);
-                        // Validate secret format (base32 chars, 16-32 chars)
-                        if (!/^[A-Z2-7]{16,64}$/i.test(totpSecret))
-                            return jsonError('INVALID_REQUEST', 'Invalid secret format', 400);
-
-                        const existing = (await env.DB.prepare(
-                            'SELECT password_hash, totp_secret FROM users WHERE id = ?',
-                        )
-                            .bind(userId)
-                            .first()) as any;
-                        if (!existing) return jsonError('NOT_FOUND', 'User not found', 404);
-                        const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-
-                        // Enrolling TOTP is not an additive convenience — it writes the
-                        // secret that gates login, disabling 2FA, and account deletion. A
-                        // bearer token alone used to be enough whenever no secret was set
-                        // yet, which is most accounts: anyone holding a stolen token could
-                        // pick a secret they control, verify it against itself (the check
-                        // below proves nothing about the caller), and take the account for
-                        // good. The victim's own password login then demands a code from
-                        // the attacker's authenticator, and so does every route that would
-                        // undo it. The same request also wipes every backup code, including
-                        // the ones passkey registration issues, so a passkey-protected
-                        // account lost its recovery path in the bargain. Require the
-                        // password the strictly weaker operations already ask for — see
-                        // DELETE /api/user/passkeys/:id and the backup-code regenerate.
-                        if (typeof password !== 'string' || password.length === 0) {
-                            return jsonError('INVALID_REQUEST', 'Current password is required', 400);
-                        }
-                        if (!(await bcrypt.compare(password, existing.password_hash ?? dummyHash))) {
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        }
-
-                        // Re-enrolment is additionally a credential *replacement*, so it
-                        // also needs a code from the authenticator being replaced — the
-                        // same proof DELETE /api/user/2fa asks for.
-                        if (existing.totp_secret) {
-                            if (!currentCode) {
-                                return jsonError(
-                                    'INVALID_REQUEST',
-                                    '2FA is already enabled: current password and a code from the current authenticator are required',
-                                    400,
-                                );
-                            }
-                            const currentValid = await consumeTOTP(
-                                env,
-                                userId,
-                                existing.totp_secret,
-                                String(currentCode),
-                            );
-                            if (!currentValid)
-                                return jsonError('TWO_FACTOR_INVALID', 'Invalid code from current authenticator', 401);
-                        }
-
-                        const valid = await verifyTOTP(totpSecret, String(code));
-                        if (!valid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
-                        await env.DB.prepare('UPDATE users SET totp_secret = ? WHERE id = ?')
-                            .bind(totpSecret, userId)
-                            .run();
-                        const backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: '2FA enabled', backupCodes }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // DELETE /api/user/2fa — disable 2FA (requires current password + TOTP code)
-                    if (url.pathname === '/api/user/2fa' && request.method === 'DELETE') {
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { password, code } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (typeof password !== 'string' || typeof code !== 'string')
-                            return jsonError('INVALID_REQUEST', 'Missing password or code', 400);
-                        const userRow = (await env.DB.prepare(
-                            'SELECT password_hash, totp_secret FROM users WHERE id = ?',
-                        )
-                            .bind(userId)
-                            .first()) as any;
-                        if (!userRow) return jsonError('NOT_FOUND', 'User not found', 404);
-                        const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        const passValid = await bcrypt.compare(password, userRow.password_hash ?? dummyHash);
-                        if (!passValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        if (!userRow.totp_secret) return jsonError('INVALID_REQUEST', '2FA is not enabled', 400);
-                        const totpValid = await consumeTOTP(env, userId, userRow.totp_secret, String(code));
-                        if (!totpValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
-                        await env.DB.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').bind(userId).run();
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: '2FA disabled' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // GET /api/user/2fa/backup-codes — count of remaining unused codes
-                    if (url.pathname === '/api/user/2fa/backup-codes' && request.method === 'GET') {
-                        const row = (await env.DB.prepare(
-                            'SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ? AND used_at IS NULL',
-                        )
-                            .bind(userId)
-                            .first()) as any;
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ remaining: row?.cnt ?? 0 }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // POST /api/user/2fa/backup-codes/generate — regenerate backup codes
-                    if (url.pathname === '/api/user/2fa/backup-codes/generate' && request.method === 'POST') {
-                        // Regenerating deletes every existing code (generateAndStoreBackupCodes
-                        // opens with DELETE FROM backup_codes), so it destroys the recovery
-                        // path and needs the password — same reasoning as re-enrolment above.
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { password } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (typeof password !== 'string' || password.length === 0)
-                            return jsonError('INVALID_REQUEST', 'Current password is required', 400);
-                        const row = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        if (!(await bcrypt.compare(password, row?.password_hash ?? dummyHash))) {
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        }
-                        const codes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ codes }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-                }
+                const twoFactorResponse = await handleTwoFactorRoute(
+                    createRequestContext(
+                        request,
+                        env,
+                        ctx,
+                        jwtSecret,
+                        corsHeaders,
+                        privateCacheHeaders,
+                        withSecurityHeaders,
+                        jsonError,
+                        shareJson,
+                        sessionInvalid,
+                    ),
+                    userId,
+                    jwtSecret,
+                );
+                if (twoFactorResponse) return twoFactorResponse;
 
                 // --- Passkeys (WebAuthn) ---
                 if (url.pathname.startsWith('/api/user/passkeys') || url.pathname.startsWith('/api/user/passkey')) {

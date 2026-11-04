@@ -10,6 +10,10 @@ const RATE_LIMIT_CLASSES: Record<number, keyof Env> = {
 const missingLimiterReported = new Set<string>();
 
 /** True when the caller is within `perMinute` requests a minute for `key`. */
+export async function passwordCheckAllowed(env: Env, userId: string): Promise<boolean> {
+    return checkRateLimit(env, `password-check:${userId}`, 10);
+}
+
 export async function checkRateLimit(env: Env, key: string, perMinute: number): Promise<boolean> {
     const bindingName = RATE_LIMIT_CLASSES[perMinute];
     const limiter = bindingName ? (env[bindingName] as RateLimit | undefined) : undefined;
