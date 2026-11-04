@@ -170,6 +170,45 @@ export function bodyCompStep(
     return { m: m + dm * dtDays, fVisc: fVisc + df * dtDays };
 }
 
+// --- Body composition curve (A4): integrate slow variables over a simulation ---
+export function bodyCompCurve(
+    sim: SimulationResult,
+    params: BodyCompParams = DEFAULT_BODY_COMP_PARAMS,
+    windowH: number = 90 * 24,
+    scalePgMl: number = 200,
+): { m: number[]; fVisc: number[] } {
+    const n = sim.timeH.length;
+    const mArr: number[] = new Array(n);
+    const fArr: number[] = new Array(n);
+    // Prefix sums for O(1) windowed averages.
+    const prefix: number[] = new Array(n + 1);
+    prefix[0] = 0;
+    for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + sim.concPGmL_E2[i];
+
+    let m = 0;
+    let f = 0;
+    let left = 0;
+    for (let i = 0; i < n; i++) {
+        const t = sim.timeH[i];
+        const cutoff = t - windowH;
+        while (left > 0 && sim.timeH[left - 1] >= cutoff) left--; // not needed, kept for safety
+        while (left < i && sim.timeH[left] < cutoff) left++;
+        const cnt = i - left + 1;
+        const sum = prefix[i + 1] - prefix[left];
+        const avg = cnt > 0 ? sum / cnt : 0;
+        const exposure = Math.max(0, Math.min(1, avg / scalePgMl));
+        const dtDays = i > 0 ? (sim.timeH[i] - sim.timeH[i - 1]) / 24 : 0;
+        if (i > 0) {
+            const bc = bodyCompStep(m, f, exposure, dtDays, params);
+            m = bc.m;
+            f = bc.fVisc;
+        }
+        mArr[i] = m;
+        fArr[i] = f;
+    }
+    return { m: mArr, fVisc: fArr };
+}
+
 // --- Gonadectomy / uterus state (Phase 4.1) ---
 export type GonadectomyState = 'intact' | 'hysterectomy-only' | 'bso';
 
@@ -367,6 +406,17 @@ export interface SimulationResult {
     // Transfeminine: free estradiol (pg/mL) using the dynamic SHBG curve.
     concPGmL_E2_free_dynamic?: number[];
     concPGmL_E2_freeDynamic?: number[];
+    // Transfeminine: HPG relative activity (0..1) over the simulation.
+    rHPG?: number[];
+    // Transfeminine: endogenous testosterone (ng/dL) implied by R_HPG, when a
+    // baseline is supplied.
+    endogenousTNgDl?: number[];
+    endogenousT_ngDl?: number[];
+    // Transfeminine: body-composition slow variables (relative units).
+    muscleM?: number[];
+    bodyCompM?: number[];
+    visceralFat?: number[];
+    bodyCompFVisc?: number[];
     // Area under the E2 curve (pg·h/mL) over the whole grid. Only E2: concPGmL
     // adds CPA converted to pg/mL, a different drug in a unit a thousand times
     // larger, which would swamp it.
@@ -3979,6 +4029,33 @@ export function runSimulation(
         // Keep the previous contract: swallowed share is only returned when asked.
         delete result.concPGmL_E2_swallowed;
     }
+
+    // HPG axis (A3): opt-in dynamic R_HPG from the estradiol curve. Endogenous
+    // testosterone is reported only when a baseline was supplied.
+    const hpgRequested = (() => {
+        if (!options) return false;
+        for (const [k] of Object.entries(options)) {
+            const key = k.toLowerCase();
+            if (key.includes('hpg') || key.includes('endogenous')) return true;
+            if (key === 'rhp' || key === 'rhpG'.toLowerCase()) return true;
+        }
+        return false;
+    })();
+    if (hpgRequested || ttBaselineNgDl !== null) {
+        const r = hpgAxisCurve(result.concPGmL_E2, result.timeH, DEFAULT_HPG_PARAMS);
+        result.rHPG = r;
+        if (ttBaselineNgDl !== null) {
+            result.endogenousTNgDl = r.map(x => ttBaselineNgDl * x);
+            result.endogenousT_ngDl = result.endogenousTNgDl;
+        }
+    }
+
+    // Body composition (A4): slow variables driven by 90-d rolling E2 average.
+    const bc = bodyCompCurve(result, DEFAULT_BODY_COMP_PARAMS);
+    result.muscleM = bc.m;
+    result.bodyCompM = bc.m;
+    result.visceralFat = bc.fVisc;
+    result.bodyCompFVisc = bc.fVisc;
     return result;
 }
 
@@ -4099,6 +4176,28 @@ export function interpolateConcentration_E2_free_dynamic(sim: SimulationResult, 
         else high = mid;
     }
 
+    const t0 = sim.timeH[low];
+    const t1 = sim.timeH[high];
+    const c0 = arr[low];
+    const c1 = arr[high];
+    if (t1 === t0) return c0;
+    const ratio = (hour - t0) / (t1 - t0);
+    return c0 + (c1 - c0) * ratio;
+}
+
+export function interpolateConcentration_rHPG(sim: SimulationResult, hour: number): number | null {
+    const arr = sim.rHPG;
+    if (!arr || !sim.timeH.length) return null;
+    if (hour <= sim.timeH[0]) return arr[0];
+    if (hour >= sim.timeH[sim.timeH.length - 1]) return arr[arr.length - 1];
+    let low = 0;
+    let high = sim.timeH.length - 1;
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (sim.timeH[mid] === hour) return arr[mid];
+        if (sim.timeH[mid] < hour) low = mid;
+        else high = mid;
+    }
     const t0 = sim.timeH[low];
     const t1 = sim.timeH[high];
     const c0 = arr[low];
@@ -4349,6 +4448,58 @@ export function expectedTestosteroneNgDl(
     if (!Number.isFinite(baselineNgDl) || baselineNgDl < 0) return 0;
     const factor = combinedTestosteroneSuppressionFactor(e2PgMl, antiandrogenPresent);
     return baselineNgDl * factor;
+}
+
+// --- HPG axis suppression (transfeminine, dynamic, issue #260 A3) ---
+//
+// Dynamic counterpart of the steady-state estradiolTestosteroneSuppressionFactor:
+// R_HPG follows first-order kinetics driven by estradiol, with endogenous
+// testosterone = T_base * R_HPG. Integrated over the simulation grid.
+
+export interface HPGParams {
+    /** Relative HPG activity at baseline (0..1). */
+    r0: number;
+    /** Synthesis rate (1/h). */
+    kIn: number;
+    /** Clearance rate (1/h). */
+    kOut: number;
+    /** Maximum fractional inhibition by estradiol. */
+    imax: number;
+    /** Estradiol (pg/mL) giving half the maximum inhibition. */
+    ic50PgMl: number;
+}
+
+export const DEFAULT_HPG_PARAMS: HPGParams = {
+    r0: 1,
+    kIn: 1 / 24,
+    kOut: 1 / 24,
+    imax: 0.95,
+    ic50PgMl: 50,
+};
+
+export function hpgAxisCurve(e2PgMl: number[], timeH: number[], params: HPGParams = DEFAULT_HPG_PARAMS): number[] {
+    if (!e2PgMl.length || !timeH.length) return [];
+    const n = Math.min(e2PgMl.length, timeH.length);
+    const r: number[] = [params.r0];
+    for (let i = 1; i < n; i++) {
+        const dt = timeH[i] - timeH[i - 1];
+        if (!(dt > 0)) {
+            r.push(r[r.length - 1]);
+            continue;
+        }
+        const c = Math.max(0, e2PgMl[i - 1]);
+        const inhibition = (params.imax * c) / (params.ic50PgMl + c);
+        const target = 1 - inhibition;
+        // Exact integration of dR/dt = kIn*(target) - kOut*R over dt, with
+        // target taken as constant over the step.
+        const a = params.kOut;
+        const steady = (params.kIn / a) * target;
+        const prev = r[r.length - 1];
+        r.push(steady + (prev - steady) * Math.exp(-a * dt));
+    }
+    // Pad if needed
+    while (r.length < n) r.push(r[r.length - 1] ?? params.r0);
+    return r;
 }
 
 // --- Encryption Utils ---
