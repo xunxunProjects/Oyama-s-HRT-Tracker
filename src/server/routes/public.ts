@@ -1,5 +1,8 @@
 import type { RequestContext } from '../../../worker';
 import { hrtCapability } from '../../../hrtPairing';
+import { handleHrtService } from '../../../hrtPairing';
+import { handleF2fService } from '../../../f2f';
+import { toolVersionBody } from '../../../toolApi';
 import { exchangeF2fCliCode } from '../../../f2f';
 import { handleCommunityVotePublic } from '../../../communityVoteServer';
 import { getClientIP } from '../../../requestInput';
@@ -213,6 +216,27 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
             });
         }
         return withSecurityHeaders(await exchangeF2fCliCode(request, env, ctx.jwtSecret));
+    }
+
+    // Tool API public surface
+    if (url.pathname === '/api/tool/v1/version' && request.method === 'GET') {
+        return withSecurityHeaders(
+            new Response(JSON.stringify(toolVersionBody(env)), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+            }),
+        );
+    }
+    if (url.pathname === '/api/tool/v1/compute' && request.method === 'POST') {
+        return jsonError('NOT_IMPLEMENTED', 'Server compute is reserved for a future version', 501);
+    }
+    if (url.pathname.startsWith('/api/tool/v1/hrt/')) {
+        const hrtResponse = await handleHrtService(request, env, url);
+        if (hrtResponse) return withSecurityHeaders(hrtResponse);
+    }
+    if (url.pathname.startsWith('/api/tool/v1/f2f/')) {
+        const f2fResponse = await handleF2fService(request, env, url);
+        if (f2fResponse) return withSecurityHeaders(f2fResponse);
     }
 
     return null;
