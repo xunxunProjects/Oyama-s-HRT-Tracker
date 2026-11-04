@@ -266,7 +266,7 @@ binding and dispatches `/api/*` in a long, ordered `fetch` handler.
 | `DoseEvent`         | A dose at a time in hours, with route, ester, amount, and route-specific extras.        |
 | `SimulationResult`  | Sampled concentration curves for E2, CPA, and T.                                        |
 | `LabResult`         | A measured level with unit, assay, and time.                                            |
-| `CalibrationMethod` | `off`, `ekf`, `ou_kalman`, `mipd`; calibration adjusts the E2 model to the user's labs. |
+| `CalibrationMethod` | `off`, `ekf`, `ou_kalman`, `mipd`, `bayes`; calibration fits E2 to the user's own labs. |
 | `PKCustomParams`    | User-editable model parameters, validated by `sanitizePKParams`.                        |
 | `UNMODELLED_DRUGS`  | Adjunct drugs with no level model; they appear in logs but draw no curve.               |
 

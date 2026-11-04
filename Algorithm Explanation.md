@@ -352,6 +352,7 @@ $$
   - 参数页（§14）：存储的 `t_ff_TC` / `t_ff_TE` / `t_ff_TU` 等于旧默认值 0.025 时按当前默认值 0.043 读取。参数页保存时写入全部字段，此前保存过的人一直停留在旧值上。
   - 注释与测试：口服 E2 注释写明 10.3 h 的峰时及其与 Angeliq 稳态数据的差距，`tests/literature.test.ts` 把后者记为已知差距（§5.2、§10）；TU 注释更正“单库会在一天内达峰”的说法（实为约第 5 天）；睾酮形成分数注释补充 Aveed 的体重分组（§14）；CPA 注释写明低剂量的差距（§13）；Spratt 测试改为读取注射后 3.5 天的值。
 - **2026‑11‑03**（issue #203）：新增可选的 SHBG 与游离 E2 子模型 `shbg.ts`，默认关闭，应用不调用。`runSimulation` 增加 `swallowedE2` 选项，只在传入时返回 `concPGmL_E2_swallowed`，默认输出不变。四个场景、敏感性分析与按 issue 判定规则得出的结论见 §18。
+- **2026‑11‑04**：新增第五种化验校准方法 `bayes`（全贝叶斯，§16）：对漂移假设做贝叶斯模型平均，按检测方法、数值高低与抽血时曲线斜率设定每个化验的误差，并用 Laplace 后验给预测页逐小时的不确定范围。默认方法仍是 `mipd`；其余四种方法的曲线与预测范围不变。备份中的 `bayes` 暂不被 hrt-cold Tools 接受（见 `docs/backup-schema-audit/BACKUP_TEST_VECTORS.md` BTV-1）。
 
 ---
 
@@ -366,7 +367,7 @@ $$
 - Approximate comparable doses（不同途径的近似等效剂量）<https://transfemscience.org/articles/e2-equivalent-doses/>
 - Oral vs transdermal estradiol（口服与透皮比较）<https://transfemscience.org/articles/oral-vs-transdermal-e2/>
 - estrannai.se：对于Injection的三室模型和Patch的相关算法参考<https://estrannai.se/docs/ingredients/>
-- hrt.transmtf.com：化验校准的三种学习方法（EKF、OU-Kalman、Hybrid MIPD）参照该站提供的校准模型，本项目针对可识别的两个参数重新实现（见 §16）。
+- hrt.transmtf.com：化验校准的三种学习方法（EKF、OU-Kalman、Hybrid MIPD）参照该站提供的校准模型，本项目针对可识别的两个参数重新实现（见 §16）。第五种方法 `bayes` 是本项目自有的。
 - 仓库内 `transmasc_hrt_modeling_document.md`：跨男（睾酮）建模的设计文档。§14 的参数结构最初以它为参照；2026‑10‑13 起 `logic.ts` 不再引用它，注射参数改按下方的 Xyosted、Aveed、Nebido 说明书标定。
 
 **官方说明书/监管资料**
@@ -397,6 +398,10 @@ $$
 - Pastuszak AW et al. Population pharmacokinetic modeling and simulations to evaluate a potential dose regimen of testosterone undecanoate in hypogonadal males. *J Clin Pharmacol*. 2021;61(12):1618-25：130 名男性，显著协变量为体重与 SHBG（§17）。<https://pubmed.ncbi.nlm.nih.gov/34269421/>
 - Hembree WC, Bardin CW, Lipsett MB. A study of estrogen metabolic clearance rates and transfer factors. *J Clin Invest*. 1969;48(10):1809-19：绝经后女性的雌激素清除率与绝经前在同一范围（§17）。<https://pubmed.ncbi.nlm.nih.gov/5822587/>
 - Chantrapanichkul P et al. Serum hormone concentrations in transgender individuals receiving gender-affirming hormone therapy. *Endocr Pract*. 2021;27(1):27-33：196 人的回顾性队列，年龄较大与较高的 E2、睾酮水平相关；观察性结果，未用于定量（§17）。<https://pubmed.ncbi.nlm.nih.gov/33471729/>
+- Hoeting JA, Madigan D, Raftery AE, Volinsky CT. Bayesian model averaging: a tutorial. *Statistical Science*. 1999;14(4):382-417：`bayes` 在漂移假设之间按后验概率平均（§16）。
+- Tierney L, Kadane JB. Accurate approximations for posterior moments and marginal densities. *J Am Stat Assoc*. 1986;81(393):82-86：Laplace 近似，`bayes` 用它求各假设的边际似然与后验协方差（§16）。
+- Lange KL, Little RJA, Taylor JMG. Robust statistical modeling using the t distribution. *J Am Stat Assoc*. 1989;84(408):881-896：Student-t 似然与先验作为稳健建模（`mipd`、`bayes`，§16）。
+- Rosner W, Hankinson SE, Sluss PM, Vesper HW, Wierman ME. Challenges to the measurement of estradiol: an Endocrine Society position statement. *J Clin Endocrinol Metab*. 2013;98(4):1376-87：免疫法在低雌二醇浓度下准确度下降，质谱法更可靠；`bayes` 据此按检测方法设定化验误差的下限（§16，下限数值为选定值）。
 
 **官方说明书（补充）**
 - EstroGel® 0.06% (estradiol gel) FDA 说明书：表观终末消除半衰期 **36 h**（`k₁` 即取自此处）；1.25 g/day 稳态 Cavg 28.3 pg/mL。<https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/021166s019lbl.pdf>
@@ -594,14 +599,20 @@ $$
   - `mipd`（Hybrid MIPD）：在群体先验下对个人幅度 a 与个人清除 k（均取对数）做 MAP 拟合。先验标准差：幅度 0.50、清除 0.35；单个化验的对数测量误差 0.13。参与拟合的化验少于 3 个（`MIN_LABS_FOR_CLEARANCE`）时似然用高斯，达到 3 个起用 Student-t（ν = 4）以抵抗单个离群值：只有一两个化验时无法区分离群值与真实差异，而 Student-t 会让单个化验升高时拟合的水平反而下降。用迭代重加权 Gauss-Newton 求解，每一步的步长减半直到后验不变差。稳健后验可能有多个极值，所以允许移动清除时，除原点外还从清除网格上每隔 5 个点（kMul ≈ 0.5、0.71、1、1.41、2，幅度从该清除下残差的中位数）起步分别求解，保留后验最好的解。化验少时向群体值（a = k = 0，即原模型）收缩。
   - `ekf`（扩展卡尔曼滤波）：按时间顺序逐个处理化验值，状态为 [a, k]，先验与测量误差同上，每一步只加极小的过程噪声（幅度约 1%、清除约 0.5%），相当于永久记忆；清除状态每步都截在网格范围内。报告与绘制都用后验中位数 exp(a)，不再做 Jensen 修正 a + ½·P_aa（该修正会让曲线比与模型完全吻合的化验最多高约 7%）。
   - `ou_kalman`（OU-Kalman）：只校正幅度。把对数校正量当作向 0 回归的 Ornstein-Uhlenbeck 过程（时间常数 τ = 336 h，约两周；平稳标准差 0.5），用前向卡尔曼滤波加 RTS 平滑求解。离化验时刻越远，倍数越接近 1（原模型）。
+  - `bayes`（全贝叶斯，本项目自有，不在 hrt.transmtf.com 的模型之列）：对几种“你与模型如何不同”的假设做贝叶斯模型平均（Hoeting et al. 1999）。每个假设下对数校正量为 log r(t) = s + d(t) + [G(t; k) − G(t; 0)]：s 是静态个人幅度，d 是 Ornstein-Uhlenbeck 漂移，k 是个人清除（与 `mipd` 共用清除网格与可识别规则）。假设把群体幅度方差 0.50² 按比例 w 分给漂移：w = 0 即 `mipd` 的固定幅度（先验概率 1/3）；w ∈ {0.25, 0.5} 搭配记忆 τ ∈ {336 h（`OU_TAU_H`，即 `ou_kalman` 的两周）, 90 天, 365 天}，其余 2/3 平均分给这 6 个。这些份额与时间常数是结构性选择，不是拟合值，由化验通过边际似然在它们之间取舍。
+    - 先验：s 用 Student-t（ν = 4，尺度 0.50·√(1−w)），相当于承认群体标准差本身不确定，所以一致的化验即使离模型很远也能把曲线拉到位，而轻微偏离仍向群体收缩；d 是平稳标准差 0.50·√w 的 OU 过程，按 `LAB_CLUSTER_H` 分簇，每簇一个锚点；k 的先验同 `mipd`。似然沿用 `mipd` 的规则：少于 3 个化验用高斯，达到 3 个起用 Student-t（ν = 4）。
+    - 每个化验的对数误差为 √(0.13² + (floor / 实测值)² + (1 h × 抽血时基线曲线的对数斜率)²)，上限 2。floor 按记录的检测方法取：LC-MS/MS 2 pg/mL、免疫法 8 pg/mL、未填 5 pg/mL。这三个数是选定值，顺序依据 Rosner et al. 2013（免疫法在低浓度下准确度下降，质谱法更可靠）。低值、在曲线陡峭处抽的血与方法不明的化验因此影响更小；平台期的化验与 `mipd` 基本相同。
+    - 求解：每个假设用 Gauss-Newton（IRLS 权重）求 MAP，步长减半直到后验不变差；从原点和“残差中位数按先验比例分给 s 与 d”的起点出发（允许移动清除时与 `mipd` 一样从网格上每隔 5 个点起步），保留最好的解。漂移块是三对角的（每个化验只连到自己的锚点），所以用加边三对角矩阵的 Schur 补求解，每步 O(锚点数)。Laplace 近似（Tierney & Kadane 1986）给出各假设的边际似然与后验协方差；曲线取各假设对数校正量后验均值按后验概率的加权平均，方差取混合方差。
+    - 额外输出：`factorSdFn(t)` 是对数校正量的后验标准差，化验附近最小，化验变旧后增大；`latestInterval` 是最近一次化验时刻校准水平的 90% 区间。允许移动清除后，幅度与半衰期会互相抵换，只看幅度的区间反而变宽，所以报告的是化验真正约束住的水平。`discounted` 是后验平均 Student-t 权重低于 ½ 的化验数；`drift` 是无漂移、约两周、约三个月、约一年四类记忆的后验概率。
+    - 预测页：选用 `bayes` 时，每次蒙特卡洛模拟仍只抽一个标准正态数（与其他方法共用同一随机序列，其他方法的范围不变），但按 `factorSdFn` 逐小时缩放，取代来自拟合误差的常数。只有一个化验时拟合误差无定义，其他方法不加校准不确定性，`bayes` 仍按后验给出范围。
 - **个人清除**（仅 `mipd` 与 `ekf`）：化验至少分成 3 簇才允许移动清除（`clearanceIdentifiable`，`MIN_LABS_FOR_CLEARANCE = 3`），否则只拟合幅度。分簇按时间顺序进行：比当前簇第一个化验晚 6 h 以上（`LAB_CLUSTER_H`）的化验开启新的一簇。同一时刻的几次抽血只算一簇（它们说明不了水平下降得多快）；每 5 h 抽一次的一串化验按簇首计为多簇，例如 0、5、10、15、20 h 的五个化验是三簇（簇首为 0、10、20 h）。是否允许移动清除按化验的前缀判断：拟合前 i 个化验时只看这 i 个。清除网格覆盖 kMul ∈ [0.5, 2]（`KMUL_MIN` / `KMUL_MAX`），在对数尺度上取 21 个网格点，每个点把 `e2_kClear` 与 `e2_kClearInj` 同乘该倍数重跑一次模拟（`runSimulationWithParams`；吸收速率与口服雌酮库 `kE1Pool` 不变），拟合时在网格之间线性插值。网格外的预测值取端点值、斜率为 0，拟合出的对数清除截在网格范围内（`clampLogK`），因此报告的 kMul 始终在 [0.5, 2] 内，半衰期变化在 −50% 到 +100% 之间。校准后的曲线在相邻两个网格点的对数浓度之间按与拟合相同的方式插值（`fieldLogConcAt`），所以画出的就是拟合所用的那条曲线（此前取最近的网格点，与拟合曲线最多差约 5%，报告的 kMul 也可能超出所画曲线的范围）。报告的半衰期变化为 (1/kMul − 1) × 100%，界面显示的半衰期变化取自此值。
 - **历史模式**（`CalibrationHistoryMode`，默认 `retrospective`）：
-  - `retrospective`：用全部化验值重估整段历史。`mipd` 与 `ekf` 对整段曲线使用最终拟合（幅度倍数乘以“该清除下的曲线 / 原曲线”，该清除下的曲线由网格插值得到）；`ou_kalman` 使用平滑结果，两次化验之间按 OU 桥插值。新化验可能改写过去的估计。
-  - `forward`：因果滤波，每个时刻只用到当时为止的化验值。第一个化验之前倍数为 1；第 i 个化验之后使用前 i 个化验学到的参数（`ekf` 与 `mipd` 都用前 i 个化验重新拟合，是否允许移动清除也只看这 i 个化验；`ou_kalman` 只用前向滤波）。在之后的日期再加化验时，三种方法的过去估计都不会改变。
-- **拟合误差**：至少 2 个化验值时，取实际绘制的曲线（模型 × `factorFn`）在各化验时刻的对数残差 RMSE，折算为 ±% 报告（`curveFitErrPct`），所有方法与历史模式都如此，因此与图上看到的一致。预测页的不确定范围也取自它。
+  - `retrospective`：用全部化验值重估整段历史。`mipd` 与 `ekf` 对整段曲线使用最终拟合（幅度倍数乘以“该清除下的曲线 / 原曲线”，该清除下的曲线由网格插值得到）；`ou_kalman` 使用平滑结果，两次化验之间按 OU 桥插值；`bayes` 使用对全部化验的模型平均。新化验可能改写过去的估计。
+  - `forward`：因果滤波，每个时刻只用到当时为止的化验值。第一个化验之前倍数为 1；第 i 个化验之后使用前 i 个化验学到的参数（`ekf`、`mipd` 与 `bayes` 都用前 i 个化验重新拟合，是否允许移动清除也只看这 i 个化验，`bayes` 的漂移从第 i 个化验向后外推；`ou_kalman` 只用前向滤波）。在之后的日期再加化验时，四种方法的过去估计都不会改变。
+- **拟合误差**：至少 2 个化验值时，取实际绘制的曲线（模型 × `factorFn`）在各化验时刻的对数残差 RMSE，折算为 ±% 报告（`curveFitErrPct`），所有方法与历史模式都如此，因此与图上看到的一致。预测页的不确定范围也取自它（`bayes` 除外，见上）。
 - **旧设置迁移**（`normalizeCalibrationMethod`）：存储的 `average` 映射为 `mipd`，`adaptive` 映射为 `ekf`，无法识别的值也按 `mipd` 处理。
 - **年龄**：填写了出生年份时，原始模型已按年龄调整（§17），清除网格的每个点也用同一出生年份重跑，所以拟合出的个人清除 kMul 与界面显示的半衰期变化都是相对年龄调整后的模型而言；年龄相当于把个人清除先验的中心移到该年龄的平均值。
-- 三种学习方法参照 hrt.transmtf.com 提供的校准模型，在本项目中针对可从化验识别的两个参数（个人幅度与个人清除）重新实现（`logic.ts` 注释）。
+- `ekf`、`ou_kalman` 与 `mipd` 参照 hrt.transmtf.com 提供的校准模型，在本项目中针对可从化验识别的两个参数（个人幅度与个人清除）重新实现（`logic.ts` 注释）；`bayes` 是本项目自有的方法。
 
 ---
 

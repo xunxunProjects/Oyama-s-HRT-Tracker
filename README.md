@@ -84,7 +84,7 @@ From left to right: the overview with the current estimate, a month of estradiol
 ## Lab results
 
 - Log blood test results and see them on the curve next to the estimate
-- Calibrate the estradiol model to you with EKF, OU-Kalman or MIPD, or edit its parameters by hand
+- Calibrate the estradiol model to you with EKF, OU-Kalman, MIPD or Full Bayes, or edit its parameters by hand
 
 ## Supplies
 
