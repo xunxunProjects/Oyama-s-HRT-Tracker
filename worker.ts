@@ -17,6 +17,7 @@ import { sha256Hex } from './workerUtil';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSubmit } from './communityVoteServer';
 import { handlePublicRoutes } from './src/server/routes/public';
+import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
 export type { Env } from './src/server/env';
@@ -251,7 +252,7 @@ const MAX_SHARE_REQUEST_BYTES = 2 * 1024 * 1024;
 const MAX_ACTIVE_SHARES_PER_USER = 20;
 const MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER = 20;
 const MAX_SHARE_EXPIRY_SECONDS = Math.floor(MAX_SHARE_EXPIRY_MS / 1000);
-const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/; // 32 random bytes, base64url
+
 // A live share's link key, sealed with the owner's cloud backup key so any of
 // their devices that can read their backups can keep the link updated. Holds a
 // 43-character key and the mode, so a few hundred bytes is plenty.
@@ -606,36 +607,6 @@ async function sweepExpiredShares(env: Env): Promise<void> {
  * hash, so a new password or a revoked share ends it, and its `purpose` keeps
  * the session check from ever taking it for a sign-in.
  */
-const SHARE_VIEWER_PASS_TTL = '24h';
-
-async function signShareViewerPass(jwtSecret: string, tokenHash: string, passwordHash: string): Promise<string> {
-    return new SignJWT({ purpose: 'share-view', share: tokenHash, pw: (await sha256Hex(passwordHash)).slice(0, 32) })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setExpirationTime(SHARE_VIEWER_PASS_TTL)
-        .sign(new TextEncoder().encode(jwtSecret));
-}
-
-async function shareViewerPassValid(
-    pass: unknown,
-    jwtSecret: string,
-    tokenHash: string,
-    passwordHash: string,
-): Promise<boolean> {
-    if (typeof pass !== 'string' || pass.length === 0) return false;
-    try {
-        const { payload } = await jwtVerify(pass, new TextEncoder().encode(jwtSecret), {
-            algorithms: ['HS256'],
-        });
-        return (
-            payload.purpose === 'share-view' &&
-            payload.share === tokenHash &&
-            payload.pw === (await sha256Hex(passwordHash)).slice(0, 32)
-        );
-    } catch {
-        return false;
-    }
-}
-
 /**
  * A signed note that this browser has signed in to one account before. The
  * persistent sign-in lock exists to stop password guessing, and anyone who
@@ -1038,6 +1009,23 @@ export default {
                 ),
             );
             if (publicResponse) return publicResponse;
+
+            // Shares access (public, extracted)
+            const sharesAccessResponse = await handleSharesAccessRoute(
+                createRequestContext(
+                    request,
+                    env,
+                    ctx,
+                    jwtSecret,
+                    corsHeaders,
+                    privateCacheHeaders,
+                    withSecurityHeaders,
+                    jsonError,
+                    shareJson,
+                    sessionInvalid,
+                ),
+            );
+            if (sharesAccessResponse) return sharesAccessResponse;
 
             // Register
             if (url.pathname === '/api/register' && request.method === 'POST') {
@@ -1614,234 +1602,6 @@ export default {
                         },
                     ),
                 );
-            }
-
-            // Fixed public endpoint: the bearer token stays in the JSON body, never
-            // in a request URL (which infrastructure/observability commonly logs).
-            // The browser-facing link stores it in the URL fragment for the same
-            // reason; fragments are not sent in HTTP requests or Referer headers.
-            if (url.pathname === '/api/shares/access' && request.method === 'POST') {
-                const declaredLength = Number(request.headers.get('Content-Length'));
-                if (Number.isFinite(declaredLength) && declaredLength > 1024) {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413);
-                }
-                const parsedAccessBody = await readSmallJsonBody(request, 1024);
-                if (!parsedAccessBody.ok) {
-                    return parsedAccessBody.tooLarge
-                        ? shareJson({ code: 'INVALID_REQUEST', message: 'Request body is too large' }, 413)
-                        : shareJson({ code: 'INVALID_REQUEST', message: 'Invalid JSON body' }, 400);
-                }
-                const body: unknown = parsedAccessBody.value;
-                if (!isJsonObject(body))
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Request body must be an object' }, 400);
-                if (typeof body.token !== 'string')
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'token is required' }, 400);
-                if (!SHARE_TOKEN_REGEX.test(body.token))
-                    return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
-
-                const clientIP = getClientIP(request, env);
-                // The IP-only bucket cannot be evaded by rotating random tokens and is
-                // checked before any deliberately expensive bcrypt comparison. On a
-                // deployment with no client addresses (Tor/I2P, TRUSTED_IP_SOURCE=none)
-                // there is no such bucket: the per-token budget below and the
-                // per-share password lockout carry the load instead of one shared
-                // 'unknown' bucket every viewer drew from and saturated.
-                if (clientIP && !(await checkRateLimit(env, `share-access-ip:${clientIP}`, 30))) {
-                    return shareJson(
-                        { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-                        429,
-                        { 'Retry-After': '60' },
-                    );
-                }
-
-                const tokenHash = await sha256Hex(body.token);
-                const share = (await env.DB.prepare(
-                    'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at, failed_attempts, locked_until FROM dosage_shares WHERE token_hash = ?',
-                )
-                    .bind(tokenHash)
-                    .first()) as {
-                    password_hash: string | null;
-                    expires_at: number | null;
-                    is_live: number;
-                    share_mode: DosageShareSnapshot['mode'] | null;
-                    created_at: number;
-                    updated_at: number | null;
-                    failed_attempts: number | null;
-                    locked_until: number | null;
-                } | null;
-
-                if (!share) {
-                    const candidate =
-                        typeof body.password === 'string' && body.password.length <= MAX_PASSWORD_LENGTH
-                            ? body.password
-                            : '';
-                    await bcrypt.compare(candidate, '$2b$10$BWJX6W9Wa9yJjNiLDyST0.m81EwzBBgeYjAertEWZnx15kTrQABJ.');
-                    return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
-                }
-
-                // A loose per-share backstop against a runaway client. It has to stay
-                // loose: this bucket is shared by everyone holding the link and is spent
-                // by plain reads, so a tight cap here let any one recipient pin it at the
-                // limit from a single IP and serve every other viewer a 429 — which the
-                // share page renders as "this share no longer exists". Legitimate live
-                // polling is ~6/min per viewer (PublicShare polls every 10s), so 300/min
-                // bounds abuse while leaving room for a share with many readers.
-                // The tight per-token limit that actually guards the password now sits
-                // in the password branch below, charged only for a credential attempt.
-                if (!(await checkRateLimit(env, `share-access-token:${tokenHash.slice(0, 20)}`, 300))) {
-                    return shareJson(
-                        { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-                        429,
-                        { 'Retry-After': '60' },
-                    );
-                }
-
-                const createdAt = share.created_at * 1000;
-                const updatedAt = (share.updated_at ?? share.created_at) * 1000;
-                const expiresAt = share.expires_at == null ? null : share.expires_at * 1000;
-                if (share.expires_at != null && share.expires_at <= Math.floor(Date.now() / 1000)) {
-                    // Preserve a small tombstone so future requests still receive the
-                    // explicit expired status, but discard the sensitive payload.
-                    ctx.waitUntil(
-                        env.DB.prepare(
-                            "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL, key_wrapped = NULL WHERE token_hash = ?",
-                        )
-                            .bind(tokenHash)
-                            .run(),
-                    );
-                    return shareJson({ code: 'SHARE_EXPIRED', message: 'This share link has expired' }, 410);
-                }
-
-                let viewerPass: string | null = null;
-                if (
-                    share.password_hash &&
-                    !(await shareViewerPassValid(body.viewerPass, jwtSecret, tokenHash, share.password_hash))
-                ) {
-                    if (body.password === undefined || body.password === '') {
-                        return shareJson(
-                            {
-                                code: 'PASSWORD_REQUIRED',
-                                message: 'Password required',
-                                passwordRequired: true,
-                                // Deliberately nothing else. This branch is reached on token
-                                // possession alone, no credential checked, and `updated_at` is
-                                // rewritten on every owner sync — which the client fires a couple
-                                // of seconds after each dose is logged. Returning it here let
-                                // anyone holding a forwarded link poll a locked share and read off
-                                // exactly when the owner takes their medication.
-                            },
-                            401,
-                        );
-                    }
-                    if (typeof body.password !== 'string') {
-                        return shareJson({ code: 'INVALID_REQUEST', message: 'password must be a string' }, 400);
-                    }
-                    if (body.password.length > MAX_PASSWORD_LENGTH) {
-                        return shareJson({ code: 'INVALID_PASSWORD', message: 'Incorrect password' }, 403);
-                    }
-                    // Throttle guessing against a real password-protected share.
-                    // Deliberately NOT keyed on the client IP: with the IP in the key
-                    // this rotated away along with the IP, which on a deployment
-                    // without a trusted edge left the password open to unlimited
-                    // bcrypt guessing. The persistent counter on the share row is
-                    // checked first and survives isolates and restarts; the in-memory
-                    // bucket below is only a burst backstop, charged for an actual
-                    // credential attempt, so a link holder who does not know the
-                    // password cannot spend every other viewer's budget.
-                    //
-                    // The check just below is a plain read, so a request that saw a
-                    // clear row an instant before a concurrent miss armed the lock can
-                    // still reach one bcrypt comparison. If it is wrong, the UPDATE in
-                    // the failure branch re-arms the lock from the higher count. That
-                    // window is one raced comparison wide and the counter only ever
-                    // grows inside it; it is not a way around the lock.
-                    const nowSeconds = Math.floor(Date.now() / 1000);
-                    const lockedUntil = share.locked_until ?? 0;
-                    if (lockedUntil > nowSeconds) {
-                        return shareJson(
-                            { code: 'RATE_LIMITED', message: 'Too many attempts. Please try again later.' },
-                            429,
-                            { 'Retry-After': String(lockedUntil - nowSeconds) },
-                        );
-                    }
-                    if (!(await checkRateLimit(env, `share-access-pw:${tokenHash.slice(0, 20)}`, 10))) {
-                        return shareJson(
-                            { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-                            429,
-                            { 'Retry-After': '60' },
-                        );
-                    }
-                    const passwordValid = await bcrypt.compare(body.password, share.password_hash);
-                    if (!passwordValid) {
-                        // Count the miss and (re)arm the lock in ONE statement, with the
-                        // arithmetic done by the storage engine. Reading the count into
-                        // JavaScript, adding one and writing it back let two concurrent
-                        // misses read the same value and write the same successor, so one
-                        // of the attempts vanished. `SET failed_attempts = failed_attempts
-                        // + 1` is applied atomically to the row by SQLite; there is no
-                        // read-modify-write window left in the application.
-                        // Backoff: the fifth consecutive miss locks for 15 min, every
-                        // further miss doubles that, capped at an hour. Anyone holding
-                        // the link can trip this, so the cap is what bounds how long
-                        // they can keep new readers waiting; readers who already
-                        // unlocked carry a viewer pass and are not stopped by it. The
-                        // exponent is clamped so the shift stays in range: 900 * 2^2
-                        // is the cap, and beyond it every term is 3600 anyway.
-                        // MAX(COALESCE(...)) keeps concurrent escalations monotonic — a
-                        // longer lock written by a statement that raced ahead is never
-                        // shortened by a later one that computed a smaller term.
-                        // Awaited, not waitUntil: an "incorrect" response has to come back
-                        // with the miss already committed, or the next request replays the
-                        // same count.
-                        await env.DB.prepare(
-                            `UPDATE dosage_shares
-                                SET failed_attempts = failed_attempts + 1,
-                                    locked_until = CASE
-                                        WHEN failed_attempts + 1 >= 5
-                                        THEN MAX(COALESCE(locked_until, 0), ? + MIN(900 * (1 << MIN(failed_attempts - 4, 2)), 3600))
-                                        ELSE locked_until
-                                    END
-                              WHERE token_hash = ?`,
-                        )
-                            .bind(nowSeconds, tokenHash)
-                            .run();
-                        return shareJson({ code: 'INVALID_PASSWORD', message: 'Incorrect password' }, 403);
-                    }
-                    if ((share.failed_attempts ?? 0) > 0 || share.locked_until != null) {
-                        // Awaited for the same reason: the reset has to land before the
-                        // successful response does. A miss that arrives after it starts
-                        // the next run at its own count.
-                        await env.DB.prepare(
-                            'UPDATE dosage_shares SET failed_attempts = 0, locked_until = NULL WHERE token_hash = ?',
-                        )
-                            .bind(tokenHash)
-                            .run();
-                    }
-                    viewerPass = await signShareViewerPass(jwtSecret, tokenHash, share.password_hash);
-                }
-
-                // Fetch the potentially large snapshot only after expiry and password
-                // checks have succeeded, limiting unauthenticated DB/memory work.
-                const snapshotRow = await env.DB.prepare(
-                    'SELECT snapshot_json, encrypted FROM dosage_shares WHERE token_hash = ?',
-                )
-                    .bind(tokenHash)
-                    .first<{ snapshot_json: string; encrypted: number }>();
-                if (!snapshotRow || snapshotRow.snapshot_json === 'null') {
-                    return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
-                }
-                const stored = JSON.parse(snapshotRow.snapshot_json);
-                return shareJson({
-                    passwordRequired: share.password_hash !== null,
-                    live: share.is_live === 1,
-                    createdAt,
-                    updatedAt,
-                    expiresAt,
-                    // Ciphertext for an encrypted share; the viewer decrypts it
-                    // with the key from the link's fragment.
-                    ...(snapshotRow.encrypted === 1 ? { encryptedSnapshot: stored } : { snapshot: stored }),
-                    ...(viewerPass ? { viewerPass } : {}),
-                });
             }
 
             // Exchange a one-time code from the web UI for an F2F-scoped
