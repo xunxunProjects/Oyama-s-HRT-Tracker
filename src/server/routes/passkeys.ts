@@ -11,7 +11,6 @@ import {
     decodeCBOR,
     parseAuthData,
     resolvePasskeyOrigin,
-    verifyPasskeyAssertion,
 } from '../webauthn';
 
 import type { RequestContext } from '../../../worker';

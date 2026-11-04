@@ -4,22 +4,25 @@ import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected } from './toolApi';
 import { handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
-import { exchangeF2fCliCode, handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
+import { handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
     isJsonObject,
     sanitizeEncryptedShareSnapshot,
     sanitizeShareSnapshot,
 } from './shareSnapshotSchema';
-import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from './passwordStrength';
-import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from './requestInput';
+import { passwordStrength } from './passwordStrength';
+import { validateUsername, validatePassword, reservedForAdmin } from './src/server/validation';
+import { getClientIP, MAX_JSON_BODY_BYTES, readSmallJsonBody } from './requestInput';
 import { sha256Hex } from './workerUtil';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSubmit } from './communityVoteServer';
+import { logDeletion } from './src/server/userHelpers';
 import { handlePublicRoutes } from './src/server/routes/public';
 import { handleSessionsRoute } from './src/server/routes/sessions';
 import { handleTwoFactorRoute } from './src/server/routes/twoFactor';
 import { handlePasskeysRoute } from './src/server/routes/passkeys';
+import { handleUserProfileRoute } from './src/server/routes/userProfile';
 import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
@@ -37,27 +40,14 @@ export type { Env } from './src/server/env';
 // class matches is used. A missing binding is a configuration hole, not a
 // runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
 // still serves — it is logged once per isolate so it can't stay quiet.
-import { checkRateLimit, passwordCheckAllowed } from './src/server/rateLimit';
+import { checkRateLimit } from './src/server/rateLimit';
 import {
     allowedPasskeyOrigins,
-    b64urlDecode,
     b64urlEncode,
-    decodeCBOR,
-    parseAuthData,
     resolvePasskeyOrigin,
     verifyPasskeyAssertion,
 } from './src/server/webauthn';
-import {
-    base32Decode,
-    base32Encode,
-    consumeTOTP,
-    generateAndStoreBackupCodes,
-    generateTOTPSecret,
-    hmacSha256Hex,
-    matchTOTPStep,
-    verifyAndConsumeBackupCode,
-    verifyTOTP,
-} from './src/server/totp';
+import { consumeTOTP, hmacSha256Hex, verifyAndConsumeBackupCode } from './src/server/totp';
 
 /**
  * Every endpoint that bcrypt-compares the account password shares one
@@ -179,9 +169,6 @@ function timingSafeEqual(a: string, b: string): boolean {
     }
 }
 
-const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
-const MAX_PASSWORD_LENGTH = 128;
-
 /**
  * Every API error is `{ code, message }`. The message is for a human; the code
  * is for the client, which used to have nothing else to go on: a bare 500, a
@@ -283,60 +270,6 @@ function validateJWTSecret(secret: string | undefined): string {
 // "support"), so a normal account should never own them. Compared
 // case-insensitively: 'Admin' is the env-managed account's display name and
 // the avatar route special-cases it, and 'ADMIN' would be just as confusing.
-const RESERVED_USERNAMES = new Set([
-    'admin',
-    'administrator',
-    'root',
-    'system',
-    'sysadmin',
-    'mod',
-    'moderator',
-    'support',
-    'help',
-    'staff',
-    'owner',
-    'official',
-    'oauth',
-    'api',
-    'www',
-    'me',
-    'user',
-    'users',
-    'security',
-    'null',
-    'undefined',
-]);
-
-function validateUsername(username: string): boolean {
-    return USERNAME_REGEX.test(username) && !RESERVED_USERNAMES.has(username.toLowerCase());
-}
-
-/**
- * The configured admin name is not in RESERVED_USERNAMES (it is arbitrary),
- * so a normal account could otherwise take it and share its login_backoff
- * row. Case-insensitive, matching the admin login comparison.
- */
-function reservedForAdmin(env: Env, username: string): boolean {
-    const admin = env.ADMIN_USERNAME;
-    return !!admin && admin.length > 0 && username.toLowerCase() === admin.toLowerCase();
-}
-
-function validatePassword(password: unknown): { valid: boolean; error?: string } {
-    // Request bodies are parsed JSON, so a number or an object can arrive here;
-    // the strength check below would throw on it and surface as a 500.
-    if (typeof password !== 'string') return { valid: false, error: 'Password must be a string' };
-    if (password.length < MIN_PASSWORD_LENGTH)
-        return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long` };
-    if (password.length > MAX_PASSWORD_LENGTH)
-        return { valid: false, error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters long` };
-    // bcrypt only reads the first 72 bytes; a longer password would silently
-    // work as its own prefix, so refuse to set one rather than store that.
-    if (passwordByteLength(password) > MAX_PASSWORD_BYTES)
-        return { valid: false, error: `Password must be at most ${MAX_PASSWORD_BYTES} bytes (UTF-8)` };
-    if (passwordStrength(password) === 'weak')
-        return { valid: false, error: 'Password is too easy to guess; use a longer or less regular one' };
-    return { valid: true };
-}
 
 let cachedJWTSecret: string | null = null;
 function getValidatedJWTSecret(env: Env): string {
@@ -372,16 +305,6 @@ const SESSION_JWT_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
  * them; this predicate keeps the reads honest in between.
  */
 const LIVE_SESSION_SQL = `created_at > ?1 - ${SESSION_JWT_LIFETIME_SECONDS} AND last_used_at > ?1 - ${SESSION_IDLE_TIMEOUT_SECONDS}`;
-
-async function logDeletion(env: Env, reason: 'self' | 'admin', userCreatedAt: number | null): Promise<void> {
-    try {
-        await env.DB.prepare('INSERT INTO deletion_log (reason, user_created_at) VALUES (?, ?)')
-            .bind(reason, userCreatedAt)
-            .run();
-    } catch (e) {
-        console.error('Failed to log deletion:', e);
-    }
-}
 
 // --- Site notice ---
 // One row, id 1: there is only ever one banner. Taking a notice down blanks the
@@ -1868,196 +1791,24 @@ export default {
                 }
 
                 // Profile / Password / Delete Me
-                if (url.pathname.startsWith('/api/user/')) {
-                    if (url.pathname === '/api/user/profile' && request.method === 'PATCH') {
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        let { username } = parsedBody.value;
-                        if (typeof username !== 'string') return jsonError('INVALID_REQUEST', 'Invalid username', 400);
-                        username = username.trim();
-                        if (!validateUsername(username)) return jsonError('INVALID_REQUEST', 'Invalid username', 400);
-                        if (reservedForAdmin(env, username)) return jsonError('CONFLICT', 'Username taken', 409);
-                        const renamed = await env.DB.prepare(
-                            `UPDATE users SET username = ?
-                             WHERE id = ?
-                               AND NOT EXISTS (
-                                   SELECT 1 FROM users WHERE lower(username) = lower(?) AND id != ?
-                               )`,
-                        )
-                            .bind(username, userId, username, userId)
-                            .run();
-                        if (Number(renamed.meta?.changes ?? 0) === 0)
-                            return jsonError('CONFLICT', 'Username taken', 409);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Profile updated', username }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    if (url.pathname === '/api/user/password' && request.method === 'POST') {
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { currentPassword, newPassword } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (typeof currentPassword !== 'string')
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        const user = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-
-                        const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        const passwordHash = user ? user.password_hash : dummyHash;
-                        const passwordValid = await bcrypt.compare(currentPassword, passwordHash);
-
-                        if (!user || !passwordValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-
-                        const passVal = validatePassword(newPassword);
-                        if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
-                        const hashed = await bcrypt.hash(newPassword, 10);
-                        await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-                            .bind(hashed, userId)
-                            .run();
-                        // Changing the password is the standard response to "someone has my
-                        // account", so it has to invalidate whatever they took. Without this
-                        // a stolen 7-day JWT kept working after the change — and every
-                        // request refreshed last_used_at, so the idle timeout never fired
-                        // either. The caller's own session is kept so they stay signed in.
-                        if (sessionId) {
-                            await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?')
-                                .bind(userId, sessionId)
-                                .run();
-                        }
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Password updated' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    if (url.pathname === '/api/user/me' && request.method === 'DELETE') {
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { password, code, backup_code } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (typeof password !== 'string')
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        const user = (await env.DB.prepare(
-                            'SELECT password_hash, created_at, totp_secret FROM users WHERE id = ?',
-                        )
-                            .bind(userId)
-                            .first()) as any;
-
-                        const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        const passwordHash = user ? user.password_hash : dummyHash;
-                        const passwordValid = await bcrypt.compare(password, passwordHash);
-
-                        if (!user || !passwordValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-
-                        // If TOTP-based 2FA is enabled, require a valid authenticator code
-                        // (or a single-use backup code) before destroying the account.
-                        if (user.totp_secret) {
-                            if (!code && !backup_code) {
-                                return jsonError('TWO_FACTOR_REQUIRED', '2FA code required', 400);
-                            }
-                            const twoFAValid = backup_code
-                                ? await verifyAndConsumeBackupCode(env, userId, String(backup_code), jwtSecret)
-                                : await consumeTOTP(env, userId, user.totp_secret, String(code));
-                            if (!twoFAValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
-                        }
-
-                        const deletedAt = Math.floor(Date.now() / 1000);
-                        await ensureCommunityVoteSchema(env);
-                        await env.DB.batch([
-                            env.DB.prepare('DELETE FROM dosage_shares WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM content WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(userId),
-                            env.DB.prepare('DELETE FROM community_vote_ballots WHERE user_id = ?').bind(userId),
-                            /* F2F seats are tombstones: never delete the row. */
-                            env.DB.prepare(
-                                "UPDATE f2f_keys SET status = 'revoked', public_key = '', revoked_at = ?, updated_at = ? WHERE user_id = ?",
-                            ).bind(deletedAt, deletedAt, userId),
-                            env.DB.prepare(
-                                "UPDATE f2f_seats SET status = 'deleted', deleted_at = ?, updated_at = ? WHERE user_id = ?",
-                            ).bind(deletedAt, deletedAt, userId),
-                            env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
-                        ]);
-                        try {
-                            await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`);
-                        } catch (e) {}
-                        await logDeletion(env, 'self', user?.created_at ?? null);
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Account deleted' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-                }
-
-                // Avatar DELETE. Avatars are served publicly by username, so the
-                // owner needs a way to take theirs down, not only replace it.
-                if (url.pathname === '/api/user/avatar' && request.method === 'DELETE') {
-                    await env.AVATAR_BUCKET.delete(`hrt-tracker-user-avatar/${userId}`);
-                    return withSecurityHeaders(
-                        new Response(JSON.stringify({ message: 'Avatar deleted' }), {
-                            status: 200,
-                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                        }),
-                    );
-                }
-
-                // Avatar PUT
-                if (url.pathname === '/api/user/avatar' && request.method === 'PUT') {
-                    // Streamed and cancelled at 5 MiB instead of buffering the
-                    // whole upload before the check.
-                    const body = await readSmallBody(request, 5 * 1024 * 1024);
-                    if (!body.ok) {
-                        return body.tooLarge
-                            ? jsonError('TOO_LARGE', 'File too large', 413)
-                            : jsonError('INVALID_REQUEST', 'Invalid upload', 400);
-                    }
-                    const view = body.bytes;
-                    let contentType =
-                        view[0] === 0xff && view[1] === 0xd8
-                            ? 'image/jpeg'
-                            : view[0] === 0x89 && view[1] === 0x50
-                              ? 'image/png'
-                              : null;
-                    if (!contentType) return jsonError('UNSUPPORTED_MEDIA', 'Invalid file type', 415);
-                    await env.AVATAR_BUCKET.put(`hrt-tracker-user-avatar/${userId}`, view, {
-                        httpMetadata: { contentType },
-                    });
-                    return withSecurityHeaders(
-                        new Response(JSON.stringify({ message: 'Avatar uploaded' }), {
-                            status: 200,
-                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                        }),
-                    );
-                }
+                const userProfileResponse = await handleUserProfileRoute(
+                    createRequestContext(
+                        request,
+                        env,
+                        ctx,
+                        jwtSecret,
+                        corsHeaders,
+                        privateCacheHeaders,
+                        withSecurityHeaders,
+                        jsonError,
+                        shareJson,
+                        sessionInvalid,
+                    ),
+                    userId,
+                    sessionId ?? null,
+                    jwtSecret,
+                );
+                if (userProfileResponse) return userProfileResponse;
 
                 // Admin
                 if (url.pathname.startsWith('/api/admin/')) {
