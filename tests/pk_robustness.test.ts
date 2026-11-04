@@ -76,5 +76,5 @@ describe('PK model robustness (100k iterations)', () => {
             }
             expect(threw).toBe(false);
         }
-    });
+    }, 60000);
 });

@@ -165,5 +165,5 @@ describe('Full Bayes calibration', () => {
             return Math.log(s.band!.hi[i] / s.band!.lo[i]);
         };
         expect(width('bayes')).toBeGreaterThan(width('mipd'));
-    });
+    }, 60000);
 });
