@@ -2,8 +2,8 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
-import { addToolLoginFields, handleToolProtected, toolVersionBody } from './toolApi';
-import { handleHrtService, handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
+import { addToolLoginFields, handleToolProtected } from './toolApi';
+import { handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
 import { exchangeF2fCliCode, handleF2fService, handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
@@ -1099,30 +1099,6 @@ export default {
                         },
                     ),
                 );
-            }
-
-            // Tool API: public surface. The CLI reads /version before it
-            // trusts a server and sends /login through the same handler as
-            // the website, so rate limits, lockout, TOTP and device passes
-            // are not reimplemented here.
-            if (url.pathname === '/api/tool/v1/version' && request.method === 'GET') {
-                return withSecurityHeaders(
-                    new Response(JSON.stringify(toolVersionBody(env)), {
-                        status: 200,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-                    }),
-                );
-            }
-            if (url.pathname === '/api/tool/v1/compute' && request.method === 'POST') {
-                return jsonError('NOT_IMPLEMENTED', 'Server compute is reserved for a future version', 501);
-            }
-            if (url.pathname.startsWith('/api/tool/v1/hrt/')) {
-                const hrtResponse = await handleHrtService(request, env, url);
-                if (hrtResponse) return withSecurityHeaders(hrtResponse);
-            }
-            if (url.pathname.startsWith('/api/tool/v1/f2f/')) {
-                const f2fResponse = await handleF2fService(request, env, url);
-                if (f2fResponse) return withSecurityHeaders(f2fResponse);
             }
 
             // Login
