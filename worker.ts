@@ -17,6 +17,7 @@ import { sha256Hex } from './workerUtil';
 import { MAX_SHARE_EXPIRY_MS } from './shareExpiry';
 import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSubmit } from './communityVoteServer';
 import { handlePublicRoutes } from './src/server/routes/public';
+import { handleSessionsRoute } from './src/server/routes/sessions';
 import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
@@ -2995,66 +2996,23 @@ export default {
                 }
 
                 // --- Session Management ---
-                if (url.pathname.startsWith('/api/user/sessions')) {
-                    // GET /api/user/sessions — list all sessions for this user
-                    if (url.pathname === '/api/user/sessions' && request.method === 'GET') {
-                        const rows = await env.DB.prepare(
-                            `SELECT id, created_at, last_used_at, device_info, ip FROM sessions WHERE user_id = ?2 AND ${LIVE_SESSION_SQL} ORDER BY last_used_at DESC`,
-                        )
-                            .bind(Math.floor(Date.now() / 1000), userId)
-                            .all();
-                        const currentSid = sessionId ?? null;
-                        const sessions = (rows.results || []).map((s: any) => ({
-                            id: s.id,
-                            created_at: s.created_at,
-                            last_used_at: s.last_used_at,
-                            device_info: s.device_info,
-                            ip: s.ip,
-                            is_current: s.id === currentSid,
-                        }));
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify(sessions), {
-                                status: 200,
-                                headers: {
-                                    ...corsHeaders,
-                                    ...privateCacheHeaders,
-                                    'Content-Type': 'application/json',
-                                },
-                            }),
-                        );
-                    }
-
-                    // DELETE /api/user/sessions — terminate all other sessions (keep current)
-                    if (url.pathname === '/api/user/sessions' && request.method === 'DELETE') {
-                        if (sessionId) {
-                            await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?')
-                                .bind(userId, sessionId)
-                                .run();
-                        } else {
-                            await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
-                        }
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Other sessions terminated' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // DELETE /api/user/sessions/:id — terminate a specific session
-                    if (url.pathname.match(/^\/api\/user\/sessions\/[^/]+$/) && request.method === 'DELETE') {
-                        const targetSid = url.pathname.split('/').pop()!;
-                        await env.DB.prepare('DELETE FROM sessions WHERE id = ? AND user_id = ?')
-                            .bind(targetSid, userId)
-                            .run();
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Session terminated' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-                }
+                const sessionsResponse = await handleSessionsRoute(
+                    createRequestContext(
+                        request,
+                        env,
+                        ctx,
+                        jwtSecret,
+                        corsHeaders,
+                        privateCacheHeaders,
+                        withSecurityHeaders,
+                        jsonError,
+                        shareJson,
+                        sessionInvalid,
+                    ),
+                    userId,
+                    sessionId ?? null,
+                );
+                if (sessionsResponse) return sessionsResponse;
 
                 // --- Two-Factor Authentication (TOTP) ---
                 if (url.pathname.startsWith('/api/user/2fa')) {
