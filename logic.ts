@@ -3990,7 +3990,7 @@ export function runSimulation(
     // testosterone is reported only when a baseline was supplied.
     const hpgRequested = (() => {
         if (!options) return false;
-        for (const [k, v] of Object.entries(options)) {
+        for (const [k] of Object.entries(options)) {
             const key = k.toLowerCase();
             if (key.includes('hpg') || key.includes('endogenous')) return true;
             if (key === 'rhp' || key === 'rhpG'.toLowerCase()) return true;
