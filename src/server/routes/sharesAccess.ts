@@ -8,11 +8,11 @@ import { isJsonObject } from '../../../shareSnapshotSchema';
 
 import type { RequestContext } from '../../../worker';
 
-const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/;
+export const SHARE_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/;
 const MAX_PASSWORD_LENGTH = 128;
 const SHARE_VIEWER_PASS_TTL = '24h';
 
-async function signShareViewerPass(jwtSecret: string, tokenHash: string, passwordHash: string): Promise<string> {
+export async function signShareViewerPass(jwtSecret: string, tokenHash: string, passwordHash: string): Promise<string> {
     return new SignJWT({ purpose: 'share-view', share: tokenHash, pw: (await sha256Hex(passwordHash)).slice(0, 32) })
         .setProtectedHeader({ alg: 'HS256' })
         .setExpirationTime(SHARE_VIEWER_PASS_TTL)

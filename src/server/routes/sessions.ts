@@ -11,6 +11,7 @@ export async function handleSessionsRoute(
 ): Promise<Response | null> {
     const { request, env, url, corsHeaders, privateCacheHeaders, withSecurityHeaders } = ctx;
     if (!url.pathname.startsWith('/api/user/sessions')) return null;
+    console.error('handleSessionsRoute called', url.pathname, request.method);
 
     if (url.pathname === '/api/user/sessions' && request.method === 'GET') {
         const rows = await env.DB.prepare(
