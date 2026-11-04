@@ -19,6 +19,7 @@ import { ensureCommunityVoteSchema, handleCommunityVoteMe, handleCommunityVoteSu
 import { handlePublicRoutes } from './src/server/routes/public';
 import { handleSessionsRoute } from './src/server/routes/sessions';
 import { handleTwoFactorRoute } from './src/server/routes/twoFactor';
+import { handlePasskeysRoute } from './src/server/routes/passkeys';
 import { handleSharesAccessRoute } from './src/server/routes/sharesAccess';
 
 import type { Env } from './src/server/env';
@@ -37,6 +38,15 @@ export type { Env } from './src/server/env';
 // runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
 // still serves — it is logged once per isolate so it can't stay quiet.
 import { checkRateLimit, passwordCheckAllowed } from './src/server/rateLimit';
+import {
+    allowedPasskeyOrigins,
+    b64urlDecode,
+    b64urlEncode,
+    decodeCBOR,
+    parseAuthData,
+    resolvePasskeyOrigin,
+    verifyPasskeyAssertion,
+} from './src/server/webauthn';
 import {
     base32Decode,
     base32Encode,
@@ -121,42 +131,6 @@ export function createRequestContext(
         shareJson: shareJsonFn,
         sessionInvalid: sessionInvalidFn,
     };
-}
-
-/**
- * Origins a passkey ceremony may be bound to. The WebAuthn rpId/origin has to
- * be an address this deployment actually serves, but the handlers used to echo
- * whatever `Origin` header the caller sent into the challenge, so any page (or
- * scripted client) could mint a challenge pinned to a hostname of its choosing.
- * Allowed: the request's own origin (self-hosted mirrors, onion/I2P) and the
- * configured public origin when one is set.
- */
-function allowedPasskeyOrigins(url: URL, env: Env): Set<string> {
-    const allowed = new Set<string>([url.origin]);
-    // Behind a TLS-terminating proxy (the Docker setup the README suggests) the
-    // worker sees http while the browser is on https for the same host. The
-    // host is still this deployment's, so the https form of it is allowed too.
-    if (url.protocol === 'http:') allowed.add(`https://${url.host}`);
-    if (env.PUBLIC_APP_ORIGIN) {
-        try {
-            allowed.add(new URL(env.PUBLIC_APP_ORIGIN).origin);
-        } catch {
-            // Ignore malformed configuration; the request origin still works.
-        }
-    }
-    return allowed;
-}
-
-/**
- * Resolves the origin a passkey challenge should be bound to. Browsers send
- * `Origin` on these fetches; when it is absent (plain navigation, curl) the
- * request's own origin is used. Returns null when the caller claims an origin
- * this deployment does not serve.
- */
-function resolvePasskeyOrigin(request: Request, url: URL, env: Env): string | null {
-    const origin = request.headers.get('Origin');
-    if (!origin) return url.origin;
-    return allowedPasskeyOrigins(url, env).has(origin) ? origin : null;
 }
 
 /**
@@ -506,213 +480,6 @@ async function loginDevicePassValid(
     } catch {
         return false;
     }
-}
-
-// --- WebAuthn / Passkey crypto helpers ---
-
-function b64urlDecode(s: string): Uint8Array<ArrayBuffer> {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = (4 - (b64.length % 4)) % 4;
-    return Uint8Array.from(atob(b64 + '='.repeat(pad)), c => c.charCodeAt(0));
-}
-
-function b64urlEncode(bytes: Uint8Array): string {
-    return btoa(String.fromCharCode(...bytes))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-}
-
-/**
- * Minimal CBOR decoder covering types used by WebAuthn (major types 0-5, 7 booleans).
- *
- * Every length is checked against what is actually left in the buffer. Without
- * that, a 5-byte header could declare a 4-billion-element array: reads past the
- * end return `undefined`, and since `undefined >> 5` is 0 and `undefined & 0x1f`
- * is 0, `readValue()` kept returning 0 forever instead of throwing — so the loop
- * ran to the declared length and burned the isolate. The input here is an
- * attacker-supplied attestationObject, so the declared length is never to be
- * trusted over the bytes actually present.
- */
-function decodeCBOR(bytes: Uint8Array): any {
-    let offset = 0;
-    function need(n: number): void {
-        if (n < 0 || offset + n > bytes.length) throw new Error('CBOR: truncated input');
-    }
-    function readLen(info: number): number {
-        if (info < 24) return info;
-        if (info === 24) {
-            need(1);
-            return bytes[offset++];
-        }
-        if (info === 25) {
-            need(2);
-            const v = (bytes[offset] << 8) | bytes[offset + 1];
-            offset += 2;
-            return v;
-        }
-        if (info === 26) {
-            need(4);
-            const v =
-                ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>>
-                0;
-            offset += 4;
-            return v;
-        }
-        throw new Error('CBOR: unsupported length info ' + info);
-    }
-    function readValue(): any {
-        need(1);
-        const b = bytes[offset++];
-        const major = b >> 5,
-            info = b & 0x1f;
-        if (major === 0) return readLen(info);
-        if (major === 1) return -1 - readLen(info);
-        if (major === 2) {
-            const len = readLen(info);
-            need(len);
-            const sl = bytes.slice(offset, offset + len);
-            offset += len;
-            return sl;
-        }
-        if (major === 3) {
-            const len = readLen(info);
-            need(len);
-            const sl = bytes.slice(offset, offset + len);
-            offset += len;
-            return new TextDecoder().decode(sl);
-        }
-        // A container's items cost at least one byte each, so a declared count
-        // larger than the bytes remaining is a lie and can be rejected up front —
-        // before allocating anything.
-        if (major === 4) {
-            const len = readLen(info);
-            need(len);
-            return Array.from({ length: len }, () => readValue());
-        }
-        if (major === 5) {
-            const len = readLen(info);
-            need(len * 2);
-            const map: any = {};
-            for (let i = 0; i < len; i++) {
-                const k = readValue();
-                map[k] = readValue();
-            }
-            return map;
-        }
-        if (major === 7) {
-            if (info === 20) return false;
-            if (info === 21) return true;
-            if (info === 22) return null;
-        }
-        throw new Error('CBOR: unsupported major ' + major);
-    }
-    return readValue();
-}
-
-interface ParsedAuthData {
-    rpIdHash: Uint8Array;
-    flags: number;
-    signCount: number;
-    credentialId?: Uint8Array;
-    publicKeyX?: Uint8Array;
-    publicKeyY?: Uint8Array;
-}
-
-function parseAuthData(auth: Uint8Array): ParsedAuthData {
-    const rpIdHash = auth.slice(0, 32);
-    const flags = auth[32];
-    const signCount = ((auth[33] << 24) | (auth[34] << 16) | (auth[35] << 8) | auth[36]) >>> 0;
-    let credentialId: Uint8Array | undefined, publicKeyX: Uint8Array | undefined, publicKeyY: Uint8Array | undefined;
-    if (flags & 0x40) {
-        // AT flag — attested credential data present
-        let off = 37 + 16; // skip rpIdHash(32) + flags(1) + signCount(4) + AAGUID(16)
-        const credIdLen = (auth[off] << 8) | auth[off + 1];
-        off += 2;
-        credentialId = auth.slice(off, off + credIdLen);
-        off += credIdLen;
-        // Remaining bytes: CBOR-encoded COSE key (EC2, P-256)
-        const coseKey = decodeCBOR(auth.slice(off));
-        if (coseKey[-2] instanceof Uint8Array) publicKeyX = coseKey[-2]; // x
-        if (coseKey[-3] instanceof Uint8Array) publicKeyY = coseKey[-3]; // y
-    }
-    return { rpIdHash, flags, signCount, credentialId, publicKeyX, publicKeyY };
-}
-
-/** Convert DER-encoded ECDSA signature to raw (r‖s) for Web Crypto API. */
-function derSigToRaw(der: Uint8Array): Uint8Array<ArrayBuffer> {
-    if (der[0] !== 0x30) throw new Error('Not a DER sequence');
-    let pos = 2;
-    if (der[pos++] !== 0x02) throw new Error('Expected r INTEGER');
-    const rLen = der[pos++];
-    let r = der.slice(pos, pos + rLen);
-    pos += rLen;
-    if (der[pos++] !== 0x02) throw new Error('Expected s INTEGER');
-    const sLen = der[pos++];
-    let s = der.slice(pos, pos + sLen);
-    // Strip potential leading 0x00 padding byte added by DER for positive integers
-    if (r[0] === 0) r = r.slice(1);
-    if (s[0] === 0) s = s.slice(1);
-    const raw = new Uint8Array(64);
-    raw.set(r, 32 - r.length);
-    raw.set(s, 64 - s.length);
-    return raw;
-}
-
-/** Verify a WebAuthn assertion (authentication response) for ES256 (P-256 ECDSA). */
-async function verifyPasskeyAssertion(
-    clientDataJSONb64: string,
-    authenticatorDatab64: string,
-    signatureb64: string,
-    storedX: string,
-    storedY: string,
-    storedCounter: number,
-    expectedOrigin: string,
-    expectedRpId: string,
-    expectedChallenge: string,
-): Promise<number> {
-    const clientData = JSON.parse(new TextDecoder().decode(b64urlDecode(clientDataJSONb64)));
-    if (clientData.type !== 'webauthn.get') throw new Error('Wrong type');
-    // Normalise challenge to base64url without padding before comparing
-    const received = clientData.challenge.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    if (received !== expectedChallenge.replace(/=/g, '')) throw new Error('Challenge mismatch');
-    if (clientData.origin !== expectedOrigin) throw new Error('Origin mismatch');
-
-    const authBytes = b64urlDecode(authenticatorDatab64);
-    const { rpIdHash, flags, signCount } = parseAuthData(authBytes);
-    const rpHash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(expectedRpId)));
-    if (!rpIdHash.every((v, i) => v === rpHash[i])) throw new Error('RP ID mismatch');
-    if (!(flags & 1)) throw new Error('User presence not set');
-
-    // Verification data = authData || SHA-256(clientDataJSON)
-    const clientHash = new Uint8Array(await crypto.subtle.digest('SHA-256', b64urlDecode(clientDataJSONb64)));
-    const sigBase = new Uint8Array(authBytes.length + clientHash.length);
-    sigBase.set(authBytes);
-    sigBase.set(clientHash, authBytes.length);
-
-    // Import stored public key (uncompressed EC point: 0x04 || x || y)
-    const x = b64urlDecode(storedX),
-        y = b64urlDecode(storedY);
-    const uncompressed = new Uint8Array(65);
-    uncompressed[0] = 0x04;
-    uncompressed.set(x, 1);
-    uncompressed.set(y, 33);
-    const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        uncompressed,
-        { name: 'ECDSA', namedCurve: 'P-256' },
-        false,
-        ['verify'],
-    );
-
-    const rawSig = derSigToRaw(b64urlDecode(signatureb64));
-    const valid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, rawSig, sigBase);
-    if (!valid) throw new Error('Signature invalid');
-
-    // Counter must advance (0 means counter not implemented — allow)
-    if (storedCounter > 0 && signCount > 0 && storedCounter >= signCount)
-        throw new Error('Counter not advancing (cloned authenticator?)');
-    return signCount;
 }
 
 export default {
@@ -2890,265 +2657,23 @@ export default {
                 if (twoFactorResponse) return twoFactorResponse;
 
                 // --- Passkeys (WebAuthn) ---
-                if (url.pathname.startsWith('/api/user/passkeys') || url.pathname.startsWith('/api/user/passkey')) {
-                    // GET /api/user/passkeys — list user's registered passkeys
-                    if (url.pathname === '/api/user/passkeys' && request.method === 'GET') {
-                        const rows = await env.DB.prepare(
-                            'SELECT id, credential_id, device_name, created_at FROM passkeys WHERE user_id = ? ORDER BY created_at DESC',
-                        )
-                            .bind(userId)
-                            .all();
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify(rows.results || []), {
-                                status: 200,
-                                headers: {
-                                    ...corsHeaders,
-                                    ...privateCacheHeaders,
-                                    'Content-Type': 'application/json',
-                                },
-                            }),
-                        );
-                    }
-
-                    // POST /api/user/passkey/register-options — generate registration challenge
-                    if (url.pathname === '/api/user/passkey/register-options' && request.method === 'POST') {
-                        const userRow = (await env.DB.prepare('SELECT username FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const origin = resolvePasskeyOrigin(request, url, env);
-                        if (!origin) return jsonError('FORBIDDEN', 'Origin not allowed', 403);
-                        const rpId = (() => {
-                            try {
-                                return new URL(origin).hostname;
-                            } catch {
-                                return url.hostname;
-                            }
-                        })();
-                        const challenge = b64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
-                        const secret = new TextEncoder().encode(jwtSecret);
-                        const challengeToken = await new SignJWT({
-                            challenge,
-                            purpose: 'passkey-register',
-                            uid: userId,
-                            origin,
-                        })
-                            .setProtectedHeader({ alg: 'HS256' })
-                            .setExpirationTime('5m')
-                            .sign(secret);
-                        const userIdEncoded = b64urlEncode(new TextEncoder().encode(userId));
-                        // The client reads this to fill `excludeCredentials`, which stops an
-                        // authenticator silently replacing a credential it already holds for
-                        // this account. It was reading a key the response never contained,
-                        // so the list was always empty.
-                        const enrolled = await env.DB.prepare('SELECT credential_id FROM passkeys WHERE user_id = ?')
-                            .bind(userId)
-                            .all();
-                        return withSecurityHeaders(
-                            new Response(
-                                JSON.stringify({
-                                    challengeToken,
-                                    challenge,
-                                    rp: { id: rpId, name: 'HRT Tracker' },
-                                    user: {
-                                        id: userIdEncoded,
-                                        name: userRow?.username || userId,
-                                        displayName: userRow?.username || userId,
-                                    },
-                                    pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-                                    timeout: 60000,
-                                    authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
-                                    attestation: 'none',
-                                    excludeCredentialIds: (enrolled.results || []).map((r: any) => r.credential_id),
-                                }),
-                                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-                            ),
-                        );
-                    }
-
-                    // POST /api/user/passkey/register — verify attestation and save passkey
-                    if (url.pathname === '/api/user/passkey/register' && request.method === 'POST') {
-                        const parsedRegBody = await readSmallJsonBody(request);
-                        if (!parsedRegBody.ok) {
-                            return parsedRegBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const {
-                            challengeToken,
-                            credential,
-                            deviceName,
-                            password: pkRegPassword,
-                        } = parsedRegBody.value ?? {};
-                        if (!challengeToken || !credential?.response) {
-                            return jsonError('INVALID_REQUEST', 'Missing data', 400);
-                        }
-                        const secret = new TextEncoder().encode(jwtSecret);
-                        let challengePayload: any;
-                        try {
-                            const { payload } = await jwtVerify(challengeToken, secret, { algorithms: ['HS256'] });
-                            challengePayload = payload;
-                        } catch {
-                            return jsonError('INVALID_REQUEST', 'Invalid or expired challenge', 400);
-                        }
-                        if (challengePayload.purpose !== 'passkey-register' || challengePayload.uid !== userId) {
-                            return jsonError('INVALID_REQUEST', 'Invalid challenge', 400);
-                        }
-                        const expectedOrigin = challengePayload.origin as string;
-                        // Registration must have been started for an origin this
-                        // deployment serves; a challenge minted before this check
-                        // existed (or by a spoofed header) is refused here.
-                        if (!allowedPasskeyOrigins(url, env).has(expectedOrigin)) {
-                            return jsonError('INVALID_REQUEST', 'Challenge origin not allowed', 400);
-                        }
-                        const expectedRpId = (() => {
-                            try {
-                                return new URL(expectedOrigin).hostname;
-                            } catch {
-                                return url.hostname;
-                            }
-                        })();
-
-                        // Verify clientDataJSON
-                        const clientData = JSON.parse(
-                            new TextDecoder().decode(b64urlDecode(credential.response.clientDataJSON)),
-                        );
-                        if (clientData.type !== 'webauthn.create')
-                            return jsonError('INVALID_REQUEST', 'Wrong type', 400);
-                        const receivedChallenge = clientData.challenge
-                            .replace(/\+/g, '-')
-                            .replace(/\//g, '_')
-                            .replace(/=/g, '');
-                        if (receivedChallenge !== (challengePayload.challenge as string).replace(/=/g, '')) {
-                            return jsonError('INVALID_REQUEST', 'Challenge mismatch', 400);
-                        }
-                        if (clientData.origin !== expectedOrigin)
-                            return jsonError('INVALID_REQUEST', 'Origin mismatch', 400);
-
-                        // Verify attestationObject (CBOR)
-                        const attObj = decodeCBOR(b64urlDecode(credential.response.attestationObject));
-                        const authData = attObj['authData'] as Uint8Array;
-                        const rpHash = new Uint8Array(
-                            await crypto.subtle.digest('SHA-256', new TextEncoder().encode(expectedRpId)),
-                        );
-                        const { rpIdHash, flags, signCount, credentialId, publicKeyX, publicKeyY } =
-                            parseAuthData(authData);
-                        if (!rpIdHash.every((v: number, i: number) => v === rpHash[i]))
-                            return jsonError('INVALID_REQUEST', 'RP ID mismatch', 400);
-                        if (!(flags & 1)) return jsonError('INVALID_REQUEST', 'User presence not set', 400);
-                        if (!credentialId || !publicKeyX || !publicKeyY)
-                            return jsonError('INVALID_REQUEST', 'No credential data in authData', 400);
-
-                        const credentialIdStr = b64urlEncode(credentialId);
-                        const existing = await env.DB.prepare('SELECT id FROM passkeys WHERE credential_id = ?')
-                            .bind(credentialIdStr)
-                            .first();
-                        if (existing) return jsonError('CONFLICT', 'Credential already registered', 409);
-
-                        // Enrolling a passkey grants a standing, password-independent
-                        // credential: /api/auth/passkey-verify is a full passwordless login
-                        // that mints a fresh 7-day session from the key alone, and nothing
-                        // else — not a password change, not a session purge — revokes it.
-                        // So a bearer token borrowed once bought permanent access. That is
-                        // strictly more damaging than *deleting* a passkey, which this file
-                        // already gates on the password, so enrolment takes the same proof.
-                        // Placed after the duplicate check so a replayed credential still
-                        // 409s without paying for a bcrypt round.
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (!pkRegPassword) return jsonError('INVALID_REQUEST', 'Current password is required', 400);
-                        const pkOwner = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const pkRegDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        if (!(await bcrypt.compare(pkRegPassword, pkOwner?.password_hash ?? pkRegDummy))) {
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        }
-
-                        // Check if this is the first passkey (to auto-generate backup codes)
-                        const pkCountRow = (await env.DB.prepare(
-                            'SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?',
-                        )
-                            .bind(userId)
-                            .first()) as any;
-                        const isFirstPasskey = (pkCountRow?.cnt ?? 0) === 0;
-
-                        const id = crypto.randomUUID();
-                        await env.DB.prepare(
-                            'INSERT INTO passkeys (id, user_id, credential_id, public_key_x, public_key_y, counter, device_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        )
-                            .bind(
-                                id,
-                                userId,
-                                credentialIdStr,
-                                b64urlEncode(publicKeyX),
-                                b64urlEncode(publicKeyY),
-                                signCount,
-                                deviceName || null,
-                            )
-                            .run();
-
-                        let backupCodes: string[] | undefined;
-                        if (isFirstPasskey) {
-                            // Check if user already has backup codes (e.g. from TOTP setup)
-                            const bcRow = (await env.DB.prepare(
-                                'SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ?',
-                            )
-                                .bind(userId)
-                                .first()) as any;
-                            if ((bcRow?.cnt ?? 0) === 0) {
-                                backupCodes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
-                            }
-                        }
-
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Passkey registered', id, backupCodes }), {
-                                status: 201,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-
-                    // DELETE /api/user/passkeys/:id — remove a passkey
-                    if (url.pathname.match(/^\/api\/user\/passkeys\/[^/]+$/) && request.method === 'DELETE') {
-                        const passkeyId = url.pathname.split('/').pop();
-                        // Deleting the last passkey drops a passkey-only account back to
-                        // username+password (the login path demands an assertion purely
-                        // because the passkeys table is non-empty), so this weakens
-                        // authentication and needs the password — the same bar DELETE
-                        // /api/user/2fa sets for the equivalent TOTP action.
-                        const parsedBody = await readSmallJsonBody(request);
-                        if (!parsedBody.ok) {
-                            return parsedBody.tooLarge
-                                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
-                                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
-                        }
-                        const { password: pkPassword } = parsedBody.value;
-                        if (!(await passwordCheckAllowed(env, userId)))
-                            return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
-                                'Retry-After': '60',
-                            });
-                        if (typeof pkPassword !== 'string' || pkPassword.length === 0)
-                            return jsonError('INVALID_REQUEST', 'Current password is required', 400);
-                        const pkUser = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
-                            .bind(userId)
-                            .first()) as any;
-                        const pkDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
-                        if (!(await bcrypt.compare(pkPassword, pkUser?.password_hash ?? pkDummy))) {
-                            return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-                        }
-                        await env.DB.prepare('DELETE FROM passkeys WHERE id = ? AND user_id = ?')
-                            .bind(passkeyId, userId)
-                            .run();
-                        return withSecurityHeaders(
-                            new Response(JSON.stringify({ message: 'Passkey deleted' }), {
-                                status: 200,
-                                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                            }),
-                        );
-                    }
-                }
+                const passkeysResponse = await handlePasskeysRoute(
+                    createRequestContext(
+                        request,
+                        env,
+                        ctx,
+                        jwtSecret,
+                        corsHeaders,
+                        privateCacheHeaders,
+                        withSecurityHeaders,
+                        jsonError,
+                        shareJson,
+                        sessionInvalid,
+                    ),
+                    userId,
+                    jwtSecret,
+                );
+                if (passkeysResponse) return passkeysResponse;
 
                 return jsonError('NOT_FOUND', 'Not Found', 404);
             } catch (e: any) {
