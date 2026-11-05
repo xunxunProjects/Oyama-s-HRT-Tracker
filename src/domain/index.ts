@@ -153,3 +153,5 @@ export { transitCompartmentAmount } from './transmasc/t-oral';
 
 export type { HRTMode, DoseEvent, SimulationResult, LabResult, LabAssay, PKCustomParams } from './types';
 export { Route, Ester, ExtraKey, GEL_SITE_ORDER } from './types';
+export type { PkSandboxInputs, PkSandboxModel, PkSandboxResult, DerivationStep } from './pkSandbox';
+export { PK_SANDBOX_MODELS, findSandboxModel, buildSandboxEvent, computePkSandbox } from './pkSandbox';
