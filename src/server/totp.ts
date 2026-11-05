@@ -95,13 +95,22 @@ export async function consumeTOTP(env: Env, userId: string, secret: string, toke
     return (res.meta?.changes ?? 0) > 0;
 }
 
+function unbiasedRandomIndex(length: number): number {
+    // Rejection sampling to avoid modulo bias on a uniform byte.
+    const limit = 256 - (256 % length);
+    let value: number;
+    do {
+        value = crypto.getRandomValues(new Uint8Array(1))[0];
+    } while (value >= limit);
+    return value % length;
+}
+
 function generateRawBackupCode(): string {
     const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    const rand = crypto.getRandomValues(new Uint8Array(12));
     let code = '';
     for (let i = 0; i < 12; i++) {
         if (i === 4 || i === 8) code += '-';
-        code += chars[rand[i] % chars.length];
+        code += chars[unbiasedRandomIndex(chars.length)];
     }
     return code;
 }
