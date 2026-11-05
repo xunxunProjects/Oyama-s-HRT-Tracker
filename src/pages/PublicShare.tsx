@@ -118,7 +118,6 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
             cancelled = true;
         };
         // classifyError contains no reactive state.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, shareKey, retryNonce]);
 
     // After a 429, wait out the server's Retry-After (or a minute if it did
