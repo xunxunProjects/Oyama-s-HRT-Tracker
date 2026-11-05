@@ -1,15 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
 import { useTranslation } from '../contexts/LanguageContext';
 import { GEL_SITE_ORDER, PK_SANDBOX_MODELS, computePkSandbox } from '../../logic';
 import { fill } from '../utils/regimenText';
-
-interface Props {
-    onBack: () => void;
-}
 
 const num = (v: string): number => {
     const n = Number(v);
@@ -53,7 +48,8 @@ const NumberField: React.FC<{
     </div>
 );
 
-const PKCalculationSandbox: React.FC<Props> = ({ onBack }) => {
+/** The single dose working, as one tab of the model demos page. */
+const PKCalculationSandbox: React.FC = () => {
     const { t } = useTranslation();
     const [modelId, setModelId] = useState<string>(PK_SANDBOX_MODELS[0].id);
     const model = PK_SANDBOX_MODELS.find(m => m.id === modelId)!;
@@ -115,9 +111,8 @@ const PKCalculationSandbox: React.FC<Props> = ({ onBack }) => {
     ];
 
     return (
-        <div className="md:pb-32">
-            <PageHeader title={t('pk_calc.title')} onBack={onBack} />
-            <div className={`${PAGE_COLUMN} mt-3`}>
+        <div>
+            <div>
                 <p className="text-sm text-[var(--text-muted)]">{t('pk_calc.subtitle')}</p>
 
                 <div className="mt-6 space-y-5">

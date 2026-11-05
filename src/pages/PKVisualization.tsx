@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
 import Segmented from '../components/Segmented';
 import ExplainMath from '../components/ExplainMath';
@@ -19,7 +18,8 @@ const MODEL_PARAMS: Record<ModelId, { F: number; ka: number; ke: number; Vd: num
 
 const LATEX = 'C(t)=\\frac{F\\cdot D}{V_d}\\cdot\\frac{k_a}{k_a-k_e}\\left(e^{-k_e t}-e^{-k_a t}\\right)';
 
-export default function PKVisualization({ onBack }: { onBack: () => void }) {
+/** The visualisation, as one tab of the model demos page. */
+export default function PKVisualization() {
     const { t } = useTranslation();
     const [model, setModel] = useState<ModelId>('e2-oral');
     const [dose, setDose] = useState(2);
@@ -48,9 +48,8 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
     }, [params, dose]);
 
     return (
-        <div className="md:pb-32">
-            <PageHeader title={t('pk_viz.title')} onBack={onBack} />
-            <div className={`${PAGE_COLUMN} mt-3`}>
+        <div>
+            <div>
                 <p className="text-sm text-[var(--text-muted)]">{t('pk_viz.subtitle')}</p>
 
                 <div className="mt-6">
