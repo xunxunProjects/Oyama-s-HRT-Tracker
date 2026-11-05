@@ -16,7 +16,11 @@ export interface PkSandboxInputs {
     wearH?: number;
 }
 
+export type DerivationStepKey = 'dose' | 'vd' | 'f' | 'params' | 'conversion' | 'peak' | 'thresholds';
+
 export interface DerivationStep {
+    /** Which step this is, so a page can name it in the reader's language. */
+    key: DerivationStepKey;
     title: string;
     formula: string;
     result?: string;
@@ -239,39 +243,46 @@ export function computePkSandbox(id: string, partial: Partial<PkSandboxInputs> =
     const fmt = (n: number, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : String(n));
     const derivation: DerivationStep[] = [
         {
+            key: 'dose',
             title: 'Dose',
             formula: `D = ${fmt(inputs.doseMG, 3)} mg`,
             result: `${fmt(inputs.doseMG, 3)} mg`,
         },
         {
+            key: 'vd',
             title: 'Body weight / volume of distribution',
             formula: `V_d = ${fmt(vdMl / inputs.bodyWeightKG / 1000, 3)} L/kg × ${inputs.bodyWeightKG} kg = ${fmt(vdMl, 0)} mL`,
             result: `${fmt(vdMl, 0)} mL`,
         },
         {
+            key: 'f',
             title: 'Bioavailability',
             formula: `F = ${fmt(bioavailability, 4)}`,
             result: `${fmt(bioavailability, 4)}`,
         },
         {
+            key: 'params',
             title: 'Resolved parameters',
-            formula: `k_fast=${fmt(params.k1_fast, 4)}, k_slow=${fmt(params.k1_slow, 4)}, k2=${fmt(params.k2, 4)}, k3=${fmt(params.k3, 4)}, Frac_fast=${fmt(params.Frac_fast, 4)}`,
-            result: `F=${fmt(params.F, 4)}`,
+            formula: `k_fast = ${fmt(params.k1_fast, 4)}, k_slow = ${fmt(params.k1_slow, 4)}, k2 = ${fmt(params.k2, 4)}, k3 = ${fmt(params.k3, 4)}, Frac_fast = ${fmt(params.Frac_fast, 4)}`,
+            result: `F = ${fmt(params.F, 4)}`,
         },
         {
+            key: 'conversion',
             title: 'Concentration conversion',
-            formula: `C(t) = A(t) × 10^9 / V_d  (pg/mL)`,
-            result: `peak A = ${fmt((peakValue * vdMl) / 1e9, 4)} mg`,
+            formula: `C(t) = A(t) × 10⁹ / V_d (pg/mL)`,
+            result: `A_max = ${fmt((peakValue * vdMl) / 1e9, 4)} mg`,
         },
         {
+            key: 'peak',
             title: 'Peak',
-            formula: `C_max = ${fmt(peakValue, 2)} pg/mL at t = ${fmt(peakTime, 2)} h`,
+            formula: `C_max = ${fmt(peakValue, 2)} pg/mL, t_max = ${fmt(peakTime, 2)} h`,
             result: `${fmt(peakValue, 2)} pg/mL`,
         },
         {
+            key: 'thresholds',
             title: 'Thresholds',
-            formula: `t(<200 pg/mL) = ${timeBelow200H === null ? 'never' : fmt(timeBelow200H, 2) + ' h'}; t(<100 pg/mL) = ${timeBelow100H === null ? 'never' : fmt(timeBelow100H, 2) + ' h'}`,
-            result: `${timeBelow200H === null ? 'never' : fmt(timeBelow200H, 2) + ' h'} / ${timeBelow100H === null ? 'never' : fmt(timeBelow100H, 2) + ' h'}`,
+            formula: `t(C < 200 pg/mL) = ${timeBelow200H === null ? '∞' : fmt(timeBelow200H, 2) + ' h'}, t(C < 100 pg/mL) = ${timeBelow100H === null ? '∞' : fmt(timeBelow100H, 2) + ' h'}`,
+            result: `${timeBelow200H === null ? '∞' : fmt(timeBelow200H, 2) + ' h'} / ${timeBelow100H === null ? '∞' : fmt(timeBelow100H, 2) + ' h'}`,
         },
     ];
 

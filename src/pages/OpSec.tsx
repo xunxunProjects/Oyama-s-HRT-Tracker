@@ -5,35 +5,37 @@ import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
 import { getOpSecContent, type OpSecBlock, type OpSecCalloutKind, type OpSecSection } from '../content/opsec';
 import { scrollParent } from '../utils/scrollParent';
-import { Alert, CheckCircle, Info, Warning } from '../components/icons';
+import { Info, Warning } from '../components/icons';
 import '../styles/opsec.css';
 
 /** The reading column stays at the app's width on a phone and grows just
  *  enough for the contents rail on a wide desktop. */
 const OPSEC_COLUMN = `${PAGE_COLUMN} min-[1200px]:max-w-[57rem]`;
 
-const CALLOUT_META: Record<OpSecCalloutKind, { label: string; Icon: React.ElementType }> = {
-    note: { label: 'NOTE', Icon: Info },
-    tip: { label: 'TIP', Icon: CheckCircle },
-    important: { label: 'IMPORTANT', Icon: Alert },
-    warning: { label: 'WARNING', Icon: Warning },
-    caution: { label: 'CAUTION', Icon: Warning },
-};
+/** Which callouts ask the reader to be careful. Those carry the app's warning
+ *  mark; the rest are a quiet note with an info mark. */
+const CAREFUL: ReadonlySet<OpSecCalloutKind> = new Set(['important', 'warning', 'caution']);
 
-/** A Markdown alert rendered as a quiet aside: the `[!WARNING]` label is the
- *  visible nod to the syntax, while the sentence stays in the page's ink. */
+/** A Markdown alert drawn as the app's quiet filled note: a small mark and the
+ *  sentence, with no label, coloured edge or tint. A screen reader still
+ *  hears what kind of note it is, in the reader's language. */
 const Callout: React.FC<{ kind: OpSecCalloutKind; text: string }> = ({ kind, text }) => {
-    const { label, Icon } = CALLOUT_META[kind];
+    const { t } = useTranslation();
+    const careful = CAREFUL.has(kind);
+    const Icon = careful ? Warning : Info;
     return (
-        <aside className={`opsec-callout opsec-callout--${kind}`} role="note">
-            <div className="opsec-callout-head">
-                <Icon size={18} aria-hidden="true" className="opsec-callout-icon" />
-                <span className="opsec-callout-label" aria-hidden="true">
-                    [!{label}]
-                </span>
-                <span className="sr-only">{label}: </span>
-            </div>
-            <p className="opsec-callout-text">{text}</p>
+        <aside className="opsec-callout" role="note">
+            <span className="icon-line">
+                <Icon
+                    size={13}
+                    aria-hidden="true"
+                    className={careful ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}
+                />
+            </span>
+            <p>
+                <span className="sr-only">{t(`opsec.callout.${kind}`)}: </span>
+                {text}
+            </p>
         </aside>
     );
 };
@@ -86,14 +88,9 @@ const Block: React.FC<{ block: OpSecBlock }> = ({ block }) => {
     }
 };
 
-const Section: React.FC<{ section: OpSecSection; index: number }> = ({ section, index }) => (
+const Section: React.FC<{ section: OpSecSection }> = ({ section }) => (
     <section id={section.id} className="opsec-section scroll-mt-24">
-        <h3>
-            <span className="opsec-section-index" aria-hidden="true">
-                {String(index + 1).padStart(2, '0')}
-            </span>
-            <span>{section.title}</span>
-        </h3>
+        <h3>{section.title}</h3>
         <div className="opsec-section-body">
             {section.blocks.map((block, i) => (
                 <Block key={i} block={block} />
@@ -102,150 +99,46 @@ const Section: React.FC<{ section: OpSecSection; index: number }> = ({ section, 
     </section>
 );
 
-/* The rail is a quadratic curve in a 176 × 544 box. Dots are placed as
-   percentages, so they stay on the curve when --ui-scale grows the page on a
-   wide screen. */
-const RAIL_W = 176;
-const RAIL_H = 544;
-const RAIL_X_END = 136;
-const RAIL_X_MID = 176;
-const RAIL_Y_END = 20;
-
-const railPoint = (t: number) => {
-    const mt = 1 - t;
-    return {
-        x: mt * mt * RAIL_X_END + 2 * mt * t * RAIL_X_MID + t * t * RAIL_X_END,
-        y: mt * mt * RAIL_Y_END + 2 * mt * t * (RAIL_H / 2) + t * t * (RAIL_H - RAIL_Y_END),
-    };
-};
-
-/* Keep this in step with the rail transitions in opsec.css. The focus ring
-   travels along the same curve as the dots, so a section change reads as one
-   movement rather than two separate highlights. */
-const RAIL_MOTION_MS = 460;
-const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-
-const ContentsRail: React.FC<{
+/** The contents beside the article on a wide screen: the section titles as a
+ *  plain list, the one being read in the accent's ink. It keeps that one in
+ *  view when the list is taller than the window. */
+const Contents: React.FC<{
     sections: OpSecSection[];
     active: number;
     label: string;
     onJump: (id: string) => void;
 }> = ({ sections, active, label, onJump }) => {
-    const [hovered, setHovered] = React.useState<number | null>(null);
-    const points = React.useMemo(
-        () => sections.map((_, i) => railPoint(sections.length > 1 ? i / (sections.length - 1) : 0.5)),
-        [sections],
-    );
-    const progress = sections.length > 1 ? active / (sections.length - 1) : 1;
-    const path = `M ${RAIL_X_END} ${RAIL_Y_END} Q ${RAIL_X_MID} ${RAIL_H / 2} ${RAIL_X_END} ${RAIL_H - RAIL_Y_END}`;
-    const focusRef = React.useRef<SVGGElement | null>(null);
-    const focusT = React.useRef(progress);
-
-    // Place the ring before the first paint, then let the effect below take
-    // over. Keeping the initial transform out of JSX means a re-render never
-    // snaps the ring back to the section it started on.
-    React.useLayoutEffect(() => {
-        const point = railPoint(focusT.current);
-        focusRef.current?.setAttribute('transform', `translate(${point.x} ${point.y})`);
-    }, []);
-
+    const listRef = React.useRef<HTMLOListElement | null>(null);
     React.useEffect(() => {
-        const focus = focusRef.current;
-        if (!focus) return;
-
-        const from = focusT.current;
-        const to = progress;
-        const place = (t: number) => {
-            const point = railPoint(t);
-            focus.setAttribute('transform', `translate(${point.x} ${point.y})`);
-        };
-
-        if (Math.abs(to - from) < 0.0001) {
-            focusT.current = to;
-            place(to);
-            return;
+        const list = listRef.current;
+        const item = list?.children[active] as HTMLElement | undefined;
+        if (!list || !item || list.getBoundingClientRect().width === 0) return;
+        const top = item.offsetTop - list.offsetTop;
+        if (top < list.scrollTop || top + item.offsetHeight > list.scrollTop + list.clientHeight) {
+            list.scrollTo({ top: top - list.clientHeight / 3 });
         }
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            focusT.current = to;
-            place(to);
-            return;
-        }
-        // The rail is hidden below 1200px and on short screens; keep the marker
-        // in sync without running an animation nobody can see.
-        if (focus.getBoundingClientRect().width === 0) {
-            focusT.current = to;
-            place(to);
-            return;
-        }
-
-        const started = performance.now();
-        let frame = 0;
-        const step = (now: number) => {
-            const t = Math.min((now - started) / RAIL_MOTION_MS, 1);
-            const current = from + (to - from) * easeInOutCubic(t);
-            focusT.current = current;
-            place(current);
-            if (t < 1) {
-                frame = requestAnimationFrame(step);
-            } else {
-                focusT.current = to;
-            }
-        };
-        frame = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(frame);
-    }, [progress]);
+    }, [active]);
 
     return (
-        <nav className="opsec-rail hidden select-none min-[1200px]:block" aria-label={label}>
-            <div className="opsec-rail-head">
-                <span>{label}</span>
-                <span className="opsec-rail-count">
-                    {String(active + 1).padStart(2, '0')} / {String(sections.length).padStart(2, '0')}
-                </span>
-            </div>
-            <div className="opsec-rail-track">
-                <svg className="opsec-rail-svg" viewBox={`0 0 ${RAIL_W} ${RAIL_H}`} aria-hidden="true">
-                    <path className="opsec-rail-path" d={path} />
-                    <path
-                        className="opsec-rail-progress"
-                        d={path}
-                        pathLength={1}
-                        strokeDasharray="1"
-                        strokeDashoffset={1 - progress}
-                    />
-                    <g ref={focusRef} className="opsec-rail-focus" aria-hidden="true">
-                        <circle className="opsec-rail-focus-halo" r={12} />
-                        <circle className="opsec-rail-focus-ring" r={8.5} />
-                    </g>
-                </svg>
-                {sections.map((section, i) => {
-                    const point = points[i];
-                    const showLabel = hovered === i || (hovered === null && i === active);
-                    return (
+        <nav className="opsec-contents hidden min-[1200px]:block" aria-label={label}>
+            <h2 className="group-heading">{label}</h2>
+            <ol ref={listRef}>
+                {sections.map((section, i) => (
+                    <li
+                        key={section.id}
+                        className={i > 0 && sections[i - 1].level !== section.level ? 'opsec-contents-gap' : undefined}
+                    >
                         <button
-                            key={section.id}
                             type="button"
-                            className={`opsec-rail-dot ${i === active ? 'is-active' : ''} ${i < active ? 'is-past' : ''}`}
-                            style={{
-                                left: `${(point.x / RAIL_W) * 100}%`,
-                                top: `${(point.y / RAIL_H) * 100}%`,
-                            }}
+                            className={i === active ? 'is-active' : undefined}
                             onClick={() => onJump(section.id)}
-                            onMouseEnter={() => setHovered(i)}
-                            onMouseLeave={() => setHovered(null)}
-                            onFocus={() => setHovered(i)}
-                            onBlur={() => setHovered(null)}
-                            aria-label={section.title}
                             aria-current={i === active ? 'location' : undefined}
                         >
-                            <span className="opsec-rail-dot-mark" aria-hidden="true" />
-                            <span className={`opsec-rail-label ${showLabel ? 'is-visible' : ''}`} aria-hidden="true">
-                                {section.title}
-                            </span>
+                            {section.title}
                         </button>
-                    );
-                })}
-            </div>
+                    </li>
+                ))}
+            </ol>
         </nav>
     );
 };
@@ -309,10 +202,10 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
     };
 
     return (
-        <div className="opsec-page min-h-full flex-none select-text">
+        <div className="opsec-page min-h-full flex-none select-text md:pb-32">
             <PageHeader onBack={onBack} title={content.title} columnClassName={OPSEC_COLUMN} />
-            <div className={`${OPSEC_COLUMN} pb-32 pt-2`}>
-                <div className="grid grid-cols-1 gap-8 min-[1200px]:grid-cols-[minmax(0,40rem)_11rem]">
+            <div className={`${OPSEC_COLUMN} pt-2`}>
+                <div className="grid grid-cols-1 gap-12 min-[1200px]:grid-cols-[minmax(0,40rem)_11rem]">
                     <article ref={articleRef} className="opsec-prose min-w-0">
                         <section className="opsec-disclaimer">
                             <h2>{content.disclaimerTitle}</h2>
@@ -324,24 +217,24 @@ const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
                         <p className="opsec-intro">{content.intro}</p>
 
                         <h2>{content.basicHeading}</h2>
-                        {basic.map((section, i) => (
-                            <Section key={section.id} section={section} index={i} />
+                        {basic.map(section => (
+                            <Section key={section.id} section={section} />
                         ))}
 
                         <h2>{content.advancedHeading}</h2>
                         <Callout kind="important" text={content.advancedNote} />
-                        {advanced.map((section, i) => (
-                            <Section key={section.id} section={section} index={basic.length + i} />
+                        {advanced.map(section => (
+                            <Section key={section.id} section={section} />
                         ))}
 
                         <h2>{content.extendedHeading}</h2>
                         <Callout kind="note" text={content.extendedNote} />
-                        {extended.map((section, i) => (
-                            <Section key={section.id} section={section} index={basic.length + advanced.length + i} />
+                        {extended.map(section => (
+                            <Section key={section.id} section={section} />
                         ))}
                     </article>
 
-                    <ContentsRail sections={allSections} active={active} label={content.contentsLabel} onJump={jump} />
+                    <Contents sections={allSections} active={active} label={content.contentsLabel} onJump={jump} />
                 </div>
             </div>
         </div>

@@ -7,7 +7,7 @@ test('pharmacokinetic visualization renders, switches model and animates', async
 
     await page.getByRole('button', { name: 'Settings' }).click();
     await page.getByRole('tab', { name: 'About' }).click();
-    await page.getByRole('button', { name: 'Pharmacokinetic visualization' }).click();
+    await page.getByRole('button', { name: 'Pharmacokinetic visualization', exact: true }).click();
 
     await expect(page.getByText('Pharmacokinetic visualization').first()).toBeVisible();
 
