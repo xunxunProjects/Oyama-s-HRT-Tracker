@@ -7,9 +7,9 @@ test('pharmacokinetic visualization renders, switches model and animates', async
 
     await page.getByRole('button', { name: 'Settings' }).click();
     await page.getByRole('tab', { name: 'About' }).click();
-    await page.getByRole('button', { name: 'Pharmacokinetic visualization', exact: true }).click();
+    await page.getByRole('button', { name: 'Model demos', exact: true }).click();
 
-    await expect(page.getByText('Pharmacokinetic visualization').first()).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Level curve' })).toBeVisible();
 
     const viz = page.locator('[data-explain-math]');
     await expect(viz).toBeVisible();
