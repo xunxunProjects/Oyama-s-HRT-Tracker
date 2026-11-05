@@ -1,4 +1,8 @@
-/* The operations and security guide, read like any other page of the app:
+/* No text-wrap: pretty or balance here. Safari applies them to Chinese and
+   Japanese by pulling lines short, which left the right edge of every
+   paragraph ragged on a phone.
+
+   The operations and security guide, read like any other page of the app:
    the system face on the white page, the app's four sizes (13, 15, 20, 26px),
    no boxes around the prose and no rules between its parts. Space does the
    grouping. A section's title is the body size in a heavier weight, a part's
@@ -7,23 +11,21 @@
 .opsec-prose {
     color: var(--text);
     font-size: 0.9375rem;
-    line-height: 1.75;
-    text-wrap: pretty;
+    line-height: 1.65;
 }
 .opsec-prose h2,
 .opsec-prose h3 {
     color: var(--text);
     font-weight: 600;
-    text-wrap: balance;
 }
 .opsec-prose h2 {
-    margin: 3.5rem 0 0;
+    margin: 2.5rem 0 0;
     font-size: 1.25rem;
     line-height: 1.75rem;
     letter-spacing: -0.01em;
 }
 .opsec-prose h3 {
-    margin: 2.5rem 0 0.75rem;
+    margin: 2rem 0 0.5rem;
     font-size: 0.9375rem;
     line-height: 1.5rem;
 }
