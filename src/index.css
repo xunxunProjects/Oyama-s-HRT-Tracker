@@ -773,3 +773,17 @@ select:focus-visible {
         transform: none;
     }
 }
+
+/* A line of typeset working (the single dose page): the step's name sits right
+   above it, so KaTeX's own 1em gap above and below a display is dropped. */
+.pk-tex .katex-display {
+    margin: 0.125rem 0;
+}
+/* Flush with the step's name rather than KaTeX's 2em indent, and a little
+   under KaTeX's display size so a line fits a phone. */
+.pk-tex .katex-display.fleqn > .katex {
+    padding-left: 0;
+}
+.pk-tex .katex {
+    font-size: 1.1em;
+}

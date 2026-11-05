@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import CustomSelect from '../components/CustomSelect';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -17,8 +19,16 @@ const num = (v: string): number => {
 /** Each medication once, in the order the models list them. */
 const ESTERS = Array.from(new Set(PK_SANDBOX_MODELS.map(m => m.ester)));
 
-/** Steps whose result says something the line above it doesn't. */
-const STEPS_WITH_RESULT = new Set(['params', 'conversion']);
+/** One line of the working, typeset like the formula on the visualisation
+ *  page, flush left with the step's name, scrolling on its own if a phone is
+ *  too narrow for it. */
+const TexLine: React.FC<{ tex: string }> = ({ tex }) => {
+    const html = useMemo(
+        () => katex.renderToString(tex, { displayMode: true, fleqn: true, throwOnError: false, strict: 'ignore' }),
+        [tex],
+    );
+    return <div className="pk-tex overflow-x-auto overflow-y-hidden" dangerouslySetInnerHTML={{ __html: html }} />;
+};
 
 /** A number field drawn as the app's line, its name above it. */
 const NumberField: React.FC<{
@@ -199,12 +209,11 @@ const PKCalculationSandbox: React.FC<Props> = ({ onBack }) => {
                     {result.derivation.map(step => (
                         <li key={step.key}>
                             <p className="text-sm text-[var(--text)]">{t(`pk_calc.step.${step.key}`)}</p>
-                            <p className="mt-0.5 break-words text-xs tabular-nums text-[var(--text-muted)]">
-                                {step.formula}
-                            </p>
-                            {step.result && STEPS_WITH_RESULT.has(step.key) && (
-                                <p className="text-xs tabular-nums text-[var(--text-muted)]">{step.result}</p>
-                            )}
+                            <div className="mt-1 text-[var(--text)]">
+                                {step.tex.map((line, i) => (
+                                    <TexLine key={i} tex={line} />
+                                ))}
+                            </div>
                         </li>
                     ))}
                 </ol>
