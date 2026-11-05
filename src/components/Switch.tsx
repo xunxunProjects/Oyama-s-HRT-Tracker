@@ -2,7 +2,9 @@ import React from 'react';
 
 /**
  * The one on/off switch in the app, at iOS proportions: a 22px knob on a
- * 44×26 track. The off track is border-strong so the off state is findable
+ * 44×26 track, 2px inset all round. Every size and the slide are in rem, so
+ * on a wide display, where --ui-scale lifts the root size, the track, knob and
+ * slide grow together and the knob still lands 2px from either end. The off track is border-strong so the off state is findable
  * (3:1), not a near-invisible hairline grey. Track colour and knob position
  * move together (.switch-track / .switch-knob), so every switch slides the
  * same way wherever it sits.
@@ -26,10 +28,10 @@ const Switch: React.FC<{
         aria-label={label}
         aria-describedby={describedBy}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex switch-track h-[26px] w-11 shrink-0 items-center rounded-full ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
+        className={`relative inline-flex switch-track h-[1.625rem] w-11 shrink-0 items-center rounded-full ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
     >
         <span
-            className={`inline-block switch-knob h-[22px] w-[22px] rounded-full bg-white shadow-[var(--shadow-xs)] ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}
+            className={`inline-block switch-knob size-[1.375rem] rounded-full bg-white shadow-[var(--shadow-xs)] ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}
         />
     </button>
 );
