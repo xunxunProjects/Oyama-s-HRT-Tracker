@@ -79,6 +79,7 @@ import { parseShareFragment } from './services/shareCrypto';
 import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
 import SiteNoticeBanner from './components/SiteNotice';
+import JsDependencyNotice from './components/JsDependencyNotice';
 import UpdatePrompt from './components/UpdatePrompt';
 import { copyText } from './utils/clipboard';
 
@@ -903,6 +904,7 @@ const AppContent = () => {
 
                 {/* Operator banner. Outside the scroller and keyed off nothing in
                     this component, so it stays put across view changes. */}
+                <JsDependencyNotice />
                 <SiteNoticeBanner />
                 <UpdatePrompt />
                 {/* Where a prompt goes when nothing on the page was pressed to
