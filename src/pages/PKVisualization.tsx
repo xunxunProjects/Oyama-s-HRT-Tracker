@@ -6,8 +6,8 @@ import ExplainMath from '../components/ExplainMath';
 import AnimatedNumber from '../components/AnimatedNumber';
 
 const MODELS = [
-    { id: 'e2-oral', label: 'Estradiol oral' },
-    { id: 't-gel', label: 'Testosterone gel' },
+    { id: 'e2-oral', labelKey: 'pk_viz.model.e2_oral' },
+    { id: 't-gel', labelKey: 'pk_viz.model.t_gel' },
 ] as const;
 
 type ModelId = (typeof MODELS)[number]['id'];
@@ -48,25 +48,27 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
     }, [params, dose]);
 
     return (
-        <div className={PAGE_COLUMN}>
-            <PageHeader title={t('pk_viz.title')} subtitle={t('pk_viz.subtitle')} onBack={onBack} />
+        <div className="md:pb-32">
+            <PageHeader title={t('pk_viz.title')} onBack={onBack} />
+            <div className={`${PAGE_COLUMN} mt-3`}>
+                <p className="text-sm text-[var(--text-muted)]">{t('pk_viz.subtitle')}</p>
 
-            <section className="mt-6 space-y-4">
-                <div>
-                    <label className="field-label" htmlFor="pk-model">
+                <div className="mt-6">
+                    <p className="field-label mb-2" id="pk-model-label">
                         {t('pk_viz.model')}
-                    </label>
+                    </p>
                     <Segmented
-                        options={MODELS.map(m => ({ id: m.id, label: m.label }))}
+                        options={MODELS.map(m => ({ id: m.id, label: t(m.labelKey) }))}
                         value={model}
                         onChange={id => setModel(id as ModelId)}
                         aria-label={t('pk_viz.model')}
                     />
                 </div>
 
-                <div>
-                    <label className="field-label" htmlFor="pk-dose">
-                        {t('pk_viz.dose')} ({dose} mg)
+                <div className="mt-6">
+                    <label className="field-label flex justify-between" htmlFor="pk-dose">
+                        <span>{t('pk_viz.dose')}</span>
+                        <span className="tabular-nums text-[var(--text)]">{dose} mg</span>
                     </label>
                     <input
                         id="pk-dose"
@@ -76,23 +78,21 @@ export default function PKVisualization({ onBack }: { onBack: () => void }) {
                         step={0.5}
                         value={dose}
                         onChange={e => setDose(Number(e.target.value))}
-                        className="w-full"
-                        aria-label={t('pk_viz.dose')}
+                        className="mt-3 h-1 w-full accent-[var(--accent)]"
                     />
                 </div>
-            </section>
 
-            <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                <ExplainMath latex={LATEX} values={values} decimals={3} />
-            </section>
+                <ExplainMath className="mt-8" latex={LATEX} values={values} decimals={3} />
 
-            <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                <p className="field-label">{t('pk_viz.result')}</p>
-                <p className="text-2xl font-semibold tabular-nums">
-                    <AnimatedNumber value={concentration} decimals={4} /> mg/L
-                </p>
-                <p className="mt-2 text-xs text-[var(--text-muted)]">{t('pk_viz.disclaimer')}</p>
-            </section>
+                <div className="mt-8">
+                    <p className="field-label">{t('pk_viz.result')}</p>
+                    <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">
+                        {/* mg/L × 10⁶ is pg/mL, the unit every lab report and the rest of the app use. */}
+                        <AnimatedNumber value={concentration * 1e6} decimals={0} /> pg/mL
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">{t('pk_viz.disclaimer')}</p>
+                </div>
+            </div>
         </div>
     );
 }

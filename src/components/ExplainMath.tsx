@@ -54,13 +54,18 @@ function VariableItem({
         spring.set(value);
     }, [spring, value]);
 
+    // The name is set the way the formula above sets it (k_a as k with a
+    // subscript a), so the reader can match the two by eye.
+    const nameHtml = useMemo(
+        () => katex.renderToString(name, { displayMode: false, throwOnError: false, strict: 'ignore' }),
+        [name],
+    );
+
     return (
-        <m.li
-            variants={variants}
-            className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1 text-sm"
-        >
-            <span className="font-mono text-[var(--text-muted)]">{name}</span>
-            <m.span className="tabular-nums font-semibold text-[var(--text)]">{formatted}</m.span>
+        <m.li variants={variants} className="flex items-baseline gap-1.5 text-sm">
+            <span className="text-[var(--text-muted)]" dangerouslySetInnerHTML={{ __html: nameHtml }} />
+            <span className="text-[var(--text-muted)]">=</span>
+            <m.span className="tabular-nums text-[var(--text)]">{formatted}</m.span>
         </m.li>
     );
 }
@@ -118,7 +123,7 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
                 />
                 {animatedVars.length > 0 && (
                     <m.ul
-                        className="mt-3 flex flex-wrap gap-2"
+                        className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3"
                         variants={activeContainerVariants}
                         initial="hidden"
                         animate="visible"
