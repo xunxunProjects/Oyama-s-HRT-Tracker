@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { LazyMotion, domAnimation, m, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 
-import {
-    MAX_ANIMATION_MS,
-    SPRING_CONFIG,
-    STAGGER_MS,
-    animationBudgetMs,
-    extractLatexVariables,
-} from '../lib/explainMath';
+import { MAX_ANIMATION_MS, SPRING_CONFIG, animationBudgetMs, extractLatexVariables } from '../lib/explainMath';
 
 interface ExplainMathProps {
     latex: string;
@@ -18,37 +12,21 @@ interface ExplainMathProps {
     className?: string;
 }
 
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: { staggerChildren: STAGGER_MS / 1000, delayChildren: 0 },
-    },
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 6 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
-};
-
+/** One variable under the formula. It stays where it is; only its number
+ *  runs to the new value when an input changes. */
 function VariableItem({
     name,
     value,
-    initial,
     decimals,
     reducedMotion,
 }: {
     name: string;
     value: number;
-    initial: number;
     decimals: number;
     reducedMotion: boolean;
 }) {
-    const spring = useSpring(initial, reducedMotion ? { duration: 0 } : SPRING_CONFIG);
+    const spring = useSpring(value, reducedMotion ? { duration: 0 } : SPRING_CONFIG);
     const formatted = useTransform(spring, v => v.toFixed(decimals));
-    const variants = reducedMotion
-        ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0, transition: { duration: 0 } } }
-        : itemVariants;
 
     useEffect(() => {
         spring.set(value);
@@ -62,11 +40,11 @@ function VariableItem({
     );
 
     return (
-        <m.li variants={variants} className="flex items-baseline gap-1.5 text-sm">
+        <li className="flex items-baseline gap-1.5 text-sm">
             <span className="text-[var(--text-muted)]" dangerouslySetInnerHTML={{ __html: nameHtml }} />
             <span className="text-[var(--text-muted)]">=</span>
             <m.span className="tabular-nums text-[var(--text)]">{formatted}</m.span>
-        </m.li>
+        </li>
     );
 }
 
@@ -90,29 +68,10 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
 
     const budget = animationBudgetMs(animatedVars.length);
 
-    const signature = useMemo(() => JSON.stringify({ latex, values }), [latex, values]);
-    const [runId, setRunId] = useState(0);
-    const prevValuesRef = useRef<Record<string, number>>(values);
-    const [prevValues, setPrevValues] = useState<Record<string, number>>(values);
-
-    useEffect(() => {
-        setPrevValues(prevValuesRef.current);
-        prevValuesRef.current = values;
-        setRunId(id => id + 1);
-    }, [signature]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const activeContainerVariants = reducedMotion
-        ? { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0 } } }
-        : containerVariants;
-
     return (
         <LazyMotion features={domAnimation}>
-            <m.div
-                key={runId}
+            <div
                 className={className}
-                initial="hidden"
-                animate="visible"
-                variants={activeContainerVariants}
                 data-explain-math=""
                 data-animation-budget-ms={budget}
                 data-max-animation-ms={MAX_ANIMATION_MS}
@@ -122,25 +81,19 @@ export function ExplainMath({ latex, values, decimals = 2, className }: ExplainM
                     dangerouslySetInnerHTML={{ __html: rendered }}
                 />
                 {animatedVars.length > 0 && (
-                    <m.ul
-                        className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3"
-                        variants={activeContainerVariants}
-                        initial="hidden"
-                        animate="visible"
-                    >
+                    <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
                         {animatedVars.map(name => (
                             <VariableItem
-                                key={`${runId}-${name}`}
+                                key={name}
                                 name={name}
                                 value={values[name]}
-                                initial={prevValues[name] ?? values[name]}
                                 decimals={decimals}
                                 reducedMotion={!!reducedMotion}
                             />
                         ))}
-                    </m.ul>
+                    </ul>
                 )}
-            </m.div>
+            </div>
         </LazyMotion>
     );
 }
