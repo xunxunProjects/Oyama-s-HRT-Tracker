@@ -41,9 +41,9 @@ export const DEVELOPERS: Developer[] = [
         login: 'fantuanmtf',
         avatar: fantuanmtfAvatar,
         role: 'Maintainer',
-        bio: "Maintainer of Oyama's HRT Tracker. Works on the backend, security, and deployment; runs Gentoo and writes code with AI.",
-        focus: ['Backend', 'Security', 'Deployment'],
-        languages: ['Rust', 'C++', 'JavaScript', 'Python'],
+        bio: "Maintainer of Oyama's HRT Tracker. Works on the backend, security and deployment: extracted the Worker routes into src/server/routes, split syncMerge into src/utils/sync, and added the PK calculation sandbox and the ExplainMath pharmacokinetic visualization. Runs Gentoo, codes with AI assistance, and experiments in Rust, C++ and anonymity networks (fantuan-kernel, fantuan-network, Salted-Fish-Coins).",
+        focus: ['Backend', 'Security', 'Deployment', 'Refactoring'],
+        languages: ['Rust', 'C++', 'TypeScript', 'JavaScript', 'Python'],
         website: {
             label: 'Onion site (Tor only)',
             href: 'http://lgbtqiadfu5epuzzc52vsmw657srrg4ud3b3fm6wtigono5ii3ldw3qd.onion/',
