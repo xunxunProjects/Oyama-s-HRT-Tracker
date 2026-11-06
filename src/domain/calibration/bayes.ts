@@ -64,7 +64,12 @@ export const BAYES_NO_DRIFT_PRIOR = 1 / 3;
 /** SD of a logged draw time, h. Labs are often entered later with an approximate time. */
 export const BAYES_DRAW_TIME_SD_H = 1;
 /** Additive assay floors, pg/mL. Chosen values, ordered as Rosner et al. 2013 rank the methods. */
-export const BAYES_ASSAY_FLOOR_PGML: Record<LabAssay | 'unknown', number> = { lcms: 2, immuno: 8, chemi: 5, unknown: 5 };
+export const BAYES_ASSAY_FLOOR_PGML: Record<LabAssay | 'unknown', number> = {
+    lcms: 2,
+    immuno: 8,
+    chemi: 5,
+    unknown: 5,
+};
 /** Cap on one lab's log-scale SD: a lab drawn right at a dose time is uninformative, not infinite. */
 export const BAYES_MAX_LAB_SD = 2;
 export const BAYES_SLOPE_STEP_H = 0.25;
