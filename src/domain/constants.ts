@@ -54,8 +54,8 @@ export function isEstradiolEster(e: Ester): boolean {
 
 // HRT mode used by the UI/storage layer. Not persisted inside DoseEvent.
 
-export const LAB_ASSAYS: readonly LabAssay[] = ['immuno', 'lcms'];
-export const isLabAssay = (v: unknown): v is LabAssay => v === 'lcms' || v === 'immuno';
+export const LAB_ASSAYS: readonly LabAssay[] = ['immuno', 'lcms', 'chemi'];
+export const isLabAssay = (v: unknown): v is LabAssay => v === 'lcms' || v === 'immuno' || v === 'chemi';
 
 export const CorePK = {
     vdPerKG: 2.0, // L/kg for E2

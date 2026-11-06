@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "crossval:pk": "python3 scripts/pk_crossval.py",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "wrangler:dev": "npm run build && wrangler dev",
