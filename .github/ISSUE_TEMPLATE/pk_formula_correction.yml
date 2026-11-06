@@ -1,0 +1,37 @@
+name: PK formula correction
+description: Correct a pharmacokinetic formula on the wiki
+title: "PK formula correction: "
+labels: ["pk-formula"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Wiki page
+      description: Which page contains the formula?
+      placeholder: Pharmacokinetic-Core-Formulas
+    validations:
+      required: true
+  - type: input
+    id: section
+    attributes:
+      label: Formula or section
+      placeholder: "e.g. §2.1 Injection, A_inj"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Describe the discrepancy with core/src/pk.c or the literature.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested correction
+  - type: input
+    id: source
+    attributes:
+      label: Source reference
+      description: File and line, or citation
+      placeholder: "core/src/pk.c:xxx"
