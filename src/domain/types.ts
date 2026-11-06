@@ -159,7 +159,7 @@ export interface LabResult {
     updatedAt?: number;
 }
 
-export type LabAssay = 'lcms' | 'immuno';
+export type LabAssay = 'lcms' | 'immuno' | 'chemi';
 
 // --- PK Custom Parameters ---
 
