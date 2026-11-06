@@ -5,10 +5,12 @@ import type { LabAssay } from '../types';
 export interface AssayPlatformParams {
     sigmaImmuno: number; // pg/mL additive floor / SD
     sigmaLcms: number;
+    sigmaChemi: number;
 }
 export const DEFAULT_ASSAY_PLATFORM_PARAMS: AssayPlatformParams = {
     sigmaImmuno: 8,
     sigmaLcms: 2,
+    sigmaChemi: 5,
 };
 
 export function assayPlatformSigma(
@@ -17,6 +19,7 @@ export function assayPlatformSigma(
 ): number {
     if (platform === 'immuno') return params.sigmaImmuno;
     if (platform === 'lcms') return params.sigmaLcms;
+    if (platform === 'chemi') return params.sigmaChemi;
     return (params.sigmaImmuno + params.sigmaLcms) / 2;
 }
 

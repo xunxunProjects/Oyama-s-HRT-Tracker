@@ -30,7 +30,7 @@ const localStamp = (timeH: number) => {
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())} UTC${sign}${oh}:${om}`;
 };
 
-const ASSAY_TEXT = { lcms: 'LC-MS/MS', immuno: 'immunoassay' } as const;
+const ASSAY_TEXT = { lcms: 'LC-MS/MS', immuno: 'immunoassay', chemi: 'chemiluminescence' } as const;
 
 /**
  * Every lab with what is needed to set it beside the model, one tab-separated
