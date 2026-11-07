@@ -21,11 +21,14 @@
   <a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/releases/latest"><b>macOS 与 Windows 桌面版</b></a>
   &nbsp;&nbsp;&nbsp;
   <a href="#docker"><b>用 Docker 自行部署</b></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="#支持项目"><b>Buy us a coffee</b></a>
 </p>
 
 # 目录
 
 - [介绍](#介绍)
+- [支持项目](#支持项目)
 - [功能](#功能)
   - [有什么不同](#有什么不同)
   - [激素水平](#激素水平)
@@ -38,7 +41,7 @@
 - [自行部署](#自行部署)
 - [参与贡献](#参与贡献)
 - [给 AI 开发者](#给-ai-开发者)
-- [支持](#支持)
+- [维护者](#维护者)
 - [法律信息](#法律信息)
 
 # 介绍
@@ -59,13 +62,24 @@
 > [!WARNING]
 > **不构成医疗建议。** 本应用展示的是药代动力学模型的估算值，可能与你真实的激素水平相差很大，不能替代抽血检查或医生的判断。请勿仅凭本应用开始、停止或调整任何用药。
 
+# 支持项目
+
+本工具免费且将一直免费：没有订阅、没有付费功能、没有广告，捐赠也不会解锁或增加任何功能。如果你觉得它有用、想帮一把，可以请我们喝杯咖啡。捐赠**完全自愿，从不强求**。
+
+为什么需要：运行公开实例、域名，以及开发测试中使用的 AI 调用，都需要真实成本。如果长期资金不足，开发进度会变慢。
+
+- Monero：`86fnX9pg9VqD5SjJNDjbxKemf5wEvHz7mDojKztJyov8PVKCGVeC7QKijLQrb9QT7KabaXhXFn3HoPbDvWAk6dYrUBgB9p5`
+- Bitcoin：`bc1qdgfj0rm0tguna4nk36lxmeq45h59hscusrthk2`
+
+资金分配见 [DONATE.zh-CN.md](./DONATE.zh-CN.md)（40% 项目、30% @fantuanmtf、30% @SmirnovaOyama）。
+
 # 功能
 
 ## 有什么不同
 
 - **默认私密**：记录保存在你的浏览器里，只有在你开启云备份或创建分享链接时才会上传，而且两者都是端到端加密的。
 - **开源**：全部代码以 MIT 许可公开，任何人都可以查看估算是怎么算出来的。
-- **免费**：没有订阅，没有付费功能，也没有广告。
+- **免费**：没有订阅，没有付费功能，也没有广告。捐赠完全自愿，不会解锁任何功能；见 [DONATE.zh-CN.md](./DONATE.zh-CN.md)。
 - **多语言**：简体中文、繁体中文、粤语、英语、日语、韩语和土耳其语。
 
 ## 激素水平
@@ -298,7 +312,7 @@ Cloudflare 生产数据库或存储桶。
 
 这份指南使用英文，方便不同的 AI agent 与工具共用同一份规范；面向人的 README 与 [CONTRIBUTING.md](./CONTRIBUTING.md) 仍保留中英双语。
 
-# 支持
+# 维护者
 
 <p align="center">
   <b>维护者</b>
