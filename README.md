@@ -21,11 +21,14 @@
   <a href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/releases/latest"><b>macOS and Windows</b></a>
   &nbsp;&nbsp;&nbsp;
   <a href="#docker"><b>Self-host with Docker</b></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="#support-the-project"><b>Buy us a coffee</b></a>
 </p>
 
 # Table of Contents
 
 - [Introduction](#introduction)
+- [Support the project](#support-the-project)
 - [Features](#features)
   - [Why it is different](#why-it-is-different)
   - [Hormone levels](#hormone-levels)
@@ -38,7 +41,7 @@
 - [Self-hosting](#self-hosting)
 - [Contributing](#contributing)
 - [For AI contributors](#for-ai-contributors)
-- [Support](#support)
+- [Maintainers](#maintainers)
 - [Legal](#legal)
 
 # Introduction
@@ -59,13 +62,24 @@ From left to right: the overview with the current estimate, a month of estradiol
 > [!WARNING]
 > **Not medical advice.** This app shows estimates from a pharmacokinetic model. They can differ a lot from your real hormone levels and are no substitute for blood tests or a clinician. Do not start, stop or change any medication based on this app alone.
 
+# Support the project
+
+The tracker is free and stays free: no subscriptions, no paid features, no ads, and donations never unlock or add anything. If you find it useful and want to help, you can buy us a coffee. Donations are **optional and never required**.
+
+Why we ask: running the public instance, the domain, and the AI calls used during development all cost real money. If funding stays short for long, development slows down.
+
+- Monero: `86fnX9pg9VqD5SjJNDjbxKemf5wEvHz7mDojKztJyov8PVKCGVeC7QKijLQrb9QT7KabaXhXFn3HoPbDvWAk6dYrUBgB9p5`
+- Bitcoin: `bc1qdgfj0rm0tguna4nk36lxmeq45h59hscusrthk2`
+
+See [DONATE.md](./DONATE.md) for how donations are split (40% project, 30% @fantuanmtf, 30% @SmirnovaOyama).
+
 # Features
 
 ## Why it is different
 
 - **Private by default**: your records stay in your browser unless you turn on cloud backup or make a share link, and both are end-to-end encrypted.
 - **Open source**: every line is public under the MIT License, so anyone can check how the estimates are made.
-- **Free**: no subscriptions, no paid features, no ads.
+- **Free**: no subscriptions, no paid features, no ads. Donations are optional and never unlock anything; see [DONATE.md](./DONATE.md).
 - **Speaks your language**: Simplified Chinese, Traditional Chinese, Cantonese, English, Japanese, Korean and Turkish.
 
 ## Hormone levels
@@ -343,7 +357,7 @@ If you are an AI agent working in this repository, read [docs/AI-GUIDE.md](./doc
 
 The guide is in English so different agents and tools can share one canonical reference. This README and [CONTRIBUTING.md](./CONTRIBUTING.md) stay bilingual for people.
 
-# Support
+# Maintainers
 
 <p align="center">
   <b>Maintainers</b>
