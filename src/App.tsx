@@ -1279,7 +1279,7 @@ const AppContent = () => {
                         />
                     )}
 
-                    {currentView === 'admin' && user?.isAdmin && <Admin />}
+                    {currentView === 'admin' && user?.isAdmin && <Admin onBack={() => handleViewChange('settings')} />}
                 </div>
 
                 {/* The bottom bar on a phone (components/BottomNav.tsx). Mobile
