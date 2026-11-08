@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
 
 export interface ModelSeries {
@@ -34,6 +34,67 @@ const niceStep = (max: number, count: number) => {
 };
 
 const fmtTick = (v: number) => (Math.abs(v) >= 100 || Number.isInteger(v) ? String(Math.round(v)) : v.toFixed(1));
+
+interface Frame {
+    values: number[][];
+    yTop: number;
+    xMax: number;
+    labs: { x: number; y: number }[];
+}
+
+const TWEEN_MS = 420;
+const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
+const mix = (a: number, b: number, k: number) => a + (b - a) * k;
+
+/**
+ * Glides what is drawn from the last picture to the new one when a control
+ * moves: the line, the scale of both axes and the lab mark all ease over the
+ * same short span, so a change reads as the curve itself moving rather than a
+ * new chart replacing the old. A change of shape (another number of lines or
+ * samples) has nothing to glide between and snaps, as does everything for
+ * anyone who has asked for reduced motion.
+ */
+const useGlide = (target: Frame): Frame => {
+    const [shown, setShown] = useState(target);
+    const shownRef = useRef(target);
+    const key = JSON.stringify(target);
+
+    useEffect(() => {
+        const from = shownRef.current;
+        const set = (f: Frame) => {
+            shownRef.current = f;
+            setShown(f);
+        };
+        const sameShape =
+            from.values.length === target.values.length &&
+            from.values.every((v, i) => v.length === target.values[i].length) &&
+            from.labs.length === target.labs.length;
+        const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (!sameShape || reduce) {
+            set(target);
+            return;
+        }
+        let raf = 0;
+        const start = performance.now();
+        const step = (now: number) => {
+            const k = easeOut(Math.min(1, (now - start) / TWEEN_MS));
+            set({
+                values: target.values.map((vs, i) => vs.map((v, j) => mix(from.values[i][j], v, k))),
+                yTop: mix(from.yTop, target.yTop, k),
+                xMax: mix(from.xMax, target.xMax, k),
+                labs: target.labs.map((l, i) => ({ x: mix(from.labs[i].x, l.x, k), y: mix(from.labs[i].y, l.y, k) })),
+            });
+            if (k < 1) raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+        // The serialised frame is the dependency: a parent re-render that hands
+        // over equal numbers in new arrays should not restart the glide.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
+
+    return shown;
+};
 
 /**
  * The plain plane every picture on the model page sits in: two axes with
@@ -75,22 +136,28 @@ const ModelChart: React.FC<ModelChartProps> = ({
     const ph = Math.max(0, height - mT - mB);
 
     const peak = Math.max(1e-9, ...series.flatMap(s => s.values), ...labs.map(l => l.y));
+    // Tick spacing comes from where the picture is going, so the numbers settle
+    // once; the scale they sit on glides there.
     const yStep = niceStep(yMax ?? peak, Math.max(2, Math.min(5, Math.floor(ph / (34 * ui)))));
-    const yTop = Math.ceil((yMax ?? peak * 1.04) / yStep) * yStep;
+    const targetTop = Math.ceil((yMax ?? peak * 1.04) / yStep) * yStep;
     const xStep = niceStep(xMax, Math.max(2, Math.min(7, Math.floor(pw / (52 * ui)))));
 
-    const X = (x: number) => mL + (x / xMax) * pw;
+    const shown = useGlide({ values: series.map(s => s.values), yTop: targetTop, xMax, labs });
+    const yTop = shown.yTop;
+    const xSpan = shown.xMax;
+
+    const X = (x: number) => mL + (x / xSpan) * pw;
     const Y = (y: number) => mT + ph - (Math.max(0, y) / yTop) * ph;
 
     const yTicks: number[] = [];
     for (let v = 0; v <= yTop + 1e-9; v += yStep) yTicks.push(v);
     const xTicks: number[] = [];
-    for (let v = 0; v <= xMax + 1e-9; v += xStep) xTicks.push(v);
+    for (let v = 0; v <= xSpan + 1e-9; v += xStep) xTicks.push(v);
 
     const path = (values: number[]) =>
         values
             .map((v, i) => {
-                const x = X((i / Math.max(1, values.length - 1)) * xMax);
+                const x = X((i / Math.max(1, values.length - 1)) * xSpan);
                 return `${i ? 'L' : 'M'}${x.toFixed(1)} ${Y(Math.min(v, yTop)).toFixed(1)}`;
             })
             .join('');
@@ -161,7 +228,7 @@ const ModelChart: React.FC<ModelChartProps> = ({
                     {series.map((s, i) => (
                         <path
                             key={i}
-                            d={path(s.values)}
+                            d={path(shown.values[i] ?? s.values)}
                             fill="none"
                             stroke="var(--chart-line)"
                             strokeWidth={s.ghost ? 1.25 * ui : 1.75 * ui}
@@ -172,25 +239,27 @@ const ModelChart: React.FC<ModelChartProps> = ({
                         />
                     ))}
 
-                    {doses.map(d => (
-                        <circle
-                            key={`d${d}`}
-                            cx={X(d)}
-                            cy={y0}
-                            r={3 * ui}
-                            fill="var(--bg)"
-                            stroke="var(--chart-line)"
-                            strokeWidth={1.5 * ui}
-                        />
-                    ))}
+                    {doses
+                        .filter(d => d <= xSpan + 1e-9)
+                        .map(d => (
+                            <circle
+                                key={`d${d}`}
+                                cx={X(d)}
+                                cy={y0}
+                                r={3 * ui}
+                                fill="var(--bg)"
+                                stroke="var(--chart-line)"
+                                strokeWidth={1.5 * ui}
+                            />
+                        ))}
 
-                    {labs.map(l => {
+                    {shown.labs.map((l, i) => {
                         const cx = X(l.x),
                             cy = Y(l.y),
                             r = 4.5 * ui;
                         return (
                             <path
-                                key={`l${l.x}`}
+                                key={`l${i}`}
                                 d={`M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`}
                                 fill="var(--bg)"
                                 stroke="var(--chart-lab)"
