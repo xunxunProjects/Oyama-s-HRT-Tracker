@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                 {/* Logo: the app icon in a rounded tile, then the name. The
                     tile is the drawings' size and centred over them, so it
                     stays in line with them in the narrow strip too. */}
-                <div className="px-[1.375rem] pt-6 pb-5">
+                <div className="px-[1.375rem] pt-6 pb-5 short:pt-4 short:pb-3">
                     <h1
                         aria-label="Oyama Tracker"
                         className="flex items-center gap-3.5 font-sans text-sm leading-none tracking-[-0.02em]"
@@ -43,6 +43,13 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                     </h1>
                 </div>
 
+                {/* On a wide but short touch screen (a phone turned sideways) the
+                    Overview puts its reading here, between the name and the
+                    pages, so the whole page beside it can go to the chart. The
+                    Overview fills this through a portal; elsewhere it is empty
+                    and takes no room. */}
+                <div id="sidebar-status" className="hidden short:block empty:hidden" />
+
                 {/* Navigation Items. The current page sits on a filled pill with
                     the rest lift to full text on hover; every drawing is in
                     colour. In the narrow strip each pill is a square with its
@@ -58,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 onClick={() => onViewChange(item.id)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={item.label}
-                                className={`w-full h-14 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
+                                className={`w-full h-14 short:h-11 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
                                 ${
                                     isActive
                                         ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'
