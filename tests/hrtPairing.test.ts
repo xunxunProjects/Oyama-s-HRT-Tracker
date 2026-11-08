@@ -255,4 +255,64 @@ describe('/hrt pairing', () => {
         });
         expect(status.body?.status).toBe('expired');
     });
+
+    it('revocation kills the paired session and the unbound token', async () => {
+        const started = await startPairing();
+        const requestId = started.body!.request_id as string;
+        const approved = await call(`/api/hrt/requests/${requestId}/approve`, {
+            token,
+            body: { code: CODE },
+        });
+        expect(approved.response.status).toBe(200);
+
+        const status = await service('/api/tool/v1/hrt/pair/status', {
+            request_id: requestId,
+            poll_secret: started.body!.poll_secret,
+        });
+        expect(status.body?.status).toBe('approved');
+        const pairedToken = status.body!.token as string;
+        const fingerprint = status.body!.device.fingerprint as string;
+        const device = db.prepare('SELECT id FROM hrt_devices WHERE user_id = ?').get('user-1') as { id: string };
+
+        expect(
+            (
+                await call('/api/tool/v1/me', {
+                    token: pairedToken,
+                    headers: { 'x-hrt-device-fingerprint': fingerprint },
+                })
+            ).response.status,
+        ).toBe(200);
+
+        // A paired tool token is not a general web session.
+        const web = await call('/api/user/sessions', { token: pairedToken });
+        expect(web.response.status).toBe(403);
+
+        // The token is bound to the fingerprint it was paired with, not just
+        // to any active device the account owns.
+        const otherFingerprint = 'b'.repeat(64);
+        db.prepare(
+            'INSERT INTO hrt_devices (id, user_id, fingerprint, name, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+        ).run('device-2', 'user-1', otherFingerprint, 'Other device', Math.floor(Date.now() / 1000), 2_000_000_000);
+        const other = await call('/api/tool/v1/me', {
+            token: pairedToken,
+            headers: { 'x-hrt-device-fingerprint': otherFingerprint },
+        });
+        expect(other.response.status).toBe(401);
+
+        const revoked = await call(`/api/hrt/devices/${device.id}/revoke`, { token, method: 'POST' });
+        expect(revoked.response.status).toBe(200);
+
+        const noHeader = await call('/api/tool/v1/me', { token: pairedToken });
+        expect(noHeader.response.status).toBe(401);
+        const stillBound = await call('/api/tool/v1/me', {
+            token: pairedToken,
+            headers: { 'x-hrt-device-fingerprint': fingerprint },
+        });
+        expect(stillBound.response.status).toBe(401);
+
+        const pairRow = db.prepare('SELECT session_id FROM hrt_pair_requests WHERE id = ?').get(requestId) as {
+            session_id: string;
+        };
+        expect(db.prepare('SELECT id FROM sessions WHERE id = ?').get(pairRow.session_id)).toBeUndefined();
+    });
 });

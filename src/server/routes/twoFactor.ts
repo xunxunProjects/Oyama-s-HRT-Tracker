@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { passwordCheckAllowed } from '../rateLimit';
 import { readSmallJsonBody } from '../../../requestInput';
 import { consumeTOTP, generateAndStoreBackupCodes, generateTOTPSecret, verifyTOTP } from '../totp';
+import { checkStepUp } from '../stepUp';
 
 import type { RequestContext } from '../../../worker';
 
@@ -22,13 +23,20 @@ export async function handleTwoFactorRoute(
         const pkRow = (await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?')
             .bind(userId)
             .first()) as any;
+        const backupRow = (await env.DB.prepare(
+            'SELECT COUNT(*) as cnt FROM backup_codes WHERE user_id = ? AND used_at IS NULL',
+        )
+            .bind(userId)
+            .first()) as any;
         const passkeyCount = pkRow?.cnt ?? 0;
+        const backupCodeCount = backupRow?.cnt ?? 0;
         return withSecurityHeaders(
             new Response(
                 JSON.stringify({
                     enabled: !!row?.totp_secret || passkeyCount > 0,
                     totp: !!row?.totp_secret,
                     passkey: passkeyCount > 0,
+                    backupCodes: backupCodeCount,
                 }),
                 {
                     status: 200,
@@ -195,6 +203,13 @@ export async function handleTwoFactorRoute(
         const dummyHash = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
         if (!(await bcrypt.compare(password, row?.password_hash ?? dummyHash))) {
             return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
+        }
+        const stepUp = await checkStepUp(env, userId, jwtSecret, parsedBody.value as Record<string, unknown>);
+        if (stepUp === 'required') {
+            return jsonError('STEP_UP_REQUIRED', 'A current second factor is required', 403);
+        }
+        if (stepUp === 'invalid') {
+            return jsonError('TWO_FACTOR_INVALID', 'Invalid second factor', 401);
         }
         const codes = await generateAndStoreBackupCodes(env, userId, jwtSecret);
         return withSecurityHeaders(

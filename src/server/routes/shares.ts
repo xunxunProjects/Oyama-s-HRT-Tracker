@@ -22,6 +22,7 @@ import {
 import { SHARE_TOKEN_REGEX, signShareViewerPass } from './sharesAccess';
 import { validatePassword } from '../validation';
 import { sanitizeWrappedShareKey, sweepExpiredShares } from '../shareHelpers';
+import { assertStorageBudget } from '../storageBudget';
 import { b64urlEncode } from '../webauthn';
 
 import type { RequestContext } from '../../../worker';
@@ -173,6 +174,7 @@ export async function handleSharesRoute(
                 409,
             );
         }
+        await assertStorageBudget(env, new TextEncoder().encode(snapshotJson).byteLength);
         const id = crypto.randomUUID();
         const rawShareToken = b64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
         const tokenHash = await sha256Hex(rawShareToken);
