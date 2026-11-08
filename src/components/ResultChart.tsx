@@ -998,7 +998,7 @@ const ResultChart = ({
             {/* Taller when split, so neither plot is squeezed thinner than a glance can read. */}
             <div
                 ref={setPlotEl}
-                className={`relative ${hasSecondary ? 'h-[22rem] md:h-[28rem]' : 'h-72 md:h-96'} ${fillShort ? 'short:h-[max(14rem,calc(100dvh-7rem))]' : ''} -mx-4 md:-mx-6 select-none touch-pan-y`}
+                className={`relative ${hasSecondary ? 'h-[22rem] md:h-[28rem]' : 'h-72 md:h-96'} ${fillShort ? 'touch-short:h-[max(14rem,calc(100dvh-7rem))]' : ''} -mx-4 md:-mx-6 select-none touch-pan-y`}
             >
                 {width > 0 && (
                     <svg

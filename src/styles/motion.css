@@ -368,14 +368,14 @@ path.ink-draw {
    appear and go at once. Touch screens, with no pointing, keep the sidebar
    open as it always was. */
 @media (hover: hover) and (pointer: fine) {
-    .side-nav {
+    :root:not([data-sim-touch]) .side-nav {
         --sidebar-width: 5rem;
     }
-    .side-panel {
+    :root:not([data-sim-touch]) .side-panel {
         width: var(--sidebar-width);
         transition: width var(--duration-slow) var(--ease-out);
     }
-    .side-label {
+    :root:not([data-sim-touch]) .side-label {
         display: none;
         min-width: 0;
         opacity: 0;
@@ -386,18 +386,18 @@ path.ink-draw {
             opacity var(--duration-base) var(--ease-out),
             display var(--duration-base) allow-discrete;
     }
-    .side-nav:hover .side-panel,
-    .side-nav:has(:focus-visible) .side-panel {
+    :root:not([data-sim-touch]) .side-nav:hover .side-panel,
+    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-panel {
         width: 16.25rem;
     }
-    .side-nav:hover .side-label,
-    .side-nav:has(:focus-visible) .side-label {
+    :root:not([data-sim-touch]) .side-nav:hover .side-label,
+    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label {
         display: block;
         opacity: 1;
     }
     @starting-style {
-        .side-nav:hover .side-label,
-        .side-nav:has(:focus-visible) .side-label {
+        :root:not([data-sim-touch]) .side-nav:hover .side-label,
+        :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label {
             opacity: 0;
         }
     }

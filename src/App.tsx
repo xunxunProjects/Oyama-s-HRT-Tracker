@@ -75,6 +75,7 @@ import PKDemos from './pages/PKDemos';
 import ModelGuide from './pages/ModelGuide';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
+import Simulator from './pages/Simulator';
 import PublicShare from './pages/PublicShare';
 import { parseShareFragment } from './services/shareCrypto';
 import ShareSettings from './pages/ShareSettings';
@@ -268,7 +269,10 @@ const AppContent = () => {
                 currentView === 'sessions' ||
                 currentView === 'two-factor' ||
                 currentView === 'edit-avatar')) ||
-        (!devMode && (currentView === 'settings-milk-tea' || currentView === 'settings-cat-states')) ||
+        (!devMode &&
+            (currentView === 'settings-milk-tea' ||
+                currentView === 'settings-cat-states' ||
+                currentView === 'settings-simulator')) ||
         (!ageBeta && currentView === 'settings-age');
     useEffect(() => {
         if (pageGone) handleViewChange(tabForView(currentView));
@@ -1099,6 +1103,7 @@ const AppContent = () => {
                             setShowPrediction={setShowPrediction}
                             onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
                             onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
+                            onNavigateToSimulator={() => handleViewChange('settings-simulator')}
                             isAdmin={!!user?.isAdmin}
                             onNavigateToAdmin={() => handleViewChange('admin')}
                             onNavigateToSupplies={() => handleViewChange('supplies')}
@@ -1254,6 +1259,10 @@ const AppContent = () => {
 
                     {currentView === 'settings-cat-states' && devMode && (
                         <CatStates onBack={() => handleViewChange('settings')} />
+                    )}
+
+                    {currentView === 'settings-simulator' && devMode && (
+                        <Simulator onBack={() => handleViewChange('settings')} />
                     )}
 
                     {currentView === 'supplies' && (
