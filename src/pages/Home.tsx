@@ -247,10 +247,14 @@ const Home: React.FC<HomeProps> = ({
     // into #sidebar-status), and the page beside it starts with the chart at
     // the screen's height. The advisory and the plan follow underneath.
     const chartFirst = showHeader && events.length > 0;
-    const [sideSlot, setSideSlot] = React.useState<HTMLElement | null>(null);
-    React.useEffect(() => {
-        setSideSlot(document.getElementById('sidebar-status'));
-    }, []);
+    // Read straight from the DOM: the sidebar is mounted beside this page, and
+    // React re-reads the snapshot after committing, so the slot is picked up
+    // on the first pass where it exists.
+    const sideSlot = React.useSyncExternalStore(
+        () => () => {},
+        () => document.getElementById('sidebar-status'),
+        () => null,
+    );
     const sideStatus =
         chartFirst && hasReading && sideSlot
             ? createPortal(
