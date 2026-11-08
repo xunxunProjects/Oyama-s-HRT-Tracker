@@ -1,4 +1,7 @@
-export type Lang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr';
+import { RU } from './ru';
+import { UK } from './uk';
+
+export type Lang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr' | 'ru' | 'uk';
 
 export const TRANSLATIONS_BASE = {
     zh: {
@@ -8024,4 +8027,6 @@ export const TRANSLATIONS = {
         'session.sign_out_device': 'Cihazın oturumunu kapat',
         'account.passkey': 'Geçiş anahtarı',
     },
+    ru: RU,
+    uk: UK,
 } as const;

@@ -63,6 +63,8 @@ body:
         - 日本語
         - 한국어
         - Türkçe
+        - Русский
+        - Українська
   - type: textarea
     id: extra
     attributes:

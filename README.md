@@ -80,7 +80,7 @@ See [DONATE.md](./DONATE.md) for how donations are split (40% project, 30% @fant
 - **Private by default**: your records stay in your browser unless you turn on cloud backup or make a share link, and both are end-to-end encrypted.
 - **Open source**: every line is public under the MIT License, so anyone can check how the estimates are made.
 - **Free**: no subscriptions, no paid features, no ads. Donations are optional and never unlock anything; see [DONATE.md](./DONATE.md).
-- **Speaks your language**: Simplified Chinese, Traditional Chinese, Cantonese, English, Japanese, Korean and Turkish.
+- **Speaks your language**: Simplified Chinese, Traditional Chinese, Cantonese, English, Japanese, Korean, Turkish, Russian and Ukrainian.
 
 ## Hormone levels
 
