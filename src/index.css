@@ -4,6 +4,24 @@
 
 @variant dark (&:is(.dark *));
 
+/* Touch on a laptop screen. A touch MacBook Pro or a Windows two-in-one has a
+   trackpad as its main pointer, so (hover: hover) matches and a tapped button
+   would keep its hover fill until something else is tapped. hover: applies
+   only while the last input was a mouse (data-input, utils/inputMode.ts).
+   :where() keeps the specificity Tailwind's own hover: has. */
+@custom-variant hover {
+    @media (hover: hover) {
+        &:hover:where(:root:not([data-input="touch"]) *) {
+            @slot;
+        }
+    }
+}
+/* pointer-coarse: means "a finger can reach this", not "the main pointer is
+   a finger": any touch screen at all, so the always-shown delete buttons and
+   wider hit areas are there on a touch laptop too, and don't come and go
+   between one tap and the next. */
+@custom-variant pointer-coarse (@media (any-pointer: coarse));
+
 @theme {
     --font-sans:
         -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans",
@@ -225,8 +243,8 @@ h1.font-sans {
 /* A control drawn smaller than a fingertip: the 32px header pills, a 26px
    segment. On a touch screen its hit area grows to 44px tall around it, and
    nothing moves. Whatever sits above or below has to keep clear of that 44px,
-   or one tap lands on two. */
-@media (pointer: coarse) {
+   or one tap lands on two. Any touch screen counts, a touch laptop's too. */
+@media (any-pointer: coarse) {
     .tap-target {
         position: relative;
     }
@@ -237,6 +255,11 @@ h1.font-sans {
         top: 50%;
         height: max(100%, 44px);
         transform: translateY(-50%);
+    }
+    /* A slider drawn as a 4px line can't be found with a finger: on a touch
+       screen its box is tall enough to press, and the line stays as drawn. */
+    input[type="range"] {
+        height: 1.75rem;
     }
 }
 
@@ -332,21 +355,21 @@ select:focus-visible {
         color: var(--on-accent);
         background-color: var(--accent);
     }
-    .btn-primary:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-primary:hover:not(:disabled) {
         background-color: var(--accent-hover);
     }
     .btn-tonal {
         color: var(--on-accent-subtle);
         background-color: var(--accent-subtle);
     }
-    .btn-tonal:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-tonal:hover:not(:disabled) {
         background-color: var(--accent-subtle-hover);
     }
     .btn-secondary {
         color: var(--text);
         background-color: var(--surface-muted);
     }
-    .btn-secondary:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-secondary:hover:not(:disabled) {
         background-color: var(--surface-pressed);
     }
     /* Goes through with something that can't be taken back. Same shape and
@@ -355,7 +378,7 @@ select:focus-visible {
         color: var(--on-danger);
         background-color: var(--danger-fill);
     }
-    .btn-danger:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-danger:hover:not(:disabled) {
         background-color: var(--danger-fill-hover);
     }
     .btn-ghost {
@@ -366,15 +389,15 @@ select:focus-visible {
         background-color: transparent;
         border-radius: var(--radius-full);
     }
-    .btn-ghost:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-ghost:hover:not(:disabled) {
         color: var(--text);
         background-color: var(--surface-hover);
     }
     .btn-ghost-accent,
-    .btn-ghost-accent:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-ghost-accent:hover:not(:disabled) {
         color: var(--accent-ink);
     }
-    .btn-ghost-accent:hover:not(:disabled) {
+    :where(:root:not([data-input="touch"])) .btn-ghost-accent:hover:not(:disabled) {
         background-color: var(--accent-subtle);
     }
     :is(.btn-primary, .btn-tonal, .btn-secondary, .btn-danger).btn-sm {
@@ -412,7 +435,7 @@ select:focus-visible {
     text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
     text-underline-offset: 3px;
 }
-.link-button:hover {
+:where(:root:not([data-input="touch"])) .link-button:hover {
     text-decoration-color: currentColor;
 }
 
@@ -592,7 +615,7 @@ select:focus-visible {
         color: var(--text);
         border-radius: var(--radius-md);
     }
-    .choice-option:hover {
+    :where(:root:not([data-input="touch"])) .choice-option:hover {
         background-color: var(--surface-hover);
     }
     .choice-option:focus-visible {
@@ -635,13 +658,13 @@ select:focus-visible {
     color: var(--text);
     border-radius: var(--radius-full);
 }
-.cal-day:hover {
+:where(:root:not([data-input="touch"])) .cal-day:hover {
     background-color: var(--surface-hover);
 }
 .cal-day.is-chosen {
     font-weight: 600;
 }
-.cal-day.is-chosen:hover {
+:where(:root:not([data-input="touch"])) .cal-day.is-chosen:hover {
     background-color: transparent;
 }
 .cal-day.is-today::after {
