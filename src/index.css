@@ -107,6 +107,22 @@ svg.ink-icon {
    by side instead. rem in a media query is always 16px, whatever --ui-scale is. */
 @custom-variant short (@media (orientation: landscape) and (max-height: 40rem) and (min-width: 40rem));
 
+/* The same, on a touch screen only: where the sidebar stays fully open, so it
+   has room for the Overview's reading (Sidebar.tsx, Home.tsx). With a mouse the
+   sidebar is a hover strip and the page keeps its usual layout. The developer
+   simulator marks its frame with data-sim-touch to stand in for a finger,
+   since a frame can't change what pointer the browser reports. */
+@custom-variant touch-short {
+    @media (orientation: landscape) and (max-height: 40rem) and (min-width: 40rem) {
+        @media (pointer: coarse) {
+            @slot;
+        }
+        :root[data-sim-touch] & {
+            @slot;
+        }
+    }
+}
+
 /* Onboarding's step area. `safe center`: on a phone the step is usually taller
    than the space for it, so plain `center` would clip its top; `safe` falls
    back to start-aligned (and scrollable) whenever the content doesn't fit.

@@ -47,6 +47,7 @@ export type ViewKey =
     | 'settings-model'
     | 'settings-milk-tea'
     | 'settings-cat-states'
+    | 'settings-simulator'
     | 'forecast'
     | 'supplies'
     | 'plan';
@@ -76,6 +77,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-disclaimer': 'settings',
     'settings-milk-tea': 'settings',
     'settings-cat-states': 'settings',
+    'settings-simulator': 'settings',
     'pk-params': 'settings',
     supplies: 'settings',
     sessions: 'account',
@@ -142,6 +144,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings-disclaimer',
     'settings-milk-tea',
     'settings-cat-states',
+    'settings-simulator',
     'admin',
 ];
 

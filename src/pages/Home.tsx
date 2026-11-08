@@ -300,7 +300,7 @@ const Home: React.FC<HomeProps> = ({
             : null;
 
     return (
-        <div className={chartFirst ? 'short:flex short:flex-col' : undefined}>
+        <div className={chartFirst ? 'touch-short:flex touch-short:flex-col' : undefined}>
             {sideStatus}
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
@@ -310,7 +310,7 @@ const Home: React.FC<HomeProps> = ({
                 the far edge. */}
             {showHeader && (
                 <header
-                    className={`pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)] ${chartFirst ? 'short:order-2 short:border-b-0 short:border-t-(length:--hairline) short:pb-10' : ''}`}
+                    className={`pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)] ${chartFirst ? 'touch-short:order-2 touch-short:border-b-0 touch-short:border-t-(length:--hairline) touch-short:pb-10' : ''}`}
                 >
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
@@ -390,7 +390,7 @@ const Home: React.FC<HomeProps> = ({
                     the second number is set smaller, and the first gives up a
                     little size too where the column is narrower than an
                     ordinary phone's. */}
-                                <div className={`@container ${sideStatus ? 'short:hidden' : ''}`}>
+                                <div className={`@container ${sideStatus ? 'touch-short:hidden' : ''}`}>
                                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1.5 @min-[32rem]:gap-x-6">
                                         {/* Until a blood test anchors the estimate, the way to
                             add one rides beside the label of the reading it would
@@ -720,7 +720,7 @@ const Home: React.FC<HomeProps> = ({
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
             <main
-                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${chartFirst ? 'short:order-1 short:max-w-none short:pt-4 short:pb-6' : ''}`}
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${chartFirst ? 'touch-short:order-1 touch-short:max-w-none touch-short:pt-4 touch-short:pb-6' : ''}`}
             >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">

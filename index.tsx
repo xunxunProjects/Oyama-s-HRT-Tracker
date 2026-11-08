@@ -9,6 +9,12 @@ import { recoverReplaceJournal } from './src/utils/replaceJournal';
 watchForAppUpdates();
 preventPinchZoom();
 
+// Opened by the developer simulator (pages/Simulator.tsx): lay out as a touch
+// screen would, which a frame can't otherwise ask the browser to pretend.
+if (new URLSearchParams(window.location.search).get('sim') === 'touch') {
+    document.documentElement.setAttribute('data-sim-touch', '');
+}
+
 /**
  * A Replace interrupted between localStorage writes leaves a journal. Recover
  * before React mounts, so no component ever reads a half-replaced store. If
