@@ -247,7 +247,13 @@ const Home: React.FC<HomeProps> = ({
     const sideBySide = showHeader && events.length > 0;
 
     return (
-        <div className={sideBySide ? 'short:grid short:grid-cols-2 short:items-start' : undefined}>
+        <div
+            className={
+                sideBySide
+                    ? 'short:grid short:grid-cols-[minmax(16rem,2fr)_minmax(0,3fr)] short:items-start'
+                    : undefined
+            }
+        >
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
@@ -664,7 +670,7 @@ const Home: React.FC<HomeProps> = ({
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
             <main
-                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${sideBySide ? 'short:pt-6 short:ps-2 short:pb-10' : ''}`}
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${sideBySide ? 'short:pt-6 short:ps-0 short:pe-5 short:pb-10' : ''}`}
             >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
