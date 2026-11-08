@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useState, useCallback, useSyncExternalStore } from 'react';
 import {
     Trash,
     Busy,
@@ -9,13 +8,10 @@ import {
     Password,
     Pencil,
     ImageOff,
-    Close,
     ChevronLeft,
     ChevronRight,
     Cloud,
     Users,
-    ArrowLeft,
-    Shield,
     ShieldOff,
     Megaphone,
 } from '../components/icons';
@@ -23,39 +19,73 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatBytes } from '../utils/helpers';
 import { adminService, AdminUser, AdminUser2FA, TwoFactorScope, StorageReport } from '../services/admin';
 import type { BackupMeta } from '../services/cloud';
-import { useDialog, useInlineHost } from '../contexts/DialogContext';
+import { useDialog } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
-import { settingsMuted, settingsOn } from '../components/SettingsListItem';
+import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
 import { apiEndpoint } from '../services/apiClient';
 import { Lang } from '../i18n/translations';
 import { BusyLabel } from '../components/StableLabel';
+import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
+import Segmented from '../components/Segmented';
+import CustomSelect, { SelectChevron } from '../components/CustomSelect';
+import DateTimePicker from '../components/DateTimePicker';
+import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
+
+/*
+ * The admin area, laid out like Settings: on a phone a list of three rows,
+ * each opening its own level (a history entry, so the system Back steps out
+ * of it); on a wide screen the same page header and column as every other
+ * page, with the three as tabs. Everything is in the page's own scroller, so
+ * the bottom bar's clearance (scroll-pb-nav) applies and nothing scrolls
+ * sideways.
+ */
 
 type AdminCat = 'users' | 'notice' | 'system';
 type MobileView = 'list' | AdminCat;
-type UserPanel =
-    | null
-    | { type: 'password'; user: AdminUser }
-    | { type: 'edit'; user: AdminUser }
-    | { type: 'backups'; user: AdminUser }
-    | { type: '2fa'; user: AdminUser };
+type UserTool = 'menu' | 'backups' | '2fa' | 'password' | 'edit';
 
-const divider = 'border-b-(length:--hairline) border-[var(--border)]';
-const rowBase = `w-full flex items-center justify-between py-[18px] ${divider} text-start`;
-const rowLabel = 'text-sm text-[var(--text)]';
-const rowValue = `flex items-center gap-1 text-sm ${settingsMuted}`;
-const iconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors`;
-const dangerIconBtn = `p-2 rounded-lg ${settingsMuted} hover:text-[var(--danger)] hover:bg-[var(--surface-hover)] transition-colors`;
+const CAT_ORDER: readonly AdminCat[] = ['users', 'notice', 'system'];
+const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
+const TOOL_ORDER: readonly UserTool[] = ['menu', 'backups', '2fa', 'password', 'edit'];
+
+const muted = 'text-[var(--text-muted)]';
+const on = 'text-[var(--text)]';
+const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 const textBtn =
-    'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+    'shrink-0 inline-flex h-8 items-center gap-1 px-2.5 text-sm font-medium text-[var(--accent-ink)] rounded-full hover:bg-[var(--accent-subtle)] disabled:opacity-45 disabled:pointer-events-none';
 const dangerTextBtn =
-    'shrink-0 px-3 py-1.5 text-xs font-medium text-[var(--danger)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:pointer-events-none';
+    'shrink-0 inline-flex h-8 items-center gap-1 px-2.5 text-sm font-medium text-[var(--danger)] rounded-full hover:bg-[var(--surface-hover)] disabled:opacity-45 disabled:pointer-events-none';
 
 let _savedCat: AdminCat = 'users';
-let _savedMobileView: MobileView = 'list';
+
+// As in Settings: the category drilled into on a phone lives in the history
+// entry pushed on the way in, so Back from it lands on the list and leaving
+// by a tab drops it.
+const mobileViewFromHistory = (): MobileView => {
+    const entry = readNavEntry();
+    const cat = entry?.view === 'admin' ? entry.cat : undefined;
+    return CAT_ORDER.find(c => c === cat) ?? 'list';
+};
+
+const leaveMobileCat = (setMobileView: (v: MobileView) => void) => {
+    if (readNavEntry()?.cat) stepBack();
+    else setMobileView('list');
+};
+
+// One layout on the page at a time: both at once (one hidden) gave every
+// field and fold two copies with the same id.
+const WIDE = '(min-width: 768px)';
+const subscribeWide = (cb: () => void) => {
+    const mq = window.matchMedia(WIDE);
+    mq.addEventListener('change', cb);
+    return () => mq.removeEventListener('change', cb);
+};
+const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches);
 
 function timeAgo(ts: number | null | undefined): string {
-    if (!ts) return '—';
+    if (!ts) return 'never';
     const diff = Math.floor(Date.now() / 1000) - ts;
     if (diff < 60) return 'just now';
     if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
@@ -63,67 +93,113 @@ function timeAgo(ts: number | null | undefined): string {
     return Math.floor(diff / 86400) + 'd ago';
 }
 
-const Admin: React.FC = () => {
+const plural = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? '' : 's'}`;
+
+// datetime-local <-> unix seconds. The strings speak the operator's local
+// time; everything stored and compared server-side is UTC seconds.
+const toLocalInput = (ts: number | null): string => {
+    if (!ts) return '';
+    const d = new Date(ts * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const fromLocalInput = (value: string): number | null => {
+    if (!value) return null;
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+};
+const dateToLocalInput = (date: Date) =>
+    new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+const formatWhen = (value: string) =>
+    new Date(value).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+const NOTICE_LANGS: { id: 'default' | Lang; label: string }[] = [
+    { id: 'default', label: 'Default' },
+    { id: 'zh', label: '简体中文' },
+    { id: 'zh-TW', label: '繁體中文' },
+    { id: 'yue', label: '粵語' },
+    { id: 'en', label: 'English' },
+    { id: 'ja', label: '日本語' },
+    { id: 'ko', label: '한국어' },
+    { id: 'tr', label: 'Türkçe' },
+];
+
+/** A user's picture, or their first two letters when they have none. */
+const Avatar: React.FC<{ username: string }> = ({ username }) => {
+    const [failed, setFailed] = useState(false);
+    return (
+        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--surface-muted)]">
+            {failed ? (
+                <span className={`text-xs font-medium ${muted}`}>{username.substring(0, 2).toUpperCase()}</span>
+            ) : (
+                <img
+                    src={apiEndpoint(`/api/user/avatar/${username}`)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={() => setFailed(true)}
+                />
+            )}
+        </span>
+    );
+};
+
+/** One line in a user's actions: icon, name, an optional note, and a chevron. */
+const ActionRow: React.FC<{
+    icon: React.ElementType;
+    label: string;
+    note?: string;
+    danger?: boolean;
+    onClick: () => void;
+}> = ({ icon: Icon, label, note, danger, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        style={{ '--divider-inset': '2rem' } as React.CSSProperties}
+        className={`${rowBase} min-h-12 py-3 ${rowBleed}`}
+    >
+        <span className="flex min-w-0 items-center gap-3">
+            <Icon size={20} strokeWidth={1.75} className={`shrink-0 ${danger ? 'text-[var(--danger)]' : muted}`} />
+            <span className={`text-sm ${danger ? 'text-[var(--danger)]' : on}`}>{label}</span>
+        </span>
+        <span className={`flex min-w-0 items-center gap-1 text-sm ${muted}`}>
+            {note && <span className="truncate tabular-nums">{note}</span>}
+            {!danger && <ChevronRight size={18} className="shrink-0 opacity-70 rtl:-scale-x-100" />}
+        </span>
+    </button>
+);
+
+/** A line with a name and a short state on the left and one action on the right. */
+const FactorRow: React.FC<{ label: string; state: string; children: React.ReactNode }> = ({
+    label,
+    state,
+    children,
+}) => (
+    <div className={`${rowBase} min-h-12 py-3`}>
+        <div className="min-w-0">
+            <p className={`text-sm ${on}`}>{label}</p>
+            <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{state}</p>
+        </div>
+        {children}
+    </div>
+);
+
+const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { token } = useAuth();
     const { showDialog } = useDialog();
-    const [users, setUsers] = useState<AdminUser[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const wide = useWide();
     const [cat, setCat] = useState<AdminCat>(_savedCat);
-    const [mobileView, setMobileView] = useState<MobileView>(_savedMobileView);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchDebounce, setSearchDebounce] = useState('');
-    const [panel, setPanel] = useState<UserPanel>(null);
-    // A user's panel opens in the list, right under that user's row, and
-    // moves under another's when their button is pressed.
-    const panelHost = useInlineHost(!!panel, panel && `${panel.type}:${panel.user.id}`);
-    useEscape(() => setPanel(null), !!panel);
-
-    const [page, setPage] = useState(1);
-    const [totalUsers, setTotalUsers] = useState(0);
-    const PAGE_SIZE = 20;
-    const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
-
-    const [newPassword, setNewPassword] = useState('');
-    const [newUsername, setNewUsername] = useState('');
-    const [backups, setBackups] = useState<BackupMeta[]>([]);
-    const [backupsLoading, setBackupsLoading] = useState(false);
-    const [twoFA, setTwoFA] = useState<AdminUser2FA | null>(null);
-    const [twoFALoading, setTwoFALoading] = useState(false);
-
-    // --- Site notice ---
-    // `noticeLang` is which text the textarea is editing: the default body, or
-    // one per-locale override. The overrides are optional everywhere — a notice
-    // with only a default is shown in that wording to everyone.
-    const [notice, setNotice] = useState<SiteNotice | null>(null);
-    const [noticeLoading, setNoticeLoading] = useState(false);
-    const [noticeSaving, setNoticeSaving] = useState(false);
-    const [noticeBody, setNoticeBody] = useState('');
-    const [noticeI18n, setNoticeI18n] = useState<Partial<Record<Lang, string>>>({});
-    const [noticeLevel, setNoticeLevel] = useState<NoticeLevel>('info');
-    const [noticeStart, setNoticeStart] = useState('');
-    const [noticeEnd, setNoticeEnd] = useState('');
-    const [noticeLang, setNoticeLang] = useState<'default' | Lang>('default');
+    const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
 
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
-        {
-            id: 'users',
-            label: 'Users',
-            Icon: Users,
-            hint: 'Accounts, passwords, two-step verification and cloud backups',
-        },
-        {
-            id: 'notice',
-            label: 'Notice',
-            Icon: Megaphone,
-            hint: 'The banner across the site, its words in each language and when it shows',
-        },
-        {
-            id: 'system',
-            label: 'System',
-            Icon: Server,
-            hint: 'How much is stored, how the server is doing and how it is set up',
-        },
+        { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts, sign-in and cloud backups' },
+        { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'The banner across the top of the site' },
+        { id: 'system', label: 'System', Icon: Server, hint: 'Storage and server status' },
     ];
 
     const selectCat = (c: AdminCat) => {
@@ -133,33 +209,62 @@ const Admin: React.FC = () => {
 
     const enterMobileCat = (c: AdminCat) => {
         _savedCat = c;
-        _savedMobileView = c;
         setCat(c);
         setMobileView(c);
+        const entry = readNavEntry();
+        if (entry?.cat) replaceNavEntry('admin', entry.depth, c);
+        else pushNavEntry('admin', navDepth() + 1, c);
     };
 
-    const exitMobileCat = () => {
-        _savedMobileView = 'list';
-        setMobileView('list');
-    };
+    const exitMobileCat = () => leaveMobileCat(setMobileView);
 
-    const [storage, setStorage] = useState<StorageReport | null>(null);
-    const [storageLoading, setStorageLoading] = useState(false);
-    const [storageError, setStorageError] = useState<string | null>(null);
-    const loadStorage = async () => {
-        if (!token) return;
-        setStorageLoading(true);
-        setStorageError(null);
-        try {
-            setStorage(await adminService.getStorage(token));
-        } catch (e: any) {
-            setStorageError(e?.message || 'Failed to measure storage.');
-        } finally {
-            setStorageLoading(false);
-        }
-    };
+    useEffect(() => {
+        const onPop = () => {
+            if (readNavEntry()?.view === 'admin') setMobileView(mobileViewFromHistory());
+        };
+        const onReselect = (e: Event) => {
+            if ((e as CustomEvent<{ view: string }>).detail?.view === 'admin') leaveMobileCat(setMobileView);
+        };
+        window.addEventListener('popstate', onPop);
+        window.addEventListener(TAB_RESELECT, onReselect);
+        return () => {
+            window.removeEventListener('popstate', onPop);
+            window.removeEventListener(TAB_RESELECT, onReselect);
+        };
+    }, []);
 
-    // Debounced search
+    const catAnim = useSwitchAnimation(cat, CAT_ORDER);
+    const mobileAnim = useSwitchAnimation(mobileView, MOBILE_ORDER);
+
+    // ── Users ────────────────────────────────────────────────────────────
+    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchDebounce, setSearchDebounce] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const PAGE_SIZE = 20;
+    const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
+
+    // One user is open at a time. `shownId` stays on the last one opened, so
+    // its actions are still there while the fold closes over them.
+    const [openId, setOpenId] = useState<string | null>(null);
+    const [shownId, setShownId] = useState<string | null>(null);
+    const [tool, setTool] = useState<UserTool>('menu');
+    const toolAnim = useSwitchAnimation(tool, TOOL_ORDER);
+    useEscape(() => {
+        if (tool !== 'menu') setTool('menu');
+        else setOpenId(null);
+    }, !!openId);
+
+    const [newPassword, setNewPassword] = useState('');
+    const [newUsername, setNewUsername] = useState('');
+    const [backups, setBackups] = useState<BackupMeta[]>([]);
+    const [backupsLoading, setBackupsLoading] = useState(false);
+    const [twoFA, setTwoFA] = useState<AdminUser2FA | null>(null);
+    const [twoFALoading, setTwoFALoading] = useState(false);
+
     useEffect(() => {
         const timer = setTimeout(() => setSearchDebounce(searchQuery), 300);
         return () => clearTimeout(timer);
@@ -174,7 +279,7 @@ const Admin: React.FC = () => {
             setUsers(data.users);
             setTotalUsers(data.total);
         } catch {
-            setError('Failed to load users');
+            setError('Could not load users');
         } finally {
             setLoading(false);
         }
@@ -184,103 +289,115 @@ const Admin: React.FC = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    // Reset to page 1 when search changes
     useEffect(() => {
         setPage(1);
     }, [searchDebounce]);
 
-    // A panel sits under its user's row, which another page or search takes
-    // off the list, so it closes with them.
+    // Another page or search takes the open user off the list.
     useEffect(() => {
-        setPanel(null);
+        setOpenId(null);
     }, [page, searchDebounce]);
+
+    const toggleUser = (u: AdminUser) => {
+        if (openId === u.id) {
+            setOpenId(null);
+            return;
+        }
+        setTool('menu');
+        setOpenId(u.id);
+        setShownId(u.id);
+    };
+
+    const openTool = async (u: AdminUser, next: UserTool) => {
+        setTool(next);
+        if (next === 'password') setNewPassword('');
+        if (next === 'edit') setNewUsername(u.username);
+        if (!token) return;
+        if (next === 'backups') {
+            setBackupsLoading(true);
+            try {
+                setBackups(await adminService.getUserBackups(token, u.id));
+            } catch {
+                setBackups([]);
+            } finally {
+                setBackupsLoading(false);
+            }
+        }
+        if (next === '2fa') {
+            setTwoFA(null);
+            setTwoFALoading(true);
+            try {
+                setTwoFA(await adminService.getUser2FA(token, u.id));
+            } catch {
+                setTwoFA(null);
+            } finally {
+                setTwoFALoading(false);
+            }
+        }
+    };
 
     const handleDeleteUser = (user: AdminUser) => {
         if (!token) return;
         showDialog(
             'confirm',
-            `Delete user "${user.username}"? This cannot be undone.`,
+            `Delete ${user.username} and everything they stored? This cannot be undone.`,
             async () => {
                 try {
                     await adminService.deleteUser(token, user.id);
                     setUsers(prev => prev.filter(u => u.id !== user.id));
-                    if (panel && 'user' in panel && panel.user.id === user.id) setPanel(null);
-                    showDialog('alert', 'User deleted.');
+                    setTotalUsers(n => Math.max(0, n - 1));
+                    setOpenId(null);
                 } catch {
-                    showDialog('alert', 'Failed to delete user.');
+                    showDialog('alert', 'Could not delete the user.');
                 }
             },
             { danger: true },
         );
     };
 
-    const openPasswordPanel = (user: AdminUser) => {
-        setNewPassword('');
-        setPanel({ type: 'password', user });
-    };
-
-    const openEditPanel = (user: AdminUser) => {
-        setNewUsername(user.username);
-        setPanel({ type: 'edit', user });
-    };
-
-    const submitPassword = async () => {
-        if (!token || !panel || panel.type !== 'password') return;
+    const submitPassword = async (user: AdminUser) => {
+        if (!token) return;
         try {
-            const { sessionsRevoked } = await adminService.changeUserPassword(token, panel.user.id, newPassword);
+            const { sessionsRevoked } = await adminService.changeUserPassword(token, user.id, newPassword);
             showDialog(
                 'alert',
                 sessionsRevoked > 0
-                    ? `Password updated. Signed out ${sessionsRevoked} active session${sessionsRevoked === 1 ? '' : 's'}.`
-                    : 'Password updated.',
+                    ? `Password changed. ${plural(sessionsRevoked, 'session')} signed out.`
+                    : 'Password changed.',
             );
-            setPanel(null);
+            setTool('menu');
         } catch (e: any) {
-            showDialog('alert', e.message || 'Failed to update password.');
+            showDialog('alert', e.message || 'Could not change the password.');
         }
     };
 
-    const submitUsername = async () => {
-        if (!token || !panel || panel.type !== 'edit') return;
+    const submitUsername = async (user: AdminUser) => {
+        if (!token) return;
         try {
-            await adminService.changeUsername(token, panel.user.id, newUsername);
-            setUsers(prev => prev.map(u => (u.id === panel.user.id ? { ...u, username: newUsername.trim() } : u)));
-            showDialog('alert', 'Username updated.');
-            setPanel(null);
+            await adminService.changeUsername(token, user.id, newUsername);
+            setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, username: newUsername.trim() } : u)));
+            showDialog('alert', 'Username changed.');
+            setTool('menu');
         } catch (e: any) {
-            showDialog('alert', e.message || 'Failed to update username.');
+            showDialog('alert', e.message || 'Could not change the username.');
         }
     };
 
-    const handleResetAvatar = async (user: AdminUser) => {
+    const handleResetAvatar = (user: AdminUser) => {
         if (!token) return;
         showDialog(
             'confirm',
-            `Reset avatar for "${user.username}"?`,
+            `Remove the picture ${user.username} uploaded?`,
             async () => {
                 try {
                     await adminService.resetAvatar(token, user.id);
-                    showDialog('alert', 'Avatar reset.');
+                    showDialog('alert', 'Picture removed.');
                 } catch {
-                    showDialog('alert', 'Failed to reset avatar.');
+                    showDialog('alert', 'Could not remove the picture.');
                 }
             },
             { danger: true },
         );
-    };
-
-    const openTwoFAPanel = async (user: AdminUser) => {
-        if (!token) return;
-        setTwoFA(null);
-        setPanel({ type: '2fa', user });
-        setTwoFALoading(true);
-        try {
-            setTwoFA(await adminService.getUser2FA(token, user.id));
-        } catch {
-            setTwoFA(null);
-        } finally {
-            setTwoFALoading(false);
-        }
     };
 
     const clearTwoFA = (user: AdminUser, scope: TwoFactorScope, confirmText: string) => {
@@ -304,516 +421,439 @@ const Admin: React.FC = () => {
                         ),
                     );
                     const parts = [
-                        cleared.totp && 'authenticator app',
-                        cleared.passkeys > 0 && `${cleared.passkeys} passkey${cleared.passkeys === 1 ? '' : 's'}`,
-                        cleared.backupCodes > 0 &&
-                            `${cleared.backupCodes} backup code${cleared.backupCodes === 1 ? '' : 's'}`,
+                        cleared.totp && 'the authenticator app',
+                        cleared.passkeys > 0 && plural(cleared.passkeys, 'passkey'),
+                        cleared.backupCodes > 0 && plural(cleared.backupCodes, 'backup code'),
                     ].filter(Boolean) as string[];
-                    const sessions =
-                        cleared.sessions > 0
-                            ? ` ${cleared.sessions} session${cleared.sessions === 1 ? '' : 's'} signed out.`
-                            : '';
+                    const sessions = cleared.sessions > 0 ? ` ${plural(cleared.sessions, 'session')} signed out.` : '';
                     showDialog(
                         'alert',
                         parts.length
                             ? `Removed ${parts.join(', ')}.${sessions}`
-                            : `Nothing to remove — ${user.username} had no 2FA enrolled.`,
+                            : `${user.username} had no two-step verification to remove.`,
                     );
                 } catch (e: any) {
-                    showDialog('alert', e.message || 'Failed to reset 2FA.');
+                    showDialog('alert', e.message || 'Could not reset two-step verification.');
                 }
             },
             { danger: true },
         );
     };
 
-    const openBackupsPanel = async (user: AdminUser) => {
+    const handleDeleteBackup = async (user: AdminUser, backupId: string) => {
         if (!token) return;
-        setPanel({ type: 'backups', user });
-        setBackupsLoading(true);
         try {
-            const data = await adminService.getUserBackups(token, user.id);
-            setBackups(data);
-        } catch {
-            setBackups([]);
-        } finally {
-            setBackupsLoading(false);
-        }
-    };
-
-    const handleDeleteBackup = async (backupId: string) => {
-        if (!token || !panel || panel.type !== 'backups') return;
-        try {
-            await adminService.deleteBackup(token, panel.user.id, backupId);
+            await adminService.deleteBackup(token, user.id, backupId);
             setBackups(prev => prev.filter(b => b.id !== backupId));
             setUsers(prev =>
-                prev.map(u =>
-                    u.id === panel.user.id ? { ...u, backup_count: Math.max(0, (u.backup_count || 1) - 1) } : u,
-                ),
+                prev.map(u => (u.id === user.id ? { ...u, backup_count: Math.max(0, (u.backup_count || 1) - 1) } : u)),
             );
         } catch {
-            showDialog('alert', 'Failed to delete backup.');
+            showDialog('alert', 'Could not delete the backup.');
         }
     };
 
-    const handlePurgeBackups = async () => {
-        if (!token || !panel || panel.type !== 'backups') return;
+    const handlePurgeBackups = (user: AdminUser) => {
+        if (!token) return;
         showDialog(
             'confirm',
-            `Purge ALL backups for "${panel.user.username}"?`,
+            `Delete every cloud backup ${user.username} has?`,
             async () => {
                 try {
-                    await adminService.purgeBackups(token, panel.user.id);
+                    await adminService.purgeBackups(token, user.id);
                     setBackups([]);
                     setUsers(prev =>
                         prev.map(u =>
-                            u.id === panel.user.id
+                            u.id === user.id
                                 ? { ...u, backup_count: 0, last_backup_at: null, total_backup_size: 0 }
                                 : u,
                         ),
                     );
-                    showDialog('alert', 'All backups purged.');
                 } catch {
-                    showDialog('alert', 'Failed to purge backups.');
+                    showDialog('alert', 'Could not delete the backups.');
                 }
             },
             { danger: true },
         );
     };
 
-    const renderPanel = () => {
-        if (!panel) return null;
+    const has2FA = (u: AdminUser) => (u.has_totp ?? 0) > 0 || (u.passkey_count ?? 0) > 0;
 
-        const body = (
-            <div className="m-appear border-y-(length:--hairline) border-[var(--border)] py-4">
-                <div>
-                    <div>
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <h3 className={`text-sm font-semibold ${settingsOn}`}>{panel.user.username}</h3>
-                                <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                    {panel.type === 'password'
-                                        ? 'Change password'
-                                        : panel.type === 'edit'
-                                          ? 'Edit profile'
-                                          : panel.type === '2fa'
-                                            ? 'Two-step verification'
-                                            : 'Cloud backups'}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setPanel(null)}
-                                className={`${iconBtn} -mr-1 -mt-1`}
-                                aria-label="Close"
-                            >
-                                <Close size={16} strokeWidth={1.5} />
-                            </button>
-                        </div>
+    const userMeta = (u: AdminUser) =>
+        [
+            (u.backup_count ?? 0) > 0 && `${plural(u.backup_count ?? 0, 'backup')}, last ${timeAgo(u.last_backup_at)}`,
+            has2FA(u) && 'two-step on',
+        ]
+            .filter(Boolean)
+            .join(', ');
 
-                        {panel.type === 'password' && (
-                            <div className="space-y-4">
-                                <p className={`text-sm ${settingsMuted}`}>
-                                    Set a new password for{' '}
-                                    <span className={`font-medium ${settingsOn}`}>{panel.user.username}</span>.
-                                </p>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    placeholder="New password (min 8 chars)"
-                                    className="input-base"
-                                    autoFocus
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => setPanel(null)} className="btn-secondary">
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={submitPassword}
-                                        disabled={newPassword.length < 8}
-                                        className="btn-primary"
-                                    >
-                                        Update password
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {panel.type === 'edit' && (
-                            <div className="space-y-5">
-                                <div className="space-y-2">
-                                    <label className={`block text-xs font-medium ${settingsMuted}`}>Username</label>
-                                    <input
-                                        type="text"
-                                        value={newUsername}
-                                        onChange={e => setNewUsername(e.target.value)}
-                                        placeholder="New username"
-                                        className="input-base"
-                                        autoFocus
-                                    />
-                                    <div className="flex justify-end">
-                                        <button
-                                            onClick={submitUsername}
-                                            disabled={!newUsername.trim() || newUsername.trim() === panel.user.username}
-                                            className="btn-primary"
-                                        >
-                                            Save username
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className={`border-t-(length:--hairline) border-[var(--border)] pt-4 space-y-2`}>
-                                    <label className={`block text-xs font-medium ${settingsMuted}`}>Avatar</label>
-                                    <button
-                                        onClick={() => handleResetAvatar(panel.user)}
-                                        className="btn-secondary text-[var(--danger)]"
-                                    >
-                                        <ImageOff size={15} strokeWidth={1.5} /> Reset Avatar
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {panel.type === '2fa' &&
-                            (twoFALoading ? (
-                                <div className="flex justify-center py-12">
-                                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
-                                </div>
-                            ) : !twoFA ? (
-                                <p className={`text-sm ${settingsMuted} text-center py-8`}>
-                                    Could not load 2FA status.
-                                </p>
-                            ) : (
-                                <div>
-                                    <div className={`flex items-center justify-between gap-3 py-3.5 ${divider}`}>
-                                        <div className="min-w-0">
-                                            <p className={`text-sm ${settingsOn}`}>Authenticator app</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                                {twoFA.totp ? 'A TOTP secret is enrolled.' : 'Not set up.'}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() =>
-                                                clearTwoFA(
-                                                    panel.user,
-                                                    'totp',
-                                                    `Disable the authenticator app for "${panel.user.username}"? They will sign in with their password alone, and every active session is signed out.`,
-                                                )
-                                            }
-                                            disabled={!twoFA.totp}
-                                            className={dangerTextBtn}
-                                        >
-                                            Disable
-                                        </button>
-                                    </div>
-
-                                    <div className={`flex items-center justify-between gap-3 py-3.5 ${divider}`}>
-                                        <div className="min-w-0">
-                                            <p className={`text-sm ${settingsOn}`}>Passkeys</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                                {twoFA.passkeys === 0
-                                                    ? 'None registered.'
-                                                    : `${twoFA.passkeys} registered.`}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() =>
-                                                clearTwoFA(
-                                                    panel.user,
-                                                    'passkeys',
-                                                    `Remove all ${twoFA.passkeys} passkey(s) for "${panel.user.username}"? Every active session is signed out.`,
-                                                )
-                                            }
-                                            disabled={twoFA.passkeys === 0}
-                                            className={dangerTextBtn}
-                                        >
-                                            Remove all
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-center justify-between gap-3 py-3.5">
-                                        <div className="min-w-0">
-                                            <p className={`text-sm ${settingsOn}`}>Backup codes</p>
-                                            <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                                {twoFA.backupCodes === 0
-                                                    ? 'None left.'
-                                                    : `${twoFA.backupCodes} unused.`}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() =>
-                                                clearTwoFA(
-                                                    panel.user,
-                                                    'backup_codes',
-                                                    `Erase the remaining backup codes for "${panel.user.username}"? Their sessions stay signed in.`,
-                                                )
-                                            }
-                                            disabled={twoFA.backupCodes === 0}
-                                            className={dangerTextBtn}
-                                        >
-                                            Erase
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-end justify-between gap-4 pt-4 border-t-(length:--hairline) border-[var(--border)]">
-                                        <p className="text-xs text-[var(--danger)] leading-relaxed">
-                                            Erasing a factor drops this account back to its password alone. Confirm who
-                                            is asking before you do it.
-                                        </p>
-                                        <button
-                                            onClick={() =>
-                                                clearTwoFA(
-                                                    panel.user,
-                                                    'all',
-                                                    `Erase ALL two-factor authentication for "${panel.user.username}"? This removes the authenticator secret, every passkey and every backup code, and signs out all of their sessions.`,
-                                                )
-                                            }
-                                            disabled={!twoFA.enabled && twoFA.backupCodes === 0}
-                                            className="btn-secondary text-[var(--danger)] shrink-0 disabled:opacity-40 disabled:pointer-events-none"
-                                        >
-                                            <ShieldOff size={15} strokeWidth={1.5} /> Erase All
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-
-                        {panel.type === 'backups' &&
-                            (backupsLoading ? (
-                                <div className="flex justify-center py-12">
-                                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
-                                </div>
-                            ) : backups.length === 0 ? (
-                                <p className={`text-sm ${settingsMuted} text-center py-8`}>No backups found.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <span className={`text-xs ${settingsMuted}`}>
-                                            {backups.length === 1 ? '1 backup' : `${backups.length} backups`} taking{' '}
-                                            {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} in all
-                                        </span>
-                                        <button
-                                            onClick={handlePurgeBackups}
-                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--danger)] border-(length:--hairline) border-[var(--border)] rounded-full hover:bg-[var(--surface-hover)] transition-colors"
-                                        >
-                                            <Trash size={13} strokeWidth={1.5} /> Purge All
-                                        </button>
-                                    </div>
-                                    <div>
-                                        {backups.map(b => (
-                                            <div
-                                                key={b.id}
-                                                className={`flex items-center justify-between py-3 ${divider}`}
-                                            >
-                                                <div>
-                                                    <p className={`text-sm ${settingsOn}`}>
-                                                        {new Date(b.created_at * 1000).toLocaleString()}
-                                                    </p>
-                                                    <p className={`text-xs ${settingsMuted} mt-0.5`}>
-                                                        {formatBytes(b.data_size)}, ID{' '}
-                                                        <span className="font-mono">{b.id.slice(0, 8)}</span>
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDeleteBackup(b.id)}
-                                                    className={dangerIconBtn}
-                                                    title="Delete backup"
-                                                >
-                                                    <Trash size={15} strokeWidth={1.5} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                    </div>
-                </div>
-            </div>
-        );
-        if (panelHost === undefined) return null;
-        return panelHost ? createPortal(body, panelHost) : body;
+    const toolTitle: Record<Exclude<UserTool, 'menu'>, string> = {
+        backups: 'Cloud backups',
+        '2fa': 'Two-step verification',
+        password: 'Password',
+        edit: 'Username and picture',
     };
 
-    // Rendered as plain elements (not a nested component) so typing in the search
-    // field doesn't remount the subtree and drop focus on every keystroke.
+    const busy = (
+        <div className="flex justify-center py-8">
+            <Busy className={`animate-spin ${muted}`} size={20} />
+        </div>
+    );
+
+    const renderTool = (u: AdminUser) => {
+        if (tool === 'menu') {
+            const twoFactorNote = [
+                (u.has_totp ?? 0) > 0 && 'App',
+                (u.passkey_count ?? 0) > 0 && plural(u.passkey_count ?? 0, 'passkey'),
+            ]
+                .filter(Boolean)
+                .join(', ');
+            return (
+                <div className={settingsSection}>
+                    <ActionRow
+                        icon={Cloud}
+                        label="Cloud backups"
+                        note={(u.backup_count ?? 0) > 0 ? formatBytes(u.total_backup_size || 0) : 'None'}
+                        onClick={() => openTool(u, 'backups')}
+                    />
+                    <ActionRow
+                        icon={ShieldOff}
+                        label="Two-step verification"
+                        note={twoFactorNote || 'Off'}
+                        onClick={() => openTool(u, '2fa')}
+                    />
+                    <ActionRow icon={Password} label="Password" onClick={() => openTool(u, 'password')} />
+                    <ActionRow icon={Pencil} label="Username and picture" onClick={() => openTool(u, 'edit')} />
+                    <ActionRow icon={Trash} label="Delete user" danger onClick={() => handleDeleteUser(u)} />
+                </div>
+            );
+        }
+
+        let body: React.ReactNode;
+        if (tool === 'password') {
+            body = (
+                <form
+                    className="space-y-3"
+                    onSubmit={e => {
+                        e.preventDefault();
+                        if (newPassword.length >= 8) void submitPassword(u);
+                    }}
+                >
+                    <label className="field-label" htmlFor={`pw-${u.id}`}>
+                        New password, at least 8 characters
+                    </label>
+                    <input
+                        id={`pw-${u.id}`}
+                        type="password"
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        className="input-base"
+                        autoFocus
+                    />
+                    <p className="field-hint">Every place {u.username} is signed in is signed out</p>
+                    <div className="flex justify-end">
+                        <button type="submit" disabled={newPassword.length < 8} className="btn-primary">
+                            Change password
+                        </button>
+                    </div>
+                </form>
+            );
+        } else if (tool === 'edit') {
+            body = (
+                <div className="space-y-5">
+                    <form
+                        className="space-y-3"
+                        onSubmit={e => {
+                            e.preventDefault();
+                            if (newUsername.trim() && newUsername.trim() !== u.username) void submitUsername(u);
+                        }}
+                    >
+                        <label className="field-label" htmlFor={`name-${u.id}`}>
+                            Username
+                        </label>
+                        <input
+                            id={`name-${u.id}`}
+                            type="text"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            value={newUsername}
+                            onChange={e => setNewUsername(e.target.value)}
+                            className="input-base"
+                            autoFocus
+                        />
+                        <div className="flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={!newUsername.trim() || newUsername.trim() === u.username}
+                                className="btn-primary"
+                            >
+                                Save username
+                            </button>
+                        </div>
+                    </form>
+                    <div className={`${rowBase} min-h-12 py-3`}>
+                        <span className={`text-sm ${on}`}>Picture</span>
+                        <button onClick={() => handleResetAvatar(u)} className={dangerTextBtn}>
+                            <ImageOff size={16} strokeWidth={1.75} /> Remove
+                        </button>
+                    </div>
+                </div>
+            );
+        } else if (tool === '2fa') {
+            body = twoFALoading ? (
+                busy
+            ) : !twoFA ? (
+                <p className={`text-sm ${muted} py-4`}>Could not load two-step verification</p>
+            ) : (
+                <div>
+                    <div className={settingsSection}>
+                        <FactorRow label="Authenticator app" state={twoFA.totp ? 'Set up' : 'Not set up'}>
+                            <button
+                                onClick={() =>
+                                    clearTwoFA(
+                                        u,
+                                        'totp',
+                                        `Turn off the authenticator app for ${u.username}? They sign in with their password alone, and every session is signed out.`,
+                                    )
+                                }
+                                disabled={!twoFA.totp}
+                                className={dangerTextBtn}
+                            >
+                                Turn off
+                            </button>
+                        </FactorRow>
+                        <FactorRow
+                            label="Passkeys"
+                            state={twoFA.passkeys === 0 ? 'None' : plural(twoFA.passkeys, 'passkey')}
+                        >
+                            <button
+                                onClick={() =>
+                                    clearTwoFA(
+                                        u,
+                                        'passkeys',
+                                        `Remove all ${plural(twoFA.passkeys, 'passkey')} for ${u.username}? Every session is signed out.`,
+                                    )
+                                }
+                                disabled={twoFA.passkeys === 0}
+                                className={dangerTextBtn}
+                            >
+                                Remove
+                            </button>
+                        </FactorRow>
+                        <FactorRow
+                            label="Backup codes"
+                            state={twoFA.backupCodes === 0 ? 'None left' : `${twoFA.backupCodes} unused`}
+                        >
+                            <button
+                                onClick={() =>
+                                    clearTwoFA(
+                                        u,
+                                        'backup_codes',
+                                        `Erase the backup codes ${u.username} has left? Their sessions stay signed in.`,
+                                    )
+                                }
+                                disabled={twoFA.backupCodes === 0}
+                                className={dangerTextBtn}
+                            >
+                                Erase
+                            </button>
+                        </FactorRow>
+                    </div>
+                    <p className={`text-xs ${muted} mt-4`}>
+                        Removing these leaves the account with its password alone, so make sure who is asking
+                    </p>
+                    <div className="mt-3 flex justify-end">
+                        <button
+                            onClick={() =>
+                                clearTwoFA(
+                                    u,
+                                    'all',
+                                    `Remove all two-step verification for ${u.username}? The authenticator app, every passkey and every backup code go, and all their sessions are signed out.`,
+                                )
+                            }
+                            disabled={!twoFA.enabled && twoFA.backupCodes === 0}
+                            className={dangerTextBtn}
+                        >
+                            Remove all
+                        </button>
+                    </div>
+                </div>
+            );
+        } else {
+            body = backupsLoading ? (
+                busy
+            ) : backups.length === 0 ? (
+                <p className={`text-sm ${muted} py-4`}>No cloud backups</p>
+            ) : (
+                <div>
+                    <div className={settingsSection}>
+                        {backups.map(b => (
+                            <div key={b.id} className={`${rowBase} min-h-12 py-3`}>
+                                <div className="min-w-0">
+                                    <p className={`text-sm ${on} tabular-nums`}>
+                                        {formatWhen(toLocalInput(b.created_at))}
+                                    </p>
+                                    <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{formatBytes(b.data_size)}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleDeleteBackup(u, b.id)}
+                                    className={dangerTextBtn}
+                                    aria-label={`Delete the backup from ${formatWhen(toLocalInput(b.created_at))}`}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                        <span className={`text-xs ${muted} tabular-nums`}>
+                            {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} in all
+                        </span>
+                        <button onClick={() => handlePurgeBackups(u)} className={dangerTextBtn}>
+                            Delete all
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div>
+                <button
+                    type="button"
+                    onClick={() => setTool('menu')}
+                    className={`-ml-2 mb-1 inline-flex h-8 items-center gap-1 rounded-full px-2 text-sm font-medium ${on} hover:bg-[var(--surface-hover)]`}
+                >
+                    <ChevronLeft size={18} className={`${muted} rtl:-scale-x-100`} />
+                    {toolTitle[tool]}
+                </button>
+                {body}
+            </div>
+        );
+    };
+
+    // Plain elements, not a nested component, so typing in the search field
+    // doesn't remount the subtree and drop focus on every keystroke.
     const renderUsers = () => (
         <div>
-            <div className="relative mb-5">
-                <Search
-                    size={15}
-                    strokeWidth={1.5}
-                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${settingsMuted}`}
-                />
+            <div className="relative mb-2">
+                <Search size={16} strokeWidth={1.75} className={`absolute left-0 top-1/2 -translate-y-1/2 ${muted}`} />
                 <input
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search users..."
-                    className="input-base w-full pl-9 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                    placeholder={totalUsers > 0 ? `Search ${plural(totalUsers, 'account')}` : 'Search accounts'}
+                    aria-label="Search accounts"
+                    className="input-base pl-6"
                 />
             </div>
 
             {loading && users.length === 0 ? (
-                <div className="flex justify-center py-16">
-                    <Busy className={`animate-spin ${settingsMuted}`} size={20} />
-                </div>
+                busy
             ) : error ? (
                 <p className="flex items-center gap-2 text-sm text-[var(--danger)] py-4">
-                    <Alert size={16} strokeWidth={1.5} /> {error}
+                    <Alert size={16} strokeWidth={1.75} /> {error}
                 </p>
             ) : users.length === 0 ? (
-                <p className={`text-sm ${settingsMuted} text-center py-14`}>
-                    No users found{searchDebounce ? ` for "${searchDebounce}"` : ''}.
+                <p className={`text-sm ${muted} py-10 text-center`}>
+                    {searchDebounce ? `Nobody matches ${searchDebounce}` : 'No accounts yet'}
                 </p>
             ) : (
-                <div>
-                    {users.map(u => (
-                        <div key={u.id} className={`flex items-center justify-between gap-3 py-4 ${divider}`}>
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-full bg-[var(--surface-hover)] flex items-center justify-center overflow-hidden shrink-0">
-                                    <img
-                                        src={apiEndpoint(`/api/user/avatar/${u.username}`)}
-                                        alt={u.username}
-                                        className="w-full h-full object-cover"
-                                        onError={e => {
-                                            e.currentTarget.style.display = 'none';
-                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                        }}
-                                    />
-                                    <div
-                                        className={`hidden w-full h-full flex items-center justify-center ${settingsMuted} font-medium text-xs`}
-                                    >
-                                        {u.username.substring(0, 2).toUpperCase()}
-                                    </div>
-                                </div>
-                                <div className="min-w-0">
-                                    <h3 className={`text-sm font-medium ${settingsOn} truncate`}>{u.username}</h3>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <p className={`text-xs ${settingsMuted} font-mono`}>{u.id.slice(0, 8)}</p>
-                                        {(u.backup_count ?? 0) > 0 && (
-                                            <span className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}>
-                                                <Cloud size={11} strokeWidth={1.5} />
-                                                {u.backup_count === 1
-                                                    ? '1 backup'
-                                                    : `${u.backup_count} backups`} taking{' '}
-                                                {formatBytes(u.total_backup_size || 0)}, the last{' '}
-                                                {timeAgo(u.last_backup_at)}
+                <div className={settingsSection}>
+                    {users.map(u => {
+                        const open = openId === u.id;
+                        const meta = userMeta(u);
+                        return (
+                            <div key={u.id} style={{ '--divider-inset': '3rem' } as React.CSSProperties}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleUser(u)}
+                                    aria-expanded={open}
+                                    aria-controls={`user-${u.id}`}
+                                    className={`${rowBase} gap-3 py-3 ${rowBleed}`}
+                                >
+                                    <span className="flex min-w-0 flex-1 items-center gap-3">
+                                        <Avatar username={u.username} />
+                                        <span className="min-w-0 flex-1">
+                                            <span className={`block truncate text-sm font-medium ${on}`}>
+                                                {u.username}
                                             </span>
-                                        )}
-                                        {((u.has_totp ?? 0) > 0 || (u.passkey_count ?? 0) > 0) && (
-                                            <span
-                                                className={`inline-flex items-center gap-1 text-xs ${settingsMuted}`}
-                                                title="Two-factor authentication enabled"
+                                            {meta && (
+                                                <span className={`block text-xs ${muted} mt-0.5 tabular-nums`}>
+                                                    {meta}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </span>
+                                    <SelectChevron open={open} />
+                                </button>
+                                <div
+                                    id={`user-${u.id}`}
+                                    className="disclosure"
+                                    data-open={open}
+                                    {...(open ? {} : { inert: '' })}
+                                >
+                                    <div className="disclosure-inner">
+                                        {shownId === u.id && (
+                                            <div
+                                                key={tool}
+                                                // Its rows rule from their own start, not the 3rem the user row sets.
+                                                style={{ '--divider-inset': '0px' } as React.CSSProperties}
+                                                className={`pb-4 ps-12 ${toolAnim}`}
                                             >
-                                                <Shield size={11} strokeWidth={1.5} />
-                                                {[
-                                                    (u.has_totp ?? 0) > 0 && 'TOTP',
-                                                    (u.passkey_count ?? 0) > 0 &&
-                                                        `${u.passkey_count} passkey${u.passkey_count === 1 ? '' : 's'}`,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(' and ')}
-                                            </span>
+                                                {renderTool(u)}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-0.5 shrink-0">
-                                <button onClick={() => openBackupsPanel(u)} className={iconBtn} title="Cloud backups">
-                                    <Cloud size={15} strokeWidth={1.5} />
-                                </button>
-                                <button onClick={() => openTwoFAPanel(u)} className={iconBtn} title="Reset 2FA">
-                                    <ShieldOff size={15} strokeWidth={1.5} />
-                                </button>
-                                <button
-                                    onClick={() => openPasswordPanel(u)}
-                                    className={iconBtn}
-                                    title="Change password"
-                                >
-                                    <Password size={15} strokeWidth={1.5} />
-                                </button>
-                                <button onClick={() => openEditPanel(u)} className={iconBtn} title="Edit profile">
-                                    <Pencil size={15} strokeWidth={1.5} />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteUser(u)}
-                                    className={dangerIconBtn}
-                                    title="Delete user"
-                                >
-                                    <Trash size={15} strokeWidth={1.5} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1 pt-4">
+                <div className="mt-4 flex items-center justify-between gap-3">
                     <button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page <= 1}
-                        className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
-                        aria-label="Previous page"
+                        className={`${textBtn} ${on} hover:bg-[var(--surface-hover)]`}
                     >
-                        <ChevronLeft size={15} strokeWidth={1.5} />
+                        <ChevronLeft size={18} className="rtl:-scale-x-100" /> Previous
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
-                        .reduce<(number | '...')[]>((acc, p, i, arr) => {
-                            if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
-                            acc.push(p);
-                            return acc;
-                        }, [])
-                        .map((item, i) =>
-                            item === '...' ? (
-                                <span key={`dot-${i}`} className={`px-1 text-sm ${settingsMuted}`}>
-                                    ...
-                                </span>
-                            ) : (
-                                <button
-                                    key={item}
-                                    onClick={() => setPage(item as number)}
-                                    className={`min-w-[32px] h-8 rounded-lg text-sm transition-colors ${
-                                        page === item
-                                            ? `font-medium ${settingsOn} bg-[var(--surface-hover)]`
-                                            : `${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)]`
-                                    }`}
-                                >
-                                    {item}
-                                </button>
-                            ),
-                        )}
+                    <span className={`text-xs ${muted} tabular-nums`}>
+                        Page {page} of {totalPages}
+                    </span>
                     <button
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                         disabled={page >= totalPages}
-                        className={`${iconBtn} disabled:opacity-40 disabled:pointer-events-none`}
-                        aria-label="Next page"
+                        className={`${textBtn} ${on} hover:bg-[var(--surface-hover)]`}
                     >
-                        <ChevronRight size={15} strokeWidth={1.5} />
+                        Next <ChevronRight size={18} className="rtl:-scale-x-100" />
                     </button>
                 </div>
             )}
-
-            <p className={`mt-6 text-xs ${settingsMuted}`}>
-                {totalUsers.toLocaleString()} registered account{totalUsers === 1 ? '' : 's'}
-            </p>
         </div>
     );
 
-    // datetime-local <-> unix seconds. The input speaks the operator's local
-    // time; everything stored and compared server-side is UTC seconds.
-    const toLocalInput = (ts: number | null): string => {
-        if (!ts) return '';
-        const d = new Date(ts * 1000);
-        const pad = (n: number) => String(n).padStart(2, '0');
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-    const fromLocalInput = (value: string): number | null => {
-        if (!value) return null;
-        const ms = new Date(value).getTime();
-        return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
-    };
+    // ── Notice ───────────────────────────────────────────────────────────
+    // `noticeLang` is which text is being edited: the default, or one
+    // locale's own wording. A notice with only a default reads the same in
+    // every language.
+    const [notice, setNotice] = useState<SiteNotice | null>(null);
+    const [noticeLoading, setNoticeLoading] = useState(false);
+    const [noticeSaving, setNoticeSaving] = useState(false);
+    const [noticeBody, setNoticeBody] = useState('');
+    const [noticeI18n, setNoticeI18n] = useState<Partial<Record<Lang, string>>>({});
+    const [noticeLevel, setNoticeLevel] = useState<NoticeLevel>('info');
+    const [noticeStart, setNoticeStart] = useState('');
+    const [noticeEnd, setNoticeEnd] = useState('');
+    const [noticeLang, setNoticeLang] = useState<'default' | Lang>('default');
+    const [pickerOpen, setPickerOpen] = useState<'start' | 'end' | null>(null);
 
     const applyNotice = (n: SiteNotice | null) => {
         setNotice(n);
@@ -830,29 +870,18 @@ const Admin: React.FC = () => {
         try {
             applyNotice(await noticeService.getStored(token));
         } catch {
-            showDialog('alert', 'Failed to load the site notice.');
+            showDialog('alert', 'Could not load the notice.');
         } finally {
             setNoticeLoading(false);
         }
     }, [token, showDialog]);
 
-    // Loaded on entering the tab rather than on mount: the users list is what
-    // the page opens on, and this is one request nobody asked for until then.
+    // Loaded on opening the notice rather than on mount: the users list is
+    // what the page opens on, and this is one request nobody asked for yet.
     useEffect(() => {
-        if (cat === 'notice' || mobileView === 'notice') void fetchNotice();
+        if ((wide ? cat : mobileView) === 'notice') void fetchNotice();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cat, mobileView]);
-
-    const noticeLangs: { id: 'default' | Lang; label: string }[] = [
-        { id: 'default', label: 'Default' },
-        { id: 'zh', label: '简体' },
-        { id: 'zh-TW', label: '繁體' },
-        { id: 'yue', label: '粵語' },
-        { id: 'en', label: 'EN' },
-        { id: 'ja', label: '日本語' },
-        { id: 'ko', label: '한국어' },
-        { id: 'tr', label: 'TR' },
-    ];
+    }, [cat, mobileView, wide]);
 
     const noticeTextFor = (id: 'default' | Lang): string => (id === 'default' ? noticeBody : (noticeI18n[id] ?? ''));
 
@@ -865,16 +894,13 @@ const Admin: React.FC = () => {
         if (!token) return;
         const body = noticeBody.trim();
         if (!body) {
-            showDialog(
-                'alert',
-                'The default text is what every locale without its own wording falls back to, so it cannot be empty.',
-            );
+            showDialog('alert', 'Every language without its own wording reads the default, so it cannot be empty.');
             return;
         }
         const startsAt = fromLocalInput(noticeStart);
         const expiresAt = fromLocalInput(noticeEnd);
         if (startsAt != null && expiresAt != null && expiresAt <= startsAt) {
-            showDialog('alert', 'The end time has to be after the start time.');
+            showDialog('alert', 'The end has to come after the start.');
             return;
         }
         setNoticeSaving(true);
@@ -884,10 +910,10 @@ const Admin: React.FC = () => {
             );
             showDialog(
                 'alert',
-                'Notice published. New visits see it right away; tabs already open pick it up within ten minutes.',
+                'Notice published. New visits see it right away, open tabs within ten minutes, and people who closed the last one see it again.',
             );
         } catch (e: any) {
-            showDialog('alert', e?.message || 'Failed to save the notice.');
+            showDialog('alert', e?.message || 'Could not publish the notice.');
         } finally {
             setNoticeSaving(false);
         }
@@ -904,227 +930,233 @@ const Admin: React.FC = () => {
                     applyNotice(null);
                     setNoticeLang('default');
                 } catch {
-                    showDialog('alert', 'Failed to clear the notice.');
+                    showDialog('alert', 'Could not take the notice down.');
                 }
             },
             { danger: true },
         );
     };
 
-    // Same wording the banner uses: the locale's override when it has one, the
-    // default otherwise. Lets the operator see what a given locale will read.
+    // The wording a reader of the chosen language sees: its own when it has
+    // one, the default otherwise.
     const noticePreview = noticeLang === 'default' ? noticeBody : noticeI18n[noticeLang]?.trim() || noticeBody;
 
     const noticeWindowLabel = (): string => {
-        if (!notice) return 'Nothing is being shown';
+        if (!notice) return 'Not showing';
         const now = Math.floor(Date.now() / 1000);
         if (notice.startsAt != null && now < notice.startsAt)
-            return `Scheduled for ${new Date(notice.startsAt * 1000).toLocaleString()}`;
+            return `Starts ${formatWhen(toLocalInput(notice.startsAt))}`;
         if (notice.expiresAt != null && now >= notice.expiresAt)
-            return `Expired ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
-        if (notice.expiresAt != null) return `Live until ${new Date(notice.expiresAt * 1000).toLocaleString()}`;
-        return 'Live now, until you clear it';
+            return `Ended ${formatWhen(toLocalInput(notice.expiresAt))}`;
+        if (notice.expiresAt != null) return `Showing until ${formatWhen(toLocalInput(notice.expiresAt))}`;
+        return 'Showing now';
+    };
+
+    const scheduleRow = (which: 'start' | 'end') => {
+        const value = which === 'start' ? noticeStart : noticeEnd;
+        const set = which === 'start' ? setNoticeStart : setNoticeEnd;
+        const open = pickerOpen === which;
+        const label = which === 'start' ? 'Starts' : 'Ends';
+        return (
+            <div>
+                <button
+                    type="button"
+                    onClick={() => setPickerOpen(open ? null : which)}
+                    aria-expanded={open}
+                    className={`${rowBase} ${rowBleed}`}
+                >
+                    <span className={`text-sm ${on}`}>{label}</span>
+                    <span className={`flex items-center gap-1.5 text-sm ${muted}`}>
+                        <span className="tabular-nums">
+                            {value ? formatWhen(value) : which === 'start' ? 'Right away' : 'When taken down'}
+                        </span>
+                        <SelectChevron open={open} />
+                    </span>
+                </button>
+                <DateTimePicker
+                    isOpen={open}
+                    inline
+                    onClose={() => setPickerOpen(null)}
+                    onConfirm={date => set(dateToLocalInput(date))}
+                    initialDate={value ? new Date(value) : new Date()}
+                    mode="datetime"
+                    title={label}
+                />
+                {open && value && (
+                    <div className="flex justify-end pb-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                set('');
+                                setPickerOpen(null);
+                            }}
+                            className={dangerTextBtn}
+                        >
+                            {which === 'start' ? 'Start right away' : 'No end'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const renderNotice = () =>
         noticeLoading ? (
-            <div className="flex justify-center py-16">
-                <Busy className={`animate-spin ${settingsMuted}`} size={20} />
-            </div>
+            busy
         ) : (
-            <div className="space-y-5">
-                <p className={`text-xs ${settingsMuted} leading-relaxed`}>
-                    One banner, shown at the top of the app to everyone including signed-out visitors. Editing it brings
-                    it back for people who had already dismissed the previous wording.
+            <div>
+                <p className={`text-xs ${muted} mb-4`}>
+                    One banner at the top of the app, for everyone, signed in or not
                 </p>
 
-                {/* Language strip. A dot marks a locale that has its own wording. */}
-                <div className="flex flex-wrap gap-1">
-                    {noticeLangs.map(({ id, label }) => (
-                        <button
-                            key={id}
-                            onClick={() => setNoticeLang(id)}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                                noticeLang === id
-                                    ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
-                                    : `${settingsMuted} hover:bg-[var(--surface-hover)]`
-                            }`}
-                        >
-                            {label}
-                            {id !== 'default' && noticeTextFor(id).trim() && (
-                                <span className="text-xs text-[var(--accent-ink)]">on</span>
-                            )}
-                        </button>
-                    ))}
-                </div>
+                <CustomSelect
+                    label="Wording for"
+                    value={noticeLang}
+                    onChange={v => setNoticeLang(v as 'default' | Lang)}
+                    options={NOTICE_LANGS.map(({ id, label }) => ({
+                        value: id,
+                        label,
+                        description:
+                            id === 'default'
+                                ? 'For every language without its own'
+                                : noticeTextFor(id).trim()
+                                  ? 'Own wording'
+                                  : 'Reads the default',
+                    }))}
+                />
 
-                <div className="space-y-2">
-                    <label className={`block text-xs font-medium ${settingsMuted}`}>
-                        {noticeLang === 'default'
-                            ? 'Default text (required)'
-                            : `Override for ${noticeLangs.find(l => l.id === noticeLang)?.label}`}
+                <div className="mt-4">
+                    <label className="field-label mb-2" htmlFor="notice-text">
+                        {noticeLang === 'default' ? 'Text' : 'Text, empty to use the default'}
                     </label>
                     <textarea
+                        id="notice-text"
                         value={noticeTextFor(noticeLang)}
                         onChange={e => setNoticeTextFor(noticeLang, e.target.value)}
                         rows={4}
                         maxLength={2000}
-                        placeholder={
-                            noticeLang === 'default'
-                                ? 'What everyone should know…'
-                                : 'Leave empty to use the default text'
-                        }
                         className="input-base resize-y"
                     />
-                    <p className={`text-xs ${settingsMuted}`}>
-                        {noticeTextFor(noticeLang).length} of 2000 characters. Bare https:// links become clickable
+                    <p className="field-hint tabular-nums">
+                        {noticeTextFor(noticeLang).length} of 2000, links starting https:// can be tapped
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className={`block text-xs font-medium ${settingsMuted}`}>Tone</label>
-                    <div className="flex gap-1">
-                        {(['info', 'warn'] as NoticeLevel[]).map(level => (
-                            <button
-                                key={level}
-                                onClick={() => setNoticeLevel(level)}
-                                className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                                    noticeLevel === level
-                                        ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
-                                        : `${settingsMuted} hover:bg-[var(--surface-hover)]`
-                                }`}
-                            >
-                                {level === 'info' ? 'Info' : 'Warning'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                        <label className={`block text-xs font-medium ${settingsMuted}`}>Show from (optional)</label>
-                        <input
-                            type="datetime-local"
-                            value={noticeStart}
-                            onChange={e => setNoticeStart(e.target.value)}
-                            className="input-base"
+                <div className={`mt-2 ${settingsSection}`}>
+                    <div className={rowBase}>
+                        <span className={`text-sm ${on}`}>Tone</span>
+                        <Segmented
+                            aria-label="Tone"
+                            options={[
+                                { id: 'info', label: 'Info' },
+                                { id: 'warn', label: 'Warning' },
+                            ]}
+                            value={noticeLevel}
+                            onChange={v => setNoticeLevel(v as NoticeLevel)}
                         />
                     </div>
-                    <div className="space-y-2">
-                        <label className={`block text-xs font-medium ${settingsMuted}`}>Hide after (optional)</label>
-                        <input
-                            type="datetime-local"
-                            value={noticeEnd}
-                            onChange={e => setNoticeEnd(e.target.value)}
-                            className="input-base"
-                        />
-                    </div>
+                    {scheduleRow('start')}
+                    {scheduleRow('end')}
                 </div>
 
                 {noticePreview.trim() && (
-                    <div className="space-y-2">
-                        <label className={`block text-xs font-medium ${settingsMuted}`}>Preview</label>
+                    <div className="mt-4">
+                        <p className="field-label mb-2">Preview</p>
                         <p
-                            className={`flex items-start gap-1.5 text-xs leading-snug whitespace-pre-wrap break-words ${
+                            className={`flex items-start gap-1.5 text-xs whitespace-pre-wrap break-words ${
                                 noticeLevel === 'warn' ? 'text-[var(--warning)]' : 'text-[var(--accent-ink)]'
                             }`}
                         >
-                            {noticeLevel === 'warn' ? (
-                                <span className="icon-line">
+                            <span className="icon-line">
+                                {noticeLevel === 'warn' ? (
                                     <Alert size={14} strokeWidth={1.75} />
-                                </span>
-                            ) : (
-                                <span className="icon-line">
+                                ) : (
                                     <Megaphone size={14} strokeWidth={1.75} />
-                                </span>
-                            )}
-                            <span>{noticePreview}</span>
+                                )}
+                            </span>
+                            <span className="min-w-0">{noticePreview}</span>
                         </p>
                     </div>
                 )}
 
-                <div className="flex items-center justify-between gap-3 pt-2 border-t-(length:--hairline) border-[var(--border)]">
-                    <span className={`text-xs ${settingsMuted}`}>
-                        {noticeWindowLabel()}
-                        {notice ? `, revision ${notice.revision}` : ''}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <span className={`text-xs ${muted} tabular-nums`}>{noticeWindowLabel()}</span>
+                    <div className="ml-auto flex items-center gap-2">
                         <button onClick={clearNotice} disabled={!notice} className={dangerTextBtn}>
-                            Clear
+                            Take down
                         </button>
                         <button
                             onClick={saveNotice}
                             disabled={noticeSaving || !noticeBody.trim()}
-                            className="btn-primary disabled:opacity-40 disabled:pointer-events-none"
+                            className="btn-primary disabled:opacity-45 disabled:pointer-events-none"
                         >
-                            {noticeSaving ? (
-                                <Busy size={15} className="animate-spin" />
-                            ) : (
-                                <Megaphone size={15} strokeWidth={1.5} />
-                            )}
-                            {notice ? 'Update notice' : 'Publish notice'}
+                            <BusyLabel busy={noticeSaving} size={16}>
+                                {notice ? 'Update' : 'Publish'}
+                            </BusyLabel>
                         </button>
                     </div>
                 </div>
             </div>
         );
 
+    // ── System ───────────────────────────────────────────────────────────
+    const [storage, setStorage] = useState<StorageReport | null>(null);
+    const [storageLoading, setStorageLoading] = useState(false);
+    const [storageError, setStorageError] = useState<string | null>(null);
+    const loadStorage = async () => {
+        if (!token) return;
+        setStorageLoading(true);
+        setStorageError(null);
+        try {
+            setStorage(await adminService.getStorage(token));
+        } catch (e: any) {
+            setStorageError(e?.message || 'Could not measure storage.');
+        } finally {
+            setStorageLoading(false);
+        }
+    };
+
+    // Storage is fetched on demand: the worker reads every backup body to
+    // measure it, so it is not worth doing on every visit.
     const renderSystem = () => (
         <div>
-            {/* Storage. The one number nobody could see until the database hit
-                its plan's cap — the worker reads every backup body to produce
-                it, so it is fetched on demand rather than on every visit. */}
-            <div className={`${rowBase} cursor-default`}>
-                <div className="min-w-0">
-                    <p className={rowLabel}>Storage</p>
-                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>
-                        {storage
-                            ? `${formatBytes(storage.payload_bytes)} of payload across ${storage.tables.reduce((n, t) => n + t.rows, 0).toLocaleString()} rows, measured ${timeAgo(storage.measured_at)}`
-                            : 'How much of the database each table is. Compare against the D1 plan limit.'}
-                    </p>
-                    {storage && (
-                        <ul className={`text-xs ${settingsMuted} mt-2 space-y-0.5 font-mono`}>
-                            {storage.tables.map(t => (
-                                <li key={t.table} className="flex gap-3">
-                                    <span className="w-28 shrink-0">{t.table}</span>
-                                    <span className="w-16 text-right tabular-nums">{t.rows.toLocaleString()}</span>
-                                    <span className="tabular-nums">
-                                        {t.payload_bytes > 0 ? formatBytes(t.payload_bytes) : ''}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {storageError && <p className="text-xs text-[var(--danger)] mt-1">{storageError}</p>}
+            <div className={settingsSection}>
+                <div className={rowBase}>
+                    <div className="min-w-0">
+                        <p className={`text-sm ${on}`}>Storage</p>
+                        <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>
+                            {storage
+                                ? `${formatBytes(storage.payload_bytes)} in all, measured ${timeAgo(storage.measured_at)}`
+                                : 'Compare with the D1 plan limit'}
+                        </p>
+                    </div>
+                    <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
+                        <BusyLabel busy={storageLoading} size={16}>
+                            {storage ? 'Refresh' : 'Measure'}
+                        </BusyLabel>
+                    </button>
                 </div>
-                <button onClick={loadStorage} disabled={storageLoading} className={textBtn}>
-                    <BusyLabel busy={storageLoading} size={14}>
-                        {storage ? 'Refresh' : 'Measure'}
-                    </BusyLabel>
-                </button>
-            </div>
-
-            <div className={`${rowBase} cursor-default`}>
-                <div>
-                    <p className={rowLabel}>Status</p>
-                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>
-                        All systems are running smoothly.
-                    </p>
+                {storage?.tables.map(t => (
+                    <div key={t.table} className={`${rowBase} min-h-11 py-2.5`}>
+                        <span className={`min-w-0 truncate text-sm ${on}`}>{t.table}</span>
+                        <span className={`shrink-0 text-sm ${muted} tabular-nums`}>
+                            {plural(t.rows, 'row')}
+                            {t.payload_bytes > 0 ? `, ${formatBytes(t.payload_bytes)}` : ''}
+                        </span>
+                    </div>
+                ))}
+                <div className={rowBase}>
+                    <span className={`text-sm ${on}`}>Status</span>
+                    <span className={`text-sm ${muted}`}>Operational</span>
                 </div>
-                <span className={rowValue}>Operational</span>
-            </div>
-
-            <div className={`${rowBase} border-b-0 cursor-default`}>
-                <div>
-                    <p className={rowLabel}>Environment</p>
-                    <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>Where the backend is connected.</p>
-                </div>
-                <span className={rowValue}>
-                    <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--surface-hover)]">
+                <div className={rowBase}>
+                    <span className={`text-sm ${on}`}>Backend</span>
+                    <span className={`text-sm ${muted}`}>
                         {window.location.hostname === 'localhost' ? 'Local' : 'Remote'}
                     </span>
-                </span>
+                </div>
             </div>
+            {storageError && <p className="field-hint is-error">{storageError}</p>}
         </div>
     );
 
@@ -1132,79 +1164,62 @@ const Admin: React.FC = () => {
         id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem();
 
     return (
-        <div className="flex pt-8 md:pb-32 min-h-full">
-            {/* ── Left category nav (desktop) ─────────────────────────── */}
-            <nav className="hidden md:flex flex-col w-52 shrink-0 px-3 gap-0.5 border-r-(length:--hairline) border-[var(--border)]">
-                <p className={`px-3 py-1.5 mb-3 text-xl font-semibold ${settingsOn}`}>Admin</p>
-                {cats.map(({ id, label, Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => selectCat(id)}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-start
-                            ${
-                                cat === id
-                                    ? `bg-[var(--surface-hover)] ${settingsOn} font-medium`
-                                    : `${settingsMuted} hover:bg-[var(--surface-hover)]`
-                            }`}
-                    >
-                        <Icon size={16} strokeWidth={1.75} />
-                        {label}
-                    </button>
-                ))}
-            </nav>
-
-            {/* ── Desktop content ─────────────────────────────────────── */}
-            <div className="hidden md:block flex-1 px-10 max-w-2xl">
-                <h2 className={`text-xl font-semibold ${settingsOn} mb-6`}>{cats.find(c => c.id === cat)?.label}</h2>
-                {catContent(cat)}
-            </div>
-
-            {/* ── Mobile ──────────────────────────────────────────────── */}
-            {/* self-start + own bottom padding: the shell's `min-h-full` makes its
-                height definite, so a stretched `flex-1` child never reports its own
-                overflow to the scroller and the last rows hide under the nav island. */}
-            <div className="md:hidden flex-1 self-start px-6">
-                {mobileView === 'list' ? (
-                    <>
-                        <h1
-                            className={`sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)] text-xl font-semibold ${settingsOn}`}
-                        >
-                            Admin
-                        </h1>
-                        {cats.map(({ id, label, Icon, hint }) => (
-                            <button key={id} onClick={() => enterMobileCat(id)} className={`${rowBase} items-center`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-[var(--surface-hover)]">
-                                        <Icon size={18} strokeWidth={1.75} className={settingsMuted} />
-                                    </div>
-                                    <div className="text-start">
-                                        <p className={`text-sm font-medium ${settingsOn}`}>{label}</p>
-                                        <p className={`text-xs ${settingsMuted} mt-0.5 leading-relaxed`}>{hint}</p>
-                                    </div>
+        <div className="relative md:pb-32">
+            {/* ── Phone: the three rows, then one of them ─────────────── */}
+            {!wide && (
+                <div>
+                    <div key={mobileView} className={mobileAnim}>
+                        {mobileView === 'list' ? (
+                            <>
+                                <PageHeader title="Admin" onBack={onBack} />
+                                <div className={`${PAGE_COLUMN} mt-3 ${settingsSection}`}>
+                                    {cats.map(({ id, label, Icon, hint }) => (
+                                        <button
+                                            key={id}
+                                            onClick={() => enterMobileCat(id)}
+                                            style={{ '--divider-inset': '3rem' } as React.CSSProperties}
+                                            className={`${rowBase} ${rowBleed}`}
+                                        >
+                                            <span className="flex min-w-0 items-center gap-3">
+                                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
+                                                    <Icon size={20} strokeWidth={1.75} className={muted} />
+                                                </span>
+                                                <span className="min-w-0 text-start">
+                                                    <span className={`block text-sm font-medium ${on}`}>{label}</span>
+                                                    <span className={`block text-xs ${muted} mt-0.5`}>{hint}</span>
+                                                </span>
+                                            </span>
+                                            <ChevronRight
+                                                size={18}
+                                                className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`}
+                                            />
+                                        </button>
+                                    ))}
                                 </div>
-                                <ChevronRight size={15} className={settingsMuted} />
-                            </button>
-                        ))}
-                    </>
-                ) : (
-                    <>
-                        <div className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 mb-3 bg-[var(--bg)]">
-                            <button
-                                onClick={exitMobileCat}
-                                className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
-                            >
-                                <ArrowLeft size={22} className={`${settingsMuted} shrink-0`} />
-                                <h1 className={`text-xl font-semibold ${settingsOn}`}>
-                                    {cats.find(c => c.id === mobileView)?.label}
-                                </h1>
-                            </button>
-                        </div>
-                        {catContent(mobileView as AdminCat)}
-                    </>
-                )}
-            </div>
+                            </>
+                        ) : (
+                            <>
+                                <PageHeader onBack={exitMobileCat} title={cats.find(c => c.id === mobileView)?.label} />
+                                <div className={`${PAGE_COLUMN} mt-3`}>{catContent(mobileView as AdminCat)}</div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
-            {renderPanel()}
+            {/* ── Wide screen: the page header and column every page has,
+                with the three as tabs under the title. ── */}
+            {wide && (
+                <div>
+                    <PageHeader title="Admin" />
+                    <div className={`${PAGE_COLUMN} mt-3`}>
+                        <Tabs tabs={cats} value={cat} onChange={selectCat} className="mb-4" />
+                        <div key={cat} className={catAnim}>
+                            {catContent(cat)}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
