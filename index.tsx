@@ -4,10 +4,12 @@ import './src/index.css';
 import App from './src/App';
 import { watchForAppUpdates } from './src/utils/swUpdate';
 import { preventPinchZoom } from './src/utils/preventPinchZoom';
+import { watchInputMode } from './src/utils/inputMode';
 import { recoverReplaceJournal } from './src/utils/replaceJournal';
 
 watchForAppUpdates();
 preventPinchZoom();
+watchInputMode();
 
 // Opened by the developer simulator (pages/Simulator.tsx): lay out as a touch
 // screen would, which a frame can't otherwise ask the browser to pretend.

@@ -366,7 +366,11 @@ path.ink-draw {
    allow-discrete, and @starting-style gives the opening fade its first frame.
    A browser without those two still narrows and widens; its labels simply
    appear and go at once. Touch screens, with no pointing, keep the sidebar
-   open as it always was. */
+   open as it always was. On a touch laptop (a trackpad and a touch screen) a
+   finger's tap would leave the panel "hovered" and open over the page, so
+   while the last input was touch (data-input, utils/inputMode.ts) hover
+   doesn't open it: a tap on an icon goes straight there, and a tap on the
+   app icon at the top opens it (data-open, Sidebar.tsx). */
 @media (hover: hover) and (pointer: fine) {
     :root:not([data-sim-touch]) .side-nav {
         --sidebar-width: 5rem;
@@ -386,18 +390,21 @@ path.ink-draw {
             opacity var(--duration-base) var(--ease-out),
             display var(--duration-base) allow-discrete;
     }
-    :root:not([data-sim-touch]) .side-nav:hover .side-panel,
-    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-panel {
+    :root:not([data-sim-touch]):not([data-input="touch"]) .side-nav:hover .side-panel,
+    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-panel,
+    :root:not([data-sim-touch]) .side-nav[data-open] .side-panel {
         width: 16.25rem;
     }
-    :root:not([data-sim-touch]) .side-nav:hover .side-label,
-    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label {
+    :root:not([data-sim-touch]):not([data-input="touch"]) .side-nav:hover .side-label,
+    :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label,
+    :root:not([data-sim-touch]) .side-nav[data-open] .side-label {
         display: block;
         opacity: 1;
     }
     @starting-style {
-        :root:not([data-sim-touch]) .side-nav:hover .side-label,
-        :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label {
+        :root:not([data-sim-touch]):not([data-input="touch"]) .side-nav:hover .side-label,
+        :root:not([data-sim-touch]) .side-nav:has(:focus-visible) .side-label,
+        :root:not([data-sim-touch]) .side-nav[data-open] .side-label {
             opacity: 0;
         }
     }
