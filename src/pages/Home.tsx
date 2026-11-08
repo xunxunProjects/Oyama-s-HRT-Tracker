@@ -247,11 +247,7 @@ const Home: React.FC<HomeProps> = ({
     const sideBySide = showHeader && events.length > 0;
 
     return (
-        <div
-            className={
-                sideBySide ? 'short:grid short:grid-cols-2 short:items-start' : undefined
-            }
-        >
+        <div className={sideBySide ? 'short:grid short:grid-cols-2 short:items-start' : undefined}>
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
