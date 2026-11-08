@@ -3,6 +3,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import Segmented from '../components/Segmented';
 import ExplainMath from '../components/ExplainMath';
 import AnimatedNumber from '../components/AnimatedNumber';
+import { CorePK, DEFAULT_PK_PARAMS, OralPK, T_CorePK, T_GelPK } from '../../logic';
 
 const MODELS = [
     { id: 'e2-oral', labelKey: 'pk_viz.model.e2_oral' },
@@ -11,9 +12,49 @@ const MODELS = [
 
 type ModelId = (typeof MODELS)[number]['id'];
 
-const MODEL_PARAMS: Record<ModelId, { F: number; ka: number; ke: number; Vd: number }> = {
-    'e2-oral': { F: 0.05, ka: 1.2, ke: 0.15, Vd: 1200 },
-    't-gel': { F: 0.1, ka: 0.8, ke: 0.05, Vd: 900 },
+/** A 70 kg body, the sandbox's default. */
+const WEIGHT_KG = 70;
+
+/**
+ * The app's own default numbers for each model (issue #277: these were made up
+ * and Vd was 1200 L for estradiol). Testosterone gel is exactly the app's
+ * model. Oral estradiol leaves out the estrone pool the app routes most of an
+ * oral dose through, so the real curve peaks later and falls slower; one
+ * absorption step is what this simplified formula can show.
+ * Vd is in litres, so mg/L × 10⁶ is pg/mL and × 10⁵ is ng/dL.
+ */
+const MODEL_PARAMS: Record<
+    ModelId,
+    {
+        F: number;
+        ka: number;
+        ke: number;
+        Vd: number;
+        unit: string;
+        scale: number;
+        dose: [number, number, number, number];
+    }
+> = {
+    'e2-oral': {
+        F: DEFAULT_PK_PARAMS.e2_oral_bio,
+        ka: OralPK.kAbsE2,
+        ke: DEFAULT_PK_PARAMS.e2_kClear,
+        Vd: CorePK.vdPerKG * WEIGHT_KG,
+        unit: 'pg/mL',
+        scale: 1e6,
+        // min, max, step, default (mg of estradiol)
+        dose: [0.5, 10, 0.5, 2],
+    },
+    't-gel': {
+        F: DEFAULT_PK_PARAMS.t_gel_arm,
+        ka: T_GelPK.k1,
+        ke: DEFAULT_PK_PARAMS.t_kClear,
+        Vd: T_CorePK.vdPerKG * WEIGHT_KG,
+        unit: 'ng/dL',
+        scale: 1e5,
+        // mg of testosterone in the gel, as on the box
+        dose: [10, 100, 5, 50],
+    },
 };
 
 const LATEX = 'C(t)=\\frac{F\\cdot D}{V_d}\\cdot\\frac{k_a}{k_a-k_e}\\left(e^{-k_e t}-e^{-k_a t}\\right)';
@@ -22,9 +63,14 @@ const LATEX = 'C(t)=\\frac{F\\cdot D}{V_d}\\cdot\\frac{k_a}{k_a-k_e}\\left(e^{-k
 export default function PKVisualization() {
     const { t } = useTranslation();
     const [model, setModel] = useState<ModelId>('e2-oral');
-    const [dose, setDose] = useState(2);
+    const [dose, setDose] = useState(MODEL_PARAMS['e2-oral'].dose[3]);
 
     const params = MODEL_PARAMS[model];
+    const [doseMin, doseMax, doseStep] = params.dose;
+    const pickModel = (id: ModelId) => {
+        setModel(id);
+        setDose(MODEL_PARAMS[id].dose[3]);
+    };
     const tHour = 8;
 
     const values = useMemo(
@@ -59,7 +105,7 @@ export default function PKVisualization() {
                     <Segmented
                         options={MODELS.map(m => ({ id: m.id, label: t(m.labelKey) }))}
                         value={model}
-                        onChange={id => setModel(id as ModelId)}
+                        onChange={id => pickModel(id as ModelId)}
                         aria-label={t('pk_viz.model')}
                     />
                 </div>
@@ -72,9 +118,9 @@ export default function PKVisualization() {
                     <input
                         id="pk-dose"
                         type="range"
-                        min={0.5}
-                        max={10}
-                        step={0.5}
+                        min={doseMin}
+                        max={doseMax}
+                        step={doseStep}
                         value={dose}
                         onChange={e => setDose(Number(e.target.value))}
                         className="mt-3 h-1 w-full accent-[var(--accent)]"
@@ -86,8 +132,8 @@ export default function PKVisualization() {
                 <div className="mt-8">
                     <p className="field-label">{t('pk_viz.result')}</p>
                     <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">
-                        {/* mg/L × 10⁶ is pg/mL, the unit every lab report and the rest of the app use. */}
-                        <AnimatedNumber value={concentration * 1e6} decimals={0} /> pg/mL
+                        {/* Estradiol in pg/mL, testosterone in ng/dL, as lab reports give them. */}
+                        <AnimatedNumber value={concentration * params.scale} decimals={0} /> {params.unit}
                     </p>
                     <p className="mt-2 text-xs text-[var(--text-muted)]">{t('pk_viz.disclaimer')}</p>
                 </div>
