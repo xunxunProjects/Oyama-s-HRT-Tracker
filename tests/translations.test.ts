@@ -31,3 +31,22 @@ describe('language packs', () => {
         }
     });
 });
+
+describe('Russian and Ukrainian', () => {
+    const en = TRANSLATIONS.en as Record<string, string>;
+    const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
+
+    for (const lang of ['ru', 'uk'] as const) {
+        const pack = TRANSLATIONS[lang] as Record<string, string>;
+
+        it(`${lang} has every English key and no others`, () => {
+            expect(Object.keys(en).filter(k => !(k in pack))).toEqual([]);
+            expect(Object.keys(pack).filter(k => !(k in en))).toEqual([]);
+        });
+
+        it(`${lang} keeps each string's placeholders`, () => {
+            const off = Object.keys(en).filter(k => placeholders(en[k]).join() !== placeholders(pack[k] ?? '').join());
+            expect(off).toEqual([]);
+        });
+    }
+});

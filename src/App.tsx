@@ -392,6 +392,8 @@ const AppContent = () => {
             { value: 'ja', label: '日本語' },
             { value: 'ko', label: '한국어' },
             { value: 'tr', label: 'Türkçe' },
+            { value: 'ru', label: 'Русский' },
+            { value: 'uk', label: 'Українська' },
         ],
         [],
     );

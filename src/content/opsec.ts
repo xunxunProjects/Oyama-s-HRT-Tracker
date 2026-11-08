@@ -1,4 +1,4 @@
-export type OpSecLang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr';
+export type OpSecLang = 'zh' | 'zh-TW' | 'yue' | 'en' | 'ja' | 'ko' | 'tr' | 'ru' | 'uk';
 
 /** The Markdown alert family: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
  *  `[!WARNING]`, `[!CAUTION]`. `warn` blocks default to `warning`; content
@@ -3016,6 +3016,8 @@ const CONTENT: Record<string, OpSecContent> = {
     ja: EN,
     ko: EN,
     tr: EN,
+    ru: EN,
+    uk: EN,
 };
 
 export function getOpSecContent(lang: string): OpSecContent {

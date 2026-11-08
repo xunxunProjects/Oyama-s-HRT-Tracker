@@ -486,7 +486,10 @@ const SharedRecord = ({ details }: { details: ShareDetails }) => {
                             {copy.historyTitle}
                         </h2>
                         <span className="text-xs tabular-nums text-muted">
-                            {snapshot.events.length} {copy.records}
+                            {/* A pack whose count word changes with the number writes "{n}" where it goes. */}
+                            {copy.records.includes('{n}')
+                                ? copy.records.replace('{n}', String(snapshot.events.length))
+                                : `${snapshot.events.length} ${copy.records}`}
                         </span>
                     </div>
 
