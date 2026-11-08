@@ -1,10 +1,11 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { Lock } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { apiErrorCode } from '../services/apiClient';
+import { authService } from '../services/auth';
 import { settingsMuted } from '../components/SettingsListItem';
 import { newPasswordLevel } from '../../passwordStrength';
 import PasswordStrengthHint from '../components/PasswordStrengthHint';
@@ -13,13 +14,31 @@ import { BusyLabel } from '../components/StableLabel';
 const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { t } = useTranslation();
     const { showDialog } = useDialog();
-    const { changePassword } = useAuth();
+    const { changePassword, token } = useAuth();
     const [current, setCurrent] = useState('');
     const [newPass, setNewPass] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [code, setCode] = useState('');
+    // Changing a password hands out a new credential, so an account with a
+    // second factor has to prove it. Accounts without one keep the old flow.
+    const [stepUp, setStepUp] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const id = useId();
+
+    useEffect(() => {
+        if (!token) return;
+        let cancelled = false;
+        authService
+            .get2FAStatus(token)
+            .then(status => {
+                if (!cancelled) setStepUp(Boolean(status.totp || status.passkey || (status.backupCodes ?? 0) > 0));
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [token]);
 
     const muted = settingsMuted;
     const labelCls = `block text-xs font-medium mb-1.5 ${muted}`;
@@ -33,7 +52,7 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     // which field is which.
     const handleSubmit = async (ev: React.FormEvent) => {
         ev.preventDefault();
-        if (!current || !newPass || !confirm) return;
+        if (!current || !newPass || !confirm || (stepUp && !code.trim())) return;
         if (newPass !== confirm) {
             setError(t('pw.mismatch'));
             return;
@@ -50,7 +69,10 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         setIsLoading(true);
         setError('');
         try {
-            await changePassword(current, newPass);
+            const trimmed = code.trim();
+            const totpCode = /^\d{6}$/.test(trimmed) ? trimmed : undefined;
+            const backupCode = trimmed && !totpCode ? trimmed : undefined;
+            await changePassword(current, newPass, totpCode, backupCode);
             onBack();
             // The page just closing said nothing about whether it worked, nor
             // that every other device had been signed out by it.
@@ -58,7 +80,14 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         } catch (e: any) {
             // The worker's "Incorrect password" is English; say it in the
             // reader's language.
-            setError(apiErrorCode(e) === 'INVALID_CREDENTIALS' ? t('account.current_password_wrong') : e.message);
+            const errCode = apiErrorCode(e);
+            setError(
+                errCode === 'INVALID_CREDENTIALS'
+                    ? t('account.current_password_wrong')
+                    : errCode === 'TWO_FACTOR_INVALID' || errCode === 'STEP_UP_REQUIRED'
+                      ? t('account.2fa_verify_failed')
+                      : e.message,
+            );
         } finally {
             setIsLoading(false);
         }
@@ -107,6 +136,23 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 aria-describedby={error ? errorId : undefined}
                             />
                         </div>
+                        {stepUp && (
+                            <div>
+                                <label htmlFor={`${id}-code`} className={labelCls}>
+                                    {t('account.2fa_code')}
+                                </label>
+                                <input
+                                    id={`${id}-code`}
+                                    type="text"
+                                    value={code}
+                                    onChange={e => setCode(e.target.value)}
+                                    className="input-base"
+                                    placeholder={t('auth.totp_placeholder')}
+                                    autoComplete="one-time-code"
+                                />
+                                <p className={`mt-1.5 text-xs ${muted}`}>{t('account.step_up_hint')}</p>
+                            </div>
+                        )}
                         <div>
                             <label htmlFor={`${id}-new`} className={labelCls}>
                                 {t('account.new_password')}
@@ -144,7 +190,9 @@ const ChangePassword: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                     <button
                         type="submit"
-                        disabled={!current || !newPass || !confirm || isLoading || passwordBlocked}
+                        disabled={
+                            !current || !newPass || !confirm || (stepUp && !code.trim()) || isLoading || passwordBlocked
+                        }
                         className="btn-primary w-full"
                     >
                         <BusyLabel busy={isLoading}>{t('btn.save')}</BusyLabel>

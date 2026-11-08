@@ -8,6 +8,20 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.5.4
+
+- A security patch release. Changing MFA settings, passkeys, recovery codes or
+  the password now requires the current second factor, not only the password.
+  Revoking an HRT device also deletes its paired session, a paired token is
+  bound to its device fingerprint and limited to the tool API, and a global
+  storage budget stops account floods from filling D1 and denying every user.
+  Adds migration `0014_storage_budget.sql`; no wire-format change.
+
+  安全补丁版本。修改 MFA 设置、通行密钥、恢复码或密码时，除了密码之外还必须提供
+  当前第二因素。撤销 HRT 设备会同时删除配对会话，配对 token 绑定设备指纹并限制
+  在工具 API 内使用，全局存储预算会阻止账号洪泛填满 D1 导致所有用户无法写入。
+  新增迁移 `0014_storage_budget.sql`；没有传输格式变更。
+
 ## 1.5.3
 
 - A security patch release. `TRUSTED_IP_SOURCE` now defaults to `none`, so a

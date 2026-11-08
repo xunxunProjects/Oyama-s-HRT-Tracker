@@ -12,6 +12,7 @@ export interface Env {
     HRT_IP_KEY?: string;
     HRT_F2F_ESCROW?: string;
     HRT_ESCROW_KEY?: string;
+    MAX_STORED_CONTENT_BYTES?: string;
     TRUSTED_IP_SOURCE?: string;
     RL_PER_MINUTE_10?: RateLimit;
     RL_PER_MINUTE_20?: RateLimit;

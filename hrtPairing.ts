@@ -435,6 +435,7 @@ async function pairStatus(request: Request, env: Env): Promise<Response> {
         role: 'user',
         sid: sessionId,
         hrt: true,
+        hrt_fp: row.device_fingerprint,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -628,6 +629,14 @@ async function devices(env: Env, user: PairUser): Promise<Response> {
 }
 
 async function revokeDevice(env: Env, user: PairUser, deviceId: string): Promise<Response> {
+    const device = (await env.DB.prepare(
+        'SELECT fingerprint FROM hrt_devices WHERE id = ? AND user_id = ? AND revoked_at IS NULL',
+    )
+        .bind(deviceId, user.userId)
+        .first()) as { fingerprint: string } | null;
+    if (!device) {
+        return error('DEVICE_NOT_FOUND', 'device not found', 404);
+    }
     const result = await env.DB.prepare(
         'UPDATE hrt_devices SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL',
     )
@@ -636,6 +645,19 @@ async function revokeDevice(env: Env, user: PairUser, deviceId: string): Promise
     if (!result.meta || Number(result.meta.changes) === 0) {
         return error('DEVICE_NOT_FOUND', 'device not found', 404);
     }
+    // A revoke that leaves the paired session and its seven-day bearer token
+    // alive is not a revoke. Sessions created for this device are found
+    // through the pairing request that issued them.
+    await env.DB.prepare(
+        `DELETE FROM sessions
+          WHERE user_id = ?
+            AND id IN (
+                SELECT session_id FROM hrt_pair_requests
+                 WHERE user_id = ? AND device_fingerprint = ? AND session_id IS NOT NULL
+            )`,
+    )
+        .bind(user.userId, user.userId, device.fingerprint)
+        .run();
     return json({ ok: true });
 }
 
@@ -741,8 +763,22 @@ export async function handleHrtWeb(request: Request, env: Env, url: URL, user: P
 }
 
 /** A tool request carrying the raw adapter's device header must match its token. */
-export async function hrtDeviceMatchesToken(request: Request, env: Env, userId: string): Promise<boolean> {
+export async function hrtDeviceMatchesToken(
+    request: Request,
+    env: Env,
+    userId: string,
+    payload?: Record<string, unknown>,
+): Promise<boolean> {
     const fingerprint = request.headers.get('x-hrt-device-fingerprint');
+    const boundFingerprint = typeof payload?.hrt_fp === 'string' ? payload.hrt_fp.toLowerCase() : '';
+    if (payload?.hrt === true) {
+        // A token issued by pairing is only usable for the device it was
+        // issued to. Tokens minted before this claim existed fail closed and
+        // the device re-pairs.
+        if (!fingerprint) return false;
+        const presented = fingerprint.toLowerCase();
+        if (!HEX_64.test(presented) || !boundFingerprint || presented !== boundFingerprint) return false;
+    }
     if (!fingerprint) return true;
     if (!HEX_64.test(fingerprint.toLowerCase())) return false;
     const device = (await env.DB.prepare(

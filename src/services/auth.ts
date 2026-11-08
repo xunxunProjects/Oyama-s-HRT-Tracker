@@ -59,6 +59,7 @@ export interface TwoFAStatus {
     enabled: boolean;
     totp?: boolean;
     passkey?: boolean;
+    backupCodes?: number;
 }
 
 export interface TwoFASetup {
@@ -209,14 +210,25 @@ export const authService = {
         return await res.json();
     },
 
-    async changePassword(token: string, current: string, newPass: string): Promise<void> {
+    async changePassword(
+        token: string,
+        current: string,
+        newPass: string,
+        totpCode?: string,
+        backupCode?: string,
+    ): Promise<void> {
         const res = await apiFetch('/api/user/password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+            body: JSON.stringify({
+                currentPassword: current,
+                newPassword: newPass,
+                ...(totpCode ? { totp_code: totpCode } : {}),
+                ...(backupCode ? { backup_code: backupCode } : {}),
+            }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
@@ -308,11 +320,20 @@ export const authService = {
     },
 
     /** Replaces every existing code, so the worker requires the password. */
-    async generateBackupCodes(token: string, password: string): Promise<string[]> {
+    async generateBackupCodes(
+        token: string,
+        password: string,
+        totpCode?: string,
+        backupCode?: string,
+    ): Promise<string[]> {
         const res = await apiFetch('/api/user/2fa/backup-codes/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ password }),
+            body: JSON.stringify({
+                password,
+                ...(totpCode ? { totp_code: totpCode } : {}),
+                ...(backupCode ? { backup_code: backupCode } : {}),
+            }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
         const data = (await res.json()) as { codes: string[] };
@@ -367,22 +388,41 @@ export const authService = {
         credential: object,
         deviceName: string | undefined,
         password: string,
+        totpCode?: string,
+        backupCode?: string,
     ): Promise<{ backupCodes?: string[] }> {
         const res = await apiFetch('/api/user/passkey/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ challengeToken, credential, deviceName, password }),
+            body: JSON.stringify({
+                challengeToken,
+                credential,
+                deviceName,
+                password,
+                ...(totpCode ? { totp_code: totpCode } : {}),
+                ...(backupCode ? { backup_code: backupCode } : {}),
+            }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
         return (await res.json()) as { backupCodes?: string[] };
     },
 
     /** Removing a passkey weakens the account, so the worker requires the password. */
-    async deletePasskey(token: string, id: string, password: string): Promise<void> {
+    async deletePasskey(
+        token: string,
+        id: string,
+        password: string,
+        totpCode?: string,
+        backupCode?: string,
+    ): Promise<void> {
         const res = await apiFetch(`/api/user/passkeys/${id}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ password }),
+            body: JSON.stringify({
+                password,
+                ...(totpCode ? { totp_code: totpCode } : {}),
+                ...(backupCode ? { backup_code: backupCode } : {}),
+            }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },

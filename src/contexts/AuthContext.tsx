@@ -20,7 +20,7 @@ interface AuthContextType {
     register: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     updateProfile: (username: string) => Promise<void>;
-    changePassword: (current: string, newPass: string) => Promise<void>;
+    changePassword: (current: string, newPass: string, totpCode?: string, backupCode?: string) => Promise<void>;
     deleteAccount: (password: string, code?: string, backupCode?: string) => Promise<void>;
     /** The signed-in account's password was below the strength floor at its last sign-in. */
     weakPassword: boolean;
@@ -171,10 +171,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('auth_user', JSON.stringify(updatedUser));
     };
 
-    const changePassword = async (current: string, newPass: string) => {
+    const changePassword = async (current: string, newPass: string, totpCode?: string, backupCode?: string) => {
         if (!token) return;
         const oldCloudKey = getCloudKey();
-        await authService.changePassword(token, current, newPass);
+        await authService.changePassword(token, current, newPass, totpCode, backupCode);
         markWeakPassword(false);
         // Re-derive the cloud key for the new password. Backups made under the
         // old password become unreadable (this is what also stops an admin who

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { passwordCheckAllowed } from '../rateLimit';
 import { validateUsername, validatePassword, reservedForAdmin } from '../validation';
 import { consumeTOTP, verifyAndConsumeBackupCode } from '../totp';
+import { checkStepUp } from '../stepUp';
 import { ensureCommunityVoteSchema } from '../../../communityVoteServer';
 import { logDeletion } from '../userHelpers';
 import { readSmallBody, readSmallJsonBody } from '../../../requestInput';
@@ -74,6 +75,13 @@ export async function handleUserProfileRoute(
 
         const passVal = validatePassword(newPassword);
         if (!passVal.valid) return jsonError('INVALID_REQUEST', passVal.error!, 400);
+        const stepUp = await checkStepUp(env, userId, jwtSecret, parsedBody.value as Record<string, unknown>);
+        if (stepUp === 'required') {
+            return jsonError('STEP_UP_REQUIRED', 'A current second factor is required', 403);
+        }
+        if (stepUp === 'invalid') {
+            return jsonError('TWO_FACTOR_INVALID', 'Invalid second factor', 401);
+        }
         const hashed = await bcrypt.hash(newPassword, 10);
         await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashed, userId).run();
         if (sessionId) {

@@ -169,7 +169,8 @@ export type ApiErrorCode =
 
 /** D1's wording when the database has hit its plan's size cap. */
 const isStorageFullError = (err: unknown): boolean =>
-    err instanceof Error && /Exceeded maximum DB size/i.test(err.message);
+    err instanceof Error &&
+    (/Exceeded maximum DB size/i.test(err.message) || err.message.includes('STORAGE_BUDGET_EXCEEDED'));
 
 /** SQLite's wording when a table or column a query names is not there: the
  *  code is newer than the database, because a migration was never applied. */
@@ -582,6 +583,12 @@ export default {
                     return jsonError('FORBIDDEN', 'This token is limited to F2F operations', 403);
                 }
 
+                // A pairing token is a tool credential, not a web session. It
+                // must not reach account, sharing or HRT-management routes.
+                if (payload.hrt === true && !url.pathname.startsWith('/api/tool/v1/')) {
+                    return jsonError('FORBIDDEN', 'This token is limited to tool operations', 403);
+                }
+
                 // --- community funding vote (same session auth) ---
                 if (url.pathname === '/api/vote/me' && request.method === 'GET') {
                     if (!(await checkRateLimit(env, `vote:me:${userId}`, 60))) {
@@ -677,7 +684,7 @@ export default {
                 // same ones the website uses; the namespace only adds the
                 // storage shapes the CLI speaks.
                 if (url.pathname.startsWith('/api/tool/v1/')) {
-                    if (!(await hrtDeviceMatchesToken(request, env, userId))) {
+                    if (!(await hrtDeviceMatchesToken(request, env, userId, payload))) {
                         return sessionInvalid('Device revoked');
                     }
                     const toolResponse = await handleToolProtected(
