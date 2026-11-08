@@ -18,6 +18,9 @@ test('pharmacokinetic visualization renders, switches model and animates', async
 
     await page.getByRole('tab', { name: 'Testosterone gel' }).click();
     const dose = page.locator('#pk-dose');
-    await dose.fill('5');
+    // A range input takes only a value on its own scale, which moves with the model.
+    const min = (await dose.getAttribute('min')) ?? '';
+    await dose.fill(min);
+    await expect(page.locator('label[for="pk-dose"]')).toContainText(`${min} mg`);
     await expect(viz).toBeVisible();
 });
