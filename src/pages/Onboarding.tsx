@@ -60,17 +60,19 @@ const divider = 'border-b-(length:--hairline) border-[var(--border)]';
  * rows, with the words beside it.
  */
 const Head: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="min-w-0 lg:col-start-2 lg:row-start-1">{children}</div>
+    <div className="min-w-0 lg:col-start-2 lg:row-start-1 short:col-start-2 short:row-start-1">{children}</div>
 );
 
 const Stage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="mt-4 flex items-center justify-center lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:mt-0">
+    <div className="mt-4 flex items-center justify-center lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:mt-0 short:col-start-1 short:row-start-1 short:row-span-2 short:mt-0">
         {children}
     </div>
 );
 
 const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="mt-4 min-w-0 lg:col-start-2 lg:row-start-2 lg:mt-0">{children}</div>
+    <div className="mt-4 min-w-0 lg:col-start-2 lg:row-start-2 lg:mt-0 short:col-start-2 short:row-start-2 short:mt-0">
+        {children}
+    </div>
 );
 
 /**
@@ -79,7 +81,8 @@ const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
  * without this a row can end flush against the footer and read as the end of
  * the languages — on a short screen that quietly hides two of them.
  */
-const FADE_OUT = 'linear-gradient(to bottom, #000 calc(100% - 2rem), transparent)';
+const fadeMask = (above: boolean, below: boolean): string =>
+    `linear-gradient(to bottom, ${above ? 'transparent, #000 3rem' : '#000'}, ${below ? '#000 calc(100% - 3rem), transparent' : '#000'})`;
 
 /** Read straight out of the packs to size the greeting — see the welcome step. */
 const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
@@ -257,9 +260,11 @@ const Onboarding: React.FC<OnboardingProps> = ({
 
     const langListRef = useRef<HTMLDivElement>(null);
     const [langsBelow, setLangsBelow] = useState(false);
+    const [langsAbove, setLangsAbove] = useState(false);
     const syncLangsBelow = () => {
         const el = langListRef.current;
         setLangsBelow(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+        setLangsAbove(!!el && el.scrollTop > 4);
     };
     // Re-measured on step change, since the list only exists on step 0. The two
     // watchers cover different things and neither subsumes the other: `resize`
@@ -299,16 +304,21 @@ const Onboarding: React.FC<OnboardingProps> = ({
         // pinned this step to the top with a slab of empty page under the last
         // language — while every other step sat centred, so stepping between
         // them jumped the page. Sized to its content it centres like the rest.
-        <div key="welcome" className="flex h-full flex-col pt-6 text-center lg:h-auto">
+        <div
+            key="welcome"
+            className="flex h-full flex-col pt-6 text-center lg:h-auto short:grid short:h-full short:grid-cols-2 short:grid-rows-[minmax(0,1fr)] short:items-center short:gap-x-12 short:pt-0"
+        >
             {/* The greeting holds its place; only the list below it travels.
                 Seven languages don't fit under the cat on a short screen, and
                 scrolling the whole step would carry away the one sentence
                 explaining what is being chosen. */}
             <div className="shrink-0">
                 <div className="flex justify-center">
-                    <PixelCat pose="donut" size={176} />
+                    <PixelCat pose="donut" size={176} className="short:h-auto short:w-32" />
                 </div>
-                <h1 className="mt-6 text-[1.625rem] font-semibold text-body">{t('onboarding.welcome_title')}</h1>
+                <h1 className="mt-6 text-[1.625rem] font-semibold text-body short:mt-4">
+                    {t('onboarding.welcome_title')}
+                </h1>
                 {/* Every translation of the sentence stacked into one grid cell,
                     the inactive ones hidden but still taking up their space, so
                     the box is as tall as the longest one at whatever width this
@@ -346,8 +356,15 @@ const Onboarding: React.FC<OnboardingProps> = ({
             <div
                 ref={langListRef}
                 onScroll={syncLangsBelow}
-                style={langsBelow ? { maskImage: FADE_OUT, WebkitMaskImage: FADE_OUT } : undefined}
-                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start lg:flex-none"
+                style={
+                    langsBelow || langsAbove
+                        ? {
+                              maskImage: fadeMask(langsAbove, langsBelow),
+                              WebkitMaskImage: fadeMask(langsAbove, langsBelow),
+                          }
+                        : undefined
+                }
+                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start lg:flex-none short:mt-0 short:max-h-full short:min-h-0 short:flex-none"
             >
                 {languageOptions.map(({ value, label }) => (
                     <button
@@ -363,10 +380,12 @@ const Onboarding: React.FC<OnboardingProps> = ({
             </div>
         </div>,
 
-        <div key="mode" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.mode_title')}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.mode_subtitle')}</p>
-            <div className="mt-6">
+        <div key="mode" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
+            <div>
+                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.mode_title')}</h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.mode_subtitle')}</p>
+            </div>
+            <div className="mt-6 short:mt-0">
                 {modeOptions.map(({ value, labelKey, descKey }) => (
                     <button
                         key={value}
@@ -390,47 +409,55 @@ const Onboarding: React.FC<OnboardingProps> = ({
         // Prefilled with what the model is using right now — 70 kg on a fresh
         // install — so Next on its own is an answer, and it is the answer the
         // chart would have used anyway.
-        <div key="weight" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.weight_title')}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
-            {/* The field is drawn as a figure on a rule, not an .input-base
+        <div key="weight" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
+            <div>
+                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.weight_title')}</h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
+            </div>
+            <div className="short:pt-7">
+                {/* The field is drawn as a figure on a rule, not an .input-base
                 box, so it takes the text-field focus treatment by hand: the
                 rule turns terracotta while the figure is being edited. */}
-            <label className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--text)]`}>
-                <input
-                    type="number"
-                    inputMode="decimal"
-                    min={BODY_WEIGHT_KG_MIN}
-                    max={BODY_WEIGHT_KG_MAX}
-                    step="any"
-                    value={weightStr}
-                    onChange={e => typeWeight(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === 'Enter') forward();
-                    }}
-                    onFocus={e => e.currentTarget.select()}
-                    aria-label={t('status.weight')}
-                    className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
-                />
-                <span className="shrink-0 text-sm text-muted">kg</span>
-            </label>
-            {/* Always laid out, only shown when wrong: a line appearing and
+                <label
+                    className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--text)] short:mt-0`}
+                >
+                    <input
+                        type="number"
+                        inputMode="decimal"
+                        min={BODY_WEIGHT_KG_MIN}
+                        max={BODY_WEIGHT_KG_MAX}
+                        step="any"
+                        value={weightStr}
+                        onChange={e => typeWeight(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') forward();
+                        }}
+                        onFocus={e => e.currentTarget.select()}
+                        aria-label={t('status.weight')}
+                        className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
+                    />
+                    <span className="shrink-0 text-sm text-muted">kg</span>
+                </label>
+                {/* Always laid out, only shown when wrong: a line appearing and
                 vanishing as a figure passes through "6" on its way to "65"
                 would bob the centred step. An empty field says nothing; Next
                 is just off. */}
-            <p
-                className={`mt-3 text-xs leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
-            >
-                {t('error.weightRange')}
-            </p>
+                <p
+                    className={`mt-3 text-xs leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
+                >
+                    {t('error.weightRange')}
+                </p>
+            </div>
         </div>,
 
         // Optional, and says so: someone who doesn't know their dose yet, or
         // only wants the log, walks past with Next.
-        <div key="plan" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.plan_title')}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.plan_subtitle')}</p>
-            <div className="mt-4">
+        <div key="plan" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
+            <div>
+                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.plan_title')}</h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.plan_subtitle')}</p>
+            </div>
+            <div className="mt-4 short:mt-0">
                 {plan.map(item => (
                     <div key={item.id} className={`flex items-center gap-3.5 py-4 ${divider}`}>
                         <Doodle name={item.route} />
@@ -473,10 +500,12 @@ const Onboarding: React.FC<OnboardingProps> = ({
             </div>
         </div>,
 
-        <div key="privacy" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.privacy_title')}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
-            <div className="mt-4">
+        <div key="privacy" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
+            <div>
+                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.privacy_title')}</h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
+            </div>
+            <div className="mt-4 short:mt-0">
                 <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
                 <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
                 <Point
@@ -537,7 +566,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
             data-prompt-area
             className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
-            <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
+            <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] short:pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
                 <button
                     onClick={onDone}
                     className={`rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
@@ -568,9 +597,9 @@ const Onboarding: React.FC<OnboardingProps> = ({
                     one. */}
                 <div
                     key={step}
-                    className={`mx-auto w-full max-w-md
-                        ${current === 'how' ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5' : ''}
-                        ${current === 'welcome' ? 'h-full pb-6 lg:h-auto' : 'pb-8'}
+                    className={`mx-auto w-full max-w-md short:max-w-4xl
+                        ${current === 'how' ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:gap-y-4' : ''}
+                        ${current === 'welcome' ? 'h-full pb-6 lg:h-auto short:h-full short:pb-4' : 'pb-8 short:py-4'}
                         ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
                 >
                     {steps[step]}
@@ -584,9 +613,9 @@ const Onboarding: React.FC<OnboardingProps> = ({
                 16px gutters and a closer gap so two labels and the rings
                 still fit side by side in every language. */}
             <div
-                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t-(length:--hairline) border-[var(--border)] max-[360px]:px-4`}
+                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t-(length:--hairline) border-[var(--border)] max-[360px]:px-4 short:pt-3 short:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]`}
             >
-                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
+                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2 short:max-w-4xl">
                     <div className="justify-self-start">
                         {step > 0 && (
                             <button onClick={() => go(step - 1)} className="btn-secondary whitespace-nowrap">

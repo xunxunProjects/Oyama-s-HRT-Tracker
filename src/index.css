@@ -102,6 +102,11 @@ svg.ink-icon {
     zoom: var(--ui-scale);
 }
 
+/* A wide but short window: a phone or a foldable turned sideways, or a laptop
+   window dragged low. Height is what runs out there, so stacked layouts go side
+   by side instead. rem in a media query is always 16px, whatever --ui-scale is. */
+@custom-variant short (@media (orientation: landscape) and (max-height: 40rem) and (min-width: 40rem));
+
 /* Onboarding's step area. `safe center`: on a phone the step is usually taller
    than the space for it, so plain `center` would clip its top; `safe` falls
    back to start-aligned (and scrollable) whenever the content doesn't fit.
