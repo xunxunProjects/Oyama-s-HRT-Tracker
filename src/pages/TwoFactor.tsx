@@ -243,14 +243,19 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
         setPwPrompt({ kind: 'backup' });
     };
 
-    const submitPasswordPrompt = async (password: string) => {
+    const submitPasswordPrompt = async (password: string, code: string) => {
         if (!pwPrompt) return;
         setPwLoading(true);
         setPwError(null);
+        // A six-digit code is an authenticator code; anything else is treated
+        // as a single-use backup code. The server consumes whichever arrives.
+        const trimmed = code.trim();
+        const totpCode = /^\d{6}$/.test(trimmed) ? trimmed : undefined;
+        const backupCode = trimmed && !totpCode ? trimmed : undefined;
         try {
             if (pwPrompt.kind === 'backup') {
                 setBackupLoading(true);
-                const codes = await authService.generateBackupCodes(token, password);
+                const codes = await authService.generateBackupCodes(token, password, totpCode, backupCode);
                 setBackupCodes(codes);
                 setBackupRemaining(codes.length);
             } else if (pwPrompt.kind === 'enable') {
@@ -268,6 +273,8 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                     pwPrompt.credential,
                     pwPrompt.deviceName,
                     password,
+                    totpCode,
+                    backupCode,
                 );
                 // Registering the first passkey mints backup codes that exist
                 // only in this response. Dropping them left a passkey-only user
@@ -282,7 +289,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             } else {
                 const pk = pwPrompt.passkey;
                 setDeleteLoadingId(pk.id);
-                await authService.deletePasskey(token, pk.id, password);
+                await authService.deletePasskey(token, pk.id, password, totpCode, backupCode);
                 const left = passkeys.filter(p => p.id !== pk.id);
                 setPasskeys(left);
                 // Dropping the last passkey can take the account back to a
@@ -292,12 +299,15 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             setPwPrompt(null);
         } catch (e: any) {
             const msg = e.message || '';
-            const code = apiErrorCode(e);
-            // The password prompt stays up for a wrong (or missing) password;
+            const errCode = apiErrorCode(e);
+            // The password prompt stays up for a wrong (or missing) password,
+            // a missing second factor, or a wrong code so it can be retried;
             // anything else closes it and reports on the section it came from.
             if (
-                code === 'INVALID_CREDENTIALS' ||
-                (code === 'INVALID_REQUEST' && msg.includes('password is required'))
+                errCode === 'INVALID_CREDENTIALS' ||
+                errCode === 'STEP_UP_REQUIRED' ||
+                errCode === 'TWO_FACTOR_INVALID' ||
+                (errCode === 'INVALID_REQUEST' && msg.includes('password is required'))
             ) {
                 setPwError(t('account.2fa_verify_failed'));
             } else {
@@ -305,7 +315,9 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 if (pwPrompt.kind === 'backup') setBackupError(msg || t('account.backup_codes_generate'));
                 else if (pwPrompt.kind === 'enable')
                     setError(
-                        code === 'TWO_FACTOR_INVALID' ? t('account.2fa_verify_failed') : t('account.2fa_setup_failed'),
+                        errCode === 'TWO_FACTOR_INVALID'
+                            ? t('account.2fa_verify_failed')
+                            : t('account.2fa_setup_failed'),
                     );
                 else setPasskeyError(msg || t('auth.passkey_failed'));
             }
@@ -891,6 +903,10 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                 error={pwError}
                 loading={pwLoading}
                 masked
+                secondFactor={
+                    pwPrompt?.kind !== 'enable' &&
+                    (totpEnabled === true || passkeys.length > 0 || (backupRemaining ?? 0) > 0)
+                }
             />
         </div>
     );

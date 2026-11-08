@@ -1,4 +1,5 @@
 import { selectBackupsToKeep } from './backupPolicy';
+import { assertStorageBudget } from './src/server/storageBudget';
 import type { Env } from './worker';
 
 /**
@@ -56,6 +57,8 @@ export async function storeContent(
     expectedBase?: string,
 ): Promise<string | null> {
     const id = crypto.randomUUID();
+    const serialized = JSON.stringify(data);
+    await assertStorageBudget(env, new TextEncoder().encode(serialized).byteLength);
     if (expectedBase !== undefined) {
         const inserted = await env.DB.prepare(
             `INSERT INTO content (id, user_id, data)
@@ -65,14 +68,14 @@ export async function storeContent(
                  ''
              ) = ?`,
         )
-            .bind(id, userId, JSON.stringify(data), userId, expectedBase)
+            .bind(id, userId, serialized, userId, expectedBase)
             .run();
         if (Number(inserted.meta?.changes ?? 0) === 0) {
             return null;
         }
     } else {
         await env.DB.prepare('INSERT INTO content (id, user_id, data) VALUES (?, ?, ?)')
-            .bind(id, userId, JSON.stringify(data))
+            .bind(id, userId, serialized)
             .run();
     }
     const revisions = await env.DB.prepare(

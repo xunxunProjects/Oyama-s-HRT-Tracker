@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { passwordCheckAllowed } from '../rateLimit';
 import { readSmallJsonBody } from '../../../requestInput';
 import { generateAndStoreBackupCodes } from '../totp';
+import { checkStepUp } from '../stepUp';
 import {
     allowedPasskeyOrigins,
     b64urlDecode,
@@ -165,6 +166,14 @@ export async function handlePasskeysRoute(
             return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
         }
 
+        const stepUp = await checkStepUp(env, userId, jwtSecret, parsedRegBody.value as Record<string, unknown>);
+        if (stepUp === 'required') {
+            return jsonError('STEP_UP_REQUIRED', 'A current second factor is required', 403);
+        }
+        if (stepUp === 'invalid') {
+            return jsonError('TWO_FACTOR_INVALID', 'Invalid second factor', 401);
+        }
+
         const pkCountRow = (await env.DB.prepare('SELECT COUNT(*) as cnt FROM passkeys WHERE user_id = ?')
             .bind(userId)
             .first()) as any;
@@ -225,6 +234,13 @@ export async function handlePasskeysRoute(
         const pkDummy = '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC';
         if (!(await bcrypt.compare(pkPassword, pkUser?.password_hash ?? pkDummy))) {
             return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
+        }
+        const stepUp = await checkStepUp(env, userId, jwtSecret, parsedBody.value as Record<string, unknown>);
+        if (stepUp === 'required') {
+            return jsonError('STEP_UP_REQUIRED', 'A current second factor is required', 403);
+        }
+        if (stepUp === 'invalid') {
+            return jsonError('TWO_FACTOR_INVALID', 'Invalid second factor', 401);
         }
         await env.DB.prepare('DELETE FROM passkeys WHERE id = ? AND user_id = ?').bind(passkeyId, userId).run();
         return withSecurityHeaders(
