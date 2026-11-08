@@ -52,6 +52,7 @@ interface SettingsProps {
     setShowPrediction: (v: boolean) => void;
     onNavigateToMilkTea: () => void;
     onNavigateToCatStates: () => void;
+    onNavigateToSimulator: () => void;
     isAdmin: boolean;
     onNavigateToAdmin: () => void;
     onNavigateToSupplies: () => void;
@@ -185,6 +186,7 @@ const Settings: React.FC<SettingsProps> = ({
     setShowPrediction,
     onNavigateToMilkTea,
     onNavigateToCatStates,
+    onNavigateToSimulator,
     isAdmin,
     onNavigateToAdmin,
     onNavigateToSupplies,
@@ -467,6 +469,9 @@ const Settings: React.FC<SettingsProps> = ({
                 )}
                 {devMode && (
                     <NavRow label={t('settings.cat_states')} onClick={() => navTo(onNavigateToCatStates, 'about')} />
+                )}
+                {devMode && (
+                    <NavRow label={t('settings.simulator')} onClick={() => navTo(onNavigateToSimulator, 'about')} />
                 )}
                 {devMode && (
                     <NavRow label={t('settings.milk_tea_egg')} onClick={() => navTo(onNavigateToMilkTea, 'about')} />

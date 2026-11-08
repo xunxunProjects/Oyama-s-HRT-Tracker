@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Info, Share, ChevronRight } from '../components/icons';
 import {
     DoseEvent,
@@ -240,8 +241,67 @@ const Home: React.FC<HomeProps> = ({
     // itself on this column and stays narrow.
     const overviewColumn = events.length ? 'lg:max-w-[96rem]' : '';
 
+    // A wide but short window (a phone turned sideways) has no height to stack
+    // the readings over the chart: the chart started below the fold. There the
+    // reading moves into the sidebar, between the name and the pages (portalled
+    // into #sidebar-status), and the page beside it starts with the chart at
+    // the screen's height. The advisory and the plan follow underneath.
+    const chartFirst = showHeader && events.length > 0;
+    // Read straight from the DOM: the sidebar is mounted beside this page, and
+    // React re-reads the snapshot after committing, so the slot is picked up
+    // on the first pass where it exists.
+    const sideSlot = React.useSyncExternalStore(
+        () => () => {},
+        () => document.getElementById('sidebar-status'),
+        () => null,
+    );
+    const sideStatus =
+        chartFirst && hasReading && sideSlot
+            ? createPortal(
+                  <div className="px-[1.375rem] pb-5">
+                      {showCats && (
+                          <span className="mb-3 flex items-end gap-1.5">
+                              {events.length > 0 && <PixelCat pose="donut" size={64} />}
+                              {labResults.length > 0 && <PixelCat pose="loaf" size={64} />}
+                          </span>
+                      )}
+                      <p className={`text-xs font-medium ${muted}`}>{primary.label}</p>
+                      <p className={`${readingSlot} mt-1.5 text-[length:var(--text-reading-sm-size)]`}>
+                          {primary.value > 0 ? (
+                              <>
+                                  <span className={on}>
+                                      <AnimatedNumber value={primary.value} decimals={primary.decimals} />
+                                  </span>
+                                  <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
+                              </>
+                          ) : (
+                              <span className={dim}>--</span>
+                          )}
+                      </p>
+                      {companion && companion.value > 0 && (
+                          <p className={`mt-1 text-xs tabular-nums ${muted}`}>
+                              {companion.label} {companion.value.toFixed(companion.decimals)} {companion.unit}
+                          </p>
+                      )}
+                      {primary.value > 0 && (
+                          <div className="mt-3">
+                              <LevelRail
+                                  value={primary.value}
+                                  band={primary.band}
+                                  domain={primary.domain}
+                                  label={currentStatus ? t(currentStatus.label) : undefined}
+                                  tone={currentStatus?.color}
+                              />
+                          </div>
+                      )}
+                  </div>,
+                  sideSlot,
+              )
+            : null;
+
     return (
-        <>
+        <div className={chartFirst ? 'touch-short:flex touch-short:flex-col' : undefined}>
+            {sideStatus}
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
@@ -249,7 +309,9 @@ const Home: React.FC<HomeProps> = ({
                 heatmap moves beside the chart, so the second reading stays at
                 the far edge. */}
             {showHeader && (
-                <header className="pt-6 pb-5 short:pt-4 short:pb-4 border-b-(length:--hairline) border-[var(--border)]">
+                <header
+                    className={`pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)] ${chartFirst ? 'touch-short:order-2 touch-short:border-b-0 touch-short:border-t-(length:--hairline) touch-short:pb-10' : ''}`}
+                >
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
                             <>
@@ -328,7 +390,7 @@ const Home: React.FC<HomeProps> = ({
                     the second number is set smaller, and the first gives up a
                     little size too where the column is narrower than an
                     ordinary phone's. */}
-                                <div className="@container">
+                                <div className={`@container ${sideStatus ? 'touch-short:hidden' : ''}`}>
                                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1.5 @min-[32rem]:gap-x-6">
                                         {/* Until a blood test anchors the estimate, the way to
                             add one rides beside the label of the reading it would
@@ -657,7 +719,9 @@ const Home: React.FC<HomeProps> = ({
             {/* On a desktop the dose heatmap sits on the chart's right, a third
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
-            <main className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn}`}>
+            <main
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${chartFirst ? 'touch-short:order-1 touch-short:max-w-none touch-short:pt-4 touch-short:pb-6' : ''}`}
+            >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />
@@ -695,6 +759,7 @@ const Home: React.FC<HomeProps> = ({
                                 calibrationFn={calibrationFn}
                                 isDarkMode={isDarkMode}
                                 isMono={isMono}
+                                fillShort={chartFirst}
                             />
                         </div>
                         <DoseHeatmap
@@ -718,7 +783,7 @@ const Home: React.FC<HomeProps> = ({
                 )}
                 <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
             </main>
-        </>
+        </div>
     );
 };
 
