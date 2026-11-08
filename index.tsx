@@ -4,10 +4,12 @@ import './src/index.css';
 import App from './src/App';
 import { watchForAppUpdates } from './src/utils/swUpdate';
 import { preventPinchZoom } from './src/utils/preventPinchZoom';
+import { watchInputMode } from './src/utils/inputMode';
 import { recoverReplaceJournal } from './src/utils/replaceJournal';
 
 watchForAppUpdates();
 preventPinchZoom();
+watchInputMode();
 
 /**
  * A Replace interrupted between localStorage writes leaves a journal. Recover

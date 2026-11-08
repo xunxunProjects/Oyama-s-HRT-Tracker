@@ -87,6 +87,9 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
         err !== null ? `${X(lo)},${Y(lo * k)} ${X(hi)},${Y(hi * k)} ${X(hi)},${Y(hi / k)} ${X(lo)},${Y(lo / k)}` : null;
 
     const hp = hover !== null ? points[hover] : null;
+    // Half the tap box around each mark: 20px for a mouse, 44px wherever a
+    // finger can reach the screen (a touch laptop's too).
+    const hit = typeof window !== 'undefined' && window.matchMedia?.('(any-pointer: coarse)').matches ? 22 : 10;
     const r = 4.5 * ui;
 
     return (
@@ -273,10 +276,10 @@ const CalibrationPlot: React.FC<CalibrationPlotProps> = ({ calibration, t, lang 
                                     onClick={() => setHover(active ? null : i)}
                                 >
                                     <rect
-                                        x={-10 * ui}
-                                        y={-10 * ui}
-                                        width={20 * ui}
-                                        height={20 * ui}
+                                        x={-hit * ui}
+                                        y={-hit * ui}
+                                        width={2 * hit * ui}
+                                        height={2 * hit * ui}
                                         fill="transparent"
                                     />
                                     <path

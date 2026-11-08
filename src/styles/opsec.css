@@ -155,7 +155,7 @@
     text-align: start;
     transition: color var(--duration-quick) var(--ease-standard);
 }
-.opsec-contents button:hover {
+:where(:root:not([data-input="touch"])) .opsec-contents button:hover {
     color: var(--text);
 }
 .opsec-contents button.is-active {
