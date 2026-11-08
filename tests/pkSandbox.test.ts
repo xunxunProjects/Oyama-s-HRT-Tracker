@@ -5,8 +5,8 @@ import { PK_SANDBOX_MODELS, buildSandboxEvent, computePkSandbox } from '../logic
 const model = (id: string) => PK_SANDBOX_MODELS.find(m => m.id === id)!;
 
 describe('pkSandbox model catalog', () => {
-    it('covers every supported route/ester combination', () => {
-        expect(PK_SANDBOX_MODELS.length).toBe(54);
+    it('covers every route/ester combination the dose form can log', () => {
+        expect(PK_SANDBOX_MODELS.length).toBe(20);
         expect(model('oral:E2')).toBeDefined();
         expect(model('injection:EV')).toBeDefined();
         expect(model('sublingual:E2')).toBeDefined();
@@ -15,12 +15,16 @@ describe('pkSandbox model catalog', () => {
         expect(model('oral:CPA')).toBeDefined();
         expect(model('oral:BICA')).toBeDefined();
         expect(model('injection:TU')).toBeDefined();
-        expect(model('sc:TC')).toBeDefined();
+        expect(model('sc:T')).toBeDefined();
         expect(model('gel:T')).toBeDefined();
-        expect(model('patchApply:T')).toBeDefined();
-        expect(model('oral:TU')).toBeDefined();
         expect(model('nasal:T')).toBeDefined();
-        expect(model('pellet:TE')).toBeDefined();
+        expect(model('pellet:T')).toBeDefined();
+    });
+
+    it('leaves out pairs nothing calibrates, like plain estradiol injected', () => {
+        expect(PK_SANDBOX_MODELS.find(m => m.id === 'injection:E2')).toBeUndefined();
+        expect(PK_SANDBOX_MODELS.find(m => m.id === 'oral:EB')).toBeUndefined();
+        expect(PK_SANDBOX_MODELS[0].id).toBe('injection:EV');
     });
 
     it('has unique ids', () => {

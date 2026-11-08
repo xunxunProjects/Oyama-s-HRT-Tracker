@@ -59,8 +59,7 @@ const MEDIUM_HORIZON = 168;
 const LONG_HORIZON = 720;
 const STEP_H = 0.1;
 
-const E2_ESTERS: Ester[] = [Ester.E2, Ester.EB, Ester.EV, Ester.EC, Ester.EN, Ester.EU];
-const T_ESTERS_LIST: Ester[] = [Ester.T, Ester.TC, Ester.TE, Ester.TU];
+const T_ESTERS_LIST: Ester[] = [Ester.TC, Ester.TE, Ester.TU];
 
 function vdMlFor(ester: Ester, bodyWeightKG: number): number {
     if (ester === Ester.CPA) return 14.0 * bodyWeightKG * 1000;
@@ -141,24 +140,27 @@ function buildExtras(model: PkSandboxModel, inputs: PkSandboxInputs): Partial<Re
     return extras;
 }
 
+/**
+ * The drug and route pairs the dose form lets someone log (DoseForm's
+ * knownEsters and menuRoutes), in its order. The route modules accept more
+ * pairs than these, but nothing calibrates them: plain estradiol injected,
+ * for one, takes the ester formation fraction of 1 against the slow injection
+ * clearance and peaked near 28000 pg/mL from 5 mg (issue #277).
+ */
 const MODEL_DEFS: { route: Route; ester: Ester }[] = [
-    ...E2_ESTERS.flatMap(ester => [
-        { route: Route.injection, ester },
-        { route: Route.sublingual, ester },
-        { route: Route.gel, ester },
-        { route: Route.patchApply, ester },
-        { route: Route.oral, ester },
-    ]),
+    ...[Ester.EV, Ester.EB, Ester.EC, Ester.EN, Ester.EU].map(ester => ({ route: Route.injection, ester })),
+    { route: Route.oral, ester: Ester.E2 },
+    { route: Route.oral, ester: Ester.EV },
+    { route: Route.sublingual, ester: Ester.E2 },
+    { route: Route.sublingual, ester: Ester.EV },
+    { route: Route.gel, ester: Ester.E2 },
+    { route: Route.patchApply, ester: Ester.E2 },
     { route: Route.oral, ester: Ester.CPA },
     { route: Route.oral, ester: Ester.BICA },
-    ...T_ESTERS_LIST.flatMap(ester => [
-        { route: Route.injection, ester },
-        { route: Route.sc, ester },
-        { route: Route.gel, ester },
-        { route: Route.patchApply, ester },
-        { route: Route.pellet, ester },
-    ]),
-    { route: Route.oral, ester: Ester.TU },
+    ...T_ESTERS_LIST.map(ester => ({ route: Route.injection, ester })),
+    { route: Route.sc, ester: Ester.T },
+    { route: Route.gel, ester: Ester.T },
+    { route: Route.pellet, ester: Ester.T },
     { route: Route.nasal, ester: Ester.T },
 ];
 
