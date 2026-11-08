@@ -170,9 +170,9 @@ export function dueLabel(atH: number, lang: Lang, withTime = true, nowH = Date.n
 /**
  * Languages whose short weekday doesn't read as a day on its own: Japanese and
  * Korean cut it to one character ("火", "화"), which is just a noun outside a
- * calendar, and Turkish to "Sal". "周二" and "Tue" stand alone fine.
+ * calendar, Turkish to "Sal", and Russian and Ukrainian to "вт". "周二" and "Tue" stand alone fine.
  */
-const LONG_WEEKDAY: ReadonlySet<Lang> = new Set<Lang>(['ja', 'ko', 'tr']);
+const LONG_WEEKDAY: ReadonlySet<Lang> = new Set<Lang>(['ja', 'ko', 'tr', 'ru', 'uk']);
 
 // Two words every language needs here and nowhere else.
 const T_TODAY: Partial<Record<Lang, string>> & { en: string } = {
@@ -183,6 +183,8 @@ const T_TODAY: Partial<Record<Lang, string>> & { en: string } = {
     ja: '今日',
     ko: '오늘',
     tr: 'Bugün',
+    ru: 'Сегодня',
+    uk: 'Сьогодні',
 };
 const T_TOMORROW: Partial<Record<Lang, string>> & { en: string } = {
     zh: '明天',
@@ -192,6 +194,8 @@ const T_TOMORROW: Partial<Record<Lang, string>> & { en: string } = {
     ja: '明日',
     ko: '내일',
     tr: 'Yarın',
+    ru: 'Завтра',
+    uk: 'Завтра',
 };
 
 /** The unit one item of a pack is counted in: 支, 片, 泵, 袋. */

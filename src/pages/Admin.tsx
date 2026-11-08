@@ -128,6 +128,8 @@ const NOTICE_LANGS: { id: 'default' | Lang; label: string }[] = [
     { id: 'ja', label: '日本語' },
     { id: 'ko', label: '한국어' },
     { id: 'tr', label: 'Türkçe' },
+    { id: 'ru', label: 'Русский' },
+    { id: 'uk', label: 'Українська' },
 ];
 
 /** A user's picture, or their first two letters when they have none. */

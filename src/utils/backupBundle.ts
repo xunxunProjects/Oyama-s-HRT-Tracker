@@ -366,7 +366,9 @@ const isLang = (value: unknown): value is Lang =>
     value === 'en' ||
     value === 'ja' ||
     value === 'ko' ||
-    value === 'tr';
+    value === 'tr' ||
+    value === 'ru' ||
+    value === 'uk';
 
 // `bayes` is website-only for now: hrt-cold Tools rejects it (see
 // docs/backup-schema-audit/BACKUP_TEST_VECTORS.md, BTV-1).

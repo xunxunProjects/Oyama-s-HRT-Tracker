@@ -35,6 +35,8 @@ const LOCALE: Record<Lang, string> = {
     ja: 'ja',
     ko: 'ko',
     tr: 'tr',
+    ru: 'ru',
+    uk: 'uk',
 };
 
 const formatDateTime = (seconds: number, lang: Lang) =>

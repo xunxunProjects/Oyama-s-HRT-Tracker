@@ -1,6 +1,6 @@
 export const NOTICE_COLUMNS = 'body, body_i18n, level, starts_at, expires_at, revision, updated_at';
 export const MAX_NOTICE_BODY = 2000;
-export const NOTICE_LANGS = ['zh', 'zh-TW', 'yue', 'en', 'ja', 'ko', 'tr'] as const;
+export const NOTICE_LANGS = ['zh', 'zh-TW', 'yue', 'en', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
 
 export interface SiteNoticeRow {
     body: string;

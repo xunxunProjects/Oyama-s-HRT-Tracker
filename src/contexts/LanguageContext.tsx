@@ -20,6 +20,8 @@ const LANG_LOCALE: Record<Lang, string> = {
     ja: 'ja',
     ko: 'ko',
     tr: 'tr',
+    ru: 'ru',
+    uk: 'uk',
 };
 
 /**
@@ -43,6 +45,8 @@ const FALLBACK: Record<Lang, readonly Lang[]> = {
     ja: ['en', 'zh'],
     ko: ['en', 'zh'],
     tr: ['en', 'zh'],
+    ru: ['en', 'zh'],
+    uk: ['en', 'zh'],
 };
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {

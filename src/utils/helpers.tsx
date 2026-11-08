@@ -8,6 +8,8 @@ export const LOCALE_MAP: Record<Lang, string> = {
     ja: 'ja-JP',
     ko: 'ko-KR',
     tr: 'tr-TR',
+    ru: 'ru-RU',
+    uk: 'uk-UA',
 };
 
 export const formatDate = (date: Date, lang: Lang, timeZone?: string) => {
