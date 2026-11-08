@@ -23,6 +23,7 @@ interface SettingsProps {
     onNavigateToDisclaimer: () => void;
     onNavigateToOpSec: () => void;
     onNavigateToPKDemos?: () => void;
+    onNavigateToModelGuide: () => void;
     onShowIntro: () => void;
     onNavigateToTransparency: () => void;
     onNavigateToCredits: () => void;
@@ -155,6 +156,7 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToDisclaimer,
     onNavigateToOpSec,
     onNavigateToPKDemos,
+    onNavigateToModelGuide,
     onShowIntro,
     onNavigateToTransparency,
     onNavigateToCredits,
@@ -425,14 +427,7 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="space-y-8">
             <SectionHeading title={t('settings.section.about')} />
             <div className={section}>
-                <NavRow
-                    label={t('drawer.model_title')}
-                    onClick={() =>
-                        showDialog('confirm', t('drawer.model_confirm'), () =>
-                            window.open('https://mahiro.uk/articles/estrogen-model-summary', '_blank'),
-                        )
-                    }
-                />
+                <NavRow label={t('drawer.model_title')} onClick={() => navTo(onNavigateToModelGuide, 'about')} />
                 <NavRow
                     label={t('drawer.github')}
                     onClick={() =>
@@ -446,7 +441,6 @@ const Settings: React.FC<SettingsProps> = ({
                 <NavRow label={t('settings.community')} onClick={() => navTo(onNavigateToCommunity, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 <NavRow label={t('opsec.title')} onClick={() => navTo(onNavigateToOpSec, 'about')} />
-                <NavRow label={t('pk_demo.title')} onClick={() => navTo(onNavigateToPKDemos ?? (() => {}), 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
                     to it — and the only way anyone who skipped it can read it. */}
                 <NavRow label={t('settings.show_intro')} onClick={onShowIntro} />
@@ -454,6 +448,9 @@ const Settings: React.FC<SettingsProps> = ({
 
             <SectionHeading title={t('settings.section.developer')} />
             <div className={section}>
+                {/* The two teaching pages work with made-up numbers and LaTeX, so they
+                    sit with the other things for people who read the code. */}
+                <NavRow label={t('pk_demo.title')} onClick={() => navTo(onNavigateToPKDemos ?? (() => {}), 'about')} />
                 <SwitchRow
                     label={t('settings.developer_mode')}
                     desc={t('settings.developer_mode_desc')}
