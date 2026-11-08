@@ -183,14 +183,14 @@ const Home: React.FC<HomeProps> = ({
     const readingSlot =
         'font-display inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums';
     const fullSize =
-        'text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)]';
+        'text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)] short:text-[length:var(--text-reading-md-size)]';
     // Side by side the two readings are always one size, so they read as a
     // pair on one baseline. In a column narrower than 32rem (every phone) that
     // size follows the column, up to the reading scale's 40px, so a four-digit
     // estradiol peak still clears the cyproterone figure on a 320px screen.
     // From 32rem both take the reading scale: 40px, then 52px, then 64px.
     const pairedSize =
-        'text-[min(var(--text-reading-sm-size),10cqw)] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)]';
+        'text-[min(var(--text-reading-sm-size),10cqw)] @min-[32rem]:text-[length:var(--text-reading-sm-size)] @min-[32rem]:sm:text-[length:var(--text-reading-md-size)] @min-[32rem]:md:text-[length:var(--text-reading-size)] @min-[32rem]:short:text-[length:var(--text-reading-md-size)]';
     const slotWidth = (intDigits: number, decimals: number) =>
         `calc(${intDigits + decimals + (decimals ? 0.35 : 0)}ch + 3.25rem)`;
 
@@ -249,7 +249,7 @@ const Home: React.FC<HomeProps> = ({
                 heatmap moves beside the chart, so the second reading stays at
                 the far edge. */}
             {showHeader && (
-                <header className="pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)]">
+                <header className="pt-6 pb-5 short:pt-4 short:pb-4 border-b-(length:--hairline) border-[var(--border)]">
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
                             <>

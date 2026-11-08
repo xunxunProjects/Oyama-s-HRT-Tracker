@@ -403,6 +403,31 @@ path.ink-draw {
     }
 }
 
+/* A touch screen turned sideways (a phone or foldable in landscape) is wide
+   enough for the sidebar but short of height, and the open panel took a third
+   of the width from a page that already scrolls. There it rests as the icon
+   strip too. With no hover to open it, an icon goes straight to its page, and
+   the panel opens only while data-open is set (Sidebar.tsx). Same 40rem as the
+   `short` variant in index.css. */
+@media (orientation: landscape) and (max-height: 40rem) and (pointer: coarse) {
+    .side-nav {
+        --sidebar-width: 5rem;
+    }
+    .side-panel {
+        width: var(--sidebar-width);
+        transition: width var(--duration-slow) var(--ease-out);
+    }
+    .side-label {
+        display: none;
+    }
+    .side-nav[data-open] .side-panel {
+        width: 16.25rem;
+    }
+    .side-nav[data-open] .side-label {
+        display: block;
+    }
+}
+
 /* ── controls ───────────────────────────────────────────────────────────── */
 
 /* Ambient: hover, focus and selected states ease instead of snapping, across
