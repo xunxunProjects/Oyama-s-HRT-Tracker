@@ -275,6 +275,7 @@ const ResultChart = ({
     mode,
     title,
     timeZone,
+    lead,
 }: {
     sim: SimulationResult | null;
     /** Past "now", draw `ahead` dashed. Off, the chart is as it always was: `sim` throughout, solid. */
@@ -291,6 +292,12 @@ const ResultChart = ({
     mode?: HRTMode;
     title?: string;
     timeZone?: string;
+    /**
+     * On a wide but short window only (the `short` variant): the reading,
+     * written in the title's place, while the plot grows to fill the screen
+     * under it. Everywhere else the chart is as it always was.
+     */
+    lead?: React.ReactNode;
 }) => {
     const { t, lang } = useTranslation();
     const { isTransmasc: contextIsTransmasc } = useHRTMode();
@@ -979,7 +986,10 @@ const ResultChart = ({
         <div className="w-full">
             {/* Header: title + range chips — flat, matching the page */}
             <div className="flex items-center justify-between gap-3 mb-1">
-                <h2 className="text-sm font-medium text-[var(--text)] truncate">{title ?? t('chart.title')}</h2>
+                <h2 className={`text-sm font-medium text-[var(--text)] truncate ${lead ? 'short:hidden' : ''}`}>
+                    {title ?? t('chart.title')}
+                </h2>
+                {lead && <div className="hidden min-w-0 short:block">{lead}</div>}
                 <Segmented
                     options={rangeOpts.map(o => ({ id: o.key, label: o.label }))}
                     value={range}
@@ -992,7 +1002,7 @@ const ResultChart = ({
             {/* Taller when split, so neither plot is squeezed thinner than a glance can read. */}
             <div
                 ref={setPlotEl}
-                className={`relative ${hasSecondary ? 'h-[22rem] md:h-[28rem]' : 'h-72 md:h-96'} -mx-4 md:-mx-6 select-none touch-pan-y`}
+                className={`relative ${hasSecondary ? 'h-[22rem] md:h-[28rem]' : 'h-72 md:h-96'} ${lead ? 'short:h-[max(14rem,calc(100dvh-7.5rem))]' : ''} -mx-4 md:-mx-6 select-none touch-pan-y`}
             >
                 {width > 0 && (
                     <svg

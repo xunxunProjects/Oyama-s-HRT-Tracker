@@ -242,18 +242,28 @@ const Home: React.FC<HomeProps> = ({
 
     // A wide but short window (a phone turned sideways) has no height to stack
     // the readings over the chart: the chart started below the fold. There the
-    // readings take a column on the left and stay put while the chart and the
-    // rest scroll on the right.
-    const sideBySide = showHeader && events.length > 0;
+    // chart comes first and fills the screen, with the reading written over its
+    // top left in place of its title; the scale, the advisory and the plan
+    // follow underneath, a scroll away.
+    const chartFirst = showHeader && events.length > 0;
+    const chartLead =
+        chartFirst && primary.value > 0 ? (
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className={`text-xs font-medium ${muted}`}>{primary.label}</span>
+                <span className={`${readingSlot} text-[length:var(--text-reading-md-size)]`}>
+                    <span className={on}>
+                        <AnimatedNumber value={primary.value} decimals={primary.decimals} />
+                    </span>
+                    <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
+                </span>
+                {currentStatus && (
+                    <span className={`text-xs font-semibold ${currentStatus.color}`}>{t(currentStatus.label)}</span>
+                )}
+            </div>
+        ) : undefined;
 
     return (
-        <div
-            className={
-                sideBySide
-                    ? 'short:grid short:grid-cols-[minmax(16rem,2fr)_minmax(0,3fr)] short:items-start'
-                    : undefined
-            }
-        >
+        <div className={chartFirst ? 'short:flex short:flex-col' : undefined}>
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
@@ -261,7 +271,9 @@ const Home: React.FC<HomeProps> = ({
                 heatmap moves beside the chart, so the second reading stays at
                 the far edge. */}
             {showHeader && (
-                <header className="pt-6 pb-5 short:sticky short:top-0 short:pt-6 short:pb-6 short:border-b-0 border-b-(length:--hairline) border-[var(--border)]">
+                <header
+                    className={`pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)] ${chartFirst ? 'short:order-2 short:border-b-0 short:border-t-(length:--hairline) short:pb-10' : ''}`}
+                >
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
                             <>
@@ -670,7 +682,7 @@ const Home: React.FC<HomeProps> = ({
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
             <main
-                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${sideBySide ? 'short:pt-6 short:ps-0 short:pe-5 short:pb-10' : ''}`}
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${chartFirst ? 'short:order-1 short:max-w-none short:pt-4 short:pb-6' : ''}`}
             >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
@@ -709,6 +721,7 @@ const Home: React.FC<HomeProps> = ({
                                 calibrationFn={calibrationFn}
                                 isDarkMode={isDarkMode}
                                 isMono={isMono}
+                                lead={chartLead}
                             />
                         </div>
                         <DoseHeatmap
