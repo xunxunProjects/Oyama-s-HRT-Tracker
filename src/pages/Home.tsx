@@ -240,8 +240,18 @@ const Home: React.FC<HomeProps> = ({
     // itself on this column and stays narrow.
     const overviewColumn = events.length ? 'lg:max-w-[96rem]' : '';
 
+    // A wide but short window (a phone turned sideways) has no height to stack
+    // the readings over the chart: the chart started below the fold. There the
+    // readings take a column on the left and stay put while the chart and the
+    // rest scroll on the right.
+    const sideBySide = showHeader && events.length > 0;
+
     return (
-        <>
+        <div
+            className={
+                sideBySide ? 'short:grid short:grid-cols-2 short:items-start' : undefined
+            }
+        >
             {/* Header and body share one column, centred in the pane. Pinned
                 to the left, the readings and chart filled a phone's width of a
                 desktop window while the header rule ran the full width under
@@ -249,7 +259,7 @@ const Home: React.FC<HomeProps> = ({
                 heatmap moves beside the chart, so the second reading stays at
                 the far edge. */}
             {showHeader && (
-                <header className="pt-6 pb-5 short:pt-4 short:pb-4 border-b-(length:--hairline) border-[var(--border)]">
+                <header className="pt-6 pb-5 short:sticky short:top-0 short:pt-6 short:pb-6 short:border-b-0 border-b-(length:--hairline) border-[var(--border)]">
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
                             <>
@@ -657,7 +667,9 @@ const Home: React.FC<HomeProps> = ({
             {/* On a desktop the dose heatmap sits on the chart's right, a third
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
-            <main className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn}`}>
+            <main
+                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${sideBySide ? 'short:pt-6 short:ps-2 short:pb-10' : ''}`}
+            >
                 {events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
                         <DoseDoodle className="w-24 h-auto mb-6" />
@@ -718,7 +730,7 @@ const Home: React.FC<HomeProps> = ({
                 )}
                 <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
             </main>
-        </>
+        </div>
     );
 };
 
