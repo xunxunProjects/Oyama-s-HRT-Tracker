@@ -104,7 +104,11 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
             ).map(([i, v]) => (
                 <span
                     key={v}
-                    className="rail-label absolute bottom-0 -translate-x-1/2 text-xs font-medium leading-none tabular-nums text-[var(--text-muted)]"
+                    // In the narrow reading column of a wide short window the two
+                    // centred figures run into each other, so there they sit
+                    // outside the band: the low one ending at its tick, the
+                    // high one starting at its.
+                    className={`rail-label absolute bottom-0 -translate-x-1/2 text-xs font-medium leading-none tabular-nums text-[var(--text-muted)] ${v === band.low ? 'short:-translate-x-full' : 'short:translate-x-0'}`}
                     style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
                 >
                     {v}
