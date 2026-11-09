@@ -3,7 +3,7 @@ import { baseStorage, seedStorage } from './helpers';
 
 const CASES = [
     { lang: 'zh', settings: '设置', about: '关于', opsec: '日常操作与安全' },
-    { lang: 'en', settings: 'Settings', about: 'About', opsec: 'Everyday Operations & Security' },
+    { lang: 'en', settings: 'Settings', about: 'About', opsec: 'Everyday security' },
 ] as const;
 
 const DIAGRAMS = [

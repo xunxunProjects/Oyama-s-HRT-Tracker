@@ -767,6 +767,25 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
+                    text: 'Diffie-Hellman farklı bir sorunu çözer: iki taraf açık bir kanalda yalnızca ikisinin bildiği bir sır üzerinde nasıl anlaşır? Her taraf a ya da b gibi bir özel üs seçer ve g^a ya da g^b’yi yayımlar. Bu değerleri herkes görebilir ama uygun bir grupta g^{ab} hesaplanamaz. X25519, TLS, Signal ve WireGuard’ın kullandığı modern ECDH uygulamasıdır; ortak bir sır verir, tek başına kimlik doğrulama vermez. Bir sertifika ya da önceden paylaşılmış kimlik yoksa aradaki kişi iki tarafla ayrı ayrı anlaşabilir.',
+                },
+                {
+                    type: 'math',
+                    text: '(g^a)^b = (g^b)^a = g^{ab} \\pmod p',
+                    caption:
+                        'Diffie-Hellman: iki taraf g^a ve g^b’yi yayımlar, sonra kendi özel değeriyle yeniden üs alıp aynı g^{ab}’ye ulaşır.',
+                },
+                {
+                    type: 'p',
+                    text: 'AEAD (Authenticated Encryption with Associated Data) şifreleme ile bütünlük denetimini tek bir arayüzde birleştirir: C = AEAD(K, nonce, plaintext, aad). Tek bir anahtar hem gizlilik hem bütünlük sağlar. nonce’un yeniden kullanılması felakettir; saldırganın düz metni geri elde etmesine ya da şifreli metni taklit etmesine yol açabilir. AAD doğrulanır ama şifrelenmez; protokol başlıkları, sürüm numaraları gibi değişmemesi gereken ama gizli kalması gerekmeyen bağlamlar için uygundur.',
+                },
+                {
+                    type: 'math',
+                    text: 'C = \\operatorname{AEAD}(K, nonce, plaintext, aad)',
+                    caption: 'AEAD: tek anahtar şifreler ve doğrular; nonce yinelenmemeli, AAD bağlamı bağlar.',
+                },
+                {
+                    type: 'p',
                     text: "Karşılıklı bilgi, Y'yi bilmenin X hakkındaki belirsizliği ne kadar azalttığını ölçer. X ile Y bağımsızsa sıfırdır, Y X'i tamamen belirliyorsa X'in entropisine eşittir. Bu istatistiksel bir bağımlılıktır, nedenselliğin kanıtı değil.",
                 },
                 {
@@ -786,6 +805,16 @@ const TR: OpSecContent = {
                 {
                     type: 'p',
                     text: 'Pearson yalnızca doğrusal ilişkileri yakalar. İki değişken doğrusal olmayan biçimde güçlü bir şekilde ilişkili olup yine de sıfıra yakın bir r değerine sahip olabilir. Korelasyon nedensellik de değildir. Trafik analizinde saldırgan çoğu zaman bir giriş akışını bir çıkış akışıyla eşleştirmek için zamanlamayı, paket boyutlarını ve yönü karşılaştırır; bu, benzerlik ve korelasyonun pratik bir uygulamasıdır.',
+                },
+                {
+                    type: 'p',
+                    text: 'Bir anonim küme de aynı dille anlatılabilir: aday kümesi S ise rastgele bir tahminin tutma olasılığı 1/|S|’dir ve bu log2|S| entropisine karşılık gelir; saldırgan L uzunluğundaki bir yol boyunca düğümlerin f oranını kontrol ediyorsa kabaca tam ele geçirme olasılığı f^L’dir. Bunlar basitleştirilmiş modellerdir. Gerçek saldırılar seçim algoritmalarına, trafik desenlerine ve yan bilgilere de bağlıdır; f^L’yi güvenlik garantisi sayma.',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|},\\qquad H = \\log_2 |S|,\\qquad P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        'Aynı anonim kümenin üç görünümü: tahmin olasılığı, entropi ve basitleştirilmiş yol ele geçirme tahmini.',
                 },
                 {
                     type: 'warn',
@@ -907,6 +936,117 @@ const TR: OpSecContent = {
             ],
         },
         {
+            id: 'extended-protocols',
+            title: 'HTTP, HTTPS ve SOCKS5: hangisi şifreler, hangisi yalnızca iletir',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '`https://`, `http://`, `irc://` ve `socks://` dört şifreleme algoritması değildir. Bunlar giriş noktaları ya da adres yazımlarıdır. Güvenliği gerçekte belirleyen, hangi katmanın şifrelediği, şifrelemenin nerede bittiği ve kimin hâlâ üst veriyi görebildiğidir. Bir URL şemasını güvenlik kanıtı saymak, ağ güvenliğinde en sık yapılan ilk hatalardan biridir.',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTP yalnızca istek ve yanıt anlamını tanımlar: istemci istek satırını, başlıkları ve gövdeyi gönderir; sunucu durum kodu, başlıklar ve gövde döndürür. HTTP/1.1 genellikle metindir, HTTP/2 ikili çerçeveler kullanır, ama ikisi de tek başına gizlilik sağlamaz. Yollar, çerezler ve form içerikleri varsayılan olarak düz metindir.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    B["Tarayıcı / uygulama"] -->|"GET / HTTP/1.1<br/>Host: example.com"| P["Wi-Fi / ISS / vekil"]
+    P -->|"aynı düz metin"| S["HTTP sunucusu"]
+    N["Yoldaki herhangi bir atlama: okuyabilir ve değiştirebilir"] --- P`,
+                    caption:
+                        'HTTP’de şifreleme katmanı yoktur: yoldaki Wi-Fi, ISS, vekil ve kötü niyetli cihazlar içeriği okuyabilir ya da değiştirebilir.',
+                },
+                {
+                    type: 'p',
+                    text: 'Yani “HTTP neden düz metin?” sorusunun yanıtı, şifrelemeyi unutması değildir. HTTP yalnızca uygulama katmanının anlamını tanımlar; şifreleme alttaki TLS’ye bırakılır. HTTP’yi TLS’nin içine koyarsan HTTPS olur. HTTP’yi Tor’un içine koyarsan yol değişir ama HTTP’nin kendisi yine düz metindir; çıkış ya da hedef içeriği görebilir.',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTPS ayrı bir uygulama protokolü değil, HTTP over TLS’dir. TLS 1.3 önce ECDHE ile ortak bir sır üzerinde anlaşır, sonra el sıkışma kaydından anahtarlar türetir, en sonunda uygulama verisini AEAD ile korur. Aşağıdaki üç formül bu üç adıma karşılık gelir. Ayrıntı fazla gelirse her paragrafın ilk cümlesini okuyup geç.',
+                },
+                {
+                    type: 'math',
+                    text: 'S = \\operatorname{X25519}(a, B) = \\operatorname{X25519}(b, A)',
+                    caption:
+                        'ECDHE: iki taraf da bir özel anahtar taşır; açık anahtarları değiştirdikten sonra aynı ortak sır S’ye ulaşır.',
+                },
+                {
+                    type: 'math',
+                    text: 'K = \\operatorname{HKDF}(S, \\text{transcript})',
+                    caption:
+                        'Anahtar türetme: ortak sır ve el sıkışma kaydı HKDF’ye verilir, oturum anahtarları elde edilir.',
+                },
+                {
+                    type: 'math',
+                    text: 'C = \\operatorname{AEAD}(K, nonce, plaintext, aad)',
+                    caption:
+                        'AEAD: şifreleme ile kimlik doğrulamayı birlikte yapar; nonce yinelenmemeli, aad değişmemesi gereken bağlamı bağlar.',
+                },
+                {
+                    type: 'p',
+                    text: 'Bir sertifika “bağlandığım açık anahtar gerçekten bu alan adına mı ait?” sorusunu yanıtlar. Tarayıcı, sertifika imzasını sistemdeki ya da yerleşik CA açık anahtarıyla doğrular; alan adını, geçerlilik süresini ve kullanım amacını denetler. Certificate Transparency günlükleri yanlış düzenlemeyi yakalamayı kolaylaştırır. Sertifika sitenin iyi olduğunu değil, yalnızca bu TLS bağlantısının bu alan adına ait olduğunu kanıtlar.',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Verify}(PK_{CA}, cert, sig) \\rightarrow \\{0,1\\}',
+                    caption:
+                        'Sertifika doğrulama: sertifika imzasını CA açık anahtarıyla doğrula; başarısız olursa devam etme, uyar.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    B["Tarayıcı / uygulama"] -->|"TLS el sıkışması: sertifika, ECDHE"| S["HTTPS sunucusu"]
+    B == "HTTP isteği (AEAD ile şifreli)" ==> S
+    P["Wi-Fi / ISS / vekil"] -. "IP, SNI, DNS, trafik boyutu ve zamanı görünür" .-> B`,
+                    caption:
+                        'HTTPS yolu, başlıkları ve gövdeyi korur; hedef IP’yi, SNI’yi (ECH yoksa), DNS’i (DoH/DoT değilse) ve trafik desenlerini gizlemez.',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTPS’nin korumadıkları: ziyaret ettiğin IP’yi gizlemez. TLS 1.3, ECH etkin değilse ve aradaki cihazlar desteklemiyorsa SNI’yi varsayılan olarak açık bırakır. DNS, DoH/DoT kullanmıyorsan hâlâ düz metin olabilir. Trafik boyutu, zamanlama ve bağlantı sıklığı çıkarım için kullanılabilir. Girişten sonraki çerezler, hesap davranışı ve sunucu günlükleri TLS’nin koruma alanı dışındadır.',
+                },
+                {
+                    type: 'p',
+                    text: 'SOCKS5 bir vekil protokolüdür, şifreleme protokolü değildir. İstemci önce sürüm ve kimlik doğrulama yöntemi üzerinde vekille anlaşır, sonra `CONNECT target:port` gönderir. Vekil bağlantıyı kurduğunda baytları olduğu gibi iletir. Yerel ağı dolanabilir ve DNS çözümlemesini vekile bırakabilir (genellikle `socks5h://` yazılır), ama kendiliğinden bir şifreleme katmanı eklemez.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    A["Uygulama"] -->|"1. kimlik doğrulamayı anlaş"| P["SOCKS5 vekili"]
+    A -->|"2. CONNECT target:443"| P
+    P -->|"3. baytları olduğu gibi ilet"| T["Hedef sunucu"]
+    T -->|"yanıt"| P
+    P --> A`,
+                    caption:
+                        'SOCKS5 yalnızca el sıkışma ve iletmeyle ilgilenir; şifrelemeyi üstteki TLS, SSH ya da Tor sağlamak zorundadır.',
+                },
+                {
+                    type: 'p',
+                    text: '`socks://` de tarayıcıların ortak URL şeması değildir; tarayıcılar SOCKS ayarlarını genellikle ağ/vekil yapılandırmasına koyar, adres çubuğuna yazmana izin vermez. Tor’un SOCKS5 kullanması, yerel uygulamaların trafiği Tor’a devretmek için yerel bir giriş noktasına ihtiyaç duymasındandır. Anonimlik soğan yönlendirmesinden gelir, SOCKS5’in kendisinden değil.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'HTTP: uygulama katmanı anlamı, düz metin; yoldaki herhangi bir atlama okuyabilir ya da değiştirebilir.',
+                        'HTTPS: HTTP over TLS; yol, başlıklar ve gövde şifrelenir; IP, SNI, DNS ve trafik desenleri yine açığa çıkabilir.',
+                        'SOCKS5: vekil el sıkışması ve iletme; şifreleme yok; çıkışı değiştirebilir ama TLS’nin ya da Tor’un yerini alamaz.',
+                        'IRC: bir uygulama protokolü; genel IRC varsayılan olarak düz metindir; ağ katmanı anonimliğinden ancak I2P/Freenet gibi bir anonim ağın içinde söz edilebilir.',
+                        'Tor: soğan yönlendirme; SOCKS5’i yerel giriş noktası olarak kullanır; yönlendirme katmanını korur, çıkıştan ya da hedef uçtan sonraki düz metni korumaz.',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '“HTTPS var”, “SOCKS5 kullanıyor” ya da “adres .onion” ifadelerini güvenlik kanıtı sayma. HTTPS yalnızca bağlantıyı ve sertifikayı, SOCKS5 yalnızca trafiğin bir vekilden geçtiğini, .onion ise yalnızca hizmetin Tor ağı içinde olduğunu kanıtlar. Oltalama sitelerinin de HTTPS’si olabilir; kötü niyetli bir vekil düz metin HTTP’ni olduğu gibi iletebilir.',
+                },
+                {
+                    type: 'p',
+                    text: 'Bu bölümün korumadığı şey: okulun ya da iş yerinin ağ yönetimini aşmayı öğretmez ve vekili anonimlik aracı olarak görmez. Yalnızca şunu değerlendirmene yardım eder: şu anda hangi katman şifreliyor, kim iletmekte ve kim hâlâ üst veriyi görebilmekte. Bir dahaki sefere kilit simgesi ya da vekil gördüğünde, etikete inanmadan önce bu üç soruyu sor.',
+                },
+            ],
+        },
+        {
             id: 'extended-tor',
             title: 'Tor: giriş, çıkış ve köprü değiştirme',
             level: 'extended',
@@ -914,6 +1054,21 @@ const TR: OpSecContent = {
                 {
                     type: 'p',
                     text: 'Tor trafiği bir giriş koruyucusu, bir orta aktarıcı ve bir çıkıştan oluşan bir devreye yerleştirir. Her aktarıcı yalnızca komşu atlamayı bilir; normal durumda hiçbir aktarıcı hem kim olduğunu hem de nereye gittiğini bilmez.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    C["İstemci"] -->|"IP’ni bilir<br/>hedefi bilmez"| G["Giriş koruyucusu"]
+    G -->|"yalnızca komşu atlamayı bilir"| M["Orta aktarıcı"]
+    M -->|"yalnızca komşu atlamayı bilir"| X["Çıkış aktarıcısı"]
+    X -->|"hedefi bilir<br/>IP’ni bilmez"| D["Hedef"]
+    D -. "çıkış IP’sini görür" .-> X`,
+                    caption:
+                        'Üç atlamalı devre: koruyucu IP’ni bilir ama hedefi bilmez, orta iki ucu da bilmez, çıkış hedefi bilir ama seni bilmez; hedef yalnızca çıkış IP’sini görür.',
+                },
+                {
+                    type: 'p',
+                    text: '.onion gizli hizmeti genel bir çıkış kullanmaz. İstemci ve hizmet, Tor ağının içinde tanıtım noktası ve buluşma noktası üzerinden buluşur; hizmet senin IP’n yerine bir Tor devresi görür. Yine de Tor ele geçirilmiş bir ucu ya da çıkıştan sonraki düz metni korumaz: hizmet giriş yaptığın hesabı kaydediyorsa ya da son atlama hâlâ HTTP ise soğan yönlendirme yardım etmez.',
                 },
                 {
                     type: 'p',
@@ -1012,6 +1167,220 @@ const TR: OpSecContent = {
                     type: 'warn',
                     kind: 'important',
                     text: "DC-Net'in bilgi kuramsal garantisi protokol hakkında bir ifadedir, belirli bir istemcinin ya da eklentinin onaylanması değil. Uygulamadaki, kimlik doğrulamadaki, yayın katmanındaki ya da meta verilerdeki bir hata kâğıt üzerindeki güvenliği boşa çıkarabilir.",
+                },
+            ],
+        },
+        {
+            id: 'extended-irc',
+            title: 'I2P/Freenet üzerinden IRC: anonim ağın içinde sohbet',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Önce kapsamı netleştirelim: genel IRC genellikle bir gizlilik aracı değildir. Çoğu zaman düz metin akar; sunucu IP’ni, takma adını, kanallarını ve bağlantı zamanlarını görebilir. TLS yalnızca sunucuya kadar olan bağlantıyı korur, sunucunun kendisini değil. “IRC”yi aşırı gizlilik sanmak, istemci arayüzünü ağ katmanıyla karıştırmaktır.',
+                },
+                {
+                    type: 'p',
+                    text: 'Burada yalnızca I2P/Freenet üzerinden IRC ele alınıyor: IRC sohbet arayüzü olarak kalır, anonimlik alttaki ağdan gelir. I2P, IRC sunucusunu gizli hizmet olarak çalıştırır. İstemci giden tünelden girer, sunucu gelen tünelden alır; Tor’daki gibi bir çıkış düğümü yoktur. Sunucunun gördüğü şey bir I2P destination’dır, gerçek IP’n değil.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Local["Cihazın"]
+        C["IRC istemcisi"] --> R["I2P yönlendiricisi"]
+    end
+    subgraph Network["I2P ağı"]
+        O["Giden tünel"] --> G["Sarımsak yönlendirme"] --> I["Gelen tünel"]
+    end
+    S["IRC sunucusu (gizli hizmet)"]
+    L["Sunucu günlükleri ve kanal durumu"]
+    R --> O
+    I --> S
+    S --> L`,
+                    caption:
+                        'I2P IRC: çıkış düğümü yok; sunucu bir I2P destination görür ama kanalları, takma adları, mesajları ve zamanları yine kaydedebilir.',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet (eski adıyla Freenet) üzerindeki IRC, FLIP (Freenet Lightweight IRC Program) üzerinden yürür; sonraları FLIRCP de eklendi. IRC istemcisi localhost:6667’ye bağlanır ve FLIP geçidi IRC trafiğini Freenet’e sarar. FMS (Freenet Message System) ayrı bir forum/NNTP benzeri ön uçtur, FLIP ile paralel çalışır ve FLIP’in taşıma katmanı değildir. FLIP resmî bir eklenti değildir; mesaj gecikmesi genellikle 30 saniyeden birkaç dakikaya çıkar, başarım ve spam direnci sınırlıdır.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Device["Cihazın"]
+        C["IRC istemcisi"] --> F["FLIP geçidi (localhost:6667)"]
+    end
+    subgraph Network["Hyphanet / Freenet"]
+        N["Freenet düğümü"] --> P["Eş / FLIP geçidi"]
+    end
+    R["Uzaktaki IRC eşi"]
+    F --> N
+    P --> R`,
+                    caption:
+                        'Freenet IRC: yerel FLIP geçidi IRC’yi Freenet’e sarar; güven sınırına yerel FLIP süreci, Freenet düğümü ve karşı tarafın FLIP geçidi girer.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Genel IRC: sunucu IP’ni görür; TLS yalnızca sunucuya kadar korur; standart uçtan uca şifreleme yoktur.',
+                        'Tor üzerinden IRC: Tor çıkış düğümü trafiği görebilir; IRC sunucusu çıkış IP’sini görür; bu “aşırı gizlilik” değildir.',
+                        'I2P üzerinden IRC: sunucu gizli hizmettir; çıkış düğümü yoktur; sunucu bir I2P destination görür; içerikte uçtan uca şifreleme yine yoktur.',
+                        'Freenet üzerinden IRC: yerel FLIP geçidi ve Freenet düğümü; FMS ayrı bir forum ön ucudur ve IRC taşımaz; gecikme yüksek, ekosistem küçüktür; yavaş metne uygundur, acil durumlara değil.',
+                    ],
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|}',
+                    caption:
+                        'Basitleştirilmiş anonim küme: sunucunun gönderici olabileceğini düşündüğü aday kümesi S’dir. Takma ad, yazma biçimi, çevrimiçi saatler ve kanal üyeliği S’yi daraltır.',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        'Basitleştirilmiş tünel modeli: saldırgan f oranını kontrol eder, yolun uzunluğu L’dir. Gerçek saldırılarda korelasyon vardır; f^L’yi güvenlik garantisi sayma.',
+                },
+                {
+                    type: 'p',
+                    text: 'Bu şemadaki “şifreleme” yalnızca bağlantıyı korur: I2P/Freenet düğümleri aralarında şifreleme yapar ama IRC sunucusunun ucu düz metin mesajları yine görür. İstemci ayrıca OTR ya da uçtan uca şifreleme eklemiyorsa sunucu yöneticisi, saldırgan ya da baskı altındaki işletmeci mesajları okuyabilir. Anonim ağ “sunucunun kimi gördüğünü” çözer, “sunucunun ne gördüğünü” değil.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'IRC’de gerçek takma adını, okulunu, kentini ya da sabit günlük programını kullanma; ident/realname alanlarını boş bırak ya da anlamsız doldur.',
+                        'CTCP, DCC ve otomatik dosya aktarımını kapat; kanallardaki bağlantılara tıklama; ses ya da görüntü kullanma.',
+                        'I2P: doğru gizli hizmet destination’ına bağlandığını doğrula; genel bir IRC sunucusunu adres olarak kullanma.',
+                        'Freenet: FLIP anlık mesajlaşma değildir; acil durumlarda kullanma; eklentinin kaynağını ve sürümünü doğrula; FLIP takma adları ve kanal kimlikleri zamanla ilişkilendirilebilir.',
+                        'Sunucunun her şeyi kaydettiğini varsay: takma adları ve kanalları düzenli olarak değiştir, tek bir kanalda programını açığa çıkarma, başka hesaplardaki takma adları yeniden kullanma.',
+                        'İçeriğin gizliliği önemliyse istemcinin desteklediği OTR ya da uçtan uca şifrelemeyi kullan; içeriği korur ama kimin ne zaman ne kadar konuştuğunu gizlemez.',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Bu ağlar acil durumlar için anlık iletişim kanalları değildir. Doğrudan tehlike altındaysan önce telefonla ara, acil servislere ulaş ya da güvendiğin bir yetişkine git; anonim ağlar sunucunun kayıt tutmamasını, ele geçirilmemesini ya da uzun vadeli trafik korelasyonuna maruz kalmamasını garanti edemez.',
+                },
+            ],
+        },
+        {
+            id: 'extended-network-map',
+            title: 'Ağ haritası: GNUnet, I2P, Hyphanet ve ZeroNet',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'GNUnet, I2P, Hyphanet (eski adıyla Freenet) ve ZeroNet sık sık aynı “anonim ağlar” listesine konur, ama aynı türden sistemler değildir ve birbirlerinin yerini tutamazlar. Amaçları, kimlik modelleri, yönlendirmeleri ve başarısızlık biçimleri farklıdır. “Merkeziyetsiz”, “P2P” ve “anonim” sözcüklerini eş anlamlı saymak, seni gerçekte hangi katmanın açığa çıkardığını görmeni zorlaştırır.',
+                },
+                {
+                    type: 'p',
+                    text: 'GNUnet, kurup unutabileceğin bir tarayıcı vekilinden çok araştırma amaçlı bir P2P çerçevesine yakındır. GNS (adlandırma), CADET (uçtan uca yönlendirme), FS (dosya paylaşımı) ve RPS (rastgele eş örnekleme) gibi alt sistemler içerir. Her alt sistemin gizlilik özellikleri aynı değildir; anonimlik hangi katmanı kullandığına, karşı tarafın kim olduğuna ve yapılandırmanın doğru olup olmadığına bağlıdır. Tor’un yerine geçmez ve kurulumuyla bakımı belirgin biçimde daha zahmetlidir.',
+                },
+                {
+                    type: 'p',
+                    text: 'I2P, sarımsak yönlendirme ve tek yönlü gelen/giden tüneller kullanarak trafiği kendi ağının içinde tutar. Eepsite’lara ve P2P uygulamalarına yöneliktir; varsayılan olarak normal internete çıkış sağlamaz. Bir outproxy eklersen bir güven noktası daha eklemiş olursun. Daha hızlı bir Tor değildir; amaçları farklıdır. Ayrıntı için yukarıdaki I2P bölümüne bak.',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet (eski adıyla Freenet) dağıtık, sansüre dirençli bir depolama ağıdır: düğümler şifrelenmiş içeriği birlikte saklar ve katılım OpenNet (tanımadığın kişilerle bağlan) ya da DarkNet (yalnızca güvendiğin arkadaşlarla bağlan) üzerinden yürür. IRC desteği FLIP/FLIRCP üzerinden çalışır: IRC istemcisi yerel bir FLIP geçidine bağlanır, geçit trafiği Hyphanet’e sarar. FMS (Freenet Message System) ayrı bir forum/NNTP benzeri ön uçtur, FLIP ile paralel çalışır ve FLIP’in IRC trafiğini taşımaz. FLIP resmî değildir, fiilen bakımsızdır, ciddi bir spam koruması yoktur ve genellikle 30 saniyeden birkaç dakikaya varan gecikme ekler. Hyphanet’i sonradan Rust ile yeniden yazılan “Freenet” projesiyle karıştırma; farklı sistemlerdir.',
+                },
+                {
+                    type: 'p',
+                    text: 'ZeroNet web sitelerini BitTorrent/DHT üzerinden dağıtır ve siteleri Bitcoin tarzı adreslerle tanımlar; böylece bir site merkezî sunucu olmadan var olabilir. Ama bu dağıtık yayıncılıktır, anonim ağ değildir: varsayılan yapılandırma IP’ni açığa çıkarır, DHT ve eş bağlantıları ağ izleri bırakır. Son sürümü 2019’daki v0.7.1’dir ve fiilen bakımsızdır. Onu tarihsel ve ibretlik bir örnek olarak gör, öneri olarak değil.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    U["Kullanıcı"]
+    U --> GN["GNUnet<br/>GNS / CADET / FS / RPS"]
+    U --> I2P["I2P tünelleri"] --> E["Eepsite / gizli hizmet"]
+    U --> HY["Hyphanet düğümü"] --> FL["FLIP / FLIRCP IRC"]
+    U --> ZN["ZeroNet<br/>BitTorrent + DHT"]
+    N1["I2P: varsayılan çıkış vekili yok"] -.-> I2P
+    N2["ZeroNet: varsayılan olarak IP’yi açar"] -.-> ZN
+    N3["GNUnet: araştırma çerçevesi"] -.-> GN`,
+                    caption:
+                        'Dört tasarım, dört güven sınırı: GNUnet bir araştırma çerçevesi, I2P varsayılan olarak genel internete çıkmaz, Hyphanet depolama ve FLIP ön uçlarına odaklanır, ZeroNet IP’ni gizlemez.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'GNUnet: kimlik GNS adı ve anahtarlardır; yönlendirme alt sisteme bağlıdır (uçtan uca için CADET, rastgele eş örnekleme için RPS); araştırma amaçlı bir P2P çerçevesidir; IP’nin görünüp görünmemesi taşıma katmanına ve yapılandırmaya bağlıdır; deneyseldir, yapılandırması ağırdır; yanlış yapılandırmaya ve alt sistemler arası üst veriye karşı korumaz.',
+                        'I2P: kimlik bir destination anahtarıdır; sarımsak yönlendirme ve tek yönlü tüneller; eepsite’lar ve iç P2P; eşler gerçek IP’ni görmez ama yerel yönlendiricin ve ISS I2P çalıştırdığını bilir; varsayılan çıkış vekili yoktur; ekosistem küçüktür; uç içeriğini ve trafik desenlerini korumaz.',
+                        'Hyphanet: içerik ve düğüm kimlikleri anahtar tabanlıdır; OpenNet/DarkNet ile dağıtık depolama; sansüre dirençli yayın ve yavaş sohbet; OpenNet seni tanımadığın kişilere açar, DarkNet yalnızca güvenilen eşlere bağlanır; eski bir projedir, FLIP resmî değildir ve bakımsızdır; uçları ya da içeriğin kendisini korumaz, FLIP’in gecikme ve spam sorununu da çözmez.',
+                        'ZeroNet: Bitcoin tarzı adresler siteleri tanımlar; BitTorrent/DHT; dağıtık web siteleri; varsayılan olarak IP’ni açığa çıkarır; 2019’dan beri fiilen bakımsızdır; anonimliği korumaz, çünkü hiçbir zaman anonim bir ağ değildi.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'Hiçbirinin korumadığı şeyler: ele geçirilmiş bir cihaz, ekran görüntüleri, hesap giriş davranışı ya da kendi yayımladığın içerik. Hiçbiri ucun dürüst olduğunu garanti etmez ve hiçbiri “bir ağ kullandım” ifadesini “izlenemem” hâline getirmez. Merkeziyetsizlik de anonimlik değildir: daha çok düğüm ve kopya içeriği silmeyi zorlaştırır, yayıncıyı bulmayı kolaylaştırmaz.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Deneysel yazılımlar güvenli tarafta kalıp durabilir ya da bir şeyler ters gittiğinde açık verip gerçek IP’ni, DNS’ini, eş listesini veya zaman damgalarını sızdırabilir. Önce küçük ölçekte dene ve trafiğin gerçekte hangi yoldan gittiğini doğrula; “kuruldu” demek “güvenli” demek değildir.',
+                },
+            ],
+        },
+        {
+            id: 'extended-messaging',
+            title: 'Mesajlaşma: Session, SimpleX ve IRC’nin güven sınırları',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '“Hangi mesajlaşma uygulaması en güvenli?” genellikle yanlış sorudur. Daha faydalı soru şudur: mesaj benim cihazımdan alıcının cihazına giderken kimden geçiyor, her atlama neyi görebiliyor ve alıcı çevrimdışıyken mesaj nerede bekliyor? Session, SimpleX ve IRC üç farklı ödünleşmeyi temsil eder. Hepsi içeriği şifreleyebilir; hiçbiri bütün üst veriyi senin yerine gizlemez.',
+                },
+                {
+                    type: 'p',
+                    text: 'Session telefon numarası ya da e-posta istemez; hesap anahtarlarla tanımlanır. Mesajlar Oxen Service Nodes ağından soğan yönlendirmeyle geçer ve içerik uçtan uca şifrelenir. Alıcı çevrimdışıysa mesajlar teslimata kadar bir hizmet düğümünde saklanabilir. Bedeli: en az bir hizmet düğümü IP’ni görebilir, düğüm işletmecileri mesaj boyutunu ve zamanını da görebilir. Bu izlemeyi pahalılaştırır ama bir anonimlik düğmesi değildir.',
+                },
+                {
+                    type: 'p',
+                    text: 'SimpleX’te genel bir kullanıcı kimliği yoktur; yalnızca bağlantı başına eşleştirilmiş kuyruk kimlikleri vardır. İki taraf mesajları SMP aktarma sunucuları üzerinden değişir. “Kim olduğun” ve “nerede olduğun” bilgisini protokolden çıkarmaya çalışır, ama aktarma sunucusu yine kuyrukları, bağlantı zamanlarını ve mesaj boyutlarını görür; trafiği Tor ya da başka bir örtü katmanından geçirmiyorsan IP’n de görülebilir. Genel kimlik olmaması, üst veri olmaması demek değildir.',
+                },
+                {
+                    type: 'p',
+                    text: 'I2P/Freenet üzerinden IRC başka bir yaklaşımdır: yeni bir sohbet protokolü icat etmez, var olan IRC’yi anonim bir ağın içine koyar. Örtü katmanı IP’ni gizler; IRC sunucusu ya da eşi mesaj içeriğini yine görür. İstemci OTR ya da uçtan uca şifreleme eklemiyorsa sunucu yöneticisi, saldırgan ya da baskı altındaki işletmeci okuyabilir. FLIP gecikmesi yüksektir, acil durumlar için uygun değildir. Topoloji yukarıdaki IRC bölümünde anlatılıyor.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph S["Session"]
+        SC["İstemci"] -->|"en az bir düğüm IP’ni görebilir"| SN["Oxen Service Nodes<br/>soğan yönlendirme"]
+        SN -->|"çevrimdışı mesajları saklayabilir"| SR["Alıcı"]
+    end
+    subgraph X["SimpleX"]
+        XC["İstemci"] -->|"SMP kuyruğu"| XQ["Aktarma sunucusu<br/>kuyruk ve bağlantı üst verisini görür"]
+        XQ --> XR["Alıcı"]
+    end
+    subgraph I["I2P/Freenet üzerinden IRC"]
+        IC["IRC istemcisi"] -->|"örtü IP’yi gizler"| IO["I2P / Freenet"]
+        IO --> IS["IRC sunucusu / eş<br/>OTR/E2EE yoksa düz metni görür"]
+    end`,
+                    caption:
+                        'Üç yol, üç açık yüzey: Session’ın hizmet düğümleri IP’ni görebilir, SimpleX’in aktarma sunucusu kuyruk üst verisini görür, IRC uçları mesaj içeriğini görür.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Kimlik: Session anahtar tabanlı hesaplar kullanır, telefon numarası ya da e-posta gerekmez; SimpleX’te genel kimlik yoktur, yalnızca eş/kuyruk kimlikleri vardır; IRC takma ad kullanır, değiştirilebilir ama kanal üyeleri zamanla ilişkilendirebilir.',
+                        'Yönlendirme: Session Oxen hizmet düğümlerinden ve soğan yönlendirmeden geçer; SimpleX SMP aktarma kuyruklarından; IRC I2P/Freenet örtüsünden.',
+                        'Çevrimdışı teslim: Session mesajı bir hizmet düğümünde saklayabilir; SimpleX SMP aktarma kuyruğunda bekletir; IRC genellikle iki tarafın da çevrimiçi olmasını bekler ve FLIP çok yavaştır.',
+                        'Uçtan uca şifreleme: Session’da varsayılan olarak açık; SimpleX’te varsayılan olarak açık; IRC’de standart yoktur, OTR ya da istemciye özel bir yöntem gerekir.',
+                        'IP görünürlüğü: Session’da en az bir hizmet düğümü görebilir; SimpleX’te Tor kullanmıyorsan aktarma sunucusu görebilir; IRC’de örtü IP’yi gizler ama yerel ağ örtüye bağlandığını yine bilir.',
+                        'Üst veri: Session düğüm işletmecilerine bir miktar bilgi verir; SimpleX en aza indirir ama kuyruklar ve bağlantı zamanları kalır; IRC sunucusu kanalları, takma adları, mesaj zamanını ve uzunluğunu görür.',
+                        'Olgunluk: Session ve SimpleX görece yenidir; denetim, ekosistem ve uzun vadeli kararlılık sınırlıdır; IRC eskidir ama uygulamaları ve toplulukları parçalıdır.',
+                        'En uygun kullanım: Session kolaylık ve çevrimdışı teslim isteyenler için; SimpleX genel kimlik göstermek istemeyen ve elle bağlantı kurmayı kabul edenler için; IRC yavaş metin toplulukları için, acil durumlar için değil.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'Korumadıkları şeyler: ele geçirilmiş bir cihaz, kötü niyetli bir istemci, bildirim hizmetleri, ekran görüntüleri, kişi listeleri ve sunucu günlükleri uçtan uca şifrelemenin dışındadır. Anlık bildirimler “kimin ne zaman mesaj gönderdiğini” bildirim sağlayıcısına açığa çıkarabilir; kişi grafiği başlı başına üst veridir; karşı taraf ekran görüntüsü alabilir, mesajı iletebilir ya da sohbeti dışa aktarabilir. E2EE içeriği korur; kiminle, ne zaman ve ne kadar konuştuğunu değil.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '“Uçtan uca şifreli” ile “anonim”i karıştırma. E2EE içeriğin gizliliğini ve bütünlüğünü sağlar; anonimlik ağ katmanına, hesap modeline ve senin kendi alışkanlıklarına bağlıdır. İçeriği şifreleyen bir mesajlaşma uygulaması yine de IP’ni, kişilerini ve çevrimiçi olduğun saatleri bilebilir.',
                 },
             ],
         },

@@ -766,6 +766,24 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'p',
+                    text: 'Diffie–Hellman 解决的是“双方在公开信道上怎样得到一个只有彼此知道的秘密”。各自选一个私钥 a、b，公开 g^a 和 g^b；任何人都能看到这两个值，但在合适的群里算不出 g^{ab}。X25519 是现代 ECDH 的一种实例，TLS、Signal 和 WireGuard 都在用；它只提供共享秘密，不提供身份认证；不配合证书或预共享身份，中间人仍然可以分别和两边协商。',
+                },
+                {
+                    type: 'math',
+                    text: '(g^a)^b = (g^b)^a = g^{ab} \\pmod p',
+                    caption: 'Diffie–Hellman：双方公开 g^a、g^b，各自用私钥再做一次幂，得到同一个 g^{ab}。',
+                },
+                {
+                    type: 'p',
+                    text: 'AEAD（Authenticated Encryption with Associated Data）把加密和完整性校验合成一个接口：C = AEAD(K, nonce, plaintext, aad)。一个密钥同时提供机密性和完整性；nonce 重用是灾难性的，会让攻击者恢复明文或伪造密文；AAD 会被认证但不加密，适合放协议头、版本号这类不能改但不必保密的内容。',
+                },
+                {
+                    type: 'math',
+                    text: 'C = \\operatorname{AEAD}(K, nonce, plaintext, aad)',
+                    caption: 'AEAD：一个密钥同时加密和认证；nonce 不能重复，AAD 绑定上下文。',
+                },
+                {
+                    type: 'p',
                     text: '互信息衡量“知道 Y 之后，X 的不确定性减少了多少”。如果 X 和 Y 独立，互信息是 0；如果 Y 完全决定 X，互信息等于 X 的熵。它不是因果关系，只是统计依赖。',
                 },
                 {
@@ -785,6 +803,15 @@ const ZH: OpSecContent = {
                 {
                     type: 'p',
                     text: '皮尔逊系数只捕捉线性关系。两个变量可能有很强的非线性关系，r 仍然接近 0。相关也不等于因果。在流量分析里，攻击者常用时间、包大小、方向的相似度来配对入口和出口；这些相似度可以看成相关性的一种应用。',
+                },
+                {
+                    type: 'p',
+                    text: '匿名集也能用同一套语言描述：如果候选集合是 S，随机猜中的概率是 1/|S|，对应熵 log2|S|；如果攻击者控制比例 f 的节点、路径长度 L，粗略的完全沦陷概率是 f^L。它们都是简化模型，真实攻击还受选择算法、流量特征和旁路信息影响；看到 f^L 不要当成安全保证。',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|},\\qquad H = \\log_2 |S|,\\qquad P_{\\text{compromise}} \\approx f^L',
+                    caption: '同一个匿名集的三种写法：猜中概率、熵，以及简化的路径沦陷概率。',
                 },
                 {
                     type: 'warn',
@@ -906,6 +933,111 @@ const ZH: OpSecContent = {
             ],
         },
         {
+            id: 'extended-protocols',
+            title: 'HTTP、HTTPS 与 SOCKS5：谁在加密，谁只是在转发',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '`https://`、`http://`、`irc://`、`socks://` 不是四种“加密算法”，而是四种入口或地址写法。真正决定安全的是：哪一层做了加密、加密在哪里终止、谁还能看到元数据。把 URL scheme 当成安全证明，是很多人第一次接触网络安全时最容易犯的错。',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTP 是一套请求/响应语义：客户端发请求行、头部和正文，服务器返回状态码、头部和正文。HTTP/1.1 常见的是文本格式，HTTP/2 改成二进制帧，但两者本身都不提供机密性。请求里的路径、Cookie、表单内容，默认都是明文。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    B["浏览器 / App"] -->|"GET / HTTP/1.1<br/>Host: example.com"| P["Wi-Fi / ISP / 代理"]
+    P -->|"同样的明文"| S["HTTP 服务器"]
+    N["路径上的任何一跳：可读、可改"] --- P`,
+                    caption: 'HTTP 没有加密层：路径上的 Wi-Fi、ISP、代理和恶意设备都能读取或修改内容。',
+                },
+                {
+                    type: 'p',
+                    text: '所以“为什么 HTTP 是明文”不是因为它忘了加密，而是因为 HTTP 只定义应用层语义，加密被交给下面的 TLS。你把 HTTP 放进 TLS，就是 HTTPS；你把 HTTP 放进 Tor，传输路径变了，但 HTTP 本身仍然是明文，出口或终点仍可能看到内容。',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTPS 不是另一个应用协议，而是 HTTP over TLS。TLS 1.3 先用 ECDHE 协商一个共享秘密，再用握手记录（transcript）派生出密钥，最后用 AEAD 保护应用数据。下面三个公式分别对应这三步；看不懂细节也可以只看每段的第一句话。',
+                },
+                {
+                    type: 'math',
+                    text: 'S = \\operatorname{X25519}(a, B) = \\operatorname{X25519}(b, A)',
+                    caption: 'ECDHE：双方各有一个私钥，公开交换公钥后得到同一个共享秘密 S。',
+                },
+                {
+                    type: 'math',
+                    text: 'K = \\operatorname{HKDF}(S, \\text{transcript})',
+                    caption: '密钥派生：把共享秘密和握手记录一起喂给 HKDF，得到会话密钥。',
+                },
+                {
+                    type: 'math',
+                    text: 'C = \\operatorname{AEAD}(K, nonce, plaintext, aad)',
+                    caption: 'AEAD：同时加密并认证；nonce 不能重复，aad 绑定不能改的上下文。',
+                },
+                {
+                    type: 'p',
+                    text: '证书解决的是“我连到的公钥是不是这个域名”。浏览器用系统或内置的 CA 公钥验证证书签名，并检查域名、有效期和用途；证书透明度日志让错误签发更容易被发现。证书不证明网站善良，只证明“这个 TLS 连接属于这个域名”。',
+                },
+                {
+                    type: 'math',
+                    text: '\\operatorname{Verify}(PK_{CA}, cert, sig) \\rightarrow \\{0,1\\}',
+                    caption: '证书验证：用 CA 公钥验证证书签名；失败就报警，而不是继续。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    B["浏览器 / App"] -->|"TLS 握手：证书、ECDHE"| S["HTTPS 服务器"]
+    B == "HTTP 请求（AEAD 加密）" ==> S
+    P["Wi-Fi / ISP / 代理"] -. "看到 IP、SNI、DNS、流量大小/时间" .-> B`,
+                    caption:
+                        'HTTPS 保护路径、头部和正文，但不隐藏目标 IP、SNI（除非 ECH）、DNS（除非 DoH/DoT）和流量特征。',
+                },
+                {
+                    type: 'p',
+                    text: 'HTTPS 不保护的东西：它不隐藏你访问的 IP；TLS 1.3 默认仍会暴露 SNI，除非启用 ECH 且中间设备支持；DNS 仍可能明文，除非 DoH/DoT；流量大小、时间、连接频率仍可用于推断；登录后的 Cookie、账号行为和服务器日志更不在 TLS 的保护范围内。',
+                },
+                {
+                    type: 'p',
+                    text: 'SOCKS5 是代理协议，不是加密协议。客户端先和代理协商版本与认证方式，再发 `CONNECT target:port`，代理建立连接后原样转发字节。它可以让流量绕开本地网络，也可以把 DNS 交给代理解析（常见写法 `socks5h://`），但它不会自动给你加一层加密。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    A["App"] -->|"1. 协商认证"| P["SOCKS5 代理"]
+    A -->|"2. CONNECT target:443"| P
+    P -->|"3. 原样转发字节"| T["目标服务器"]
+    T -->|"响应"| P
+    P --> A`,
+                    caption: 'SOCKS5 只负责握手和转发；加密要由上层 TLS、SSH 或 Tor 自己提供。',
+                },
+                {
+                    type: 'p',
+                    text: '`socks://` 也不是浏览器通用的 URL scheme；浏览器通常把 SOCKS 设置放在网络/代理配置里，而不是让你在地址栏输入。Tor 使用 SOCKS5 只是因为你本机的应用需要通过一个本地入口把流量交给 Tor；匿名性来自 onion routing，不是来自 SOCKS5 本身。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'HTTP：应用层语义，明文；路径上的任何一跳都能读改。',
+                        'HTTPS：HTTP over TLS；路径、头部、正文加密；IP、SNI、DNS、流量特征仍可能暴露。',
+                        'SOCKS5：代理握手与转发；不加密；能改变出口，不能代替 TLS 或 Tor。',
+                        'IRC：应用协议；公网 IRC 默认明文；只有跑在 I2P/Freenet 等匿名网络内部，才谈得上网络层匿名。',
+                        'Tor：洋葱路由；用 SOCKS5 做本地入口；保护的是路由层，不保护出口之后的明文和目标端点。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要把“有 HTTPS”“用了 SOCKS5”“地址是 .onion”当成安全证明。HTTPS 只证明连接和证书；SOCKS5 只证明流量经过代理；.onion 只证明服务在 Tor 网络里。钓鱼网站也可以有 HTTPS，恶意代理也可以转发你的明文 HTTP。',
+                },
+                {
+                    type: 'p',
+                    text: '这一节不保护什么：它不教你绕过学校或公司的网络管理，也不把代理当成匿名工具。它只帮你判断：现在这一层是谁在加密、谁在转发、谁还能看到元数据。下一次看到“锁图标”或“代理”时，先问这三个问题，而不是先相信标签。',
+                },
+            ],
+        },
+        {
             id: 'extended-tor',
             title: 'Tor：入口、出口与网桥轮换',
             level: 'extended',
@@ -913,6 +1045,21 @@ const ZH: OpSecContent = {
                 {
                     type: 'p',
                     text: 'Tor 把流量放进一条由入口（guard）、中间节点和出口组成的电路。每个节点只知道相邻的一跳；正常情况下，没有一个节点同时知道“你是谁”和“你要去哪里”。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    C["客户端"] -->|"知道你的 IP<br/>不知道目标"| G["入口 Guard"]
+    G -->|"只知道相邻一跳"| M["中间节点"]
+    M -->|"只知道相邻一跳"| X["出口节点"]
+    X -->|"知道目标<br/>不知道你的 IP"| D["目标服务器"]
+    D -. "看到的是出口 IP" .-> X`,
+                    caption:
+                        '三跳电路：guard 看到你的 IP 但看不到目标，中间节点两端都看不到，出口看到目标但看不到你；目标只看到出口 IP。',
+                },
+                {
+                    type: 'p',
+                    text: '访问 .onion 隐藏服务时，电路不会经过公共出口，而是用 introduction point 和 rendezvous point 在 Tor 网络内部会合；目标服务看到的是 Tor 电路，不是你的 IP。但 Tor 不保护被入侵的端点，也不保护出口之后的明文：如果目标服务记录你登录的账号，或者出口到目标之间仍是 HTTP，洋葱路由都帮不上忙。',
                 },
                 {
                     type: 'p',
@@ -1009,6 +1156,220 @@ const ZH: OpSecContent = {
                     type: 'warn',
                     kind: 'important',
                     text: 'DC-Net 的信息论安全是协议层面的结论，不是对你使用的某个客户端、某个插件的背书。实现漏洞、身份认证、广播层和元数据，任何一个环节出问题，都会让纸面上的安全性失效。',
+                },
+            ],
+        },
+        {
+            id: 'extended-irc',
+            title: 'IRC over I2P/Freenet：匿名网络内部的聊天',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '先把范围说清楚：公网 IRC 通常不是隐私工具。它通常明文传输，服务器能看到你的 IP、昵称、频道和连接时间；TLS 只保护到服务器这一段，不保护服务器本身。把“IRC”当成极端隐私，是把客户端界面误当成了网络层。',
+                },
+                {
+                    type: 'p',
+                    text: '这里只讲 IRC over I2P/Freenet：IRC 仍是聊天界面，匿名性来自下面的匿名网络。I2P 把 IRC 服务器作为 hidden service，客户端通过 outbound tunnel 进入网络，服务器通过 inbound tunnel 接收；中间没有 Tor 那样的 exit node。服务器看到的是 I2P destination，不是你的真实 IP。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Local["你的设备"]
+        C["IRC 客户端"] --> R["I2P 路由"]
+    end
+    subgraph Network["I2P 网络"]
+        O["出站隧道"] --> G["大蒜路由"] --> I["入站隧道"]
+    end
+    S["IRC 服务器（隐藏服务）"]
+    L["服务器日志与频道状态"]
+    R --> O
+    I --> S
+    S --> L`,
+                    caption:
+                        'I2P IRC：没有 exit node；服务器看到的是 I2P destination，但它仍然能记录频道、昵称、消息和时间。',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet（原 Freenet）里的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），后来还有 FLIRCP。IRC 客户端连接本机的 localhost:6667，FLIP 网关把 IRC 流量套进 Freenet。FMS（Freenet Message System）是另一套论坛/NNTP 类前端，和 FLIP 平行，不是 FLIP 的传输层。FLIP 不是官方插件；消息延迟常见 30 秒到几分钟，性能和抗 spam 都有限。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Device["你的设备"]
+        C["IRC 客户端"] --> F["FLIP 网关（localhost:6667）"]
+    end
+    subgraph Network["Hyphanet / Freenet"]
+        N["Freenet 节点"] --> P["对端 / FLIP 网关"]
+    end
+    R["远端 IRC 对端"]
+    F --> N
+    P --> R`,
+                    caption:
+                        'Freenet IRC：本地 FLIP 网关把 IRC 套进 Freenet；信任边界包括本地 FLIP 进程、Freenet 节点和对端 FLIP 网关。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '公网 IRC：服务器看到你的 IP；TLS 只保护到服务器；没有标准端到端加密。',
+                        'IRC over Tor：Tor 出口节点能看到流量；IRC 服务器看到的是出口 IP；不是“极端隐私”。',
+                        'IRC over I2P：服务器是 hidden service；没有出口节点；服务器看到 I2P destination；仍然没有端到端内容加密。',
+                        'IRC over Freenet：FLIP 本地网关 + Freenet 节点；FMS 是另一套论坛前端，不参与 IRC 传输；延迟高、生态小；适合低速文字，不适合紧急联络。',
+                    ],
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|}',
+                    caption:
+                        '简化匿名集：服务器认为可能是发送者的候选集合 S。昵称、写作风格、上线时间、频道成员都会缩小 S。',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        '简化隧道模型：攻击者控制比例 f、路径长度 L。真实攻击存在相关性，不能把 f^L 当成安全保证。',
+                },
+                {
+                    type: 'p',
+                    text: '这张图里的“加密”只保护链路：I2P/Freenet 节点之间是加密的，但 IRC 服务器端点仍然看到明文消息。除非客户端额外做 OTR 或端到端加密，否则服务器管理员、入侵者或被胁迫的运营者都能读消息。匿名网络解决“服务器看到谁”，不解决“服务器看到什么”。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '不要在 IRC 里用真实昵称、学校、城市、固定作息；ident/realname 留空或填无信息内容。',
+                        '关闭 CTCP、DCC 和自动接收文件；不要点频道里的链接；不要语音/视频。',
+                        'I2P：确认你连的是正确的 hidden service destination；不要把公网 IRC 服务器当地址。',
+                        'Freenet：FLIP 不是即时聊天；不要用于紧急求助；确认插件来源和版本；FLIP 昵称和频道身份可能被长期关联。',
+                        '假设服务器记录一切：定期换昵称/频道，不在同一频道暴露时间表，不复用其他账号的昵称。',
+                        '需要内容保密时，用客户端支持的 OTR/端到端加密；它保护内容，但不隐藏谁在何时说了多少。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '这些网络不是即时求救通道。如果你有立即危险，先用电话、报警或可信成年人；匿名网络不能保证服务器不记录、不被入侵、不被长期流量关联。',
+                },
+            ],
+        },
+        {
+            id: 'extended-network-map',
+            title: '网络地图：GNUnet、I2P、Hyphanet 与 ZeroNet',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'GNUnet、I2P、Hyphanet（原 Freenet）和 ZeroNet 经常被放进同一张“匿名网络”清单，但它们不是同一种东西，也不能互相替代。它们的设计目标、身份模型、路由方式和失败模式都不同；把“去中心化”“P2P”“匿名”当成同义词，会让人低估真正暴露的那一层。',
+                },
+                {
+                    type: 'p',
+                    text: 'GNUnet 更像一个研究型 P2P 框架，而不是拿来就能用的浏览器代理。它包含 GNS（名字系统）、CADET（端到端路由）、FS（文件共享）和 RPS（随机对等采样）等子系统；每个子系统提供的隐私属性不一样，匿名性取决于你用哪一层、对手是谁、配置是否正确。它不是 Tor 的替代品，配置和维护成本也明显更高。',
+                },
+                {
+                    type: 'p',
+                    text: 'I2P 用大蒜路由和单向的 inbound/outbound 隧道，把流量留在网络内部。它主要面向 eepsite 和 P2P 应用，默认不提供通往普通互联网的出口代理；如果需要访问公网，必须额外配置 outproxy，而那会引入新的信任点。它不是“更快的 Tor”，两者目标不同。更多细节见上面的 I2P 一节。',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet（原 Freenet）是一个分布式的抗审查存储网络：节点共同保存加密内容，读写在 OpenNet（连接到陌生人）或 DarkNet（只连接信任的朋友）上进行。它的 IRC 走 FLIP/FLIRCP 前端：IRC 客户端连接本机的 FLIP 网关，再由网关把流量套进 Hyphanet。FMS（Freenet Message System）是另一套论坛/NNTP 类前端，和 FLIP 平行，不承载 FLIP 的 IRC 流量。FLIP 不是官方组件，维护状态很差，没有像样的抗 spam，延迟常见 30 秒到几分钟。还要注意：Hyphanet 和后来用 Rust 重写的 “Freenet” 项目不是同一个东西。',
+                },
+                {
+                    type: 'p',
+                    text: 'ZeroNet 用 BitTorrent/DHT 分发网站内容，用 Bitcoin 风格的地址标识站点，所以网站可以没有中心服务器。但它是“去中心化网站”，不是匿名网络：默认配置会直接暴露你的 IP，DHT 和 peer 连接也会留下网络痕迹。它的最后一个版本是 2019 年的 v0.7.1，之后基本没有维护。把它当作历史案例和反面教材，而不是推荐工具。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    U["使用者"]
+    U --> GN["GNUnet<br/>GNS / CADET / FS / RPS"]
+    U --> I2P["I2P 隧道"] --> E["Eepsite / hidden service"]
+    U --> HY["Hyphanet 节点"] --> FL["FLIP / FLIRCP IRC"]
+    U --> ZN["ZeroNet<br/>BitTorrent + DHT"]
+    N1["I2P：没有默认出口代理"] -.-> I2P
+    N2["ZeroNet：默认暴露 IP"] -.-> ZN
+    N3["GNUnet：研究框架"] -.-> GN`,
+                    caption:
+                        '四种设计，四种信任边界：GNUnet 是研究框架，I2P 默认不出公网，Hyphanet 以存储和 FLIP 前端为主，ZeroNet 不隐藏 IP。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'GNUnet：身份由 GNS 名字和密钥标识；路由由 CADET/RPS 等子系统决定；用途是研究型 P2P 框架；是否隐藏 IP 取决于传输层和配置；成熟度偏实验性；不保护配置错误和跨子系统元数据。',
+                        'I2P：身份是 destination（公钥）；大蒜路由 + 单向隧道；用途是 eepsite 和内部 P2P；普通对端看不到你的真实 IP，但本地 router 和 ISP 知道你在跑 I2P；没有默认出口；生态较小；不保护端点内容和流量特征。',
+                        'Hyphanet：内容和节点身份由密钥标识；分布式存储 + OpenNet/DarkNet；用途是抗审查发布和低速聊天；OpenNet 对陌生人可见，DarkNet 只连信任节点；项目老、FLIP 非官方且缺维护；不保护端点或内容本身，也没有解决 FLIP 的延迟和 spam 问题。',
+                        'ZeroNet：Bitcoin 风格地址标识站点；BitTorrent/DHT；用途是去中心化网站；默认直接暴露 IP；2019 年后基本停更；不保护匿名性，因为它本来就不是匿名网络。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '它们不保护什么：都不保护已经被入侵的设备、截图、账号登录行为和你主动公开的内容；都不保证端点诚实；都不能把“我用了某个网络”变成“我不可追踪”。去中心化也不等于匿名：节点越多、复制越广，只说明内容更难删除，不说明发布者更难被定位。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '实验性软件可能“失败关闭”（直接不工作），也可能“失败打开”（在出错时泄露真实 IP、DNS、peer 列表或时间戳）。部署前先在小范围测试，确认它实际走了哪条路，不要把“装上了”当成“安全了”。',
+                },
+            ],
+        },
+        {
+            id: 'extended-messaging',
+            title: '聊天软件：Session、SimpleX 与 IRC 的信任边界',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '“哪个聊天软件最安全”通常问错了问题。更有用的问法是：消息从我的设备到对方设备，中间经过谁，每一跳能看到什么，离线时消息存在哪里。Session、SimpleX 和 IRC 代表三种不同的取舍；它们都能加密内容，但没有一个能替你隐藏所有元数据。',
+                },
+                {
+                    type: 'p',
+                    text: 'Session 不要求手机号或邮箱，账号由密钥标识；消息通过 Oxen Service Nodes 组成的洋葱路由网络传输，内容端到端加密。对方离线时，消息可能暂存在 service node 上，等对方上线再投递。代价是：至少有一个 service node 可能看到你的 IP，节点运营者也可能看到消息的大小和时间。它提高了追踪成本，但不是“匿名按钮”。',
+                },
+                {
+                    type: 'p',
+                    text: 'SimpleX 没有全局用户 ID，只有成对的、按连接分配的队列 ID；双方通过 SMP 中继服务器交换消息。它尽量把“你是谁”和“你在哪”从协议里拿掉，但中继服务器仍然能看到队列、连接时间和消息大小，你的 IP 也可能对中继可见，除非你把流量放进 Tor 或其他覆盖层。没有全局身份，不等于没有元数据。',
+                },
+                {
+                    type: 'p',
+                    text: 'IRC over I2P/Freenet 是另一种思路：不发明新的聊天协议，而是把现有的 IRC 放进匿名网络。覆盖层负责隐藏你的 IP，IRC 服务器或对端仍然看到消息内容；除非客户端额外做 OTR 或端到端加密，否则服务器管理员、入侵者或被胁迫的运营者都能读。FLIP 的延迟很高，不适合紧急联络。具体拓扑见上面的 IRC 一节。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph S["Session"]
+        SC["客户端"] -->|"至少一个节点可能看到 IP"| SN["Oxen Service Nodes<br/>洋葱路由"]
+        SN -->|"可暂存离线消息"| SR["收件人"]
+    end
+    subgraph X["SimpleX"]
+        XC["客户端"] -->|"SMP 队列"| XQ["中继服务器<br/>看到队列与连接元数据"]
+        XQ --> XR["收件人"]
+    end
+    subgraph I["IRC over I2P/Freenet"]
+        IC["IRC 客户端"] -->|"覆盖层隐藏 IP"| IO["I2P / Freenet"]
+        IO --> IS["IRC 服务器 / 对端<br/>看到明文，除非 OTR/E2EE"]
+    end`,
+                    caption:
+                        '三条路径，三种暴露面：Session 的 service node 可能看到 IP，SimpleX 的中继看到队列元数据，IRC 的端点看到消息内容。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '身份：Session 用密钥/账号标识，不需要手机号或邮箱；SimpleX 没有全局 ID，只有成对/队列 ID；IRC 用昵称，能随便改，但会被频道成员长期关联。',
+                        '路由：Session 走 Oxen service nodes 和洋葱路由；SimpleX 走 SMP 中继队列；IRC 走 I2P/Freenet 覆盖层。',
+                        '离线投递：Session 可暂存在 service node；SimpleX 通过 SMP 队列排队；IRC 通常要求双方在线，FLIP 延迟很高。',
+                        '端到端加密：Session 默认开启；SimpleX 默认开启；IRC 没有标准，需要 OTR 或客户端额外方案。',
+                        'IP 可见性：Session 至少一个 service node 可能看到；SimpleX 中继可能看到，除非走 Tor；IRC 的覆盖层隐藏 IP，但本地网络仍知道你在连覆盖层。',
+                        '元数据：Session 对节点运营者有一定暴露；SimpleX 尽量减少，但队列和连接时间仍在；IRC 服务器看到频道、昵称、消息时间和长度。',
+                        '成熟度：Session 和 SimpleX 都比较新，审计、生态和长期稳定性有限；IRC 很老，但实现和生态分裂。',
+                        '最适合：Session 适合想要低摩擦和离线投递的人；SimpleX 适合不想暴露全局身份、能接受手动建立连接的人；IRC 适合低速文字社区，不适合紧急联络。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '它们不保护什么：被入侵的设备、恶意客户端、通知服务、截图、联系人列表和服务器日志，都不在端到端加密的保护范围内。通知推送可能把“谁在什么时候发来消息”暴露给系统推送服务；联系人图谱本身就是元数据；对方可以截图、转发或导出聊天记录。E2EE 保护的是内容，不是你跟谁说话、什么时候说、说了多久。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要把“端到端加密”当成“匿名”。E2EE 解决的是内容机密性和完整性；匿名性取决于网络层、账号模型和你自己的使用习惯。一个能加密内容的软件，仍然可能知道你的 IP、联系人和在线时间。',
                 },
             ],
         },
