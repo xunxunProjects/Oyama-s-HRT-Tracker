@@ -3,7 +3,14 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
-import { getOpSecContent, type OpSecBlock, type OpSecCalloutKind, type OpSecSection } from '../content/opsec';
+import {
+    loadOpSecContent,
+    peekOpSecContent,
+    type OpSecBlock,
+    type OpSecCalloutKind,
+    type OpSecContent,
+    type OpSecSection,
+} from '../content/opsec';
 import { scrollParent } from '../utils/scrollParent';
 import { Info, Warning } from '../components/icons';
 import '../styles/opsec.css';
@@ -147,9 +154,36 @@ interface OpSecProps {
     onBack: () => void;
 }
 
+/** The guide in the reader's language. Each language is fetched on first
+ *  open, which is quick, so until it arrives the page shows only its title. */
+function useOpSecContent(lang: string): OpSecContent | null {
+    // Bumped when a language finishes loading, so the page re-reads the cache.
+    const [, setLoaded] = React.useState('');
+    React.useEffect(() => {
+        if (peekOpSecContent(lang)) return;
+        let live = true;
+        loadOpSecContent(lang).then(() => live && setLoaded(lang));
+        return () => {
+            live = false;
+        };
+    }, [lang]);
+    return peekOpSecContent(lang);
+}
+
 const OpSec: React.FC<OpSecProps> = ({ onBack }) => {
-    const { lang } = useTranslation();
-    const content = getOpSecContent(lang);
+    const { lang, t } = useTranslation();
+    const content = useOpSecContent(lang);
+    if (!content) {
+        return (
+            <div className="opsec-page min-h-full flex-none">
+                <PageHeader onBack={onBack} title={t('opsec.title')} columnClassName={OPSEC_COLUMN} />
+            </div>
+        );
+    }
+    return <OpSecArticle content={content} onBack={onBack} />;
+};
+
+const OpSecArticle: React.FC<{ content: OpSecContent; onBack: () => void }> = ({ content, onBack }) => {
     const basic = React.useMemo(() => content.sections.filter(s => s.level === 'basic'), [content]);
     const advanced = React.useMemo(() => content.sections.filter(s => s.level === 'advanced'), [content]);
     const extended = React.useMemo(() => content.sections.filter(s => s.level === 'extended'), [content]);
