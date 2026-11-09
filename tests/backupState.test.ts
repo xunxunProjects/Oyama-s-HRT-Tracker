@@ -48,6 +48,7 @@ const syncState = (): SyncState => ({
     birthYearUpdatedAt: 0,
     pkParams: undefined,
     pkParamsUpdatedAt: 0,
+    modelSettingsUpdatedAt: 0,
 });
 
 describe('production backup seams', () => {

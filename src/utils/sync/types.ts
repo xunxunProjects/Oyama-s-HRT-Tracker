@@ -30,6 +30,9 @@ export interface SyncState {
     /** `undefined` = unstated; `null` = explicitly "no overrides". */
     pkParams?: any;
     pkParamsUpdatedAt: number;
+    /** Estimator, history mode and age beta. `undefined` = unstated. */
+    modelSettings?: any;
+    modelSettingsUpdatedAt: number;
 }
 
 export interface MergeStats {
@@ -87,5 +90,6 @@ export function emptySyncState(): SyncState {
         weightUpdatedAt: 0,
         birthYearUpdatedAt: 0,
         pkParamsUpdatedAt: 0,
+        modelSettingsUpdatedAt: 0,
     };
 }

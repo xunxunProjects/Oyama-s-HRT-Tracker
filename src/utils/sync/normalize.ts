@@ -51,6 +51,8 @@ export function normalizeSyncState(payload: unknown): SyncState {
     if (typeof p.birthYearUpdatedAt === 'number') state.birthYearUpdatedAt = p.birthYearUpdatedAt;
     if (p.pkParams && typeof p.pkParams === 'object') state.pkParams = p.pkParams;
     if (typeof p.pkParamsUpdatedAt === 'number') state.pkParamsUpdatedAt = p.pkParamsUpdatedAt;
+    if (p.modelSettings && typeof p.modelSettings === 'object') state.modelSettings = p.modelSettings;
+    if (typeof p.modelSettingsUpdatedAt === 'number') state.modelSettingsUpdatedAt = p.modelSettingsUpdatedAt;
 
     if (typeof state.weight === 'number' && !Number.isFinite(state.weight)) state.weight = undefined;
     if (typeof state.birthYear === 'number' && !isPlausibleBirthYear(state.birthYear)) state.birthYear = null;
