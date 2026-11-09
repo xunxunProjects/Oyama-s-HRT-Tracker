@@ -14,7 +14,10 @@ export type OpSecBlock =
     | { type: 'callout'; kind: OpSecCalloutKind; title?: string; text: string }
     /** Display math. `text` is a LaTeX expression rendered by KaTeX; the
      *  optional caption is plain prose and is not part of the formula. */
-    | { type: 'math'; text: string; caption?: string };
+    | { type: 'math'; text: string; caption?: string }
+    /** A Mermaid diagram. `code` is rendered client-side; the optional
+     *  caption is plain prose and is not part of the diagram. */
+    | { type: 'mermaid'; code: string; caption?: string };
 
 export interface OpSecSection {
     id: string;
@@ -1046,6 +1049,100 @@ const ZH: OpSecContent = {
                     type: 'warn',
                     kind: 'important',
                     text: 'DC-Net 的信息论安全是协议层面的结论，不是对你使用的某个客户端、某个插件的背书。实现漏洞、身份认证、广播层和元数据，任何一个环节出问题，都会让纸面上的安全性失效。',
+                },
+            ],
+        },
+        {
+            id: 'extended-irc',
+            title: 'IRC over I2P/Freenet：匿名网络内部的聊天',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '先把范围说清楚：公网 IRC 通常不是隐私工具。它通常明文传输，服务器能看到你的 IP、昵称、频道和连接时间；TLS 只保护到服务器这一段，不保护服务器本身。把“IRC”当成极端隐私，是把客户端界面误当成了网络层。',
+                },
+                {
+                    type: 'p',
+                    text: '这里只讲 IRC over I2P/Freenet：IRC 仍是聊天界面，匿名性来自下面的匿名网络。I2P 把 IRC 服务器作为 hidden service，客户端通过 outbound tunnel 进入网络，服务器通过 inbound tunnel 接收；中间没有 Tor 那样的 exit node。服务器看到的是 I2P destination，不是你的真实 IP。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Local["Your device"]
+        C["IRC client"] --> R["I2P router"]
+    end
+    subgraph Network["I2P network"]
+        O["Outbound tunnel"] --> G["Garlic routing"] --> I["Inbound tunnel"]
+    end
+    S["IRC server (hidden service)"]
+    L["Server logs and channel state"]
+    R --> O
+    I --> S
+    S --> L`,
+                    caption:
+                        'I2P IRC：没有 exit node；服务器看到的是 I2P destination，但它仍然能记录频道、昵称、消息和时间。',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet（原 Freenet）里的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），后来还有 FLIRCP。IRC 客户端连接本机的 localhost:6667，FLIP 网关把 IRC 流量套进 Freenet/FMS。它不是官方插件，依赖 FMS，消息延迟常见 30 秒到几分钟，性能和抗 spam 都有限。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Device["Your device"]
+        C["IRC client"] --> F["FLIP gateway (localhost:6667)"]
+    end
+    subgraph Network["Hyphanet / Freenet"]
+        N["Freenet node"] --> P["Peer / FLIP gateway"]
+    end
+    M["FMS identity"]
+    R["Remote IRC peer"]
+    F --> N
+    P --> R
+    F -.->|uses| M`,
+                    caption:
+                        'Freenet IRC：本地 FLIP 网关把 IRC 套进 Freenet/FMS；信任边界包括本地 FLIP 进程、Freenet 节点和 FMS 身份。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '公网 IRC：服务器看到你的 IP；TLS 只保护到服务器；没有标准端到端加密。',
+                        'IRC over Tor：Tor 出口节点能看到流量；IRC 服务器看到的是出口 IP；不是“极端隐私”。',
+                        'IRC over I2P：服务器是 hidden service；没有出口节点；服务器看到 I2P destination；仍然没有端到端内容加密。',
+                        'IRC over Freenet：FLIP 本地网关 + FMS 身份；延迟高、生态小；适合低速文字，不适合紧急联络。',
+                    ],
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|}',
+                    caption:
+                        '简化匿名集：服务器认为可能是发送者的候选集合 S。昵称、写作风格、上线时间、频道成员都会缩小 S。',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        '简化隧道模型：攻击者控制比例 f、路径长度 L。真实攻击存在相关性，不能把 f^L 当成安全保证。',
+                },
+                {
+                    type: 'p',
+                    text: '这张图里的“加密”只保护链路：I2P/Freenet 节点之间是加密的，但 IRC 服务器端点仍然看到明文消息。除非客户端额外做 OTR 或端到端加密，否则服务器管理员、入侵者或被胁迫的运营者都能读消息。匿名网络解决“服务器看到谁”，不解决“服务器看到什么”。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '不要在 IRC 里用真实昵称、学校、城市、固定作息；ident/realname 留空或填无信息内容。',
+                        '关闭 CTCP、DCC 和自动接收文件；不要点频道里的链接；不要语音/视频。',
+                        'I2P：确认你连的是正确的 hidden service destination；不要把公网 IRC 服务器当地址。',
+                        'Freenet：FLIP 不是即时聊天；不要用于紧急求助；确认插件来源和版本；FMS 身份可能被长期关联。',
+                        '假设服务器记录一切：定期换昵称/频道，不在同一频道暴露时间表，不复用其他账号的昵称。',
+                        '需要内容保密时，用客户端支持的 OTR/端到端加密；它保护内容，但不隐藏谁在何时说了多少。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '这些网络不是即时求救通道。如果你有立即危险，先用电话、报警或可信成年人；匿名网络不能保证服务器不记录、不被入侵、不被长期流量关联。',
                 },
             ],
         },
@@ -2445,6 +2542,100 @@ const EN: OpSecContent = {
                     type: 'warn',
                     kind: 'important',
                     text: 'DC-Net’s information-theoretic guarantee is a statement about the protocol, not an endorsement of a particular client or plugin. A bug in the implementation, identity authentication, broadcast layer, or metadata can defeat the paper security.',
+                },
+            ],
+        },
+        {
+            id: 'extended-irc',
+            title: 'IRC over I2P/Freenet: chat inside an anonymity network',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'First, the scope: public IRC is usually not a privacy tool. It often runs in plaintext; the server can see your IP, nickname, channels, and connection times. TLS protects only the link to the server, not the server itself. Treating “IRC” as extreme privacy mistakes the client interface for the network layer.',
+                },
+                {
+                    type: 'p',
+                    text: 'This section is only about IRC over I2P/Freenet: IRC remains the chat interface, and the anonymity comes from the network underneath. I2P runs the IRC server as a hidden service. The client enters through an outbound tunnel, and the server receives through an inbound tunnel; there is no Tor-style exit node. The server sees an I2P destination, not your real IP.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Local["Your device"]
+        C["IRC client"] --> R["I2P router"]
+    end
+    subgraph Network["I2P network"]
+        O["Outbound tunnel"] --> G["Garlic routing"] --> I["Inbound tunnel"]
+    end
+    S["IRC server (hidden service)"]
+    L["Server logs and channel state"]
+    R --> O
+    I --> S
+    S --> L`,
+                    caption:
+                        'I2P IRC: no exit node; the server sees an I2P destination, but it can still log channels, nicknames, messages, and timestamps.',
+                },
+                {
+                    type: 'p',
+                    text: 'IRC inside Hyphanet (formerly Freenet) runs over FLIP (Freenet Lightweight IRC Program), later followed by FLIRCP. The IRC client connects to localhost:6667, and the FLIP gateway wraps IRC traffic in Freenet/FMS. It is not an official plugin, depends on FMS, and messages often take 30 seconds to several minutes; performance and spam resistance are limited.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Device["Your device"]
+        C["IRC client"] --> F["FLIP gateway (localhost:6667)"]
+    end
+    subgraph Network["Hyphanet / Freenet"]
+        N["Freenet node"] --> P["Peer / FLIP gateway"]
+    end
+    M["FMS identity"]
+    R["Remote IRC peer"]
+    F --> N
+    P --> R
+    F -.->|uses| M`,
+                    caption:
+                        'Freenet IRC: the local FLIP gateway wraps IRC in Freenet/FMS; the trust boundary includes the local FLIP process, the Freenet node, and the FMS identity.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Public IRC: the server sees your IP; TLS protects only up to the server; there is no standard end-to-end encryption.',
+                        'IRC over Tor: the Tor exit node can see traffic; the IRC server sees the exit IP; this is not “extreme privacy.”',
+                        'IRC over I2P: the server is a hidden service; there is no exit node; the server sees an I2P destination; there is still no end-to-end content encryption.',
+                        'IRC over Freenet: local FLIP gateway + FMS identity; high latency and a small ecosystem; suitable for slow text, not emergencies.',
+                    ],
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|}',
+                    caption:
+                        'A simplified anonymity set: the server considers S the set of possible senders. Nicknames, writing style, online times, and channel membership all shrink S.',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        'A simplified tunnel model: the attacker controls a fraction f and the path has length L. Real attacks have correlations; do not treat f^L as a security guarantee.',
+                },
+                {
+                    type: 'p',
+                    text: 'The “encryption” in this diagram protects only the link: I2P/Freenet nodes encrypt traffic between themselves, but the IRC server endpoint still sees plaintext messages. Unless the client adds OTR or end-to-end encryption, a server administrator, intruder, or coerced operator can read messages. The anonymity network solves “who the server sees,” not “what the server sees.”',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Do not use your real nickname, school, city, or fixed schedule on IRC; leave ident/realname blank or fill them with noise.',
+                        'Disable CTCP, DCC, and automatic file transfers; do not click links in channels; do not use voice or video.',
+                        'I2P: verify that you are connecting to the correct hidden-service destination; do not use a public IRC server as the address.',
+                        'Freenet: FLIP is not instant messaging; do not use it for emergencies; verify the plugin source and version; an FMS identity can be linked over time.',
+                        'Assume the server logs everything: rotate nicknames/channels, do not expose your schedule in one channel, and do not reuse nicknames from other accounts.',
+                        'When content confidentiality matters, use OTR/end-to-end encryption supported by the client; it protects content but does not hide who said how much and when.',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'These networks are not instant emergency channels. If you are in immediate danger, use a phone, call emergency services, or reach a trusted adult first; anonymity networks cannot guarantee that a server will not log, be compromised, or be correlated over time.',
                 },
             ],
         },
@@ -3850,6 +4041,100 @@ const ZH_TW_BASE: OpSecContent = {
                     type: 'warn',
                     kind: 'important',
                     text: 'DC-Net 的資訊理論安全是協議層面的結論，不是對你使用的某個客戶端、某個外掛的背書。實現漏洞、身分驗證、廣播層和後設資料，任何一個環節出問題，都會讓紙面上的安全性失效。',
+                },
+            ],
+        },
+        {
+            id: 'extended-irc',
+            title: 'IRC over I2P/Freenet：匿名網路內部的聊天',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '先把範圍說清楚：公網 IRC 通常不是隱私工具。它通常以明文傳輸，伺服器能看到你的 IP、暱稱、頻道和連線時間；TLS 只保護到伺服器這一段，不保護伺服器本身。把「IRC」當成極端隱私，是把客戶端介面誤當成了網路層。',
+                },
+                {
+                    type: 'p',
+                    text: '這裡只講 IRC over I2P/Freenet：IRC 仍是聊天介面，匿名性來自下面的匿名網路。I2P 把 IRC 伺服器作為 hidden service，客戶端透過 outbound tunnel 進入網路，伺服器透過 inbound tunnel 接收；中間沒有 Tor 那樣的 exit node。伺服器看到的是 I2P destination，不是你的真實 IP。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Local["Your device"]
+        C["IRC client"] --> R["I2P router"]
+    end
+    subgraph Network["I2P network"]
+        O["Outbound tunnel"] --> G["Garlic routing"] --> I["Inbound tunnel"]
+    end
+    S["IRC server (hidden service)"]
+    L["Server logs and channel state"]
+    R --> O
+    I --> S
+    S --> L`,
+                    caption:
+                        'I2P IRC：沒有 exit node；伺服器看到的是 I2P destination，但它仍然能記錄頻道、暱稱、訊息和時間。',
+                },
+                {
+                    type: 'p',
+                    text: 'Hyphanet（原 Freenet）裡的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），後來還有 FLIRCP。IRC 客戶端連線本機的 localhost:6667，FLIP 閘道把 IRC 流量套進 Freenet/FMS。它不是官方外掛，依賴 FMS，訊息延遲常見 30 秒到幾分鐘，效能和抗 spam 都有限。',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart LR
+    subgraph Device["Your device"]
+        C["IRC client"] --> F["FLIP gateway (localhost:6667)"]
+    end
+    subgraph Network["Hyphanet / Freenet"]
+        N["Freenet node"] --> P["Peer / FLIP gateway"]
+    end
+    M["FMS identity"]
+    R["Remote IRC peer"]
+    F --> N
+    P --> R
+    F -.->|uses| M`,
+                    caption:
+                        'Freenet IRC：本機 FLIP 閘道把 IRC 套進 Freenet/FMS；信任邊界包括本機 FLIP 程序、Freenet 節點和 FMS 身分。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '公網 IRC：伺服器看到你的 IP；TLS 只保護到伺服器；沒有標準端對端加密。',
+                        'IRC over Tor：Tor 出口節點能看到流量；IRC 伺服器看到的是出口 IP；不是「極端隱私」。',
+                        'IRC over I2P：伺服器是 hidden service；沒有出口節點；伺服器看到 I2P destination；仍然沒有端對端內容加密。',
+                        'IRC over Freenet：FLIP 本機閘道 + FMS 身分；延遲高、生態小；適合低速文字，不適合緊急聯絡。',
+                    ],
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{guess}} = \\frac{1}{|S|}',
+                    caption:
+                        '簡化匿名集：伺服器認為可能是傳送者的候選集合 S。暱稱、寫作風格、上線時間、頻道成員都會縮小 S。',
+                },
+                {
+                    type: 'math',
+                    text: 'P_{\\text{compromise}} \\approx f^L',
+                    caption:
+                        '簡化隧道模型：攻擊者控制比例 f、路徑長度 L。真實攻擊存在相關性，不能把 f^L 當成安全保證。',
+                },
+                {
+                    type: 'p',
+                    text: '這張圖裡的「加密」只保護鏈路：I2P/Freenet 節點之間是加密的，但 IRC 伺服器端點仍然看到明文訊息。除非客戶端額外做 OTR 或端對端加密，否則伺服器管理員、入侵者或被脅迫的營運者都能讀訊息。匿名網路解決「伺服器看到誰」，不解決「伺服器看到什麼」。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '不要在 IRC 裡用真實暱稱、學校、城市、固定作息；ident/realname 留空或填無資訊內容。',
+                        '關閉 CTCP、DCC 和自動接收檔案；不要點頻道裡的連結；不要語音/視訊。',
+                        'I2P：確認你連的是正確的 hidden service destination；不要把公網 IRC 伺服器當地址。',
+                        'Freenet：FLIP 不是即時聊天；不要用於緊急求助；確認外掛來源和版本；FMS 身分可能被長期關聯。',
+                        '假設伺服器記錄一切：定期換暱稱/頻道，不在同一頻道暴露時間表，不重複使用其他帳號的暱稱。',
+                        '需要內容保密時，用客戶端支援的 OTR/端對端加密；它保護內容，但不隱藏誰在何時說了多少。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '這些網路不是即時求救通道。如果你有立即危險，先用電話、報警或可信成年人；匿名網路不能保證伺服器不記錄、不被入侵、不被長期流量關聯。',
                 },
             ],
         },

@@ -60,6 +60,73 @@ const MathBlock: React.FC<{ text: string; caption?: string }> = ({ text, caption
     );
 };
 
+type MermaidApi = (typeof import('mermaid'))['default'];
+
+let mermaidPromise: Promise<MermaidApi> | null = null;
+let mermaidTheme: 'dark' | 'neutral' | null = null;
+
+const loadMermaid = (): Promise<MermaidApi> => {
+    mermaidPromise ??= import('mermaid').then(module => module.default);
+    return mermaidPromise;
+};
+
+/** Diagrams are loaded only when a page actually contains one. The source is
+ *  kept as a readable fallback if the renderer cannot start. */
+let mermaidRenderCounter = 0;
+
+const MermaidBlock: React.FC<{ code: string; caption?: string }> = ({ code, caption }) => {
+    const baseId = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
+    const [state, setState] = React.useState<'loading' | 'ready' | 'error'>('loading');
+    const [svg, setSvg] = React.useState('');
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const id = `opsec-mermaid-${baseId}-${++mermaidRenderCounter}`;
+        const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'neutral';
+        void (async () => {
+            try {
+                const mermaid = await loadMermaid();
+                if (mermaidTheme !== theme) {
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        securityLevel: 'strict',
+                        theme,
+                        fontFamily: 'inherit',
+                        flowchart: { useMaxWidth: true },
+                    });
+                    mermaidTheme = theme;
+                }
+                const result = await mermaid.render(id, code);
+                if (!cancelled) {
+                    setSvg(result.svg);
+                    setState('ready');
+                }
+            } catch {
+                if (!cancelled) setState('error');
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [code, baseId]);
+
+    return (
+        <figure className="opsec-mermaid">
+            {state === 'ready' ? (
+                <div className="opsec-mermaid-body" dangerouslySetInnerHTML={{ __html: svg }} />
+            ) : state === 'error' ? (
+                <pre className="opsec-mermaid-fallback">
+                    <code>{code}</code>
+                </pre>
+            ) : (
+                <div className="opsec-mermaid-loading" aria-hidden="true" />
+            )}
+            {caption ? <figcaption className="opsec-mermaid-caption">{caption}</figcaption> : null}
+        </figure>
+    );
+};
+
 const Block: React.FC<{ block: OpSecBlock }> = ({ block }) => {
     switch (block.type) {
         case 'p':
@@ -83,6 +150,8 @@ const Block: React.FC<{ block: OpSecBlock }> = ({ block }) => {
             return <Callout kind={block.kind} text={block.text} />;
         case 'math':
             return <MathBlock text={block.text} caption={block.caption} />;
+        case 'mermaid':
+            return <MermaidBlock code={block.code} caption={block.caption} />;
         default:
             return null;
     }

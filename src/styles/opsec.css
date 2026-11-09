@@ -125,6 +125,45 @@
     text-align: center;
 }
 
+/* Mermaid diagrams use the same quiet frame as display math. The SVG is
+   generated locally from static content, never from user input. */
+.opsec-mermaid {
+    margin: 1.25rem 0;
+}
+.opsec-mermaid-body {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.opsec-mermaid-body svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+.opsec-mermaid-loading {
+    min-height: 8rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+}
+.opsec-mermaid-fallback {
+    margin: 0;
+    padding: 0.75rem;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+.opsec-mermaid-caption {
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.375rem;
+    text-align: center;
+}
+
 /* ── contents ──────────────────────────────────────────────────────────── */
 
 .opsec-contents {

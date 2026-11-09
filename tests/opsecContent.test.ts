@@ -30,6 +30,19 @@ describe('OpSec extended content', () => {
         }
     });
 
+    it.each(['zh', 'zh-TW', 'en'] as const)('%s has non-empty Mermaid sources for the IRC pilot', lang => {
+        const content = getOpSecContent(lang);
+        const diagrams = content.sections
+            .flatMap(section => section.blocks)
+            .filter((block): block is Extract<OpSecBlock, { type: 'mermaid' }> => block.type === 'mermaid');
+
+        expect(diagrams.length).toBeGreaterThanOrEqual(2);
+        for (const block of diagrams) {
+            expect(block.code.trim().length).toBeGreaterThan(0);
+            expect(block.code).toContain('flowchart');
+        }
+    });
+
     it('keeps section ids unique and ordered by reading level', () => {
         const content = getOpSecContent('zh');
         const ids = content.sections.map(section => section.id);
