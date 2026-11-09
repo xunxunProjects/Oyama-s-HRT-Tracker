@@ -73,7 +73,10 @@ import { consumeTOTP, hmacSha256Hex, verifyAndConsumeBackupCode } from './src/se
 function withSecurityHeaders(response: Response): Response {
     const newResponse = new Response(response.body, response);
     newResponse.headers.set('X-Content-Type-Options', 'nosniff');
-    newResponse.headers.set('X-Frame-Options', 'DENY');
+    // Only this origin may frame the app: the developer simulator shows the
+    // app inside its own device frame (`/?sim=touch`), and any other site is
+    // still refused, so clickjacking stays out.
+    newResponse.headers.set('X-Frame-Options', 'SAMEORIGIN');
     // The SPA never needs to send a referrer to another origin, and an API
     // response must not hand one to a page that later navigates away.
     newResponse.headers.set('Referrer-Policy', 'no-referrer');
@@ -89,7 +92,10 @@ function withSecurityHeaders(response: Response): Response {
     newResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     newResponse.headers.set(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';",
+        // font-src allows data: because Vite inlines the smallest KaTeX font
+        // into the stylesheet. Scripts stay 'self' only: the bundle has no
+        // inline or blob: scripts.
+        "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self';",
     );
     return newResponse;
 }
