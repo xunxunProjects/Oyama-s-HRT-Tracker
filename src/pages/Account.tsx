@@ -43,7 +43,7 @@ import {
 import { useDialog } from '../contexts/DialogContext';
 import { authService, serializeAssertionCredential, b64url2ab, sessionIdFromToken } from '../services/auth';
 import { hrtService } from '../services/hrt';
-import { apiEndpoint } from '../services/apiClient';
+import { apiEndpoint, apiErrorCode } from '../services/apiClient';
 import PasswordPrompt from '../components/PasswordPrompt';
 import { describeSyncError, SyncStatus } from '../hooks/useCloudSync';
 import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
@@ -530,7 +530,9 @@ const Account: React.FC<AccountProps> = ({
             );
             await loginWithToken(result, verified);
         } catch (e: any) {
-            if (e.name !== 'NotAllowedError') {
+            if (apiErrorCode(e) === 'ACCOUNT_MEMORIAL') {
+                setAuthError(t('auth.account_memorial'));
+            } else if (e.name !== 'NotAllowedError') {
                 setAuthError(e.message || t('auth.passkey_failed'));
             }
         } finally {

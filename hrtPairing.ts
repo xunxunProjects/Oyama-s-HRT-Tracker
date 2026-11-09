@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
+import { isMemorialAccount } from './src/server/userHelpers';
 import { b64decode, b64encode, constantTimeEqual, error, json, nowSeconds, randomHex, sha256Hex } from './workerUtil';
 
 const PAIR_TTL_SECONDS = 300;
@@ -415,7 +416,7 @@ async function pairStatus(request: Request, env: Env): Promise<Response> {
         id: string;
         username: string;
     } | null;
-    if (!user) return json({ status: 'denied' });
+    if (!user || (await isMemorialAccount(env, user.id))) return json({ status: 'denied' });
 
     let sessionId = row.session_id;
     if (!sessionId) {

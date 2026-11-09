@@ -10,6 +10,8 @@ export interface AdminUser {
     total_backup_size?: number;
     has_totp?: number;
     passkey_count?: number;
+    /** Kept as a memorial: nobody can sign in, nothing in it changes. */
+    memorial?: boolean;
 }
 
 export interface AdminUser2FA {
@@ -134,6 +136,15 @@ export const adminService = {
                 Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ username }),
+        });
+        if (!res.ok) throw await apiErrorFrom(res);
+    },
+
+    async setMemorial(token: string, userId: string, memorial: boolean): Promise<void> {
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/memorial`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memorial }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },

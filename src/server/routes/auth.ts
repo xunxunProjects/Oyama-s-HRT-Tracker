@@ -14,6 +14,7 @@ import {
     verifyPasskeyAssertion,
 } from '../webauthn';
 import { timingSafeEqual } from '../security';
+import { isMemorialAccount, MEMORIAL_MESSAGE } from '../userHelpers';
 import { signLoginDevicePass, loginDevicePassValid } from '../loginDevice';
 import { addToolLoginFields, toolVersionBody } from '../../../toolApi';
 import { handleHrtService } from '../../../hrtPairing';
@@ -231,6 +232,13 @@ export async function handleAuthRoute(ctx: RequestContext, jwtSecret: string): P
         if (!user || !passwordValid) {
             await recordMiss();
             return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
+        }
+
+        // Told only to someone who knows the password, so the name alone
+        // does not reveal that an account was kept as a memorial.
+        if (await isMemorialAccount(env, user.id)) {
+            await clearMisses();
+            return jsonError('ACCOUNT_MEMORIAL', MEMORIAL_MESSAGE, 403);
         }
 
         // 2FA check
@@ -469,6 +477,10 @@ export async function handleAuthRoute(ctx: RequestContext, jwtSecret: string): P
             await env.DB.prepare('UPDATE passkeys SET counter = ? WHERE id = ?').bind(newCounter, passkeyRow.id).run();
         } catch {
             return jsonError('INVALID_CREDENTIALS', 'Passkey verification failed', 401);
+        }
+
+        if (await isMemorialAccount(env, userRow.id)) {
+            return jsonError('ACCOUNT_MEMORIAL', MEMORIAL_MESSAGE, 403);
         }
 
         const sessionId = crypto.randomUUID();
