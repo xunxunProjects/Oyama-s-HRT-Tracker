@@ -14,7 +14,10 @@ export type OpSecBlock =
     | { type: 'callout'; kind: OpSecCalloutKind; title?: string; text: string }
     /** Display math. `text` is a LaTeX expression rendered by KaTeX; the
      *  optional caption is plain prose and is not part of the formula. */
-    | { type: 'math'; text: string; caption?: string };
+    | { type: 'math'; text: string; caption?: string }
+    /** A Mermaid diagram. `code` is the diagram source; the optional caption
+     *  is plain prose and is not part of the diagram. */
+    | { type: 'mermaid'; code: string; caption?: string };
 
 export interface OpSecSection {
     id: string;

@@ -22,6 +22,8 @@ const shape = (content: OpSecContent) =>
                     return `callout:${block.kind}`;
                 case 'math':
                     return `math:${block.text}:${block.caption ? 'caption' : ''}`;
+                case 'mermaid':
+                    return `mermaid:${block.caption ? 'caption' : ''}`;
                 default:
                     return block.type;
             }
@@ -44,6 +46,7 @@ const strings = (content: OpSecContent): string[] => [
         ...section.blocks.flatMap(block => {
             if (block.type === 'ul' || block.type === 'ol') return block.items;
             if (block.type === 'math') return block.caption ? [block.caption] : [];
+            if (block.type === 'mermaid') return block.caption ? [block.code, block.caption] : [block.code];
             return [block.text];
         }),
     ]),
@@ -90,6 +93,20 @@ describe('OpSec guide', () => {
             const en = new Set(strings(await loadOpSecContent('en')));
             const copied = strings(content).filter(text => en.has(text) && /[a-z]{4,} [a-z]{4,}/.test(text));
             expect(copied).toEqual([]);
+        }
+    });
+
+    it.each(LANGS)('%s has non-empty Mermaid diagrams', async lang => {
+        const content = await loadOpSecContent(lang);
+        const diagrams = content.sections
+            .flatMap(section => section.blocks)
+            .filter((block): block is Extract<OpSecBlock, { type: 'mermaid' }> => block.type === 'mermaid');
+
+        expect(diagrams.length).toBeGreaterThan(0);
+        for (const block of diagrams) {
+            expect(block.code.trim().length).toBeGreaterThan(0);
+            expect(block.code).toContain('flowchart');
+            if (block.caption) expect(block.caption.trim().length).toBeGreaterThan(0);
         }
     });
 
