@@ -19,6 +19,7 @@ export const describeAuthError = (err: unknown, t: (key: string) => string, lang
         }).format(retryAt);
         return t('auth.account_locked').replace('{time}', time);
     }
+    if (code === 'ACCOUNT_MEMORIAL') return t('auth.account_memorial');
     if (code === 'RATE_LIMITED') return t('auth.too_many_attempts');
     return (err instanceof Error && err.message) || t('error.generic');
 };

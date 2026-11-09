@@ -860,6 +860,7 @@ export const TRANSLATIONS_BASE = {
         'auth.password_is_key': '密码也是解开加密云端备份的钥匙。一旦遗失，任何人都无法再打开这些备份，服务器也不行。',
         'auth.share_needs_account': '分享链接存在账户下，需要先登录',
         'auth.invalid_credentials': '用户名或密码不正确。',
+        'auth.account_memorial': '这个账户已经作为纪念账户保留下来了。里面的记录会一直留着，只是不能再登录了。',
         'auth.account_locked': '这个账户登录失败次数太多，请在 {time} 之后再试。',
         'auth.too_many_attempts': '尝试次数太多，请等一分钟再试。',
         'account.weak_password_title': '你的密码太容易被猜到了',
@@ -2190,6 +2191,8 @@ export const TRANSLATIONS_BASE = {
             'Your password is also the key to your encrypted cloud backups. If you lose it, nobody can open them again, not even the server.',
         'auth.share_needs_account': 'Share links are kept with an account, so sign in first',
         'auth.invalid_credentials': 'Wrong username or password.',
+        'auth.account_memorial':
+            'This account is kept as a memorial. Everything in it stays as it was, but it can no longer be signed in to.',
         'auth.account_locked': 'Too many failed sign-ins for this account. Try again after {time}.',
         'auth.too_many_attempts': 'Too many attempts. Wait a minute and try again.',
         'account.weak_password_title': 'Your password is easy to guess',
@@ -3244,6 +3247,7 @@ const ZH_TW = {
     'auth.password_is_key': '密碼也是解開加密雲端備份的鑰匙。一旦遺失，任何人都無法再打開這些備份，伺服器也不行。',
     'auth.share_needs_account': '分享連結存在帳戶下，需要先登入',
     'auth.invalid_credentials': '使用者名稱或密碼不正確。',
+    'auth.account_memorial': '這個帳戶已經作為紀念帳戶保留下來了。裡面的紀錄會一直留著，只是不能再登入了。',
     'auth.account_locked': '這個帳戶登入失敗次數太多，請在 {time} 之後再試。',
     'auth.too_many_attempts': '嘗試次數太多，請等一分鐘再試。',
     'account.weak_password_title': '你的密碼太容易被猜到了',
@@ -4434,6 +4438,7 @@ export const TRANSLATIONS = {
         'auth.password_is_key': '密碼亦都係解開加密雲端備份嘅鎖匙。一旦唔見咗，邊個都打唔開啲備份，連伺服器都唔得。',
         'auth.share_needs_account': '分享連結跟帳戶儲存，要先登入',
         'auth.invalid_credentials': '用戶名或者密碼唔啱。',
+        'auth.account_memorial': '呢個帳戶已經作為紀念帳戶保留咗落嚟。入面嘅紀錄會一直留住，只係唔可以再登入。',
         'auth.account_locked': '呢個帳戶登入失敗太多次喇，請喺 {time} 之後再試。',
         'auth.too_many_attempts': '試得太多喇，等一分鐘再試啦。',
         'account.weak_password_title': '你個密碼太易俾人估到喇',
@@ -5244,6 +5249,8 @@ export const TRANSLATIONS = {
             'パスワードは暗号化されたクラウドバックアップを開く鍵でもあります。なくすと、サーバーを含めて誰もそのバックアップを開けなくなります。',
         'auth.share_needs_account': '共有リンクはアカウントに保存されるため、先にサインインしてください',
         'auth.invalid_credentials': 'ユーザー名またはパスワードが正しくありません。',
+        'auth.account_memorial':
+            'このアカウントは追悼アカウントとして残されています。記録はそのまま保たれますが、サインインはできません。',
         'auth.account_locked': 'このアカウントへのサインインの失敗が多すぎます。{time} 以降にもう一度お試しください。',
         'auth.too_many_attempts': '試行回数が多すぎます。1 分ほど待ってからもう一度お試しください。',
         'account.weak_password_title': 'パスワードが推測されやすいです',
@@ -6404,6 +6411,8 @@ export const TRANSLATIONS = {
             '비밀번호는 암호화된 클라우드 백업을 여는 열쇠이기도 합니다. 잃어버리면 서버를 포함해 누구도 그 백업을 다시 열 수 없습니다.',
         'auth.share_needs_account': '공유 링크는 계정에 저장되므로 먼저 로그인하세요',
         'auth.invalid_credentials': '사용자 이름 또는 비밀번호가 올바르지 않습니다.',
+        'auth.account_memorial':
+            '이 계정은 추모 계정으로 남겨져 있어요. 기록은 그대로 보존되지만 더 이상 로그인할 수 없어요.',
         'auth.account_locked': '이 계정의 로그인 실패가 너무 많아요. {time} 이후에 다시 시도해 주세요.',
         'auth.too_many_attempts': '시도가 너무 많아요. 1분 후에 다시 시도해 주세요.',
         'account.weak_password_title': '비밀번호가 추측하기 쉬워요',
@@ -7562,6 +7571,8 @@ export const TRANSLATIONS = {
             'Parolan aynı zamanda şifreli bulut yedeklerinin anahtarıdır. Kaybedersen bu yedekleri sunucu dahil kimse bir daha açamaz.',
         'auth.share_needs_account': 'Paylaşım bağlantıları bir hesapta saklanır, önce giriş yap',
         'auth.invalid_credentials': 'Kullanıcı adı ya da parola yanlış.',
+        'auth.account_memorial':
+            'Bu hesap bir anı hesabı olarak korunuyor. İçindeki her şey olduğu gibi kalıyor, ancak artık giriş yapılamaz.',
         'auth.account_locked':
             'Bu hesapta çok fazla başarısız giriş denemesi oldu. Saat {time} itibarıyla yeniden deneyin.',
         'auth.too_many_attempts': 'Çok fazla deneme yapıldı. Bir dakika bekleyip yeniden deneyin.',

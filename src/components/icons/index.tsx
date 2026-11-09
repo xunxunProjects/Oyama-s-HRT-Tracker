@@ -84,6 +84,7 @@ export const Megaphone = glyph('megaphone', 'Megaphone');
 export const Users = glyph('users', 'Users');
 export const Calendar = glyph('calendar', 'Calendar');
 export const Clock = glyph('clock', 'Clock');
+export const Flower = glyph('flower', 'Flower');
 
 // Calibration methods
 export const Gauge = glyph('gauge', 'Gauge');

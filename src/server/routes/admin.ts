@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { passwordCheckAllowed } from '../rateLimit';
 import { validateUsername, validatePassword, reservedForAdmin } from '../validation';
 import { ensureCommunityVoteSchema } from '../../../communityVoteServer';
-import { logDeletion } from '../userHelpers';
+import { isMemorialAccount, logDeletion } from '../userHelpers';
 import { readSmallJsonBody } from '../../../requestInput';
 import { LIVE_SESSION_SQL } from './sessions';
 import { MAX_NOTICE_BODY, NOTICE_COLUMNS, NOTICE_LANGS, type SiteNoticeRow, serializeNotice } from '../notice';
@@ -188,6 +188,19 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
                           .all<{ user_id: string; passkey_count: number }>()
                           .then(r => r.results),
                   ]);
+        // Its own query, and allowed to fail, so the list still loads on a
+        // database that has not had migration 0015 yet.
+        const memorialIds = new Set<string>();
+        if (ids.length > 0) {
+            try {
+                const rows = await env.DB.prepare(
+                    `SELECT id FROM users WHERE id IN (${placeholders}) AND memorial_at IS NOT NULL`,
+                )
+                    .bind(...ids)
+                    .all<{ id: string }>();
+                for (const r of rows.results) memorialIds.add(r.id);
+            } catch {}
+        }
         const backupsByUser = new Map(backupAgg.map(r => [r.user_id, r]));
         const passkeysByUser = new Map(passkeyAgg.map(r => [r.user_id, r.passkey_count]));
         const users = pageRows.results.map(u => {
@@ -198,6 +211,7 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
                 last_backup_at: b?.last_backup_at ?? null,
                 total_backup_size: b?.total_backup_size ?? 0,
                 passkey_count: passkeysByUser.get(u.id) ?? 0,
+                memorial: memorialIds.has(u.id),
             };
         });
         return withSecurityHeaders(
@@ -241,6 +255,60 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
                 { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
             ),
         );
+    }
+
+    // Keep an account as a memorial, or make it an ordinary account again.
+    // Marking it signs out every device and stops new sign-ins; backups and
+    // share links stay exactly as they are.
+    if (url.pathname.match(/^\/api\/admin\/users\/[^/]+\/memorial$/) && request.method === 'PUT') {
+        const targetId = url.pathname.split('/')[4];
+        if (targetId === 'admin') return jsonError('INVALID_REQUEST', 'The admin account cannot be a memorial', 400);
+        const parsedBody = await readSmallJsonBody(request);
+        if (!parsedBody.ok) {
+            return parsedBody.tooLarge
+                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+        }
+        const { memorial } = (parsedBody.value ?? {}) as any;
+        if (typeof memorial !== 'boolean') return jsonError('INVALID_REQUEST', 'memorial must be true or false', 400);
+        const target = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(targetId).first();
+        if (!target) return jsonError('NOT_FOUND', 'User not found', 404);
+        try {
+            if (memorial) {
+                await env.DB.batch([
+                    env.DB.prepare(
+                        'UPDATE users SET memorial_at = COALESCE(memorial_at, unixepoch()) WHERE id = ?',
+                    ).bind(targetId),
+                    env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId),
+                    env.DB.prepare('DELETE FROM f2f_cli_codes WHERE user_id = ?').bind(targetId),
+                ]);
+            } else {
+                await env.DB.prepare('UPDATE users SET memorial_at = NULL WHERE id = ?').bind(targetId).run();
+            }
+        } catch (e) {
+            console.error('Failed to update memorial state:', e);
+            return jsonError(
+                'MIGRATION_REQUIRED',
+                'Apply migration 0015_memorial_accounts.sql to this database first',
+                503,
+            );
+        }
+        return withSecurityHeaders(
+            new Response(JSON.stringify({ memorial }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }),
+        );
+    }
+
+    // A memorial account is kept as it is. Anything that would change or
+    // remove what it holds waits until it is made an ordinary account again.
+    const changesUser =
+        (url.pathname.match(/^\/api\/admin\/users\/[^/]+(\/(backups(\/[^/]+)?|password|username|avatar|2fa))?$/) &&
+            ['DELETE', 'POST', 'PATCH'].includes(request.method)) ||
+        false;
+    if (changesUser && (await isMemorialAccount(env, url.pathname.split('/')[4]))) {
+        return jsonError('ACCOUNT_MEMORIAL', 'This account is a memorial. Unmark it before changing it.', 409);
     }
 
     // List user backups (metadata only)

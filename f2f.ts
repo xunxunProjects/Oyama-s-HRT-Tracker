@@ -15,6 +15,7 @@ import { SignJWT } from 'jose';
 import * as openpgp from 'openpgp';
 import { getClientIP, readSmallJsonBody } from './requestInput';
 import type { Env } from './worker';
+import { isMemorialAccount } from './src/server/userHelpers';
 import { b64decode, b64encode, constantTimeEqual, error, json, nowSeconds, randomHex, sha256Hex } from './workerUtil';
 
 const COHORT_SIZE = 100;
@@ -740,7 +741,9 @@ export async function exchangeF2fCliCode(request: Request, env: Env, jwtSecret: 
         id: string;
         username: string;
     } | null;
-    if (!userRow) return error('INVALID_CODE', 'invalid or expired code', 401);
+    if (!userRow || (await isMemorialAccount(env, userRow.id))) {
+        return error('INVALID_CODE', 'invalid or expired code', 401);
+    }
 
     /* Single use is enforced by the UPDATE, not the SELECT above: two
        concurrent exchanges must not both mint a token. */

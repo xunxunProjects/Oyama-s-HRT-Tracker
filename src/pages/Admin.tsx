@@ -14,6 +14,7 @@ import {
     Users,
     ShieldOff,
     Megaphone,
+    Flower,
 } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { formatBytes } from '../utils/helpers';
@@ -157,8 +158,10 @@ const ActionRow: React.FC<{
     label: string;
     note?: string;
     danger?: boolean;
+    /** Acts in place (a dialog) instead of opening a page, so no chevron. */
+    inPlace?: boolean;
     onClick: () => void;
-}> = ({ icon: Icon, label, note, danger, onClick }) => (
+}> = ({ icon: Icon, label, note, danger, inPlace, onClick }) => (
     <button
         type="button"
         onClick={onClick}
@@ -171,7 +174,7 @@ const ActionRow: React.FC<{
         </span>
         <span className={`flex min-w-0 items-center gap-1 text-sm ${muted}`}>
             {note && <span className="truncate tabular-nums">{note}</span>}
-            {!danger && <ChevronRight size={18} className="shrink-0 opacity-70 rtl:-scale-x-100" />}
+            {!danger && !inPlace && <ChevronRight size={18} className="shrink-0 opacity-70 rtl:-scale-x-100" />}
         </span>
     </button>
 );
@@ -357,6 +360,25 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         );
     };
 
+    const setMemorial = (user: AdminUser, memorial: boolean) => {
+        if (!token) return;
+        showDialog(
+            'confirm',
+            memorial
+                ? `Keep ${user.username} as a memorial account? Every device signed in to it is signed out and nobody can sign in again. Backups and share links stay as they are, and you can undo this later.`
+                : `Make ${user.username} an ordinary account again? It can be signed in to with its password as before.`,
+            async () => {
+                try {
+                    await adminService.setMemorial(token, user.id, memorial);
+                    setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, memorial } : u)));
+                } catch (e: any) {
+                    showDialog('alert', e.message || 'Could not change the memorial setting.');
+                }
+            },
+            { confirmLabel: memorial ? 'Keep as memorial' : 'Make ordinary' },
+        );
+    };
+
     const submitPassword = async (user: AdminUser) => {
         if (!token) return;
         try {
@@ -483,6 +505,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
     const userMeta = (u: AdminUser) =>
         [
+            u.memorial && 'memorial account',
             (u.backup_count ?? 0) > 0 && `${plural(u.backup_count ?? 0, 'backup')}, last ${timeAgo(u.last_backup_at)}`,
             has2FA(u) && 'two-step on',
         ]
@@ -510,6 +533,27 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             ]
                 .filter(Boolean)
                 .join(', ');
+            // A memorial account is kept as it is: its backups can be looked
+            // at, and the only thing left to do is to make it ordinary again.
+            if (u.memorial) {
+                return (
+                    <div className={settingsSection}>
+                        <ActionRow
+                            icon={Cloud}
+                            label="Cloud backups"
+                            note={(u.backup_count ?? 0) > 0 ? formatBytes(u.total_backup_size || 0) : 'None'}
+                            onClick={() => openTool(u, 'backups')}
+                        />
+                        <ActionRow
+                            icon={Flower}
+                            label="Memorial account"
+                            note="Make ordinary"
+                            inPlace
+                            onClick={() => setMemorial(u, false)}
+                        />
+                    </div>
+                );
+            }
             return (
                 <div className={settingsSection}>
                     <ActionRow
@@ -526,6 +570,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     />
                     <ActionRow icon={Password} label="Password" onClick={() => openTool(u, 'password')} />
                     <ActionRow icon={Pencil} label="Username and picture" onClick={() => openTool(u, 'edit')} />
+                    <ActionRow icon={Flower} label="Keep as memorial" inPlace onClick={() => setMemorial(u, true)} />
                     <ActionRow icon={Trash} label="Delete user" danger onClick={() => handleDeleteUser(u)} />
                 </div>
             );
@@ -698,13 +743,15 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                                     </p>
                                     <p className={`text-xs ${muted} mt-0.5 tabular-nums`}>{formatBytes(b.data_size)}</p>
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteBackup(u, b.id)}
-                                    className={dangerTextBtn}
-                                    aria-label={`Delete the backup from ${formatWhen(toLocalInput(b.created_at))}`}
-                                >
-                                    Delete
-                                </button>
+                                {!u.memorial && (
+                                    <button
+                                        onClick={() => handleDeleteBackup(u, b.id)}
+                                        className={dangerTextBtn}
+                                        aria-label={`Delete the backup from ${formatWhen(toLocalInput(b.created_at))}`}
+                                    >
+                                        Delete
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -712,9 +759,11 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                         <span className={`text-xs ${muted} tabular-nums`}>
                             {formatBytes(backups.reduce((s, b) => s + b.data_size, 0))} in all
                         </span>
-                        <button onClick={() => handlePurgeBackups(u)} className={dangerTextBtn}>
-                            Delete all
-                        </button>
+                        {!u.memorial && (
+                            <button onClick={() => handlePurgeBackups(u)} className={dangerTextBtn}>
+                                Delete all
+                            </button>
+                        )}
                     </div>
                 </div>
             );
