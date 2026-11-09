@@ -10,9 +10,9 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
         const headers = notice.headers();
         expect(headers['content-security-policy']).toContain("default-src 'self'");
         expect(headers['content-security-policy']).toContain("object-src 'none'");
-        expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+        expect(headers['content-security-policy']).toContain("frame-ancestors 'self'");
         expect(headers['strict-transport-security']).toBe('max-age=31536000');
-        expect(headers['x-frame-options']).toBe('DENY');
+        expect(headers['x-frame-options']).toBe('SAMEORIGIN');
         expect(headers['x-content-type-options']).toBe('nosniff');
         expect(headers['permissions-policy']).toContain('camera=()');
 

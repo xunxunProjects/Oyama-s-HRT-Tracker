@@ -34,9 +34,29 @@ export async function storageUsedBytes(env: Env): Promise<number> {
     return Math.max(0, Number(row?.bytes ?? 0));
 }
 
+let warnedMissingTable = false;
+
+const isMissingUsageTable = (err: unknown): boolean =>
+    err instanceof Error && /no such table:?\s*storage_usage/i.test(err.message);
+
 export async function hasStorageBudget(env: Env, additionalBytes: number): Promise<boolean> {
-    const [used, limit] = await Promise.all([storageUsedBytes(env), storageBudgetBytes(env)]);
-    return used + Math.max(0, additionalBytes) <= limit;
+    try {
+        const [used, limit] = await Promise.all([storageUsedBytes(env), storageBudgetBytes(env)]);
+        return used + Math.max(0, additionalBytes) <= limit;
+    } catch (err) {
+        // Deploys do not run D1 migrations. If 0014 has not been applied yet
+        // there is no counter to read, and failing here turned every backup
+        // and sync for every user into a 503. Let the write through and say
+        // so in the logs; the triggers start enforcing once the migration runs.
+        if (!isMissingUsageTable(err)) throw err;
+        if (!warnedMissingTable) {
+            warnedMissingTable = true;
+            console.warn(
+                'storage_usage table is missing: run `wrangler d1 migrations apply` to enable the storage budget',
+            );
+        }
+        return true;
+    }
 }
 
 export async function assertStorageBudget(env: Env, additionalBytes: number): Promise<void> {

@@ -13,6 +13,17 @@
     font-size: 0.9375rem;
     line-height: 1.65;
 }
+/* Running text is justified so every line reaches the right edge, in every
+   language. Hyphenation (from the page's lang) keeps the gaps in Russian,
+   Ukrainian and Turkish lines small; headings and captions stay ragged. */
+.opsec-prose p,
+.opsec-prose li,
+.opsec-quote,
+.opsec-callout {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+}
 .opsec-prose h2,
 .opsec-prose h3 {
     color: var(--text);
