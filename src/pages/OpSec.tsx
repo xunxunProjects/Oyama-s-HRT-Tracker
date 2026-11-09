@@ -157,17 +157,17 @@ interface OpSecProps {
 /** The guide in the reader's language. Each language is fetched on first
  *  open, which is quick, so until it arrives the page shows only its title. */
 function useOpSecContent(lang: string): OpSecContent | null {
-    const [content, setContent] = React.useState(() => peekOpSecContent(lang));
+    // Bumped when a language finishes loading, so the page re-reads the cache.
+    const [, setLoaded] = React.useState('');
     React.useEffect(() => {
+        if (peekOpSecContent(lang)) return;
         let live = true;
-        const ready = peekOpSecContent(lang);
-        if (ready) setContent(ready);
-        else loadOpSecContent(lang).then(next => live && setContent(next));
+        loadOpSecContent(lang).then(() => live && setLoaded(lang));
         return () => {
             live = false;
         };
     }, [lang]);
-    return content;
+    return peekOpSecContent(lang);
 }
 
 const OpSec: React.FC<OpSecProps> = ({ onBack }) => {

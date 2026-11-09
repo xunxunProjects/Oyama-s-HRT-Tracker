@@ -17,7 +17,7 @@ const TR: OpSecContent = {
         'Bu bölüm daha uç durumlar içindir: sistemli olarak hedef alınmak, takip edilmek, gerçek bir fiziksel tehdit ya da cihazının veya hesaplarının zaten ele geçirildiği şüphesi. Çoğu üyenin buna hiç ihtiyacı olmayabilir. Kendi durumuna göre, yalnızca meşru öz savunma için kullan ve asla yasa dışı bir şey yapma. Fiziksel güvenliğin tehdit altındaysa önce yerel kolluk kuvvetlerine, hukuki yardım kuruluşlarına ya da güvenilir bir profesyonel kuruluşa başvur.',
     extendedHeading: 'Daha fazlası: matematik, anonimlik ağları, mutabakat ve yüksek tehdit ortamları',
     extendedNote:
-        'Buradan sonrası isteğe bağlı arka plan okumasıdır. Formülleri öğrenmen gerekmez ve yukarıdaki kontrol listelerini kullanmak için hiçbiri şart değildir. Anonimliğin bir anahtar değil, bir dizi varsayım olduğunu, yani "neden"i açıklarlar. Matematik fikirleri gözünde canlandırmayı kolaylaştırmak için burada, bir kullanım kılavuzu olarak değil. Son birkaç bölüm yüksek tehdit ortamlarını ele alır; yalnızca ilkeleri, riskleri ve alternatifleri anlatır, uygulanabilir adımlar vermez. Çoğu okurun bunlara ihtiyacı olmayacak. İşine yaramayanı atla, gerekirse sonra geri dön.',
+        'Buradan sonrası isteğe bağlı arka plan okumasıdır. Formülleri öğrenmen gerekmez ve yukarıdaki kontrol listelerini kullanmak için hiçbiri şart değildir. Anonimliğin bir anahtar değil, bir dizi varsayım olduğunu, yani “neden”i açıklarlar. Matematik fikirleri gözünde canlandırmayı kolaylaştırmak için burada, bir kullanım kılavuzu olarak değil. Son birkaç bölüm yüksek tehdit ortamlarını ele alır; yalnızca ilkeleri, riskleri ve alternatifleri anlatır, uygulanabilir adımlar vermez. Çoğu okurun bunlara ihtiyacı olmayacak. İşine yaramayanı atla, gerekirse sonra geri dön.',
     sections: [
         {
             id: 'threat-model',
@@ -40,7 +40,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'note',
-                    text: '"Mutlak güvenlik" peşinde koşma. Dünyada mutlak güvenli bir sistem yoktur; yalnızca riski kabul edilebilir bir düzeye indirmenin yolları vardır. Kendini öyle çok korumak ki yalnızlaşmak da bir başarısızlıktır.',
+                    text: '“Mutlak güvenlik” peşinde koşma. Dünyada mutlak güvenli bir sistem yoktur; yalnızca riski kabul edilebilir bir düzeye indirmenin yolları vardır. Kendini öyle çok korumak ki yalnızlaşmak da bir başarısızlıktır.',
                 },
             ],
         },
@@ -104,7 +104,7 @@ const TR: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        'Paylaşmadan önce EXIF\'i temizle: bilgisayarda ExifTool ya da ImageOptim, telefonda galerideki "konumu kaldır" veya "meta verileri kaldır" seçeneğini kullan.',
+                        "Paylaşmadan önce EXIF'i temizle: bilgisayarda ExifTool ya da ImageOptim, telefonda galerideki “konumu kaldır” veya “meta verileri kaldır” seçeneğini kullan.",
                         'Arka plana bak: penceredeki simgesel yapılar, okul formaları, kapı tabelaları, kargo etiketleri, ders programları, iş kartları, tıbbi kayıtlar ve ilaç kutuları seni ele verir.',
                         'Temizliği bir sosyal medya uygulamasına bırakma. Önemli görselleri kendin işle; gerekirse yeniden ekran görüntüsü al ya da yeniden sıkıştır.',
                         'Elinden geldiğince sesten ve videodan kaçın. Sesin biyometrik bir tanımlayıcıdır; arka plandaki anonslar, durak adları, yerel ağızlar ve odanın yankısı çevreni ele verir.',
@@ -166,7 +166,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Tehdit modelin yüksekse Tor kullan. Asıl amacın yerel ağının ya da internet sağlayıcının seni izlemesini engellemekse, güvenilir bir VPN genellikle yeterlidir. "VPN"i "tamamen anonim" ile eş anlamlı sayma.',
+                    text: 'Tehdit modelin yüksekse Tor kullan. Asıl amacın yerel ağının ya da internet sağlayıcının seni izlemesini engellemekse, güvenilir bir VPN genellikle yeterlidir. “VPN”i “tamamen anonim” ile eş anlamlı sayma.',
                 },
                 {
                     type: 'p',
@@ -176,12 +176,12 @@ const TR: OpSecContent = {
         },
         {
             id: 'official-site',
-            title: '"Resmi site" kesinlikle güvenli demek değildir',
+            title: '“Resmi site” kesinlikle güvenli demek değildir',
             level: 'basic',
             blocks: [
                 {
                     type: 'p',
-                    text: 'Burası projenin resmi sitesi ve kodu açık ve denetlenebilir tutmaya çalışıyoruz. Ama "resmi" yalnızca proje tarafından yönetildiği anlamına gelir; ele geçirilemeyeceği anlamına gelmez. Dünyada mutlak güvenli bir sistem yoktur. Kendi mantığımızda hiçbir kusur olmasa bile, yukarı akışta herhangi bir yerdeki sorun tarayıcında çalışan uygulamayı etkileyebilir.',
+                    text: 'Burası projenin resmi sitesi ve kodu açık ve denetlenebilir tutmaya çalışıyoruz. Ama “resmi” yalnızca proje tarafından yönetildiği anlamına gelir; ele geçirilemeyeceği anlamına gelmez. Dünyada mutlak güvenli bir sistem yoktur. Kendi mantığımızda hiçbir kusur olmasa bile, yukarı akışta herhangi bir yerdeki sorun tarayıcında çalışan uygulamayı etkileyebilir.',
                 },
                 {
                     type: 'ul',
@@ -189,12 +189,12 @@ const TR: OpSecContent = {
                         'Bağımlılık tedarik zinciri: bir npm paketi, açık kaynak kütüphane ya da derleme aracı zehirlenebilir ya da uzaktan kod çalıştırma (RCE) açığı ortaya çıkabilir. Kendi kodumuzun tek satırını değiştirmeden etkilenebiliriz.',
                         'Barındırma ve dağıtım: bir barındırma platformu, CI/CD hattı, alan adı, CDN ya da yönetici hesabı ele geçirilir ve sayfa değiştirilir veya içine zararlı betik yerleştirilir.',
                         'Üçüncü taraf kaynaklar: analiz araçları, yazı tipleri, simgeler, destek bileşenleri ya da başka dış betikler ele geçirilip sayfanın içinde kod çalıştırabilir.',
-                        'Kendi ortamın: bir tarayıcı eklentisi, klavye uygulaması, vekil sunucu aracı ya da işletim sistemi ele geçirilmişse, "normal görünen" bir sayfa bile tehlikeli olur.',
+                        'Kendi ortamın: bir tarayıcı eklentisi, klavye uygulaması, vekil sunucu aracı ya da işletim sistemi ele geçirilmişse, “normal görünen” bir sayfa bile tehlikeli olur.',
                     ],
                 },
                 {
                     type: 'p',
-                    text: 'Yani: yalnızca "resmi site" diye gerçek adını, kimlik belgelerini, adresini ya da işyerini girme. Önemli işlemlerden önce alan adını ve sertifikayı kontrol et. Bağımsız yedekler tut. Sayfa tuhaf davranırsa, sertifika uyarısı gösterirse ya da beklenmedik biçimde yönlendirirse kullanmayı bırak ve güvenilir bir kanaldan bildir. Tehdit modelin yüksekse kendin barındırmayı, sürümleri sabitlemeyi ve her güncellemeyi incelemeyi düşün.',
+                    text: 'Yani: yalnızca “resmi site” diye gerçek adını, kimlik belgelerini, adresini ya da işyerini girme. Önemli işlemlerden önce alan adını ve sertifikayı kontrol et. Bağımsız yedekler tut. Sayfa tuhaf davranırsa, sertifika uyarısı gösterirse ya da beklenmedik biçimde yönlendirirse kullanmayı bırak ve güvenilir bir kanaldan bildir. Tehdit modelin yüksekse kendin barındırmayı, sürümleri sabitlemeyi ve her güncellemeyi incelemeyi düşün.',
                 },
                 {
                     type: 'warn',
@@ -222,10 +222,10 @@ const TR: OpSecContent = {
                         "Bitcoin Core: Bir Bitcoin tam düğümü en güvenilir doğrulamayı sağlar ama zincirin boyutu ve eşitleme maliyeti daha da yüksektir. Electrum Personal Server ya da Sparrow gibi araçlarla eşleştirip kendi düğümünü kullanırken doğrulamayla gizliliği dengeleyebilirsin. Not: BTC anonim değil, takma adlıdır; adresin yeniden kullanılması ve KYC'li işlemler ödemeleri bağlamayı kolaylaştırır.",
                         'BTC mi Monero mu: BTC son derece merkeziyetsizdir, yaygın olarak kabul görür ve şeffaf bir defteri vardır; bu da onu bağışlar, muhasebe ve uzun vadeli birikim için uygun kılar. Monero varsayılan olarak gizlidir; işlemlerinin herkese açık biçimde bağlanmasını istemeyen bireylere uyar. Amaca göre ayırabilirsin; biri ya da öteki diye bir şart yoktur.',
                         "Bağış almak: ayrı bir alım adresi kullan, BTC gibi yaygın bir varlığı tercih et ve kaynağın ve amacın kaydını tut. Bağış fonlarını kişisel cüzdanlarla karıştırma ve kaynağı bilinmeyen büyük transferleri kabul etme. BTC'nin şeffaf defteri kamuya açık muhasebeyi kolaylaştırır; Monero daha iyi gizlilik sunar ama opaklığı, kamuya açık denetim gerektiren bağışlar için onu uygunsuz kılar.",
-                        'Kirli para riski: zincir üstü varlıkların temiz olduğuna dair hiçbir garanti yoktur. Gelen coinler dolandırıcılıktan, kumardan, yaptırım altındaki adreslerden ya da çalıntı fonlardan gelmiş olabilir. Zincir analizi şirketleri adreslere puan verir ve borsalar bu yüzden hesabını dondurabilir. Yabancılardan gelen "ucuz coin" ya da "şunu senin cüzdanından geçireyim" isteklerini kabul etme; seni bir kara para aklama zincirinin parçası yapabilir.',
+                        'Kirli para riski: zincir üstü varlıkların temiz olduğuna dair hiçbir garanti yoktur. Gelen coinler dolandırıcılıktan, kumardan, yaptırım altındaki adreslerden ya da çalıntı fonlardan gelmiş olabilir. Zincir analizi şirketleri adreslere puan verir ve borsalar bu yüzden hesabını dondurabilir. Yabancılardan gelen “ucuz coin” ya da “şunu senin cüzdanından geçireyim” isteklerini kabul etme; seni bir kara para aklama zincirinin parçası yapabilir.',
                         'Kurtarma ifadelerini çevrimdışı sakla: kâğıda ya da metale yaz, asla fotoğrafını çekme, asla buluta koyma, asla sohbette gönderme ve parola yöneticin dışında internete bağlı hiçbir cihazda saklama.',
                         'Büyük tutarlar için donanım cüzdanı kullan; farklı amaçlar için ayrı cüzdanlar kullan; her seferinde küçük bir tutarla dene; göndermeden önce adresi cihazın ekranında doğrula.',
-                        'Cüzdanları yalnızca resmi siteden ya da resmi uygulama mağazası bağlantılarından indir. Sahte uygulamalara, sahte destek temsilcilerine, sahte airdrop\'lara ve "varlık kurtarma" dolandırıcılıklarına dikkat et.',
+                        "Cüzdanları yalnızca resmi siteden ya da resmi uygulama mağazası bağlantılarından indir. Sahte uygulamalara, sahte destek temsilcilerine, sahte airdrop'lara ve “varlık kurtarma” dolandırıcılıklarına dikkat et.",
                     ],
                 },
                 {
@@ -269,7 +269,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'tip',
-                    text: 'Sana gerçekten saygı duyan biri, "önce bunu doğrulamam gerek" dediğin için kızmaz. O anda patlayan, tehdit eden ya da baskı yapan biri zaten bir tehlike işaretidir.',
+                    text: 'Sana gerçekten saygı duyan biri, “önce bunu doğrulamam gerek” dediğin için kızmaz. O anda patlayan, tehdit eden ya da baskı yapan biri zaten bir tehlike işaretidir.',
                 },
             ],
         },
@@ -280,19 +280,19 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'quote',
-                    text: 'Xiao Lu toplulukta ilaç deneyimini paylaştı. Birkaç gün sonra "A-Lan" adında biri ona yazdı: "Yazdıkların çok gerçek geldi. Ben de benzer şeyler yaşadım. Konuşabilir miyiz?"',
+                    text: 'Xiao Lu toplulukta ilaç deneyimini paylaştı. Birkaç gün sonra “A-Lan” adında biri ona yazdı: “Yazdıkların çok gerçek geldi. Ben de benzer şeyler yaşadım. Konuşabilir miyiz?”',
                 },
                 {
                     type: 'p',
-                    text: 'A-Lan sohbette iyiydi. Xiao Lu\'nun hangi oyunu sevdiğini hatırlıyor, keyfi kaçtığında onu teselli ediyor ve bilgi için hiç acele etmiyordu. İki hafta sonra A-Lan, "bot olmadığını" doğrulamak için sesli mesaj istedi. Birkaç gün sonra da Xiao Lu\'nun da belli bir şehirde olup olmadığını sordu ve gelecek ay oraya gelebileceğini söyledi. Xiao Lu geniş bir bölgeden bahsetti ama adres vermedi.',
+                    text: "A-Lan sohbette iyiydi. Xiao Lu'nun hangi oyunu sevdiğini hatırlıyor, keyfi kaçtığında onu teselli ediyor ve bilgi için hiç acele etmiyordu. İki hafta sonra A-Lan, “bot olmadığını” doğrulamak için sesli mesaj istedi. Birkaç gün sonra da Xiao Lu'nun da belli bir şehirde olup olmadığını sordu ve gelecek ay oraya gelebileceğini söyledi. Xiao Lu geniş bir bölgeden bahsetti ama adres vermedi.",
                 },
                 {
                     type: 'p',
-                    text: 'Sonra bir gece işler değişti. A-Lan bir bağlantı gönderdi: "Toplulukta hesap çalınıyormuş. Hesabını kaybetmemek için buradan doğrula." Sayfa resmi siteye neredeyse tıpatıp benziyordu ve kullanıcı adıyla parola istiyordu. Hemen ardından A-Lan kendi hesabının dondurulduğunu söyleyip 0.05 BTC borç istedi, ertesi gün geri ödeyeceğine söz verdi.',
+                    text: 'Sonra bir gece işler değişti. A-Lan bir bağlantı gönderdi: “Toplulukta hesap çalınıyormuş. Hesabını kaybetmemek için buradan doğrula.” Sayfa resmi siteye neredeyse tıpatıp benziyordu ve kullanıcı adıyla parola istiyordu. Hemen ardından A-Lan kendi hesabının dondurulduğunu söyleyip 0.05 BTC borç istedi, ertesi gün geri ödeyeceğine söz verdi.',
                 },
                 {
                     type: 'p',
-                    text: 'Xiao Lu neredeyse tıklayacaktı. Onu üç şey durdurdu. Birincisi, resmi yetkililer asla özel mesajla giriş bağlantısı göndermez. İkincisi, karşı taraf sürekli aciliyet yaratıyordu: "hemen yap yoksa çok geç olacak." Üçüncüsü, A-Lan bir an şehrini soruyor, sonraki an para istiyordu; zamanlama fazla düzgündü. Tıklamadı. Resmi siteyi kendisi açtı, duyurulardan böyle bir "hesap kaybı doğrulaması" olmadığını teyit etti, sonra konuşmanın ekran görüntüsünü alıp bildirdi ve hesabı engelledi. A-Lan dolandırıcılığın tutmadığını anlayınca önce sinirlenip Xiao Lu\'yu suçladı, sonra hesabını sildi.',
+                    text: "Xiao Lu neredeyse tıklayacaktı. Onu üç şey durdurdu. Birincisi, resmi yetkililer asla özel mesajla giriş bağlantısı göndermez. İkincisi, karşı taraf sürekli aciliyet yaratıyordu: “hemen yap yoksa çok geç olacak.” Üçüncüsü, A-Lan bir an şehrini soruyor, sonraki an para istiyordu; zamanlama fazla düzgündü. Tıklamadı. Resmi siteyi kendisi açtı, duyurulardan böyle bir “hesap kaybı doğrulaması” olmadığını teyit etti, sonra konuşmanın ekran görüntüsünü alıp bildirdi ve hesabı engelledi. A-Lan dolandırıcılığın tutmadığını anlayınca önce sinirlenip Xiao Lu'yu suçladı, sonra hesabını sildi.",
                 },
                 {
                     type: 'p',
@@ -304,7 +304,7 @@ const TR: OpSecContent = {
                         'Yavaşla. Hemen karar vermeni isteyen her talep bekleyebilir.',
                         'Başka bir kanaldan doğrula. Karşı tarafın verdiği bağlantı ya da iletişim bilgisi yerine resmi siteyi, resmi duyuruları ya da zaten tanıdığın bir yöneticiyi kullan.',
                         'Bilgiyi en azda tut. Ses, video, kimlik belgeleri, adres, doğrulama kodları ve kurtarma ifadeleri bir sohbet için asla gerekli değildir.',
-                        'Reddetmek kibar olabilir: "Bunu paylaşmak bana iyi gelmiyor", "Resmi siteye kendim bakacağım", "Doğrulama kodunu kimseye vermem."',
+                        'Reddetmek kibar olabilir: “Bunu paylaşmak bana iyi gelmiyor”, “Resmi siteye kendim bakacağım”, “Doğrulama kodunu kimseye vermem.”',
                         'Kanıtları sakla ve bildir. Ekran görüntüsü al, hesap kimliğini ve zaman çizelgesini kaydet ve yöneticilere ya da platforma ilet. Kişiyle tek başına tartışmaya devam etme.',
                     ],
                 },
@@ -317,18 +317,18 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Burada "karakter" ayrıntılı bir sahte kimlik değildir. En az bilgi içeren, tutarlı ve doğrulanamayan bir dış görünüştür. Amaç insanları kandırmak değil, gerçek hayatının gereksiz ayrıntılarını sohbetin dışında tutmaktır.',
+                    text: 'Burada “karakter” ayrıntılı bir sahte kimlik değildir. En az bilgi içeren, tutarlı ve doğrulanamayan bir dış görünüştür. Amaç insanları kandırmak değil, gerçek hayatının gereksiz ayrıntılarını sohbetin dışında tutmaktır.',
                 },
                 {
                     type: 'ul',
                     items: [
                         'Yalnızca en temel profili hazırla: bir takma ad, geniş bir yaş aralığı, geniş bir meslek yönü ve iki üç sıradan hobi. Belirli bir okul, işyeri, mahalle, doğum günü ya da aile uydurma.',
                         'Tutarlı ol. Profili şifreli bir notta tut; bugün 20, yarın 25 olma. Ama gerekenden fazla ayrıntı da uydurma; ne kadar basit olursa takılacak o kadar az şey olur.',
-                        'Doğrulanamaz tut. Bölgeni yalnızca geniş bir alan ya da ülke olarak, işini yalnızca "tasarımla uğraşıyorum", "kod yazıyorum" ya da "öğrenciyim" diye, programını yalnızca "son zamanlarda" diye anlat. Konumu bulunabilecek fotoğraflar paylaşma.',
+                        'Doğrulanamaz tut. Bölgeni yalnızca geniş bir alan ya da ülke olarak, işini yalnızca “tasarımla uğraşıyorum”, “kod yazıyorum” ya da “öğrenciyim” diye, programını yalnızca “son zamanlarda” diye anlat. Konumu bulunabilecek fotoğraflar paylaşma.',
                         'Bölmelere ayır. Ayrı hesap, ayrı e-posta, ayrı tarayıcı profili. Gerçek hesaplarının bulunduğu cihazda topluluk kimliğinle oturum açma. Profil resimlerini ya da fotoğrafları tekrar kullanma.',
                         'Yazım tarzından bağlantı kurulmasını önle. Aynı tanıtım yazısını farklı platformlara yapıştırma. Belirgin tekrarlayan sözlerden kaçın. Kimliklerin arasında beğeni, paylaşım ya da etkileşim olmasın.',
                         "Sesten ve videodan kaçın. Sesli mesaj gönderme, görüntülü arama yapma, özçekim paylaşma. Fotoğraf kaçınılmazsa yüzsüz, arka plansız ve EXIF'siz bir tane kullan; yansımaları ve masadaki ayrıntıları kontrol et.",
-                        'Sohbette sorular, belirsizlik ve konu değişiklikleri kullan. Her soruya cevap borçlu değilsin. "Bunu konuşmamayı tercih ederim" ve "o önemli değil" tam cümlelerdir.',
+                        'Sohbette sorular, belirsizlik ve konu değişiklikleri kullan. Her soruya cevap borçlu değilsin. “Bunu konuşmamayı tercih ederim” ve “o önemli değil” tam cümlelerdir.',
                         'Dramatik hikâyeleri kendiliğinden anlatma. Karakter ne kadar sıradan ve sıkıcıysa o kadar güvenlidir. Gerçek bir kişiyi, bir yetkiliyi ya da bir uzmanı taklit etme.',
                     ],
                 },
@@ -350,11 +350,11 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Çoğu insan için risk karanlık ağ değil; yemek masası, yatak odası ve sırt çantasıdır: bir ebeveyn kapıyı çalmadan girer, çekmeceyi karıştırır, telefonu kontrol eder ya da gelişigüzel "Ne içiyorsun?" diye sorar. Amaç kusursuz bir yalan değil; rutini kısa tutmak, daha az iz bırakmak ve sorgulandığında sakin kalmaktır.',
+                    text: 'Çoğu insan için risk karanlık ağ değil; yemek masası, yatak odası ve sırt çantasıdır: bir ebeveyn kapıyı çalmadan girer, çekmeceyi karıştırır, telefonu kontrol eder ya da gelişigüzel “Ne içiyorsun?” diye sorar. Amaç kusursuz bir yalan değil; rutini kısa tutmak, daha az iz bırakmak ve sorgulandığında sakin kalmaktır.',
                 },
                 {
                     type: 'p',
-                    text: 'Önce şunu netleştirelim: kullandığın ilaç yüzünden bir ebeveyn sana vurabilecekse, bu bir "aile meselesi" değil, şiddettir. Aşağıdaki adımlar geçici risk azaltmadır, uzun vadeli bir çözüm değil. Mümkün olan en kısa sürede güvendiğin bir yetişkin, doktor, sosyal hizmet uzmanı ya da yerel bir destek kuruluşu bul ve birlikte bir güvenlik planı yapın.',
+                    text: 'Önce şunu netleştirelim: kullandığın ilaç yüzünden bir ebeveyn sana vurabilecekse, bu bir “aile meselesi” değil, şiddettir. Aşağıdaki adımlar geçici risk azaltmadır, uzun vadeli bir çözüm değil. Mümkün olan en kısa sürede güvendiğin bir yetişkin, doktor, sosyal hizmet uzmanı ya da yerel bir destek kuruluşu bul ve birlikte bir güvenlik planı yapın.',
                 },
                 {
                     type: 'p',
@@ -366,15 +366,15 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Tablet ağzındayken bir ebeveyn seslenirse: cevap vermek için ağzını açma. Masaya vur, "Banyodayım, bir dakika" diye mesaj at ya da bir yudum su alıp çalkalıyormuş gibi yap. Mutlaka cevap vermen gerekiyorsa "Geliyorum" ya da "Dişimi fırçalıyorum" gibi mümkün olan en kısa sözü söyle ve ağzını yeniden kapat. Normal bir sohbet sürdürmeye çalışma. Daha iyisi önceden plan yapmaktır: duş alırken, diş fırçalarken, üstünü değiştirirken, çöpü çıkarırken ya da kilitli bir odayı toplarken kullan ve kendine 10–15 dakika ayır.',
+                    text: 'Tablet ağzındayken bir ebeveyn seslenirse: cevap vermek için ağzını açma. Masaya vur, “Banyodayım, bir dakika” diye mesaj at ya da bir yudum su alıp çalkalıyormuş gibi yap. Mutlaka cevap vermen gerekiyorsa “Geliyorum” ya da “Dişimi fırçalıyorum” gibi mümkün olan en kısa sözü söyle ve ağzını yeniden kapat. Normal bir sohbet sürdürmeye çalışma. Daha iyisi önceden plan yapmaktır: duş alırken, diş fırçalarken, üstünü değiştirirken, çöpü çıkarırken ya da kilitli bir odayı toplarken kullan ve kendine 10–15 dakika ayır.',
                 },
                 {
                     type: 'p',
-                    text: 'İlacınla yaklaşık aynı boyutta bir nane şekeri ya da vitamin tabletiyle alıştırma yap (gerçek hapla tekrar tekrar alıştırma yapma). Dilinin altına koy, beş dakikalık bir zamanlayıcı kur ve konuşmamayı, başını sallamayı, telefonu işaret etmeyi, yazmayı ve yavaş yürümeyi dene. Birkaç turda sınırını görürsün. "Alışmak" için fazladan doz alma.',
+                    text: 'İlacınla yaklaşık aynı boyutta bir nane şekeri ya da vitamin tabletiyle alıştırma yap (gerçek hapla tekrar tekrar alıştırma yapma). Dilinin altına koy, beş dakikalık bir zamanlayıcı kur ve konuşmamayı, başını sallamayı, telefonu işaret etmeyi, yazmayı ve yavaş yürümeyi dene. Birkaç turda sınırını görürsün. “Alışmak” için fazladan doz alma.',
                 },
                 {
                     type: 'p',
-                    text: 'Görülürsen: kapma, bir avuç yutma ve karşındaki ambalajı çoktan okuduysa "şeker" diye diretme. Sakin kal ve ilacı kaldır. Reçeteliyse "Doktorumun söylediği gibi kullanıyorum ve şu an bunu konuşmak istemiyorum" diyebilirsin. Değilse olabildiğince az konuş, odadan çık ve karmaşık bir tıbbi hikâye uydurma. Karşındaki şiddete başvurabilecekse kapıya giden yolu açık tut, sırtını dönme ve tartışma.',
+                    text: 'Görülürsen: kapma, bir avuç yutma ve karşındaki ambalajı çoktan okuduysa “şeker” diye diretme. Sakin kal ve ilacı kaldır. Reçeteliyse “Doktorumun söylediği gibi kullanıyorum ve şu an bunu konuşmak istemiyorum” diyebilirsin. Değilse olabildiğince az konuş, odadan çık ve karmaşık bir tıbbi hikâye uydurma. Karşındaki şiddete başvurabilecekse kapıya giden yolu açık tut, sırtını dönme ve tartışma.',
                 },
                 {
                     type: 'p',
@@ -386,7 +386,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Saklama yerleri: bilinen yerler işe yarayabilir ama onları "kuru, karanlık, serin, sabit ve gelişigüzel aranmayan" diye seç. Yatak başlığının arkası ya da çekmecenin arka paneli, içinde nem alıcı olan kapalı bir poşet için uygundur. Sırt çantası astarı yalnızca kısa yolculuklar içindir, uzun süreli saklama için değil; okul çantaları aranabilir. Hiç yerinden oynamayan bir saklama kutusu, kalorifere, pencereye, banyoya ya da arabaya yakın değilse uygundur. Eski ders kitaplarının arası düz blister ambalajlar için uygundur; ezme ve okulun ya da kütüphanenin kitaplarını kullanma.',
+                    text: 'Saklama yerleri: bilinen yerler işe yarayabilir ama onları “kuru, karanlık, serin, sabit ve gelişigüzel aranmayan” diye seç. Yatak başlığının arkası ya da çekmecenin arka paneli, içinde nem alıcı olan kapalı bir poşet için uygundur. Sırt çantası astarı yalnızca kısa yolculuklar içindir, uzun süreli saklama için değil; okul çantaları aranabilir. Hiç yerinden oynamayan bir saklama kutusu, kalorifere, pencereye, banyoya ya da arabaya yakın değilse uygundur. Eski ders kitaplarının arası düz blister ambalajlar için uygundur; ezme ve okulun ya da kütüphanenin kitaplarını kullanma.',
                 },
                 {
                     type: 'p',
@@ -398,7 +398,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Ambalajlar, faturalar ve telefonlar da sızdırır: eczane fişleri, teslimat kutuları, reçete poşetleri, banka ya da sigorta ekstreleri, eczane mesajları ve sağlık uygulaması bildirimleri görülebilir. Çöpü çıkarırken ambalajları opak bir poşete koy; mesaj önizlemelerini kapat; takvimde "randevu" ya da "kargo almak" gibi nötr adlar kullan ve sağlık uygulamalarına ortak bir aile hesabıyla girme.',
+                    text: 'Ambalajlar, faturalar ve telefonlar da sızdırır: eczane fişleri, teslimat kutuları, reçete poşetleri, banka ya da sigorta ekstreleri, eczane mesajları ve sağlık uygulaması bildirimleri görülebilir. Çöpü çıkarırken ambalajları opak bir poşete koy; mesaj önizlemelerini kapat; takvimde “randevu” ya da “kargo almak” gibi nötr adlar kullan ve sağlık uygulamalarına ortak bir aile hesabıyla girme.',
                 },
                 {
                     type: 'p',
@@ -407,7 +407,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Dövülmek, tehdit edilmek ya da evden atılmak "ödemen gereken bedel" değildir. Bunu yaşıyorsan güvendiğin bir yetişkine, öğretmene, doktora, sosyal hizmet uzmanına ya da yerel bir LGBTİ+ veya trans destek örgütüne başvur. Acil tehlikedeysen yerel acil durum numarasını ara. Bunu tek başına taşıma.',
+                    text: 'Dövülmek, tehdit edilmek ya da evden atılmak “ödemen gereken bedel” değildir. Bunu yaşıyorsan güvendiğin bir yetişkine, öğretmene, doktora, sosyal hizmet uzmanına ya da yerel bir LGBTİ+ veya trans destek örgütüne başvur. Acil tehlikedeysen yerel acil durum numarasını ara. Bunu tek başına taşıma.',
                 },
             ],
         },
@@ -418,70 +418,70 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Okuldaki risk genellikle "bir hacker\'ın seni bulması" değildir. Dik dik bakılmak, alay edilmek ya da bir şeyi açıklaman için baskı görmektir. Kimseye kimliğini kanıtlamak zorunda değilsin. Kullanabileceğin en kısa, en sıkıcı, en kolay geri alınabilir cümleyi kullan ve sohbeti başka yöne çevir.',
+                    text: "Okuldaki risk genellikle “bir hacker'ın seni bulması” değildir. Dik dik bakılmak, alay edilmek ya da bir şeyi açıklaman için baskı görmektir. Kimseye kimliğini kanıtlamak zorunda değilsin. Kullanabileceğin en kısa, en sıkıcı, en kolay geri alınabilir cümleyi kullan ve sohbeti başka yöne çevir.",
                 },
                 {
                     type: 'p',
-                    text: 'Yaygın bir zarar azaltma yolu, hedef alınma olasılığı daha yüksek bir etiket olan "trans" yerine "tarz", "cinsel yönelim" ya da "hâlâ keşfediyorum" demektir. Örneğin:',
+                    text: 'Yaygın bir zarar azaltma yolu, hedef alınma olasılığı daha yüksek bir etiket olan “trans” yerine “tarz”, “cinsel yönelim” ya da “hâlâ keşfediyorum” demektir. Örneğin:',
                 },
                 {
                     type: 'ul',
                     items: [
-                        '"Ben femboyum. Sadece kız kıyafetleri giymeyi seviyorum, bence tatlı. İlk kez deniyorum."',
-                        '"Panseksüelim. Cinsiyete değil insana ilgi duyuyorum. Kıyafetler sadece tarzım."',
-                        '"Hâlâ anlamaya çalışıyorum. Kendimi bir etikete kilitlemek istemiyorum."',
-                        '"Sadece kişisel bir ilgi. Kimseyi etkilemiyor."',
-                        '"Bu konuyu konuşmamayı tercih ederim. Başka bir şeyden bahsedelim."',
-                        'Trans erkek: değişimi "Erkek fatmayım, biraz androjen; şu sıralar biraz çocukça bir havalı görünme dönemindeyim, bence havalı duruyor" diye anlat. Yalnızca kıyafet ve tarzdan bahset; hormon, ameliyat, kulüp ya da "katıldığım bir örgüt" uydurma.',
-                        'Trans kız: değişimi "Anime ve cosplay\'e merak sardım, kadın kostümlerini deniyorum" diye anlat. Yalnızca hobiden bahset; cosplay fotoğrafı paylaşma, yüz yüze etkinliklere kaydolma, bir yarışma ya da kulüp uydurma.',
+                        '“Ben femboyum. Sadece kız kıyafetleri giymeyi seviyorum, bence tatlı. İlk kez deniyorum.”',
+                        '“Panseksüelim. Cinsiyete değil insana ilgi duyuyorum. Kıyafetler sadece tarzım.”',
+                        '“Hâlâ anlamaya çalışıyorum. Kendimi bir etikete kilitlemek istemiyorum.”',
+                        '“Sadece kişisel bir ilgi. Kimseyi etkilemiyor.”',
+                        '“Bu konuyu konuşmamayı tercih ederim. Başka bir şeyden bahsedelim.”',
+                        'Trans erkek: değişimi “Erkek fatmayım, biraz androjen; şu sıralar biraz çocukça bir havalı görünme dönemindeyim, bence havalı duruyor” diye anlat. Yalnızca kıyafet ve tarzdan bahset; hormon, ameliyat, kulüp ya da “katıldığım bir örgüt” uydurma.',
+                        "Trans kız: değişimi “Anime ve cosplay'e merak sardım, kadın kostümlerini deniyorum” diye anlat. Yalnızca hobiden bahset; cosplay fotoğrafı paylaşma, yüz yüze etkinliklere kaydolma, bir yarışma ya da kulüp uydurma.",
                     ],
                 },
                 {
                     type: 'p',
-                    text: 'Bunun bazı yerlerde neden daha güvenli olabileceği: "kız kıyafetleri giymek" ya da "cinsel yönelim" "kişisel tarz" veya "geçici bir dönem" olarak görülebilirken, "trans" daha güçlü bir tepkiyi tetikleyebilir. Ama evrensel bir kalkan değildir. Femboylar ve panseksüel insanlar da homofobi ve transfobinin hedefi olur; karşındaki senin trans olduğuna zaten karar verdiyse farklı bir etiket işe yaramayabilir.',
+                    text: 'Bunun bazı yerlerde neden daha güvenli olabileceği: “kız kıyafetleri giymek” ya da “cinsel yönelim” “kişisel tarz” veya “geçici bir dönem” olarak görülebilirken, “trans” daha güçlü bir tepkiyi tetikleyebilir. Ama evrensel bir kalkan değildir. Femboylar ve panseksüel insanlar da homofobi ve transfobinin hedefi olur; karşındaki senin trans olduğuna zaten karar verdiyse farklı bir etiket işe yaramayabilir.',
                 },
                 {
                     type: 'p',
-                    text: 'Nasıl kullanılır: kısa, rahat ve az ayrıntılı tut. Bir cümleden sonra konuyu değiştir. Karmaşık bir geçmiş uydurma; her okul, şehir ve zaman çizelgesi dağılabilecek bir şey daha demektir. Kendini korumak için diğer trans insanları küçümseme. "Ben onlardan değilim" başkalarını incitir ve seni daha da yalnız bırakır.',
+                    text: 'Nasıl kullanılır: kısa, rahat ve az ayrıntılı tut. Bir cümleden sonra konuyu değiştir. Karmaşık bir geçmiş uydurma; her okul, şehir ve zaman çizelgesi dağılabilecek bir şey daha demektir. Kendini korumak için diğer trans insanları küçümseme. “Ben onlardan değilim” başkalarını incitir ve seni daha da yalnız bırakır.',
                 },
                 {
                     type: 'p',
-                    text: 'Trans erkekler ve trans kızlar daha belirli bir "okul hikâyesi" de ödünç alabilir: trans bir erkek değişimi "erkek fatma, androjen, son zamanlarda biraz çocukça havalı görünme merakı" diye; trans bir kız "anime ve cosplay meraklısı, kadın kostümleri deniyor" diye anlatabilir. Bu, trans erkeklerin erkek fatma olması ya da trans kızların cosplay sevmesi gerektiği anlamına gelmez; yalnızca bazı okullarda maliyeti düşük bir kalkandır ve herkese uymaz.',
+                    text: 'Trans erkekler ve trans kızlar daha belirli bir “okul hikâyesi” de ödünç alabilir: trans bir erkek değişimi “erkek fatma, androjen, son zamanlarda biraz çocukça havalı görünme merakı” diye; trans bir kız “anime ve cosplay meraklısı, kadın kostümleri deniyor” diye anlatabilir. Bu, trans erkeklerin erkek fatma olması ya da trans kızların cosplay sevmesi gerektiği anlamına gelmez; yalnızca bazı okullarda maliyeti düşük bir kalkandır ve herkese uymaz.',
                 },
                 {
                     type: 'ul',
                     items: [
-                        'Yalnızca neden böyle giyindiğini ya da son zamanlarda neden değiştiğini açıkla; bedenini, tıbbi bakımını, belgelerini, adını ve zamirlerini ya da ilişkilerini değil. Hormon, ameliyat, kulüp, yarışma ya da "katıldığım bir örgüt" uydurma.',
-                        '"Geç gelen havalı görünme dönemi" bir şakadır, teşhis değil; öğretmenlerin davranış sorunun olduğunu düşünmesine ve daha çok dikkat çekmene yol açabilir. Abartma. Bazı okullarda bu "ruhsal bir sorun" olarak görülür ve sınıf öğretmenini, aileni ya da okul rehber öğretmenini işin içine katar; zaten gözetim altındaysan bunu kullanma.',
-                        'Cosplay fotoğrafları, hesapları ve yüz yüze etkinlikler bağlantı kurulabilir izler bırakır; özenli cosplay fotoğraf setleri paylaşma, büyük etkinliklere gitme ya da karakteri sürdürmek için borç alıp aksesuar alma. Bazı okullar cosplay\'i "uygunsuz kıyafet" ya da "okulu ciddiye almamak" olarak görür, disiplin puanı verebilir ya da ailene haber verebilir; önce okul kurallarını ve öğretmenin tutumunu kontrol et.',
-                        'Bu iki cümle yalnızca sınıf arkadaşlarının gelişigüzel soruları içindir; öğretmenlere, ailene, doktorlara ya da polise karşı karakter kullanma. "Bunu konuşmak istemiyorum" de ya da güvendiğin bir yetişkin bul.',
-                        'Bir çıkış cümlesi hazır tut: "Sadece eğlence olsun diye deniyordum; bir süre sonra değiştirebilirim." Böylece ileride tarzındaki bir değişikliği açıklamak zorunda kalmazsın.',
+                        'Yalnızca neden böyle giyindiğini ya da son zamanlarda neden değiştiğini açıkla; bedenini, tıbbi bakımını, belgelerini, adını ve zamirlerini ya da ilişkilerini değil. Hormon, ameliyat, kulüp, yarışma ya da “katıldığım bir örgüt” uydurma.',
+                        '“Geç gelen havalı görünme dönemi” bir şakadır, teşhis değil; öğretmenlerin davranış sorunun olduğunu düşünmesine ve daha çok dikkat çekmene yol açabilir. Abartma. Bazı okullarda bu “ruhsal bir sorun” olarak görülür ve sınıf öğretmenini, aileni ya da okul rehber öğretmenini işin içine katar; zaten gözetim altındaysan bunu kullanma.',
+                        "Cosplay fotoğrafları, hesapları ve yüz yüze etkinlikler bağlantı kurulabilir izler bırakır; özenli cosplay fotoğraf setleri paylaşma, büyük etkinliklere gitme ya da karakteri sürdürmek için borç alıp aksesuar alma. Bazı okullar cosplay'i “uygunsuz kıyafet” ya da “okulu ciddiye almamak” olarak görür, disiplin puanı verebilir ya da ailene haber verebilir; önce okul kurallarını ve öğretmenin tutumunu kontrol et.",
+                        'Bu iki cümle yalnızca sınıf arkadaşlarının gelişigüzel soruları içindir; öğretmenlere, ailene, doktorlara ya da polise karşı karakter kullanma. “Bunu konuşmak istemiyorum” de ya da güvendiğin bir yetişkin bul.',
+                        'Bir çıkış cümlesi hazır tut: “Sadece eğlence olsun diye deniyordum; bir süre sonra değiştirebilirim.” Böylece ileride tarzındaki bir değişikliği açıklamak zorunda kalmazsın.',
                     ],
                 },
                 {
                     type: 'p',
-                    text: 'Trans kızlar için: cosplay cümlesini kullanmak sende bir sorun olduğunu kabul etmek değildir ve kendini küçük düşürmek de değildir; yalnızca konuyu "trans mısın" sorusundan "anime hayranı mısın" sorusuna kaydırır. Bazı okullar bunu gerçekten yalnızca "uygunsuz kıyafet", "kötü tavır" ya da "okulu ciddiye almamak" olarak görür ve kadın kıyafetlerine el koyabilir, ama yalnızca bu sözden ilaç kullandığını çıkarmaz. Yine de "en kötü ihtimalle el koyarlar" bir garanti değildir: bedenin gözle görülür biçimde değiştiyse, biri seni şikâyet ederse ya da ailen zaten şüpheleniyorsa okul yine de çantanı, telefonunu ya da ilaçlarını arayabilir veya sağlık muayenesi isteyebilir.',
+                    text: 'Trans kızlar için: cosplay cümlesini kullanmak sende bir sorun olduğunu kabul etmek değildir ve kendini küçük düşürmek de değildir; yalnızca konuyu “trans mısın” sorusundan “anime hayranı mısın” sorusuna kaydırır. Bazı okullar bunu gerçekten yalnızca “uygunsuz kıyafet”, “kötü tavır” ya da “okulu ciddiye almamak” olarak görür ve kadın kıyafetlerine el koyabilir, ama yalnızca bu sözden ilaç kullandığını çıkarmaz. Yine de “en kötü ihtimalle el koyarlar” bir garanti değildir: bedenin gözle görülür biçimde değiştiyse, biri seni şikâyet ederse ya da ailen zaten şüpheleniyorsa okul yine de çantanı, telefonunu ya da ilaçlarını arayabilir veya sağlık muayenesi isteyebilir.',
                 },
                 {
                     type: 'p',
-                    text: 'Trans erkekler için: "havalı görünmeye meraklı erkek fatma" kılıfı bazen bazı erkek gruplarıyla sıradan bir yakınlık sağlayabilir: omzuna kol atılması, "kardeşim" denmesi, birlikte top oynamak. Bu gerçek bir tampon olabilir ama güvenliğin kanıtı değildir; seni yalnızca "erkeklerden biri" sandıkları için kabul ediyorlarsa şüphelendikleri anda sana dönebilirler. Bu konumu korumak için yüksek riskli durumlara (yatılı kalmak, tuvaletler, beden muayeneleri) girme ve "kardeşim denmesini" geçmen gereken bir sınav sayma. Bu tür bir yakınlık seni rahatsız ediyorsa uzaklaş; "erkek gibi davranmak" için dokunulmaya katlanmak zorunda değilsin.',
+                    text: 'Trans erkekler için: “havalı görünmeye meraklı erkek fatma” kılıfı bazen bazı erkek gruplarıyla sıradan bir yakınlık sağlayabilir: omzuna kol atılması, “kardeşim” denmesi, birlikte top oynamak. Bu gerçek bir tampon olabilir ama güvenliğin kanıtı değildir; seni yalnızca “erkeklerden biri” sandıkları için kabul ediyorlarsa şüphelendikleri anda sana dönebilirler. Bu konumu korumak için yüksek riskli durumlara (yatılı kalmak, tuvaletler, beden muayeneleri) girme ve “kardeşim denmesini” geçmen gereken bir sınav sayma. Bu tür bir yakınlık seni rahatsız ediyorsa uzaklaş; “erkek gibi davranmak” için dokunulmaya katlanmak zorunda değilsin.',
                 },
                 {
                     type: 'p',
-                    text: 'Biri ısrarla "Trans mısın?" diye sorarsa: "Hâlâ düşünüyorum ve şu an konuşmak istemiyorum" ya da "Neden soruyorsun?" Alay etmeye, etrafını sarmaya ya da el kaldırmaya başlarlarsa tartışma. Oradan ayrıl, öğretmenlerin, kameraların ya da başka öğrencilerin olduğu bir yere git ve güvendiğin birini bul.',
+                    text: 'Biri ısrarla “Trans mısın?” diye sorarsa: “Hâlâ düşünüyorum ve şu an konuşmak istemiyorum” ya da “Neden soruyorsun?” Alay etmeye, etrafını sarmaya ya da el kaldırmaya başlarlarsa tartışma. Oradan ayrıl, öğretmenlerin, kameraların ya da başka öğrencilerin olduğu bir yere git ve güvendiğin birini bul.',
                 },
                 {
                     type: 'p',
-                    text: 'Bir öğretmen "Neden normal giyinemiyorsun?" derse: derste toplumsal cinsiyet kuramı tartışmak zorunda değilsin. "Bana doğru gelen şekilde giyiniyorum ve derse engel olmuyor" demek yeterli; sonra derse dön. Bir öğretmen seni aşağılar ya da cezalandırırsa zamanı, yeri ve tam sözleri kaydet ve güvenli bir ebeveyne ya da veliye, okul rehber öğretmenine veya yerel eğitim müdürlüğüne bildir.',
+                    text: 'Bir öğretmen “Neden normal giyinemiyorsun?” derse: derste toplumsal cinsiyet kuramı tartışmak zorunda değilsin. “Bana doğru gelen şekilde giyiniyorum ve derse engel olmuyor” demek yeterli; sonra derse dön. Bir öğretmen seni aşağılar ya da cezalandırırsa zamanı, yeri ve tam sözleri kaydet ve güvenli bir ebeveyne ya da veliye, okul rehber öğretmenine veya yerel eğitim müdürlüğüne bildir.',
                 },
                 {
                     type: 'p',
-                    text: 'Açılmak tek seferlik bir sınav değildir. Bugün "keşfediyorum", yarın "bunu konuşmak istemiyorum" diyebilirsin. Bu bir çelişki değildir. Etiketler senin araçlarındır, bir sorgunun cevapları değil.',
+                    text: 'Açılmak tek seferlik bir sınav değildir. Bugün “keşfediyorum”, yarın “bunu konuşmak istemiyorum” diyebilirsin. Bu bir çelişki değildir. Etiketler senin araçlarındır, bir sorgunun cevapları değil.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Daha güvenli göründüğü için kendini femboy etiketini kabul etmeye zorlama ve belirli bir gerçek kişiymiş gibi davranma. "Femboy dersem daha az dayak yerim" diye düşünsen bile dövülmek yine de şiddettir, ödemen gereken bir bedel değil. Ortam tehlikeliyse oradan ayrılmayı ve yardım almayı öncele. Karşındaki senin trans olduğuna zaten karar verdiyse farklı bir etiket işe yaramayabilir; bu durumda da ayrılmayı ve güvendiğin birini bulmayı öncele ve bunu kanıtlamak için karakteri tırmandırmaya devam etme.',
+                    text: 'Daha güvenli göründüğü için kendini femboy etiketini kabul etmeye zorlama ve belirli bir gerçek kişiymiş gibi davranma. “Femboy dersem daha az dayak yerim” diye düşünsen bile dövülmek yine de şiddettir, ödemen gereken bir bedel değil. Ortam tehlikeliyse oradan ayrılmayı ve yardım almayı öncele. Karşındaki senin trans olduğuna zaten karar verdiyse farklı bir etiket işe yaramayabilir; bu durumda da ayrılmayı ve güvendiğin birini bulmayı öncele ve bunu kanıtlamak için karakteri tırmandırmaya devam etme.',
                 },
             ],
         },
@@ -500,21 +500,21 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Yalnızca gerginsen ya da gerçekten kendini iyi hissetmiyorsan: bir öğretmene ya da okul hemşiresine "Biraz başım dönüyor, oturmam gerek" de. Otur, yavaş yavaş su iç, bisiklete binme ya da araba kullanma ve güvendiğin birine haber vermelerini iste. Gerçek bir belirti hakkında doğruyu söylemek, seni hastaneye gönderebilecek ya da ailenin aranmasına yol açabilecek bir hikâye uydurmaktan çok daha kontrol edilebilirdir.',
+                    text: 'Yalnızca gerginsen ya da gerçekten kendini iyi hissetmiyorsan: bir öğretmene ya da okul hemşiresine “Biraz başım dönüyor, oturmam gerek” de. Otur, yavaş yavaş su iç, bisiklete binme ya da araba kullanma ve güvendiğin birine haber vermelerini iste. Gerçek bir belirti hakkında doğruyu söylemek, seni hastaneye gönderebilecek ya da ailenin aranmasına yol açabilecek bir hikâye uydurmaktan çok daha kontrol edilebilirdir.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Yüksek riskli davranış uyarısı: sağlık taramasından kaçmak için kendini kusturma, kusturucu ilaç kullanma, boğazını uyarma, idrarını tutma, susuz kalma, kendi başına ilaç alma ya da bayılmış numarası yapma. Kendini kusturmak aspirasyona, boğulmaya, yemek borusu yırtılmalarına, elektrolit dengesizliğine, kalp ritmi sorunlarına ve diş aşınmasına yol açabilir. Kustuktan hemen sonra uzanıp uyumak özellikle tehlikelidir, çünkü uykuda kusmuğunla boğulabilirsin. "Kustum, demek ki iyiyim"i bir güvenlik testi olarak kullanma.',
+                    text: 'Yüksek riskli davranış uyarısı: sağlık taramasından kaçmak için kendini kusturma, kusturucu ilaç kullanma, boğazını uyarma, idrarını tutma, susuz kalma, kendi başına ilaç alma ya da bayılmış numarası yapma. Kendini kusturmak aspirasyona, boğulmaya, yemek borusu yırtılmalarına, elektrolit dengesizliğine, kalp ritmi sorunlarına ve diş aşınmasına yol açabilir. Kustuktan hemen sonra uzanıp uyumak özellikle tehlikelidir, çünkü uykuda kusmuğunla boğulabilirsin. “Kustum, demek ki iyiyim”i bir güvenlik testi olarak kullanma.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Zaten kustuysan: ağzını çalkala, dik ya da yan yat, yudum yudum su iç ve güvendiğin bir yetişkine söyle. Tekrarlayan kusma, göğüs ya da karın ağrısı, kan kusma, ayakta durmayı zorlaştıran baş dönmesi ya da bilinç bulanıklığı varsa acilen tıbbi yardım al. Hemen tek başına uyuma ve bir kez "işe yaradı" diye tekrarlama.',
+                    text: 'Zaten kustuysan: ağzını çalkala, dik ya da yan yat, yudum yudum su iç ve güvendiğin bir yetişkine söyle. Tekrarlayan kusma, göğüs ya da karın ağrısı, kan kusma, ayakta durmayı zorlaştıran baş dönmesi ya da bilinç bulanıklığı varsa acilen tıbbi yardım al. Hemen tek başına uyuma ve bir kez “işe yaradı” diye tekrarlama.',
                 },
                 {
                     type: 'p',
-                    text: 'Sağlık taraması "her şeye uymak" ile "her şeyden kaçmak" arasında bir seçim değildir. O ortamda belirli bir maddeyi reddedip doktorla baş başa konuşmak isteyebilir ya da güvendiğin bir yetişkinin yanında olmasını isteyebilirsin. Asıl tehlike, tek bir muayeneyi atlatmak için kendine zarar vermektir. Hiçbir muayene sonucu aspirasyona, yemek borusu hasarına ya da kalp ritmi sorununa değmez.',
+                    text: 'Sağlık taraması “her şeye uymak” ile “her şeyden kaçmak” arasında bir seçim değildir. O ortamda belirli bir maddeyi reddedip doktorla baş başa konuşmak isteyebilir ya da güvendiğin bir yetişkinin yanında olmasını isteyebilirsin. Asıl tehlike, tek bir muayeneyi atlatmak için kendine zarar vermektir. Hiçbir muayene sonucu aspirasyona, yemek borusu hasarına ya da kalp ritmi sorununa değmez.',
                 },
                 {
                     type: 'warn',
@@ -525,29 +525,29 @@ const TR: OpSecContent = {
         },
         {
             id: 'psychiatry',
-            title: 'Psikiyatri, "transseksüalizm" tanısı ve "rapor": bedeni yeniden kurmak tek bir commit değildir',
+            title: 'Psikiyatri, “transseksüalizm” tanısı ve “rapor”: bedeni yeniden kurmak tek bir commit değildir',
             level: 'basic',
             blocks: [
                 {
                     type: 'p',
-                    text: '"Transseksüalizm" bazı bölgelerde ve eski tanı sistemlerinde kullanılan bir terimdir; adlar, ölçütler ve süreçler yere göre değişir. Bu bölüm bir öz tanı aracı değildir ve bir sağlık çalışanının değerlendirmesinin yerini tutmaz. Yalnızca tek bir şeyi ele alır: bir tanıya, sevke ya da rapora ihtiyacın olduğunda kapı bekçiliğinin nasıl işleyebileceğini ve sistemin gecikmesini "yeterince trans değilim" diye yanlış anlamaktan nasıl kaçınacağını.',
+                    text: '“Transseksüalizm” bazı bölgelerde ve eski tanı sistemlerinde kullanılan bir terimdir; adlar, ölçütler ve süreçler yere göre değişir. Bu bölüm bir öz tanı aracı değildir ve bir sağlık çalışanının değerlendirmesinin yerini tutmaz. Yalnızca tek bir şeyi ele alır: bir tanıya, sevke ya da rapora ihtiyacın olduğunda kapı bekçiliğinin nasıl işleyebileceğini ve sistemin gecikmesini “yeterince trans değilim” diye yanlış anlamaktan nasıl kaçınacağını.',
                 },
                 {
                     type: 'p',
-                    text: 'Önce şunu bil: psikiyatri yalnızca "rapor almak" için değildir ve yalnızca kriz içindeki insanlar için de değildir. Süregiden çökkünlük, kaygı, uykusuzluk, iştah değişiklikleri, ders çalışamamak ya da çalışamamak, kendine zarar verme ya da intihar düşünceleri ve madde kullanım sorunları profesyonel yardımı hak eder. Aynı anda hem ruh sağlığı desteğine hem de HRT\'ye veya ameliyata ihtiyacın olabilir; depresyonu tedavi etmek cinsiyet uyumsuzluğunu ortadan kaldırmaz ve depresyonu saklamak başvuruyu kolaylaştırmaz.',
+                    text: "Önce şunu bil: psikiyatri yalnızca “rapor almak” için değildir ve yalnızca kriz içindeki insanlar için de değildir. Süregiden çökkünlük, kaygı, uykusuzluk, iştah değişiklikleri, ders çalışamamak ya da çalışamamak, kendine zarar verme ya da intihar düşünceleri ve madde kullanım sorunları profesyonel yardımı hak eder. Aynı anda hem ruh sağlığı desteğine hem de HRT'ye veya ameliyata ihtiyacın olabilir; depresyonu tedavi etmek cinsiyet uyumsuzluğunu ortadan kaldırmaz ve depresyonu saklamak başvuruyu kolaylaştırmaz.",
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Tekrarlayan intihar düşüncelerin, bir planın ya da kendine zarar verme dürtülerin varsa: bu her türlü rapordan önce gelir. Yerel acil servislere ya da bir kriz hattına başvur, acile git, güvendiğin bir yetişkine söyle ve yalnız kalmamaya çalış. "Kaydını temiz tutmak" için saklama; değerlendirme sırasında ağır belirtileri saklamak, en çok risk altında olduğun anda seni yardımsız bırakabilir.',
+                    text: 'Tekrarlayan intihar düşüncelerin, bir planın ya da kendine zarar verme dürtülerin varsa: bu her türlü rapordan önce gelir. Yerel acil servislere ya da bir kriz hattına başvur, acile git, güvendiğin bir yetişkine söyle ve yalnız kalmamaya çalış. “Kaydını temiz tutmak” için saklama; değerlendirme sırasında ağır belirtileri saklamak, en çok risk altında olduğun anda seni yardımsız bırakabilir.',
                 },
                 {
                     type: 'p',
-                    text: 'Yapısal sorun: bazı yerlerde muhafazakâr bir psikiyatrist erteleyebilir, reddedebilir ya da sürekli daha fazla belge isteyerek HRT\'yi veya cerrahi sevki engelleyebilir. Bu senin "gerçekten trans olmadığının" kanıtı değildir ve senin suçun da değildir. Yapabileceklerin: hangi tanının ve belgelerin gerektiğini (gözlem süresi, gerçek yaşam deneyimi, aile onayı vb.), yerelde bilgilendirilmiş onam ya da toplum sağlığı hizmetleri olup olmadığını ve kayıtlarının kopyalarını alıp alamayacağını önceden sor. Reddedilirsen gerekçeyi yazılı iste, neyin eksik olduğunu sor ve trans dostu bir sağlık çalışanı ya da yerel bir destek kuruluşu ara. İkinci görüş almak makuldür; kayıtları, tanıları ya da imzaları taklit etmek değildir.',
+                    text: "Yapısal sorun: bazı yerlerde muhafazakâr bir psikiyatrist erteleyebilir, reddedebilir ya da sürekli daha fazla belge isteyerek HRT'yi veya cerrahi sevki engelleyebilir. Bu senin “gerçekten trans olmadığının” kanıtı değildir ve senin suçun da değildir. Yapabileceklerin: hangi tanının ve belgelerin gerektiğini (gözlem süresi, gerçek yaşam deneyimi, aile onayı vb.), yerelde bilgilendirilmiş onam ya da toplum sağlığı hizmetleri olup olmadığını ve kayıtlarının kopyalarını alıp alamayacağını önceden sor. Reddedilirsen gerekçeyi yazılı iste, neyin eksik olduğunu sor ve trans dostu bir sağlık çalışanı ya da yerel bir destek kuruluşu ara. İkinci görüş almak makuldür; kayıtları, tanıları ya da imzaları taklit etmek değildir.",
                 },
                 {
                     type: 'p',
-                    text: 'Şu anda süregiden, belirgin bir depresyonun, kaygın ya da işlev kaybın yoksa ve acilen bir tanıya veya rapora ihtiyacın yoksa, yalnızca transseksüalizm tanısını "toplamak" için özel olarak psikiyatriye gitmen gerekmez. Ama seçtiğin yol bunu gerektiriyorsa, onu bir kimlik sınavı değil, hazırlanılacak bir belge kapısı olarak gör. Bir sağlık çalışanını memnun etmek için hikâye uydurma ve "dengeli" görünmek için gerçek sıkıntını inkâr etme.',
+                    text: 'Şu anda süregiden, belirgin bir depresyonun, kaygın ya da işlev kaybın yoksa ve acilen bir tanıya veya rapora ihtiyacın yoksa, yalnızca transseksüalizm tanısını “toplamak” için özel olarak psikiyatriye gitmen gerekmez. Ama seçtiğin yol bunu gerektiriyorsa, onu bir kimlik sınavı değil, hazırlanılacak bir belge kapısı olarak gör. Bir sağlık çalışanını memnun etmek için hikâye uydurma ve “dengeli” görünmek için gerçek sıkıntını inkâr etme.',
                 },
                 {
                     type: 'p',
@@ -559,11 +559,11 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'GitHub\'ı biliyorsan süreci şöyle düşünebilirsin: Issue "değişmek istiyorum"dur, PR HRT ya da ameliyat başvurusudur, inceleme psikiyatrik değerlendirmedir ve commit bedeni yeniden kurmaktır. Gerçeklik bir depodan çok daha karışıktır: inceleyen kişi onay düğmesine hiç basmayabilir ve PR\'ına yıllarca needs-info etiketi koyabilir. Süreçle dalga geçebilirsin ama merge almak için tek güvenlik testini silme: intihar düşüncelerini, göğüs ağrısını ya da bayılmayı, yani gerçekten tehlikeli olanları saklama. Beden force push ile düzeltilebilecek bir depo değildir ve pek çok değişiklik geri alınamaz.',
+                    text: "GitHub'ı biliyorsan süreci şöyle düşünebilirsin: Issue “değişmek istiyorum”dur, PR HRT ya da ameliyat başvurusudur, inceleme psikiyatrik değerlendirmedir ve commit bedeni yeniden kurmaktır. Gerçeklik bir depodan çok daha karışıktır: inceleyen kişi onay düğmesine hiç basmayabilir ve PR'ına yıllarca needs-info etiketi koyabilir. Süreçle dalga geçebilirsin ama merge almak için tek güvenlik testini silme: intihar düşüncelerini, göğüs ağrısını ya da bayılmayı, yani gerçekten tehlikeli olanları saklama. Beden force push ile düzeltilebilecek bir depo değildir ve pek çok değişiklik geri alınamaz.",
                 },
                 {
                     type: 'p',
-                    text: 'Reddedilirsen: gerekçeyi yazılı iste, eksik olanın tanı mı, gözlem süresi mi, aile onayı mı yoksa başka bir şey mi olduğunu sor, kopyaları sakla ve başka bir sağlık çalışanı ya da kurum ara veya bir trans destek örgütüne yerel yolları sor. Gerekirse itiraz et. Bir ret kimliğin hakkında bir hüküm değildir ve kesinlikle kendine zarar vererek "kanıtlaman" gereken bir şey değildir.',
+                    text: 'Reddedilirsen: gerekçeyi yazılı iste, eksik olanın tanı mı, gözlem süresi mi, aile onayı mı yoksa başka bir şey mi olduğunu sor, kopyaları sakla ve başka bir sağlık çalışanı ya da kurum ara veya bir trans destek örgütüne yerel yolları sor. Gerekirse itiraz et. Bir ret kimliğin hakkında bir hüküm değildir ve kesinlikle kendine zarar vererek “kanıtlaman” gereken bir şey değildir.',
                 },
                 {
                     type: 'p',
@@ -600,14 +600,14 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Bir aile üyesi, sınıf arkadaşı ya da partner sana vuruyorsa, en önemli şey kazanmak değil, yaralanmayı azaltmak ve oradan çıkmaktır. Biri şiddete başvurduktan sonra ikna etmeye çalışmak, yalvarmak ya da tehdit etmek bunu tırmandırabilir. "Bunu bir daha yaparsan polisi ararım" özellikle tehlikelidir: polisi aramak bir eylemdir, bir replik değil.',
+                    text: 'Bir aile üyesi, sınıf arkadaşı ya da partner sana vuruyorsa, en önemli şey kazanmak değil, yaralanmayı azaltmak ve oradan çıkmaktır. Biri şiddete başvurduktan sonra ikna etmeye çalışmak, yalvarmak ya da tehdit etmek bunu tırmandırabilir. “Bunu bir daha yaparsan polisi ararım” özellikle tehlikelidir: polisi aramak bir eylemdir, bir replik değil.',
                 },
                 {
                     type: 'ul',
                     items: [
                         'Önce çıkışı bul: kapı nerede, önünü kim kesiyor, etrafından dolaşabilir misin? Sırtını kapıya dönme ve mutfakta, balkonda ya da merdivenin tepesinde köşeye sıkışmaya izin verme.',
                         'Başını ve boynunu koru: çeneni göğsüne çek, ensen ile kulaklarını kapat; yapabiliyorsan alçal ki başının vurulabilecek alanı küçülsün.',
-                        'Bir silaha uzanma, peşinden gitme ve "onu döverek susturmaya" çalışma. Aranızda mesafe olunca uzaklaş.',
+                        'Bir silaha uzanma, peşinden gitme ve “onu döverek susturmaya” çalışma. Aranızda mesafe olunca uzaklaş.',
                         'İnsanlara, kameralara ve yetişkinlere doğru koş: bir dükkân, bir güvenlik kulübesi, bir sınıf, bir karakol. Çıkmaz sokaklara, şantiyelere ya da ıssız merdiven boşluklarına koşma.',
                         'Kaçamıyorsan: aranıza bir sandalye, çanta ya da battaniye koy ve yardım için bağırmaya devam et. Karşındaki durursa kıpırdama, çıkışı gözle ve yalnızca güvenli olduğunda hareket et; aniden kalkıp peşine düşme.',
                         'Sonrasında: önce olay yerinden ayrıl, güvendiğin birini bul, yaralarının fotoğrafını çek ya da kaydını tut ve hastaneye git. Yeniden dövülebileceksen eve tek başına gitme.',
@@ -629,16 +629,16 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Antrenman kaçmak içindir, kavga etmek için değil. "Kavgayı bitiren tek hamle" çalışma ve karşındakine meydan okuma. Korkmadığını kanıtlamak zorunda değilsin.',
+                    text: 'Antrenman kaçmak içindir, kavga etmek için değil. “Kavgayı bitiren tek hamle” çalışma ve karşındakine meydan okuma. Korkmadığını kanıtlamak zorunda değilsin.',
                 },
                 {
                     type: 'p',
-                    text: 'Açıldığın için, kimliğin yüzünden, ilaç yüzünden ya da "düzeltilmeyi" reddettiğin için dövülüyorsan: bu senin suçun değil ve "yeterince dikkatli olmadığın" için de değil. Mümkün olan en kısa sürede bir güvenlik planı yap: kimlik belgeleri, ilaçlar, para, yedek bir telefon, güvendiğin yetişkinlerin telefon numaraları ve geçici olarak kalabileceğin bir yer.',
+                    text: 'Açıldığın için, kimliğin yüzünden, ilaç yüzünden ya da “düzeltilmeyi” reddettiğin için dövülüyorsan: bu senin suçun değil ve “yeterince dikkatli olmadığın” için de değil. Mümkün olan en kısa sürede bir güvenlik planı yap: kimlik belgeleri, ilaçlar, para, yedek bir telefon, güvendiğin yetişkinlerin telefon numaraları ve geçici olarak kalabileceğin bir yer.',
                 },
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: '"Polisi ararım"ı tehdit olarak söyleme. Karşındaki zaten öfkeliyse o cümle hemen daha sert dövülmene yol açabilir. Gerçekten arayacaksan güvenli bir yerden ara ya da başka birinden senin yerine aramasını iste.',
+                    text: '“Polisi ararım”ı tehdit olarak söyleme. Karşındaki zaten öfkeliyse o cümle hemen daha sert dövülmene yol açabilir. Gerçekten arayacaksan güvenli bir yerden ara ya da başka birinden senin yerine aramasını iste.',
                 },
                 {
                     type: 'p',
@@ -659,7 +659,7 @@ const TR: OpSecContent = {
                     type: 'ul',
                     items: [
                         'Kimliği ve cihazı ayır: hassas etkinlikler için farklı bir cihaz, hesap ve ağ kullan ve iki tarafı birbirine bağlayan iz bırakma.',
-                        'Bilgiyi yalnızca gerektiği kadar ver: amaç için gereken en azını sağla. "Önce gizliliğini teslim et, sonra yardım ederim" türünden her isteği reddet.',
+                        'Bilgiyi yalnızca gerektiği kadar ver: amaç için gereken en azını sağla. “Önce gizliliğini teslim et, sonra yardım ederim” türünden her isteği reddet.',
                         'Bölmelere ayır: gerçek kimliğini, topluluk kimliğini, paranı ve sosyal çevreni ayrı tut. Bir bölme sızarsa su ötekilere ulaşmasın.',
                         'Ele geçirildiğini varsay: bir parolayı değiştirip işi bitmiş sayma. Dört hattı ayrı ayrı kontrol et: hesaplar, cihazlar, ağ ve para.',
                         'Önce kanıtı sakla: tehdit edildiğinde ekran görüntülerini, sohbet kayıtlarını, e-posta başlıklarını ve transfer kayıtlarını kaydet, şifreli olarak yedekle ve gerekirse bir zaman çizelgesi çıkar.',
@@ -682,7 +682,7 @@ const TR: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        'Onlarla doğrudan yüzleşme. Bir takipçiyle tek başına buluşma, "karşı hack" yapma ve herkesin önünde kavga ayarlama. Fiziksel güvenlik önce gelir.',
+                        'Onlarla doğrudan yüzleşme. Bir takipçiyle tek başına buluşma, “karşı hack” yapma ve herkesin önünde kavga ayarlama. Fiziksel güvenlik önce gelir.',
                         'Düzeni boz. Okul ya da iş yolunu, programını ve düzenli gittiğin yerleri değiştir. Sosyal medyada konumunu anlık paylaşma.',
                         'Yakın çevreni koru. Ailene ve arkadaşlarına bilgilerini yabancılara vermemelerini söyle. Yalnızca güvendiğin kişilerin bildiği bir parola kelime belirleyin.',
                         'Dijital ayak izini temizle: eski hesaplar, eski gönderiler, eski e-posta adresleri, eski telefon numaraları. Silebildiğini sil; silemediğinin görünürlüğünü azalt.',
@@ -693,7 +693,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Yasa dışı yollarla "ateşe ateşle karşılık verme" ya da karşılık vermek için kimlik uydurma. Bu seni daha büyük bir riske sokar ve gerçekten yardıma ihtiyacı olan insanlara inanılmasını zorlaştırır.',
+                    text: 'Yasa dışı yollarla “ateşe ateşle karşılık verme” ya da karşılık vermek için kimlik uydurma. Bu seni daha büyük bir riske sokar ve gerçekten yardıma ihtiyacı olan insanlara inanılmasını zorlaştırır.',
                 },
             ],
         },
@@ -704,7 +704,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Bu rehber başlangıçta trans kadınlara ağırlık veriyordu; trans erkeklerin ihtiyaçları yalnızca "tersi" değildir. Trans erkekler sağlık sisteminde gözden kaçabilir, "yeterince trans değil" diye görülebilir ya da yanlış teşhis alabilir ve göğüs bağlama, testosteron, jinekolojik bakım ve gebelik riski konusunda bambaşka sorunlarla karşılaşabilir.',
+                    text: 'Bu rehber başlangıçta trans kadınlara ağırlık veriyordu; trans erkeklerin ihtiyaçları yalnızca “tersi” değildir. Trans erkekler sağlık sisteminde gözden kaçabilir, “yeterince trans değil” diye görülebilir ya da yanlış teşhis alabilir ve göğüs bağlama, testosteron, jinekolojik bakım ve gebelik riski konusunda bambaşka sorunlarla karşılaşabilir.',
                 },
                 {
                     type: 'ul',
@@ -721,12 +721,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Trans erkekler çoğu zaman "görünmezdir": insanlar seni trans erkek olarak algılamayabilir ya da "sadece erkek fatma" sanabilir. Bu bir örtü olabilir ama yalnızlaştırıcı da olabilir. Okulda soran olursa "erkek fatma, androjen tarz"ı kalkan olarak kullanabilirsin; bu kıyafeti açıklar, bedenini ya da tıbbi bakımını değil. Belirli cümleler için "Sınıf arkadaşların sorduğunda" bölümüne bak. Topluluk bul, senden önce bu yoldan geçmiş trans erkekler bul ve trans dostu doktorlar bul; her soruyu içine atıp tek başına taşıma.',
+                    text: 'Trans erkekler çoğu zaman “görünmezdir”: insanlar seni trans erkek olarak algılamayabilir ya da “sadece erkek fatma” sanabilir. Bu bir örtü olabilir ama yalnızlaştırıcı da olabilir. Okulda soran olursa “erkek fatma, androjen tarz”ı kalkan olarak kullanabilirsin; bu kıyafeti açıklar, bedenini ya da tıbbi bakımını değil. Belirli cümleler için “Sınıf arkadaşların sorduğunda” bölümüne bak. Topluluk bul, senden önce bu yoldan geçmiş trans erkekler bul ve trans dostu doktorlar bul; her soruyu içine atıp tek başına taşıma.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '"Daha iyi geçmek" için tehlikeli şeyler yapma: aşırı göğüs bağlama, iğne paylaşmak, karaborsa testosteron, aşırı diyet ya da egzersiz veya göğsünü bantlamak. Bunlar kalıcı zarara yol açabilir.',
+                    text: '“Daha iyi geçmek” için tehlikeli şeyler yapma: aşırı göğüs bağlama, iğne paylaşmak, karaborsa testosteron, aşırı diyet ya da egzersiz veya göğsünü bantlamak. Bunlar kalıcı zarara yol açabilir.',
                 },
                 {
                     type: 'p',
@@ -745,7 +745,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Bu bölüm yalnızca "bu nicelik ne soruyor?" sorusunu yanıtlar. Hiçbir şey türetmen gerekmez. Bir formül göze itici geliyorsa her paragrafın ilk cümlesini oku ve devam et. Bu fikirler esas olarak belirsizliği, benzerliği ve bir ilişkinin gücünü anlatmakta işe yarar.',
+                    text: 'Bu bölüm yalnızca “bu nicelik ne soruyor?” sorusunu yanıtlar. Hiçbir şey türetmen gerekmez. Bir formül göze itici geliyorsa her paragrafın ilk cümlesini oku ve devam et. Bu fikirler esas olarak belirsizliği, benzerliği ve bir ilişkinin gücünü anlatmakta işe yarar.',
                 },
                 {
                     type: 'p',
@@ -790,7 +790,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'note',
-                    text: 'Formüller sihir değildir. Örneklem yanlılığı, zaman aralığı, ön işleme ve yan bilgiler sonucu değiştirebilir. "İstatistiksel olarak anlamlı" gördüğünde örneklemin nereden geldiğini, hangi varsayımların yapıldığını ve başka bir açıklamanın uyup uymadığını sor.',
+                    text: 'Formüller sihir değildir. Örneklem yanlılığı, zaman aralığı, ön işleme ve yan bilgiler sonucu değiştirebilir. “İstatistiksel olarak anlamlı” gördüğünde örneklemin nereden geldiğini, hangi varsayımların yapıldığını ve başka bir açıklamanın uyup uymadığını sor.',
                 },
             ],
         },
@@ -837,7 +837,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Klasik bilgisayarlardaki en iyi genel amaçlı çarpanlara ayırma algoritmaları, örneğin sayı cismi eleği, polinom değil alt üstel zamanlıdır. 2048 ya da 3072 bitlik RSA klasik olarak hâlâ güvenli kabul edilir ama bu "sonsuza dek güvenli" ile aynı şey değildir: kısa anahtarlar, uygulama hataları ve kötü rastgelelik zor bir matematik problemini bir mühendislik başarısızlığına dönüştürebilir.',
+                    text: 'Klasik bilgisayarlardaki en iyi genel amaçlı çarpanlara ayırma algoritmaları, örneğin sayı cismi eleği, polinom değil alt üstel zamanlıdır. 2048 ya da 3072 bitlik RSA klasik olarak hâlâ güvenli kabul edilir ama bu “sonsuza dek güvenli” ile aynı şey değildir: kısa anahtarlar, uygulama hataları ve kötü rastgelelik zor bir matematik problemini bir mühendislik başarısızlığına dönüştürebilir.',
                 },
                 {
                     type: 'p',
@@ -857,7 +857,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Eliptik eğri kriptografisi (ECC) "daha çok adımlı RSA" değildir. Farklı bir zor problem kullanır: sonlu bir cisim üzerindeki eliptik eğrinin noktalarından oluşan grupta, P ve Q=kP verildiğinde k skalerini bulmak zordur. Bu, eliptik eğri ayrık logaritma problemidir (ECDLP).',
+                    text: 'Eliptik eğri kriptografisi (ECC) “daha çok adımlı RSA” değildir. Farklı bir zor problem kullanır: sonlu bir cisim üzerindeki eliptik eğrinin noktalarından oluşan grupta, P ve Q=kP verildiğinde k skalerini bulmak zordur. Bu, eliptik eğri ayrık logaritma problemidir (ECDLP).',
                 },
                 {
                     type: 'math',
@@ -902,7 +902,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'note',
-                    text: '"Kuantuma dayanıklı" bir geçiş sürecidir, bir coin ya da uygulama kullandığı için güvenebileceğin bir etiket değil. Bir proje bunu iddia ettiğinde hangi katmanın değiştirildiğini, hangi anahtar ve imza şemalarının kullanıldığını ve bağımsız bir denetim yapılıp yapılmadığını sor.',
+                    text: '“Kuantuma dayanıklı” bir geçiş sürecidir, bir coin ya da uygulama kullandığı için güvenebileceğin bir etiket değil. Bir proje bunu iddia ettiğinde hangi katmanın değiştirildiğini, hangi anahtar ve imza şemalarının kullanıldığını ve bağımsız bir denetim yapılıp yapılmadığını sor.',
                 },
             ],
         },
@@ -945,7 +945,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'I2P sarımsak yönlendirmesi kullanır: bir mesaj birden çok şifreli "diş" içerebilir ve tek yönlü tünellerden geçer. Varsayılan olarak sıradan internete bir çıkış sağlamaz; daha çok iç hizmetlere (eepsite\'lar) ve eşler arası uygulamalara yöneliktir.',
+                    text: "I2P sarımsak yönlendirmesi kullanır: bir mesaj birden çok şifreli “diş” içerebilir ve tek yönlü tünellerden geçer. Varsayılan olarak sıradan internete bir çıkış sağlamaz; daha çok iç hizmetlere (eepsite'lar) ve eşler arası uygulamalara yöneliktir.",
                 },
                 {
                     type: 'p',
@@ -963,12 +963,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'I2P "geliştirilmiş bir Tor" değildir. Amaçları farklıdır: Tor genel amaçlı bir çıkış vekiline daha yakınken I2P daha çok bir iç karanlık ağdır. Hangisini kullanacağın neye ulaşman gerektiğine, tehdit modeline ve daha küçük bir ekosistemi kabul edip edemeyeceğine bağlıdır.',
+                    text: 'I2P “geliştirilmiş bir Tor” değildir. Amaçları farklıdır: Tor genel amaçlı bir çıkış vekiline daha yakınken I2P daha çok bir iç karanlık ağdır. Hangisini kullanacağın neye ulaşman gerektiğine, tehdit modeline ve daha küçük bir ekosistemi kabul edip edemeyeceğine bağlıdır.',
                 },
                 {
                     type: 'warn',
                     kind: 'note',
-                    text: '"Daha çok düğüm" kendiliğinden "daha güvenli" demek değildir. Karşı taraf bulut sunucuları kiralayabilir, toplu kayıt yapabilir ve uzun süre pusuda bekleyebilir. Bir ağın Sybil saldırılarına dayanıp dayanamayacağı yalnızca düğüm sayısına değil, kimlik maliyetine, seçim algoritmalarına ve merkeziyetsizliğe bağlıdır.',
+                    text: '“Daha çok düğüm” kendiliğinden “daha güvenli” demek değildir. Karşı taraf bulut sunucuları kiralayabilir, toplu kayıt yapabilir ve uzun süre pusuda bekleyebilir. Bir ağın Sybil saldırılarına dayanıp dayanamayacağı yalnızca düğüm sayısına değil, kimlik maliyetine, seçim algoritmalarına ve merkeziyetsizliğe bağlıdır.',
                 },
             ],
         },
@@ -994,7 +994,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '"Bilgi kuramsal güvenlik" "kullanımda güvenli" demek değildir. Güvenli ikili kanallara, dürüst katılımcılara, güvenilir yayına ve gizli anlaşma olmamasına bağlıdır. Bu varsayımlar gerçek dünyada kolayca bozulur.',
+                    text: '“Bilgi kuramsal güvenlik” “kullanımda güvenli” demek değildir. Güvenli ikili kanallara, dürüst katılımcılara, güvenilir yayına ve gizli anlaşma olmamasına bağlıdır. Bu varsayımlar gerçek dünyada kolayca bozulur.',
                 },
                 {
                     type: 'p',
@@ -1006,7 +1006,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Modern tehdit modellerinde OpenNet güçlü anonimlik için uygun değildir. DarkNet de "kesinlikle güvenli" değildir: uzun süreli trafik korelasyonu, içerik parmak izleri, kötü niyetli dosyalar, el konulan düğümler, sohbet kayıtları ve insan hatası "anonim"i yeniden "bağlantılı"ya çevirebilir.',
+                    text: 'Modern tehdit modellerinde OpenNet güçlü anonimlik için uygun değildir. DarkNet de “kesinlikle güvenli” değildir: uzun süreli trafik korelasyonu, içerik parmak izleri, kötü niyetli dosyalar, el konulan düğümler, sohbet kayıtları ve insan hatası “anonim”i yeniden “bağlantılı”ya çevirebilir.',
                 },
                 {
                     type: 'warn',
@@ -1050,7 +1050,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Monero mutabakat için iş kanıtı (RandomX) kullanır. Bitcoin de iş kanıtı kullanır ama Bitcoin\'in defteri şeffaftır ve adresleri anonim değil takma adlıdır. Bir "gizlilik coin\'ini" yasal bir kalkan saymak tehlikelidir: borsalar yatırımları reddedebilir ya da varlıkları dondurabilir ve KYC, IP ve zamanlama verileriyle birleşen zincir analizi seni yine de bulabilir.',
+                    text: "Monero mutabakat için iş kanıtı (RandomX) kullanır. Bitcoin de iş kanıtı kullanır ama Bitcoin'in defteri şeffaftır ve adresleri anonim değil takma adlıdır. Bir “gizlilik coin'ini” yasal bir kalkan saymak tehlikelidir: borsalar yatırımları reddedebilir ya da varlıkları dondurabilir ve KYC, IP ve zamanlama verileriyle birleşen zincir analizi seni yine de bulabilir.",
                 },
                 {
                     type: 'p',
@@ -1059,7 +1059,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '"Varsayılan olarak gizli" "izlenemez" demek değildir. Zincir üstü gizlilik yalnızca zincir üstündeki kısmı kapsar. Borsa KYC\'si, ağ meta verileri, cüzdan yedekleri, sohbet kayıtları ve insan hatası, bir kişiyi tanımlamak için çoğu zaman kriptografiyi kırmaktan çok daha kolay yollardır.',
+                    text: "“Varsayılan olarak gizli” “izlenemez” demek değildir. Zincir üstü gizlilik yalnızca zincir üstündeki kısmı kapsar. Borsa KYC'si, ağ meta verileri, cüzdan yedekleri, sohbet kayıtları ve insan hatası, bir kişiyi tanımlamak için çoğu zaman kriptografiyi kırmaktan çok daha kolay yollardır.",
                 },
             ],
         },
@@ -1084,7 +1084,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: "Pek çok gizlilik coin'i gerçekten PoW kullanır: bazıları ön madenciliği ve ICO merkezileşmesini önlemek istedi, bazıları ASIC direnci istedi (örneğin Monero'nun RandomX'i), bazıları ise bu seçimi yalnızca devraldı. Ama \"PoW coin'lerinin çoğu gizlilik coin'idir\" yanlıştır; PoW projelerinin büyük çoğunluğu gizlilik coin'i değildir. Korelasyon nedensellik değildir.",
+                    text: "Pek çok gizlilik coin'i gerçekten PoW kullanır: bazıları ön madenciliği ve ICO merkezileşmesini önlemek istedi, bazıları ASIC direnci istedi (örneğin Monero'nun RandomX'i), bazıları ise bu seçimi yalnızca devraldı. Ama “PoW coin'lerinin çoğu gizlilik coin'idir” yanlıştır; PoW projelerinin büyük çoğunluğu gizlilik coin'i değildir. Korelasyon nedensellik değildir.",
                 },
                 {
                     type: 'p',
@@ -1092,7 +1092,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'İnsanlar bazen sorar: Ethereum PoS olduğuna göre adresleri dondurulmaktan kurtulamaz mı? Daha doğrusu: Ethereum protokolünde banka tarzı bir "bu adresi dondur" düğmesi yoktur ama dondurma ve sansür pek çok katmanda gerçekleşebilir. Doğrulayıcılar ve aktarıcılar bir işlemi eklemeyi reddedebilir; stake edilen fonlar kesintiye uğrayabilir; USDC ve USDT gibi stabil coin sözleşmeleri ihraççının talimatıyla bakiyeleri dondurabilir; borsalar yatırma ve çekmeleri dondurabilir; köprüler durabilir; RPC sağlayıcıları ve ön yüzler erişimi engelleyebilir. PoS dondurmaya karşı bir sihir değildir.',
+                    text: 'İnsanlar bazen sorar: Ethereum PoS olduğuna göre adresleri dondurulmaktan kurtulamaz mı? Daha doğrusu: Ethereum protokolünde banka tarzı bir “bu adresi dondur” düğmesi yoktur ama dondurma ve sansür pek çok katmanda gerçekleşebilir. Doğrulayıcılar ve aktarıcılar bir işlemi eklemeyi reddedebilir; stake edilen fonlar kesintiye uğrayabilir; USDC ve USDT gibi stabil coin sözleşmeleri ihraççının talimatıyla bakiyeleri dondurabilir; borsalar yatırma ve çekmeleri dondurabilir; köprüler durabilir; RPC sağlayıcıları ve ön yüzler erişimi engelleyebilir. PoS dondurmaya karşı bir sihir değildir.',
                 },
                 {
                     type: 'p',
@@ -1101,7 +1101,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: 'Bir tehdit modeli kurarken "mutabakat mekanizması"nı "gizlilik" ya da "sansür direnci" ile eş anlamlı sayma. Zincir analizini, borsa uyumunu, stabil coin ihraççılarını, RPC sağlayıcılarını, cüzdan ön yüzlerini, ağ katmanını ve kendi kullanım alışkanlıklarını da düşünmen gerekir.',
+                    text: 'Bir tehdit modeli kurarken “mutabakat mekanizması”nı “gizlilik” ya da “sansür direnci” ile eş anlamlı sayma. Zincir analizini, borsa uyumunu, stabil coin ihraççılarını, RPC sağlayıcılarını, cüzdan ön yüzlerini, ağ katmanını ve kendi kullanım alışkanlıklarını da düşünmen gerekir.',
                 },
             ],
         },
@@ -1112,11 +1112,11 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Bu grup "daha ileri bir güvenlik rehberi" değil, "maliyeti yüksek istisna"dır. Yalnızca internette geziniyor, okula gidiyor ve ilacını alıyorsan yukarıdaki temel bölümler yeterlidir. Buradaki her şeyi kullanmak genellikle başarısızlık noktalarını artırır, seni daha dikkat çekici yapar ve hatta dışarıdan gelecek yardımdan koparabilir.',
+                    text: 'Bu grup “daha ileri bir güvenlik rehberi” değil, “maliyeti yüksek istisna”dır. Yalnızca internette geziniyor, okula gidiyor ve ilacını alıyorsan yukarıdaki temel bölümler yeterlidir. Buradaki her şeyi kullanmak genellikle başarısızlık noktalarını artırır, seni daha dikkat çekici yapar ve hatta dışarıdan gelecek yardımdan koparabilir.',
                 },
                 {
                     type: 'p',
-                    text: 'Kimin için: zaten takip edilen ya da tehdit edilen, cihazları kontrol ediliyor olabilecek, güvensiz bir ilişkinin içinde bilgi iletmek zorunda olan ya da zorla tıbbi tedavi veya zorla "düzeltme" ile karşı karşıya olan insanlar. Kimin için değil: yalnızca bir ebeveynin sohbet kaydını görmesinden endişe eden ya da sadece "biraz daha güvende" olmak isteyen biri.',
+                    text: 'Kimin için: zaten takip edilen ya da tehdit edilen, cihazları kontrol ediliyor olabilecek, güvensiz bir ilişkinin içinde bilgi iletmek zorunda olan ya da zorla tıbbi tedavi veya zorla “düzeltme” ile karşı karşıya olan insanlar. Kimin için değil: yalnızca bir ebeveynin sohbet kaydını görmesinden endişe eden ya da sadece “biraz daha güvende” olmak isteyen biri.',
                 },
                 {
                     type: 'p',
@@ -1133,7 +1133,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Aşağıdaki her bölüm yalnızca ilkeleri, riskleri ve alternatifleri ele alır; adım adım gizli prosedürler vermez. Nedeni "ahlak" değildir. Herkese açık bir belgeyi senin yanında dolandırıcılar, istismarcılar ve kolluk kuvvetleri de okur ve bu prosedürler gerçek hayatta çoğu zaman başarısız olur.',
+                    text: 'Aşağıdaki her bölüm yalnızca ilkeleri, riskleri ve alternatifleri ele alır; adım adım gizli prosedürler vermez. Nedeni “ahlak” değildir. Herkese açık bir belgeyi senin yanında dolandırıcılar, istismarcılar ve kolluk kuvvetleri de okur ve bu prosedürler gerçek hayatta çoğu zaman başarısız olur.',
                 },
                 {
                     type: 'p',
@@ -1143,7 +1143,7 @@ const TR: OpSecContent = {
         },
         {
             id: 'extended-high-threat-device',
-            title: 'Cihazlar ve konum: "kapalı" "çevrimdışı" demek değildir',
+            title: 'Cihazlar ve konum: “kapalı” “çevrimdışı” demek değildir',
             level: 'extended',
             blocks: [
                 {
@@ -1152,7 +1152,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'iPhone 11 ve sonrasında, iOS 15 ve sonrasıyla, "Bul ağı" açıksa telefon kapatıldıktan sonra da yakındaki Apple cihazları aracılığıyla, genellikle sınırlı bir süre (yaklaşık 24 saat) bulunabilir. Sistem sürümleri, bölgeler ve ayarlar davranışı değiştirir; "kapalı = güvenli" diye varsayma.',
+                    text: 'iPhone 11 ve sonrasında, iOS 15 ve sonrasıyla, “Bul ağı” açıksa telefon kapatıldıktan sonra da yakındaki Apple cihazları aracılığıyla, genellikle sınırlı bir süre (yaklaşık 24 saat) bulunabilir. Sistem sürümleri, bölgeler ve ayarlar davranışı değiştirir; “kapalı = güvenli” diye varsayma.',
                 },
                 {
                     type: 'p',
@@ -1165,7 +1165,7 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: '"Gizlilik odaklı bir işletim sistemi kurdum"u güvenliğin kanıtı sayma. Telefon numaran, hesapların, ödemelerin, okulun ya da işyerin, ailen, kameralar, baz istasyonları ve gerçek dünyadaki hareketlerin seni yine de birbirine bağlayabilir.',
+                    text: '“Gizlilik odaklı bir işletim sistemi kurdum”u güvenliğin kanıtı sayma. Telefon numaran, hesapların, ödemelerin, okulun ya da işyerin, ailen, kameralar, baz istasyonları ve gerçek dünyadaki hareketlerin seni yine de birbirine bağlayabilir.',
                 },
                 {
                     type: 'p',
@@ -1173,12 +1173,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Düşük maliyetli bir alternatif: hassas işleri gündelik telefonundan ayır. Hassas işler için başka bir cihaz, hesap ve ağ kullan; gündelik telefonu normal tut ki "birden ortadan kaybolmuş" gibi görünmesin.',
+                    text: 'Düşük maliyetli bir alternatif: hassas işleri gündelik telefonundan ayır. Hassas işler için başka bir cihaz, hesap ve ağ kullan; gündelik telefonu normal tut ki “birden ortadan kaybolmuş” gibi görünmesin.',
                 },
                 {
                     type: 'warn',
                     kind: 'note',
-                    text: '"Kapalıyken konum takibi" fikriyle kendini korkutma ve onu her şeyi açıklayan bir neden sayma. Cihazlar, sistemler ve hesap ayarları çok farklıdır; önce kendi ayarlarını kontrol et, sonra tehdit modelini kur.',
+                    text: '“Kapalıyken konum takibi” fikriyle kendini korkutma ve onu her şeyi açıklayan bir neden sayma. Cihazlar, sistemler ve hesap ayarları çok farklıdır; önce kendi ayarlarını kontrol et, sonra tehdit modelini kur.',
                 },
             ],
         },
@@ -1189,11 +1189,11 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Donanım cüzdanı nasıl çalışır: özel anahtar ya da kurtarma ifadesi çevrimdışı saklanır ve imzalama cihazın içinde gerçekleşir. Bilgisayarındaki zararlı yazılımın özel anahtarı doğrudan çalmasına karşı korur ama "kurtarma ifadesinin fotoğrafını çekip telefonunda saklamana", "cihazı ve ifadeyi aynı kutuda tutmana" ya da "zorlanmana" karşı korumaz.',
+                    text: 'Donanım cüzdanı nasıl çalışır: özel anahtar ya da kurtarma ifadesi çevrimdışı saklanır ve imzalama cihazın içinde gerçekleşir. Bilgisayarındaki zararlı yazılımın özel anahtarı doğrudan çalmasına karşı korur ama “kurtarma ifadesinin fotoğrafını çekip telefonunda saklamana”, “cihazı ve ifadeyi aynı kutuda tutmana” ya da “zorlanmana” karşı korumaz.',
                 },
                 {
                     type: 'p',
-                    text: 'Kurtarma ifadesi kök anahtardır: ona sahip olan herkes cüzdanı geri yükleyip varlıkları taşıyabilir. Monero\'nun defter gizliliği "dışarıdakilerin işlemi görememesini" korur, "ifadeye sahip olan kişiye" karşı korumaz.',
+                    text: "Kurtarma ifadesi kök anahtardır: ona sahip olan herkes cüzdanı geri yükleyip varlıkları taşıyabilir. Monero'nun defter gizliliği “dışarıdakilerin işlemi görememesini” korur, “ifadeye sahip olan kişiye” karşı korumaz.",
                 },
                 {
                     type: 'p',
@@ -1201,12 +1201,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Ortamlar: metal plakalar yangına ve suya dayanır ama daha dikkat çekicidir ve saklaması zordur; kâğıt saklaması kolaydır ama ateşe, suya ve böceklere karşı savunmasızdır. Kurtarma ifadesini fotoğraflanacak, taranacak ya da buluta eşitlenecek hiçbir yere yazma; "bir yığın USB belleğin arasına sakladım"ı tek planın yapma, çünkü cihaz alınırsa ifade de onunla birlikte kaybolabilir.',
+                    text: 'Ortamlar: metal plakalar yangına ve suya dayanır ama daha dikkat çekicidir ve saklaması zordur; kâğıt saklaması kolaydır ama ateşe, suya ve böceklere karşı savunmasızdır. Kurtarma ifadesini fotoğraflanacak, taranacak ya da buluta eşitlenecek hiçbir yere yazma; “bir yığın USB belleğin arasına sakladım”ı tek planın yapma, çünkü cihaz alınırsa ifade de onunla birlikte kaybolabilir.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Kâğıt ya da metal plaka yutma. Yemek borunu tıkamayacaklarını ya da kesmeyeceklerini garanti edemezsin; bunu yaparken görülmek kanıt yok etmek gibi görünür ve yedeğin de gider. Uç bir durumda ihtiyacın olan şey vücuduna bir şey sokmak değil, "ayrı saklama ve güvendiğin birinin bir kopyayı tutması"dır.',
+                    text: 'Kâğıt ya da metal plaka yutma. Yemek borunu tıkamayacaklarını ya da kesmeyeceklerini garanti edemezsin; bunu yaparken görülmek kanıt yok etmek gibi görünür ve yedeğin de gider. Uç bir durumda ihtiyacın olan şey vücuduna bir şey sokmak değil, “ayrı saklama ve güvendiğin birinin bir kopyayı tutması”dır.',
                 },
                 {
                     type: 'p',
@@ -1214,7 +1214,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Daha teknik ayrıntılar için "Monero çoklu imza ve anonimlik" bölümüne bak; bu bölüm yalnızca yedeklemeyi ve fiziksel güvenliği ele alır.',
+                    text: 'Daha teknik ayrıntılar için “Monero çoklu imza ve anonimlik” bölümüne bak; bu bölüm yalnızca yedeklemeyi ve fiziksel güvenliği ele alır.',
                 },
             ],
         },
@@ -1225,7 +1225,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Telefonun ya da odan aranabiliyorsa ya da dışarı çıkmana izin verilmiyorsa, ilk ilke "daha derine sakla" değil, "saklanması gerekeni azalt"tır. Yüz yüze söyleyebiliyorsan yazılı iz bırakma; sıradan bir bahane açıklıyorsa karmaşık bir hikâye uydurma.',
+                    text: 'Telefonun ya da odan aranabiliyorsa ya da dışarı çıkmana izin verilmiyorsa, ilk ilke “daha derine sakla” değil, “saklanması gerekeni azalt”tır. Yüz yüze söyleyebiliyorsan yazılı iz bırakma; sıradan bir bahane açıklıyorsa karmaşık bir hikâye uydurma.',
                 },
                 {
                     type: 'p',
@@ -1241,11 +1241,11 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Ölü posta kutusu nasıl çalışır: bir "değiş tokuşu" bırakma, işaretleme ve alma adımlarına böler, böylece iki taraf aynı anda orada bulunmaz. "Aynı anda buluşamıyoruz" sorununu çözer; sahte malları, araya girilmeyi, kontrollü teslimatı, zorlamayı, satış sonrası desteği ya da kanıtı çözmez. Herhangi bir halka görülürse bütün zincir açığa çıkar.',
+                    text: 'Ölü posta kutusu nasıl çalışır: bir “değiş tokuşu” bırakma, işaretleme ve alma adımlarına böler, böylece iki taraf aynı anda orada bulunmaz. “Aynı anda buluşamıyoruz” sorununu çözer; sahte malları, araya girilmeyi, kontrollü teslimatı, zorlamayı, satış sonrası desteği ya da kanıtı çözmez. Herhangi bir halka görülürse bütün zincir açığa çıkar.',
                 },
                 {
                     type: 'p',
-                    text: 'Bu bölüm neden yer seçimini, işaretlemeyi, bırakmayı ya da almayı anlatmıyor: herkese açık bir belgeyi dolandırıcılar, istismarcılar, kolluk kuvvetleri ve kötü niyetli okurlar da okur; tek bir örnek bir şablona dönüşür; gerçekte hava durumu, hayvanlar, yoldan geçenler, kameralar, sabit güzergâhlar, parmak izleri, DNA ve ıssız bir yerde almanın fiziksel riski bir "zekice numarayı" kanıta çevirebilir.',
+                    text: 'Bu bölüm neden yer seçimini, işaretlemeyi, bırakmayı ya da almayı anlatmıyor: herkese açık bir belgeyi dolandırıcılar, istismarcılar, kolluk kuvvetleri ve kötü niyetli okurlar da okur; tek bir örnek bir şablona dönüşür; gerçekte hava durumu, hayvanlar, yoldan geçenler, kameralar, sabit güzergâhlar, parmak izleri, DNA ve ıssız bir yerde almanın fiziksel riski bir “zekice numarayı” kanıta çevirebilir.',
                 },
                 {
                     type: 'p',
@@ -1253,26 +1253,26 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Karşındakini savunmaya geçirmeden bilgi nasıl sorulur: açık uçlu sorular kullan ("Sonra ne olacak?", "Bu tahlili kim istedi?"), önce yakınlık kur, sonra ayrıntıları sor; sorgu ya da tehditle başlama; doğru duyduğundan emin olmak için karşındakinin sözlerini tekrarla; reddederse zorlamak yerine başka bir zaman ya da başka bir kişiyle dene. Ergen görüşmeleri üzerine araştırmalar, daha eksiksiz anlatım için "önce yakınlık, açık uçlu sorular, tehditten kaçınma" yaklaşımını destekler (Dianiska ve ark., 2024; Nahouli ve ark., 2021).',
+                    text: 'Karşındakini savunmaya geçirmeden bilgi nasıl sorulur: açık uçlu sorular kullan (“Sonra ne olacak?”, “Bu tahlili kim istedi?”), önce yakınlık kur, sonra ayrıntıları sor; sorgu ya da tehditle başlama; doğru duyduğundan emin olmak için karşındakinin sözlerini tekrarla; reddederse zorlamak yerine başka bir zaman ya da başka bir kişiyle dene. Ergen görüşmeleri üzerine araştırmalar, daha eksiksiz anlatım için “önce yakınlık, açık uçlu sorular, tehditten kaçınma” yaklaşımını destekler (Dianiska ve ark., 2024; Nahouli ve ark., 2021).',
                 },
                 {
                     type: 'ul',
                     items: [
-                        'Nedeni değil süreci sor: "Bu tahlili kim ayarladı?", "Sonuçları kim görecek?", "Yaptırmazsam sonra ne olur?" Süreç soruları "Benden şüpheleniyor musunuz?" sorusundan daha kolay yanıtlanır.',
+                        'Nedeni değil süreci sor: “Bu tahlili kim ayarladı?”, “Sonuçları kim görecek?”, “Yaptırmazsam sonra ne olur?” Süreç soruları “Benden şüpheleniyor musunuz?” sorusundan daha kolay yanıtlanır.',
                         'Her seferinde tek bir soru sor; karşındaki savunmaya geçerse konuyu değiştir ve sonra geri dön; tekrar tekrar sorgulamak insanların sohbeti bitirmek istemesine yol açar.',
-                        'Onların sözleriyle doğrula: "Yani imzalamazsam okul aileme haber verecek, öyle mi?" Sonuçları kendi ağızlarıyla açıkça söylesinler.',
-                        '"Herkes böyle yapıyor" ya da "ailen zaten biliyor" derlerse ayrıntı iste: "Bunu kim söyledi? Ne zaman? Aslını görebilir miyim?"',
+                        'Onların sözleriyle doğrula: “Yani imzalamazsam okul aileme haber verecek, öyle mi?” Sonuçları kendi ağızlarıyla açıkça söylesinler.',
+                        '“Herkes böyle yapıyor” ya da “ailen zaten biliyor” derlerse ayrıntı iste: “Bunu kim söyledi? Ne zaman? Aslını görebilir miyim?”',
                         'Çelişkileri o anda yüzlerine vurma; not al ve sonra güvendiğin bir yetişkinle kontrol et. O an bir cümleyi kazanmak sana güvenliğine mal olabilir.',
                     ],
                 },
                 {
                     type: 'p',
-                    text: 'Ağzından laf alınmasına nasıl izin vermezsin: yalnızca gerekeni yanıtla; emin değilsen "Bilmiyorum" ya da "Sormam gerek" de; işbirliği yapıyor görünmek için bir şey uydurma; biri "herkes böyle yapıyor" ya da "ailen zaten biliyor" diye baskı yaparsa ayrıntı iste; duygusal olarak gerginken karar verme.',
+                    text: 'Ağzından laf alınmasına nasıl izin vermezsin: yalnızca gerekeni yanıtla; emin değilsen “Bilmiyorum” ya da “Sormam gerek” de; işbirliği yapıyor görünmek için bir şey uydurma; biri “herkes böyle yapıyor” ya da “ailen zaten biliyor” diye baskı yaparsa ayrıntı iste; duygusal olarak gerginken karar verme.',
                 },
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: '"Polisi ararım"ı tehdit olarak söyleme ve karşındakini "kanıtım var" ya da "tanıdıklarım var" diye korkutmaya çalışma. Sert laf güvenli bir durumda işe yarayabilir; şiddet içeren bir durumda genellikle işleri tırmandırır. Polisi aramak bir eylemdir, bir replik değil.',
+                    text: '“Polisi ararım”ı tehdit olarak söyleme ve karşındakini “kanıtım var” ya da “tanıdıklarım var” diye korkutmaya çalışma. Sert laf güvenli bir durumda işe yarayabilir; şiddet içeren bir durumda genellikle işleri tırmandırır. Polisi aramak bir eylemdir, bir replik değil.',
                 },
             ],
         },
@@ -1283,11 +1283,11 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'Kan tahlili kanındaki belirteçleri ölçer; "yakın zamanda ilaç aldın mı" sorusu için bir yalan makinesi değildir. Cinsiyet hormonları, karaciğer ve böbrek fonksiyonları, prolaktin ve tam kan sayımı farklı şeylere işaret eder; tek bir anormal sonuç susuzluktan, uykudan, başka ilaçlardan ya da hastalıktan da kaynaklanabilir. Kendine "bir kez kusarsam sorun kalmaz" deme.',
+                    text: 'Kan tahlili kanındaki belirteçleri ölçer; “yakın zamanda ilaç aldın mı” sorusu için bir yalan makinesi değildir. Cinsiyet hormonları, karaciğer ve böbrek fonksiyonları, prolaktin ve tam kan sayımı farklı şeylere işaret eder; tek bir anormal sonuç susuzluktan, uykudan, başka ilaçlardan ya da hastalıktan da kaynaklanabilir. Kendine “bir kez kusarsam sorun kalmaz” deme.',
                 },
                 {
                     type: 'p',
-                    text: 'Okul sağlık taramaları (üniversite sınavı için yapılan sağlık kontrolleri dahil) yere göre değişir. Yaygın maddeler boy ve kilo, tansiyon, görme, kalp ve akciğer dinlemesi, omurga ve uzuvlar ve akciğer röntgenidir; bazı yerler karaciğer fonksiyonu ya da tam kan sayımı ekler. Cinsiyet hormonları rutin değildir. "Kan aldılar" "hormonlara baktılar" demek değildir.',
+                    text: 'Okul sağlık taramaları (üniversite sınavı için yapılan sağlık kontrolleri dahil) yere göre değişir. Yaygın maddeler boy ve kilo, tansiyon, görme, kalp ve akciğer dinlemesi, omurga ve uzuvlar ve akciğer röntgenidir; bazı yerler karaciğer fonksiyonu ya da tam kan sayımı ekler. Cinsiyet hormonları rutin değildir. “Kan aldılar” “hormonlara baktılar” demek değildir.',
                 },
                 {
                     type: 'p',
@@ -1295,12 +1295,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Ertelemeye karar verirsen: en az kötü şiddetsiz yol, muayene alanından normal biçimde ayrılmak ve zaman kazanmak için "Tuvalete gitmem gerek" ya da "Kendimi iyi hissetmiyorum" demektir; bir süre sınırı koy, kendini bir yere kilitleme, telefonunu kapatıp ortadan kaybolma ve ortalık boşalana kadar saklanma. Bulunduğunda kimseyle yüzleşme; önceden belirlediğin bir cümleyi kullan: "Korkuyorum", "Kendimi iyi hissetmiyorum", "Başka bir gün yapmak istiyorum" ya da "Önce güvendiğim biriyle iletişime geçmek istiyorum." Bu yalnızca bir kez erteler; bir sonraki sefer yine gelecektir ve gözetim artabilir.',
+                    text: 'Ertelemeye karar verirsen: en az kötü şiddetsiz yol, muayene alanından normal biçimde ayrılmak ve zaman kazanmak için “Tuvalete gitmem gerek” ya da “Kendimi iyi hissetmiyorum” demektir; bir süre sınırı koy, kendini bir yere kilitleme, telefonunu kapatıp ortadan kaybolma ve ortalık boşalana kadar saklanma. Bulunduğunda kimseyle yüzleşme; önceden belirlediğin bir cümleyi kullan: “Korkuyorum”, “Kendimi iyi hissetmiyorum”, “Başka bir gün yapmak istiyorum” ya da “Önce güvendiğim biriyle iletişime geçmek istiyorum.” Bu yalnızca bir kez erteler; bir sonraki sefer yine gelecektir ve gözetim artabilir.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Kendini kusturma. Kusmak zaten emilmiş hormonları çıkaramaz; enjeksiyon ya da jel için işe yaramaz; kusma ve susuzluk karaciğer enzimlerinin, kreatininin ve elektrolit düzeylerinin anormal çıkmasına ve daha fazla teste yol açabilir; riskleri arasında aspirasyon, yemek borusu yırtılmaları, düşük potasyum ve aritmi vardır. "Normal görünmek" için ilacını kendi başına bırakma ya da dozunu değiştirme.',
+                    text: 'Kendini kusturma. Kusmak zaten emilmiş hormonları çıkaramaz; enjeksiyon ya da jel için işe yaramaz; kusma ve susuzluk karaciğer enzimlerinin, kreatininin ve elektrolit düzeylerinin anormal çıkmasına ve daha fazla teste yol açabilir; riskleri arasında aspirasyon, yemek borusu yırtılmaları, düşük potasyum ve aritmi vardır. “Normal görünmek” için ilacını kendi başına bırakma ya da dozunu değiştirme.',
                 },
                 {
                     type: 'warn',
@@ -1313,20 +1313,20 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Zorla "dönüştürme" ya da "internet bağımlılığını düzeltme": bunlar meşru tıbbi bakım değildir. Tehlike işaretleri telefonlara ve kimliklere el konulması, iletişimin kısıtlanması, fiziksel ceza, ziyaretçilerin engellenmesi, "hatanı kabul et" diye dayatılması ve bir tanı ya da tedavi planı vermeyi reddetmektir. Bunlarla karşılaşırsan önce fiziksel güvenliğini koru ve doğrudan karşı koyma; kanıtları sakla; güvendiğin birine konumunu ve haberleşme saatini söyle; kapı açıksa ve dışarıda biri seni karşılayabilecekse ancak o zaman ayrılmayı düşün; tek başına yürüyerek kaçma ve güvendiğin yetişkinlerle iletişimi kesme.',
+                    text: 'Zorla “dönüştürme” ya da “internet bağımlılığını düzeltme”: bunlar meşru tıbbi bakım değildir. Tehlike işaretleri telefonlara ve kimliklere el konulması, iletişimin kısıtlanması, fiziksel ceza, ziyaretçilerin engellenmesi, “hatanı kabul et” diye dayatılması ve bir tanı ya da tedavi planı vermeyi reddetmektir. Bunlarla karşılaşırsan önce fiziksel güvenliğini koru ve doğrudan karşı koyma; kanıtları sakla; güvendiğin birine konumunu ve haberleşme saatini söyle; kapı açıksa ve dışarıda biri seni karşılayabilecekse ancak o zaman ayrılmayı düşün; tek başına yürüyerek kaçma ve güvendiğin yetişkinlerle iletişimi kesme.',
                 },
                 {
                     type: 'p',
-                    text: 'MEKT (modifiye elektrokonvülsif tedavi), belirli ağır ruhsal hastalıklar için anestezi altında yapılan tıbbi bir işlemdir; "trans olmanın tedavisi" değildir. Asıl sorman gerekenler şunlardır: tanının dayanağı ne, ayırıcı tanı yapıldı mı, endikasyon ne, alternatifler neler, bilgilendirilmiş onamı kim imzaladı ve bellek etkileri dahil yan etkiler neler. Zorlanıyorsan tıbbi kaydı ve bilgilendirilmiş onam formunu sakla ve ikinci bir görüş, hukuki yardım ya da sağlık otoritesine başvur.',
+                    text: 'MEKT (modifiye elektrokonvülsif tedavi), belirli ağır ruhsal hastalıklar için anestezi altında yapılan tıbbi bir işlemdir; “trans olmanın tedavisi” değildir. Asıl sorman gerekenler şunlardır: tanının dayanağı ne, ayırıcı tanı yapıldı mı, endikasyon ne, alternatifler neler, bilgilendirilmiş onamı kim imzaladı ve bellek etkileri dahil yan etkiler neler. Zorlanıyorsan tıbbi kaydı ve bilgilendirilmiş onam formunu sakla ve ikinci bir görüş, hukuki yardım ya da sağlık otoritesine başvur.',
                 },
                 {
                     type: 'p',
-                    text: 'Bir psikiyatristle görüşmek ("sınamak" değil): doğrudan sor: "Kaç trans danışanla çalıştınız? WPATH ya da ICD-11 kullanıyor musunuz? Cinsiyet uyumsuzluğunu psikozdan nasıl ayırıyorsunuz? Tanıya katılmazsam bunu nasıl ele alırsınız? Trans olmayı başlı başına bir sanrı olarak mı görüyorsunuz?" Tehlike işaretleri: trans olmayı bir hastalık olarak görmek, tanıyı açıklamayı reddetmek, uymazsan EKT ile tehdit etmek, "gerçekten trans olduğunu kanıtlamanı" istemek ve baş başa konuşmana izin vermemek.',
+                    text: 'Bir psikiyatristle görüşmek (“sınamak” değil): doğrudan sor: “Kaç trans danışanla çalıştınız? WPATH ya da ICD-11 kullanıyor musunuz? Cinsiyet uyumsuzluğunu psikozdan nasıl ayırıyorsunuz? Tanıya katılmazsam bunu nasıl ele alırsınız? Trans olmayı başlı başına bir sanrı olarak mı görüyorsunuz?” Tehlike işaretleri: trans olmayı bir hastalık olarak görmek, tanıyı açıklamayı reddetmek, uymazsan EKT ile tehdit etmek, “gerçekten trans olduğunu kanıtlamanı” istemek ve baş başa konuşmana izin vermemek.',
                 },
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: 'İntihar ya da kendine zarar verme riskin varsa önce onu ele al; yalnızca "kaydını temiz tutmak" için saklama. Zorlayıcı tedavi korkusu gerçektir ama ağır belirtileri saklamak seni daha büyük tehlikeye sokabilir.',
+                    text: 'İntihar ya da kendine zarar verme riskin varsa önce onu ele al; yalnızca “kaydını temiz tutmak” için saklama. Zorlayıcı tedavi korkusu gerçektir ama ağır belirtileri saklamak seni daha büyük tehlikeye sokabilir.',
                 },
             ],
         },
@@ -1337,7 +1337,7 @@ const TR: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: 'İfşanın kendisi son değildir; sonrasında gelen zincirleme tepkiler öyledir. İlk amaç "her şeyi açıkça anlatmak" değil, "yayılmayı durdurmak, fiziksel güvenliği sağlamak ve müttefik bulmak"tır.',
+                    text: 'İfşanın kendisi son değildir; sonrasında gelen zincirleme tepkiler öyledir. İlk amaç “her şeyi açıkça anlatmak” değil, “yayılmayı durdurmak, fiziksel güvenliği sağlamak ve müttefik bulmak”tır.',
                 },
                 {
                     type: 'p',
@@ -1345,7 +1345,7 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Kime ne söylemeli: hemen ailene ya da okuluna söylemeyecek kişileri öncele; "Yargılanmaya değil, yardıma ihtiyacım var" diye başla; yalnızca gerekli bilgiyi ver; somut bir şey yapıp yapamayacaklarını sor (sana eşlik etmek, kalacak yer vermek, mesaj iletmek, polisi aramak).',
+                    text: 'Kime ne söylemeli: hemen ailene ya da okuluna söylemeyecek kişileri öncele; “Yargılanmaya değil, yardıma ihtiyacım var” diye başla; yalnızca gerekli bilgiyi ver; somut bir şey yapıp yapamayacaklarını sor (sana eşlik etmek, kalacak yer vermek, mesaj iletmek, polisi aramak).',
                 },
                 {
                     type: 'p',
@@ -1357,12 +1357,12 @@ const TR: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Reşit olmayanlar ve yetişkinler: "hayatı baştan kurmak" reşit olmayanlar için genellikle gerçekçi değildir ve polisi aramak ya da kayıp ihbarı yapılması seni daha büyük tehlikeye sokabilir; güvendiğin yetişkinleri, sosyal hizmet uzmanlarını, hukuki yardımı ve geçici barınağı öncele. Taşınan yetişkinlerin de parayı, işi, belgeleri ve tıbbi bakımın sürekliliğini düşünmesi gerekir.',
+                    text: 'Reşit olmayanlar ve yetişkinler: “hayatı baştan kurmak” reşit olmayanlar için genellikle gerçekçi değildir ve polisi aramak ya da kayıp ihbarı yapılması seni daha büyük tehlikeye sokabilir; güvendiğin yetişkinleri, sosyal hizmet uzmanlarını, hukuki yardımı ve geçici barınağı öncele. Taşınan yetişkinlerin de parayı, işi, belgeleri ve tıbbi bakımın sürekliliğini düşünmesi gerekir.',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Yalnızca "iyi olduğunu kanıtlamak" için karşındakiyle yüzleşme, kavga etme ya da kişisel bilgilerini ifşa etme. İfşadan sonra öfke normaldir ama misilleme genellikle riski yeniden sana getirir.',
+                    text: 'Yalnızca “iyi olduğunu kanıtlamak” için karşındakiyle yüzleşme, kavga etme ya da kişisel bilgilerini ifşa etme. İfşadan sonra öfke normaldir ama misilleme genellikle riski yeniden sana getirir.',
                 },
             ],
         },
@@ -1379,7 +1379,7 @@ const TR: OpSecContent = {
                     type: 'ul',
                     items: [
                         'Güven merdiveni: düşük riskli şeylerle başla (dinlemek, seninle birlikte bir telefon görüşmesi yapmak), sonra orta riskli şeylere geç (küçük bir miktar borç vermek, bir paket teslim almak) ve ancak ondan sonra yüksek riskli şeylere (adresini, gerçek kimliğini, mali durumunu bilmek).',
-                        'Para: küçük tutarlar, kaybetmeyi göze alabileceğin para ve borç mu hediye mi olduğunu yaz; tüm paranı tek bir kişiye verme; büyük tutarlar için çoklu imza ya da şeffaf defterler kullan; "dayanışma" adı altında kayıtsız para toplama.',
+                        'Para: küçük tutarlar, kaybetmeyi göze alabileceğin para ve borç mu hediye mi olduğunu yaz; tüm paranı tek bir kişiye verme; büyük tutarlar için çoklu imza ya da şeffaf defterler kullan; “dayanışma” adı altında kayıtsız para toplama.',
                         'Bilgi: yalnızca bilmesi gerekenlere söyle; büyük bir grup kurma; sohbet kayıtlarını düzenli olarak temizle; tüm sırları tek bir kişinin eline verme.',
                         'Güvenlik: düzenli haberleşme, parola kelimeler ve acil durum kişileri üzerinde anlaşın; birbirinizin sınırlarını bilin; biri tehdit edildiğinde köstebek avına değil, önce o kişiyi korumaya odaklanın.',
                     ],
@@ -1387,11 +1387,11 @@ const TR: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Sahte "karşılıklı tanıklık" organize etme, belge sahteciliği yapma ve şiddetle misilleme yapma. Bunlar küçük bir çevreyi suç ortaklığına dönüştürür; biri zorlanırsa herkes daha büyük tehlikeye girer.',
+                    text: 'Sahte “karşılıklı tanıklık” organize etme, belge sahteciliği yapma ve şiddetle misilleme yapma. Bunlar küçük bir çevreyi suç ortaklığına dönüştürür; biri zorlanırsa herkes daha büyük tehlikeye girer.',
                 },
                 {
                     type: 'p',
-                    text: 'Başka birine yardım ediyorsan: önce "Şu an güvende misin? Neye ihtiyacın var?" diye sor. Onun yerine karar verme; yerine getiremeyeceğin sözler verme; reşit olmayanlar, şiddet ya da tıbbi bakım söz konusuysa profesyonel kuruluşları işin içine kat.',
+                    text: 'Başka birine yardım ediyorsan: önce “Şu an güvende misin? Neye ihtiyacın var?” diye sor. Onun yerine karar verme; yerine getiremeyeceğin sözler verme; reşit olmayanlar, şiddet ya da tıbbi bakım söz konusuysa profesyonel kuruluşları işin içine kat.',
                 },
                 {
                     type: 'warn',

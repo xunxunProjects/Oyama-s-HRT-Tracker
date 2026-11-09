@@ -2,7 +2,7 @@ import type { OpSecContent } from './types';
 
 /** Russian, translated from the English guide. */
 const RU: OpSecContent = {
-    title: 'Повседневная безопасность',
+    title: 'Личная безопасность',
     contentsLabel: 'На этой странице',
     disclaimerTitle: 'Отказ от ответственности',
     disclaimer: [
