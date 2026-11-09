@@ -1979,7 +1979,7 @@ export const TRANSLATIONS_BASE = {
         'time.days': '{n}d ago',
 
         'disclaimer.title': 'Disclaimer',
-        'opsec.title': 'Everyday Operations & Security',
+        'opsec.title': 'Everyday security',
         'pk_demo.title': 'Model demos',
         'model_doc.lead':
             'The curve on the Overview is an estimate worked out from every dose you log, not a measurement. The charts below use the same calculation.',
