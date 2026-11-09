@@ -5100,7 +5100,7 @@ export const TRANSLATIONS = {
         'disclaimer.text.point2': '内容が正確であっても、お客様の健康状態に当てはまるとは限りません。',
         'disclaimer.text.point3': '健康上の懸念がある場合は、資格のある医療従事者にご相談ください。',
         'drawer.disclaimer': '免責事項',
-        'opsec.title': '日常操作與安全',
+        'opsec.title': '日常のセキュリティ',
         'pk_demo.title': 'モデルのデモ',
         'model_doc.lead':
             '概要のグラフは、記録した一回ごとの投与から計算した推定値で、測定値ではありません。下の図も同じ計算を使っています。',
@@ -5992,7 +5992,7 @@ export const TRANSLATIONS = {
         'drawer.model_confirm': '외부 웹사이트(mahiro.uk)를 방문하려고 합니다. 계속하시겠습니까?',
         'drawer.github_confirm': '외부 웹사이트(github.com)를 방문하려고 합니다. 계속하시겠습니까?',
         'drawer.disclaimer': '면책 조항',
-        'opsec.title': '일상 운영과 보안',
+        'opsec.title': '일상 보안',
         'pk_demo.title': '모델 데모',
         'model_doc.lead':
             '개요의 곡선은 기록한 모든 투여로 계산한 추정치이며 측정값이 아닙니다. 아래 그림도 같은 계산을 씁니다.',
@@ -7133,7 +7133,7 @@ export const TRANSLATIONS = {
         'drawer.model_confirm': 'Üçüncü taraf web sitesini (mahiro.uk) ziyaret edeceksiniz. Devam edilsin mi?',
         'drawer.github_confirm': 'Üçüncü taraf web sitesini (github.com) ziyaret edeceksiniz. Devam edilsin mi?',
         'drawer.disclaimer': 'Sorumluluk reddi',
-        'opsec.title': 'Günlük İşlemler ve Güvenlik',
+        'opsec.title': 'Günlük güvenlik',
         'pk_demo.title': 'Model gösterimleri',
         'model_doc.lead':
             'Genel bakıştaki eğri, kaydettiğin her dozdan hesaplanan bir tahmindir, ölçüm değildir. Aşağıdaki grafikler de aynı hesabı kullanır.',
