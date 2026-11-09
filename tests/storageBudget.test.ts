@@ -98,4 +98,24 @@ describe.skipIf(!hasSqlite)('global storage budget', () => {
         expect(refused.body?.code).toBe('STORAGE_FULL');
         expect((db.prepare('SELECT COUNT(*) AS n FROM dosage_shares').get() as { n: number }).n).toBe(0);
     });
+
+    it('keeps backups working when migration 0014 has not been applied yet', async () => {
+        // A deploy does not run D1 migrations. Without the counter table the
+        // budget check must not turn every backup into a server error.
+        for (const name of (
+            db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'storage_%'").all() as {
+                name: string;
+            }[]
+        ).map(row => row.name)) {
+            db.exec(`DROP TRIGGER ${name}`);
+        }
+        db.exec('DROP TABLE storage_usage');
+        env = { ...env, MAX_STORED_CONTENT_BYTES: undefined } as unknown as Env;
+
+        const saved = await call('/api/content', {
+            token,
+            body: { data: { note: 'x'.repeat(1000) } },
+        });
+        expect(saved.response.status).toBe(201);
+    });
 });

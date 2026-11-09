@@ -566,6 +566,7 @@ const DESCRIBED_SYNC_ERRORS: ReadonlySet<string> = new Set([
     'TOO_LARGE',
     'RATE_LIMITED',
     'STORAGE_FULL',
+    'SCHEMA_OUTDATED',
     'NETWORK',
     'UNREADABLE',
 ]);
