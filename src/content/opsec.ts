@@ -1084,7 +1084,7 @@ const ZH: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Hyphanet（原 Freenet）里的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），后来还有 FLIRCP。IRC 客户端连接本机的 localhost:6667，FLIP 网关把 IRC 流量套进 Freenet/FMS。它不是官方插件，依赖 FMS，消息延迟常见 30 秒到几分钟，性能和抗 spam 都有限。',
+                    text: 'Hyphanet（原 Freenet）里的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），后来还有 FLIRCP。IRC 客户端连接本机的 localhost:6667，FLIP 网关把 IRC 流量套进 Freenet。FMS（Freenet Message System）是另一套论坛/NNTP 类前端，和 FLIP 平行，不是 FLIP 的传输层。FLIP 不是官方插件；消息延迟常见 30 秒到几分钟，性能和抗 spam 都有限。',
                 },
                 {
                     type: 'mermaid',
@@ -1095,13 +1095,11 @@ const ZH: OpSecContent = {
     subgraph Network["Hyphanet / Freenet"]
         N["Freenet node"] --> P["Peer / FLIP gateway"]
     end
-    M["FMS identity"]
     R["Remote IRC peer"]
     F --> N
-    P --> R
-    F -.->|uses| M`,
+    P --> R`,
                     caption:
-                        'Freenet IRC：本地 FLIP 网关把 IRC 套进 Freenet/FMS；信任边界包括本地 FLIP 进程、Freenet 节点和 FMS 身份。',
+                        'Freenet IRC：本地 FLIP 网关把 IRC 套进 Freenet；信任边界包括本地 FLIP 进程、Freenet 节点和对端 FLIP 网关。',
                 },
                 {
                     type: 'ul',
@@ -1109,7 +1107,7 @@ const ZH: OpSecContent = {
                         '公网 IRC：服务器看到你的 IP；TLS 只保护到服务器；没有标准端到端加密。',
                         'IRC over Tor：Tor 出口节点能看到流量；IRC 服务器看到的是出口 IP；不是“极端隐私”。',
                         'IRC over I2P：服务器是 hidden service；没有出口节点；服务器看到 I2P destination；仍然没有端到端内容加密。',
-                        'IRC over Freenet：FLIP 本地网关 + FMS 身份；延迟高、生态小；适合低速文字，不适合紧急联络。',
+                        'IRC over Freenet：FLIP 本地网关 + Freenet 节点；FMS 是另一套论坛前端，不参与 IRC 传输；延迟高、生态小；适合低速文字，不适合紧急联络。',
                     ],
                 },
                 {
@@ -1134,7 +1132,7 @@ const ZH: OpSecContent = {
                         '不要在 IRC 里用真实昵称、学校、城市、固定作息；ident/realname 留空或填无信息内容。',
                         '关闭 CTCP、DCC 和自动接收文件；不要点频道里的链接；不要语音/视频。',
                         'I2P：确认你连的是正确的 hidden service destination；不要把公网 IRC 服务器当地址。',
-                        'Freenet：FLIP 不是即时聊天；不要用于紧急求助；确认插件来源和版本；FMS 身份可能被长期关联。',
+                        'Freenet：FLIP 不是即时聊天；不要用于紧急求助；确认插件来源和版本；FLIP 昵称和频道身份可能被长期关联。',
                         '假设服务器记录一切：定期换昵称/频道，不在同一频道暴露时间表，不复用其他账号的昵称。',
                         '需要内容保密时，用客户端支持的 OTR/端到端加密；它保护内容，但不隐藏谁在何时说了多少。',
                     ],
@@ -2577,7 +2575,7 @@ const EN: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'IRC inside Hyphanet (formerly Freenet) runs over FLIP (Freenet Lightweight IRC Program), later followed by FLIRCP. The IRC client connects to localhost:6667, and the FLIP gateway wraps IRC traffic in Freenet/FMS. It is not an official plugin, depends on FMS, and messages often take 30 seconds to several minutes; performance and spam resistance are limited.',
+                    text: 'IRC inside Hyphanet (formerly Freenet) runs over FLIP (Freenet Lightweight IRC Program), later followed by FLIRCP. The IRC client connects to localhost:6667, and the FLIP gateway wraps IRC traffic in Freenet. FMS (Freenet Message System) is a separate forum/NNTP-style frontend that runs alongside FLIP; it is not FLIP’s transport layer. FLIP is not an official plugin; messages often take 30 seconds to several minutes, and performance and spam resistance are limited.',
                 },
                 {
                     type: 'mermaid',
@@ -2588,13 +2586,11 @@ const EN: OpSecContent = {
     subgraph Network["Hyphanet / Freenet"]
         N["Freenet node"] --> P["Peer / FLIP gateway"]
     end
-    M["FMS identity"]
     R["Remote IRC peer"]
     F --> N
-    P --> R
-    F -.->|uses| M`,
+    P --> R`,
                     caption:
-                        'Freenet IRC: the local FLIP gateway wraps IRC in Freenet/FMS; the trust boundary includes the local FLIP process, the Freenet node, and the FMS identity.',
+                        'Freenet IRC: the local FLIP gateway wraps IRC in Freenet; the trust boundary includes the local FLIP process, the Freenet node, and the remote FLIP gateway.',
                 },
                 {
                     type: 'ul',
@@ -2602,7 +2598,7 @@ const EN: OpSecContent = {
                         'Public IRC: the server sees your IP; TLS protects only up to the server; there is no standard end-to-end encryption.',
                         'IRC over Tor: the Tor exit node can see traffic; the IRC server sees the exit IP; this is not “extreme privacy.”',
                         'IRC over I2P: the server is a hidden service; there is no exit node; the server sees an I2P destination; there is still no end-to-end content encryption.',
-                        'IRC over Freenet: local FLIP gateway + FMS identity; high latency and a small ecosystem; suitable for slow text, not emergencies.',
+                        'IRC over Freenet: local FLIP gateway + Freenet node; FMS is a separate forum frontend and does not carry IRC; high latency and a small ecosystem; suitable for slow text, not emergencies.',
                     ],
                 },
                 {
@@ -2627,7 +2623,7 @@ const EN: OpSecContent = {
                         'Do not use your real nickname, school, city, or fixed schedule on IRC; leave ident/realname blank or fill them with noise.',
                         'Disable CTCP, DCC, and automatic file transfers; do not click links in channels; do not use voice or video.',
                         'I2P: verify that you are connecting to the correct hidden-service destination; do not use a public IRC server as the address.',
-                        'Freenet: FLIP is not instant messaging; do not use it for emergencies; verify the plugin source and version; an FMS identity can be linked over time.',
+                        'Freenet: FLIP is not instant messaging; do not use it for emergencies; verify the plugin source and version; FLIP nicknames and channel identities can be linked over time.',
                         'Assume the server logs everything: rotate nicknames/channels, do not expose your schedule in one channel, and do not reuse nicknames from other accounts.',
                         'When content confidentiality matters, use OTR/end-to-end encryption supported by the client; it protects content but does not hide who said how much and when.',
                     ],
@@ -4076,7 +4072,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Hyphanet（原 Freenet）裡的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），後來還有 FLIRCP。IRC 客戶端連線本機的 localhost:6667，FLIP 閘道把 IRC 流量套進 Freenet/FMS。它不是官方外掛，依賴 FMS，訊息延遲常見 30 秒到幾分鐘，效能和抗 spam 都有限。',
+                    text: 'Hyphanet（原 Freenet）裡的 IRC 走的是 FLIP（Freenet Lightweight IRC Program），後來還有 FLIRCP。IRC 客戶端連線本機的 localhost:6667，FLIP 閘道把 IRC 流量套進 Freenet。FMS（Freenet Message System）是另一套論壇/NNTP 類前端，和 FLIP 平行，不是 FLIP 的傳輸層。FLIP 不是官方外掛；訊息延遲常見 30 秒到幾分鐘，效能和抗 spam 都有限。',
                 },
                 {
                     type: 'mermaid',
@@ -4087,13 +4083,11 @@ const ZH_TW_BASE: OpSecContent = {
     subgraph Network["Hyphanet / Freenet"]
         N["Freenet node"] --> P["Peer / FLIP gateway"]
     end
-    M["FMS identity"]
     R["Remote IRC peer"]
     F --> N
-    P --> R
-    F -.->|uses| M`,
+    P --> R`,
                     caption:
-                        'Freenet IRC：本機 FLIP 閘道把 IRC 套進 Freenet/FMS；信任邊界包括本機 FLIP 程序、Freenet 節點和 FMS 身分。',
+                        'Freenet IRC：本機 FLIP 閘道把 IRC 套進 Freenet；信任邊界包括本機 FLIP 程序、Freenet 節點和對端 FLIP 閘道。',
                 },
                 {
                     type: 'ul',
@@ -4101,7 +4095,7 @@ const ZH_TW_BASE: OpSecContent = {
                         '公網 IRC：伺服器看到你的 IP；TLS 只保護到伺服器；沒有標準端對端加密。',
                         'IRC over Tor：Tor 出口節點能看到流量；IRC 伺服器看到的是出口 IP；不是「極端隱私」。',
                         'IRC over I2P：伺服器是 hidden service；沒有出口節點；伺服器看到 I2P destination；仍然沒有端對端內容加密。',
-                        'IRC over Freenet：FLIP 本機閘道 + FMS 身分；延遲高、生態小；適合低速文字，不適合緊急聯絡。',
+                        'IRC over Freenet：FLIP 本機閘道 + Freenet 節點；FMS 是另一套論壇前端，不參與 IRC 傳輸；延遲高、生態小；適合低速文字，不適合緊急聯絡。',
                     ],
                 },
                 {
@@ -4126,7 +4120,7 @@ const ZH_TW_BASE: OpSecContent = {
                         '不要在 IRC 裡用真實暱稱、學校、城市、固定作息；ident/realname 留空或填無資訊內容。',
                         '關閉 CTCP、DCC 和自動接收檔案；不要點頻道裡的連結；不要語音/視訊。',
                         'I2P：確認你連的是正確的 hidden service destination；不要把公網 IRC 伺服器當地址。',
-                        'Freenet：FLIP 不是即時聊天；不要用於緊急求助；確認外掛來源和版本；FMS 身分可能被長期關聯。',
+                        'Freenet：FLIP 不是即時聊天；不要用於緊急求助；確認外掛來源和版本；FLIP 暱稱和頻道身分可能被長期關聯。',
                         '假設伺服器記錄一切：定期換暱稱/頻道，不在同一頻道暴露時間表，不重複使用其他帳號的暱稱。',
                         '需要內容保密時，用客戶端支援的 OTR/端對端加密；它保護內容，但不隱藏誰在何時說了多少。',
                     ],
