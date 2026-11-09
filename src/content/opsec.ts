@@ -51,9 +51,9 @@ const ZH: OpSecContent = {
     advancedHeading: '进阶：高风险与应急处置',
     advancedNote:
         '下面这部分针对更极端的情况：被系统性针对、被跟踪、面临真实人身威胁，或怀疑设备与账号已经失守。大多数成员可能一辈子都用不上；请按自己的实际情况取用，只用于正当自卫，不要做违法的事。如果人身安全受到威胁，优先联系当地警方、法律援助或可信赖的专业机构。',
-    extendedHeading: '扩展知识：数学、匿名网络与共识机制',
+    extendedHeading: '扩展知识：数学、匿名网络、共识机制与高威胁环境',
     extendedNote:
-        '下面这些是扩展阅读，不要求学会，也不影响你使用前面的清单。它们解释“为什么”：匿名不是一个开关，而是一组假设；数学公式只是帮助理解，不是操作指南。看不懂可以跳过，需要时再回来查。',
+        '下面这些是扩展阅读，不要求学会，也不影响你使用前面的清单。它们解释“为什么”：匿名不是一个开关，而是一组假设；数学公式只是帮助理解，不是操作指南。最后几节讲高威胁环境，只讲原理、风险和替代方案，不写可执行操作；大多数读者不需要，看不懂可以跳过，需要时再回来查。',
     sections: [
         {
             id: 'threat-model',
@@ -468,6 +468,8 @@ const ZH: OpSecContent = {
                         '“我还在探索，不想给自己贴死标签。”',
                         '“这就是我个人爱好，不影响别人。”',
                         '“我不想聊这个，换个话题吧。”',
+                        '跨男：把变化说成“假小子/中性风，最近有点中二，觉得这样帅”。只谈穿衣和风格，不要编激素、手术、社团或“我加入了什么组织”。',
+                        '跨女：把变化说成“喜欢二次元/cos，最近在试女装造型”。只谈爱好，不发 cos 正片、不报线下活动、不编比赛或社团。',
                     ],
                 },
                 {
@@ -477,6 +479,28 @@ const ZH: OpSecContent = {
                 {
                     type: 'p',
                     text: '使用原则：短、随意、不解释太多；说完就转话题；不要编复杂的背景故事（学校、城市、时间线越多越容易穿帮）；不要为了自保去贬低其他跨性别者。“我才不是那种人”会伤害别人，也会让你更孤立。',
+                },
+                {
+                    type: 'p',
+                    text: '跨男和跨女还可以各借一层更具体的“学校里的掩护说法”：跨男把变化说成“假小子/中性风，最近有点中二”；跨女把变化说成“喜欢二次元/cos，最近在试女装造型”。这不是说跨男就该是假小子、跨女就该喜欢 cos；它只是某些学校里成本较低的挡箭牌，不适合所有人。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '只解释“为什么穿成这样/为什么最近变化”，不解释身体、医疗、证件、改名/人称和恋爱；不要编激素、手术、社团、比赛或“我加入了什么组织”。',
+                        '“中二病晚期”只是玩笑说法，不是诊断；它可能让老师觉得你行为有问题，也可能招来更多围观，别演得太满。在一些学校，它还会被当成“心理有问题”，招来班主任、家长或心理老师；如果你已经被盯上，不要用这个。',
+                        'cos 照片、账号和线下活动会留下可关联的痕迹；不要为了维持人设发正片、去大型活动或借钱买道具。有些学校把 cos 当成“奇装异服/不务正业”，可能记过或叫家长；先看校规和老师态度。',
+                        '这两个说法只适合挡同学的随口一问；对老师、家长、医生、警察不要用人设，直接说“我不想讨论”或找可信成年人。',
+                        '准备一句退出话：“就是最近觉得好玩，过阵子可能就换了。” 这样以后改变风格不用解释。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '给跨女：用 cos 说法不是承认自己有什么问题，也不是自我羞辱；它只是把“你是不是跨性别”换成“你是不是二次元”。有些学校确实只会按“奇装异服/思想有问题/不务正业”处理，女装可能被没收，但不会仅凭这个说法就直接推断你在用药。可是“最多就这样”不是保证：身体变化明显、有人告密、家长已经怀疑时，学校仍可能查书包/手机/药物，或要求体检。',
+                },
+                {
+                    type: 'p',
+                    text: '给跨男：“中二假小子”有时能换来部分男生圈的普通接触——勾肩搭背、被叫“兄弟”、一起打球。这些可以是真实的缓冲，但不是安全证明；如果对方只是因为把你当“兄弟”才接纳你，一旦怀疑可能翻脸。别为了维持这个位置去集体住宿、厕所、体检等高风险场合，也别把“被叫兄弟”当成必须完成的考试。如果勾肩搭背让你不舒服，躲开就好；不需要为了“像个男生”忍受触碰。',
                 },
                 {
                     type: 'p',
@@ -493,7 +517,7 @@ const ZH: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '不要因为“说自己是 femboy 比较安全”就强迫自己接受这个标签，也不要假装成另一个真实存在的人。即使你认为“说 femboy 会被打得轻一点”，被打仍然是暴力，不是你需要接受的成本；如果环境危险，优先离开和求助。',
+                    text: '不要因为“说自己是 femboy 比较安全”就强迫自己接受这个标签，也不要假装成另一个真实存在的人。即使你认为“说 femboy 会被打得轻一点”，被打仍然是暴力，不是你需要接受的成本；如果环境危险，优先离开和求助。如果对方已经认定你是跨性别，换标签不一定有用；这时优先离开、找可信的人，不要为了证明人设继续加码。',
                 },
             ],
         },
@@ -606,6 +630,59 @@ const ZH: OpSecContent = {
             ],
         },
         {
+            id: 'body-safety',
+            title: '身体安全：被打时先离开，不要先讲道理',
+            level: 'basic',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '如果你正在被家人、同学或伴侣打，最重要的不是赢，是减少受伤并离开。对方已经动手时，讲道理、求饶、放狠话都可能升级暴力；“你再这样我就报警”尤其危险——报警是行动，不是台词。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '先看出口：门在哪、谁挡着、能不能绕开；不要背对门，不要被逼到墙角、厨房、阳台或楼梯口。',
+                        '护住头颈：缩下巴、护住后脑和耳朵；能蹲低就蹲低，减少头部被击中的面积。',
+                        '不要抢武器、不要追击、不要试图“打服”对方；一旦有距离就走。',
+                        '往人多、有监控、有成年人的地方跑：商店、门卫、教室、派出所；不要跑进死胡同、工地、偏僻楼道。',
+                        '跑不掉时：用椅子、包、被子隔开，继续喊人；如果对方停手，先保持不动、观察出口，确认安全再走，不要突然起身追击。',
+                        '事后：先离开现场，找可信的人，拍照/记录伤情，去医院；如果可能继续被打，不要独自回家。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '如果环境里挨打不是一次两次，体能就是安全的一部分。短跑练爆发，长跑练耐力；目标不是打赢，是让你有机会拉开距离、跑到有人能帮你的地方。真到跑的时候：先 20–40 米全力冲刺拉开距离，再转成能持续的长跑；不要一开始就慢慢跑，也不要跑回可能继续被打的家。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '短跑：每周 2 次，20–40 米 × 4–6 组，组间走回起点，充分恢复；不要天天练。',
+                        '长跑：每周 2–3 次轻松跑，20–30 分钟，能说话的速度；逐渐加到 40 分钟。',
+                        '基础力量：深蹲、弓步、提踵、平板支撑；每次 2–3 组。',
+                        '先热身 5–10 分钟；有哮喘、心脏病、关节伤，先问医生；别在偏僻或危险路线练；别练到虚脱。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '训练是为了离开，不是为了打架。不要练“一招制敌”，不要主动挑战对方；你不需要证明自己不怕。',
+                },
+                {
+                    type: 'p',
+                    text: '如果被打是因为出柜、身份、吃药或拒绝“纠正”：这不是你的错，也不是你“不够小心”。尽快做安全计划：证件、药、钱、备用手机、可信成年人的电话、临时住处。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“我要报警”当威胁说出口。对方在气头上，这句话可能让你立刻被打得更重；真要报警，就在安全的地方打，或者让别人帮你打。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你已经受伤：头晕、呕吐、视线模糊、耳鼻出血、胸痛、呼吸困难、意识不清、持续腹痛，立即就医；不要一个人睡。',
+                },
+            ],
+        },
+        {
             id: 'advanced-overview',
             title: '高风险场景的通用原则',
             level: 'advanced',
@@ -653,6 +730,47 @@ const ZH: OpSecContent = {
                     type: 'warn',
                     kind: 'caution',
                     text: '不要试图用违法手段“以暴制暴”或伪造身份反击。那会把你自己置于更大的风险里，也会让真正需要帮助的人更难被相信。',
+                },
+            ],
+        },
+        {
+            id: 'transmasc',
+            title: '跨男：被忽略的那一半',
+            level: 'advanced',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '这份指南早期偏跨女；跨男的需求不是“反过来”那么简单。跨男可能被医疗系统忽视、被当成“不够跨”、被误诊，也可能在束胸、睾酮、妇科检查、怀孕风险上遇到完全不同的问题。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '束胸：用合身的 binder，不用 ACE 绷带或胶带；第一次从 2–4 小时开始，最长 8–12 小时；睡觉、运动、游泳不穿；胸痛、呼吸困难、肋骨痛、皮肤破损立即停；体检或胸透可能要求取下，提前问。',
+                        'packing / STP：卫生第一，定期清洗，不共用；不方便或不舒服可以不 pack；passing 不是必须。',
+                        '睾酮：只通过正规医疗；声音、体毛、肌肉、月经、阴蒂、血脂和红细胞压积都会变化；需要定期监测；不要自行加量或用来路不明的药。',
+                        '生育与怀孕：睾酮不是避孕药；跨男仍可能怀孕；需要避孕、生育力保存或妇科检查时，直接告诉医生你的需求和身体情况。',
+                        '妇科：Pap/HPV、STI、乳腺和盆腔检查都可以要求 trans-friendly 医生；可以提前说明称呼和身体部位，紧张可以带人陪同。',
+                        '月经抑制：咨询医生；不要用不明来源的激素、草药或极端节食。',
+                        '声音、发型、胡子：声音训练、理发和 minoxidil 都有各自的风险；minoxidil 对猫有毒，用前先查；不要用未经验证的偏方。',
+                        '厕所与路线：看当地法律和环境；选安全路线，尽量结伴；被拦就离开，不要对抗。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '跨男常被“看不见”：别人可能不认为你是跨男，或者认为你“只是 tomboy”。这既是掩护，也是孤立。在学校被问起时，可以把“假小子/中性风”当挡箭牌；它只解释穿着，不解释你的身体和医疗。具体话术见“同学问起时”。找社群、找跨男前辈、找 trans-friendly 医生；不要一个人把所有的疑问憋着。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要为了“更 pass”做危险的事：过度束胸、共用针具、黑市睾酮、极端节食/健身、用胶带粘胸。这些可能造成永久伤害。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你同时是跨男和未成年人：医疗同意、家长支持、学校记录、法律文件可能更复杂；找当地组织、律师或社工，不要伪造材料。',
+                },
+                {
+                    type: 'p',
+                    text: '这一节不是医疗建议；激素、手术和检查以医生和当地指南为准。',
                 },
             ],
         },
@@ -1018,6 +1136,301 @@ const ZH: OpSecContent = {
                 },
             ],
         },
+        {
+            id: 'extended-high-threat',
+            title: '高威胁环境：先读这一节',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '这一组不是“更高级的安全指南”，而是“代价很高的例外”。如果你只是普通上网、上学、吃药，前面的基础节足够；把这里的东西全用上，通常会增加故障点、让你更显眼，甚至让你失去外部帮助。',
+                },
+                {
+                    type: 'p',
+                    text: '适用的人：已经被跟踪或威胁、设备可能被控制、必须在不安全的关系里传递信息，或面临强制医疗/强制“纠正”。不适用的人：只是担心父母看到聊天记录、只是想要“更安全一点”。',
+                },
+                {
+                    type: 'ul',
+                    items: ['高威胁措施的共同代价：断网/失联、维护成本、行为异常、被发现的后果更重、出错后没有售后。'],
+                },
+                {
+                    type: 'p',
+                    text: '一个原则：先降低后果，再降低概率。被发现的概率不可能降到零；你能做的是让被发现时你有地方去、有人帮你、有证据、有药。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '如果人身安全受威胁，优先联系可信成年人、当地报警/急救、法律援助、跨性别支持组织。高威胁技巧不能替代外部帮助。',
+                },
+                {
+                    type: 'p',
+                    text: '下面每一节都只讲原理、风险和替代方案；不写可以照着执行的隐蔽操作。原因不是“道德”，而是公开文档会被骗子、控制者和执法一起读到，而且这些操作在现实里经常失败。',
+                },
+                {
+                    type: 'p',
+                    text: '这一组参考了公开的访谈与去升级研究：Dianiska、Quas 与 Lyon（2024）对青少年访谈的系统综述发现，先建立 rapport、用开放问题、避免威胁，能提高披露的完整性和准确性；Price 与 Baker（2012）的去升级综述强调降低刺激、给选择、保持安全距离；Fenaughty 等（2023）发现性取向/性别认同改变尝试与更差的心理健康相关；Bersani 等（2020）讨论了 ECT 知情同意在妄想/被迫情境下的伦理困难。这些研究不是操作手册，只是告诉你哪些做法有证据、哪些只是爽文。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-device',
+            title: '设备与位置：关机不等于离线',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '先讲原理：手机是否可被定位，取决于它还在不在网络上、附近有没有能替它上报的设备、以及谁掌握账号。关机只关闭了主处理器和大部分无线功能；某些低功耗查找功能可能仍在工作。',
+                },
+                {
+                    type: 'p',
+                    text: 'iPhone 11 及以后、iOS 15 及以后，在开启“查找网络”时，关机后仍可能通过附近 Apple 设备被找到，通常有时限（约 24 小时）。不同系统版本、地区和设置会影响行为；不要假设“关机=安全”。',
+                },
+                {
+                    type: 'p',
+                    text: '法拉第袋的原理是金属屏蔽射频信号。它有用，但代价是：你也收不到消息、接不到电话、无法求救；频繁使用会形成可观察的行为模式。它不是日常用品，是特定场合的断网工具。',
+                },
+                {
+                    type: 'p',
+                    text: '系统分层：基础是系统更新、锁屏强密码、全盘加密、关闭不必要的定位/广告/云同步；进阶是 GrapheneOS（需要兼容 Pixel）或 Tails；高阶是 Qubes/Whonix/OpenBSD + 全盘加密。每升一层，维护成本上升；维护不了的 Qubes 比默认系统更危险。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“刷了隐私系统”当成安全证明。手机号、账号、支付、学校/单位、家人、摄像头、基站和现实行踪，仍然可以把你连起来。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你怀疑被跟踪：不要只查手机；检查包、车、礼物、充电器、钥匙扣、烟雾报警器；改变路线和时间；告诉可信的人；必要时找专业机构。不要独自正面对峙。',
+                },
+                {
+                    type: 'p',
+                    text: '一个低成本替代：把“敏感的事”和“日常手机”分开。敏感事用另一台设备/账号/网络；日常手机保持正常，不要让它看起来像“突然消失”。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '不要用“关机后定位”去吓自己，也不要把它当成万能解释。不同设备、系统、账号设置差异很大；先查自己的设置，再做威胁模型。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-money',
+            title: '钱包与备份：seed 是根密钥',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '硬件钱包的原理：私钥/seed 离线保存，签名在设备里完成。它防止的是“电脑中木马后私钥被直接偷走”，不防止“你把 seed 拍照存手机”“你把设备和 seed 放同一个盒子”“你被胁迫”。',
+                },
+                {
+                    type: 'p',
+                    text: 'seed 是根密钥：谁拿到它，谁就能恢复钱包并转走资产。Monero 的账本隐私保护的是“外人看不到交易”，不保护“拿到 seed 的人”。',
+                },
+                {
+                    type: 'p',
+                    text: '备份原则：seed 和设备分开；至少两份，放在不同地点；用 passphrase 加一层；大额用多签/分片（Shamir）；定期测试恢复。',
+                },
+                {
+                    type: 'p',
+                    text: '介质：金属板耐火烧/水，但更显眼、更难藏；纸好藏但怕火/水/虫。不要把 seed 写在会被拍照、扫描、云同步的地方；不要用“藏在 U 盘堆里”当唯一方案，因为设备被拿走时 seed 可能一起没。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要吞纸、不要吞金属片。不能保证不梗阻/不划伤食道；被看到像销毁证据；备份也没了。极端情况下，你需要的是“分开存放 + 可信人各持一份”，不是把东西塞进身体。',
+                },
+                {
+                    type: 'p',
+                    text: '如果资产可能被家人/伴侣控制：先小额测试；不要把所有钱放一个钱包；保留交易记录；了解当地法律；必要时找律师。不要用虚拟货币逃避法院/抚养/债务义务。',
+                },
+                {
+                    type: 'p',
+                    text: '更多技术细节看 extended-monero；这一节只讲备份和人身安全。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-comms',
+            title: '监控下的通信：先数字，再物理',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '如果你被查手机/查房间/限制出门，第一原则不是“藏得更深”，而是“减少需要藏的东西”。能当面说的，不留文字；能用一个普通理由解释的，不编复杂故事。',
+                },
+                {
+                    type: 'p',
+                    text: '数字优先：可信成年人、学校/图书馆设备、Signal/SimpleX 等端到端加密、独立账号/设备、锁屏、关闭通知预览、定期清历史。不要用同一个手机号/邮箱/头像把两个身份连起来。',
+                },
+                {
+                    type: 'p',
+                    text: '如果必须用家里的电脑/手机：用浏览器隐私窗口不等于安全；检查是否装了监控/家长控制；不要登录敏感账号；用完退出；不要留下自动填充/下载记录。',
+                },
+                {
+                    type: 'p',
+                    text: '可信中介：找一个不会被怀疑的成年人/朋友/老师/社工，让他替你传话；约定一个普通暗号；不要让他承担超出能力的风险。',
+                },
+                {
+                    type: 'p',
+                    text: '死信投递的原理：把“交换”拆成投放、标记、取货三段，双方不同时出现。它解决的是“不能同时见面”，不解决假货、截获、控制下交付、胁迫、售后、证据。任何一个环节被看到，整条链就暴露。',
+                },
+                {
+                    type: 'p',
+                    text: '为什么这里不写选址/标记/投放/取货：公开文档会被骗子、控制者、执法和恶意读者一起看到；一个例子就是模板；现实里天气、动物、路人、摄像头、固定路线、指纹/DNA、偏僻取物的人身风险都会让“聪明办法”变成证据。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你需要物理传递：优先用可信中介、学校/工作场所的公开交接、邮政/快递（注意地址和收件人），或者把信息拆成不明显的小块。不要在自己家/学校附近取；不要在固定时间；不要单独去偏僻地点；不要留下可读的完整信息。',
+                },
+                {
+                    type: 'p',
+                    text: '如何问出信息、又不把对方逼到防御：用开放问题（“接下来会发生什么？”“这个检查是谁要求的？”），先建立 rapport，再问具体；不要一上来审问/威胁；重复对方的词，确认你听对了；对方拒绝时，换时间/换人，不要硬顶。青少年访谈研究支持“先 rapport、开放问题、避免威胁”能提高完整披露（Dianiska et al., 2024; Nahouli et al., 2021）。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '先问流程，不问动机：“这个检查是谁安排的？”“结果会给谁？”“如果我不做，下一步是什么？”流程问题比“你是不是怀疑我”更容易得到答案。',
+                        '一次只问一个；对方开始防御时，先换话题，过一会儿再回来；连续追问会让人只想结束对话。',
+                        '用对方的词确认：“你的意思是，如果我不签字，学校会联系家长？”让对方自己把后果说清楚。',
+                        '对方说“大家都这样/你父母都知道了”时，要求具体证据：“是谁说的？什么时候说的？我能看原文吗？”',
+                        '不要在当场戳穿矛盾；记下来，之后找可信成年人核对；当场赢一句，可能输掉安全。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '如何不被套话：只回答必要信息；不确定的问题说“我不知道/我需要问一下”；不要为了显得配合而编；对方用“大家都这样/你父母都知道了”施压时，要求具体证据；不要在情绪激动时做决定。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“报警”当威胁说出口；也不要用“我有证据/我认识人”吓对方。放狠话在安全场景里可能有用，在暴力场景里通常只会升级。报警是行动，不是台词。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-medical',
+            title: '被迫血检与强制医疗：先搞清楚查什么',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '血检查的是血液里的指标，不是“你最近有没有吃药”的测谎仪。性激素、肝肾功能、泌乳素、血常规各自说明不同问题；一次异常也可能由脱水、作息、其他药物、疾病引起。不要用“吐一次就没事”安慰自己。',
+                },
+                {
+                    type: 'p',
+                    text: '学校体检（包括高考体检）常规项目各地不同，常见是身高体重、血压、视力、心肺听诊、脊柱四肢、胸透；有些地方加肝功能/血常规。性激素不是常规项目。“有抽血”不等于“查激素”。',
+                },
+                {
+                    type: 'p',
+                    text: '如果确实要做激素检查：先问清楚查哪些项目、为什么查、结果给谁、能不能只给监护人/医生、能不能申请隐私保护、能否延期/换医院。你可以要求医生解释，也可以要求第二意见。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你决定拖延：最不坏的非暴力做法是正常离开检查区，用“上厕所/不舒服”争取时间，设一个上限，不要反锁、不要关机失联、不要躲到清场；被找到时不对抗，用固定话术“我害怕/我不舒服/我想改天/我要先联系我信任的人”。它只拖一次，下一次还会来，而且可能升级监控。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要催吐。催吐不能清除已经吸收的激素；对注射/凝胶无效；呕吐/脱水会让肝酶、肌酐、电解质异常，引来更多检查；风险包括误吸、食管撕裂、低钾、心律失常。也不要为了“看起来正常”擅自停药/改剂量。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要用束胸当掩护。体检可能要求取下；长时间束胸会影响呼吸/肋骨/皮肤；用 ACE 绷带/胶带更危险。需要束胸时用合身的 binder，限时，疼痛/呼吸困难立即停。',
+                },
+                {
+                    type: 'p',
+                    text: '如果结果已经出来/被家长知道：先确认谁知道、知道多少；不要抢报告/改报告；找医生/社工/可信成年人一起解释；准备一个简短说法；如果家庭有暴力风险，先做安全计划，不要独自回家。',
+                },
+                {
+                    type: 'p',
+                    text: '强制“扭转”/“网瘾纠正”：这些不是正规医疗。红旗是收手机/证件、限制联系、体罚、不许探视、要求“承认错误”、不给诊断/治疗计划。遇到这些先保人身安全，别硬刚；保留证据；告诉可信的人你的位置和 check-in 时间；如果门开着、外面有人接应，再考虑离开；不要独自徒步逃跑，也不要切断和可信成年人的联系。',
+                },
+                {
+                    type: 'p',
+                    text: 'MECT（改良电休克）是麻醉下的医疗程序，用于某些严重精神疾病，不是“治疗跨性别”的手段。真正要问的是：诊断依据是什么、有没有鉴别诊断、适应症是什么、替代方案是什么、谁签的知情同意、副作用和记忆影响。被强制时，保留病历/知情同意书，找第二意见/法律援助/卫健部门。',
+                },
+                {
+                    type: 'p',
+                    text: '面试精神科医生（不是“试探”）：直接问“你接过多少跨性别来访者？你用 WPATH/ICD-11 吗？你怎么区分 gender dysphoria 和 psychosis？如果我不同意诊断，你怎么处理？你会不会把跨性别本身当成妄想？”红旗：把跨性别当病、拒绝解释诊断、威胁不治疗就电击、要求“先证明自己是真跨”、不让你单独说话。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '如果你有自杀/自伤风险，先处理这个，不要为了“记录干净”隐瞒。强制医疗的恐惧是真实的，但把严重症状藏起来可能让你更危险。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-exposure',
+            title: '被曝光之后：72 小时与一个月',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '曝光本身不是终点，后面的连锁反应才是。第一目标不是“解释清楚”，而是“停止扩散、保证人身安全、找到盟友”。',
+                },
+                {
+                    type: 'p',
+                    text: '72 小时内：先确认泄露范围（谁看到了、有没有截图、有没有转发）；暂停发新内容；把公开资料缩到最小；换头像/用户名/密码；检查设备/账号；告诉 1–2 个可信的人；不要一个人刷评论。',
+                },
+                {
+                    type: 'p',
+                    text: '找谁说什么：优先找不会立刻告诉父母/学校的人；用“我需要帮助，不是需要审判”开场；只给必要信息；问对方能不能帮你做什么（陪同、借住、传话、报警）。',
+                },
+                {
+                    type: 'p',
+                    text: '证据：截图/录屏/链接/时间/账号 ID；不要剪辑；加密备份；不要发到公开平台求公道。',
+                },
+                {
+                    type: 'p',
+                    text: '一个月：处理学校/家庭/工作/医疗的后续；如果家里有暴力风险，做安全计划（证件、药、钱、备用手机、临时住处）；考虑转学/搬家/换工作，但先评估成本和风险；不要冲动做不可逆决定。',
+                },
+                {
+                    type: 'p',
+                    text: '未成年人 vs 成年人：“人生切换”对未成年人通常不现实，报警/寻人可能让你更危险；优先找可信成年人、社工、法律援助、临时庇护。成年人搬迁也要考虑钱、工作、证件、医疗连续性。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要为了“证明自己没事”去对峙/约架/公开对方信息。曝光后的愤怒是正常的，但报复通常会把风险拉回你身上。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-circle',
+            title: '如果你有一个可信的小圈子',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '小圈子能提供信息、临时住处、陪同、借钱、传话，但它也会把风险集中。原则：信任要分层，钱要小额，记录要少，决定要可退出。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '信任梯度：先做低风险的事（听你说、陪你打电话），再做中风险（借少量钱、代收东西），最后才是高风险（知道住址、真实身份、资金）。',
+                        '钱：小额、可承受损失、写清楚是借还是给；不要把所有钱交给一个人；大额用多签/透明账本；不要用“互助”名义搞未登记募捐。',
+                        '信息：只给需要知道的人；不要建大群；定期清理聊天记录；不要把所有秘密放在一个人手里。',
+                        '安全：约定 check-in、暗号、紧急联系人；知道彼此的底线；有人被威胁时，先保人，不要先查内鬼。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要组织“互相作证”的假口供、不要伪造文件、不要用暴力报复。这些会把小圈子变成共犯结构，一旦被胁迫，所有人都更危险。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你要帮别人：先问“你现在安全吗？你需要什么？”不要替对方做决定；不要承诺你做不到的事；涉及未成年人/暴力/医疗，找专业机构。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '这一节不是组织手册。情报池、互助基金、跨地区网络需要法律、财务、安全评审；没有这些，不要做。',
+                },
+            ],
+        },
     ],
 };
 
@@ -1035,9 +1448,9 @@ const EN: OpSecContent = {
     advancedHeading: 'Advanced: high-risk scenarios and incident response',
     advancedNote:
         'The following section is for more extreme situations: systematic targeting, stalking, a real physical threat, or a suspicion that your device or accounts have already been compromised. Most members may never need it. Use it according to your own situation, only for legitimate self-defense, and never do anything illegal. If your physical safety is threatened, contact local law enforcement, legal aid, or a trusted professional organization first.',
-    extendedHeading: 'Extended knowledge: math, anonymity networks, and consensus',
+    extendedHeading: 'Extended knowledge: math, anonymity networks, consensus, and high-threat environments',
     extendedNote:
-        'The following pages are optional background reading. You do not need to learn the formulas, and none of it is required to use the checklists above. They explain why anonymity is not a switch but a set of assumptions. The math is here to make the ideas easier to picture, not to serve as an operating manual. Skip anything that is not useful to you and come back later if you need it.',
+        'The following pages are optional background reading. You do not need to learn the formulas, and none of it is required to use the checklists above. They explain why anonymity is not a switch but a set of assumptions. The math is here to make the ideas easier to picture, not to serve as an operating manual. The last few sections cover high-threat environments; they discuss principles, risks, and alternatives only, not executable procedures. Most readers will not need them. Skip anything that is not useful to you and come back later if you need it.',
     sections: [
         {
             id: 'threat-model',
@@ -1452,6 +1865,8 @@ const EN: OpSecContent = {
                         '“I’m still figuring it out. I don’t want to lock myself into a label.”',
                         '“It’s just a personal interest. It doesn’t affect anyone else.”',
                         '“I’d rather not talk about this. Let’s change the subject.”',
+                        'Trans boy: frame the change as “I’m a tomboy/androgynous, going through a bit of a chuunibyou (edgy middle-school) phase — I think it looks cool.” Talk only about clothes and style; do not invent hormones, surgery, a club, or “an organization I joined.”',
+                        'Trans girl: frame the change as “I’m into anime/cosplay, and I’ve been trying out feminine costumes.” Talk only about the hobby; do not post cosplay photos, sign up for in-person events, or invent a competition or club.',
                     ],
                 },
                 {
@@ -1461,6 +1876,28 @@ const EN: OpSecContent = {
                 {
                     type: 'p',
                     text: 'How to use it: keep it short, casual, and light on detail. Change the subject after one sentence. Do not invent a complicated backstory — every school, city, and timeline is another thing that can fall apart. Do not put down other trans people to protect yourself. “I’m not one of those” hurts others and leaves you more isolated.',
+                },
+                {
+                    type: 'p',
+                    text: 'Trans boys and trans girls can also borrow a more specific “school cover story”: a trans boy can frame the change as “tomboy/androgynous, a bit chuunibyou lately”; a trans girl can frame it as “into anime/cosplay, trying out feminine costumes.” This does not mean trans boys should be tomboys or trans girls should like cosplay; it is simply a lower-cost shield in some schools, and it does not suit everyone.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Only explain “why you dress this way / why you have changed lately,” not your body, medical care, documents, name/pronouns, or dating. Do not invent hormones, surgery, a club, a competition, or “an organization I joined.”',
+                        '“Late-stage chuunibyou” is a joke, not a diagnosis; it may make teachers think you have behavioral problems, and it may attract more staring. Do not overplay it. In some schools it is treated as “a mental problem,” bringing in the homeroom teacher, parents, or school counselor; if you are already being watched, do not use this one.',
+                        'Cosplay photos, accounts, and in-person events leave linkable traces; do not post polished cosplay photo sets, attend large events, or borrow money for props just to maintain the persona. Some schools treat cosplay as “inappropriate dress / not taking school seriously” and may give demerits or notify your parents; check the school rules and the teacher’s attitude first.',
+                        'These two scripts are only for casual questions from classmates; do not use a persona with teachers, parents, doctors, or police. Say “I don’t want to discuss it” or find a trusted adult.',
+                        'Have an exit line ready: “I was just trying it for fun; I might change it up in a while.” That way you do not have to explain a change in style later.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'For trans girls: using the cosplay script is not an admission that there is something wrong with you, and it is not self-degradation; it simply moves the topic from “are you transgender” to “are you an anime fan.” Some schools really will treat it only as “inappropriate dress / a bad attitude / not taking school seriously,” and may confiscate feminine clothing, but they will not infer from that phrase alone that you are taking medication. But “at worst, they’ll just confiscate it” is not a guarantee: if your body has changed visibly, someone reports you, or your parents already suspect, the school may still search your bag, phone, or medication, or require a medical exam.',
+                },
+                {
+                    type: 'p',
+                    text: 'For trans boys: the “chuunibyou tomboy” cover can sometimes buy ordinary contact with some boys’ circles, such as an arm around your shoulder, being called “bro,” or playing ball together. That can be a real buffer, but it is not proof of safety; if they only accept you because they think you are “one of the boys,” they may turn on you once they suspect. Do not go into high-risk situations (overnight stays, bathrooms, physical exams) just to maintain that position, and do not treat “being called bro” as an exam you must pass. If that kind of contact makes you uncomfortable, move away; you do not have to tolerate touch just to “act like a boy.”',
                 },
                 {
                     type: 'p',
@@ -1477,7 +1914,7 @@ const EN: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: 'Do not force yourself to accept the femboy label just because it seems safer, and do not pretend to be a specific real person. Even if you think “saying femboy will get me hit less,” being hit is still violence, not a cost you are required to pay. If the environment is dangerous, prioritize leaving and getting help.',
+                    text: 'Do not force yourself to accept the femboy label just because it seems safer, and do not pretend to be a specific real person. Even if you think “saying femboy will get me hit less,” being hit is still violence, not a cost you are required to pay. If the environment is dangerous, prioritize leaving and getting help. If the other person has already decided you are transgender, a different label may not help; in that case, prioritize leaving and finding someone you trust, and do not keep escalating the persona to prove it.',
                 },
             ],
         },
@@ -1590,6 +2027,59 @@ const EN: OpSecContent = {
             ],
         },
         {
+            id: 'body-safety',
+            title: 'Physical safety: if you are being hit, leave first — do not try to reason first',
+            level: 'basic',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'If a family member, classmate, or partner is hitting you, the most important thing is not to win — it is to reduce injury and get out. Once someone has become violent, reasoning, begging, or making threats can all escalate it. “If you do this again I’ll call the police” is especially dangerous: calling the police is an action, not a line.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Find the exit first: where is the door, who is blocking it, can you go around? Do not turn your back to the door, and do not let yourself be cornered in a kitchen, on a balcony, or at the top of stairs.',
+                        'Protect your head and neck: tuck your chin, cover the back of your head and ears; get low if you can to reduce the area of your head that can be hit.',
+                        'Do not grab for a weapon, do not chase, and do not try to “beat them into submission.” Once you have distance, leave.',
+                        'Run toward people, cameras, and adults: a shop, a guard post, a classroom, a police station. Do not run into dead ends, construction sites, or isolated stairwells.',
+                        'If you cannot run: put a chair, bag, or blanket between you and keep shouting for help. If the other person stops, stay still, watch the exit, and move only when it is safe; do not suddenly get up and chase them.',
+                        'Afterward: leave the scene first, find someone you trust, photograph or document injuries, and go to a hospital. If you may be hit again, do not go home alone.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'If being hit is not a one-off in your environment, fitness is part of safety. Sprints build explosive speed; easy running builds endurance. The goal is not to win a fight; it is to create distance and reach somewhere people can help you. If you actually have to run: sprint all-out for 20–40 meters first to open a gap, then settle into a sustainable run. Do not start at an easy jog, and do not run back to a home where you may be hit again.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Sprints: twice a week, 20–40 m × 4–6 reps, walk back to the start and recover fully between reps; do not do this every day.',
+                        'Easy runs: 2–3 times a week, 20–30 minutes at a conversational pace; build gradually to 40 minutes.',
+                        'Basic strength: squats, lunges, calf raises, plank; 2–3 sets each.',
+                        'Warm up for 5–10 minutes first. If you have asthma, a heart condition, or a joint injury, ask a doctor first. Do not train on isolated or dangerous routes, and do not train to the point of collapse.',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Training is for getting away, not for fighting. Do not practice “one move that ends the fight,” and do not challenge the other person. You do not have to prove that you are not afraid.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you are being hit because you came out, because of your identity, because of medication, or because you refused “correction”: this is not your fault, and it is not because you were “not careful enough.” Make a safety plan as soon as you can: ID documents, medication, money, a backup phone, phone numbers of trusted adults, and a temporary place to stay.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'Do not say “I’ll call the police” as a threat. If the other person is already angry, that sentence can get you hit harder immediately. If you are actually going to call, do it from a safe place, or ask someone else to call for you.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you have already been injured: dizziness, vomiting, blurred vision, bleeding from the ears or nose, chest pain, difficulty breathing, confusion, or persistent abdominal pain — seek medical care immediately; do not sleep alone.',
+                },
+            ],
+        },
+        {
             id: 'advanced-overview',
             title: 'General principles for high-risk scenarios',
             level: 'advanced',
@@ -1637,6 +2127,47 @@ const EN: OpSecContent = {
                     type: 'warn',
                     kind: 'caution',
                     text: 'Do not use illegal means to “fight fire with fire” or forge an identity to strike back. That puts you at greater risk and makes it harder for people who genuinely need help to be believed.',
+                },
+            ],
+        },
+        {
+            id: 'transmasc',
+            title: 'Trans men: the half that gets overlooked',
+            level: 'advanced',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'This guide was originally skewed toward trans women; trans men’s needs are not just “the reverse.” Trans men may be overlooked by the medical system, treated as “not trans enough,” or misdiagnosed, and may face completely different issues around binding, testosterone, gynecological care, and pregnancy risk.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Binding: use a properly fitted binder, not ACE bandages or tape. Start by wearing it for 2–4 hours the first time, and do not exceed 8–12 hours a day. Do not wear it while sleeping, exercising, or swimming. Stop immediately for chest pain, difficulty breathing, rib pain, or broken skin. A physical exam or chest X-ray may require you to take it off; ask ahead.',
+                        'Packing / STP: hygiene first — clean regularly and do not share. You do not have to pack if it is inconvenient or uncomfortable; passing is not required.',
+                        'Testosterone: only through regular medical care. Voice, body hair, muscle, periods, clitoris, lipids, and hematocrit all change; you need regular monitoring. Do not increase the dose yourself or use medication from an unknown source.',
+                        'Fertility and pregnancy: testosterone is not birth control; trans men can still get pregnant. If you need contraception, fertility preservation, or gynecological care, tell the doctor directly about your needs and your body.',
+                        'Gynecological care: Pap/HPV tests, STI testing, and breast and pelvic exams can all be arranged with a trans-friendly doctor. You can explain your name and the terms you use for your body in advance; if you are nervous, bring someone with you.',
+                        'Menstrual suppression: talk to a doctor; do not use hormones from unknown sources, herbal remedies, or extreme dieting.',
+                        'Voice, hair, and facial hair: voice training, haircuts, and minoxidil each have their own risks; minoxidil is toxic to cats, so check before using it; do not use unproven remedies.',
+                        'Bathrooms and routes: check local laws and your surroundings; choose safer routes and go with someone when possible; if you are stopped, leave rather than confront anyone.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'Trans men are often “invisible”: people may not read you as a trans man, or may think you are “just a tomboy.” That can be cover, and it can also be isolating. At school, you can use “tomboy/androgynous style” as a shield when people ask; it explains clothing, not your body or medical care. See “When classmates ask” for specific scripts. Find community, find older trans men, and find trans-friendly doctors; do not keep every question bottled up alone.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not do dangerous things to “pass better”: over-binding, sharing needles, black-market testosterone, extreme dieting or exercise, or taping your chest. These can cause permanent harm.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you are both a trans man and a minor: medical consent, parental support, school records, and legal documents can be more complicated. Find local organizations, a lawyer, or a social worker; do not forge documents.',
+                },
+                {
+                    type: 'p',
+                    text: 'This section is not medical advice; hormones, surgery, and tests are governed by your doctor and local guidelines.',
                 },
             ],
         },
@@ -2007,6 +2538,303 @@ const EN: OpSecContent = {
                 },
             ],
         },
+        {
+            id: 'extended-high-threat',
+            title: 'High-threat environments: read this first',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'This group is not “a more advanced security guide”; it is “the high-cost exception.” If you are just browsing, going to school, and taking your medication, the basic sections above are enough. Using everything here usually adds failure points, makes you more conspicuous, and can even cut you off from outside help.',
+                },
+                {
+                    type: 'p',
+                    text: 'Who it is for: people who are already being stalked or threatened, whose devices may be controlled, who must pass information inside an unsafe relationship, or who face forced medical treatment or forced “correction.” Who it is not for: someone who is only worried about a parent seeing a chat log, or who just wants to be “a bit safer.”',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'The common costs of high-threat measures: losing connectivity or going silent, maintenance burden, unusual behavior, heavier consequences if discovered, and no recourse if something goes wrong.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'One principle: reduce the consequences first, then reduce the probability. You cannot drive the probability of discovery to zero; what you can do is make sure that if you are discovered, you have somewhere to go, someone to help, evidence, and medication.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'If your physical safety is threatened, prioritize contacting a trusted adult, local police/emergency services, legal aid, or a trans support organization. High-threat techniques are not a substitute for outside help.',
+                },
+                {
+                    type: 'p',
+                    text: 'Each section below discusses principles, risks, and alternatives only; it does not give step-by-step covert procedures. The reason is not “morality.” A public document will be read by scammers, abusers, and law enforcement as well as by you, and these procedures often fail in real life.',
+                },
+                {
+                    type: 'p',
+                    text: 'This group draws on public interview and de-escalation research: Dianiska, Quas, and Lyon (2024), in a systematic review of adolescent interviews, found that establishing rapport first, using open questions, and avoiding threats improves the completeness and accuracy of disclosure; Price and Baker’s (2012) review of de-escalation emphasizes reducing stimulation, offering choices, and maintaining a safe distance; Fenaughty et al. (2023) found that attempts to change sexual orientation or gender identity are associated with worse mental health; Bersani et al. (2020) discussed the ethical difficulties of ECT informed consent in delusional or coercive contexts. These studies are not operating manuals; they tell you which practices have evidence and which are just tough talk.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-device',
+            title: 'Devices and location: “off” is not “offline”',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Start with the principle: whether a phone can be located depends on whether it is still on a network, whether there are nearby devices that can report for it, and who controls the account. Powering it off only shuts down the main processor and most radios; some low-power finding features may still work.',
+                },
+                {
+                    type: 'p',
+                    text: 'On iPhone 11 and later, with iOS 15 and later, if “Find My network” is enabled, the phone may still be found through nearby Apple devices after it is powered off, usually for a limited time (about 24 hours). System versions, regions, and settings change the behavior; do not assume “powered off = safe.”',
+                },
+                {
+                    type: 'p',
+                    text: 'A Faraday bag works by shielding radio signals with metal. It is useful, but the cost is that you also cannot receive messages or calls, or call for help; frequent use creates an observable behavior pattern. It is not an everyday item; it is a tool for specific situations where you need to go offline.',
+                },
+                {
+                    type: 'p',
+                    text: 'System tiers: the baseline is system updates, a strong lock-screen password, full-disk encryption, and turning off unnecessary location/advertising/cloud sync. The next tier is GrapheneOS (requires a compatible Pixel) or Tails. The high tier is Qubes/Whonix/OpenBSD + full-disk encryption. Each tier adds maintenance cost; a Qubes setup you cannot maintain is more dangerous than the default system.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'Do not treat “I flashed a privacy OS” as proof of safety. Your phone number, accounts, payments, school/workplace, family, cameras, cell towers, and real-world movements can still connect you.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you suspect you are being tracked: do not only check your phone; check your bag, car, gifts, chargers, keychains, and smoke detectors; change your routes and timing; tell someone you trust; and contact a professional organization if needed. Do not confront the person alone.',
+                },
+                {
+                    type: 'p',
+                    text: 'A low-cost alternative: separate sensitive matters from your everyday phone. Use another device/account/network for sensitive matters; keep the daily phone normal so it does not look like it “suddenly disappeared.”',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: 'Do not frighten yourself with the idea of “location tracking after power-off,” and do not treat it as a universal explanation. Devices, systems, and account settings vary widely; check your own settings first, then build your threat model.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-money',
+            title: 'Wallets and backups: the seed is the root key',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'How a hardware wallet works: the private key/seed is stored offline, and signing happens inside the device. It protects against malware on your computer stealing the private key directly, but not against “you photograph the seed and store it on your phone,” “you keep the device and seed in the same box,” or “you are coerced.”',
+                },
+                {
+                    type: 'p',
+                    text: 'The seed is the root key: whoever has it can restore the wallet and move the assets. Monero’s ledger privacy protects “outsiders cannot see the transaction,” not “someone who has the seed.”',
+                },
+                {
+                    type: 'p',
+                    text: 'Backup principles: keep the seed and the device separate; keep at least two copies in different locations; add a passphrase layer; use multisig/Shamir splitting for large amounts; test recovery regularly.',
+                },
+                {
+                    type: 'p',
+                    text: 'Media: metal plates survive fire and water but are more conspicuous and harder to hide; paper is easier to hide but vulnerable to fire, water, and insects. Do not write the seed anywhere it will be photographed, scanned, or cloud-synced; do not use “hidden in a pile of USB drives” as your only plan, because if the device is taken, the seed may disappear with it.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not swallow paper or metal plates. You cannot guarantee they will not obstruct or cut your esophagus; being seen doing it looks like destroying evidence; and your backup is gone. In an extreme situation, what you need is “separate storage + a trusted person holding a copy,” not putting things inside your body.',
+                },
+                {
+                    type: 'p',
+                    text: 'If your assets may be controlled by family or a partner: test with a small amount first; do not keep all your money in one wallet; keep transaction records; learn the local law; and consult a lawyer if needed. Do not use cryptocurrency to evade court, child-support, or debt obligations.',
+                },
+                {
+                    type: 'p',
+                    text: 'For more technical details, see extended-monero; this section covers backup and physical safety only.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-comms',
+            title: 'Communication under surveillance: digital first, physical second',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'If your phone or room may be searched, or you are not allowed to go out, the first principle is not “hide deeper” but “reduce what needs hiding.” If you can say it in person, do not leave text; if a normal excuse explains it, do not invent a complicated story.',
+                },
+                {
+                    type: 'p',
+                    text: 'Digital first: use trusted adults, school or library devices, end-to-end encrypted tools such as Signal/SimpleX, separate accounts/devices, lock screens, disabled notification previews, and regular history clearing. Do not connect two identities with the same phone number/email/avatar.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you must use a family computer or phone: a private browsing window is not security; check for monitoring/parental-control software; do not log into sensitive accounts; log out when done; do not leave autofill or download history.',
+                },
+                {
+                    type: 'p',
+                    text: 'Trusted intermediary: find an adult, friend, teacher, or social worker your family would not suspect, and ask them to pass messages for you; agree on an ordinary code word; do not ask them to take on risks beyond their capacity.',
+                },
+                {
+                    type: 'p',
+                    text: 'How a dead drop works: it splits an “exchange” into placement, marking, and retrieval, so the two parties are not present at the same time. It solves “we cannot meet at the same time”; it does not solve fake goods, interception, controlled delivery, coercion, after-sales support, or evidence. If any link is seen, the whole chain is exposed.',
+                },
+                {
+                    type: 'p',
+                    text: 'Why this section does not describe site selection/marking/placement/retrieval: a public document will be read by scammers, abusers, law enforcement, and malicious readers; one example becomes a template; in reality, weather, animals, passersby, cameras, fixed routes, fingerprints/DNA, and the physical risk of retrieving in an isolated place can turn a “clever trick” into evidence.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you need a physical transfer: prefer a trusted intermediary, a public handover at school/work, or mail/courier (mind the address and recipient), or split the information into small, inconspicuous pieces. Do not retrieve near your home/school; do not use a fixed time; do not go to an isolated place alone; do not leave complete readable information.',
+                },
+                {
+                    type: 'p',
+                    text: 'How to ask for information without putting the other person on the defensive: use open questions (“What happens next?” “Who ordered this test?”), establish rapport first, then ask specifics; do not start with interrogation/threats; repeat the other person’s words to confirm you heard correctly; if they refuse, try another time/person rather than pushing. Adolescent interview research supports “rapport first, open questions, avoid threats” for more complete disclosure (Dianiska et al., 2024; Nahouli et al., 2021).',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Ask about process, not motive: “Who arranged this test?” “Who will see the results?” “If I don’t do it, what happens next?” Process questions are easier to answer than “Are you suspicious of me?”',
+                        'Ask one question at a time; if the other person becomes defensive, change the subject and come back later; repeated questioning makes people want to end the conversation.',
+                        'Confirm with their words: “So you mean if I don’t sign, the school will contact my parents?” Let them spell out the consequences themselves.',
+                        'When they say “everyone does this / your parents already know,” ask for specifics: “Who said that? When? Can I see the original?”',
+                        'Do not expose contradictions on the spot; write them down and check with a trusted adult later. Winning one sentence in the moment can cost you your safety.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'How not to be pumped for information: answer only what is necessary; if you are unsure, say “I don’t know / I need to ask”; do not make things up to appear cooperative; when someone pressures you with “everyone does this / your parents already know,” ask for specifics; do not make decisions while emotionally activated.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'Do not say “I’ll call the police” as a threat, and do not intimidate the other person with “I have evidence / I know people.” Tough talk may work in a safe situation; in a violent one it usually escalates. Calling the police is an action, not a line.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-medical',
+            title: 'Forced blood tests and coerced medical care: first find out what is being tested',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'A blood test measures markers in your blood; it is not a lie detector for “did you take medication recently.” Sex hormones, liver and kidney function, prolactin, and a complete blood count each indicate different things; a single abnormal result can also be caused by dehydration, sleep, other medications, or illness. Do not tell yourself “one vomit and it’s fine.”',
+                },
+                {
+                    type: 'p',
+                    text: 'School health checks (including the gaokao physical) vary by place. Common items are height and weight, blood pressure, vision, heart and lung auscultation, spine and limbs, and chest X-ray; some places add liver function or a complete blood count. Sex hormones are not routine. “They drew blood” does not mean “they tested hormones.”',
+                },
+                {
+                    type: 'p',
+                    text: 'If a hormone test really is being done: first ask what will be tested, why, who will see the results, whether the results can be released only to a guardian or doctor, whether you can request privacy protection, and whether it can be postponed or moved to another hospital. You can ask the doctor to explain, and you can ask for a second opinion.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you decide to delay: the least-bad non-violent approach is to leave the exam area normally and use “I need the bathroom / I feel unwell” to buy time, set a time limit, do not lock yourself in, do not turn off your phone and disappear, and do not hide until the place is empty. When found, do not confront anyone; use a fixed script: “I’m scared / I feel unwell / I want to do it another day / I want to contact someone I trust first.” It only delays once; the next time will still come, and surveillance may escalate.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not induce vomiting. Vomiting cannot remove hormones that have already been absorbed; it does not work for injections/gel; vomiting/dehydration can cause abnormal liver enzymes, creatinine, and electrolyte levels and lead to more tests; risks include aspiration, esophageal tears, low potassium, and arrhythmia. Do not stop or change your dose on your own just to “look normal.”',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not use binding as cover. A physical exam may require you to take it off; prolonged binding can affect breathing, ribs, and skin; ACE bandages/tape are more dangerous. If you need to bind, use a properly fitted binder, limit the time, and stop immediately for pain or difficulty breathing.',
+                },
+                {
+                    type: 'p',
+                    text: 'If the results are already out / your parents know: first confirm who knows and how much they know; do not grab or alter the report; find a doctor/social worker/trusted adult to explain it with you; prepare a short script; if there is a risk of family violence, make a safety plan first and do not go home alone.',
+                },
+                {
+                    type: 'p',
+                    text: 'Forced “conversion” / “internet addiction correction”: these are not legitimate medical care. Red flags are confiscating phones/ID, restricting contact, physical punishment, denying visitors, demanding “admit your mistake,” and refusing to give a diagnosis/treatment plan. If you encounter these, protect your physical safety first and do not fight back head-on; preserve evidence; tell someone you trust your location and check-in time; if the door is open and someone outside can meet you, then consider leaving; do not run away on foot alone, and do not cut off contact with trusted adults.',
+                },
+                {
+                    type: 'p',
+                    text: 'MECT (modified electroconvulsive therapy) is a medical procedure performed under anesthesia for certain severe mental illnesses; it is not a “treatment for being transgender.” What you actually need to ask is: what is the basis for the diagnosis, was a differential diagnosis done, what is the indication, what are the alternatives, who signed the informed consent, and what are the side effects, including memory effects. If you are being forced, keep the medical record/informed consent form and seek a second opinion/legal aid/health authority.',
+                },
+                {
+                    type: 'p',
+                    text: 'Interviewing a psychiatrist (not “testing” them): ask directly, “How many trans clients have you worked with? Do you use WPATH/ICD-11? How do you distinguish gender dysphoria from psychosis? If I disagree with the diagnosis, how do you handle it? Do you treat being transgender itself as delusional?” Red flags: treating being transgender as an illness, refusing to explain the diagnosis, threatening ECT if you do not comply, demanding that you “prove you are really trans,” and not letting you speak alone.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'If you are at risk of suicide/self-harm, address that first; do not hide it just to “keep your record clean.” The fear of coercive treatment is real, but hiding severe symptoms can put you in more danger.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-exposure',
+            title: 'After exposure: the first 72 hours and the first month',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'Exposure itself is not the end; the chain reaction afterward is. The first goal is not “explain everything clearly”; it is “stop the spread, ensure physical safety, and find allies.”',
+                },
+                {
+                    type: 'p',
+                    text: 'Within 72 hours: confirm the scope of the leak (who saw it, whether there are screenshots, whether it was forwarded); pause new posts; minimize public information; change your avatar/username/passwords; check devices/accounts; tell 1–2 people you trust; do not scroll through comments alone.',
+                },
+                {
+                    type: 'p',
+                    text: 'Who to tell and what to say: prioritize people who will not immediately tell your parents/school; open with “I need help, not a trial”; give only necessary information; ask whether they can do something concrete (accompany you, give you a place to stay, pass a message, call the police).',
+                },
+                {
+                    type: 'p',
+                    text: 'Evidence: screenshots/screen recordings/links/time/account IDs; do not edit; back up encrypted; do not post it publicly to demand justice.',
+                },
+                {
+                    type: 'p',
+                    text: 'The first month: deal with the aftermath at school/family/work/medical care; if there is a risk of violence at home, make a safety plan (ID, medication, money, backup phone, temporary place to stay); consider transferring schools/moving/changing jobs, but assess the cost and risk first; do not make irreversible decisions impulsively.',
+                },
+                {
+                    type: 'p',
+                    text: 'Minors vs adults: “life switching” is usually unrealistic for minors, and calling the police/being reported missing may put you in more danger; prioritize trusted adults, social workers, legal aid, and temporary shelter. Adults who move also need to consider money, work, documents, and continuity of medical care.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not confront or fight the other person, and do not publicly expose their personal information, just to “prove you’re fine.” Anger after exposure is normal, but retaliation usually brings the risk back onto you.',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-circle',
+            title: 'If you have a small trusted circle',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: 'A small circle can provide information, temporary shelter, accompaniment, loans, and message relay, but it also concentrates risk. Principles: trust should be tiered, money should be small, records should be minimal, and decisions should be reversible.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Trust ladder: start with low-risk things (listening, making a phone call with you), then medium-risk (lending a small amount, receiving a package), and only then high-risk (knowing your address, real identity, finances).',
+                        'Money: small amounts, money you can afford to lose, and write down whether it is a loan or a gift; do not give all your money to one person; use multisig/transparent ledgers for large amounts; do not run unregistered fundraising under the name of “mutual aid.”',
+                        'Information: only tell people who need to know; do not create a large group; regularly clear chat logs; do not put all secrets in one person’s hands.',
+                        'Safety: agree on check-ins, code words, and emergency contacts; know each other’s limits; when someone is threatened, protect the person first, not hunt for a mole.',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: 'Do not organize false “mutual testimony,” do not forge documents, and do not retaliate with violence. These turn a small circle into a criminal conspiracy; if anyone is coerced, everyone is in more danger.',
+                },
+                {
+                    type: 'p',
+                    text: 'If you are helping someone else: first ask “Are you safe right now? What do you need?” Do not make decisions for them; do not promise what you cannot deliver; when minors/violence/medical care are involved, bring in professional organizations.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'This section is not an organizing manual. Intelligence pools, mutual-aid funds, and cross-regional networks require legal, financial, and security review; without that, do not do it.',
+                },
+            ],
+        },
     ],
 };
 
@@ -2026,10 +2854,10 @@ const ZH_TW_BASE: OpSecContent = {
     basicHeading: '基礎：先保護好自己',
     advancedHeading: '進階：高風險與應急處置',
     advancedNote:
-        '下面這部分針對更極端的情況：被系統性針對、被跟蹤、面臨真實人身威脅，或懷疑裝置與賬號已經失守。大多數成員可能一輩子都用不上；請按自己的實際情況取用，只用於正當自衛，不要做違法的事。如果人身安全受到威脅，優先聯絡當地警方、法律援助或可信賴的專業機構。',
-    extendedHeading: '擴充套件知識：數學、匿名網路與共識機制',
+        '下面這部分針對更極端的情況：被系統性針對、被跟蹤、面臨真實人身威脅，或懷疑裝置與帳號已經失守。大多數成員可能一輩子都用不上；請按自己的實際情況取用，只用於正當自衛，不要做違法的事。如果人身安全受到威脅，優先聯絡當地警方、法律援助或可信賴的專業機構。',
+    extendedHeading: '延伸知識：數學、匿名網路、共識機制與高威脅環境',
     extendedNote:
-        '下面這些是擴充套件閱讀，不要求學會，也不影響你使用前面的清單。它們解釋“為什麼”：匿名不是一個開關，而是一組假設；數學公式只是幫助理解，不是操作指南。看不懂可以跳過，需要時再回來查。',
+        '下面這些是延伸閱讀，不要求學會，也不影響你使用前面的清單。它們解釋「為什麼」：匿名不是一個開關，而是一組假設；數學公式只是幫助理解，不是操作指南。最後幾節講高威脅環境，只講原理、風險和替代方案，不寫可執行操作；大多數讀者不需要，看不懂可以跳過，需要時再回來查。',
     sections: [
         {
             id: 'threat-model',
@@ -2044,7 +2872,7 @@ const ZH_TW_BASE: OpSecContent = {
                     type: 'ul',
                     items: [
                         '要保護的東西：現實身份、住址與行蹤、學校/單位、親密關係、醫療與用藥資訊、資金，以及你不想被公開的過去。',
-                        '可能的對手：路過的網友、被拒絕的追求者、熟人、詐騙團伙、平臺稽核，甚至系統性的監控。對手越強，你需要的隔離越多。',
+                        '可能的對手：路過的網友、被拒絕的追求者、熟人、詐騙團伙、平台稽核，甚至系統性的監控。對手越強，你需要的隔離越多。',
                         '洩露的後果：是被網暴、被騷擾、被出櫃、被開除，還是有人身危險？後果越重，越要提前準備。',
                         '可持續性：一個你能長期堅持的普通習慣，勝過一套堅持三天就放棄的“終極方案”。',
                     ],
@@ -2071,8 +2899,8 @@ const ZH_TW_BASE: OpSecContent = {
                         '為這個社群單獨準備一套暱稱、頭像和簡介；不要和 QQ、微信、微博、遊戲 ID、郵箱字首或你常用的網名產生重複。',
                         '帖子、私信、個人資料裡都不要出現真實姓名、手機號、學校、單位、家庭住址、精確位置、正臉照、原聲錄音、證件或病歷。',
                         '年齡、愛好、地區、作息看起來無害，卻最容易把搜尋範圍縮小；能空著就空著，必須填就寫得模糊。',
-                        '每個平臺用不同的網名；頭像、自我介紹、註冊郵箱都不要複製貼上。',
-                        '社群賬號和現實賬號不要在同一臺裝置、同一個瀏覽器裡同時登入。',
+                        '每個平台用不同的網名；頭像、自我介紹、註冊郵箱都不要複製貼上。',
+                        '社群帳號和現實帳號不要在同一臺裝置、同一個瀏覽器裡同時登入。',
                     ],
                 },
                 {
@@ -2083,16 +2911,16 @@ const ZH_TW_BASE: OpSecContent = {
         },
         {
             id: 'accounts',
-            title: '賬號、密碼與雙重驗證',
+            title: '帳號、密碼與雙重驗證',
             level: 'basic',
             blocks: [
                 {
                     type: 'ul',
                     items: [
-                        '每個賬號都要有獨立的強密碼；生日、手機號、鍵盤順序和“一個密碼走天下”都不合格。',
+                        '每個帳號都要有獨立的強密碼；生日、手機號、鍵盤順序和“一個密碼走天下”都不合格。',
                         '用密碼管理器生成並保管密碼；KeePassXC 可以完全離線，Bitwarden 更方便但要把主密碼守好。',
-                        '本社群和所有重要賬號都開 2FA；能用驗證器 App（Aegis、FreeOTP、Ente Auth）就不要只靠簡訊。',
-                        '恢復碼抄在紙上或存進離線保險處；不要截圖放相簿、網盤、聊天記錄。',
+                        '本社群和所有重要帳號都開 2FA；能用驗證器 App（Aegis、FreeOTP、Ente Auth）就不要只靠簡訊。',
+                        '恢復碼抄在紙上或存進離線保險處；不要截圖放相簿、雲端硬碟、聊天記錄。',
                         '隔一段時間檢查登入裝置和活躍會話；看到不認識的裝置，立刻踢下線並改密碼。',
                         '安全問題的答案可以是編的，只要你自己記得住；別用母親姓氏、出生城市這類一查就中的資訊。',
                     ],
@@ -2100,7 +2928,7 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'warning',
-                    text: '真正的工作人員不會私信問你要密碼、驗證碼或恢復碼。驗證碼就是賬號本身，誰拿走誰就能登入。',
+                    text: '真正的工作人員不會私信問你要密碼、驗證碼或恢復碼。驗證碼就是帳號本身，誰拿走誰就能登入。',
                 },
             ],
         },
@@ -2138,17 +2966,17 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        '第一次匿名聯絡，或者社群裡剛認識、還沒建立信任的人：優先 SimpleX。它不要手機號和郵箱，沒有固定使用者 ID，用一次性邀請連結建立連線，訊息端到端加密，留下的後設資料很少。',
+                        '第一次匿名聯絡，或者社群裡剛認識、還沒建立信任的人：優先 SimpleX。它不要手機號和郵箱，沒有固定使用者 ID，用一次性邀請連結建立連線，訊息端對端加密，留下的後設資料很少。',
                         '已經認識、需要長期穩定聯絡的人：可以用 Signal。它要手機號，最好用獨立號碼，別用實名主號；適合和信任的小圈子溝通。',
-                        '要髮長文、檔案或跨平臺溝通，可以用 PGP 加密郵件；發之前通過另一個渠道核對公鑰指紋。',
-                        '不管用什麼工具，聊天裡都不要出現身份證、病歷、住址、學校/單位、車票、快遞單；必須發就先打碼、裁剪、加密。',
+                        '要髮長文、檔案或跨平台溝通，可以用 PGP 加密郵件；發之前通過另一個渠道核對公鑰指紋。',
+                        '不管用什麼工具，聊天裡都不要出現身分證、病歷、住址、學校/單位、車票、快遞單；必須發就先打碼、裁剪、加密。',
                         '關掉鎖屏訊息預覽和雲端備份；手機丟了或被檢查時，預覽和備份往往比聊天軟體本身更容易洩露內容。',
                     ],
                 },
                 {
                     type: 'warn',
                     kind: 'warning',
-                    text: '端到端加密只保護傳輸過程，不保護已經解鎖的手機、截圖、對方轉發和雲端備份。工具選對只是第一步，習慣才是關鍵。',
+                    text: '端對端加密只保護傳輸過程，不保護已經解鎖的手機、截圖、對方轉發和雲端備份。工具選對只是第一步，習慣才是關鍵。',
                 },
             ],
         },
@@ -2165,7 +2993,7 @@ const ZH_TW_BASE: OpSecContent = {
                         '社群身份和現實身份不要擠在同一個瀏覽器裡；至少開獨立的瀏覽器 Profile，最好用獨立裝置。',
                         '擴充套件能少裝就少裝；每個擴充套件都能看到你訪問的頁面，定期清理不用的。',
                         '重要站點手動輸入地址或用書籤，不要點私信、郵件、搜尋廣告裡的登入連結。',
-                        '瀏覽器、系統、應用要及時更新；很多入侵利用的是早就修好的舊漏洞。',
+                        '瀏覽器、系統、應用程式要及時更新；很多入侵利用的是早就修好的舊漏洞。',
                     ],
                 },
                 {
@@ -2182,7 +3010,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '隱私瀏覽模式只能減少本地痕跡，不能讓你匿名。真正的匿名來自網路層（Tor/VPN）、瀏覽器指紋和賬號隔離的組合。',
+                    text: '隱私瀏覽模式只能減少本地痕跡，不能讓你匿名。真正的匿名來自網路層（Tor/VPN）、瀏覽器指紋和帳號隔離的組合。',
                 },
             ],
         },
@@ -2199,7 +3027,7 @@ const ZH_TW_BASE: OpSecContent = {
                     type: 'ul',
                     items: [
                         '依賴供應鏈：npm 包、開源庫、構建工具被投毒，或爆出遠端程式碼執行（RCE）漏洞，我們即使沒改程式碼也會中招。',
-                        '託管與部署：託管平臺、CI/CD、域名、CDN 或管理員賬號被盜，頁面可能被篡改或注入惡意指令碼。',
+                        '託管與部署：託管平台、CI/CD、域名、CDN 或管理員帳號被盜，頁面可能被篡改或注入惡意指令碼。',
                         '第三方資源：統計、字型、圖示、客服元件等外部指令碼被劫持，同樣能在頁面裡執行程式碼。',
                         '你自己的環境：瀏覽器外掛、輸入法、代理工具或系統被入侵，也會讓“看起來正常”的頁面變危險。',
                     ],
@@ -2229,14 +3057,14 @@ const ZH_TW_BASE: OpSecContent = {
                     items: [
                         '小額、日常、需要法幣出入金：可以走合規的 KYC 交易所或託管錢包，金額控制在自己能承受的範圍內。KYC 的代價是身份和這筆資金被繫結，所以它不適合用來保護匿名性。',
                         '金額較大、或更在意隱私：用非託管錢包加 DEX/鏈上兌換，自己保管私鑰。DEX 通常不要求 KYC，但鏈上記錄公開，流動性和滑點風險更高，也可能遇到假幣。',
-                        'Cake Wallet：開源、非託管的多幣種錢包，支援 Monero、Bitcoin、Ethereum 等，內建兌換/閃兌，適合把 XMR 換成其他幣種。兌換通常由第三方流動性方完成，部分通道可能需要 KYC；先用小額測試，確認到賬再繼續。',
+                        'Cake Wallet：開源、非託管的多幣種錢包，支援 Monero、Bitcoin、Ethereum 等，內建兌換/閃兌，適合把 XMR 換成其他幣種。兌換通常由第三方流動性方完成，部分通道可能需要 KYC；先用小額測試，確認到帳再繼續。',
                         'Monero GUI：Monero 官方錢包，可以執行本地全節點（monerod）。自建節點隱私和驗證最好，但區塊鏈體積大、首次同步慢、佔磁碟和頻寬，對普通使用者可能很麻煩；用遠端節點更方便，但節點運營者能看到你的 IP 和查詢模式。',
                         'Bitcoin Core：比特幣全節點，驗證最可靠，但鏈體積和同步成本更高。可以配合 Electrum Personal Server / Sparrow 等使用自己的節點，兼顧驗證與隱私。注意：BTC 是假名而非匿名，地址複用和 KYC 交易很容易把交易串起來。',
-                        'BTC 還是 Monero：BTC 去中心化程度高、接受度廣、賬本公開透明，適合捐贈、記賬和長期儲值；Monero 預設隱私，適合不希望交易被公開關聯的個人使用。可以按用途分開，不必二選一。',
-                        '收捐贈：用獨立的收款地址，優先主流資產（如 BTC），保留來源和用途記錄；不要和個人錢包混用，也不要收來路不明的大額轉賬。BTC 的透明賬本便於公開對賬；Monero 隱私更好，但來源不透明，不適合需要公開審計的捐贈。',
-                        '黑錢風險：鏈上資產沒有“乾淨”的保證。對方轉來的幣可能來自詐騙、賭博、制裁地址或被盜資金，鏈上分析公司會給地址打分，交易所可能因此凍結你的賬戶。不要接受陌生人“低價出幣”或“幫忙過賬”的請求，這可能讓你成為洗錢鏈條的一環。',
+                        'BTC 還是 Monero：BTC 去中心化程度高、接受度廣、帳本公開透明，適合捐贈、記帳和長期儲值；Monero 預設隱私，適合不希望交易被公開關聯的個人使用。可以按用途分開，不必二選一。',
+                        '收捐贈：用獨立的收款地址，優先主流資產（如 BTC），保留來源和用途記錄；不要和個人錢包混用，也不要收來路不明的大額轉帳。BTC 的透明帳本便於公開對帳；Monero 隱私更好，但來源不透明，不適合需要公開審計的捐贈。',
+                        '黑錢風險：鏈上資產沒有“乾淨”的保證。對方轉來的幣可能來自詐騙、賭博、制裁地址或被盜資金，鏈上分析公司會給地址打分，交易所可能因此凍結你的帳戶。不要接受陌生人“低價出幣”或“幫忙過帳”的請求，這可能讓你成為洗錢鏈條的一環。',
                         '種子短語離線儲存：手寫在紙上或金屬板上，不拍照、不上雲、不發聊天、不存密碼管理器以外的聯網裝置。',
-                        '大額資產用硬體錢包；不同用途分錢包；每次先小額測試；轉賬前在裝置螢幕上核對地址。',
+                        '大額資產用硬體錢包；不同用途分錢包；每次先小額測試；轉帳前在裝置螢幕上核對地址。',
                         '只從官網或官方應用商店連結下載錢包，警惕假 App、假客服、假空投和“幫你找回資產”的騙局。',
                     ],
                 },
@@ -2268,15 +3096,15 @@ const ZH_TW_BASE: OpSecContent = {
                     type: 'ul',
                     items: [
                         '突然的熱情或巧合：剛認識就特別懂你、頻繁私聊、迅速拉近關係。',
-                        '製造緊急與恐懼：限時處理、賬號將被封、家人出事、警察找你、錯過就來不及。',
+                        '製造緊急與恐懼：限時處理、帳號將被封、家人出事、警察找你、錯過就來不及。',
                         '冒充權威：自稱管理員、版主、官方客服、警察、醫生、投資顧問。',
                         '索取超出必要的資訊：學校、城市、住址、證件、銀行卡、語音、影片、驗證碼、螢幕共享。',
-                        '要求隔離或保密：別告訴別人、換個平臺聊、點這個連結、裝這個遠端軟體。',
+                        '要求隔離或保密：別告訴別人、換個平台聊、點這個連結、裝這個遠端軟體。',
                     ],
                 },
                 {
                     type: 'p',
-                    text: '遇到以上任何一條，先停下來。通過你本來就知道的官方入口（而不是對方給的連結）去核實；不要在壓力下做決定；驗證碼、密碼、恢復碼不給任何人；不裝遠端控制軟體；不轉賬。',
+                    text: '遇到以上任何一條，先停下來。通過你本來就知道的官方入口（而不是對方給的連結）去核實；不要在壓力下做決定；驗證碼、密碼、恢復碼不給任何人；不裝遠端控制軟體；不轉帳。',
                 },
                 {
                     type: 'warn',
@@ -2300,15 +3128,15 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '轉折發生在一個晚上。阿嵐發來一個連結：“社群最近有人盜號，你點這裡做個防丟號驗證，不然會被踢。”頁面看起來和官網幾乎一樣，要求輸入使用者名稱和密碼。緊接著阿嵐又說自己的賬號被凍結，想借 0.05 BTC 應急，明天就還。',
+                    text: '轉折發生在一個晚上。阿嵐發來一個連結：“社群最近有人盜號，你點這裡做個防丟號驗證，不然會被踢。”頁面看起來和官網幾乎一樣，要求輸入使用者名稱和密碼。緊接著阿嵐又說自己的帳號被凍結，想借 0.05 BTC 應急，明天就還。',
                 },
                 {
                     type: 'p',
-                    text: '小陸差點就點了。但他想起三件事：第一，官方從來不會私信發登入連結；第二，對方一直在製造“現在不做就來不及”的緊迫感；第三，阿嵐前一秒還在聊城市，後一秒就要借錢，節奏太巧了。他沒有點連結，而是自己開啟官網，從站內公告確認沒有所謂的“防丟號驗證”，然後把對話截圖、舉報、拉黑。阿嵐發現騙不到，先是生氣指責，隨後登出了賬號。',
+                    text: '小陸差點就點了。但他想起三件事：第一，官方從來不會私信發登入連結；第二，對方一直在製造“現在不做就來不及”的緊迫感；第三，阿嵐前一秒還在聊城市，後一秒就要借錢，節奏太巧了。他沒有點連結，而是自己開啟官網，從站內公告確認沒有所謂的“防丟號驗證”，然後把對話截圖、檢舉、封鎖。阿嵐發現騙不到，先是生氣指責，隨後登出了帳號。',
                 },
                 {
                     type: 'p',
-                    text: '拆開看，這條攻擊鏈很典型：先建立好感（rapport）→ 用小事測試你是否願意配合 → 逐步套取可關聯的資訊 → 製造緊急事件 → 用釣魚連結或轉賬完成收割。每一步都不起眼，合起來才危險。',
+                    text: '拆開看，這條攻擊鏈很典型：先建立好感（rapport）→ 用小事測試你是否願意配合 → 逐步套取可關聯的資訊 → 製造緊急事件 → 用釣魚連結或轉帳完成收割。每一步都不起眼，合起來才危險。',
                 },
                 {
                     type: 'ul',
@@ -2317,7 +3145,7 @@ const ZH_TW_BASE: OpSecContent = {
                         '換渠道核實：用你原本就知道的官網、官方公告或認識的管理員去確認，不要用對方給的連結和聯絡方式。',
                         '守住最小資訊：語音、影片、證件、住址、驗證碼、助記詞，沒有一項是“聊天必須”的。',
                         '拒絕也可以很禮貌：“這個我不方便提供”“我自己去官網查”“驗證碼不給任何人”。',
-                        '留下證據並舉報：截圖、儲存賬號 ID、時間線，交給管理員或平臺；不要獨自和對方糾纏。',
+                        '留下證據並檢舉：截圖、儲存帳號 ID、時間線，交給管理員或平台；不要獨自和對方糾纏。',
                     ],
                 },
             ],
@@ -2337,8 +3165,8 @@ const ZH_TW_BASE: OpSecContent = {
                         '只准備最小設定：一個暱稱、一個大致的年齡段、一個寬泛的職業方向、兩三個普通愛好。不要編具體的學校、公司、小區、生日、家庭成員。',
                         '保持一致：把設定記在加密筆記裡，別今天說 20 歲明天說 25 歲。但也不要編太多需要圓謊的細節——越簡單越不容易穿幫。',
                         '保持不可驗證：地點只說到大區或國家，職業只說“做設計/寫程式碼/學生”，時間只說“最近”。不要發能定位到具體地點的照片。',
-                        '做好隔離：獨立賬號、獨立郵箱、獨立瀏覽器 Profile；不要在登入真實賬號的裝置上登入社群身份；頭像和照片不要複用。',
-                        '防文風關聯：不要在不同平臺複製同一段自我介紹；少用獨特的口頭禪；不同身份之間不要互相點贊、轉發或互動。',
+                        '做好隔離：獨立帳號、獨立郵箱、獨立瀏覽器 Profile；不要在登入真實帳號的裝置上登入社群身份；頭像和照片不要複用。',
+                        '防文風關聯：不要在不同平台複製同一段自我介紹；少用獨特的口頭禪；不同身份之間不要互相點贊、轉發或互動。',
                         '防聲音與影像：儘量不語音、不影片、不自拍。必須發照片時，用無臉、無背景、無 EXIF 的圖，並檢查反光和桌面細節。',
                         '聊天時用“反問、模糊、轉移話題”：不需要回答每一個問題。“我不太想聊這個”“這個不重要吧”都是完整句子。',
                         '不要主動編戲劇性的故事。越普通、越無聊的人設越安全；也不要冒充真實存在的人、官方人員或專業人士。',
@@ -2410,7 +3238,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '包裝、賬單和手機也會暴露：藥店小票、快遞盒、處方袋、銀行或保險賬單、藥房簡訊、健康 App 通知都可能被看到。自己扔垃圾時把包裝放進不透明袋子；關掉簡訊預覽；用中性名稱做提醒（“複診”“取快遞”）；不要用家庭共享賬號登入健康 App。',
+                    text: '包裝、帳單和手機也會暴露：藥店小票、快遞盒、處方袋、銀行或保險帳單、藥房簡訊、健康 App 通知都可能被看到。自己扔垃圾時把包裝放進不透明袋子；關掉簡訊預覽；用中性名稱做提醒（“複診”“取快遞”）；不要用家庭共享帳號登入健康 App。',
                 },
                 {
                     type: 'p',
@@ -2419,7 +3247,7 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '被毆打、被威脅、被趕出家門不是“應該承受的代價”。如果你正在經歷這些，先聯絡可信的成年人、老師、醫生、社工或當地 LGBTQ+ / 跨性別支援組織；有立即危險時打當地報警或急救電話。不要一個人扛。',
+                    text: '被毆打、被威脅、被趕出家門不是“應該承受的代價”。如果你正在經歷這些，先聯絡可信的成年人、老師、醫生、社工或當地 LGBTQ+ / 跨性別支持組織；有立即危險時打當地報警或急救電話。不要一個人扛。',
                 },
             ],
         },
@@ -2444,6 +3272,8 @@ const ZH_TW_BASE: OpSecContent = {
                         '“我還在探索，不想給自己貼死標籤。”',
                         '“這就是我個人愛好，不影響別人。”',
                         '“我不想聊這個，換個話題吧。”',
+                        '跨男：把變化說成“假小子/中性風，最近有點中二，覺得這樣帥”。只談穿衣和風格，不要編激素、手術、社團或“我加入了什麼組織”。',
+                        '跨女：把變化說成“喜歡二次元/cos，最近在試女裝造型”。只談愛好，不發 cos 精修照、不報實體活動、不編比賽或社團。',
                     ],
                 },
                 {
@@ -2456,11 +3286,33 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '如果被追問“你是不是 trans？”：可以說“我還在想，不想現在討論”，或者反問“你為什麼這麼問？”；如果對方開始起鬨、圍堵、動手，不要辯論，先離開，去有老師、監控或其他同學的地方，找可信的人。',
+                    text: '跨男和跨女還可以各借一層更具體的“學校裡的掩護說法”：跨男把變化說成“假小子/中性風，最近有點中二”；跨女把變化說成“喜歡二次元/cos，最近在試女裝造型”。這不是說跨男就該是假小子、跨女就該喜歡 cos；它只是某些學校裡成本較低的擋箭牌，不適合所有人。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '只解釋“為什麼穿成這樣/為什麼最近變化”，不解釋身體、醫療、證件、改名/人稱和戀愛；不要編激素、手術、社團、比賽或“我加入了什麼組織”。',
+                        '“中二病晚期”只是玩笑說法，不是診斷；它可能讓老師覺得你行為有問題，也可能招來更多圍觀，別演得太滿。在一些學校，它還會被當成“心理有問題”，招來班導師、家長或輔導老師；如果你已經被盯上，不要用這個。',
+                        'cos 照片、帳號和實體活動會留下可關聯的痕跡；不要為了維持人設發精修照、去大型活動或借錢買道具。有些學校把 cos 當成“奇裝異服/不務正業”，可能記過或通知家長；先看校規和老師態度。',
+                        '這兩個說法只適合擋同學的隨口一問；對老師、家長、醫生、警察不要用人設，直接說“我不想討論”或找可信成年人。',
+                        '準備一句退出話：“就是最近覺得好玩，過陣子可能就換了。”這樣以後改變風格不用解釋。',
+                    ],
                 },
                 {
                     type: 'p',
-                    text: '如果老師說“你為什麼不穿得正常一點”：你不需要在課堂上辯論性別理論。可以說“我在按自己的方式穿著，沒有影響課堂”，然後把話題帶回學習。如果老師羞辱或懲罰你，記錄時間、地點和原話，告訴安全的家長或監護人、學校心理老師或當地教育部門。',
+                    text: '給跨女：用 cos 說法不是承認自己有什麼問題，也不是自我羞辱；它只是把“你是不是跨性別”換成“你是不是二次元”。有些學校確實只會按“奇裝異服/思想有問題/不務正業”處理，女裝可能被沒收，但不會僅憑這個說法就直接推斷你在用藥。可是“最多就這樣”不是保證：身體變化明顯、有人告密、家長已經懷疑時，學校仍可能搜書包/手機/藥物，或要求體檢。',
+                },
+                {
+                    type: 'p',
+                    text: '給跨男：“中二假小子”有時能換來部分男生圈的普通接觸——勾肩搭背、被叫“兄弟”、一起打球。這些可以是真實的緩衝，但不是安全證明；如果對方只是因為把你當“兄弟”才接納你，一旦懷疑可能翻臉。別為了維持這個位置去團體住宿、廁所、體檢等高風險場合，也別把“被叫兄弟”當成必須完成的考試。如果勾肩搭背讓你不舒服，躲開就好；不需要為了“像個男生”忍受觸碰。',
+                },
+                {
+                    type: 'p',
+                    text: '如果被追問“你是不是 trans？”：可以說“我還在想，不想現在討論”，或者反問“你為什麼這麼問？”；如果對方開始起鬨、圍堵、動手，不要辯論，先離開，去有老師、監視器或其他同學的地方，找可信的人。',
+                },
+                {
+                    type: 'p',
+                    text: '如果老師說“你為什麼不穿得正常一點”：你不需要在課堂上辯論性別理論。可以說“我在按自己的方式穿著，沒有影響課堂”，然後把話題帶回學習。如果老師羞辱或懲罰你，記錄時間、地點和原話，告訴安全的家長或監護人、學校輔導老師或當地教育部門。',
                 },
                 {
                     type: 'p',
@@ -2469,7 +3321,7 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '不要因為“說自己是 femboy 比較安全”就強迫自己接受這個標籤，也不要假裝成另一個真實存在的人。即使你認為“說 femboy 會被打得輕一點”，被打仍然是暴力，不是你需要接受的成本；如果環境危險，優先離開和求助。',
+                    text: '不要因為“說自己是 femboy 比較安全”就強迫自己接受這個標籤，也不要假裝成另一個真實存在的人。即使你認為“說 femboy 會被打得輕一點”，被打仍然是暴力，不是你需要接受的成本；如果環境危險，優先離開和求助。如果對方已經認定你是跨性別，換標籤不一定有用；這時優先離開、找可信的人，不要為了證明人設繼續加碼。',
                 },
             ],
         },
@@ -2480,11 +3332,11 @@ const ZH_TW_BASE: OpSecContent = {
             blocks: [
                 {
                     type: 'p',
-                    text: '學校體檢的專案各地不同，常見的有身高體重、血壓、視力、脊柱、心肺聽診，有些地方還會抽血。如果你擔心體檢暴露用藥、注射痕跡、束胸或身體變化，先問清楚：檢查哪些專案、由誰做、結果給誰看、能不能單獨和醫生溝通、能不能申請隱私檢查或由監護人/可信成年人陪同。很多學校允許學生提出隱私方面的安排，但規則因地區而異；不要假設一定有，也不要假設一定沒有。',
+                    text: '學校體檢的項目各地不同，常見的有身高體重、血壓、視力、脊椎、心肺聽診，有些地方還會抽血。如果你擔心體檢暴露用藥、注射痕跡、束胸或身體變化，先問清楚：檢查哪些項目、由誰做、結果給誰看、能不能單獨和醫生溝通、能不能申請隱私檢查或由監護人/可信成年人陪同。很多學校允許學生提出隱私方面的安排，但規則因地區而異；不要假設一定有，也不要假設一定沒有。',
                 },
                 {
                     type: 'p',
-                    text: '更安全的做法是找可信的醫生、校醫、社工或當地 LGBTQ+ / 跨性別支援組織，問清楚當地規定；必要時請醫生寫一封只說明“需要隱私評估/不宜集體檢查”的說明。不要偽造病歷、處方或家長簽字；偽造檔案會帶來更大的法律和家庭風險。',
+                    text: '更安全的做法是找可信的醫生、校醫、社工或當地 LGBTQ+ / 跨性別支持組織，問清楚當地規定；必要時請醫生寫一封只說明“需要隱私評估/不宜集體檢查”的說明。不要偽造病歷、處方或家長簽字；偽造文書會帶來更大的法律和家庭風險。',
                 },
                 {
                     type: 'p',
@@ -2493,7 +3345,7 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '高危險行為警告：不要用催吐、催吐藥、刺激咽喉、憋尿、脫水、擅自吃藥或裝暈倒來逃避體檢。催吐可能導致誤吸、窒息、食管撕裂、電解質紊亂、心律不齊和牙齒腐蝕；嘔吐後立刻躺下睡覺尤其危險，可能在睡夢中被嘔吐物嗆住。不要用“吐完就沒事”來判斷安全。',
+                    text: '高危險行為警告：不要用催吐、催吐藥、刺激咽喉、憋尿、脫水、擅自吃藥或裝暈倒來逃避體檢。催吐可能導致誤吸、窒息、食道撕裂、電解質紊亂、心律不整和牙齒腐蝕；嘔吐後立刻躺下睡覺尤其危險，可能在睡夢中被嘔吐物嗆住。不要用“吐完就沒事”來判斷安全。',
                 },
                 {
                     type: 'warn',
@@ -2502,12 +3354,12 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '體檢不是“必須全部配合”或者“必須全部逃避”的二選一。你可以只對必要的專案說“我不想在這裡做，能不能和醫生單獨說”，也可以請可信成年人陪同。真正危險的是用傷害身體的方式換一次檢查的通過；一次體檢的結果，不值得用窒息、食管損傷或心律問題去換。',
+                    text: '體檢不是“必須全部配合”或者“必須全部逃避”的二選一。你可以只對必要的項目說“我不想在這裡做，能不能和醫生單獨說”，也可以請可信成年人陪同。真正危險的是用傷害身體的方式換一次檢查的通過；一次體檢的結果，不值得用窒息、食道損傷或心律問題去換。',
                 },
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: '如果學校強制集體脫衣檢查、羞辱你或洩露你的醫療資訊，記錄時間、地點、在場人員和原話，告訴可信監護人、醫生、學校心理老師或當地教育部門/法律援助。不要一個人對抗。',
+                    text: '如果學校強制集體脫衣檢查、羞辱你或洩露你的醫療資訊，記錄時間、地點、在場人員和原話，告訴可信監護人、醫生、學校輔導老師或當地教育部門/法律援助。不要一個人對抗。',
                 },
             ],
         },
@@ -2522,12 +3374,12 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '先說清楚：精神科不是隻為“開證”存在的，也不是隻有崩潰時才去。持續的情緒低落、焦慮、失眠、食慾變化、無法上學或工作、自傷或自殺想法、物質使用問題，都值得找專業幫助。你可以同時需要心理支援和激素/手術；治療抑鬱不會讓性別認同消失，隱瞞抑鬱也不會讓申請更容易。',
+                    text: '先說清楚：精神科不是隻為“開證”存在的，也不是隻有崩潰時才去。持續的情緒低落、焦慮、失眠、食慾變化、無法上學或工作、自傷或自殺想法、物質使用問題，都值得找專業幫助。你可以同時需要心理支持和激素/手術；治療抑鬱不會讓性別認同消失，隱瞞抑鬱也不會讓申請更容易。',
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
-                    text: '如果你反覆出現自殺想法、已經有計劃或自傷衝動：這比任何證明都優先。聯絡當地急救或危機熱線、去急診、告訴可信的成年人，儘量不要獨處。不要為了“保持記錄乾淨”而隱瞞；在評估裡隱瞞嚴重症狀，可能讓你在最危險的時候得不到幫助。',
+                    text: '如果你反覆出現自殺想法、已經有計劃或自傷衝動：這比任何證明都優先。聯絡當地急救或危機熱線、去急診、告訴可信的成年人，儘量不要獨處。不要為了“保持病歷好看”而隱瞞；在評估裡隱瞞嚴重症狀，可能讓你在最危險的時候得不到幫助。',
                 },
                 {
                     type: 'p',
@@ -2551,11 +3403,11 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '被拒絕時：先要書面理由，問清楚缺的是診斷、觀察時間、家屬同意還是別的材料；保留副本；換醫生或機構，或找跨性別支援組織問當地路徑；必要時走申訴。拒絕不是對你身份的判決，更不是你該用傷害自己的方式去“證明”的東西。',
+                    text: '被拒絕時：先要書面理由，問清楚缺的是診斷、觀察時間、家屬同意還是別的材料；保留副本；換醫生或機構，或找跨性別支持組織問當地路徑；必要時走申訴。拒絕不是對你身份的判決，更不是你該用傷害自己的方式去“證明”的東西。',
                 },
                 {
                     type: 'p',
-                    text: '最後：這一節是經驗和系統導航，不是醫療建議。具體診斷標準、激素和手術的適應證、法律檔案要求，以當地醫生、指南和法律為準。',
+                    text: '最後：這一節是經驗和系統導航，不是醫療建議。具體診斷標準、激素和手術的適應證、法律文件要求，以當地醫生、指南和法律為準。',
                 },
             ],
         },
@@ -2567,17 +3419,70 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        '平時就把重要賬號、恢復碼、緊急聯絡人、備用裝置、少量現金和必要藥物準備好，別等出事再翻箱倒櫃。',
-                        '懷疑賬號被盜：先改密碼，再檢查/重設 2FA，然後看登入裝置和活躍會話，把不認識的裝置全部踢掉；順手檢查郵件轉發規則和恢復郵箱。',
+                        '平時就把重要帳號、恢復碼、緊急聯絡人、備用裝置、少量現金和必要藥物準備好，別等出事再翻箱倒櫃。',
+                        '懷疑帳號被盜：先改密碼，再檢查/重設 2FA，然後看登入裝置和活躍會話，把不認識的裝置全部踢掉；順手檢查郵件轉發規則和恢復郵箱。',
                         '懷疑身份被挖出來：先判斷洩露到什麼程度，暫停發新內容，把公開資料縮到最小，提醒可能被牽連的人；必要時換使用者名稱和頭像。',
-                        '懷疑裝置中招：先斷網，保留證據，換一臺乾淨裝置改密碼；可疑裝置上不要再登入敏感賬號，必要時重灌系統。',
-                        '被騷擾、被威脅：截圖、錄音、記下賬號 ID 和時間線；不要單獨赴約；告訴信任的人；必要時報警或找法律援助。',
+                        '懷疑裝置中招：先斷網，保留證據，換一臺乾淨裝置改密碼；可疑裝置上不要再登入敏感帳號，必要時重灌系統。',
+                        '被騷擾、被威脅：截圖、錄音、記下帳號 ID 和時間線；不要單獨赴約；告訴信任的人；必要時報警或找法律援助。',
                         '心理上：被曝光或被針對時，最容易陷入自責。這不是你的錯；先睡覺、吃飯、保證基本安全，再處理技術問題。',
                     ],
                 },
                 {
                     type: 'p',
                     text: '不用一個人扛。通過安全渠道找信任的管理員、朋友或支援機構；涉及人身安全時，先找當地警方或專業救援。',
+                },
+            ],
+        },
+        {
+            id: 'body-safety',
+            title: '身體安全：被打時先離開，不要先講道理',
+            level: 'basic',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '如果你正在被家人、同學或伴侶打，最重要的不是贏，是減少受傷並離開。對方已經動手時，講道理、求饒、撂狠話都可能升級暴力；“你再這樣我就報警”尤其危險——報警是行動，不是臺詞。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '先看出口：門在哪、誰擋著、能不能繞開；不要背對門，不要被逼到牆角、廚房、陽臺或樓梯口。',
+                        '護住頭頸：縮下巴、護住後腦和耳朵；能蹲低就蹲低，減少頭部被擊中的面積。',
+                        '不要搶武器、不要追擊、不要試圖“打服”對方；一旦有距離就走。',
+                        '往人多、有監控、有成年人的地方跑：商店、門衛、教室、派出所；不要跑進死巷、工地、偏僻樓道。',
+                        '跑不掉時：用椅子、包、被子隔開，繼續喊人；如果對方停手，先保持不動、觀察出口，確認安全再走，不要突然起身追擊。',
+                        '事後：先離開現場，找可信的人，拍照/記錄傷情，去醫院；如果可能繼續被打，不要獨自回家。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '如果環境裡挨打不是一次兩次，體能就是安全的一部分。短跑練爆發，長跑練耐力；目標不是打贏，是讓你有機會拉開距離、跑到有人能幫你的地方。真到跑的時候：先 20–40 米全力衝刺拉開距離，再轉成能持續的長跑；不要一開始就慢慢跑，也不要跑回可能繼續被打的家。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '短跑：每週 2 次，20–40 米 × 4–6 組，組間走回起點，充分恢復；不要天天練。',
+                        '長跑：每週 2–3 次輕鬆跑，20–30 分鐘，能說話的速度；逐漸加到 40 分鐘。',
+                        '基礎力量：深蹲、弓步、提踵、平板支撐；每次 2–3 組。',
+                        '先熱身 5–10 分鐘；有哮喘、心臟病、關節傷，先問醫生；別在偏僻或危險路線練；別練到虛脫。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '訓練是為了離開，不是為了打架。不要練“一招制敵”，不要主動挑戰對方；你不需要證明自己不怕。',
+                },
+                {
+                    type: 'p',
+                    text: '如果被打是因為出櫃、身份、吃藥或拒絕“糾正”：這不是你的錯，也不是你“不夠小心”。儘快做安全計劃：證件、藥、錢、備用手機、可信成年人的電話、臨時住處。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“我要報警”當威脅說出口。對方在氣頭上，這句話可能讓你立刻被打得更重；真要報警，就在安全的地方打，或者讓別人幫你打。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你已經受傷：頭暈、嘔吐、視線模糊、耳鼻出血、胸痛、呼吸困難、意識不清、持續腹痛，立即就醫；不要一個人睡。',
                 },
             ],
         },
@@ -2593,19 +3498,19 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        '身份和裝置分開：敏感活動用另一套裝置、賬號和網路，別讓兩邊留下能對上的痕跡。',
+                        '身份和裝置分開：敏感活動用另一套裝置、帳號和網路，別讓兩邊留下能對上的痕跡。',
                         '資訊給到夠用為止：只提供完成目的所必需的部分；凡是“先交隱私再幫忙”的要求，一律拒絕。',
-                        '分割槽隔離：把真實身份、社群身份、資金和社交圈分開放；一個隔間漏水，不要淹到其他隔間。',
-                        '先假設已經中招：不要只改一個密碼；按賬號、裝置、網路、資金四條線分別排查。',
-                        '證據先留住：被威脅時先截圖、儲存聊天記錄、郵件頭和轉賬記錄，加密備份，必要時整理時間線。',
-                        '心理支援：被曝光或被針對時，自我攻擊是最常見的陷阱；儘早找可信賴的人。',
+                        '分區隔離：把真實身份、社群身份、資金和社交圈分開放；一個隔間漏水，不要淹到其他隔間。',
+                        '先假設已經中招：不要只改一個密碼；按帳號、裝置、網路、資金四條線分別排查。',
+                        '證據先留住：被威脅時先截圖、儲存聊天記錄、郵件標頭和轉帳記錄，加密備份，必要時整理時間線。',
+                        '心理支持：被曝光或被針對時，自我攻擊是最常見的陷阱；儘早找可信賴的人。',
                         '應急準備：提前想好證件、藥物和資金怎麼拿，突發時才能走得動。',
                     ],
                 },
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: '和執法部門打交道時：不要撒謊，少說，要求律師。不撒謊不會讓你多損失什麼；編造可能讓你失去一切。本指南絕不建議偽造檔案、冒充官員或妨礙司法程序。',
+                    text: '和執法部門打交道時：不要撒謊，少說，要求律師。不撒謊不會讓你多損失什麼；編造可能讓你失去一切。本指南絕不建議偽造文書、冒充官員或妨礙司法程序。',
                 },
             ],
         },
@@ -2617,18 +3522,59 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'ul',
                     items: [
-                        '不要正面硬剛：不要獨自去見跟蹤者，不要“反黑”對方，也不要公開約架；先保證人身安全。',
-                        '打破規律：換通勤路線、作息和常去地點；不要在社交平臺即時發位置。',
+                        '不要正面硬碰硬：不要獨自去見跟蹤者，不要“反駭”對方，也不要公開單挑；先保證人身安全。',
+                        '打破規律：換通勤路線、作息和常去地點；不要在社交平台即時公布位置。',
                         '保護核心圈子：提醒家人朋友不要向陌生人透露你的資訊；和重要聯絡人約定一個只有你們知道的暗號。',
-                        '清理數字足跡：舊賬號、舊帖子、舊郵箱、舊手機號；能刪就刪，刪不掉就降低可見性。',
-                        '檢查裝置：注意異常耗電、發熱、流量、陌生應用和配置描述檔案；必要時找可信的專業人士檢查。',
-                        '找外部支援：法律援助、社工機構、心理支援、當地 LGBTQ+ / 跨性別支援組織；不要一個人扛。',
+                        '清理數字足跡：舊帳號、舊帖子、舊郵箱、舊手機號；能刪就刪，刪不掉就降低可見性。',
+                        '檢查裝置：注意異常耗電、發熱、流量、陌生 App和設定描述檔；必要時找可信的專業人士檢查。',
+                        '找外部支援：法律援助、社工機構、心理支持、當地 LGBTQ+ / 跨性別支持組織；不要一個人扛。',
                     ],
                 },
                 {
                     type: 'warn',
                     kind: 'caution',
                     text: '不要試圖用違法手段“以暴制暴”或偽造身份反擊。那會把你自己置於更大的風險裡，也會讓真正需要幫助的人更難被相信。',
+                },
+            ],
+        },
+        {
+            id: 'transmasc',
+            title: '跨男：被忽略的那一半',
+            level: 'advanced',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '這份指南早期偏跨女；跨男的需求不是“反過來”那麼簡單。跨男可能被醫療系統忽視、被當成“不夠跨”、被誤診，也可能在束胸、睪固酮、婦科檢查、懷孕風險上遇到完全不同的問題。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '束胸：用合身的 binder，不用 ACE 繃帶或膠帶；第一次從 2–4 小時開始，最長 8–12 小時；睡覺、運動、游泳不穿；胸痛、呼吸困難、肋骨痛、皮膚破損立即停；體檢或胸部 X 光可能要求取下，提前問。',
+                        'packing / STP：衛生第一，定期清洗，不共用；不方便或不舒服可以不 pack；passing 不是必須。',
+                        '睪固酮：只通過正規醫療；聲音、體毛、肌肉、月經、陰蒂、血脂和血比容都會變化；需要定期監測；不要自行加量或用來路不明的藥。',
+                        '生育與懷孕：睪固酮不是避孕藥；跨男仍可能懷孕；需要避孕、生育力保存或婦科檢查時，直接告訴醫生你的需求和身體情況。',
+                        '婦科：Pap/HPV、STI、乳腺和盆腔檢查都可以要求 trans-friendly 醫生；可以提前說明稱呼和身體部位，緊張可以帶人陪同。',
+                        '月經抑制：諮詢醫生；不要用不明來源的激素、草藥或極端節食。',
+                        '聲音、髮型、鬍子：聲音訓練、理髮和 minoxidil 都有各自的風險；minoxidil 對貓有毒，用前先查；不要用未經驗證的偏方。',
+                        '廁所與路線：看當地法律和環境；選安全路線，儘量結伴；被攔就離開，不要對抗。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '跨男常被“看不見”：別人可能不認為你是跨男，或者認為你“只是 tomboy”。這既是掩護，也是孤立。在學校被問起時，可以把“假小子/中性風”當擋箭牌；它只解釋穿著，不解釋你的身體和醫療。具體話術見“同學問起時”。找社群、找跨男前輩、找 trans-friendly 醫生；不要一個人把所有的疑問憋著。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要為了“更 pass”做危險的事：過度束胸、共用針具、黑市睪固酮、極端節食/健身、用膠帶黏胸。這些可能造成永久傷害。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你同時是跨男和未成年人：醫療同意、家長支援、學校記錄、法律文件可能更復雜；找當地組織、律師或社工，不要偽造資料。',
+                },
+                {
+                    type: 'p',
+                    text: '這一節不是醫療建議；激素、手術和檢查以醫生和當地指南為準。',
                 },
             ],
         },
@@ -2731,7 +3677,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '經典計算機上最好的通用分解演算法是數域篩法一類的亞指數演算法，不是多項式時間。2048 位、3072 位 RSA 目前仍被認為經典計算上安全，但這不等於永遠安全：金鑰太短、實現有漏洞、隨機數質量差，都會讓“數學上難”變成“工程上已經被開啟”。',
+                    text: '經典計算機上最好的通用分解演算法是數域篩法一類的亞指數演算法，不是多項式時間。2048 位、3072 位 RSA 目前仍被認為經典計算上安全，但這不等於永遠安全：金鑰太短、實現有漏洞、隨機數品質差，都會讓“數學上難”變成“工程上已經被開啟”。',
                 },
                 {
                     type: 'p',
@@ -2765,7 +3711,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '因為難度的“濃度”更高，ECC 用更短的金鑰就能達到和 RSA 相近的經典安全水平，所以手機、TLS、Signal、區塊鏈錢包裡到處都是它。但 Shor 演算法同樣能解離散對數，橢圓曲線並不天然抗量子。',
+                    text: '因為難度的“濃度”更高，ECC 用更短的金鑰就能達到和 RSA 相近的經典安全水準，所以手機、TLS、Signal、區塊鏈錢包裡到處都是它。但 Shor 演算法同樣能解離散對數，橢圓曲線並不天然抗量子。',
                 },
                 {
                     type: 'p',
@@ -2811,7 +3757,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '但匿名性不是絕對的。如果同一個對手同時掌握或觀察你的入口和出口，並且能對時間、包大小、方向做流量關聯，它就可能把電路兩端對上。這就是端到端關聯攻擊。掌握兩端不等於每次都能成功，但風險會顯著上升。',
+                    text: '但匿名性不是絕對的。如果同一個對手同時掌握或觀察你的入口和出口，並且能對時間、包大小、方向做流量關聯，它就可能把電路兩端對上。這就是端對端關聯攻擊。掌握兩端不等於每次都能成功，但風險會顯著上升。',
                 },
                 {
                     type: 'p',
@@ -2819,11 +3765,11 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Tor 隱藏的是網路層來源，不是你的瀏覽器指紋。登入同一個賬號、使用相同語言/時區/字型、下載並開啟檔案、複製貼上獨特文本，都可能把兩次訪問關聯起來。',
+                    text: 'Tor 隱藏的是網路層來源，不是你的瀏覽器指紋。登入同一個帳號、使用相同語言/時區/字型、下載並開啟檔案、複製貼上獨特文本，都可能把兩次訪問關聯起來。',
                 },
                 {
                     type: 'p',
-                    text: '出口節點能看到未加密的 HTTP、DNS 和一些明文協議；HTTPS 保護內容，但域名、時間、流量大小仍然可能洩露。需要更強保護時，應該用端到端加密的應用層協議，而不是隻依賴 Tor。',
+                    text: '出口節點能看到未加密的 HTTP、DNS 和一些明文協議；HTTPS 保護內容，但域名、時間、流量大小仍然可能洩露。需要更強保護時，應該用端對端加密的應用層協議，而不是隻依賴 Tor。',
                 },
                 {
                     type: 'warn',
@@ -2903,22 +3849,22 @@ const ZH_TW_BASE: OpSecContent = {
                 {
                     type: 'warn',
                     kind: 'important',
-                    text: 'DC-Net 的資訊理論安全是協議層面的結論，不是對你使用的某個客戶端、某個外掛的背書。實現漏洞、身份認證、廣播層和後設資料，任何一個環節出問題，都會讓紙面上的安全性失效。',
+                    text: 'DC-Net 的資訊理論安全是協議層面的結論，不是對你使用的某個客戶端、某個外掛的背書。實現漏洞、身分驗證、廣播層和後設資料，任何一個環節出問題，都會讓紙面上的安全性失效。',
                 },
             ],
         },
         {
             id: 'extended-monero',
-            title: 'Monero 的多籤與匿名性',
+            title: 'Monero 的多簽與匿名性',
             level: 'extended',
             blocks: [
                 {
                     type: 'p',
-                    text: 'Monero 預設把隱私放在協議層：環簽名隱藏“是誰花的”，stealth address 隱藏“發給誰”，RingCT 隱藏“花了多少”。這比“在透明賬本上再套一個混幣器”更接近預設隱私。',
+                    text: 'Monero 預設把隱私放在協議層：環簽名隱藏“是誰花的”，stealth address 隱藏“發給誰”，RingCT 隱藏“花了多少”。這比“在透明帳本上再套一個混幣器”更接近預設隱私。',
                 },
                 {
                     type: 'p',
-                    text: '環簽名讓驗證者知道簽名來自一組公鑰中的某一個，但不知道具體是哪一個。環越大，候選集越大；但候選集的質量比數量更重要，如果誘餌很容易被識別，實際匿名集就會縮水。',
+                    text: '環簽名讓驗證者知道簽名來自一組公鑰中的某一個，但不知道具體是哪一個。環越大，候選集越大；但候選集的品質比數量更重要，如果誘餌很容易被識別，實際匿名集就會縮水。',
                 },
                 {
                     type: 'math',
@@ -2936,15 +3882,15 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: '多籤（multisig）解決的是另一件事：M-of-N 個金鑰共同控制一筆資金，達到 M 個簽名才能花。它適合共同託管、escrow、組織金庫和防單點失竊，但多籤本身不會讓交易更匿名；它改變的是金鑰管理，不是賬本可見性。',
+                    text: '多簽（multisig）解決的是另一件事：M-of-N 個金鑰共同控制一筆資金，達到 M 個簽名才能花。它適合共同託管、escrow、組織金庫和防單點失竊，但多簽本身不會讓交易更匿名；它改變的是金鑰管理，不是帳本可見性。',
                 },
                 {
                     type: 'p',
-                    text: 'Monero 用 PoW（RandomX）維護共識；Bitcoin 也是 PoW，但 Bitcoin 的賬本透明，地址是假名而不是匿名。把“隱私幣”當成法律護盾是危險的：交易所可能拒絕入金、凍結資產，鏈上分析加上 KYC、IP 和時間資訊仍然可能定位到你。',
+                    text: 'Monero 用 PoW（RandomX）維護共識；Bitcoin 也是 PoW，但 Bitcoin 的帳本透明，地址是假名而不是匿名。把“隱私幣”當成法律護盾是危險的：交易所可能拒絕入金、凍結資產，鏈上分析加上 KYC、IP 和時間資訊仍然可能定位到你。',
                 },
                 {
                     type: 'p',
-                    text: '多籤的風險包括：金鑰丟失、持有人合謀、實現漏洞、協調過程中的後設資料、恢復流程複雜。第一次用小額測試，確認地址、簽名流程和備份都能恢復，再考慮大額。',
+                    text: '多簽的風險包括：金鑰丟失、持有人合謀、實現漏洞、協調過程中的後設資料、恢復流程複雜。第一次用小額測試，確認地址、簽名流程和備份都能恢復，再考慮大額。',
                 },
                 {
                     type: 'warn',
@@ -2964,7 +3910,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'PoW（工作量證明）用算力和能源競爭記賬權，攻擊者要掌握大量算力才能重組鏈；PoS（權益證明）用質押的經濟價值選 proposer/attester，作惡會被罰沒；PoA（權威證明）由被授權的驗證者記賬，適合聯盟鏈或測試網，信任模型更中心化。',
+                    text: 'PoW（工作量證明）用算力和能源競爭記帳權，攻擊者要掌握大量算力才能重組鏈；PoS（權益證明）用質押的經濟價值選 proposer/attester，作惡會被罰沒；PoA（權威證明）由被授權的驗證者記帳，適合聯盟鏈或測試網，信任模型更中心化。',
                 },
                 {
                     type: 'math',
@@ -2977,7 +3923,7 @@ const ZH_TW_BASE: OpSecContent = {
                 },
                 {
                     type: 'p',
-                    text: 'Bitcoin 是假名，不是匿名。它的 UTXO 賬本公開、永久、可追溯。鏈上分析常用這些線索：共同輸入（多個地址一起花，可能屬於同一錢包）、找零地址、交易時間、金額習慣、地址複用、交易所 KYC、IP 和節點觀測、以及鏈下聊天記錄。只要其中一兩個點對上，假名就可能變回真人。',
+                    text: 'Bitcoin 是假名，不是匿名。它的 UTXO 帳本公開、永久、可追溯。鏈上分析常用這些線索：共同輸入（多個地址一起花，可能屬於同一錢包）、找零地址、交易時間、金額習慣、地址複用、交易所 KYC、IP 和節點觀測、以及鏈下聊天記錄。只要其中一兩個點對上，假名就可能變回真人。',
                 },
                 {
                     type: 'p',
@@ -2994,6 +3940,303 @@ const ZH_TW_BASE: OpSecContent = {
                 },
             ],
         },
+        {
+            id: 'extended-high-threat',
+            title: '高威脅環境：先讀這一節',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '這一組不是“更高階的安全指南”，而是“代價很高的例外”。如果你只是普通上網、上學、吃藥，前面的基礎節足夠；把這裡的東西全用上，通常會增加故障點、讓你更顯眼，甚至讓你失去外部幫助。',
+                },
+                {
+                    type: 'p',
+                    text: '適用的人：已經被跟蹤或威脅、裝置可能被控制、必須在不安全的關係裡傳遞資訊，或面臨強制醫療/強制“糾正”。不適用的人：只是擔心父母看到聊天記錄、只是想要“更安全一點”。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '高威脅措施的共同代價：斷網/失聯、維護成本、行為異常、被發現的後果更重、出錯後沒有售後服務。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '一個原則：先降低後果，再降低機率。被發現的機率不可能降到零；你能做的是讓被發現時你有地方去、有人幫你、有證據、有藥。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '如果人身安全受威脅，優先聯絡可信成年人、當地報警/急救、法律援助、跨性別支持組織。高威脅技巧不能替代外部幫助。',
+                },
+                {
+                    type: 'p',
+                    text: '下面每一節都只講原理、風險和替代方案；不寫可以照著執行的隱蔽操作。原因不是“道德”，而是公開文件會被騙子、控制者和執法一起讀到，而且這些操作在現實裡經常失敗。',
+                },
+                {
+                    type: 'p',
+                    text: '這一組參考了公開的訪談與去升級研究：Dianiska、Quas 與 Lyon（2024）對青少年訪談的系統綜述發現，先建立 rapport、用開放問題、避免威脅，能提高披露的完整性和準確性；Price 與 Baker（2012）的去升級綜述強調降低刺激、給選擇、保持安全距離；Fenaughty 等（2023）發現性取向/性別認同改變嘗試與更差的心理健康相關；Bersani 等（2020）討論了 ECT 知情同意在妄想/被迫情境下的倫理困難。這些研究不是操作手冊，只是告訴你哪些做法有證據、哪些只是爽文。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-device',
+            title: '裝置與位置：關機不等於離線',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '先講原理：手機是否可被定位，取決於它還在不在網路上、附近有沒有能替它上報的裝置、以及誰掌握帳號。關機只關閉了主處理器和大部分無線功能；某些低功耗查詢功能可能仍在工作。',
+                },
+                {
+                    type: 'p',
+                    text: 'iPhone 11 及以後、iOS 15 及以後，在開啟“「尋找」網路”時，關機後仍可能透過附近 Apple 裝置被找到，通常有時限（約 24 小時）。不同系統版本、地區和設定會影響行為；不要假設“關機=安全”。',
+                },
+                {
+                    type: 'p',
+                    text: '法拉第袋的原理是金屬遮蔽射頻訊號。它有用，但代價是：你也收不到訊息、接不到電話、無法求救；頻繁使用會形成可觀察的行為模式。它不是日常用品，是特定場合的斷網工具。',
+                },
+                {
+                    type: 'p',
+                    text: '系統分層：基礎是系統更新、鎖屏強密碼、全磁碟加密、關閉不必要的定位/廣告/雲同步；進階是 GrapheneOS（需要相容 Pixel）或 Tails；高階是 Qubes/Whonix/OpenBSD + 全磁碟加密。每升一層，維護成本上升；維護不了的 Qubes 比預設系統更危險。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“刷了隱私系統”當成安全證明。手機號、帳號、支付、學校/單位、家人、監視器、基地台和現實行蹤，仍然可以把你連起來。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你懷疑被跟蹤：不要只查手機；檢查包、車、禮物、充電器、鑰匙扣、煙霧偵測器；改變路線和時間；告訴可信的人；必要時找專業機構。不要獨自正面對峙。',
+                },
+                {
+                    type: 'p',
+                    text: '一個低成本替代：把“敏感的事”和“日常手機”分開。敏感事用另一臺裝置/帳號/網路；日常手機保持正常，不要讓它看起來像“突然消失”。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: '不要用“關機後定位”去嚇自己，也不要把它當成萬能解釋。不同裝置、系統、帳號設定差異很大；先查自己的設定，再做威脅模型。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-money',
+            title: '錢包與備份：seed 是根金鑰',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '硬體錢包的原理：私鑰/seed 離線儲存，簽名在裝置裡完成。它防止的是“電腦中木馬後私鑰被直接偷走”，不防止“你把 seed 拍照存手機”“你把裝置和 seed 放同一個盒子”“你被脅迫”。',
+                },
+                {
+                    type: 'p',
+                    text: 'seed 是根金鑰：誰拿到它，誰就能恢復錢包並轉走資產。Monero 的帳本隱私保護的是“外人看不到交易”，不保護“拿到 seed 的人”。',
+                },
+                {
+                    type: 'p',
+                    text: '備份原則：seed 和裝置分開；至少兩份，放在不同地點；用 passphrase 加一層；大額用多簽/分片（Shamir）；定期測試恢復。',
+                },
+                {
+                    type: 'p',
+                    text: '介質：金屬板耐火燒/水，但更顯眼、更難藏；紙好藏但怕火/水/蟲。不要把 seed 寫在會被拍照、掃描、雲同步的地方；不要用“藏在 U 盤堆裡”當唯一方案，因為裝置被拿走時 seed 可能一起沒。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要吞紙、不要吞金屬片。不能保證不阻塞/不劃傷食道；被看到像銷毀證據；備份也沒了。極端情況下，你需要的是“分開存放 + 可信人各持一份”，不是把東西塞進身體。',
+                },
+                {
+                    type: 'p',
+                    text: '如果資產可能被家人/伴侶控制：先小額測試；不要把所有錢放一個錢包；保留交易記錄；瞭解當地法律；必要時找律師。不要用加密貨幣逃避法院/扶養/債務義務。',
+                },
+                {
+                    type: 'p',
+                    text: '更多技術細節看 extended-monero；這一節只講備份和人身安全。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-comms',
+            title: '監控下的通訊：先數字，再物理',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '如果你被查手機/查房間/限制出門，第一原則不是“藏得更深”，而是“減少需要藏的東西”。能當面說的，不留文字；能用一個普通理由解釋的，不編複雜故事。',
+                },
+                {
+                    type: 'p',
+                    text: '數位優先：可信成年人、學校/圖書館裝置、Signal/SimpleX 等端對端加密、獨立帳號/裝置、鎖屏、關閉通知預覽、定期清歷史。不要用同一個手機號/郵箱/頭像把兩個身份連起來。',
+                },
+                {
+                    type: 'p',
+                    text: '如果必須用家裡的電腦/手機：用瀏覽器無痕視窗不等於安全；檢查是否裝了監控/家長控制；不要登入敏感帳號；用完退出；不要留下自動填入/下載紀錄。',
+                },
+                {
+                    type: 'p',
+                    text: '可信中介：找一個不會被懷疑的成年人/朋友/老師/社工，讓他替你傳話；約定一個普通暗號；不要讓他承擔超出能力的風險。',
+                },
+                {
+                    type: 'p',
+                    text: '死信投遞的原理：把“交換”拆成投放、標記、取貨三段，雙方不同時出現。它解決的是“不能同時見面”，不解決假貨、截獲、控制下交付、脅迫、售後無保障、證據。任何一個環節被看到，整條鏈就暴露。',
+                },
+                {
+                    type: 'p',
+                    text: '為什麼這裡不寫選址/標記/投放/取貨：公開文件會被騙子、控制者、執法和惡意讀者一起看到；一個例子就是模板；現實裡天氣、動物、路人、監視器、固定路線、指紋/DNA、偏僻取物的人身風險都會讓“聰明辦法”變成證據。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你需要實體傳遞：優先用可信中介、學校/工作場所的公開交接、郵寄/快遞（注意地址和收件人），或者把資訊拆成不明顯的小塊。不要在自己家/學校附近取；不要在固定時間；不要單獨去偏僻地點；不要留下可讀的完整資訊。',
+                },
+                {
+                    type: 'p',
+                    text: '如何問出資訊、又不把對方逼到防衛：用開放問題（“接下來會發生什麼？”“這個檢查是誰要求的？”），先建立 rapport，再問具體；不要一上來審問/威脅；重複對方的詞，確認你聽對了；對方拒絕時，換時間/換人，不要硬碰硬。青少年訪談研究支援“先 rapport、開放問題、避免威脅”能提高完整披露（Dianiska et al., 2024; Nahouli et al., 2021）。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '先問流程，不問動機：“這個檢查是誰安排的？”“結果會給誰？”“如果我不做，下一步是什麼？”流程問題比“你是不是懷疑我”更容易得到答案。',
+                        '一次只問一個；對方開始防衛時，先換話題，過一會兒再回來；連續追問會讓人只想結束對話。',
+                        '用對方的詞確認：“你的意思是，如果我不簽字，學校會聯絡家長？”讓對方自己把後果說清楚。',
+                        '對方說“大家都這樣/你父母都知道了”時，要求具體證據：“是誰說的？什麼時候說的？我能看原文嗎？”',
+                        '不要在當場戳破矛盾；記下來，之後找可信成年人核對；當場贏一句，可能害自己更不安全。',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: '如何不被套話：只回答必要資訊；不確定的問題說“我不知道/我需要問一下”；不要為了顯得配合而編；對方用“大家都這樣/你父母都知道了”施壓時，要求具體證據；不要在情緒激動時做決定。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '不要把“報警”當威脅說出口；也不要用“我有證據/我認識人”嚇對方。撂狠話在安全場景裡可能有用，在暴力場景裡通常只會升級。報警是行動，不是臺詞。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-medical',
+            title: '被迫血檢與強制醫療：先搞清楚查什麼',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '血檢查的是血液裡的指標，不是“你最近有沒有吃藥”的測謊器。性激素、肝腎功能、泌乳素、血液常規檢查各自說明不同問題；一次異常也可能由脫水、作息、其他藥物、疾病引起。不要用“吐一次就沒事”安慰自己。',
+                },
+                {
+                    type: 'p',
+                    text: '學校體檢（包括高考體檢）常規項目各地不同，常見是身高體重、血壓、視力、心肺聽診、脊椎四肢、胸部 X 光；有些地方加肝功能/血液常規檢查。性激素不是常規項目。“有抽血”不等於“查激素”。',
+                },
+                {
+                    type: 'p',
+                    text: '如果確實要做激素檢查：先問清楚查哪些項目、為什麼查、結果給誰、能不能只給監護人/醫生、能不能申請隱私保護、能否延期/換醫院。你可以要求醫生解釋，也可以要求第二意見。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你決定拖延：最不壞的非暴力做法是正常離開檢查區，用“上廁所/不舒服”爭取時間，設一個上限，不要反鎖、不要關機失聯、不要等到所有人都離開；被找到時不對抗，用固定話術“我害怕/我不舒服/我想改天/我要先聯絡我信任的人”。它只拖一次，下一次還會來，而且可能升級監視。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要催吐。催吐不能清除已經吸收的激素；對注射/凝膠無效；嘔吐/脫水會讓肝酶、肌酐、電解質異常，引來更多檢查；風險包括誤吸、食道撕裂、低鉀、心律不整。也不要為了“看起來正常”擅自停藥/改劑量。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要用束胸當掩護。體檢可能要求取下；長時間束胸會影響呼吸/肋骨/皮膚；用 ACE 繃帶/膠帶更危險。需要束胸時用合身的 binder，限時，疼痛/呼吸困難立即停。',
+                },
+                {
+                    type: 'p',
+                    text: '如果結果已經出來/被家長知道：先確認誰知道、知道多少；不要搶報告/竄改報告；找醫生/社工/可信成年人一起解釋；準備一個簡短說法；如果家庭有暴力風險，先做安全計劃，不要獨自回家。',
+                },
+                {
+                    type: 'p',
+                    text: '強制“扭轉”/“網路成癮糾正”：這些不是正規醫療。紅旗是收手機/證件、限制聯絡、體罰、不許探視、要求“承認錯誤”、不給診斷/治療計劃。遇到這些先保人身安全，別硬碰硬；保留證據；告訴可信的人你的位置和 報平安 時間；如果門開著、外面有人接應，再考慮離開；不要獨自徒步逃跑，也不要切斷和可信成年人的聯絡。',
+                },
+                {
+                    type: 'p',
+                    text: 'MECT（改良式電痙攣）是麻醉下的醫療程序，用於某些嚴重精神疾病，不是“治療跨性別”的手段。真正要問的是：診斷依據是什麼、有沒有鑑別診斷、適應症是什麼、替代方案是什麼、誰簽的知情同意、副作用和記憶影響。被強制時，保留病歷/知情同意書，找第二意見/法律援助/衛生主管機關。',
+                },
+                {
+                    type: 'p',
+                    text: '面試精神科醫生（不是“試探”）：直接問“你接過多少跨性別個案？你用 WPATH/ICD-11 嗎？你怎麼區分 gender dysphoria 和 psychosis？如果我不同意診斷，你怎麼處理？你會不會把跨性別本身當成妄想？”紅旗：把跨性別當病、拒絕解釋診斷、威脅不治療就電擊、要求“先證明自己是真跨”、不讓你單獨說話。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '如果你有自殺/自傷風險，先處理這個，不要為了“病歷好看”隱瞞。強制醫療的恐懼是真實的，但把嚴重症狀藏起來可能讓你更危險。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-exposure',
+            title: '被曝光之後：72 小時與一個月',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '曝光本身不是終點，後面的連鎖反應才是。第一目標不是“解釋清楚”，而是“停止擴散、保證人身安全、找到盟友”。',
+                },
+                {
+                    type: 'p',
+                    text: '72 小時內：先確認洩露範圍（誰看到了、有沒有截圖、有沒有轉發）；暫停發新內容；把公開資料縮到最小；換頭像/使用者名稱/密碼；檢查裝置/帳號；告訴 1–2 個可信的人；不要一個人一直刷留言。',
+                },
+                {
+                    type: 'p',
+                    text: '找誰說什麼：優先找不會立刻告訴父母/學校的人；用“我需要幫助，不是需要審判”開場；只給必要資訊；問對方能不能幫你做什麼（陪同、借住、傳話、報警）。',
+                },
+                {
+                    type: 'p',
+                    text: '證據：截圖/螢幕錄影/連結/時間/帳號 ID；不要剪輯；加密備份；不要發到公開平台討公道。',
+                },
+                {
+                    type: 'p',
+                    text: '一個月：處理學校/家庭/工作/醫療的後續；如果家裡有暴力風險，做安全計劃（證件、藥、錢、備用手機、臨時住處）；考慮轉學/搬家/換工作，但先評估成本和風險；不要衝動做不可逆決定。',
+                },
+                {
+                    type: 'p',
+                    text: '未成年人 vs 成年人：“人生切換”對未成年人通常不現實，報警/協尋可能讓你更危險；優先找可信成年人、社工、法律援助、臨時安置。成年人搬遷也要考慮錢、工作、證件、醫療連續性。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要為了“證明自己沒事”去對峙/單挑/公開對方資訊。曝光後的憤怒是正常的，但報復通常會把風險拉回你身上。',
+                },
+            ],
+        },
+        {
+            id: 'extended-high-threat-circle',
+            title: '如果你有一個可信的小圈子',
+            level: 'extended',
+            blocks: [
+                {
+                    type: 'p',
+                    text: '小圈子能提供資訊、臨時住處、陪同、借錢、傳話，但它也會把風險集中。原則：信任要分層，錢要小額，記錄要少，決定要可退出。',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        '信任階梯：先做低風險的事（聽你說、陪你打電話），再做中風險（借少量錢、代收東西），最後才是高風險（知道住址、真實身份、資金）。',
+                        '錢：小額、可承受損失、寫清楚是借還是給；不要把所有錢交給一個人；大額用多簽/透明帳本；不要用“互助”名義搞未經登記募捐。',
+                        '資訊：只給需要知道的人；不要建立大群組；定期清理聊天記錄；不要把所有秘密放在一個人手裡。',
+                        '安全：約定 報平安、暗號、緊急聯絡人；知道彼此的底線；有人被威脅時，先保人，不要先抓內鬼。',
+                    ],
+                },
+                {
+                    type: 'warn',
+                    kind: 'caution',
+                    text: '不要組織“互相作證”的假口供、不要偽造文書、不要用暴力報復。這些會把小圈子變成共犯結構，一旦被脅迫，所有人都更危險。',
+                },
+                {
+                    type: 'p',
+                    text: '如果你要幫別人：先問“你現在安全嗎？你需要什麼？”不要替對方做決定；不要承諾你做不到的事；涉及未成年人/暴力/醫療，找專業機構。',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: '這一節不是組織手冊。情報共享池、互助基金、跨區人際網絡需要法律、財務、安全審查；沒有這些，不要做。',
+                },
+            ],
+        },
     ],
 };
 
@@ -3003,9 +4246,9 @@ const ZH_TW: OpSecContent = {
     contentsLabel: '目錄',
     basicHeading: '基礎：先保護好自己',
     advancedHeading: '進階：高風險與應急處置',
-    extendedHeading: '延伸知識：數學、匿名網路與共識機制',
+    extendedHeading: '延伸知識：數學、匿名網路、共識機制與高威脅環境',
     extendedNote:
-        '下面這些是延伸閱讀，不要求學會，也不影響你使用前面的清單。它們解釋「為什麼」：匿名不是一個開關，而是一組假設；數學公式只是幫助理解，不是操作指南。看不懂可以跳過，需要時再回來查。',
+        '下面這些是延伸閱讀，不要求學會，也不影響你使用前面的清單。它們解釋「為什麼」：匿名不是一個開關，而是一組假設；數學公式只是幫助理解，不是操作指南。最後幾節講高威脅環境，只講原理、風險和替代方案，不寫可執行操作；大多數讀者不需要，看不懂可以跳過，需要時再回來查。',
 };
 
 const CONTENT: Record<string, OpSecContent> = {
