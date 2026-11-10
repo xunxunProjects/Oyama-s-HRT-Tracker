@@ -6,11 +6,13 @@ import { useDialog } from '../contexts/DialogContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import type { HRTMode } from '../domain/types';
+import { windowVoiceChecks } from '../domain/voice/history';
 import { passageIdForLang, passageKeyForId } from '../domain/voice/passage';
 import { detectPitch, frameRms, summarizePitch } from '../domain/voice/pitch';
 import { bucketForScore, scoreFromF0 } from '../domain/voice/score';
 import type { VoiceCheck } from '../domain/voice/types';
 import { fill } from '../utils/regimenText';
+import { isTauriShell } from '../utils/tauri';
 import { addVoiceCheck, clearAllVoiceChecks, loadVoiceChecks } from '../utils/voiceStorage';
 
 const FRAME_MS = 40;
@@ -32,8 +34,6 @@ interface Recording {
 }
 
 type AudioContextCtor = typeof AudioContext;
-
-const isTauriShell = () => typeof window !== 'undefined' && '__TAURI__' in window;
 
 const newCheckId = () =>
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -72,7 +72,7 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const modeLabel = mode === 'transfem' ? t('voice.mode.transfem') : t('voice.mode.transmasc');
 
     const shownHistory = useMemo(() => history.filter(c => c.passageId === passageId), [history, passageId]);
-    const chartHistory = shownHistory.slice(-12);
+    const { recent: recentHistory, chart: chartHistory } = windowVoiceChecks(shownHistory);
 
     const finishRecording = useCallback(
         (discard: boolean) => {
@@ -149,79 +149,105 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             return;
         }
 
+        const Ctor: AudioContextCtor | undefined =
+            window.AudioContext ?? (window as Window & { webkitAudioContext?: AudioContextCtor }).webkitAudioContext;
+        if (!Ctor) {
+            setErrorKey('voice.error.unsupported');
+            setStatus('error');
+            return;
+        }
+
+        // Create and resume inside the click gesture. Safari can leave a context
+        // created after an await suspended, which makes the recorder capture silence.
+        let ctx: AudioContext;
+        try {
+            ctx = new Ctor();
+        } catch {
+            setErrorKey(isTauriShell() ? 'voice.error.desktop' : 'voice.error.generic');
+            setStatus('error');
+            return;
+        }
+        try {
+            await ctx.resume();
+            if (ctx.state !== 'running') throw new Error('audio-context-not-running');
+        } catch {
+            void ctx.close().catch(() => {});
+            setErrorKey(isTauriShell() ? 'voice.error.desktop' : 'voice.error.generic');
+            setStatus('error');
+            return;
+        }
+
+        if (!aliveRef.current) {
+            void ctx.close().catch(() => {});
+            return;
+        }
+
         let stream: MediaStream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
             });
         } catch (err) {
+            void ctx.close().catch(() => {});
             setErrorKey(errorKeyFor(err));
             setStatus('error');
             return;
         }
-        if (!aliveRef.current) {
-            stream.getTracks().forEach(track => track.stop());
-            return;
-        }
 
-        const Ctor: AudioContextCtor | undefined =
-            window.AudioContext ?? (window as Window & { webkitAudioContext?: AudioContextCtor }).webkitAudioContext;
-        if (!Ctor) {
-            stream.getTracks().forEach(track => track.stop());
-            setErrorKey('voice.error.unsupported');
-            setStatus('error');
-            return;
-        }
-
-        const ctx = new Ctor();
-        try {
-            await ctx.resume();
-        } catch {
-            // Some browsers start the context suspended until a gesture; the
-            // recorder still works once the interval reads the analyser.
-        }
-        if (!aliveRef.current) {
+        if (!aliveRef.current || document.hidden) {
             stream.getTracks().forEach(track => track.stop());
             void ctx.close().catch(() => {});
+            setStatus('idle');
             return;
         }
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = FFT_SIZE;
-        analyser.smoothingTimeConstant = 0;
-        source.connect(analyser);
 
-        const rec: Recording = {
-            stream,
-            ctx,
-            frames: [],
-            startedAt: performance.now(),
-            mode,
-            owner,
-            sampleRate: ctx.sampleRate,
-            intervalId: 0,
-        };
-        recordingRef.current = rec;
-        setElapsedMs(0);
-        setLiveHz(null);
-        setLevel(0);
-        setStatus('recording');
+        try {
+            const source = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = FFT_SIZE;
+            analyser.smoothingTimeConstant = 0;
+            source.connect(analyser);
 
-        rec.intervalId = window.setInterval(() => {
+            const rec: Recording = {
+                stream,
+                ctx,
+                frames: [],
+                startedAt: performance.now(),
+                mode,
+                owner,
+                sampleRate: ctx.sampleRate,
+                intervalId: 0,
+            };
+            recordingRef.current = rec;
+            setElapsedMs(0);
+            setLiveHz(null);
+            setLevel(0);
+            setStatus('recording');
+
+            rec.intervalId = window.setInterval(() => {
+                const active = recordingRef.current;
+                if (!active) return;
+                const frame = new Float32Array(analyser.fftSize);
+                analyser.getFloatTimeDomainData(frame);
+                active.frames.push(frame);
+                const elapsed = performance.now() - active.startedAt;
+                setElapsedMs(elapsed);
+                setLevel(frameRms(frame));
+                if (active.frames.length % 4 === 0) {
+                    const reading = detectPitch(frame, active.sampleRate);
+                    setLiveHz(reading ? reading.f0 : null);
+                }
+                if (elapsed >= RECORD_MS) finishRecording(false);
+            }, FRAME_MS);
+        } catch {
             const active = recordingRef.current;
-            if (!active) return;
-            const frame = new Float32Array(analyser.fftSize);
-            analyser.getFloatTimeDomainData(frame);
-            active.frames.push(frame);
-            const elapsed = performance.now() - active.startedAt;
-            setElapsedMs(elapsed);
-            setLevel(frameRms(frame));
-            if (active.frames.length % 4 === 0) {
-                const reading = detectPitch(frame, active.sampleRate);
-                setLiveHz(reading ? reading.f0 : null);
-            }
-            if (elapsed >= RECORD_MS) finishRecording(false);
-        }, FRAME_MS);
+            if (active) window.clearInterval(active.intervalId);
+            recordingRef.current = null;
+            stream.getTracks().forEach(track => track.stop());
+            void ctx.close().catch(() => {});
+            setErrorKey(isTauriShell() ? 'voice.error.desktop' : 'voice.error.generic');
+            setStatus('error');
+        }
     }, [finishRecording, mode, owner]);
 
     useEffect(() => {
@@ -245,12 +271,18 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }, [finishRecording]);
 
     const handleClear = () => {
-        showDialog('confirm', t('voice.clear_confirm'), () => {
-            clearAllVoiceChecks(localStorage, owner);
-            setHistory([]);
-            setResult(null);
-            setStatus('idle');
-        });
+        showDialog(
+            'confirm',
+            t('voice.clear_confirm'),
+            () => {
+                finishRecording(true);
+                clearAllVoiceChecks(localStorage, owner);
+                setHistory([]);
+                setResult(null);
+                setStatus('idle');
+            },
+            { danger: true },
+        );
     };
 
     const scoreText = result ? (result.score > 0 ? `+${result.score}` : String(result.score)) : '';
@@ -263,6 +295,18 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         })
         .join(' ');
     const card = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5';
+    const canRecord = typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia;
+    const liveMessage =
+        status === 'recording'
+            ? t('voice.recording')
+            : status === 'analyzing'
+              ? t('voice.analyzing')
+              : status === 'done' && result
+                ? fill(t('voice.result.announce'), {
+                      score: scoreText,
+                      hz: Math.round(result.medianF0),
+                  })
+                : '';
 
     return (
         <div className="relative md:pb-32">
@@ -288,15 +332,21 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </div>
 
                 <div className={card}>
-                    <button
-                        type="button"
-                        onClick={status === 'recording' ? () => finishRecording(false) : startRecording}
-                        disabled={status === 'requesting' || status === 'analyzing'}
-                        className={`${status === 'recording' ? 'btn-danger' : 'btn-primary'} w-full tap-target`}
-                    >
-                        <Mic size={18} aria-hidden="true" />
-                        {status === 'recording' ? t('voice.stop') : t('voice.start')}
-                    </button>
+                    {canRecord ? (
+                        <button
+                            type="button"
+                            onClick={status === 'recording' ? () => finishRecording(false) : startRecording}
+                            disabled={status === 'requesting' || status === 'analyzing'}
+                            className={`${status === 'recording' ? 'btn-danger' : 'btn-primary'} w-full tap-target`}
+                        >
+                            <Mic size={18} aria-hidden="true" />
+                            {status === 'recording' ? t('voice.stop') : t('voice.start')}
+                        </button>
+                    ) : (
+                        <p role="alert" className="text-sm leading-6 text-[var(--danger)]">
+                            {t(isTauriShell() ? 'voice.error.desktop' : 'voice.error.unsupported')}
+                        </p>
+                    )}
 
                     {status === 'recording' && (
                         <div className="mt-4">
@@ -318,7 +368,6 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </div>
                             <div
                                 className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--surface-muted)]"
-                                aria-label={t('voice.level')}
                                 aria-hidden="true"
                             >
                                 <div
@@ -338,27 +387,25 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <p role="alert" className="text-sm leading-6 text-[var(--danger)]">
                                 {t(errorKey)}
                             </p>
-                            <button
-                                type="button"
-                                onClick={startRecording}
-                                className="btn-secondary mt-3 w-full tap-target"
-                            >
-                                {t('voice.result.retry')}
-                            </button>
+                            {canRecord && (
+                                <button
+                                    type="button"
+                                    onClick={startRecording}
+                                    className="btn-secondary mt-3 w-full tap-target"
+                                >
+                                    {t('voice.result.retry')}
+                                </button>
+                            )}
                         </div>
                     )}
 
                     <p className="sr-only" aria-live="polite">
-                        {status === 'recording'
-                            ? t('voice.recording')
-                            : status === 'analyzing'
-                              ? t('voice.analyzing')
-                              : ''}
+                        {liveMessage}
                     </p>
                 </div>
 
                 {result && (
-                    <div className={card} aria-live="polite">
+                    <div className={card}>
                         <p className="text-xs font-medium text-[var(--text-muted)]">{t('voice.result.title')}</p>
                         <div className="mt-2 flex items-end gap-3">
                             <span className="text-5xl font-semibold tabular-nums leading-none text-[var(--text)]">
@@ -425,26 +472,23 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 })}
                             </svg>
                             <div className="mt-3 divide-y divide-[var(--border)]">
-                                {chartHistory
-                                    .slice()
-                                    .reverse()
-                                    .map(c => (
-                                        <div
-                                            key={c.id}
-                                            className="flex items-center justify-between gap-3 py-2 text-xs text-[var(--text-muted)] tabular-nums"
-                                        >
-                                            <span>
-                                                {fill(t('voice.history.date_score'), {
-                                                    date: new Date(c.at).toLocaleDateString(lang, {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    }),
-                                                    score: c.score > 0 ? `+${c.score}` : c.score,
-                                                    hz: Math.round(c.medianF0),
-                                                })}
-                                            </span>
-                                        </div>
-                                    ))}
+                                {recentHistory.map(c => (
+                                    <div
+                                        key={c.id}
+                                        className="flex items-center justify-between gap-3 py-2 text-xs text-[var(--text-muted)] tabular-nums"
+                                    >
+                                        <span>
+                                            {fill(t('voice.history.date_score'), {
+                                                date: new Date(c.at).toLocaleDateString(lang, {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                }),
+                                                score: c.score > 0 ? `+${c.score}` : c.score,
+                                                hz: Math.round(c.medianF0),
+                                            })}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </>
                     )}
@@ -453,13 +497,13 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <div className="space-y-4 pb-8">
                     <p className="text-xs leading-6 text-[var(--text-muted)]">{t('voice.disclaimer')}</p>
                     <details className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
-                        <summary className="cursor-pointer text-sm font-medium text-[var(--text)]">
+                        <summary className="tap-target flex cursor-pointer items-center text-sm font-medium text-[var(--text)]">
                             {t('voice.evidence.title')}
                         </summary>
                         <ul className="mt-3 space-y-1.5 text-xs leading-5 text-[var(--text-muted)]">
                             <li>
                                 <a
-                                    className="underline underline-offset-2"
+                                    className="tap-target inline-flex items-center underline underline-offset-2"
                                     href="https://pubmed.ncbi.nlm.nih.gov/36371270/"
                                     target="_blank"
                                     rel="noreferrer"
@@ -469,7 +513,7 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </li>
                             <li>
                                 <a
-                                    className="underline underline-offset-2"
+                                    className="tap-target inline-flex items-center underline underline-offset-2"
                                     href="https://pubmed.ncbi.nlm.nih.gov/30503396/"
                                     target="_blank"
                                     rel="noreferrer"
@@ -479,7 +523,7 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </li>
                             <li>
                                 <a
-                                    className="underline underline-offset-2"
+                                    className="tap-target inline-flex items-center underline underline-offset-2"
                                     href="https://pubmed.ncbi.nlm.nih.gov/26678122/"
                                     target="_blank"
                                     rel="noreferrer"
@@ -489,7 +533,7 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </li>
                             <li>
                                 <a
-                                    className="underline underline-offset-2"
+                                    className="tap-target inline-flex items-center underline underline-offset-2"
                                     href="https://pubmed.ncbi.nlm.nih.gov/32104050/"
                                     target="_blank"
                                     rel="noreferrer"
@@ -499,7 +543,7 @@ const Voice: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </li>
                             <li>
                                 <a
-                                    className="underline underline-offset-2"
+                                    className="tap-target inline-flex items-center underline underline-offset-2"
                                     href="https://pubmed.ncbi.nlm.nih.gov/35382956/"
                                     target="_blank"
                                     rel="noreferrer"

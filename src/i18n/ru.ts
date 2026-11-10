@@ -30,6 +30,7 @@ const VOICE_RU = {
     'voice.result.title': 'Этот результат',
     'voice.result.median': 'Медиана {hz} Гц',
     'voice.result.range': 'Диапазон {low}–{high} Гц',
+    'voice.result.announce': 'Запись завершена. Оценка {score}, медианная высота {hz} Гц.',
     'voice.result.retry': 'Ещё раз',
     'voice.axis.far': 'Дальше от цели',
     'voice.axis.near': 'Ближе к цели',

@@ -19,6 +19,15 @@ const harmonic = (fundamental: number, amplitude = 0.15): Float32Array => {
     return frame;
 };
 
+const weakFundamental = (fundamental: number): Float32Array => {
+    const frame = new Float32Array(FRAME_SIZE);
+    for (let i = 0; i < FRAME_SIZE; i++) {
+        const t = (2 * Math.PI * i) / SAMPLE_RATE;
+        frame[i] = 0.2 * Math.sin(fundamental * t) + Math.sin(2 * fundamental * t);
+    }
+    return frame;
+};
+
 const noise = (amplitude = 0.2): Float32Array => {
     const frame = new Float32Array(FRAME_SIZE);
     let seed = 0x12345678;
@@ -30,15 +39,22 @@ const noise = (amplitude = 0.2): Float32Array => {
 };
 
 describe('detectPitch', () => {
-    it.each([110, 150, 200, 250])('finds a %i Hz sine within 2 Hz', freq => {
+    it.each([70, 110, 150, 200, 250, 438, 500])('finds a %i Hz sine within 2 Hz', freq => {
         const reading = detectPitch(sine(freq), SAMPLE_RATE);
         expect(reading).not.toBeNull();
+        expect(Number.isFinite(reading!.f0)).toBe(true);
         expect(Math.abs(reading!.f0 - freq)).toBeLessThanOrEqual(2);
         expect(reading!.clarity).toBeGreaterThan(0.8);
     });
 
     it('does not jump an octave on a harmonic-rich 120 Hz signal', () => {
         const reading = detectPitch(harmonic(120), SAMPLE_RATE);
+        expect(reading).not.toBeNull();
+        expect(Math.abs(reading!.f0 - 120)).toBeLessThanOrEqual(2);
+    });
+
+    it('keeps 120 Hz when the fundamental is much weaker than the second harmonic', () => {
+        const reading = detectPitch(weakFundamental(120), SAMPLE_RATE);
         expect(reading).not.toBeNull();
         expect(Math.abs(reading!.f0 - 120)).toBeLessThanOrEqual(2);
     });
@@ -80,5 +96,17 @@ describe('summarizePitch', () => {
     it('returns null when there are too few voiced frames', () => {
         const frames = Array.from({ length: 10 }, () => sine(150));
         expect(summarizePitch(frames, SAMPLE_RATE)).toBeNull();
+    });
+
+    it('never returns non-finite percentiles when a boundary frame is unreadable', () => {
+        const frames = [
+            ...Array.from({ length: 40 }, () => sine(70)),
+            ...Array.from({ length: 10 }, () => new Float32Array(FRAME_SIZE)),
+        ];
+        const summary = summarizePitch(frames, SAMPLE_RATE);
+        expect(summary).not.toBeNull();
+        expect(Number.isFinite(summary!.medianF0)).toBe(true);
+        expect(Number.isFinite(summary!.p5)).toBe(true);
+        expect(Number.isFinite(summary!.p95)).toBe(true);
     });
 });

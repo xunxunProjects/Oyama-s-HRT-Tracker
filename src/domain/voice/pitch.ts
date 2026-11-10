@@ -48,7 +48,7 @@ const percentile = (sorted: number[], p: number): number => {
  */
 const downsample = (frame: Float32Array, sampleRate: number): { samples: Float32Array; rate: number } => {
     const factor = Math.max(1, Math.floor(sampleRate / TARGET_SAMPLE_RATE));
-    if (factor === 1) return { samples: frame, rate: sampleRate };
+    if (factor === 1) return { samples: new Float32Array(frame), rate: sampleRate };
     const length = Math.floor(frame.length / factor);
     const samples = new Float32Array(length);
     for (let i = 0; i < length; i++) {
@@ -71,12 +71,15 @@ export const detectPitch = (frame: Float32Array, sampleRate: number): PitchReadi
     for (let i = 0; i < samples.length; i++) samples[i] -= mean;
 
     const tauMin = Math.max(2, Math.floor(rate / MAX_F0));
-    const tauMax = Math.min(Math.ceil(rate / MIN_F0), Math.floor(samples.length / 2));
+    const tauMax = Math.min(Math.floor(rate / MIN_F0), Math.floor(samples.length / 2));
     if (tauMax <= tauMin + 2) return null;
 
     const window = samples.length - tauMax;
     const difference = new Float64Array(tauMax + 1);
-    for (let tau = tauMin; tau <= tauMax; tau++) {
+    // Fill from tau = 1, not tauMin. The cumulative mean normalisation below
+    // divides by the sum of every previous tau; a gap before tauMin makes
+    // cmnd[tauMin] equal tauMin instead of the normalised difference.
+    for (let tau = 1; tau <= tauMax; tau++) {
         let sum = 0;
         for (let i = 0; i < window; i++) {
             const delta = samples[i] - samples[i + tau];
@@ -108,19 +111,35 @@ export const detectPitch = (frame: Float32Array, sampleRate: number): PitchReadi
         bestTau = minTau;
     }
 
-    const clarity = 1 - cmnd[bestTau];
-    if (clarity < MIN_CLARITY) return null;
+    // A weak fundamental can leave the first threshold minimum at the second
+    // harmonic. Prefer the lower octave only when it is clearly a better
+    // period, so a pure high voice is not pulled down.
+    const doubleTau = bestTau * 2;
+    if (
+        doubleTau <= tauMax &&
+        cmnd[doubleTau] < YIN_THRESHOLD &&
+        cmnd[doubleTau] < cmnd[bestTau] * 0.5 &&
+        cmnd[bestTau] - cmnd[doubleTau] > 0.01
+    ) {
+        bestTau = doubleTau;
+    }
 
-    const left = cmnd[bestTau - 1];
-    const center = cmnd[bestTau];
-    const right = cmnd[bestTau + 1];
-    const denominator = 2 * (2 * center - left - right);
-    const shift = denominator === 0 ? 0 : Math.max(-1, Math.min(1, (right - left) / denominator));
-    const period = bestTau + shift;
-    if (period <= 0) return null;
+    const clarity = 1 - cmnd[bestTau];
+    if (!Number.isFinite(clarity) || clarity < MIN_CLARITY) return null;
+
+    let period = bestTau;
+    if (bestTau > tauMin && bestTau < tauMax) {
+        const left = cmnd[bestTau - 1];
+        const center = cmnd[bestTau];
+        const right = cmnd[bestTau + 1];
+        const denominator = 2 * (2 * center - left - right);
+        const shift = denominator === 0 ? 0 : Math.max(-1, Math.min(1, (right - left) / denominator));
+        period = bestTau + shift;
+    }
+    if (!Number.isFinite(period) || period <= 0) return null;
 
     const f0 = rate / period;
-    if (f0 < MIN_F0 || f0 > MAX_F0) return null;
+    if (!Number.isFinite(f0) || f0 < MIN_F0 || f0 > MAX_F0) return null;
     return { f0, clarity };
 };
 
@@ -141,7 +160,7 @@ export const summarizePitch = (frames: Float32Array[], sampleRate: number): Pitc
     for (let i = 0; i < frames.length; i++) {
         if (rms[i] < noiseFloor) continue;
         const reading = detectPitch(frames[i], sampleRate);
-        if (reading) voiced.push(reading.f0);
+        if (reading && Number.isFinite(reading.f0)) voiced.push(reading.f0);
     }
 
     const totalFrames = frames.length;
