@@ -64,6 +64,7 @@ export const Off = glyph('off', 'Off');
 export const Busy = glyph('busy', 'Busy');
 
 // Things
+export const Mic = glyph('mic', 'Mic');
 export const Lock = glyph('lock', 'Lock');
 export const LockKeyhole = glyph('lock-keyhole', 'LockKeyhole');
 export const Eye = glyph('eye', 'Eye');

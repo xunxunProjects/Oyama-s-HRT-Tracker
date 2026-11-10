@@ -62,8 +62,7 @@ const VOICE_EN = {
     'voice.subtitle': 'Read a fixed sentence and see how close your pitch is to the direction you chose.',
     'voice.mode.transfem': 'Current goal: feminizing',
     'voice.mode.transmasc': 'Current goal: masculinizing',
-    'voice.mode.note':
-        'Follows the HRT mode in Settings. The score reflects pitch only, not every voice feature.',
+    'voice.mode.note': 'Follows the HRT mode in Settings. The score reflects pitch only, not every voice feature.',
     'voice.intro.title': 'What is this score?',
     'voice.intro.body':
         'In a quiet room, read the sentence below for 5 seconds. The app estimates your median speaking pitch and scores it toward your current goal. A higher score means closer to that direction, not a judgment about your gender.',
@@ -102,15 +101,13 @@ const VOICE_EN = {
     'voice.disclaimer':
         'This is a phone-microphone pitch estimate, not a voice-therapy assessment. Pitch is only part of voice; resonance, intonation, and speaking style matter too. Stop if your throat hurts.',
     'voice.evidence.title': 'Evidence',
-    'voice.error.unsupported':
-        'This browser does not support the microphone, or the page is not on HTTPS/localhost.',
+    'voice.error.unsupported': 'This browser does not support the microphone, or the page is not on HTTPS/localhost.',
     'voice.error.permission':
         'Microphone permission was denied. Allow it in the browser or system settings, then try again.',
     'voice.error.no_mic': 'No microphone was found.',
     'voice.error.busy': 'The microphone is in use by another app.',
     'voice.error.too_short': 'The recording was too short. Read for at least 2 seconds.',
-    'voice.error.too_quiet':
-        'The voice was too quiet or the room too noisy to find a clear pitch. Try again.',
+    'voice.error.too_quiet': 'The voice was too quiet or the room too noisy to find a clear pitch. Try again.',
     'voice.error.desktop': 'The desktop build may not support the microphone. Use the browser version.',
     'voice.error.generic': 'Recording failed. Try again.',
     'voice.save_failed': 'Your result is still here, but it could not be saved on this device.',

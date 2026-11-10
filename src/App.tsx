@@ -31,6 +31,7 @@ import {
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
+import Voice from './pages/Voice';
 import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
@@ -963,6 +964,7 @@ const AppContent = () => {
                             supplies={supplies}
                             nowH={nowH}
                             onNavigateToForecast={() => handleViewChange('forecast')}
+                            onNavigateToVoice={() => handleViewChange('voice')}
                             supplyLeadDays={supplyLeadDays}
                             onNavigateToCommunityVote={() => openCommunityVote('home')}
                             onCommunityVoteSignIn={() => signInForCommunityVote('home')}
@@ -995,6 +997,8 @@ const AppContent = () => {
                             onSaveTemplate={addTemplate}
                         />
                     )}
+
+                    {currentView === 'voice' && <Voice onBack={() => handleViewChange('settings')} />}
 
                     {currentView === 'share' && token && (
                         <ShareSettings
@@ -1088,6 +1092,7 @@ const AppContent = () => {
                             onNavigateToPKDemos={() => handleViewChange('settings-pk-viz')}
                             onNavigateToModelGuide={() => handleViewChange('settings-model')}
                             onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
+                            onNavigateToVoice={() => handleViewChange('voice')}
                             onNavigateToLanguage={() => handleViewChange('settings-language')}
                             onNavigateToAppearance={() => handleViewChange('settings-appearance')}
                             onNavigateToWeight={() => handleViewChange('settings-weight')}

@@ -56,6 +56,17 @@ describe('loadVoiceChecks', () => {
 });
 
 describe('addVoiceCheck', () => {
+    it('surfaces a write failure so the page can warn', () => {
+        const storage = {
+            getItem: () => null,
+            setItem: () => {
+                throw new Error('quota');
+            },
+            removeItem: () => {},
+        };
+        expect(() => addVoiceCheck(storage, 'local', 'transfem', check('x'))).toThrow('quota');
+    });
+
     it('prepends and caps the list at 100 newest checks', () => {
         const storage = new MemoryStorage();
         for (let i = 0; i < 105; i++) addVoiceCheck(storage, 'u1', 'transfem', check(String(i), i));

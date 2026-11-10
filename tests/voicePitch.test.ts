@@ -62,7 +62,10 @@ describe('frameRms', () => {
 
 describe('summarizePitch', () => {
     it('aggregates voiced frames and ignores silence', () => {
-        const frames = [...Array.from({ length: 40 }, () => sine(150)), ...Array.from({ length: 10 }, () => new Float32Array(FRAME_SIZE))];
+        const frames = [
+            ...Array.from({ length: 40 }, () => sine(150)),
+            ...Array.from({ length: 10 }, () => new Float32Array(FRAME_SIZE)),
+        ];
         const summary = summarizePitch(frames, SAMPLE_RATE);
         expect(summary).not.toBeNull();
         expect(summary!.medianF0).toBeCloseTo(150, 0);

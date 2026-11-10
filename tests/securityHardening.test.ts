@@ -55,9 +55,7 @@ describe('response privacy headers', () => {
         const response = await request('/api/tool/v1/version');
         expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
         expect(response.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
-        expect(response.headers.get('Permissions-Policy')).toBe(
-            'camera=(), microphone=(self), geolocation=()',
-        );
+        expect(response.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(self), geolocation=()');
     });
 });
 

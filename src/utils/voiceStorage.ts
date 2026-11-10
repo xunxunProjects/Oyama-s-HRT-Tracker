@@ -7,8 +7,7 @@ export const MAX_VOICE_CHECKS = 100;
 
 const PASSAGE_IDS: readonly VoicePassageId[] = ['zh', 'en', 'ru', 'uk'];
 
-const isFiniteNumber = (value: unknown): value is number =>
-    typeof value === 'number' && Number.isFinite(value);
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 export function isVoiceCheck(value: unknown): value is VoiceCheck {
     if (typeof value !== 'object' || value === null) return false;
@@ -41,18 +40,11 @@ export function loadVoiceChecks(storage: StorageLike, owner: string, mode: ModeK
     }
 }
 
-export function addVoiceCheck(
-    storage: StorageLike,
-    owner: string,
-    mode: ModeKey,
-    check: VoiceCheck,
-): VoiceCheck[] {
+export function addVoiceCheck(storage: StorageLike, owner: string, mode: ModeKey, check: VoiceCheck): VoiceCheck[] {
     const next = [check, ...loadVoiceChecks(storage, owner, mode)].slice(0, MAX_VOICE_CHECKS);
-    try {
-        storage.setItem(voiceChecksKey(owner, mode), JSON.stringify(next));
-    } catch {
-        // The caller keeps the result on screen; persistence is best effort.
-    }
+    // Let the caller see a quota/security failure: it keeps the result on
+    // screen and tells the reader it could not be saved.
+    storage.setItem(voiceChecksKey(owner, mode), JSON.stringify(next));
     return next;
 }
 

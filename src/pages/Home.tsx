@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Info, Share, ChevronRight } from '../components/icons';
+import { Info, Share, ChevronRight, Mic } from '../components/icons';
 import {
     DoseEvent,
     Ester,
@@ -57,6 +57,7 @@ interface HomeProps {
     supplies: Supply[];
     nowH: number;
     onNavigateToForecast: () => void;
+    onNavigateToVoice: () => void;
     supplyLeadDays: number;
     /** The medication plan; each item gets a line saying where today stands, and a button that logs its dose. */
     plan: PlanItem[];
@@ -95,6 +96,7 @@ const Home: React.FC<HomeProps> = ({
     supplies,
     nowH,
     onNavigateToForecast,
+    onNavigateToVoice,
     supplyLeadDays,
     plan,
     onLogPlanItem,
@@ -744,6 +746,14 @@ const Home: React.FC<HomeProps> = ({
                                 <ChevronRight size={15} />
                             </button>
                         )}
+                        <button
+                            type="button"
+                            onClick={onNavigateToVoice}
+                            className={`${headerAction} ${muted} tap-target mt-3`}
+                        >
+                            <Mic size={15} />
+                            {t('voice.entry')}
+                        </button>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-10">
@@ -770,7 +780,15 @@ const Home: React.FC<HomeProps> = ({
                     </div>
                 )}
                 {events.length > 0 && (
-                    <div className="mt-6 -mr-2 flex justify-end">
+                    <div className="mt-6 -mr-2 flex justify-end gap-1">
+                        <button
+                            type="button"
+                            onClick={onNavigateToVoice}
+                            className={`${headerActionAccent} tap-target`}
+                        >
+                            <Mic size={15} />
+                            {t('voice.entry')}
+                        </button>
                         <button
                             type="button"
                             onClick={onNavigateToForecast}
