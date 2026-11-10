@@ -196,6 +196,15 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
     merged.pkParams = pk.value;
     merged.pkParamsUpdatedAt = pk.at;
 
+    const model = resolveScalar(
+        local.modelSettings,
+        local.modelSettingsUpdatedAt,
+        remote.modelSettings,
+        remote.modelSettingsUpdatedAt,
+    );
+    merged.modelSettings = model.value;
+    merged.modelSettingsUpdatedAt = model.at;
+
     const mergedFp = fingerprintState(merged);
     return {
         merged,
@@ -223,7 +232,12 @@ export function hasContent(state: SyncState): boolean {
         }
         if ((block.plan?.length ?? 0) > 0 || (block.planUpdatedAt ?? 0) > 1) return true;
     }
-    return state.weightUpdatedAt > 1 || state.birthYearUpdatedAt > 1 || state.pkParamsUpdatedAt > 1;
+    return (
+        state.weightUpdatedAt > 1 ||
+        state.birthYearUpdatedAt > 1 ||
+        state.pkParamsUpdatedAt > 1 ||
+        state.modelSettingsUpdatedAt > 1
+    );
 }
 
 /**
@@ -254,5 +268,6 @@ export function fingerprintState(state: SyncState): string {
     parts.push(`weight:${state.weight === undefined ? '' : stableString(state.weight)}`);
     parts.push(`birthYear:${state.birthYear === undefined ? '' : stableString(state.birthYear)}`);
     parts.push(`pkParams:${state.pkParams === undefined ? '' : stableString(state.pkParams)}`);
+    parts.push(`modelSettings:${state.modelSettings === undefined ? '' : stableString(state.modelSettings)}`);
     return parts.join('\n');
 }

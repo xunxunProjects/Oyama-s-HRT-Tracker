@@ -13,6 +13,9 @@ import {
     sanitizePKParams,
     isPlausibleBodyWeightKG,
     isPlausibleBirthYear,
+    normalizeCalibrationMethod,
+    type CalibrationHistoryMode,
+    type CalibrationMethod,
 } from '../../logic';
 import { MODE_KEYS, ModeKey, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from './syncMerge';
 import { cleanDoseMG } from './cleanDose';
@@ -44,6 +47,58 @@ export interface QuickDose {
     value: number;
     createdAt: number;
 }
+
+/**
+ * The settings that change what the model draws, as opposed to the records it
+ * draws from. Synced as one last-write-wins value: two devices showing the same
+ * log with different estimators (or one with the age beta on) reported two
+ * different levels for the same moment (#293).
+ */
+export interface ModelSettings {
+    calibrationMethod: CalibrationMethod;
+    calibrationHistoryMode: CalibrationHistoryMode;
+    ageBeta: boolean;
+}
+
+/** Before the age beta was per account it lived under this one global key. */
+export const LEGACY_AGE_BETA_KEY = 'app-age-beta';
+
+export const sanitizeModelSettings = (raw: unknown): ModelSettings | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    const method = r.calibrationMethod;
+    if (method !== 'off' && method !== 'ekf' && method !== 'ou_kalman' && method !== 'mipd' && method !== 'bayes') {
+        return null;
+    }
+    if (r.calibrationHistoryMode !== 'forward' && r.calibrationHistoryMode !== 'retrospective') return null;
+    if (typeof r.ageBeta !== 'boolean') return null;
+    return { calibrationMethod: method, calibrationHistoryMode: r.calibrationHistoryMode, ageBeta: r.ageBeta };
+};
+
+/**
+ * What this device has chosen, and when. `undefined` while it has never stored
+ * any of the three: leaving them out then keeps a fresh device's defaults from
+ * overwriting what another device picked. Choices made before these settings
+ * synced carry the floor stamp of 1, so any real edit wins over them.
+ */
+export const readModelSettingsFromStorage = (
+    storage: StorageLike,
+    owner: string,
+): { value: ModelSettings; at: number } | undefined => {
+    const method = storage.getItem(nsFor(owner, 'cal-method'));
+    const history = storage.getItem(nsFor(owner, 'cal-history-mode'));
+    const ageBeta = storage.getItem(nsFor(owner, 'age-beta')) ?? storage.getItem(LEGACY_AGE_BETA_KEY);
+    const at = Number(storage.getItem(nsFor(owner, 'model-settings-at'))) || 0;
+    if (method === null && history === null && ageBeta === null && at === 0) return undefined;
+    return {
+        value: {
+            calibrationMethod: normalizeCalibrationMethod(method),
+            calibrationHistoryMode: history === 'forward' ? 'forward' : 'retrospective',
+            ageBeta: ageBeta === 'true',
+        },
+        at: at || 1,
+    };
+};
 
 export interface ActiveBackupState {
     events: DoseEvent[];
@@ -81,6 +136,9 @@ export interface ExportPayload {
     doseTemplates: DoseTemplate[];
     pkParams: PKCustomParams | null;
     pkParamsUpdatedAt?: number;
+    /** Left out while this device has never chosen any, like the plan. */
+    modelSettings?: ModelSettings;
+    modelSettingsUpdatedAt?: number;
 }
 
 export interface AppliedSyncedState {
@@ -95,6 +153,7 @@ export interface AppliedSyncedState {
     weight?: number;
     birthYear?: number | null;
     pkParams?: PKCustomParams | null;
+    modelSettings?: ModelSettings;
 }
 
 export const MAX_IMPORT_ENTRIES = 20000;
@@ -279,6 +338,8 @@ export const buildExportPayloadFromStorage = (
         ),
     };
 
+    const model = readModelSettingsFromStorage(storage, owner);
+
     return {
         meta: { version: 2, exportedAt },
         mode: activeMode,
@@ -298,6 +359,7 @@ export const buildExportPayloadFromStorage = (
         // Explicitly null when the user cleared them.
         pkParams: active.pkParams ?? null,
         pkParamsUpdatedAt: Number(storage.getItem(nsFor(owner, 'pk-params-at'))) || undefined,
+        ...(model ? { modelSettings: model.value, modelSettingsUpdatedAt: model.at } : {}),
     };
 };
 
@@ -365,6 +427,18 @@ export const applySyncedStateToStorage = (
         else storage.removeItem(nsFor(owner, 'pk-params'));
         if (state.pkParamsUpdatedAt > 0) {
             storage.setItem(nsFor(owner, 'pk-params-at'), String(state.pkParamsUpdatedAt));
+        }
+    }
+    if (state.modelSettings !== undefined) {
+        const next = sanitizeModelSettings(state.modelSettings);
+        if (next) {
+            result.modelSettings = next;
+            storage.setItem(nsFor(owner, 'cal-method'), next.calibrationMethod);
+            storage.setItem(nsFor(owner, 'cal-history-mode'), next.calibrationHistoryMode);
+            storage.setItem(nsFor(owner, 'age-beta'), String(next.ageBeta));
+            if (state.modelSettingsUpdatedAt > 0) {
+                storage.setItem(nsFor(owner, 'model-settings-at'), String(state.modelSettingsUpdatedAt));
+            }
         }
     }
     return result;

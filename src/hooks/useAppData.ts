@@ -22,6 +22,8 @@ import { detectRegimens, dosesAhead, normalizeSupply, Supply } from '../utils/re
 import { PlanItem, normalizePlanItem, legacyCpaItem, regimensFromPlan } from '../utils/plan';
 import {
     DoseTemplate,
+    LEGACY_AGE_BETA_KEY,
+    ModelSettings,
     QuickDose,
     applySyncedStateToStorage,
     buildExportPayloadFromStorage,
@@ -65,6 +67,8 @@ const SHARED_SUFFIXES = [
     'pk-params-at',
     'birth-year',
     'birth-year-at',
+    'age-beta',
+    'model-settings-at',
 ] as const;
 
 /**
@@ -108,12 +112,8 @@ export interface DoseDayGroup {
 
 /**
  * `withPrediction`: run the look-ahead simulation the Overview chart draws past "now". Off by default in Settings.
- * `withAge`: let the year of birth adjust the model (the age beta in Settings, off by default).
  */
-export const useAppData = (
-    showDialog: ShowDialog,
-    { withPrediction = false, withAge = false }: { withPrediction?: boolean; withAge?: boolean } = {},
-) => {
+export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: { withPrediction?: boolean } = {}) => {
     const { t, lang } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
     const { user } = useAuth();
@@ -201,9 +201,23 @@ export const useAppData = (
         setBirthYearState(y);
         localStorage.setItem(sharedKey('birth-year-at'), String(Date.now()));
     };
+    // The estimator, its history mode and the age beta change what the model
+    // draws from the same records, so they sync as one last-write-wins value
+    // (#293). Every user edit stamps it; reloads and sync use the raw setters.
+    const touchModelSettings = () => localStorage.setItem(sharedKey('model-settings-at'), String(Date.now()));
+    // The age beta: lets the year of birth adjust clearance. Off unless
+    // switched on in Settings. It used to be one global key per device.
+    const loadAgeBeta = () =>
+        (localStorage.getItem(sharedKey('age-beta')) ?? localStorage.getItem(LEGACY_AGE_BETA_KEY)) === 'true';
+    const [ageBeta, setAgeBetaState] = useState<boolean>(loadAgeBeta);
+    const setAgeBeta = (v: boolean) => {
+        setAgeBetaState(v);
+        localStorage.setItem(sharedKey('age-beta'), String(v));
+        touchModelSettings();
+    };
     // What the model is given. With the beta off the year of birth is kept,
     // and still synced, but left out, so switching it back on brings it back.
-    const modelBirthYear = withAge ? birthYear : null;
+    const modelBirthYear = ageBeta ? birthYear : null;
     const [labResults, setLabResults] = useState<LabResult[]>(() =>
         loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]),
     );
@@ -214,6 +228,7 @@ export const useAppData = (
     const setCalibrationMethod = (m: CalibrationMethod) => {
         setCalibrationMethodState(m);
         localStorage.setItem(sharedKey('cal-method'), m);
+        touchModelSettings();
     };
     const [calibrationHistoryMode, setCalibrationHistoryModeState] = useState<CalibrationHistoryMode>(() => {
         const saved = localStorage.getItem(sharedKey('cal-history-mode'));
@@ -222,6 +237,7 @@ export const useAppData = (
     const setCalibrationHistoryMode = (m: CalibrationHistoryMode) => {
         setCalibrationHistoryModeState(m);
         localStorage.setItem(sharedKey('cal-history-mode'), m);
+        touchModelSettings();
     };
     const [doseTemplates, setDoseTemplates] = useState<DoseTemplate[]>(() =>
         loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]),
@@ -305,6 +321,7 @@ export const useAppData = (
         setCalibrationHistoryModeState(
             localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective',
         );
+        setAgeBetaState(loadAgeBeta());
         setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope]);
@@ -828,6 +845,7 @@ export const useAppData = (
         if (result.calibration) {
             setCalibrationMethodState(result.calibration.method);
             setCalibrationHistoryModeState(result.calibration.historyMode);
+            touchModelSettings();
         }
         return result;
     };
@@ -858,6 +876,7 @@ export const useAppData = (
         if (result.pkParams !== undefined) setPkParamsState(result.pkParams);
         setCalibrationMethodState(result.calibration.method);
         setCalibrationHistoryModeState(result.calibration.historyMode);
+        touchModelSettings();
         return result;
     };
 
@@ -883,7 +902,18 @@ export const useAppData = (
         if (applied.weight !== undefined) setWeightState(applied.weight);
         if (applied.birthYear !== undefined) setBirthYearState(applied.birthYear);
         if (applied.pkParams !== undefined) setPkParamsState(applied.pkParams);
+        if (applied.modelSettings !== undefined) {
+            setCalibrationMethodState(applied.modelSettings.calibrationMethod);
+            setCalibrationHistoryModeState(applied.modelSettings.calibrationHistoryMode);
+            setAgeBetaState(applied.modelSettings.ageBeta);
+        }
     };
+
+    // A change of any of the three, for cloud sync to schedule a push on.
+    const modelSettings = useMemo<ModelSettings>(
+        () => ({ calibrationMethod, calibrationHistoryMode, ageBeta }),
+        [calibrationMethod, calibrationHistoryMode, ageBeta],
+    );
 
     return {
         events,
@@ -905,6 +935,9 @@ export const useAppData = (
         setCalibrationMethod,
         calibrationHistoryMode,
         setCalibrationHistoryMode,
+        ageBeta,
+        setAgeBeta,
+        modelSettings,
         calibration,
         currentLevel,
         currentCPA,

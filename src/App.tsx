@@ -102,13 +102,6 @@ const AppContent = () => {
         localStorage.setItem('app-show-prediction', String(showPrediction));
     }, [showPrediction]);
 
-    // --- Age adjustment (beta): lets the year of birth adjust clearance.
-    // Off unless switched on in Settings, and kept on this device. ---
-    const [ageBeta, setAgeBeta] = useState<boolean>(() => localStorage.getItem('app-age-beta') === 'true');
-    useEffect(() => {
-        localStorage.setItem('app-age-beta', String(ageBeta));
-    }, [ageBeta]);
-
     // Use Custom Hooks
     const {
         events,
@@ -125,6 +118,9 @@ const AppContent = () => {
         setCalibrationMethod,
         calibrationHistoryMode,
         setCalibrationHistoryMode,
+        ageBeta,
+        setAgeBeta,
+        modelSettings,
         calibration,
         currentLevel,
         currentCPA,
@@ -168,7 +164,7 @@ const AppContent = () => {
         supplies,
         saveSupply,
         deleteSupply,
-    } = useAppData(showDialog, { withPrediction: showPrediction, withAge: ageBeta });
+    } = useAppData(showDialog, { withPrediction: showPrediction });
     const nowH = currentTime.getTime() / 3600000;
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
     const [supplyLeadDays, setSupplyLeadDaysState] = useState(
@@ -348,6 +344,7 @@ const AppContent = () => {
         birthYear,
         pkParams,
         plan,
+        modelSettings,
     });
 
     // --- Theme Effect ---
