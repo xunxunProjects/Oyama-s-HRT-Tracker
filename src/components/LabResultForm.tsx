@@ -5,7 +5,7 @@ import { LabResult, LabAssay, LAB_ASSAYS, isT_LabUnit, convertToPgMl, convertToN
 import { Check, Trash } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from './DateTimePicker';
-import { SelectChevron } from './CustomSelect';
+import CustomSelect, { SelectChevron } from './CustomSelect';
 import Segmented from './Segmented';
 import { LOCALE_MAP } from '../utils/helpers';
 import { clinicalUnit } from '../utils/clinicalUnit';
@@ -255,18 +255,16 @@ const LabResultForm: React.FC<LabResultFormProps> = ({
 
                 {/* How it was measured. Optional, and for both hormones of a
                     draw at once: one blood sample goes through one lab. */}
-                <div className={`py-[18px] ${divider}`}>
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-[var(--text)]">{t('lab.assay')}</span>
-                        <Segmented<AssayChoice>
-                            options={ASSAY_CHOICES.map(a => ({ id: a, label: t(`lab.assay.${a}`) }))}
-                            value={assay}
-                            onChange={setAssay}
-                            aria-label={t('lab.assay')}
-                        />
-                    </div>
+                <div className={`pt-1.5 pb-[18px] ${divider}`}>
+                    <CustomSelect
+                        inline
+                        label={t('lab.assay')}
+                        value={assay}
+                        onChange={v => setAssay(v as AssayChoice)}
+                        options={ASSAY_CHOICES.map(a => ({ value: a, label: t(`lab.assay.${a}`) }))}
+                    />
                     {/* One line on the chosen method, so the choice can be made without looking it up. */}
-                    <p className="text-xs text-[var(--text-muted)] pt-2">{t(`lab.assay_desc.${assay}`)}</p>
+                    <p className="text-xs text-[var(--text-muted)] pt-0.5">{t(`lab.assay_desc.${assay}`)}</p>
                 </div>
                 {!resultToEdit && <p className="text-xs text-[var(--text-muted)] pt-2">{t('lab.dual_hint')}</p>}
             </div>
