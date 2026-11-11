@@ -127,6 +127,28 @@
     mix-blend-mode: normal;
 }
 
+/* Scrolled out of the way while a page is read (BottomNav's useScrollAway):
+   it eases down past the screen's edge and back, never bounces. Someone
+   moving through it with a keyboard keeps it in view. */
+.bottom-nav {
+    transition:
+        translate var(--duration-slow) var(--ease-out),
+        opacity var(--duration-slow) var(--ease-out);
+}
+.bottom-nav[data-hidden]:not(:focus-within) {
+    translate: 0 calc(100% + 0.75rem + env(safe-area-inset-bottom, 0px));
+    opacity: 0;
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .bottom-nav {
+        transition: opacity var(--duration-base) var(--ease-standard);
+    }
+    .bottom-nav[data-hidden]:not(:focus-within) {
+        translate: none;
+    }
+}
+
 @keyframes slide-in-from-end {
     from {
         transform: translateX(calc(100% * var(--move-dir)));

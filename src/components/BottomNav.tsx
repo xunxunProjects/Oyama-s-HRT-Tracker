@@ -22,12 +22,18 @@ interface NavTab {
  * strings give the page, so it stays, and its tab takes a few pixels more
  * than the rest. Each tab is rounded so the focus ring nests in the island
  * instead of cutting a square into the next tab's pill.
+ *
+ * Reading down a long page, the bar slides out of the way so it no longer
+ * sits over what's being read; a short scroll back up, the top of the page or
+ * its end brings it back, and so does every new page. `pageKey` is the page
+ * being shown, so the bar knows when that happens.
  */
 const BottomNav: React.FC<{
     tabs: NavTab[];
     activeTab: string;
     onSelect: (id: string) => void;
-}> = ({ tabs, activeTab, onSelect }) => {
+    pageKey?: string;
+}> = ({ tabs, activeTab, onSelect, pageKey }) => {
     const navRef = useRef<HTMLElement>(null);
     const rowRef = useRef<HTMLDivElement>(null);
     const marks = useRef<Record<string, HTMLSpanElement | null>>({});
@@ -81,6 +87,8 @@ const BottomNav: React.FC<{
         };
     }, []);
 
+    const hidden = useScrollAway(pageKey);
+
     useEffect(() => {
         if (!pill || placed) return;
         const frame = requestAnimationFrame(() => setPlaced(true));
@@ -90,6 +98,7 @@ const BottomNav: React.FC<{
     return (
         <nav
             ref={navRef}
+            data-hidden={hidden ? '' : undefined}
             className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]"
         >
             <div ref={rowRef} className="relative flex items-stretch p-1.5 gap-0.5">
@@ -127,5 +136,51 @@ const BottomNav: React.FC<{
         </nav>
     );
 };
+
+/** How far the page must move one way before the bar follows, so a finger
+ * resting on the glass or a small correction doesn't make it flicker. */
+const TRAVEL = 24;
+/** Near the top of a page the bar always shows. */
+const TOP = 48;
+
+/**
+ * Whether the bar should be out of the way: true once the page has been
+ * scrolled down a little, false again after a little scroll up, at the top,
+ * at the end, or on a new page. Any scroller counts, the page area or one
+ * inside it, since scroll events are caught on their way down.
+ */
+function useScrollAway(pageKey?: string): boolean {
+    // Hidden on the page it was hidden on; a new page starts with it shown.
+    const [hiddenOn, setHiddenOn] = useState<string | undefined | null>(null);
+
+    useEffect(() => {
+        const setHidden = (hide: boolean) => setHiddenOn(hide ? pageKey : null);
+        const last = new WeakMap<EventTarget, number>();
+        let travel = 0;
+        const onScroll = (e: Event) => {
+            const el = e.target instanceof Element ? e.target : (document.scrollingElement ?? document.documentElement);
+            const top = el.scrollTop;
+            const prev = last.get(el);
+            last.set(el, top);
+            // A sideways scroller (a chart, a row of chips) moves no rows.
+            if (prev === undefined || top === prev) return;
+            const max = el.scrollHeight - el.clientHeight;
+            if (top <= TOP || top >= max - 2) {
+                travel = 0;
+                setHidden(false);
+                return;
+            }
+            const delta = top - prev;
+            // Start counting again whenever the direction turns.
+            travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
+            if (travel > TRAVEL) setHidden(true);
+            else if (travel < -TRAVEL) setHidden(false);
+        };
+        document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+        return () => document.removeEventListener('scroll', onScroll, { capture: true });
+    }, [pageKey]);
+
+    return hiddenOn !== null && hiddenOn === pageKey;
+}
 
 export default BottomNav;
