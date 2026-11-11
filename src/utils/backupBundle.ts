@@ -370,10 +370,15 @@ const isLang = (value: unknown): value is Lang =>
     value === 'ru' ||
     value === 'uk';
 
-// `bayes` is website-only for now: hrt-cold Tools rejects it (see
+// `bayes` and `mcmc` are website-only for now: hrt-cold Tools rejects them (see
 // docs/backup-schema-audit/BACKUP_TEST_VECTORS.md, BTV-1).
 const isCalibrationMethodValue = (value: unknown): value is CalibrationMethod =>
-    value === 'off' || value === 'ekf' || value === 'ou_kalman' || value === 'mipd' || value === 'bayes';
+    value === 'off' ||
+    value === 'ekf' ||
+    value === 'ou_kalman' ||
+    value === 'mipd' ||
+    value === 'bayes' ||
+    value === 'mcmc';
 
 const isCalibrationHistoryMode = (value: unknown): value is CalibrationHistoryMode =>
     value === 'forward' || value === 'retrospective';

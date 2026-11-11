@@ -1,8 +1,8 @@
-import type { LabAssay, LabResult, SimulationResult } from '../types';
+import type { LabAssay, LabResult, Route, SimulationResult } from '../types';
 import { convertToPgMl, isT_LabUnit } from '../labs';
 import { interpolateConcentration_E2 } from '../simulation/interpolate';
 
-export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd' | 'bayes';
+export type CalibrationMethod = 'off' | 'ekf' | 'ou_kalman' | 'mipd' | 'bayes' | 'mcmc';
 
 /**
  * How newly-added labs are allowed to act on the historical curve.
@@ -16,7 +16,8 @@ export type CalibrationHistoryMode = 'forward' | 'retrospective';
 
 /** Map legacy stored method ids onto the current estimator set. */
 export function normalizeCalibrationMethod(raw: string | null | undefined): CalibrationMethod {
-    if (raw === 'off' || raw === 'ekf' || raw === 'ou_kalman' || raw === 'mipd' || raw === 'bayes') return raw;
+    if (raw === 'off' || raw === 'ekf' || raw === 'ou_kalman' || raw === 'mipd' || raw === 'bayes' || raw === 'mcmc')
+        return raw;
     if (raw === 'average') return 'mipd'; // amplitude-only LS → MAP with prior
     if (raw === 'adaptive') return 'ekf'; // amplitude + clearance fit → EKF
     return 'mipd';
@@ -120,6 +121,12 @@ export interface CalibrationResult {
     discounted?: number;
     /** Full Bayes only: posterior probability of each drift memory: none, ~2 weeks, ~3 months, ~1 year. */
     drift?: Record<BayesDriftFamily, number>;
+    /** Personal PK only: personal absorption-rate multiplier (1 = the model's uptake speed). */
+    absMul?: number;
+    /** Personal PK only, with more than one route: each route's personal level multiplier. */
+    routeScales?: Partial<Record<Route, number>>;
+    /** Personal PK only: worst split R-hat over the sampled parameters (near 1 = the chains agree). */
+    rHat?: number;
 }
 
 export type BayesDriftFamily = 'none' | 'weeks' | 'months' | 'year';

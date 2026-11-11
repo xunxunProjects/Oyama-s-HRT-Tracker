@@ -90,5 +90,6 @@ export const Flower = glyph('flower', 'Flower');
 export const Gauge = glyph('gauge', 'Gauge');
 export const Radar = glyph('radar', 'Radar');
 export const Wind = glyph('wind', 'Wind');
+export const Samples = glyph('samples', 'Samples');
 export const Rewind = glyph('rewind', 'Rewind');
 export const FastForward = glyph('fast-forward', 'FastForward');

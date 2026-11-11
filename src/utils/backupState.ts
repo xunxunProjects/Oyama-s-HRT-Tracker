@@ -67,7 +67,14 @@ export const sanitizeModelSettings = (raw: unknown): ModelSettings | null => {
     if (!raw || typeof raw !== 'object') return null;
     const r = raw as Record<string, unknown>;
     const method = r.calibrationMethod;
-    if (method !== 'off' && method !== 'ekf' && method !== 'ou_kalman' && method !== 'mipd' && method !== 'bayes') {
+    if (
+        method !== 'off' &&
+        method !== 'ekf' &&
+        method !== 'ou_kalman' &&
+        method !== 'mipd' &&
+        method !== 'bayes' &&
+        method !== 'mcmc'
+    ) {
         return null;
     }
     if (r.calibrationHistoryMode !== 'forward' && r.calibrationHistoryMode !== 'retrospective') return null;

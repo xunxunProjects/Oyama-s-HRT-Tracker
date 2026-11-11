@@ -9,6 +9,7 @@ import {
     Radar,
     Wind,
     Merge,
+    Samples,
     Rewind,
     FastForward,
     type IconComponent,
@@ -41,7 +42,9 @@ interface MethodDef {
 // hrt.transmtf.com (EKF parameter learning, OU-Kalman dynamic calibration,
 // Hybrid-MIPD Bayesian fit), reimplemented over this engine's two identifiable
 // parameters: a personal amplitude and a personal clearance. Full Bayes is this
-// app's own: it averages over several of those stories at once.
+// app's own: it averages over several of those stories at once. Personal PK is
+// also this app's own: a level per route, clearance and absorption speed,
+// sampled by MCMC.
 const METHODS: MethodDef[] = [
     { value: 'off', icon: Off, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
     {
@@ -64,10 +67,16 @@ const METHODS: MethodDef[] = [
         pros: ['cal.bayes.pro.1', 'cal.bayes.pro.2'],
         cons: ['cal.bayes.con.1'],
     },
+    {
+        value: 'mcmc',
+        icon: Samples,
+        pros: ['cal.mcmc.pro.1', 'cal.mcmc.pro.2'],
+        cons: ['cal.mcmc.con.1'],
+    },
 ];
 
-// EKF, MIPD and Full Bayes fit a personal clearance; OU-Kalman corrects amplitude only.
-const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd' || m === 'bayes';
+// EKF, MIPD, Full Bayes and Personal PK fit a personal clearance; OU-Kalman corrects amplitude only.
+const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd' || m === 'bayes' || m === 'mcmc';
 
 // The drift memory the labs favour most, for the Full Bayes summary.
 const likeliestDrift = (drift: Record<BayesDriftFamily, number>): [BayesDriftFamily, number] =>
@@ -146,7 +155,10 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
     const latestLabH = calibration.points.length ? calibration.points[calibration.points.length - 1].timeH : null;
     const stats: { label: string; value: string }[] = showFit
         ? [
-              { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
+              // With a level per route, those rows replace the single amplitude.
+              ...(calibration.routeScales
+                  ? []
+                  : [{ label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` }]),
               ...(calibration.latestInterval && latestLabH !== null
                   ? [
                         {
@@ -158,6 +170,13 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
               ...(fitsClearance(method)
                   ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }]
                   : []),
+              ...(calibration.absMul !== undefined
+                  ? [{ label: t('cal.absorption'), value: signedPct((calibration.absMul - 1) * 100) }]
+                  : []),
+              ...Object.entries(calibration.routeScales ?? {}).map(([route, v]) => ({
+                  label: t(`cal.route.${route}`),
+                  value: `×${(v as number).toFixed(2)}`,
+              })),
               ...(drift
                   ? [
                         {

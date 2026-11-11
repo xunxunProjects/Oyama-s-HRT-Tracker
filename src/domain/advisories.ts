@@ -440,4 +440,9 @@ export function getHormoneLevelAdvisory(results: LabResult[]): HormoneLevelAdvis
  *                  level and the curve's slope at the draw time, and a Laplace
  *                  posterior that gives the forecast a real uncertainty band.
  *                  See `bayesCalibrate`.
+ *  - 'mcmc'      : Personal PK. Also original to this app. A level per route
+ *                  (hierarchical around one personal level), a personal
+ *                  clearance and a personal absorption rate, sampled with
+ *                  adaptive Metropolis MCMC; the curve is the posterior mean.
+ *                  No drift. See `mcmcCalibrate`.
  */

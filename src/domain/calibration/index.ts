@@ -13,6 +13,7 @@ import {
     piecewiseFactor,
 } from './estimators';
 import { bayesCalibrate } from './bayes';
+import { mcmcCalibrate } from './mcmc';
 
 export type {
     BayesDriftFamily,
@@ -54,6 +55,13 @@ export function computeCalibration(
     if (method === 'ou_kalman') {
         const out = ouCalibrate(points, historyMode);
         return { method, ...out, fitErrPct: curveFitErrPct(points, out.factorFn), n, points };
+    }
+
+    // Personal PK samples its own (route, clearance, absorption) model and
+    // builds its own grid; it does not use the clearance field.
+    if (method === 'mcmc') {
+        const out = mcmcCalibrate(baselineSim, events, bodyWeightKG, birthYear, points, historyMode);
+        return { method, ...out, n, fitErrPct: curveFitErrPct(points, out.factorFn), points };
     }
 
     // EKF, MIPD and Full Bayes identify amplitude + clearance; all share the

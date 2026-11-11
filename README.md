@@ -98,7 +98,7 @@ See [DONATE.md](./DONATE.md) for how donations are split (40% project, 30% @fant
 ## Lab results
 
 - Log blood test results and see them on the curve next to the estimate
-- Calibrate the estradiol model to you with EKF, OU-Kalman, MIPD or Full Bayes, or edit its parameters by hand
+- Calibrate the estradiol model to you with EKF, OU-Kalman, MIPD, Full Bayes or Personal PK (a level per route, clearance and absorption speed, sampled with MCMC), or edit its parameters by hand
 
 ## Supplies
 

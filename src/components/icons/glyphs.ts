@@ -329,6 +329,18 @@ export const GLYPHS = {
         'M3.8 16.9c2.4-.05 4.7 0 7-.05',
     ],
 
+    // A personal model sampled many times over: one curve with the scatter
+    // of draws it was read from.
+    samples: [
+        'M3.7 17.6c2.3-.1 3.4-1.6 4.4-4.4 1.1-3.2 2.2-7.1 4-7.2 1.9-.1 2.9 3.6 4.1 6.6 1 2.5 2.2 4.1 4.2 4.9',
+        { d: 'M6.6 10.2h.05', dot: true },
+        { d: 'M11.9 2.9h.05', dot: true },
+        { d: 'M15.4 7.6h.05', dot: true },
+        { d: 'M18.3 11.4h.05', dot: true },
+        { d: 'M9.6 16.3h.05', dot: true },
+        { d: 'M14.2 15.9h.05', dot: true },
+    ],
+
     // ── calibration history modes ───────────────────────────────────────
     // Retrospective re-reads the whole past with every lab: two marks pointing
     // back. Forward only moves on: the same pair, pointing ahead. The pair
