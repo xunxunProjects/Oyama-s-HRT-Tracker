@@ -73,6 +73,7 @@ import Disclaimer from './pages/Disclaimer';
 import OpSec from './pages/OpSec';
 import PKDemos from './pages/PKDemos';
 import ModelGuide from './pages/ModelGuide';
+import CalibrationGuide from './pages/CalibrationGuide';
 import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
 import CatStates from './pages/CatStates';
 import Simulator from './pages/Simulator';
@@ -1057,8 +1058,13 @@ const AppContent = () => {
                             historyMode={calibrationHistoryMode}
                             setHistoryMode={setCalibrationHistoryMode}
                             calibration={calibration}
+                            onOpenGuide={() => handleViewChange('lab-calibration-guide')}
                             onBack={() => handleViewChange('lab')}
                         />
+                    )}
+
+                    {currentView === 'lab-calibration-guide' && (
+                        <CalibrationGuide weight={weight} onBack={() => handleViewChange('lab-calibration')} />
                     )}
 
                     {currentView === 'settings' && (

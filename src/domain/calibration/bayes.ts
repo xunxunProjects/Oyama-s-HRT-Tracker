@@ -1,5 +1,5 @@
 import type { BayesDriftFamily, CalibrationHistoryMode, CalibrationPoint, CalibrationResult } from './types';
-import type { LabAssay } from '../types';
+import type { LabAssay, SimulationResult } from '../types';
 import { interpolateConcentration_E2 } from '../simulation/interpolate';
 import type { ClearanceField } from './estimators';
 import {
@@ -76,6 +76,23 @@ export const BAYES_SLOPE_STEP_H = 0.25;
 /** A lab is reported as discounted when its posterior-averaged Student-t weight falls below this. */
 export const BAYES_DISCOUNTED_WEIGHT = 0.5;
 export const Z90 = 1.6448536269514722;
+
+/**
+ * One lab's log-scale SD: the plateau floor, the assay's additive floor relative
+ * to the reading, and the draw-time error times the baseline curve's local
+ * log-slope, capped at BAYES_MAX_LAB_SD.
+ */
+export function labLogSd(baselineSim: SimulationResult, p: CalibrationPoint): number {
+    const floor = BAYES_ASSAY_FLOOR_PGML[p.assay ?? 'unknown'];
+    const before = interpolateConcentration_E2(baselineSim, p.timeH - BAYES_SLOPE_STEP_H);
+    const after = interpolateConcentration_E2(baselineSim, p.timeH + BAYES_SLOPE_STEP_H);
+    const slope =
+        before !== null && after !== null && before > 0 && after > 0
+            ? (Math.log(after) - Math.log(before)) / (2 * BAYES_SLOPE_STEP_H)
+            : 0;
+    const variance = CAL_MEAS_SD ** 2 + (floor / p.obs) ** 2 + (BAYES_DRAW_TIME_SD_H * slope) ** 2;
+    return Math.min(BAYES_MAX_LAB_SD, Math.sqrt(variance));
+}
 
 export interface BayesHypothesis {
     share: number;
@@ -583,17 +600,7 @@ export function bayesCalibrate(
 ): Omit<CalibrationResult, 'method' | 'n' | 'fitErrPct' | 'points'> {
     const n = points.length;
     const labTimes = points.map(p => p.timeH);
-    const sigma = points.map(p => {
-        const floor = BAYES_ASSAY_FLOOR_PGML[p.assay ?? 'unknown'];
-        const before = interpolateConcentration_E2(field.baselineSim, p.timeH - BAYES_SLOPE_STEP_H);
-        const after = interpolateConcentration_E2(field.baselineSim, p.timeH + BAYES_SLOPE_STEP_H);
-        const slope =
-            before !== null && after !== null && before > 0 && after > 0
-                ? (Math.log(after) - Math.log(before)) / (2 * BAYES_SLOPE_STEP_H)
-                : 0;
-        const variance = CAL_MEAS_SD ** 2 + (floor / p.obs) ** 2 + (BAYES_DRAW_TIME_SD_H * slope) ** 2;
-        return Math.min(BAYES_MAX_LAB_SD, Math.sqrt(variance));
-    });
+    const sigma = points.map(p => labLogSd(field.baselineSim, p));
     const data: BayesData = { field, logObs: points.map(p => Math.log(p.obs)), sigma, labTimes };
 
     const full = bayesMixture(data, n);

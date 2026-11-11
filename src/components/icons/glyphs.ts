@@ -329,6 +329,17 @@ export const GLYPHS = {
         'M3.8 16.9c2.4-.05 4.7 0 7-.05',
     ],
 
+    // A personal model read from many random draws: a pair of dice.
+    dice: [
+        'M3.6 10.6c2.8-.2 5.6-.2 8.5 0 .2 2.9.2 5.8 0 8.7-2.8.2-5.7.2-8.5 0-.2-2.9-.2-5.8 0-8.7z',
+        'M12.6 3.8c2.6-.2 5.2-.2 7.8 0 .2 2.7.2 5.3 0 8-2.6.2-5.2.2-7.8 0-.2-2.7-.2-5.3 0-8z',
+        { d: 'M6.1 13.1h.05', dot: true },
+        { d: 'M9.7 16.8h.05', dot: true },
+        { d: 'M14.9 6.1h.05', dot: true },
+        { d: 'M16.5 7.8h.05', dot: true },
+        { d: 'M18.1 9.5h.05', dot: true },
+    ],
+
     // ── calibration history modes ───────────────────────────────────────
     // Retrospective re-reads the whole past with every lab: two marks pointing
     // back. Forward only moves on: the same pair, pointing ahead. The pair

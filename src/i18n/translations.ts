@@ -786,12 +786,51 @@ export const TRANSLATIONS_BASE = {
         'cal.bayes.pro.1': '由化验结果判断水平是固定还是在漂移',
         'cal.bayes.pro.2': '考虑检测方法与抽血时间；给出真实的可能范围',
         'cal.bayes.con.1': '本应用自有的方法，不在 hrt.transmtf.com 的模型之列；计算最慢',
+        'cal.mcmc': '个人药代',
+        'cal.desc.mcmc':
+            '为你估一套自己的药代参数：每种给药途径各自的水平、清除速度和吸收速度，用 MCMC 采样得到完整的后验，曲线是所有可能情况的平均。',
+        'cal.mcmc.pro.1': '不同给药途径分开校准，比如舌下偏低、注射偏高',
+        'cal.mcmc.pro.2': '能看出吸收快慢，峰值和谷值的位置会跟着变',
+        'cal.mcmc.con.1': '本应用自有的方法，仍在验证；不考虑随时间的漂移',
+        'cal.absorption': '吸收速度',
+        'cal.route.injection': '注射',
+        'cal.route.oral': '口服',
+        'cal.route.sublingual': '舌下',
+        'cal.route.gel': '凝胶',
+        'cal.route.patchApply': '贴片',
+        'cal_guide.title': '校准方法讲解',
+        'cal_guide.entry': '这些方法是怎么算的',
+        'cal_guide.lead':
+            '化验结果和模型不一样时，校准会把曲线往化验那边挪。六种方法挪的方式不同，下面的图和公式都是应用里真实在用的计算。',
+        'cal_guide.try.title': '试一试',
+        'cal_guide.try.text': '每周注射 5 mg 戊酸雌二醇，后半段抽了几次血。拖动下面的控件，看每种方法怎么回应。',
+        'cal_guide.method': '方法',
+        'cal_guide.caption': '虚线是原始模型，阴影是 90% 的可能范围，菱形是化验',
+        'cal_guide.level': '化验比模型高多少',
+        'cal_guide.change': '第四次起水平变成',
+        'cal_guide.count': '化验次数',
+        'cal_guide.wrong': '有一次化验测错了',
+        'cal_guide.try_this': '在上面的图里试试',
+        'cal_guide.off': '不校准，直接显示模型。适合想看模型本身，或者还没有化验的时候。',
+        'cal_guide.mipd':
+            '找一个最合适的个人倍数和清除速度，同时被群体平均拉住。化验少时变化小，三次以上分散的化验才会改半衰期，单个离群值会被降权。',
+        'cal_guide.ekf':
+            '按时间顺序一次处理一个化验，每次都在上一次的估计上修正一点，并记住自己有多确定。旧化验会一直留着影响。',
+        'cal_guide.ou_kalman': '认为你和模型的差别会随时间漂移，两周左右就回到模型。只改水平，不改曲线形状。',
+        'cal_guide.bayes':
+            '同时考虑几种说法：差别固定，或者在两周、三个月、一年内漂移。按化验对每种说法的支持程度加权平均，并给出可能范围。',
+        'cal_guide.mcmc':
+            '给你估一整套自己的药代参数：每种给药途径各自的水平、清除速度和吸收速度。没有公式能直接解出来，所以用 MCMC 随机抽几千组参数，曲线是它们的平均。',
+        'cal_guide.noise.title': '每次化验有多可信',
+        'cal_guide.noise.text':
+            '全贝叶斯和个人药代给每次化验算一个误差。免疫法在低浓度下不准，抽血时间记得不精确时曲线越陡影响越大，所以这些化验分量更轻。',
         'cal.history': '应用于历史',
         'cal.forward': '前向',
         'cal.retrospective': '回顾',
         'cal.desc.forward': '因果方式——每个时点只使用当时已有的血检，新增血检不会改写过去的估计。',
         'cal.desc.retrospective': '平滑方式——用全部血检重新估计整段历史。事后更准确；新血检可能修正较早的估计。',
-        'cal.source': 'EKF、OU-Kalman 与 Hybrid-MIPD 借鉴自 hrt.transmtf.com 的校准模型；全贝叶斯为本应用自有。',
+        'cal.source':
+            'EKF、OU-Kalman 与 Hybrid-MIPD 借鉴自 hrt.transmtf.com 的校准模型；全贝叶斯与个人药代为本应用自有。',
         'cal.amplitude': '幅度',
         'cal.halflife': '半衰期',
         'cal.fit': '拟合',
@@ -2113,6 +2152,47 @@ export const TRANSLATIONS_BASE = {
         'cal.bayes.pro.1': 'Lets your labs decide whether your level is fixed or drifting',
         'cal.bayes.pro.2': 'Accounts for assay and draw time; gives an honest likely range',
         'cal.bayes.con.1': "This app's own method, not one of the hrt.transmtf.com models; the slowest to compute",
+        'cal.mcmc': 'Personal PK',
+        'cal.desc.mcmc':
+            'Fits a set of pharmacokinetics that is yours: a level for each route, clearance and absorption speed, sampled with MCMC for a full posterior. The curve is the average over every likely version.',
+        'cal.mcmc.pro.1': 'Calibrates each route on its own, e.g. sublingual low but injections high',
+        'cal.mcmc.pro.2': 'Learns how fast you absorb, so peaks and troughs move too',
+        'cal.mcmc.con.1': "This app's own method and still being checked; does not model drift over time",
+        'cal.absorption': 'absorption speed',
+        'cal.route.injection': 'injection',
+        'cal.route.oral': 'oral',
+        'cal.route.sublingual': 'sublingual',
+        'cal.route.gel': 'gel',
+        'cal.route.patchApply': 'patch',
+        'cal_guide.title': 'How calibration works',
+        'cal_guide.entry': 'How these methods work',
+        'cal_guide.lead':
+            'When your labs differ from the model, calibration moves the curve towards them. The six methods move it in different ways; every picture and formula below is the calculation the app really runs.',
+        'cal_guide.try.title': 'Try it',
+        'cal_guide.try.text':
+            'Weekly 5 mg estradiol valerate, with a few labs in the second half. Move the controls and watch how each method responds.',
+        'cal_guide.method': 'Method',
+        'cal_guide.caption': 'Dashed is the raw model, the wash is the 90% likely range, diamonds are labs',
+        'cal_guide.level': 'Labs compared with the model',
+        'cal_guide.change': 'From the fourth lab the level becomes',
+        'cal_guide.count': 'Number of labs',
+        'cal_guide.wrong': 'One lab was measured wrong',
+        'cal_guide.try_this': 'Try it in the picture above',
+        'cal_guide.off':
+            'No calibration: the model as it is. Useful to see the model itself, or before you have any labs.',
+        'cal_guide.mipd':
+            'Finds the best personal scale and clearance while the population average holds it back. Few labs move it little; three or more spread out labs can change the half-life, and a single outlier is discounted.',
+        'cal_guide.ekf':
+            'Takes your labs one at a time in order, nudging the last estimate each time and keeping track of how sure it is. Old labs keep their say for good.',
+        'cal_guide.ou_kalman':
+            'Treats the difference from the model as something that drifts and returns to the model within about two weeks. It corrects the level only, not the shape.',
+        'cal_guide.bayes':
+            'Weighs several stories at once: a fixed difference, or one that drifts over two weeks, three months or a year. It averages them by how well your labs support each, and gives a likely range.',
+        'cal_guide.mcmc':
+            'Fits a whole set of pharmacokinetics that is yours: a level for each route, clearance and absorption speed. No formula solves it directly, so MCMC draws thousands of possible sets at random and the curve is their average.',
+        'cal_guide.noise.title': 'How much each lab counts',
+        'cal_guide.noise.text':
+            'Full Bayes and Personal PK give each lab its own error. Immunoassays are less accurate at low levels, and an inexact draw time matters more where the curve is steep, so those labs count for less.',
         'cal.history': 'Applied to history',
         'cal.forward': 'Forward',
         'cal.retrospective': 'Retrospective',
@@ -2121,7 +2201,7 @@ export const TRANSLATIONS_BASE = {
         'cal.desc.retrospective':
             'Smoothed — all labs re-estimate the whole history. More accurate in hindsight; a new lab can revise older estimates.',
         'cal.source':
-            "EKF, OU-Kalman and Hybrid-MIPD mirror the calibration models on hrt.transmtf.com; Full Bayes is this app's own.",
+            "EKF, OU-Kalman and Hybrid-MIPD mirror the calibration models on hrt.transmtf.com; Full Bayes and Personal PK are this app's own.",
         'cal.amplitude': 'amplitude',
         'cal.halflife': 'half-life',
         'cal.fit': 'fit',
@@ -3408,12 +3488,50 @@ const ZH_TW = {
     'cal.bayes.pro.1': '由檢驗結果判斷水準是固定還是在漂移',
     'cal.bayes.pro.2': '考慮檢測方法與抽血時間；給出真實的可能範圍',
     'cal.bayes.con.1': '本應用自有的方法，不在 hrt.transmtf.com 的模型之列；計算最慢',
+    'cal.mcmc': '個人藥代',
+    'cal.desc.mcmc':
+        '為你估一套自己的藥代參數：每種給藥途徑各自的水準、清除速度和吸收速度，用 MCMC 取樣得到完整的後驗，曲線是所有可能情況的平均。',
+    'cal.mcmc.pro.1': '不同給藥途徑分開校準，例如舌下偏低、注射偏高',
+    'cal.mcmc.pro.2': '能看出吸收快慢，峰值和谷值的位置會跟著變',
+    'cal.mcmc.con.1': '本應用自有的方法，仍在驗證；不考慮隨時間的漂移',
+    'cal.absorption': '吸收速度',
+    'cal.route.injection': '注射',
+    'cal.route.oral': '口服',
+    'cal.route.sublingual': '舌下',
+    'cal.route.gel': '凝膠',
+    'cal.route.patchApply': '貼片',
+    'cal_guide.title': '校準方法講解',
+    'cal_guide.entry': '這些方法是怎麼算的',
+    'cal_guide.lead':
+        '檢驗結果和模型不一樣時，校準會把曲線往檢驗那邊挪。六種方法挪的方式不同，下面的圖和公式都是應用裡真實在用的計算。',
+    'cal_guide.try.title': '試一試',
+    'cal_guide.try.text': '每週注射 5 mg 戊酸雌二醇，後半段抽了幾次血。拖動下面的控制項，看每種方法怎麼回應。',
+    'cal_guide.method': '方法',
+    'cal_guide.caption': '虛線是原始模型，陰影是 90% 的可能範圍，菱形是檢驗',
+    'cal_guide.level': '檢驗比模型高多少',
+    'cal_guide.change': '第四次起水準變成',
+    'cal_guide.count': '檢驗次數',
+    'cal_guide.wrong': '有一次檢驗測錯了',
+    'cal_guide.try_this': '在上面的圖裡試試',
+    'cal_guide.off': '不校準，直接顯示模型。適合想看模型本身，或者還沒有檢驗的時候。',
+    'cal_guide.mipd':
+        '找一個最合適的個人倍數和清除速度，同時被群體平均拉住。檢驗少時變化小，三次以上分散的檢驗才會改半衰期，單個離群值會被降權。',
+    'cal_guide.ekf':
+        '按時間順序一次處理一個檢驗，每次都在上一次的估計上修正一點，並記住自己有多確定。舊檢驗會一直留著影響。',
+    'cal_guide.ou_kalman': '認為你和模型的差別會隨時間漂移，兩週左右就回到模型。只改水準，不改曲線形狀。',
+    'cal_guide.bayes':
+        '同時考慮幾種說法：差別固定，或者在兩週、三個月、一年內漂移。按檢驗對每種說法的支持程度加權平均，並給出可能範圍。',
+    'cal_guide.mcmc':
+        '為你估一整套自己的藥代參數：每種給藥途徑各自的水準、清除速度和吸收速度。沒有公式能直接解出來，所以用 MCMC 隨機抽幾千組參數，曲線是它們的平均。',
+    'cal_guide.noise.title': '每次檢驗有多可信',
+    'cal_guide.noise.text':
+        '全貝氏和個人藥代為每次檢驗算一個誤差。免疫法在低濃度下不準，抽血時間記得不精確時曲線越陡影響越大，所以這些檢驗分量更輕。',
     'cal.history': '套用於歷史',
     'cal.forward': '前向',
     'cal.retrospective': '回顧',
     'cal.desc.forward': '因果方式——每個時點只使用當時已有的檢驗，新增檢驗不會改寫過去的估計。',
     'cal.desc.retrospective': '平滑方式——用全部檢驗重新估計整段歷史。事後更準確；新檢驗可能修正較早的估計。',
-    'cal.source': 'EKF、OU-Kalman 與 Hybrid-MIPD 借鏡自 hrt.transmtf.com 的校準模型；全貝氏為本應用自有。',
+    'cal.source': 'EKF、OU-Kalman 與 Hybrid-MIPD 借鏡自 hrt.transmtf.com 的校準模型；全貝氏與個人藥代為本應用自有。',
     'cal.amplitude': '幅度',
     'cal.halflife': '半衰期',
     'cal.fit': '擬合',
@@ -4379,12 +4497,51 @@ export const TRANSLATIONS = {
         'cal.bayes.pro.1': '由你嘅檢驗決定水平係固定定係漂緊',
         'cal.bayes.pro.2': '計埋檢測方法同抽血時間；俾出真實嘅可能範圍',
         'cal.bayes.con.1': '呢個應用自己嘅方法，唔係 hrt.transmtf.com 嘅模型；計算最慢',
+        'cal.mcmc': '個人藥代',
+        'cal.desc.mcmc':
+            '幫你估一套自己嘅藥代參數：每種用藥途徑各自嘅水平、清除速度同吸收速度，用 MCMC 抽樣得到完整嘅後驗，條曲線係所有可能情況嘅平均。',
+        'cal.mcmc.pro.1': '唔同用藥途徑分開校準，例如舌下偏低、注射偏高',
+        'cal.mcmc.pro.2': '睇得出吸收快慢，峰值同谷值嘅位置都會跟住變',
+        'cal.mcmc.con.1': '呢個應用自己嘅方法，仲喺驗證緊；唔考慮隨時間嘅漂移',
+        'cal.absorption': '吸收速度',
+        'cal.route.injection': '注射',
+        'cal.route.oral': '口服',
+        'cal.route.sublingual': '舌下',
+        'cal.route.gel': '凝膠',
+        'cal.route.patchApply': '貼片',
+        'cal_guide.title': '校準方法講解',
+        'cal_guide.entry': '呢啲方法點樣計',
+        'cal_guide.lead':
+            '檢驗結果同模型唔同嗰陣，校準會將條曲線推向檢驗。六種方法推法唔同，下面啲圖同公式都係應用真係用緊嘅計算。',
+        'cal_guide.try.title': '試吓',
+        'cal_guide.try.text': '每個禮拜注射 5 mg 戊酸雌二醇，後半段抽咗幾次血。拉吓下面啲控制，睇吓每種方法點反應。',
+        'cal_guide.method': '方法',
+        'cal_guide.caption': '虛線係原始模型，陰影係 90% 嘅可能範圍，菱形係檢驗',
+        'cal_guide.level': '檢驗比模型高幾多',
+        'cal_guide.change': '第四次起水平變成',
+        'cal_guide.count': '檢驗次數',
+        'cal_guide.wrong': '有一次檢驗測錯咗',
+        'cal_guide.try_this': '喺上面幅圖度試吓',
+        'cal_guide.off': '唔校準，直接顯示模型。想睇模型本身，或者未有檢驗嗰陣啱用。',
+        'cal_guide.mipd':
+            '搵一個最啱嘅個人倍數同清除速度，同時俾群體平均拉住。檢驗少嗰陣變化細，三次以上分散嘅檢驗先會改半衰期，單一個離群值會被降權。',
+        'cal_guide.ekf':
+            '按時間順序一次處理一個檢驗，每次喺上一次嘅估計上面修正少少，仲記住自己有幾確定。舊檢驗會一直留低影響。',
+        'cal_guide.ou_kalman': '當你同模型嘅差別會隨時間漂移，兩個禮拜左右就返去模型。淨係改水平，唔改曲線形狀。',
+        'cal_guide.bayes':
+            '同時考慮幾種講法：差別固定，或者喺兩個禮拜、三個月、一年內漂移。按檢驗對每種講法嘅支持程度加權平均，仲會畀出可能範圍。',
+        'cal_guide.mcmc':
+            '幫你估一整套自己嘅藥代參數：每種用藥途徑各自嘅水平、清除速度同吸收速度。冇公式可以直接解到，所以用 MCMC 隨機抽幾千組參數，條曲線係佢哋嘅平均。',
+        'cal_guide.noise.title': '每次檢驗有幾可信',
+        'cal_guide.noise.text':
+            '全貝葉斯同個人藥代會幫每次檢驗計一個誤差。免疫法喺低濃度唔準，抽血時間記得唔準嗰陣曲線越斜影響越大，所以呢啲檢驗分量輕啲。',
         'cal.history': '套用喺歷史',
         'cal.forward': '前向',
         'cal.retrospective': '回顧',
         'cal.desc.forward': '因果方式——每個時點淨係用當時已有嘅檢驗，加新檢驗唔會改寫過去嘅估計。',
         'cal.desc.retrospective': '平滑方式——用晒所有檢驗重新估計成段歷史。事後準啲；新檢驗可能會改返早啲嘅估計。',
-        'cal.source': 'EKF、OU-Kalman 同 Hybrid-MIPD 參考自 hrt.transmtf.com 嘅校準模型；全貝葉斯係呢個應用自己嘅。',
+        'cal.source':
+            'EKF、OU-Kalman 同 Hybrid-MIPD 參考自 hrt.transmtf.com 嘅校準模型；全貝葉斯同個人藥代係呢個應用自己嘅。',
         'cal.amplitude': '幅度',
         'cal.halflife': '半衰期',
         'cal.fit': '擬合',
@@ -5505,6 +5662,46 @@ export const TRANSLATIONS = {
         'cal.bayes.pro.1': '水準が一定か変動しているかを検査結果が判断',
         'cal.bayes.pro.2': '測定法と採血時刻を考慮し、正直な推定範囲を示す',
         'cal.bayes.con.1': 'このアプリ独自の方法で hrt.transmtf.com のモデルではない。計算が最も重い',
+        'cal.mcmc': '個人 PK',
+        'cal.desc.mcmc':
+            'あなた自身の薬物動態を推定します。投与経路ごとの水準、クリアランス、吸収速度を MCMC でサンプリングして事後分布全体を求め、曲線はありうるすべての場合の平均です。',
+        'cal.mcmc.pro.1': '投与経路ごとに別々に補正。例えば舌下は低め、注射は高め',
+        'cal.mcmc.pro.2': '吸収の速さがわかり、ピークと谷の位置も変わる',
+        'cal.mcmc.con.1': 'このアプリ独自の方法で検証中。時間による変動は扱わない',
+        'cal.absorption': '吸収速度',
+        'cal.route.injection': '注射',
+        'cal.route.oral': '経口',
+        'cal.route.sublingual': '舌下',
+        'cal.route.gel': 'ジェル',
+        'cal.route.patchApply': 'パッチ',
+        'cal_guide.title': '補正方法の解説',
+        'cal_guide.entry': '各方法の仕組み',
+        'cal_guide.lead':
+            '検査結果がモデルと違うとき、補正は曲線を検査値の方へ動かします。6つの方法は動かし方が違い、下の図と式はすべてアプリが実際に行っている計算です。',
+        'cal_guide.try.title': '試してみる',
+        'cal_guide.try.text':
+            '毎週 5 mg の吉草酸エストラジオール注射で、後半に何回か採血した例です。下の操作を動かして、各方法の反応を見てください。',
+        'cal_guide.method': '方法',
+        'cal_guide.caption': '破線は補正前のモデル、薄い帯は 90% の範囲、ひし形は検査値',
+        'cal_guide.level': '検査値はモデルの何倍か',
+        'cal_guide.change': '4回目以降の水準',
+        'cal_guide.count': '検査の回数',
+        'cal_guide.wrong': '1回の検査が誤っていた',
+        'cal_guide.try_this': '上の図で試す',
+        'cal_guide.off': '補正せずにモデルをそのまま表示します。モデル自体を見たいときや、まだ検査がないときに。',
+        'cal_guide.mipd':
+            '集団平均に引き留められながら、最も合う個人の倍率とクリアランスを探します。検査が少ないうちは動きが小さく、時期の分かれた検査が3回以上で半減期が変わり、外れ値1つは重みを下げられます。',
+        'cal_guide.ekf':
+            '検査を時間順に1つずつ処理し、そのたびに前の推定を少し直し、自分の確かさも覚えておきます。古い検査の影響はずっと残ります。',
+        'cal_guide.ou_kalman':
+            'モデルとの違いは時間とともに漂い、2週間ほどでモデルに戻るとみなします。水準だけを直し、曲線の形は変えません。',
+        'cal_guide.bayes':
+            '違いが一定、または2週間・3か月・1年で漂う、といった複数の仮説を同時に考え、検査がそれぞれをどれだけ支持するかで重み付け平均し、ありうる範囲も示します。',
+        'cal_guide.mcmc':
+            'あなた自身の薬物動態を一式推定します。投与経路ごとの水準、クリアランス、吸収速度です。直接解ける式がないため、MCMC で数千組をランダムに抜き出し、曲線はその平均です。',
+        'cal_guide.noise.title': '各検査の信頼度',
+        'cal_guide.noise.text':
+            'フルベイズと個人 PK は検査ごとに誤差を計算します。免疫測定法は低濃度で不正確で、採血時刻があいまいだと曲線が急な所ほど影響が大きいため、そうした検査は重みが軽くなります。',
         'cal.history': '履歴への適用',
         'cal.forward': '前向き',
         'cal.retrospective': '遡及',
@@ -5512,7 +5709,7 @@ export const TRANSLATIONS = {
         'cal.desc.retrospective':
             '平滑化——すべての検査で履歴全体を再推定します。事後的には正確ですが、新しい検査が古い推定を修正することがあります。',
         'cal.source':
-            'EKF・OU-Kalman・Hybrid-MIPD は hrt.transmtf.com の補正モデルを参考にしています。フルベイズはこのアプリ独自です。',
+            'EKF・OU-Kalman・Hybrid-MIPD は hrt.transmtf.com の補正モデルを参考にしています。フルベイズと個人 PK はこのアプリ独自です。',
         'cal.amplitude': '振幅',
         'cal.halflife': '半減期',
         'cal.fit': '適合',
@@ -6334,6 +6531,47 @@ export const TRANSLATIONS = {
         'cal.bayes.pro.1': '수준이 고정인지 변동하는지 검사 결과가 판단',
         'cal.bayes.pro.2': '측정법과 채혈 시각을 고려해 정직한 추정 범위를 제시',
         'cal.bayes.con.1': '이 앱 고유의 방법으로 hrt.transmtf.com 모델이 아님. 계산이 가장 무거움',
+        'cal.mcmc': '개인 PK',
+        'cal.desc.mcmc':
+            '당신만의 약동학을 추정합니다. 투여 경로별 수준, 청소율, 흡수 속도를 MCMC로 샘플링해 전체 사후분포를 구하고, 곡선은 가능한 모든 경우의 평균입니다.',
+        'cal.mcmc.pro.1': '투여 경로마다 따로 보정. 예: 설하는 낮고 주사는 높음',
+        'cal.mcmc.pro.2': '흡수 속도를 알아내 최고점과 최저점 위치도 함께 바뀜',
+        'cal.mcmc.con.1': '이 앱 고유의 방법으로 아직 검증 중. 시간에 따른 변동은 다루지 않음',
+        'cal.absorption': '흡수 속도',
+        'cal.route.injection': '주사',
+        'cal.route.oral': '경구',
+        'cal.route.sublingual': '설하',
+        'cal.route.gel': '젤',
+        'cal.route.patchApply': '패치',
+        'cal_guide.title': '보정 방법 설명',
+        'cal_guide.entry': '이 방법들은 어떻게 계산하나요',
+        'cal_guide.lead':
+            '검사 결과가 모델과 다를 때 보정은 곡선을 검사값 쪽으로 옮깁니다. 여섯 가지 방법은 옮기는 방식이 다르며, 아래의 그림과 식은 모두 앱이 실제로 쓰는 계산입니다.',
+        'cal_guide.try.title': '직접 해 보기',
+        'cal_guide.try.text':
+            '매주 발레르산 에스트라디올 5 mg 주사, 후반에 몇 번 채혈한 예입니다. 아래 조절기를 움직여 각 방법이 어떻게 반응하는지 보세요.',
+        'cal_guide.method': '방법',
+        'cal_guide.caption': '점선은 보정 전 모델, 옅은 띠는 90% 범위, 마름모는 검사값',
+        'cal_guide.level': '검사값은 모델의 몇 배',
+        'cal_guide.change': '네 번째 검사부터 수준',
+        'cal_guide.count': '검사 횟수',
+        'cal_guide.wrong': '검사 한 번이 잘못 측정됨',
+        'cal_guide.try_this': '위 그림에서 해 보기',
+        'cal_guide.off':
+            '보정하지 않고 모델을 그대로 보여 줍니다. 모델 자체를 보고 싶을 때나 아직 검사가 없을 때 좋습니다.',
+        'cal_guide.mipd':
+            '집단 평균에 붙잡힌 채 가장 잘 맞는 개인 배율과 청소율을 찾습니다. 검사가 적으면 변화가 작고, 시기가 나뉜 검사가 세 번 이상이어야 반감기가 바뀌며, 이상값 하나는 가중치가 낮아집니다.',
+        'cal_guide.ekf':
+            '검사를 시간 순서대로 하나씩 처리하며 매번 이전 추정을 조금씩 고치고, 얼마나 확실한지도 기억합니다. 오래된 검사의 영향은 계속 남습니다.',
+        'cal_guide.ou_kalman':
+            '모델과의 차이가 시간에 따라 표류하다가 2주쯤 지나면 모델로 돌아간다고 봅니다. 수준만 고치고 곡선 모양은 바꾸지 않습니다.',
+        'cal_guide.bayes':
+            '차이가 고정되어 있거나 2주, 3개월, 1년에 걸쳐 표류한다는 여러 가설을 함께 고려하고, 검사가 각각을 얼마나 지지하는지로 가중 평균하며 가능한 범위도 보여 줍니다.',
+        'cal_guide.mcmc':
+            '당신만의 약동학을 한 벌 추정합니다. 투여 경로별 수준, 청소율, 흡수 속도입니다. 바로 풀리는 식이 없어서 MCMC로 수천 벌을 무작위로 뽑고, 곡선은 그 평균입니다.',
+        'cal_guide.noise.title': '각 검사의 신뢰도',
+        'cal_guide.noise.text':
+            '완전 베이즈와 개인 PK는 검사마다 오차를 계산합니다. 면역측정법은 낮은 농도에서 부정확하고, 채혈 시각이 부정확하면 곡선이 가파른 곳일수록 영향이 커서 그런 검사는 가중치가 낮아집니다.',
         'cal.history': '이력 적용 방식',
         'cal.forward': '전향',
         'cal.retrospective': '회고',
@@ -6342,7 +6580,7 @@ export const TRANSLATIONS = {
         'cal.desc.retrospective':
             '평활 —— 모든 검사로 전체 이력을 다시 추정합니다. 사후에는 더 정확하지만 새 검사가 이전 추정을 수정할 수 있습니다.',
         'cal.source':
-            'EKF, OU-Kalman, Hybrid-MIPD는 hrt.transmtf.com의 보정 모델을 참고했습니다. 완전 베이즈는 이 앱 고유의 방법입니다.',
+            'EKF, OU-Kalman, Hybrid-MIPD는 hrt.transmtf.com의 보정 모델을 참고했습니다. 완전 베이즈와 개인 PK는 이 앱 고유의 방법입니다.',
         'cal.amplitude': '진폭',
         'cal.halflife': '반감기',
         'cal.fit': '적합',
@@ -7494,6 +7732,47 @@ export const TRANSLATIONS = {
         'cal.bayes.pro.2': 'Ölçüm yöntemini ve kan alma saatini hesaba katar; dürüst bir olası aralık verir',
         'cal.bayes.con.1':
             'Bu uygulamaya özgü bir yöntem, hrt.transmtf.com modellerinden değil; hesaplaması en ağır olanı',
+        'cal.mcmc': 'Kişisel PK',
+        'cal.desc.mcmc':
+            'Size ait bir farmakokinetik kurar: her yol için ayrı bir düzey, temizlenme ve emilim hızı. Tam sonsal dağılım MCMC ile örneklenir; eğri olası tüm durumların ortalamasıdır.',
+        'cal.mcmc.pro.1': 'Her uygulama yolunu ayrı kalibre eder, örneğin dil altı düşük, enjeksiyon yüksek',
+        'cal.mcmc.pro.2': 'Emilim hızınızı öğrenir; tepe ve dip noktaları da buna göre kayar',
+        'cal.mcmc.con.1': 'Bu uygulamaya özgü, hâlâ doğrulanan bir yöntem; zamanla kaymayı modellemez',
+        'cal.absorption': 'emilim hızı',
+        'cal.route.injection': 'enjeksiyon',
+        'cal.route.oral': 'oral',
+        'cal.route.sublingual': 'dil altı',
+        'cal.route.gel': 'jel',
+        'cal.route.patchApply': 'bant',
+        'cal_guide.title': 'Kalibrasyon nasıl çalışır',
+        'cal_guide.entry': 'Bu yöntemler nasıl hesaplar',
+        'cal_guide.lead':
+            'Tahlilleriniz modelden farklı olduğunda kalibrasyon eğriyi onlara doğru kaydırır. Altı yöntem bunu farklı biçimlerde yapar; aşağıdaki her resim ve formül uygulamanın gerçekten yaptığı hesaptır.',
+        'cal_guide.try.title': 'Deneyin',
+        'cal_guide.try.text':
+            'Haftalık 5 mg estradiol valerat, ikinci yarıda birkaç tahlil. Aşağıdaki denetimleri oynatın ve her yöntemin nasıl tepki verdiğini izleyin.',
+        'cal_guide.method': 'Yöntem',
+        'cal_guide.caption': 'Kesikli çizgi ham model, açık alan yüzde 90 olası aralık, baklavalar tahliller',
+        'cal_guide.level': 'Tahliller modele göre',
+        'cal_guide.change': 'Dördüncü tahlilden itibaren düzey',
+        'cal_guide.count': 'Tahlil sayısı',
+        'cal_guide.wrong': 'Bir tahlil yanlış ölçüldü',
+        'cal_guide.try_this': 'Yukarıdaki resimde deneyin',
+        'cal_guide.off':
+            'Kalibrasyon yok: model olduğu gibi. Modelin kendisini görmek için ya da henüz tahliliniz yokken.',
+        'cal_guide.mipd':
+            'Toplum ortalaması onu tutarken en uygun kişisel ölçeği ve temizlenmeyi bulur. Az tahlil onu az oynatır; zamana yayılmış üç ya da daha fazla tahlil yarı ömrü değiştirebilir ve tek bir aykırı değerin ağırlığı düşürülür.',
+        'cal_guide.ekf':
+            'Tahlilleri sırayla tek tek alır, her seferinde son tahmini biraz düzeltir ve ne kadar emin olduğunu da tutar. Eski tahliller etkisini hep korur.',
+        'cal_guide.ou_kalman':
+            'Modelden farkı zamanla kayan ve yaklaşık iki haftada modele dönen bir şey olarak görür. Yalnızca düzeyi düzeltir, eğrinin biçimini değiştirmez.',
+        'cal_guide.bayes':
+            'Birkaç olasılığı birlikte tartar: sabit bir fark ya da iki hafta, üç ay veya bir yılda kayan bir fark. Tahlillerin her birini ne kadar desteklediğine göre ağırlıklı ortalama alır ve olası aralığı da verir.',
+        'cal_guide.mcmc':
+            'Size ait bütün bir farmakokinetik kurar: her yol için bir düzey, temizlenme ve emilim hızı. Bunu doğrudan çözen bir formül olmadığından MCMC binlerce olası seti rastgele çeker ve eğri onların ortalamasıdır.',
+        'cal_guide.noise.title': 'Her tahlil ne kadar sayılır',
+        'cal_guide.noise.text':
+            'Tam Bayes ve Kişisel PK her tahlile kendi hatasını verir. İmmün testler düşük düzeylerde daha az doğrudur, kesin olmayan bir alım saati de eğrinin dik olduğu yerde daha çok önem taşır; bu yüzden bu tahliller daha az sayılır.',
         'cal.history': 'Geçmişe uygulama',
         'cal.forward': 'İleri',
         'cal.retrospective': 'Geriye dönük',
@@ -7502,7 +7781,7 @@ export const TRANSLATIONS = {
         'cal.desc.retrospective':
             'Düzleştirilmiş — tüm tahliller geçmişin tamamını yeniden tahmin eder. Geriye dönük olarak daha doğrudur; yeni bir tahlil eski tahminleri değiştirebilir.',
         'cal.source':
-            "EKF, OU-Kalman ve Hybrid-MIPD hrt.transmtf.com'daki kalibrasyon modellerini örnek alır; Tam Bayes bu uygulamaya özgüdür.",
+            "EKF, OU-Kalman ve Hybrid-MIPD hrt.transmtf.com'daki kalibrasyon modellerini örnek alır; Tam Bayes ve Kişisel PK bu uygulamaya özgüdür.",
         'cal.amplitude': 'genlik',
         'cal.halflife': 'yarı ömür',
         'cal.fit': 'uyum',

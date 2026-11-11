@@ -6,6 +6,12 @@ export interface ModelSeries {
     values: number[];
     /** The uncalibrated model, drawn faint and dashed under the real line. */
     ghost?: boolean;
+    /**
+     * An edge of a likely range: not stroked. With `fillTo` (another series'
+     * index), the space between the two is washed faintly in the line colour.
+     */
+    edge?: boolean;
+    fillTo?: number;
 }
 
 interface ModelChartProps {
@@ -225,19 +231,44 @@ const ModelChart: React.FC<ModelChartProps> = ({
                         </text>
                     </g>
 
-                    {series.map((s, i) => (
-                        <path
-                            key={i}
-                            d={path(shown.values[i] ?? s.values)}
-                            fill="none"
-                            stroke="var(--chart-line)"
-                            strokeWidth={s.ghost ? 1.25 * ui : 1.75 * ui}
-                            strokeDasharray={s.ghost ? `${3 * ui} ${4 * ui}` : undefined}
-                            opacity={s.ghost ? 0.5 : 1}
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                        />
-                    ))}
+                    {series.map((s, i) => {
+                        if (s.fillTo === undefined) return null;
+                        const top = shown.values[i] ?? s.values;
+                        const bottom = shown.values[s.fillTo] ?? series[s.fillTo]?.values ?? [];
+                        if (!bottom.length) return null;
+                        // The lower edge, walked back from right to left to close the shape.
+                        const pts = [...bottom]
+                            .map((v, j) => {
+                                const x = X((j / Math.max(1, bottom.length - 1)) * xSpan);
+                                return `${x.toFixed(1)} ${Y(Math.min(v, yTop)).toFixed(1)}`;
+                            })
+                            .reverse();
+                        return (
+                            <path
+                                key={`band${i}`}
+                                d={`${path(top)}L${pts.join('L')}Z`}
+                                fill="var(--chart-line)"
+                                fillOpacity={0.12}
+                                stroke="none"
+                            />
+                        );
+                    })}
+
+                    {series.map((s, i) =>
+                        s.edge ? null : (
+                            <path
+                                key={i}
+                                d={path(shown.values[i] ?? s.values)}
+                                fill="none"
+                                stroke="var(--chart-line)"
+                                strokeWidth={s.ghost ? 1.25 * ui : 1.75 * ui}
+                                strokeDasharray={s.ghost ? `${3 * ui} ${4 * ui}` : undefined}
+                                opacity={s.ghost ? 0.5 : 1}
+                                strokeLinejoin="round"
+                                strokeLinecap="round"
+                            />
+                        ),
+                    )}
 
                     {doses
                         .filter(d => d <= xSpan + 1e-9)

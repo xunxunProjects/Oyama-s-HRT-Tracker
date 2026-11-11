@@ -42,6 +42,16 @@ describe('model settings sync', () => {
         expect(storage.getItem(nsFor('u1', 'model-settings-at'))).toBe('500');
     });
 
+    it('syncs the Personal PK method like any other', () => {
+        const desktop = stateOf(device({}));
+        const phone = stateOf(device({ 'cal-method': 'mcmc', 'model-settings-at': '600' }));
+        const { merged } = mergeSyncStates(desktop, phone);
+        expect(merged.modelSettings?.calibrationMethod).toBe('mcmc');
+        const storage = device({});
+        applySyncedStateToStorage(storage, 'u1', 'transfem', merged);
+        expect(storage.getItem(nsFor('u1', 'cal-method'))).toBe('mcmc');
+    });
+
     it('the newer edit wins', () => {
         const older = stateOf(device({ 'cal-method': 'off', 'model-settings-at': '100' }));
         const newer = stateOf(

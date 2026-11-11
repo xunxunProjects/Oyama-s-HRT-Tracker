@@ -9,6 +9,8 @@ import {
     Radar,
     Wind,
     Merge,
+    ChevronRight,
+    Dice,
     Rewind,
     FastForward,
     type IconComponent,
@@ -22,6 +24,7 @@ interface CalibrationSettingsProps {
     historyMode: CalibrationHistoryMode;
     setHistoryMode: (m: CalibrationHistoryMode) => void;
     calibration: CalibrationResult;
+    onOpenGuide: () => void;
     onBack: () => void;
 }
 
@@ -41,7 +44,9 @@ interface MethodDef {
 // hrt.transmtf.com (EKF parameter learning, OU-Kalman dynamic calibration,
 // Hybrid-MIPD Bayesian fit), reimplemented over this engine's two identifiable
 // parameters: a personal amplitude and a personal clearance. Full Bayes is this
-// app's own: it averages over several of those stories at once.
+// app's own: it averages over several of those stories at once. Personal PK is
+// also this app's own: a level per route, clearance and absorption speed,
+// sampled by MCMC.
 const METHODS: MethodDef[] = [
     { value: 'off', icon: Off, pros: ['cal.off.pro.1'], cons: ['cal.off.con.1'] },
     {
@@ -64,10 +69,16 @@ const METHODS: MethodDef[] = [
         pros: ['cal.bayes.pro.1', 'cal.bayes.pro.2'],
         cons: ['cal.bayes.con.1'],
     },
+    {
+        value: 'mcmc',
+        icon: Dice,
+        pros: ['cal.mcmc.pro.1', 'cal.mcmc.pro.2'],
+        cons: ['cal.mcmc.con.1'],
+    },
 ];
 
-// EKF, MIPD and Full Bayes fit a personal clearance; OU-Kalman corrects amplitude only.
-const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd' || m === 'bayes';
+// EKF, MIPD, Full Bayes and Personal PK fit a personal clearance; OU-Kalman corrects amplitude only.
+const fitsClearance = (m: CalibrationMethod) => m === 'ekf' || m === 'mipd' || m === 'bayes' || m === 'mcmc';
 
 // The drift memory the labs favour most, for the Full Bayes summary.
 const likeliestDrift = (drift: Record<BayesDriftFamily, number>): [BayesDriftFamily, number] =>
@@ -132,6 +143,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
     historyMode,
     setHistoryMode,
     calibration,
+    onOpenGuide,
     onBack,
 }) => {
     const { t } = useTranslation();
@@ -146,7 +158,10 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
     const latestLabH = calibration.points.length ? calibration.points[calibration.points.length - 1].timeH : null;
     const stats: { label: string; value: string }[] = showFit
         ? [
-              { label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` },
+              // With a level per route, those rows replace the single amplitude.
+              ...(calibration.routeScales
+                  ? []
+                  : [{ label: t('cal.amplitude'), value: `×${calibration.scale.toFixed(2)}` }]),
               ...(calibration.latestInterval && latestLabH !== null
                   ? [
                         {
@@ -158,6 +173,13 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
               ...(fitsClearance(method)
                   ? [{ label: t('cal.halflife'), value: signedPct(calibration.halfLifeDeltaPct) }]
                   : []),
+              ...(calibration.absMul !== undefined
+                  ? [{ label: t('cal.absorption'), value: signedPct((calibration.absMul - 1) * 100) }]
+                  : []),
+              ...Object.entries(calibration.routeScales ?? {}).map(([route, v]) => ({
+                  label: t(`cal.route.${route}`),
+                  value: `×${(v as number).toFixed(2)}`,
+              })),
               ...(drift
                   ? [
                         {
@@ -181,6 +203,16 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
             <PageHeader onBack={onBack} title={t('cal.settings')} />
 
             <div className={`${PAGE_COLUMN} mt-4`}>
+                {/* How the methods work: a page with pictures, formulas and a chart to move. */}
+                <button
+                    type="button"
+                    onClick={onOpenGuide}
+                    className={`mb-4 w-full flex items-center justify-between gap-3 py-3 text-start outline-none focus-visible:underline ${divider}`}
+                >
+                    <span className={`text-sm ${on}`}>{t('cal_guide.entry')}</span>
+                    <ChevronRight size={16} className={`${muted} shrink-0`} />
+                </button>
+
                 {/* Method cards */}
                 <div className="space-y-2.5">
                     {METHODS.map(({ value, icon, recommended, pros, cons }) => (
