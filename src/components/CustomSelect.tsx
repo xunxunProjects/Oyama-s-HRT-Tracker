@@ -63,6 +63,9 @@ interface CustomSelectProps {
     icon?: React.ReactNode;
     /** The id of a label the caller draws itself, in place of `label`. */
     labelledBy?: string;
+    /** A row like the form's other rows: its name on the left, what's chosen
+     *  on the right in muted ink, no rule under it. */
+    inline?: boolean;
 }
 
 /**
@@ -76,14 +79,14 @@ interface CustomSelectProps {
  * under the finger and pulled the form up with it, even for a touch that
  * only meant to scroll.
  */
-const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, label, icon, labelledBy }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, label, icon, labelledBy, inline }) => {
     const [isOpen, setIsOpen] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const labelId = useId();
     const valueId = useId();
     const listId = useId();
-    const nameId = label && !icon ? labelId : labelledBy;
+    const nameId = label && (!icon || inline) ? labelId : labelledBy;
 
     const selectedOption = options.find(o => o.value === value);
 
@@ -130,7 +133,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
 
     return (
         <div className="flex flex-col">
-            {label && !icon && (
+            {label && !icon && !inline && (
                 <label id={labelId} className="field-label">
                     {label}
                 </label>
@@ -152,9 +155,18 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, l
                 aria-expanded={isOpen}
                 aria-controls={listId}
                 aria-labelledby={nameId ? `${nameId} ${valueId}` : undefined}
-                className="choice-trigger"
+                className={inline ? 'choice-trigger choice-trigger-row' : 'choice-trigger'}
             >
-                {icon ? (
+                {inline ? (
+                    <>
+                        <span id={labelId} className="flex-1 min-w-0 text-sm text-[var(--text)]">
+                            {label}
+                        </span>
+                        <span id={valueId} className="text-sm text-[var(--text-muted)] truncate">
+                            {selectedOption?.label}
+                        </span>
+                    </>
+                ) : icon ? (
                     <>
                         <span className="flex flex-1 items-center gap-2 min-w-0">
                             {icon}
