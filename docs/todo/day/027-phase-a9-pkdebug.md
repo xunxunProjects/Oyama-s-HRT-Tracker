@@ -19,4 +19,4 @@ $$
 
 ## References
 
-- [Stanczyk 2022 — popPK template](https://pubmed.ncbi.nlm.nih.gov/36574387/)
+- [Stanczyk 2022 — population PK model for transdermal steroid delivery](https://pubmed.ncbi.nlm.nih.gov/36574387/)

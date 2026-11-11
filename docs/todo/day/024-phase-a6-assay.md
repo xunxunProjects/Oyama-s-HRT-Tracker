@@ -20,4 +20,4 @@ $$
 
 ## References
 
-- [Rosner 2013 — Estradiol Assay Comparison](https://pubmed.ncbi.nlm.nih.gov/23457408/)
+- [Rosner 2013 — Estradiol Assay Comparison](https://pubmed.ncbi.nlm.nih.gov/23463657/)

@@ -6,6 +6,7 @@ import Doodle from '../components/Doodle';
 import laozhongAvatar from '../assets/laozhong-avatar.webp';
 import llmGirls from '../assets/llm-girls.webp';
 import { DEVELOPERS, type Developer } from '../data/developers';
+import { PK_REFERENCE_COUNT, PK_REFERENCE_GROUPS } from '../data/pkReferences';
 import { inertWhen } from '../utils/inert';
 
 // Everyone this app is built on. Kept as a plain static list on purpose: the
@@ -113,6 +114,7 @@ const LIBRARIES: Entry[] = [
 ];
 
 const heading = 'mt-8 mb-1 text-xs font-medium text-[var(--text-muted)]';
+const subheading = 'mt-5 mb-1 text-xs font-medium text-[var(--text-muted)]';
 const inlineLink =
     'text-[var(--text)] underline decoration-[var(--border)] underline-offset-[3px] hover:decoration-current break-words';
 const row =
@@ -143,6 +145,42 @@ const LinkRow: React.FC<{ entry: Entry }> = ({ entry }) => {
                 />
             </span>
         </a>
+    );
+};
+
+const PkReferences: React.FC = () => {
+    return (
+        <details className="group mt-4 border-t-(length:--hairline) border-[var(--border)] pt-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-1 text-sm text-[var(--text)] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0">
+                    <span className="block">PK model data</span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                        {PK_REFERENCE_COUNT} papers and guidance sources, grouped by what they inform
+                    </span>
+                </span>
+                <ChevronDown
+                    size={18}
+                    strokeWidth={1.75}
+                    className="shrink-0 text-[var(--text-muted)] transition-transform group-open:rotate-180"
+                />
+            </summary>
+            <div className="pt-2">
+                <p className="max-w-prose pb-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                    References introduced while building and calibrating the PK model from issue #200 onward. They are
+                    listed here so the data behind the estimates can be checked without leaving the app.
+                </p>
+                {PK_REFERENCE_GROUPS.map(group => (
+                    <section key={group.title}>
+                        <h3 className={subheading}>{group.title}</h3>
+                        <div>
+                            {group.references.map(reference => (
+                                <LinkRow key={reference.href} entry={reference} />
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </div>
+        </details>
     );
 };
 
@@ -308,6 +346,7 @@ const Credits: React.FC<CreditsProps> = ({ onBack }) => {
                         }}
                     />
                 </div>
+                <PkReferences />
 
                 <h2 className={heading}>Open source software</h2>
                 <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 pt-2 text-sm">
