@@ -9,7 +9,8 @@ import {
     Radar,
     Wind,
     Merge,
-    Samples,
+    ChevronRight,
+    Dice,
     Rewind,
     FastForward,
     type IconComponent,
@@ -23,6 +24,7 @@ interface CalibrationSettingsProps {
     historyMode: CalibrationHistoryMode;
     setHistoryMode: (m: CalibrationHistoryMode) => void;
     calibration: CalibrationResult;
+    onOpenGuide: () => void;
     onBack: () => void;
 }
 
@@ -69,7 +71,7 @@ const METHODS: MethodDef[] = [
     },
     {
         value: 'mcmc',
-        icon: Samples,
+        icon: Dice,
         pros: ['cal.mcmc.pro.1', 'cal.mcmc.pro.2'],
         cons: ['cal.mcmc.con.1'],
     },
@@ -141,6 +143,7 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
     historyMode,
     setHistoryMode,
     calibration,
+    onOpenGuide,
     onBack,
 }) => {
     const { t } = useTranslation();
@@ -200,6 +203,16 @@ const CalibrationSettings: React.FC<CalibrationSettingsProps> = ({
             <PageHeader onBack={onBack} title={t('cal.settings')} />
 
             <div className={`${PAGE_COLUMN} mt-4`}>
+                {/* How the methods work: a page with pictures, formulas and a chart to move. */}
+                <button
+                    type="button"
+                    onClick={onOpenGuide}
+                    className={`mb-4 w-full flex items-center justify-between gap-3 py-3 text-start outline-none focus-visible:underline ${divider}`}
+                >
+                    <span className={`text-sm ${on}`}>{t('cal_guide.entry')}</span>
+                    <ChevronRight size={16} className={`${muted} shrink-0`} />
+                </button>
+
                 {/* Method cards */}
                 <div className="space-y-2.5">
                     {METHODS.map(({ value, icon, recommended, pros, cons }) => (

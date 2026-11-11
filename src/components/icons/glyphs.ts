@@ -329,16 +329,15 @@ export const GLYPHS = {
         'M3.8 16.9c2.4-.05 4.7 0 7-.05',
     ],
 
-    // A personal model sampled many times over: one curve with the scatter
-    // of draws it was read from.
-    samples: [
-        'M3.7 17.6c2.3-.1 3.4-1.6 4.4-4.4 1.1-3.2 2.2-7.1 4-7.2 1.9-.1 2.9 3.6 4.1 6.6 1 2.5 2.2 4.1 4.2 4.9',
-        { d: 'M6.6 10.2h.05', dot: true },
-        { d: 'M11.9 2.9h.05', dot: true },
-        { d: 'M15.4 7.6h.05', dot: true },
-        { d: 'M18.3 11.4h.05', dot: true },
-        { d: 'M9.6 16.3h.05', dot: true },
-        { d: 'M14.2 15.9h.05', dot: true },
+    // A personal model read from many random draws: a pair of dice.
+    dice: [
+        'M3.6 10.6c2.8-.2 5.6-.2 8.5 0 .2 2.9.2 5.8 0 8.7-2.8.2-5.7.2-8.5 0-.2-2.9-.2-5.8 0-8.7z',
+        'M12.6 3.8c2.6-.2 5.2-.2 7.8 0 .2 2.7.2 5.3 0 8-2.6.2-5.2.2-7.8 0-.2-2.7-.2-5.3 0-8z',
+        { d: 'M6.1 13.1h.05', dot: true },
+        { d: 'M9.7 16.8h.05', dot: true },
+        { d: 'M14.9 6.1h.05', dot: true },
+        { d: 'M16.5 7.8h.05', dot: true },
+        { d: 'M18.1 9.5h.05', dot: true },
     ],
 
     // ── calibration history modes ───────────────────────────────────────

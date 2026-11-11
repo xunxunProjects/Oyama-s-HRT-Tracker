@@ -19,6 +19,7 @@ export type ViewKey =
     | 'history'
     | 'lab'
     | 'lab-calibration'
+    | 'lab-calibration-guide'
     | 'settings'
     | 'account'
     | 'admin'
@@ -61,6 +62,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     plan: 'home',
     share: 'home',
     'lab-calibration': 'lab',
+    'lab-calibration-guide': 'lab',
     'settings-hrt-mode': 'settings',
     'settings-language': 'settings',
     'settings-appearance': 'settings',
@@ -116,6 +118,7 @@ const VIEW_ORDER: ViewKey[] = [
     'history',
     'lab',
     'lab-calibration',
+    'lab-calibration-guide',
     'settings',
     'account',
     'sessions',
