@@ -1303,6 +1303,7 @@ const AppContent = () => {
                     tabs={navItems.filter(item => item.id !== 'admin')}
                     activeTab={currentView === 'admin' ? 'settings' : currentTab}
                     onSelect={id => handleTabSelect(id as ViewKey)}
+                    pageKey={currentView}
                 />
             </div>
 
