@@ -19,7 +19,7 @@ This document explains the algorithms used for each drug/route, key parameters a
 - **`PrecomputedEventModel`**：为每个事件按路由选用解析核，生成“时间 → 中心室药量”的函数：
   - 注射：快/慢两库各一个 `_analytic3C`（k₂ = 0 时改用 `_analytic2C`）。
   - 凝胶、口服 EV：`oneCompAmount`。口服 E2：`_analytic3C`（吸收 → 雌酮库 → 清除）。口服 CPA：两个 `_analytic2C` 之和（一阶吸收 + 双相处置，§13）。
-  - 舌下双通路（快：口腔黏膜；慢：吞咽 = 口服）：**E2 快支 `_analytic2C`、慢支 `_analytic3C`（经雌酮库）；EV 快支 `_analytic3C`（水解）、慢支 `_analytic2C`**。E2 快支按自己的回落速率 `k3_fast`（`OralPK.kElimSL`，§6.4）下降，其余各支用 `k₃`。
+  - 舌下双通路（快：口腔黏膜；慢：吞咽 = 口服）：**E2 快支 `_analytic2C`、慢支 `_analytic3C`（经雌酮库）；EV 快支 `_analytic3C`（水解）、慢支 `_analytic2C`**。E2 快支按自己的回落速率 `k3_fast`（`OralPK.kElimSL`，§6.4）下降，其余各支用 `k₃`；酯类快支的形状不变，`F_fast` 乘 `kClear / kElimSL`，暴露与 E2 快支一致。
   - 贴片：零阶输入在佩戴窗口内，移除后按 k₃ 衰减；或一阶“假库”（未填标称释放率时）。
 - **`runSimulation`**：先剔除未建模的药物，再把其余 `DoseEvent` 预编译为上述函数，遍历时间点，按 E2 / CPA / 睾酮三组线性叠加各事件的中心室药量，再以各自的分布容积换算为浓度；AUC 只对 E2 曲线用梯形法则积分（§7）。
 - **`shbg.ts`**（可选，默认关闭，应用不调用）：从总 E2 按质量作用算出游离 E2，SHBG 可以停在基线（恒定游离分数），也可以随用药变化；`runSimulation` 只在传入 `{ swallowedE2: true }` 时另外返回其中被吞下的那部分 E2 曲线供它使用（§18）。
@@ -202,7 +202,7 @@ E2、未酯化 T 与 CPA 为 1.0。分子量取自 `EsterInfo`：E2 272.38、EB 
 
 ### 6.1 模型与参数（路线图）
 - **双通路**：把剂量按分流系数 **θ** 分为两支：
-  - **快通路（口腔黏膜）**：$k_{1,\text{fast}} = k_{\text{SL}} = 1.8\ \mathrm{h}^{-1}$，**绕过首过**。剂量按酯 mg 存储，因此快支 **$F_{\text{fast}}=\text{toE2Factor}$**（E2 为 1，EV ≈ 0.764）。
+  - **快通路（口腔黏膜）**：$k_{1,\text{fast}} = k_{\text{SL}} = 1.8\ \mathrm{h}^{-1}$，**绕过首过**。剂量按酯 mg 存储，因此 E2 快支 **$F_{\text{fast}}=\text{toE2Factor}$**（即 1）；酯类快支另乘黏膜暴露系数，**$F_{\text{fast}}=\text{toE2Factor}\times k_{\text{Clear}}/k_{\text{el,SL}}$**（EV ≈ 0.764 × 0.342 ≈ 0.261，§6.4）。
   - **慢通路（吞咽→胃肠）**：$k_{1,\text{slow}} = k_{\text{Abs,E2/EV}}$（0.32 / 0.05 h⁻¹），**进入首过**，**$F_{\text{slow}}=F_{\text{oral}}\times\text{toE2Factor}$**，其中 $F_{\text{oral}}$ = `e2_oral_bio` = 0.03。吞咽部分与对应的口服路由走完全相同的路径：E2 随后经雌酮库（$k_{\text{E1Pool}} = \ln 2/14.36\ \mathrm{h}^{-1}$，`resolveParams` 中的 `k2_slow`，§5），EV 不经此库。
 - **EV 与 E2 的差异**：
   - **舌下 E2**：黏膜快支无水解步（$k_2=0$），用 Bateman 形式（`_analytic2C`）；吞咽慢支与口服 E2 相同，走「吸收 ($k_{\text{Abs,E2}}$) → 雌酮库 ($k_{\text{E1Pool}}$) → 清除 ($k_3$)」的三室解析式（`_analytic3C`）。
@@ -280,7 +280,7 @@ $$
   A^{(3C)}_{\text{fast}}(t)=\texttt{\_analytic3C}\bigl(t;\ \text{Dose}_{\text{fast}},F_{\text{fast}},k_{\text{SL}},k_{2,\text{EV}},k_3\bigr),\quad
   A^{(2C)}_{\text{slow}}(t)=\texttt{\_analytic2C}\bigl(t;\ \text{Dose}_{\text{slow}},F_{\text{slow}},k_{\text{Abs,EV}},k_3\bigr)
   $$
-  其中 $\text{Dose}_{\text{fast}}=\theta\cdot\text{Dose},\ \text{Dose}_{\text{slow}}=(1-\theta)\cdot\text{Dose}$，且 $F_{\text{fast}}=\text{toE2Factor},\ F_{\text{slow}}=F_{\text{oral}}\cdot\text{toE2Factor}$；$k_{\text{el,SL}}=k_3\times 1.2/0.41$ 只出现在舌下 E2 的快支（§6.4），舌下 EV 的快支仍用 $k_3$。
+  其中 $\text{Dose}_{\text{fast}}=\theta\cdot\text{Dose},\ \text{Dose}_{\text{slow}}=(1-\theta)\cdot\text{Dose}$，且 $F_{\text{slow}}=F_{\text{oral}}\cdot\text{toE2Factor}$；E2 的 $F_{\text{fast}}=1$，EV 的 $F_{\text{fast}}=\text{toE2Factor}\times 0.41/1.2$。$k_{\text{el,SL}}=k_3\times 1.2/0.41$ 只出现在舌下 E2 的快支（§6.4），舌下 EV 的快支仍用 $k_3$，改由 $F_{\text{fast}}$ 得到同样的暴露。
 
 ### 6.4 黏膜快支的回落速率 `kElimSL`（2026‑11‑12，issue #22）
 
@@ -312,8 +312,8 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 
 **实现。**
 - `resolveParams` 只在 `k2 = 0`（未酯化 E2）时给出 `k3_fast = k₃ × OralPK.kElimSL / CorePK.kClear`，`buildSublingualAmount` 的快支用它代替 `k₃`。它随生效的清除常数一起变化（年龄调整 §17、PK 参数页的 `e2_kClear`、个人校准的清除倍数 §16），所以黏膜吸收的每 mg 相对其他路由的暴露始终是 `kClear / kElimSL` = 0.34。
-- 舌下 EV 等酯类不变：它们的黏膜部分要经水解（`k2`）在数小时内释放，是和其他路由一样的慢输入；也没有找到舌下酯类的连续采样研究。`tests/routes.test.ts` 与上游曲线的逐点对照继续覆盖舌下 EV。
-- `getBioavailabilityMultiplier` 与 `F` 的含义不变，仍是进入血液的比例 $\theta + (1-\theta)F_{\text{oral}}$。舌下 E2 的总暴露因此不再是 $F\cdot D/k_3$，而是 $D\,[\theta/k_{\text{el,SL}} + (1-\theta)F_{\text{oral}}/k_3]$。
+- **舌下酯类（EV 等）用同一个暴露系数，形状不变。** 酯类的黏膜部分要经水解（`k2`）在数小时内释放，是和其他路由一样的慢输入，普通的清除常数已经能描述它，所以不让它更快回落，而是把快支的 `F_fast` 乘 `kClear / kElimSL` = 0.34。没有找到舌下酯类的连续采样研究，这一步是从暴露量的证据类推的：舌下约为口服的 2-2.5 倍这一点并不只适用于未酯化的雌二醇。不这样做的话，舌下 EV 的总暴露是口服 EV 的 4.6 倍（正是 E2 改动前过高的那个比例），并且是同样毫克数舌下 E2 的 1.6 倍，而 EV 所含的雌二醇反而少 24%。现在两者分别为 2.1 倍与 0.76 倍（分子量之比）。issue #22 中下游 Kira-HRT-Tracker 转述过一例：3 mg EV 含服后 24 h 的化验值约 33-37 pg/mL；70 kg 下单次 3 mg 在 24 h 处由约 90 pg/mL 变为约 43 pg/mL。这只是一例，体重未知，不能当作验证。`tests/routes.test.ts` 与上游曲线的逐点对照继续覆盖舌下 EV，并把这一系数算在内。
+- `getBioavailabilityMultiplier` 与 `F` 改为暴露意义上的生物利用度：$F = (\theta\cdot k_{\text{Clear}}/k_{\text{el,SL}} + (1-\theta)F_{\text{oral}})\times\text{toE2Factor}$，Standard 档下 E2 为 0.064（此前显示 0.137），EV 为 0.049（此前 0.104）。这样舌下与其他路由一样满足 AUC $= F\cdot D/k_3$：E2 的快支靠更快的回落做到这一点，酯类的快支靠缩放。计算沙盒显示的就是这个 `F`。
 - 这是单室模型里的经验处理：其他路由输入得慢，一个清除速率就够；一次性涌入的输入会显出更快的早期相，单室模型只能用一个更快的回落速率来画它。
 - 给药后的加密采样点增加 0.75 h（§12），否则新的峰（约 0.68 h）落在 0.5 h 与 1 h 两个采样点之间，会被画低约 4%。
 - 已有记录不需要迁移：存储的 θ 与档位不变，化验校准按新曲线重新计算。
@@ -328,9 +328,12 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 | 2 mg 每天两次稳态：峰 / 服后 2 h / 4 h / 谷 / 均值 | 1096 / 921 / 475 / 87 / 395 | 766 / 373 / 115 / 72 / 186 |
 | 2 mg 每天一次稳态：峰 / 谷 / 均值 | 1043 / 27 / 198 | 722 / 27 / 94 |
 | issue #22 的情形（2 mg，55 kg）：峰值 | 1295 | 890 |
-| 舌下 EV 1 mg 单次：峰值（时间） | 84（5.9 h） | 84（5.9 h） |
+| 舌下 EV 1 mg 单次：峰值（时间） | 84（5.8 h） | 37（5.8 h） |
+| 舌下 EV 1 mg 单次，四档峰值（Quick / Casual / Standard / Strict） | 21 / 40 / 84 / 128 | 17 / 23 / 37 / 52 |
+| 舌下 EV 2 mg 每天两次稳态：峰 / 谷 / 均值 | 345 / 242 / 303 | 161 / 115 / 143 |
+| 舌下 EV 2 mg 每天一次稳态：峰 / 谷 / 均值 | 221 / 76 / 151 | 102 / 38 / 71 |
 
-服药后 1-8 h 的估计值明显降低，谷值基本不变。issue #22 提出时这一情形约 1400 pg/mL；口服雌酮库（2026‑10‑13，§8）已先把它降到约 1295。
+舌下 E2 在服药后 1-8 h 的估计值明显降低，谷值基本不变。舌下 EV 的曲线形状不变，全天（包括谷值）降到此前的约 47%。issue #22 提出时 2 mg、55 kg 的情形约 1400 pg/mL；口服雌酮库（2026‑10‑13，§8）已先把它降到约 1295。
 
 ---
 
@@ -403,7 +406,7 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
   - 注释与测试：口服 E2 注释写明 10.3 h 的峰时及其与 Angeliq 稳态数据的差距，`tests/literature.test.ts` 把后者记为已知差距（§5.2、§10）；TU 注释更正“单库会在一天内达峰”的说法（实为约第 5 天）；睾酮形成分数注释补充 Aveed 的体重分组（§14）；CPA 注释写明低剂量的差距（§13）；Spratt 测试改为读取注射后 3.5 天的值。
 - **2026‑11‑03**（issue #203）：新增可选的 SHBG 与游离 E2 子模型 `shbg.ts`，默认关闭，应用不调用。`runSimulation` 增加 `swallowedE2` 选项，只在传入时返回 `concPGmL_E2_swallowed`，默认输出不变。四个场景、敏感性分析与按 issue 判定规则得出的结论见 §18。
 - **2026‑11‑04**：新增第五种化验校准方法 `bayes`（全贝叶斯，§16）：对漂移假设做贝叶斯模型平均，按检测方法、数值高低与抽血时曲线斜率设定每个化验的误差，并用 Laplace 后验给预测页逐小时的不确定范围。默认方法仍是 `mipd`；其余四种方法的曲线与预测范围不变。备份中的 `bayes` 暂不被 hrt-cold Tools 接受（见 `docs/backup-schema-audit/BACKUP_TEST_VECTORS.md` BTV-1）。
-- **2026‑11‑12**（issue #22）：舌下 E2 的黏膜快支改按 `OralPK.kElimSL = 1.2 h⁻¹` 回落（随生效的清除常数等比例缩放），此前与其他路由共用 `k₃ = 0.41 h⁻¹`。依据、拟合与前后对照见 §6.4。70 kg、1 mg、Standard 档的峰由约 509 pg/mL（1.04 h）变为约 350 pg/mL（0.68 h），3 h 与 1 h 之比由 0.59 变为 0.19，总暴露由口服的 4.6 倍变为 2.1 倍；issue 中 2 mg、55 kg 的峰由约 1295 变为约 890 pg/mL。四档 θ、吞咽支、舌下 EV 与其他路由不变，谷值基本不变。`PKParams` 增加可选的 `k3_fast`；给药后的加密采样点增加 0.75 h；计算沙盒的参数一步列出 `k3_fast`；SHBG 场景 1c 的数字随之更新（§18.4）。
+- **2026‑11‑12**（issue #22）：舌下 E2 的黏膜快支改按 `OralPK.kElimSL = 1.2 h⁻¹` 回落（随生效的清除常数等比例缩放），此前与其他路由共用 `k₃ = 0.41 h⁻¹`。依据、拟合与前后对照见 §6.4。70 kg、1 mg、Standard 档的峰由约 509 pg/mL（1.04 h）变为约 350 pg/mL（0.68 h），3 h 与 1 h 之比由 0.59 变为 0.19，总暴露由口服的 4.6 倍变为 2.1 倍；issue 中 2 mg、55 kg 的峰由约 1295 变为约 890 pg/mL。四档 θ、吞咽支与其他路由不变，舌下 E2 的谷值基本不变。舌下酯类（EV 等）的黏膜快支形状不变，`F_fast` 乘同一个暴露系数 `kClear / kElimSL` = 0.34：70 kg、1 mg EV、Standard 档的峰由约 84 变为约 37 pg/mL（5.8 h），2 mg 每天两次的均值由约 303 变为约 143 pg/mL，舌下 EV 与口服 EV 的总暴露之比由 4.6 变为 2.1。`getBioavailabilityMultiplier` 与 `F` 改为暴露意义上的值（Standard 档 E2 0.064、EV 0.049）。`PKParams` 增加可选的 `k3_fast`；给药后的加密采样点增加 0.75 h；计算沙盒的参数一步列出 `k3_fast`；SHBG 场景 1c 的数字随之更新（§18.4）。
 
 ---
 
@@ -495,6 +498,7 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 - CPA 与睾酮注射的参数按说明书数据标定（§13、§14），但都是线性模型，且不经化验校准；螺内酯、比卡鲁胺等辅助用药只记录不建模（§13 至 §15）。
 - 与已发表数据的已知差距，记录在 `tests/literature.test.ts` 的 `it.fails` 中，修好时测试会提醒（70 kg）：
   - 舌下 E2 1 mg（Standard 档，θ = 0.11）峰值约 350 pg/mL，约为 Doll 2022 LC-MS/MS 实测 144 pg/mL 的 2.4 倍（`kElimSL` 之前为 509 pg/mL、3.5 倍，即 issue #22 的反馈）。该研究未写含服时长，队列偏重（据 issue #22 的转述，平均 BMI 33），测试的 70 kg 没有计入这一点；而 1 h 采样的 RIA 研究（Price 1997、Pines 1998）每 mg 约 440-450 pg/mL，高于模型。峰值的高低仍未定，留待带时间的化验结果（§6.4）。
+  - 舌下酯类（EV 等）没有连续采样的研究可以对照：黏膜部分的暴露系数是从 E2 的证据类推的，曲线形状（约 5.8 h 达峰）沿用原有的水解速率，未经验证（§6.4）。
   - 口服 E2 1 mg 在 8 h 时约 16 pg/mL，不到 Doll 2022 的 35 pg/mL 的一半；1 mg/天稳态的峰时约 8.5 h，Angeliq 说明书约 2 h（§5.2）。
   - 每周 73.9 mg TE（Xyosted 的平均剂量）的谷值约 237 ng/dL，谷均比约 0.43，说明书为 436 ng/dL、0.79。肌注的 Azmiro 说明书（单次 200 mg TC 约 72 h 达峰）同样比模型（约 2 天达峰、约 1430 ng/dL）平缓，所以注射途径解释不了这一差距；储库速率留待带时间的化验结果再调整（§14）。
 - 尚未单独记为测试的偏差：CPA 只有单剂量数据，低剂量可能偏低（§13）；睾酮注射的形成分数按 70 kg 标定，Aveed 说明书的体重分组提示实际水平可能是模型的约 1.3-1.4 倍（§14）。
@@ -512,7 +516,7 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 | 凝胶（E2） | 解析 | mg + 涂抹部位 | 单室 Bateman | `k1 = ln2/36 ≈ 0.0193, k3 = 0.41` | 按部位：手臂/大腿 0.05、阴囊 0.25（`e2_gel_*`）× `toE2Factor` |
 | 口服 E2 | 解析 | mg | 吸收 → 雌酮库 → 清除（`_analytic3C`） | `kAbsE2 = 0.32, kE1Pool = ln2/14.36 ≈ 0.0483, k3 = 0.41` | `e2_oral_bio` 0.03 × `toE2Factor` |
 | 口服 EV | 解析 | mg（酯） | 单室 Bateman（水解折叠进 `kAbsEV`，不经雌酮库） | `kAbsEV = 0.05, k3 = 0.41` | `e2_oral_bio` 0.03 × `toE2Factor` |
-| 舌下 E2/EV | 解析 | mg（酯） | 双通路：快 = 黏膜、慢 = 吞咽→口服；**E2 快支 `_analytic2C`、慢支 `_analytic3C`（雌酮库）；EV 快支 `_analytic3C`、慢支 `_analytic2C`** | `θ` 来自四档（2/5/10/15 分钟）或自定义时长（档间插值，15 分钟以上按溶解-吞咽模型）；`kAbsSL = 1.8`，`kAbsE2/EV`，`k2(EV) = 0.070`（仅快支），`kE1Pool`（仅 E2 慢支），`k3 = 0.41`，`kElimSL = 1.2`（仅 E2 快支，代替 `k3`） | 快 `toE2Factor`；慢 `F_oral = 0.03` × `toE2Factor` |
+| 舌下 E2/EV | 解析 | mg（酯） | 双通路：快 = 黏膜、慢 = 吞咽→口服；**E2 快支 `_analytic2C`、慢支 `_analytic3C`（雌酮库）；EV 快支 `_analytic3C`、慢支 `_analytic2C`** | `θ` 来自四档（2/5/10/15 分钟）或自定义时长（档间插值，15 分钟以上按溶解-吞咽模型）；`kAbsSL = 1.8`，`kAbsE2/EV`，`k2(EV) = 0.070`（仅快支），`kE1Pool`（仅 E2 慢支），`k3 = 0.41`，`kElimSL = 1.2`（仅 E2 快支，代替 `k3`） | 快 `toE2Factor`（酯类另乘 `kClear / kElimSL` = 0.34）；慢 `F_oral = 0.03` × `toE2Factor`；总 `F = (θ × 0.34 + (1 − θ) × 0.03) × toE2Factor` |
 | 口服 CPA | 解析 | mg | 一阶吸收 + 双相处置（两个 `_analytic2C` 之和） | `ka = 0.5, α = 0.25, β = ln2/43.9 ≈ 0.0158`，Vd 14 L/kg | 固定 0.88 |
 | 睾酮注射 TC/TE/TU | 解析 | mg（酯） | 两库吸收 + k₂ 水解 + k₃ 清除（TU 只有一个库） | 见 §14；`k2 = 0.20`（TU 0.036），`k3 = t_kClearInj = 0.035` | `t_ff_*` 0.043 × toT 因子 |
 | 睾酮凝胶 | 解析 | mg + 涂抹部位 | 单室 Bateman | `k1 = 0.05, k3 = t_kClear = 0.5` | 按部位：手臂/大腿 0.10、阴囊 0.50（`t_gel_*`）× toT 因子（T 为 1） |

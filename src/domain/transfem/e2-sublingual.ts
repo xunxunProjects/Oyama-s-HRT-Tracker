@@ -6,6 +6,13 @@ import { _activePKParams } from '../shared/activeParams';
 import { e2Clearance } from '../shared/params';
 import { buildSublingualAmount } from '../shared/amounts';
 
+/**
+ * Exposure of a mg absorbed in the mouth relative to a mg from another route:
+ * kClear / kElimSL = 0.34 (OralPK.kElimSL). Plain estradiol gets there by
+ * declining faster; an ester's mucosal share keeps its shape and is scaled.
+ */
+const SL_MUCOSAL_EXPOSURE = CorePK.kClear / OralPK.kElimSL;
+
 export function _getSLTheta(tierKey: string): number {
     const p = _activePKParams;
     if (tierKey === 'quick') return p.e2_sl_quick;
@@ -128,7 +135,8 @@ export const e2SublingualModule: PkRouteModule = {
             const tierKey = SL_TIER_ORDER[tierIdx] || 'standard';
             theta = _getSLTheta(tierKey);
         }
-        return (theta + (1 - theta) * _activePKParams.e2_oral_bio) * getToE2Factor(ester);
+        // What exposure follows on every route: AUC = F·D/k3.
+        return (theta * SL_MUCOSAL_EXPOSURE + (1 - theta) * _activePKParams.e2_oral_bio) * getToE2Factor(ester);
     },
     resolveParams(event, birthYear) {
         const extras = event.extras ?? {};
@@ -151,9 +159,14 @@ export const e2SublingualModule: PkRouteModule = {
         const k1_slow = event.ester === Ester.EV ? OralPK.kAbsEV : OralPK.kAbsE2;
         const k2 = EsterPK.k2[event.ester] ?? 0;
         const k2_slow = event.ester === Ester.EV ? 0 : OralPK.kE1Pool;
-        const F_fast = toE2;
+        // Plain estradiol's mucosal share arrives as a burst and declines
+        // faster than the clearance (k3_fast below). An ester's is released by
+        // hydrolysis (k2) over hours, a slow input, so its curve keeps its shape
+        // and is scaled to the same exposure instead. See OralPK.kElimSL.
+        const isBurst = k2 === 0;
+        const F_fast = isBurst ? toE2 : toE2 * SL_MUCOSAL_EXPOSURE;
         const F_slow = _activePKParams.e2_oral_bio * toE2;
-        const F = theta * F_fast + (1 - theta) * F_slow;
+        const F = theta * toE2 * SL_MUCOSAL_EXPOSURE + (1 - theta) * F_slow;
         const k3 = e2Clearance(event, birthYear);
         const params: PKParams = {
             Frac_fast: theta,
@@ -167,10 +180,7 @@ export const e2SublingualModule: PkRouteModule = {
             F_fast,
             F_slow,
         };
-        // Plain estradiol's mucosal share arrives as a burst and declines
-        // faster than the clearance; an ester's is released by hydrolysis (k2)
-        // and keeps k3. See OralPK.kElimSL.
-        if (k2 === 0) params.k3_fast = k3 * (OralPK.kElimSL / CorePK.kClear);
+        if (isBurst) params.k3_fast = k3 / SL_MUCOSAL_EXPOSURE;
         return params;
     },
     buildAmount(event, _allEvents, params) {
