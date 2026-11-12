@@ -208,6 +208,9 @@ export interface PKParams {
     // estrone pool, as k2 is for an oral dose. Absent means none.
     k2_slow?: number;
     k3: number;
+    // Decline rate of the fast (mucosal) sublingual branch where it differs
+    // from k3: plain estradiol, see OralPK.kElimSL. Absent means k3.
+    k3_fast?: number;
     F: number;
     rateMGh: number;
     F_fast: number;

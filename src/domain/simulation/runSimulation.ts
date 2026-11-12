@@ -150,8 +150,9 @@ export function runSimulation(
     // base grid is about one point per hour, so a sublingual peak was drawn up
     // to about 7% low and the level read shortly after a dose about half the
     // model's value. Offsets past a dose's own lifetime add nothing and are
-    // skipped.
-    const periEventOffsets = [0.25, 0.5, 1, 2, 4, 6, 8, 12, 24, 48];
+    // skipped. 0.75 h is there for the sublingual peak, which comes at about
+    // 0.68 h (OralPK.kElimSL): between 0.5 and 1 h alone it was drawn 4% low.
+    const periEventOffsets = [0.25, 0.5, 0.75, 1, 2, 4, 6, 8, 12, 24, 48];
     const periEventTimes: number[] = [];
     for (const pc of precomputed) {
         for (const offset of periEventOffsets) {

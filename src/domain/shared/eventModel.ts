@@ -57,6 +57,7 @@ export function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvent
     if (params.k2 > 0) rates.push(params.k2);
     if ((params.k2_slow ?? 0) > 0) rates.push(params.k2_slow!);
     if (params.k3 > 0) rates.push(params.k3);
+    if ((params.k3_fast ?? 0) > 0) rates.push(params.k3_fast!);
 
     if (rates.length === 0) return Infinity;
 
