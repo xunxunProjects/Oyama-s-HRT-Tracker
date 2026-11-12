@@ -247,6 +247,9 @@ export function computePkSandbox(id: string, partial: Partial<PkSandboxInputs> =
     const fmt = (n: number, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : String(n));
     const unit = (u: string) => `\\ \\text{${u}}`;
     const hoursTex = (h: number | null) => (h === null ? '\\infty' : `${fmt(h, 2)}${unit('h')}`);
+    // Sublingual estradiol only: the decline rate of its mucosal share.
+    const k3FastTex = params.k3_fast === undefined ? '' : `,\\quad k_{3,\\text{fast}} = ${fmt(params.k3_fast, 4)}`;
+    const k3FastText = params.k3_fast === undefined ? '' : `, k3_fast = ${fmt(params.k3_fast, 4)}`;
     const derivation: DerivationStep[] = [
         {
             key: 'dose',
@@ -275,11 +278,11 @@ export function computePkSandbox(id: string, partial: Partial<PkSandboxInputs> =
             key: 'params',
             tex: [
                 `k_{\\text{fast}} = ${fmt(params.k1_fast, 4)},\\quad k_{\\text{slow}} = ${fmt(params.k1_slow, 4)}`,
-                `k_2 = ${fmt(params.k2, 4)},\\quad k_3 = ${fmt(params.k3, 4)}`,
+                `k_2 = ${fmt(params.k2, 4)},\\quad k_3 = ${fmt(params.k3, 4)}${k3FastTex}`,
                 `f_{\\text{fast}} = ${fmt(params.Frac_fast, 4)},\\quad F = ${fmt(params.F, 4)}`,
             ],
             title: 'Resolved parameters',
-            formula: `k_fast = ${fmt(params.k1_fast, 4)}, k_slow = ${fmt(params.k1_slow, 4)}, k2 = ${fmt(params.k2, 4)}, k3 = ${fmt(params.k3, 4)}, Frac_fast = ${fmt(params.Frac_fast, 4)}`,
+            formula: `k_fast = ${fmt(params.k1_fast, 4)}, k_slow = ${fmt(params.k1_slow, 4)}, k2 = ${fmt(params.k2, 4)}, k3 = ${fmt(params.k3, 4)}${k3FastText}, Frac_fast = ${fmt(params.Frac_fast, 4)}`,
             result: `F = ${fmt(params.F, 4)}`,
         },
         {

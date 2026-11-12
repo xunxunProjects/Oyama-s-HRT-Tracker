@@ -139,7 +139,11 @@ describe('swallowed share of estradiol', () => {
                 const j = oral.timeH.findIndex(t => t >= t0 + h);
                 expect(sl.timeH[i]).toBe(oral.timeH[j]);
                 expect(relErr(sl.concPGmL_E2_swallowed![i], oral.concPGmL_E2[j])).toBeLessThan(1e-12);
-                expect(sl.concPGmL_E2_swallowed![i]).toBeLessThan(sl.concPGmL_E2[i]);
+                // The mucosal share sits on top of it while it lasts. Plain
+                // estradiol's is gone within a day (OralPK.kElimSL), after
+                // which the two are the same number.
+                if (h <= 12) expect(sl.concPGmL_E2_swallowed![i]).toBeLessThan(sl.concPGmL_E2[i]);
+                else expect(sl.concPGmL_E2_swallowed![i]).toBeLessThanOrEqual(sl.concPGmL_E2[i]);
             }
         }
     });

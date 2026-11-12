@@ -52,6 +52,15 @@ describe('computePkSandbox', () => {
         expect(sandboxConc).toBeCloseTo(simConc!, 0);
     });
 
+    it('lists the faster decline of the mucosal share for sublingual estradiol only', () => {
+        const params = (id: string) =>
+            computePkSandbox(id, { birthYear: null }).derivation.find(step => step.key === 'params')!;
+        expect(params('sublingual:E2').formula).toContain('k3_fast = 1.2000');
+        expect(params('sublingual:E2').tex.join(' ')).toContain('k_{3,\\text{fast}} = 1.2000');
+        expect(params('sublingual:EV').formula).not.toContain('k3_fast');
+        expect(params('oral:E2').formula).not.toContain('k3_fast');
+    });
+
     it('scales linearly with dose', () => {
         const a = computePkSandbox('oral:E2', { doseMG: 2, bodyWeightKG: 70, birthYear: 1990 });
         const b = computePkSandbox('oral:E2', { doseMG: 4, bodyWeightKG: 70, birthYear: 1990 });

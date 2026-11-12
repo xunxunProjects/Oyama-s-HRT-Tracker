@@ -231,6 +231,89 @@ describe('testosterone injections', () => {
     });
 });
 
+describe('sublingual estradiol, single 1 mg tablet (standard tier)', () => {
+    // The shape of the curve after one tablet of micronized estradiol under the
+    // tongue. Every study with serial samples shows a burst that is over in a
+    // few hours:
+    //   - Price et al. 1997 (PMID 9052581; six postmenopausal women, RIA): 1 mg
+    //     peaked at about 450 pg/mL at 1 h and was down to about 85 pg/mL by
+    //     3 h, as Kuhl 2005 (PMID 16112947) quotes it and
+    //     https://en.wikipedia.org/wiki/Pharmacokinetics_of_estradiol#Sublingual_administration
+    //     tabulates it. The abstract: "high E2 levels that fall rapidly over
+    //     the first 6 hours". The area under the sublingual curve was about 2.5
+    //     times oral's at the same dose
+    //     (https://transfemscience.org/articles/sublingual-e2-transfem/).
+    //   - Casper & Yen 1981 (PMID 7454177): 2 mg, a 9-fold and a 41-fold rise
+    //     "within 30 minutes".
+    //   - Doll et al. 2022 (PMID 34781041; ten transgender women, LC-MS/MS):
+    //     1 mg peaked at 144 pg/mL at the first sample, 1 h.
+    //   - Pines et al. 1998 (PMID 9689200) and Rosano et al. 1993 (PMID 8101254),
+    //     RIA: 1759 pg/mL an hour after 4 mg, and 2531 pmol/L (689 pg/mL) 40
+    //     minutes after 1 mg.
+    //
+    // While the mucosal share fell at the clearance every other route uses
+    // (0.41/h) the 3 h level was 0.59 of the 1 h level, the peak came at 1.04 h
+    // and the 24 h area was 7 times oral's. OralPK.kElimSL is what closed these.
+    const t0 = NOW_H - 100;
+    const sublingual = () =>
+        runSimulation([dose(Route.sublingual, Ester.E2, 1, t0, { [ExtraKey.sublingualTier]: 2 })], BW)!;
+    const E2 = interpolateConcentration_E2;
+
+    it('is down to about a fifth of its 1 h level by 3 h (Price 1997: 450 to 85 pg/mL)', () => {
+        const sim = sublingual();
+        within(E2(sim, t0 + 3)! / E2(sim, t0 + 1)!, 85 / 450);
+    });
+
+    it('peaks 30 to 60 minutes after the dose', () => {
+        const { tmaxH } = scan(sublingual(), E2, t0, t0 + 12, 0.01);
+        expect(tmaxH).toBeGreaterThanOrEqual(0.5);
+        expect(tmaxH).toBeLessThanOrEqual(1);
+    });
+
+    it('has about 2.5 times the 24 h exposure of the same dose swallowed (Price 1997)', () => {
+        const oral = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
+        const area = (sim: typeof oral) => scan(sim, E2, t0, t0 + 24, 0.01).mean * 24;
+        within(area(sublingual()) / area(oral), 2.5);
+    });
+
+    // The peak itself is where the studies disagree, by a factor of ten per mg:
+    // 144 pg/mL by LC-MS/MS (Doll, a cohort with a mean BMI of 33), 216 to 324
+    // per mg at 30 to 45 minutes (Casper & Yen), about 440 to 450 per mg in the
+    // 1 h RIA studies (Price, Pines), 689 (Rosano). None says how long the
+    // tablet was held. The standard tier sits between the LC-MS/MS study and
+    // the RIA studies; "known gaps" below keeps the stricter comparison with
+    // the LC-MS/MS study alone.
+    it('peaks between the LC-MS/MS study (144 pg/mL) and the 1 h RIA studies (450 pg/mL)', () => {
+        const { cmax } = scan(sublingual(), E2, t0, t0 + 12, 0.01);
+        expect(cmax).toBeGreaterThan(144);
+        expect(cmax).toBeLessThan(450);
+    });
+});
+
+describe('sublingual estradiol at steady state, before the morning dose', () => {
+    // Cortez et al. 2024, J Endocr Soc 8(8):bvae108 (PMC11220669), Tables 2 and
+    // 3: a randomized trial in treatment-naive transgender women, estradiol by
+    // immunoassay, blood drawn before the morning dose, tablets held "until
+    // fully dissolved". After a month on 2 mg/day: once daily (mean 82.1 kg)
+    // 52.6 pg/mL from a baseline of 25.8; twice daily (74.0 kg) 55.2 from 23.4.
+    // The rises are compared. Testosterone had fallen by about 40% by then, so
+    // the participants' own estradiol was probably below its baseline and the
+    // rise from the tablets somewhat larger than the difference.
+    //
+    // These levels come from the swallowed share (the estrone pool,
+    // OralPK.kE1Pool), not the mucosal burst, which is why the faster mucosal
+    // decline leaves them where they were.
+    it.each([
+        ['2 mg once a day', 2, 24, 82.1, 52.6 - 25.8],
+        ['1 mg twice a day', 1, 12, 74.0, 55.2 - 23.4],
+    ])('%s: the rise over baseline is within 1.5x of the trial', (_name, mg, everyH, kg, rise) => {
+        const events = regimen(Route.sublingual, Ester.E2, mg, everyH, 60, NOW_H - everyH, {
+            [ExtraKey.sublingualTier]: 2,
+        });
+        within(interpolateConcentration_E2(runSimulation(events, kg)!, NOW_H - 1e-6)!, rise);
+    });
+});
+
 describe('known gaps against published data', () => {
     // Doll et al., "Pharmacokinetics of Sublingual Versus Oral Estradiol in
     // Transgender Women", Endocr Pract 2022;28(3):237-242, PMID 34781041.
@@ -238,10 +321,15 @@ describe('known gaps against published data', () => {
     // 144 pg/mL at 1 h, oral at 35 pg/mL at 8 h.
     // https://pubmed.ncbi.nlm.nih.gov/34781041/
     //
-    // Sublingual: the standard tier (θ = 0.11) peaks at about 509 pg/mL, 3.5x the
-    // study. This is what GitHub issue #22 reports (about 1400 pg/mL for 2 mg at
-    // 55 kg). The study does not say how long the tablet was held, so even a
-    // factor of 2 is generous.
+    // Sublingual: the standard tier (θ = 0.11) peaks at about 350 pg/mL, 2.4x
+    // the study (509 pg/mL and 3.5x before OralPK.kElimSL; GitHub issue #22
+    // reported about 1400 pg/mL for 2 mg at 55 kg, now about 890). The study
+    // does not say how long the tablet was held, so even a factor of 2 is
+    // generous, and its cohort was heavy (mean BMI 33; no weight given), which
+    // this test's 70 kg does not allow for. The casual tier (θ = 0.04, a
+    // 5-minute hold) peaks at about 128 pg/mL. Whether the standard tier's θ
+    // should come down is left to timed lab results: the RIA studies in the
+    // sublingual block above sit as far above this model as Doll sits below.
     it.fails('sublingual 1 mg (standard tier) peaks within 2x of 144 pg/mL', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.sublingual, Ester.E2, 1, t0, { [ExtraKey.sublingualTier]: 2 })], BW)!;

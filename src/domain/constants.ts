@@ -238,6 +238,41 @@ export const OralPK = {
     kE1Pool: Math.LN2 / 14.36,
     bioavailability: 0.03,
     kAbsSL: 1.8,
+    // The rate at which the mucosal share of a sublingual dose of plain
+    // estradiol leaves the blood, at the default clearance (CorePK.kClear).
+    //
+    // Estradiol absorbed in the mouth arrives as a burst, and every study with
+    // serial samples shows the burst over within hours. 1 mg peaked at about
+    // 450 pg/mL at 1 h and was at about 85 by 3 h (Price et al. 1997, PMID
+    // 9052581: "high E2 levels that fall rapidly over the first 6 hours";
+    // values as quoted by Kuhl 2005, PMID 16112947). With the clearance every
+    // other route uses (0.41/h) the 3 h level was 0.59 of the 1 h level against
+    // a measured 0.19, the peak came at 1.04 h against 30 to 60 minutes
+    // (Casper & Yen 1981, PMID 7454177: "within 30 minutes"), and total
+    // exposure was 4.6 times oral's against about 2.5 (Price) and 1.8 over 8 h
+    // (Doll et al. 2022, PMID 34781041). At 1.2/h these are 0.19, 0.68 h and
+    // 2.1. A fit of this rate and the standard θ together to the peaks of
+    // eight studies, the decline, the exposure ratios and the trough levels of
+    // Cortez et al. 2024 (PMC11220669) lands on 1.2/h and θ = 0.10
+    // ("Algorithm Explanation.md" §6.4), so the tiers are left as they were.
+    //
+    // The other routes deliver estradiol slowly enough for one rate to
+    // describe them. A burst shows the fast early phase (after an intravenous
+    // dose the half-life is 0.5 to 2 h) that a one-compartment model cannot
+    // draw otherwise; the price is that a mg absorbed in the mouth carries
+    // kClear / kElimSL = 0.34 of the exposure of a mg from another route.
+    //
+    // It scales with the clearance in effect (age, a custom e2_kClear, a
+    // personal calibration), so that ratio holds whatever the clearance.
+    // Esters are left alone: an ester's mucosal share is released by
+    // hydrolysis (EsterPK.k2) over hours, a slow input like the other routes,
+    // and no serial-sample study of a sublingual ester was found.
+    //
+    // The height of the peak is a separate question and stays open: per mg the
+    // studies range from 144 pg/mL (Doll, LC-MS/MS) to about 450 (Price, RIA)
+    // and beyond, and none says how long the tablet was held. See the
+    // sublingual blocks in tests/literature.test.ts.
+    kElimSL: 1.2,
 };
 
 // Define deterministic order for mapping integer tiers (0-3)   to keys

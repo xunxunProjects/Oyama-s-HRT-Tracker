@@ -56,11 +56,13 @@ export function buildSublingualAmount(event: DoseEvent, params: PKParams): Amoun
     const dose = event.doseMG;
     const doseF = dose * params.Frac_fast;
     const doseS = dose * (1.0 - params.Frac_fast);
+    // The mucosal share of plain estradiol declines at its own rate (OralPK.kElimSL).
+    const k3Fast = params.k3_fast ?? params.k3;
 
     const fastAmount = (tau: number) =>
         params.k2 > 0
-            ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, params.k3)
-            : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, params.k3);
+            ? _analytic3C(tau, doseF, params.F_fast, params.k1_fast, params.k2, k3Fast)
+            : _analytic2C(tau, doseF, params.F_fast, params.k1_fast, k3Fast);
 
     const slowAmount = (tau: number) =>
         (params.k2_slow ?? 0) > 0

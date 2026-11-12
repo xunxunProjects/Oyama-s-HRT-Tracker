@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+    DEFAULT_PK_PARAMS,
     Ester,
     ExtraKey,
     Route,
+    applyPKOverrides,
     getBioavailabilityMultiplier,
     getToE2Factor,
     interpolateConcentration_CPA,
@@ -137,14 +139,36 @@ describe('sublingual', () => {
         }
     });
 
-    it('exposure follows θ·1 + (1 − θ)·3% for each tier', () => {
+    it('exposure follows θ/kElimSL + (1 − θ)·3%/k3 for each tier', () => {
+        // The mucosal share of plain estradiol declines at OralPK.kElimSL
+        // (1.2/h), the swallowed share at the ordinary clearance (0.41/h).
         const thetas = [0.01, 0.04, 0.11, 0.18];
         thetas.forEach((theta, tier) => {
-            const F = theta + (1 - theta) * 0.03;
-            expect(
-                relErr(e2AucFor(Route.sublingual, Ester.E2, 1, 200, tierExtras(tier)), toPgMl(F / 0.41)),
-            ).toBeLessThan(0.005);
+            const area = theta / 1.2 + ((1 - theta) * 0.03) / 0.41;
+            expect(relErr(e2AucFor(Route.sublingual, Ester.E2, 1, 200, tierExtras(tier)), toPgMl(area))).toBeLessThan(
+                0.005,
+            );
         });
+    });
+
+    it('held for good (θ = 1), plain estradiol is one Bateman curve: in at kSL = 1.8, out at kElimSL = 1.2', () => {
+        const t0 = NOW_H - 100;
+        const sim = runSimulation([dose(Route.sublingual, Ester.E2, 2, t0, { [ExtraKey.sublingualTheta]: 1 })], BW)!;
+        for (const tau of [0.25, 0.5, 1, 2, 4, 8]) {
+            const amount = ((2 * 1.8) / (1.8 - 1.2)) * (Math.exp(-1.2 * tau) - Math.exp(-1.8 * tau));
+            expect(relErr(E2(sim, t0 + tau)!, toPgMl(amount))).toBeLessThan(1e-6);
+        }
+    });
+
+    it('the mucosal decline moves with the clearance in effect: doubling it halves the whole exposure', () => {
+        const area = () => e2AucFor(Route.sublingual, Ester.E2, 1, 200, tierExtras(2));
+        const before = area();
+        applyPKOverrides({ ...DEFAULT_PK_PARAMS, e2_kClear: 0.82 });
+        try {
+            expect(relErr(area(), before / 2)).toBeLessThan(0.005);
+        } finally {
+            applyPKOverrides(null);
+        }
     });
 
     it('a longer hold (higher tier) never gives a lower peak', () => {
@@ -157,12 +181,13 @@ describe('sublingual', () => {
         for (let i = 1; i < peaks.length; i++) expect(peaks[i]).toBeGreaterThan(peaks[i - 1]);
     });
 
-    it('E2 peaks about an hour after the dose ("Algorithm Explanation.md" §6, kSL = 1.8)', () => {
+    it('E2 peaks about 40 minutes after the dose ("Algorithm Explanation.md" §6: kSL = 1.8, kElimSL = 1.2)', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.sublingual, Ester.E2, 1, t0, tierExtras(2))], BW)!;
         const { tmaxH } = scan(sim, E2, t0, t0 + 12, 0.01);
-        expect(tmaxH).toBeGreaterThan(0.8);
-        expect(tmaxH).toBeLessThan(1.5);
+        // ln(1.8 / 1.2) / (1.8 − 1.2) = 0.676 h for the mucosal share alone.
+        expect(tmaxH).toBeGreaterThan(0.6);
+        expect(tmaxH).toBeLessThan(0.8);
     });
 
     it('an explicit θ wins over a tier, and is clamped into [0, 1]', () => {

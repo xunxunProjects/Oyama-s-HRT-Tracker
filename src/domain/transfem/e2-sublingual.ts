@@ -1,6 +1,7 @@
 import { Ester, ExtraKey, Route } from '../types';
+import type { PKParams } from '../types';
 import type { PkRouteModule } from '../shared/module';
-import { EsterPK, OralPK, SL_TIER_ORDER, SublingualTierParams, getToE2Factor } from '../constants';
+import { CorePK, EsterPK, OralPK, SL_TIER_ORDER, SublingualTierParams, getToE2Factor } from '../constants';
 import { _activePKParams } from '../shared/activeParams';
 import { e2Clearance } from '../shared/params';
 import { buildSublingualAmount } from '../shared/amounts';
@@ -153,18 +154,24 @@ export const e2SublingualModule: PkRouteModule = {
         const F_fast = toE2;
         const F_slow = _activePKParams.e2_oral_bio * toE2;
         const F = theta * F_fast + (1 - theta) * F_slow;
-        return {
+        const k3 = e2Clearance(event, birthYear);
+        const params: PKParams = {
             Frac_fast: theta,
             k1_fast,
             k1_slow,
             k2,
             k2_slow,
-            k3: e2Clearance(event, birthYear),
+            k3,
             F,
             rateMGh: 0,
             F_fast,
             F_slow,
         };
+        // Plain estradiol's mucosal share arrives as a burst and declines
+        // faster than the clearance; an ester's is released by hydrolysis (k2)
+        // and keeps k3. See OralPK.kElimSL.
+        if (k2 === 0) params.k3_fast = k3 * (OralPK.kElimSL / CorePK.kClear);
+        return params;
     },
     buildAmount(event, _allEvents, params) {
         return buildSublingualAmount(event, params);

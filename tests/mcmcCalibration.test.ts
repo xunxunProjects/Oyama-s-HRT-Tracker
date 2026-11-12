@@ -43,8 +43,11 @@ const run = (
 ) => computeCalibration(runSimulation(events, BW), events, BW, labs, 'mcmc', mode);
 
 // Weekly EV injections for a year plus twice-daily sublingual E2 for the last 20 weeks.
+// 2 mg a dose: the mucosal burst is over within a few hours (OralPK.kElimSL),
+// so at these lab times 1 mg made up only about a fifth of the level, too
+// little for the sampler to move the sublingual factor far from its prior.
 const injections = regimen(Route.injection, Ester.EV, 4, 168, 52, NOW_H - 60);
-const sublingual = regimen(Route.sublingual, Ester.E2, 1, 12, 280, NOW_H - 6, { [ExtraKey.sublingualTier]: 1 });
+const sublingual = regimen(Route.sublingual, Ester.E2, 2, 12, 280, NOW_H - 6, { [ExtraKey.sublingualTier]: 1 });
 const mixed = [...injections, ...sublingual];
 // Labs before the sublingual started (injection only) and after (both), at varied phases.
 const MIXED_TIMES = [

@@ -270,7 +270,8 @@ describe('short-acting doses are sampled around their peaks', () => {
     it('the most recent sublingual dose has sample points around its peak', () => {
         const last = NOW_H - 10;
         const sim = runSimulation(sublingualYear(last), BW)!;
-        for (const offset of [0.25, 0.5, 1, 2]) expect(sim.timeH).toContain(last + offset);
+        // 0.75 h brackets the peak, which comes at about 0.68 h (OralPK.kElimSL).
+        for (const offset of [0.25, 0.5, 0.75, 1, 2]) expect(sim.timeH).toContain(last + offset);
     });
 
     it('the current time is a sample point', () => {
