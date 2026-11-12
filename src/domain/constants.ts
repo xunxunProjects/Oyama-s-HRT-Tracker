@@ -259,22 +259,14 @@ export const OralPK = {
     // The other routes deliver estradiol slowly enough for one rate to
     // describe them. A burst shows the fast early phase (after an intravenous
     // dose the half-life is 0.5 to 2 h) that a one-compartment model cannot
-    // draw otherwise. With it, a mg absorbed in the mouth carries
-    // kClear / kElimSL = 0.34 of the exposure of a mg from another route,
-    // which is what the measured sublingual-to-oral exposure ratios ask for.
+    // draw otherwise; the price is that a mg absorbed in the mouth carries
+    // kClear / kElimSL = 0.34 of the exposure of a mg from another route.
     //
     // It scales with the clearance in effect (age, a custom e2_kClear, a
     // personal calibration), so that ratio holds whatever the clearance.
-    //
-    // Esters under the tongue get the same exposure and keep their shape. An
-    // ester's mucosal share is released by hydrolysis (EsterPK.k2) over hours,
-    // a slow input that the ordinary clearance describes, so its curve is
-    // scaled by kClear / kElimSL rather than made to fall faster. No
-    // serial-sample study of a sublingual ester was found; this follows from
-    // the exposure evidence, which is not specific to plain estradiol. Without
-    // it a mg of valerate under the tongue carried 1.6 times the exposure of a
-    // mg of estradiol, though it holds 24% less, and 4.6 times oral
-    // valerate's, the ratio that was too high for estradiol.
+    // Esters are left alone: an ester's mucosal share is released by
+    // hydrolysis (EsterPK.k2) over hours, a slow input like the other routes,
+    // and no serial-sample study of a sublingual ester was found.
     //
     // The height of the peak is a separate question and stays open: per mg the
     // studies range from 144 pg/mL (Doll, LC-MS/MS) to about 450 (Price, RIA)

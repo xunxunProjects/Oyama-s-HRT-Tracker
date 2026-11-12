@@ -14,7 +14,7 @@ import {
     SimulationResult,
 } from '../logic';
 import { BW, NOW_H, VD_E2_ML, VD_T_ML, dose, regimen, relErr, scan, trapz } from './helpers';
-import { UpstreamCompound, upstreamAnalytic3C, upstreamE2Amount } from './reference/pkcoreUpstream';
+import { UpstreamCompound, upstreamE2Amount } from './reference/pkcoreUpstream';
 
 const E2 = interpolateConcentration_E2;
 const T = interpolateConcentration_T;
@@ -139,37 +139,16 @@ describe('sublingual', () => {
         }
     });
 
-    // A mg absorbed in the mouth carries kClear / kElimSL of the exposure of a
-    // mg from another route (OralPK.kElimSL). Plain estradiol gets there by
-    // declining at 1.2/h, an ester by a scaled curve of the same shape.
-    const MUCOSAL = 0.41 / 1.2;
-
-    it.each([Ester.E2, Ester.EV])(
-        '%s: exposure is F·D/k3 with F = (θ·kClear/kElimSL + (1 − θ)·3%) × MW factor, for each tier',
-        ester => {
-            const thetas = [0.01, 0.04, 0.11, 0.18];
-            thetas.forEach((theta, tier) => {
-                const F = (theta * MUCOSAL + (1 - theta) * 0.03) * getToE2Factor(ester);
-                expect(getBioavailabilityMultiplier(Route.sublingual, ester, tierExtras(tier))).toBeCloseTo(F, 12);
-                expect(
-                    relErr(e2AucFor(Route.sublingual, ester, 1, 400, tierExtras(tier)), toPgMl(F / 0.41)),
-                ).toBeLessThan(0.005);
-            });
-        },
-    );
-
-    it('per mg, valerate under the tongue gives the exposure of the estradiol it contains (0.76 of plain estradiol)', () => {
-        const area = (ester: Ester) => e2AucFor(Route.sublingual, ester, 2, 400, tierExtras(2));
-        expect(relErr(area(Ester.EV) / area(Ester.E2), getToE2Factor(Ester.EV))).toBeLessThan(0.005);
-    });
-
-    it('held for good (θ = 1), valerate keeps its shape (in at 1.8, hydrolysis at 0.07, out at 0.41), scaled', () => {
-        const t0 = NOW_H - 100;
-        const sim = runSimulation([dose(Route.sublingual, Ester.EV, 2, t0, { [ExtraKey.sublingualTheta]: 1 })], BW)!;
-        for (const tau of [0.5, 2, 6, 12, 24, 48]) {
-            const amount = upstreamAnalytic3C(tau, 2, MUCOSAL * getToE2Factor(Ester.EV), 1.8, 0.07, 0.41);
-            expect(relErr(E2(sim, t0 + tau)!, toPgMl(amount))).toBeLessThan(1e-6);
-        }
+    it('exposure follows θ/kElimSL + (1 − θ)·3%/k3 for each tier', () => {
+        // The mucosal share of plain estradiol declines at OralPK.kElimSL
+        // (1.2/h), the swallowed share at the ordinary clearance (0.41/h).
+        const thetas = [0.01, 0.04, 0.11, 0.18];
+        thetas.forEach((theta, tier) => {
+            const area = theta / 1.2 + ((1 - theta) * 0.03) / 0.41;
+            expect(relErr(e2AucFor(Route.sublingual, Ester.E2, 1, 200, tierExtras(tier)), toPgMl(area))).toBeLessThan(
+                0.005,
+            );
+        });
     });
 
     it('held for good (θ = 1), plain estradiol is one Bateman curve: in at kSL = 1.8, out at kElimSL = 1.2', () => {
@@ -216,9 +195,9 @@ describe('sublingual', () => {
             [ExtraKey.sublingualTheta]: 0.5,
             [ExtraKey.sublingualTier]: 0,
         });
-        expect(both).toBeCloseTo(0.5 * MUCOSAL + 0.5 * 0.03, 12);
+        expect(both).toBeCloseTo(0.5 + 0.5 * 0.03, 12);
         expect(getBioavailabilityMultiplier(Route.sublingual, Ester.E2, { [ExtraKey.sublingualTheta]: 7 })).toBeCloseTo(
-            MUCOSAL,
+            1,
             12,
         );
         expect(
@@ -228,11 +207,11 @@ describe('sublingual', () => {
 
     it('tier codes are rounded and clamped; no tier at all means standard', () => {
         const F = (extras: object) => getBioavailabilityMultiplier(Route.sublingual, Ester.E2, extras);
-        const standard = 0.11 * MUCOSAL + 0.89 * 0.03;
+        const standard = 0.11 + 0.89 * 0.03;
         expect(F({})).toBeCloseTo(standard, 12);
         expect(F(tierExtras(2.4))).toBeCloseTo(standard, 12);
-        expect(F(tierExtras(99))).toBeCloseTo(0.18 * MUCOSAL + 0.82 * 0.03, 12);
-        expect(F(tierExtras(-5))).toBeCloseTo(0.01 * MUCOSAL + 0.99 * 0.03, 12);
+        expect(F(tierExtras(99))).toBeCloseTo(0.18 + 0.82 * 0.03, 12);
+        expect(F(tierExtras(-5))).toBeCloseTo(0.01 + 0.99 * 0.03, 12);
     });
 
     it('a non-finite tier falls back to standard in the simulation', () => {
@@ -438,9 +417,7 @@ describe('cross-check against upstream PKcore (estradiol)', () => {
         })),
         // Oral estradiol, and the swallowed share of sublingual estradiol, now
         // pass through an estrone pool that upstream does not model (see
-        // OralPK.kE1Pool), so only the valerate forms are compared. Sublingual
-        // valerate differs from upstream in one place, allowed for below: its
-        // mucosal share is scaled by kClear / kElimSL (OralPK.kElimSL).
+        // OralPK.kE1Pool), so only the valerate forms are compared.
         { name: 'EV oral', route: Route.oral, ester: Ester.EV, upRoute: 'oral' },
         ...[0, 1, 2, 3].flatMap(tier =>
             [Ester.EV].map(ester => ({
@@ -484,14 +461,7 @@ describe('cross-check against upstream PKcore (estradiol)', () => {
             timeH: t0,
             tier,
         };
-        // What upstream counts in full and logic.ts scales: the mucosal share
-        // of a sublingual ester (absorption 1.8, hydrolysis 0.07, clearance 0.41).
-        const theta = [0.01, 0.04, 0.11, 0.18][tier ?? 2];
-        const mucosalCut = (t: number) =>
-            route === Route.sublingual
-                ? (1 - 0.41 / 1.2) * upstreamAnalytic3C(t - t0, up.doseE2MG * theta, 1, 1.8, 0.07, 0.41)
-                : 0;
-        matchesOnGrid(sim, t0 - 24, t0 + 24 * 60, t => toPgMl(upstreamE2Amount(up, t) - mucosalCut(t)));
+        matchesOnGrid(sim, t0 - 24, t0 + 24 * 60, t => toPgMl(upstreamE2Amount(up, t)));
     });
 
     it('zero-order and first-order patches match the upstream curve', () => {
