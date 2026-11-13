@@ -1323,5 +1323,8 @@ export const RU = {
         'Решите, как делить пожертвования, какие валюты поддерживать и принимать ли пожертвования вообще.',
     'vote.prompt.early': 'Досрочное голосование открыто',
     'vote.prompt.deadline': 'Голосование закончится {date} (UTC)',
+    'vote.prompt.days_left': 'Осталось {n} дн.',
+    'vote.prompt.one_day_left': 'Остался 1 день',
+    'vote.prompt.under_a_day': 'Меньше дня',
     'vote.prompt.go': 'Перейти',
 } as const;

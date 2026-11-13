@@ -31,6 +31,14 @@ export const communityVotePromptState = ({
 };
 
 /**
+ * Whole days left before the deadline, the way a countdown says it: 47 hours
+ * is "1 day", not "2". Never negative, so a closed vote reads as zero even if
+ * a render lands a second late.
+ */
+export const voteDaysLeft = (closesAt: number, nowSec: number): number =>
+    Math.max(0, Math.floor((closesAt - nowSec) / 86_400));
+
+/**
  * Count the distinct local calendar days on which this account logged a dose,
  * from its registration time up to now, across both HRT modes.
  *

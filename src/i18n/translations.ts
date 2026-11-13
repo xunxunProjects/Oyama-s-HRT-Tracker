@@ -1302,6 +1302,9 @@ export const TRANSLATIONS_BASE = {
         'vote.prompt.body': '决定捐赠怎么分配、支持哪些币种，以及是否接受捐赠。',
         'vote.prompt.early': '现在可以提前投票',
         'vote.prompt.deadline': '投票截止：{date}（UTC）',
+        'vote.prompt.days_left': '还剩 {n} 天',
+        'vote.prompt.one_day_left': '还剩 1 天',
+        'vote.prompt.under_a_day': '不到 1 天',
         'vote.prompt.go': '前往',
     },
 
@@ -2660,6 +2663,9 @@ export const TRANSLATIONS_BASE = {
             'Decide how donations are split, which currencies to support, and whether to accept donations.',
         'vote.prompt.early': 'Early voting is open',
         'vote.prompt.deadline': 'Voting closes {date} (UTC)',
+        'vote.prompt.days_left': '{n} days left',
+        'vote.prompt.one_day_left': '1 day left',
+        'vote.prompt.under_a_day': 'Less than a day left',
         'vote.prompt.go': 'Go',
     },
 };
@@ -3888,6 +3894,9 @@ const ZH_TW = {
     'vote.prompt.body': '決定捐贈怎麼分配、支援哪些幣種，以及是否接受捐贈。',
     'vote.prompt.early': '現在可以提前投票',
     'vote.prompt.deadline': '投票截止：{date}（UTC）',
+    'vote.prompt.days_left': '還剩 {n} 天',
+    'vote.prompt.one_day_left': '還剩 1 天',
+    'vote.prompt.under_a_day': '不到 1 天',
     'vote.prompt.go': '前往',
 };
 

@@ -1314,5 +1314,8 @@ export const UK = {
     'vote.prompt.body': 'Вирішіть, як ділити пожертви, які валюти підтримувати і чи приймати пожертви взагалі.',
     'vote.prompt.early': 'Дострокове голосування відкрито',
     'vote.prompt.deadline': 'Голосування завершиться {date} (UTC)',
+    'vote.prompt.days_left': 'Залишилося {n} дн.',
+    'vote.prompt.one_day_left': 'Залишився 1 день',
+    'vote.prompt.under_a_day': 'Менше дня',
     'vote.prompt.go': 'Перейти',
 } as const;

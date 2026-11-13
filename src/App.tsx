@@ -895,7 +895,22 @@ const AppContent = () => {
 
     return (
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] select-none overflow-hidden">
-            <Sidebar navItems={navItems} currentView={currentTab} onViewChange={handleTabSelect} />
+            <Sidebar
+                navItems={navItems}
+                currentView={
+                    currentView === 'settings-community' && navItems.some(item => item.id === 'settings-community')
+                        ? 'settings-community'
+                        : currentTab
+                }
+                onViewChange={view => {
+                    // Opened from the sidebar rather than a row, Back returns
+                    // to whatever page was showing when the door was used.
+                    if (view === 'settings-community' && currentView !== 'settings-community') {
+                        setCommunityVoteReturn(currentView);
+                    }
+                    handleTabSelect(view);
+                }}
+            />
             <div className="flex-1 flex flex-col overflow-hidden w-full bg-[var(--bg)] relative">
                 {/* Mobile site label — reflects the current deployment host. Hidden,
                     it still keeps its top padding, which is what holds the content
@@ -1292,9 +1307,10 @@ const AppContent = () => {
 
                 {/* The bottom bar on a phone (components/BottomNav.tsx). Mobile
                     reaches admin from Settings, so there the settings tab is
-                    the one that reads as current. */}
+                    the one that reads as current. The funding vote keeps its
+                    page under Settings too, so it never adds a sixth tab. */}
                 <BottomNav
-                    tabs={navItems.filter(item => item.id !== 'admin')}
+                    tabs={navItems.filter(item => item.id !== 'admin' && item.id !== 'settings-community')}
                     activeTab={currentView === 'admin' ? 'settings' : currentTab}
                     onSelect={id => handleTabSelect(id as ViewKey)}
                 />
