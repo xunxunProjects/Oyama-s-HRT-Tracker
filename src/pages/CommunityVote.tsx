@@ -422,8 +422,12 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
         setInvoiceError(false);
         try {
             const invoice = await donationService.createInvoice(ticker, network);
-            const opened = window.open(invoice.url, '_blank', 'noopener,noreferrer');
-            if (!opened) window.location.assign(invoice.url);
+            // `noopener` makes window.open() return null even when the tab
+            // opened, which would also navigate this page in the fallback.
+            // Open the tab, then cut the opener reference instead.
+            const opened = window.open(invoice.url, '_blank');
+            if (opened) opened.opener = null;
+            else window.location.assign(invoice.url);
         } catch {
             setInvoiceError(true);
         } finally {
