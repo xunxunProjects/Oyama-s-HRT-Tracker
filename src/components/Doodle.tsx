@@ -403,6 +403,7 @@ export const NAV_DOODLES: Record<string, DoodleName> = {
     lab: 'report',
     settings: 'gear',
     account: 'person',
+    'settings-community': 'heart',
 };
 
 interface DoodleProps {
