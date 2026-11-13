@@ -8,6 +8,7 @@ import { handleCommunityVotePublic } from '../../../communityVoteServer';
 import { getClientIP } from '../../../requestInput';
 import { checkRateLimit } from '../rateLimit';
 import { NOTICE_COLUMNS, type SiteNoticeRow, serializeNotice } from '../notice';
+import { handleDonationPublic } from '../donation';
 
 export async function handlePublicRoutes(ctx: RequestContext): Promise<Response | null> {
     const { request, env, url, corsHeaders, jsonError, withSecurityHeaders } = ctx;
@@ -124,6 +125,29 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
                     ...corsHeaders,
                     'Content-Type': 'application/json',
                     'Cache-Control': 'no-store',
+                },
+            }),
+        );
+    }
+
+    // /api/donation GET
+    if (url.pathname === '/api/donation' && request.method === 'GET') {
+        const clientIP = getClientIP(request, env);
+        const limitKey = clientIP ? `donation:${clientIP}` : 'donation:global-noip';
+        if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+
+        const result = await handleDonationPublic(env);
+        return withSecurityHeaders(
+            new Response(JSON.stringify(result.body), {
+                status: result.status,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'public, max-age=60',
                 },
             }),
         );

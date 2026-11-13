@@ -11,13 +11,15 @@ Oyama's HRT Tracker 是免费的：没有订阅、没有付费功能、也没有
 
 ## 资金去向
 
-- 40% — 项目开发与维护（基础设施、发布、代码审查）
 - 30% — [@fantuanmtf](https://github.com/fantuanmtf)
 - 30% — [@SmirnovaOyama](https://github.com/SmirnovaOyama)
+- 40% — 项目开发与维护（基础设施、发布、代码审查）
 
 ## 捐赠渠道
 
-- Monero：`86fnX9pg9VqD5SjJNDjbxKemf5wEvHz7mDojKztJyov8PVKCGVeC7QKijLQrb9QT7KabaXhXFn3HoPbDvWAk6dYrUBgB9p5`
-- Bitcoin：`bc1qdgfj0rm0tguna4nk36lxmeq45h59hscusrthk2`
+- Monero：`83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
+- Bitcoin：`bc1qfsa2jzt2f7p7xgjemycy03spxq375jm46u9su0`（2026-11-09 更新）
+
+Bitcoin 地址会定期更换，避免通过链上分析追踪捐赠者。如果本文件和站点显示不一致，以应用内「社区资助」页面当前显示的地址为准。
 
 感谢每一位使用者。祝一切顺利，身体健康。

@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Check, Close, Info, Lock } from '../components/icons';
+import { Check, Close, Copy, Info, Lock } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Lang } from '../i18n/translations';
 import { apiEndpoint, apiErrorCode, apiErrorFrom, apiFetch } from '../services/apiClient';
 import { countHrtDaysSince } from '../utils/communityVote';
 import { fill } from '../utils/regimenText';
+import { donationService, type DonationAddresses } from '../services/donation';
 import {
     ADDITIONAL_CURRENCIES,
     ADDITIONAL_CURRENCY_MAJORITY,
@@ -77,6 +78,44 @@ const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ chi
         {children}
     </div>
 );
+
+const AddressRow: React.FC<{
+    label: string;
+    address: string;
+    updated?: string | null;
+    t: (key: string) => string;
+}> = ({ label, address, updated, t }) => {
+    const [copied, setCopied] = useState(false);
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(address);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Selecting the text by hand still works.
+        }
+    };
+    return (
+        <div className="rounded-[var(--radius-md)] border-(length:--hairline) border-[var(--border)] p-3">
+            <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-semibold text-[var(--text)]">{label}</span>
+                <button
+                    onClick={() => void copy()}
+                    className="inline-flex items-center gap-1 text-xs text-[var(--accent-ink)]"
+                >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? t('vote.donation.copied') : t('vote.donation.copy')}
+                </button>
+            </div>
+            <p className="mt-1.5 break-all font-mono text-xs leading-relaxed text-[var(--text)]">{address}</p>
+            {updated && (
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                    {fill(t('vote.donation.updated'), { date: updated })}
+                </p>
+            )}
+        </div>
+    );
+};
 
 const Bar: React.FC<{ value: number; total: number }> = ({ value, total }) => (
     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -358,6 +397,28 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
         return { split, accepted: outcome.accepted, added: outcome.addedCurrencies };
     }, [status, vote]);
 
+    const [donation, setDonation] = useState<DonationAddresses | null>(null);
+    const [donationFailed, setDonationFailed] = useState(false);
+
+    // The addresses are only meaningful once the vote has passed. The page
+    // asks for them once; the vote itself keeps polling above.
+    useEffect(() => {
+        if (status !== 'closed' || !final?.accepted) return;
+        let cancelled = false;
+        setDonationFailed(false);
+        void donationService
+            .get()
+            .then(value => {
+                if (!cancelled) setDonation(value);
+            })
+            .catch(() => {
+                if (!cancelled) setDonationFailed(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [status, final?.accepted]);
+
     if (loading && !vote) {
         return (
             <div className="md:pb-32">
@@ -409,7 +470,84 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
             />
 
             <div className={`${PAGE_COLUMN} mt-3 space-y-7`}>
-                <p className="text-sm leading-relaxed text-[var(--text)]">{t('vote.intro')}</p>
+                <p className="text-sm leading-relaxed text-[var(--text)]">
+                    {final ? t('vote.intro.closed') : t('vote.intro')}
+                </p>
+
+                {final && (
+                    <Card className="bg-[var(--surface-muted)]">
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
+                        {tally.ballots === 0 ? (
+                            <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
+                        ) : (
+                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text)]">
+                                <p>{splitText(final.split, t)}</p>
+                                <p>
+                                    {final.accepted
+                                        ? t('vote.tally.final_accept_yes')
+                                        : t('vote.tally.final_accept_no')}
+                                </p>
+                                {final.accepted && (
+                                    <p>
+                                        {fill(t('vote.tally.final_currencies'), {
+                                            currencies: [
+                                                currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
+                                                ...final.added.map(id => currencyLabel(id, t)),
+                                            ].join(t('list.sep')),
+                                        })}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                            {t('vote.tally.final_note')}
+                        </p>
+                    </Card>
+                )}
+
+                {final?.accepted && (
+                    <Card>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.donation.title')}</h2>
+                        <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">
+                            {t('vote.donation.body')}
+                        </p>
+                        {donation ? (
+                            <>
+                                <div className="mt-4 space-y-3">
+                                    <AddressRow
+                                        label={currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t)}
+                                        address={donation.monero}
+                                        t={t}
+                                    />
+                                    <AddressRow
+                                        label={currencyLabel('bitcoin', t)}
+                                        address={donation.bitcoin}
+                                        updated={donation.bitcoinUpdatedAt}
+                                        t={t}
+                                    />
+                                </div>
+                                <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                                    {t('vote.donation.rotate')}
+                                </p>
+                                <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+                                    {t('vote.donation.split_note')}
+                                </p>
+                                <a
+                                    href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/blob/main/DONATE.md"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-3 inline-block text-xs text-[var(--accent-ink)] underline"
+                                >
+                                    {t('vote.donation.verify')}
+                                </a>
+                            </>
+                        ) : donationFailed ? (
+                            <p className="mt-3 text-sm text-[var(--danger)]">{t('vote.donation.unavailable')}</p>
+                        ) : (
+                            <p className="mt-3 text-sm text-[var(--text-muted)]">{t('vote.loading')}</p>
+                        )}
+                    </Card>
+                )}
 
                 <Section title={t('vote.why.title')}>
                     <p>{t('vote.why.body')}</p>
@@ -743,37 +881,6 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                         <p className="mt-5 text-xs text-[var(--text-muted)]">{t('vote.tally.not_final')}</p>
                     )}
                 </section>
-
-                {final && (
-                    <Card className="bg-[var(--surface-muted)]">
-                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
-                        {tally.ballots === 0 ? (
-                            <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
-                        ) : (
-                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text)]">
-                                <p>{splitText(final.split, t)}</p>
-                                <p>
-                                    {final.accepted
-                                        ? t('vote.tally.final_accept_yes')
-                                        : t('vote.tally.final_accept_no')}
-                                </p>
-                                {final.accepted && (
-                                    <p>
-                                        {fill(t('vote.tally.final_currencies'), {
-                                            currencies: [
-                                                currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
-                                                ...final.added.map(id => currencyLabel(id, t)),
-                                            ].join(t('list.sep')),
-                                        })}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                        <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-                            {t('vote.tally.final_note')}
-                        </p>
-                    </Card>
-                )}
 
                 <p className="border-t-(length:--hairline) border-[var(--border)] pt-5 text-xs leading-relaxed text-[var(--text-muted)]">
                     {t('vote.footer')}

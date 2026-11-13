@@ -10,6 +10,7 @@ import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
+import { voteStatusAt } from '../../communityVote';
 import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
 
 interface SettingsProps {
@@ -196,6 +197,9 @@ const Settings: React.FC<SettingsProps> = ({
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
     const [cat, setCat] = useState<SettingsCat>(_savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
+    // A hint, not a countdown: the row is read when Settings opens. The page
+    // behind it always has the live status.
+    const [voteClosed] = useState(() => voteStatusAt(Math.floor(Date.now() / 1000)) === 'closed');
 
     const selectCat = (c: SettingsCat) => {
         _savedCat = c;
@@ -266,6 +270,17 @@ const Settings: React.FC<SettingsProps> = ({
     // (Supplies) read as a row that had come loose from the rest.
     const renderGeneral = () => (
         <div className="space-y-8">
+            {/* The funding vote and, once it closes, the addresses. Kept at
+                the top because the About tab was too easy to miss. */}
+            <SectionHeading title={t('settings.section.support')} />
+            <div className={section}>
+                <NavRow
+                    label={t('settings.support.title')}
+                    value={t(voteClosed ? 'settings.support.value_closed' : 'settings.support.value_open')}
+                    onClick={() => navTo(onNavigateToCommunity, 'general')}
+                />
+            </div>
+
             {/* What the model is fed. */}
             <SectionHeading title={t('settings.section.model')} />
             <div className={section}>
@@ -440,7 +455,6 @@ const Settings: React.FC<SettingsProps> = ({
                 />
                 <NavRow label={t('transparency.title')} onClick={() => navTo(onNavigateToTransparency, 'about')} />
                 <NavRow label="Credits" onClick={() => navTo(onNavigateToCredits, 'about')} />
-                <NavRow label={t('settings.community')} onClick={() => navTo(onNavigateToCommunity, 'about')} />
                 <NavRow label={t('drawer.disclaimer')} onClick={() => navTo(onNavigateToDisclaimer, 'about')} />
                 <NavRow label={t('opsec.title')} onClick={() => navTo(onNavigateToOpSec, 'about')} />
                 {/* The intro only ever shows itself once, so this is the only way back
