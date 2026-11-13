@@ -215,7 +215,7 @@ export async function readDonationPayout(env: DonationEnv): Promise<string | nul
  */
 export async function upsertDonationTrade(env: DonationEnv, trade: TrocadorTrade, payload: unknown): Promise<void> {
     await ensureDonationSchema(env);
-    let serialized = '';
+    let serialized: string;
     try {
         serialized = JSON.stringify(payload).slice(0, 8_000);
     } catch {
