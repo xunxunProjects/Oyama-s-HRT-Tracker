@@ -169,13 +169,13 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
 
         await ensureDonationSchema(env);
         const saved = await env.DB.prepare(
-            `INSERT INTO donation_addresses (id, monero_address, bitcoin_address, bitcoin_updated_at, updated_at)
-               VALUES (1, ?1, ?2, ?3, unixepoch())
+            `INSERT INTO donation_addresses (id, monero_address, monero_payout_address, updated_at)
+               VALUES (1, ?1, ?2, unixepoch())
                ON CONFLICT(id) DO UPDATE SET
-                 monero_address = ?1, bitcoin_address = ?2, bitcoin_updated_at = ?3, updated_at = unixepoch()
+                 monero_address = ?1, monero_payout_address = ?2, updated_at = unixepoch()
                RETURNING ${DONATION_COLUMNS}`,
         )
-            .bind(parsed.value.monero, parsed.value.bitcoin, parsed.value.bitcoinUpdatedAt)
+            .bind(parsed.value.monero, parsed.value.moneroPayout)
             .first<DonationRow>();
 
         return withSecurityHeaders(

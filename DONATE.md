@@ -19,11 +19,13 @@ stays short for a long time, development will slow down.
 
 ## Channels
 
-- Monero: `83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
-- Bitcoin: `bc1qfsa2jzt2f7p7xgjemycy03spxq375jm46u9su0` (updated 2026-11-09)
+- Monero (direct): `83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
+- Bitcoin, Ethereum and other coins: use the donation button on the Community
+  funding page. Trocador converts them to Monero; the project does not hold the
+  original coin.
 
-The Bitcoin address is rotated periodically so on-chain analysis cannot trace
-donors. If this file and the app disagree, use the address shown on the
-Community funding page in the app.
+Only the Monero address is published. Other coins are handled by Trocador and
+its partner exchanges; the project does not custody funds. A donation counts
+once Monero arrives. If this file and the app disagree, use the app.
 
 Thank you. Steady progress and good health to everyone who uses this tool.

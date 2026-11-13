@@ -1217,7 +1217,7 @@ export const RU = {
     'settings.section.support': 'Поддержка',
     'settings.support.title': 'Поддержать проект',
     'settings.support.value_open': 'Голосование · до 15.11',
-    'settings.support.value_closed': 'Monero · Bitcoin',
+    'settings.support.value_closed': 'Monero · обмен других монет',
     'vote.title': 'Голосование о пожертвованиях',
     'vote.status.upcoming': 'Ещё не открыто',
     'vote.status.open': 'Голосование идёт',
@@ -1319,17 +1319,30 @@ export const RU = {
         'Сообщество не согласилось принимать пожертвования, поэтому адреса не будут опубликованы.',
     'vote.tally.final_currencies': 'Поддерживаются: {currencies}',
     'vote.tally.final_note': 'Это рекомендательное голосование, мейнтейнеры исполнят его итог.',
-    'vote.donation.title': 'Адреса для пожертвований',
-    'vote.donation.body': 'Спасибо за поддержку. Пожертвования распределяются по итоговому результату выше.',
+    'vote.donation.title': 'Пожертвовать',
+    'vote.donation.body':
+        'По умолчанию поддерживаются Monero и Bitcoin. Другую монету можно найти ниже; она обменивается на Monero, поэтому проект хранит только Monero. Пожертвования распределяются по итоговому результату выше.',
     'vote.donation.copy': 'Копировать',
     'vote.donation.copied': 'Скопировано',
-    'vote.donation.updated': 'Обновлено {date}',
-    'vote.donation.rotate':
-        'Адрес Bitcoin периодически меняется, чтобы анализ блокчейна не мог отследить жертвователей. Используйте адрес, указанный на этой странице.',
-    'vote.donation.split_note':
-        'Публикуется только адрес проекта; пропорция 30/30/40 рассчитывается внутри, отдельные платежи не нужны.',
+    'vote.donation.direct_note':
+        'Прямой перевод без обмена. Перед отправкой проверьте первые и последние 4 символа адреса.',
+    'vote.donation.bitcoin': 'Пожертвовать Bitcoin',
+    'vote.donation.other': 'Другие монеты',
+    'vote.donation.ticker_placeholder': 'Монета (например, eth, usdt)',
+    'vote.donation.network_placeholder': 'Сеть (например, Mainnet, TRC20)',
+    'vote.donation.continue': 'Перейти в Trocador',
+    'vote.donation.creating': 'Создаём заказ…',
+    'vote.donation.invoice_failed': 'Не удалось создать заказ на обмен. Попробуйте позже.',
+    'vote.donation.network_hint': 'Проверьте монету и сеть; средства, отправленные не в той сети, вернуть нельзя.',
+    'vote.donation.swap_note':
+        'Bitcoin, Ethereum и другие монеты обмениваются на Monero через Trocador; проект их не хранит.',
+    'vote.donation.trocador_unavailable':
+        'Bitcoin и другие монеты сейчас недоступны; Monero можно пожертвовать напрямую.',
+    'vote.donation.risk_note':
+        'Обмен выполняют Trocador и партнёрские биржи. Остановленные и возвращённые сделки, а также ошибки с сетью обрабатывают они; проект не хранит средства. Пожертвование засчитывается только после поступления Monero.',
+    'vote.donation.split_note': 'Пропорция 30/30/40 рассчитывается внутри проекта; три платежа отправлять не нужно.',
     'vote.donation.verify': 'Проверить DONATE.md на GitHub',
-    'vote.donation.unavailable': 'Адреса сейчас недоступны. Попробуйте позже.',
+    'vote.donation.unavailable': 'Информация о пожертвованиях сейчас недоступна. Попробуйте позже.',
     'vote.project': 'проект',
     'vote.footer': 'Есть вопросы о предложении? Задайте их в репозитории на GitHub или в чате сообщества.',
     'vote.loading': 'Загружаем голосование…',

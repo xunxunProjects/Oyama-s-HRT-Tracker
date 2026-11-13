@@ -17,9 +17,11 @@ Oyama's HRT Tracker 是免费的：没有订阅、没有付费功能、也没有
 
 ## 捐赠渠道
 
-- Monero：`83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
-- Bitcoin：`bc1qfsa2jzt2f7p7xgjemycy03spxq375jm46u9su0`（2026-11-09 更新）
+- Monero（直接转账）：`83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
+- Bitcoin、Ethereum 和其他币种：请使用应用内「社区资助」页面的捐赠按钮，由
+  Trocador 兑换成 Monero；项目不持有原币种。
 
-Bitcoin 地址会定期更换，避免通过链上分析追踪捐赠者。如果本文件和站点显示不一致，以应用内「社区资助」页面当前显示的地址为准。
+只公布 Monero 地址。其他币种由 Trocador 及合作交易所处理，项目不托管资金；
+只有 Monero 到账后才算捐赠成功。如果本文件和站点显示不一致，以应用内页面为准。
 
 感谢每一位使用者。祝一切顺利，身体健康。

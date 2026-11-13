@@ -205,7 +205,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts, sign-in and cloud backups' },
         { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'The banner across the top of the site' },
-        { id: 'donation', label: 'Donation', Icon: Flower, hint: 'Monero and Bitcoin addresses' },
+        { id: 'donation', label: 'Donation', Icon: Flower, hint: 'Direct Monero and Trocador payout' },
         { id: 'system', label: 'System', Icon: Server, hint: 'Storage and server status' },
     ];
 
@@ -1153,21 +1153,19 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         );
 
     // ── Donation ─────────────────────────────────────────────────────────
-    // One address per currency. The public card only appears after the vote
-    // closes, but the fields can be filled in now.
+    // Direct Monero is public; the Trocador payout is a different subaddress
+    // that stays server-side. Both can be rotated without a deploy.
     const [donation, setDonation] = useState<DonationAddresses | null>(null);
     const [donationLoading, setDonationLoading] = useState(false);
     const [donationSaving, setDonationSaving] = useState(false);
     const [donationMonero, setDonationMonero] = useState('');
-    const [donationBitcoin, setDonationBitcoin] = useState('');
-    const [donationBitcoinUpdated, setDonationBitcoinUpdated] = useState('');
+    const [donationPayout, setDonationPayout] = useState('');
     const [donationError, setDonationError] = useState<string | null>(null);
 
     const applyDonation = (d: DonationAddresses | null) => {
         setDonation(d);
         setDonationMonero(d?.monero ?? '');
-        setDonationBitcoin(d?.bitcoin ?? '');
-        setDonationBitcoinUpdated(d?.bitcoinUpdatedAt ?? '');
+        setDonationPayout(d?.moneroPayout ?? '');
     };
 
     const fetchDonation = useCallback(async () => {
@@ -1198,8 +1196,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             applyDonation(
                 await donationService.save(token, {
                     monero: donationMonero,
-                    bitcoin: donationBitcoin,
-                    bitcoinUpdatedAt: donationBitcoinUpdated || null,
+                    moneroPayout: donationPayout,
                 }),
             );
             showDialog('alert', 'Donation addresses saved.');
@@ -1210,7 +1207,8 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         }
     };
 
-    const donationConfigured = !!donation?.monero && !!donation?.bitcoin;
+    const directConfigured = !!donation?.monero;
+    const trocadorConfigured = !!donation?.moneroPayout;
 
     // ── System ───────────────────────────────────────────────────────────
     const [storage, setStorage] = useState<StorageReport | null>(null);
@@ -1235,12 +1233,13 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         ) : (
             <div>
                 <p className={`text-xs ${muted} mb-4`}>
-                    Shown on the community funding page after the vote closes. Rotating Bitcoin here does not need a
-                    deploy.
+                    Shown on the community funding page after the vote closes. The direct address is public; the
+                    Trocador payout address is only used server-side for swapped coins and is never returned to the
+                    browser.
                 </p>
 
                 <label className="field-label mb-2" htmlFor="donation-monero">
-                    Monero address
+                    Direct Monero address (public)
                 </label>
                 <input
                     id="donation-monero"
@@ -1251,41 +1250,39 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     autoComplete="off"
                     spellCheck={false}
                 />
+                <p className="field-hint">
+                    Validated with the Monero Base58 checksum. Leave empty to hide the direct option.
+                </p>
 
-                <label className="field-label mb-2 mt-4" htmlFor="donation-bitcoin">
-                    Bitcoin address
+                <label className="field-label mb-2 mt-4" htmlFor="donation-payout">
+                    Trocador payout address (private)
                 </label>
                 <input
-                    id="donation-bitcoin"
-                    value={donationBitcoin}
-                    onChange={e => setDonationBitcoin(e.target.value)}
+                    id="donation-payout"
+                    value={donationPayout}
+                    onChange={e => setDonationPayout(e.target.value)}
                     className="input-base font-mono text-xs"
-                    placeholder="bc1…"
+                    placeholder="8…"
                     autoComplete="off"
                     spellCheck={false}
                 />
-
-                <label className="field-label mb-2 mt-4" htmlFor="donation-bitcoin-updated">
-                    Bitcoin address updated on
-                </label>
-                <input
-                    id="donation-bitcoin-updated"
-                    type="date"
-                    value={donationBitcoinUpdated}
-                    onChange={e => setDonationBitcoinUpdated(e.target.value)}
-                    className="input-base"
-                />
-                <p className="field-hint">Shown next to the address so donors can tell when it last changed.</p>
+                <p className="field-hint">
+                    Use a different Monero subaddress from the public one. Trocador sends BTC, ETH and other swapped
+                    coins here. Leave empty to disable the exchange option.
+                </p>
 
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                    <span className={`text-xs ${muted}`}>{donationConfigured ? 'Published' : 'Not set'}</span>
+                    <span className={`text-xs ${muted}`}>
+                        Direct: {directConfigured ? 'set' : 'not set'} · Trocador:{' '}
+                        {trocadorConfigured ? 'ready' : 'not set'}
+                    </span>
                     <button
                         onClick={saveDonation}
                         disabled={donationSaving}
                         className="btn-primary disabled:opacity-45 disabled:pointer-events-none"
                     >
                         <BusyLabel busy={donationSaving} size={16}>
-                            {donationConfigured ? 'Update' : 'Save'}
+                            Save
                         </BusyLabel>
                     </button>
                 </div>
