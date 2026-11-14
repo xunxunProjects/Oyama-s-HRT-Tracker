@@ -344,6 +344,98 @@ const TR: OpSecContent = {
             ],
         },
         {
+            id: 'scenario-questioning',
+            title: 'Senaryo: “kendini mahvediyorsun” kendini kanıtlama tuzağından çıkmak',
+            level: 'basic',
+            blocks: [
+                {
+                    type: 'quote',
+                    text: '“Kendini mahvediyorsun.” “Ailen buna nasıl izin veriyor?” “İnternette kandırılmışsın.”',
+                },
+                {
+                    type: 'p',
+                    text: 'Bunlar soru değil, kanca. “Kendini mahvediyorsun” bir ebeveynden de gelebilir, anonim bir sohbet odasındaki yabancıdan da. Bu, ahlaki bir yargının gerçek tahmini kılığına sokulmasıdır: neyin, nasıl mahvolduğunu ve kanıtın ne olduğunu söylemez. Sadece ispat yükünü sana bırakır. Tuzağın amacı sana “ben haklıyım” dedirtmek değil, “ben yanlış değilim” dedirtmektir. Bu soruyu kabul ettiğin an, zaten içeridesin. Karşı tarafın istediği cevap değil, senin suçluluğun ve itaatindir. Açıkladıkça daha fazla malzeme verirsin. Çıkış yolu kazanmak değil. Çıkış yolu, çekilmektir: bu yargılamaya katılmamaktır.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart TD
+    A["Kendini mahvediyorsun"] --> B["Hayır"]
+    B --> C["O zaman ne kullanıyorsun?"]
+    C --> D["Dozu ne?"]
+    D --> E["Nereden alıyorsun?"]
+    E --> F["Ailen biliyor mu?"]
+    F --> G["Hangi şehirdesin?"]
+    G --> H["Bir sonraki randevun ne zaman?"]
+    H --> I["İlişkilendirilebilir tam profil"]
+    B --> J["Kendini kanıtladıkça"]
+    J --> K["Karşı tarafın malzemesi artar"]
+    K --> I`,
+                    caption:
+                        'Zincir “kaç yaşındasın” ile değil, “kendini mahvediyorsun” ile başlar. Kendini kanıtlama başladığında sorular ilaç, aile, yer ve zaman boyunca devam eder; açıkladıkça zincir daha da tamamlanır. Şema sentetiktir ve gerçek bir sohbete karşılık gelmez.',
+                },
+                {
+                    type: 'p',
+                    text: 'Parçalara ayırınca zincirin üç bölümü var. Kimlik zinciri yaş, sınıf, şehir, okul veya hastane ve randevu zamanlarını birbirine bağlar. Tıbbi zincir ilacı, dozu, nereden geldiğini, ailenin bilip bilmediğini ve paranın nereden geldiğini bağlar. Duygusal zincir ise karşı tarafın kimliğini sorgulaması, senin kendini kanıtlamaya başlaman, karşı tarafın etiket yapıştırması ve senin daha sert kanıtlamaya çalışmandır. İlk ikisi bilgi, üçüncüsü motordur. İnsanı tuzağa çeken genellikle ilk soru değil, “onların söylediği türden biri olmadığımı kanıtlamalıyım” düşüncesidir.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Kimlik zinciri: yaş, sınıf, şehir, okul veya hastane, randevu zamanları.',
+                        'Tıbbi zincir: ilaç, doz, nereden geldiği, ailenin bilip bilmediği, paranın nereden geldiği.',
+                        'Duygusal zincir: sorgulama, kendini kanıtlama, etiket, daha sert kanıtlama, daha fazla açıklama.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: "Bu yüzden savunmanın ilk adımı daha mükemmel bir cevap değildir. Karşı tarafın ne yaptığını ayırt etmektir. Ahlaki bir yargılamanın yanlışlanabilir bir sonucu yoktur; seni çoktan mahkum etmiş birini veriyle ikna edemezsin. Oysa olgusal bir hata parçalanabilir. Cevaplamadan önce kendine sor: karşı taraf bir olguyu mu tartışıyor, yoksa kendimi kanıtlamamı mı istiyor? İkincisiyse şöyle diyebilirsin: “HRT'ye karşı olabilirsin, ama ‘kendini mahvediyorsun’ senin yargın, benim olgum değil. Benim tıbbi durumum bu sohbetin parçası değil.” Kimseye varoluşunu savunmak zorunda değilsin. Sadece hangi olguları düzeltmeye değer olduğuna karar vermen gerekir.",
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'Karşı taraf psikiyatrik teşhisler veya “bağımlılık” gibi sözlerle etiket yapıştırmaya başladığında bu bir sohbet değildir. Bu, seni sınıflandırılabilir ve aranabilir bir nesneye dönüştürmektir. Bu anda en güvenli cevap daha doğru bir açıklama değil, sohbeti bitirmektir.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Çerçeveyi kabul etme: varoluşunu savunma ve “kendini mahvediyorsun” sözünü çürütmen gereken bir suçlama olarak görme.',
+                        'Özel sorulara cevap verme: yaş, doz, reçete, aile, şehir ve randevu zamanları bir sohbet için gerekli değildir.',
+                        "Konuyu “ben”den “iddia”ya taşı: ilacımı mı soruyorsun, yoksa HRT'nin riskleri hakkında bir iddia mı ortaya atıyorsun? İkincisi açık literatürle tartışılabilir.",
+                        'Kavga için kalma: olguları söyledikten sonra dur. Karşı taraf teşhis koymaya devam ederse görmezden gel, kanalı değiştir, pencereyi kapat.',
+                        'Zaten fazla şey söylediysen: ayrıntı eklemeyi bırak, neyin sızdığını not et, gerçek kimliğinle ilişkilendirilip ilişkilendirilemeyeceğini değerlendir. Gerekirse takma adını veya hesabını değiştir ve etkilenebilecek kişileri uyar.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'Karşılık vermeye karar verirsen iki katmanı ayır: olgular katmanı ve değerler katmanı. Olgular katmanı yanlış iddiayı parçalar; değerler katmanı seni yargılamak için kullandığı ölçütü parçalar. İkisi de kişisel verilerine dokunmaz. Olgular katmanı üç adımda ilerler: mantıksal sorunu göster, kamuya açık olguyu ver ve dur.',
+                },
+                {
+                    type: 'ol',
+                    items: [
+                        'Mantıksal sorunu göster: karşı taraf argüman yerine ahlaki bir yargı veya teşhis etiketi kullanıyor. “Kanıt yerine ‘kendini mahvediyorsun’ diyorsun.”',
+                        'Kamuya açık olguyu ver: yalnızca açık bilgi kullan, kendi rejimini anlatma. “Estradiol bir PED değildir; bağımlılık onun farmakolojik özelliklerinden biri değildir; literatür onun ödül sistemini düzenlediğini söyler, bağımlılık yaptığını değil.”',
+                        'Kavga için kalma: olguları söyledikten sonra dur. “Olgular ortada. Bana teşhis koymaya devam etmek istiyorsan o senin bileceğin iş, ama ben kalmıyorum.”',
+                    ],
+                },
+                {
+                    type: 'quote',
+                    text: 'Karşı taraf: “Hormonlar uyuşturucudur, sen kontrol altındasın.” Sen: “Hormonlar uyuşturucu değildir. Estradiol bir PED değildir ve sportif performansı artırmaz; bağımlılık onun farmakolojik özelliklerinden biri değildir; klinikte yerine koyma tedavisi için kullanılır, terapötik aralığı ve izleme göstergeleri vardır. Literatür onun ödül sistemini düzenlediğini söyler, bağımlılık yaptığını değil. Literatürü tartışmak istiyorsan derleme verebilirim; bana teşhis koymak istiyorsan bu konu burada bitiyor.”',
+                },
+                {
+                    type: 'p',
+                    text: 'Değerler katmanı farklı bir rakip tipine uygundur: kendini liberal, otorite karşıtı ve “mantıklı” bir geek olarak tanımlayan kişi. Bu tipte olgular çoğu zaman yetmez, çünkü açıklamanı yeni bir tartışma malzemesi yapar. Daha etkili hamle, onun çerçevesini aynalamaktır: haklı olduğunu kanıtlama, onun kendini kanıtlamasını sağla. Şöyle sorabilirsin: “Sen liberal değil miydin? O zaman neden bedenimi yönetmek için ataerkil kuralları destekliyorsun? Otorite karşıtı değil miydin? O zaman neden şimdi iktidarın yanında durup bedenim hakkında karar verme hakkımı elimden almaya çalışıyorsun?” Amaç onu ikna etmek değil, çevredekilere onun bahsettiği özgürlüğün yalnızca kendisi için geçerli olduğunu göstermektir. Bu hamle yalnızca kendi imajını önemseyen kişilerde işe yarar. Seni yalnızca aşağılamak veya tüketmek isteyen biri konuyu değiştirir ve sen sürüklenirsin. Bu yüzden karşılık vermek isteğe bağlıdır, ama çekilmek her zaman varsayılandır.',
+                },
+                {
+                    type: 'quote',
+                    text: 'Sen: “Sen liberal değil miydin? O zaman neden ‘beden şöyle olmalı’ diyen ataerkil kuralları kullanıyorsun? Geek değil miydin? Geekler keyfi iktidara karşı çıkmaz mı? O zaman neden şimdi iktidar adına bedenim hakkında karar vermeye çalışıyorsun?” Karşı taraf “öyle demek istemedim” diye açıklamaya başlarsa, kendi kendini kanıtlama tuzağına zaten düşmüştür.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: 'Hem profesyonel bilgi hem de aynalı karşılık, çerçeveleri parçalamak içindir, kimlik açıklamak için değil. “Açık derlemeler şöyle diyor” de, “ben bunun üzerine çalışıyorum” deme; “neden bedenimi ataerkillikle yönetiyorsun” diye sor, “çünkü ben de kullanıyorum” diye ekleme. Birincisi kamusal bilgi, ikincisi uzmanlığını, geçmişini ve ilacını yeni ilişkilendirme noktalarına dönüştürür. Bu vaka sentetiktir. Gerçek bir sohbet kaydını olduğu gibi yayımlama: takma adlar, zaman damgaları, kanal adları, dozlar ve doğum günü paylaşımları hepsi ilişkilendirilebilir parçalardır.',
+                },
+            ],
+        },
+        {
             id: 'family',
             title: 'Aileyle yaşamak: kontroller, ilaçlar ve saklamak',
             level: 'basic',

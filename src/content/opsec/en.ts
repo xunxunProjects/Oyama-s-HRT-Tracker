@@ -343,6 +343,98 @@ const EN: OpSecContent = {
             ],
         },
         {
+            id: 'scenario-questioning',
+            title: 'Scenario: stepping out of the “you are ruining yourself” trap',
+            level: 'basic',
+            blocks: [
+                {
+                    type: 'quote',
+                    text: '“You are ruining yourself.” “How do your parents allow this?” “You have been brainwashed online.”',
+                },
+                {
+                    type: 'p',
+                    text: 'These are not questions. They are hooks. “You are ruining yourself” may come from a parent, or from a stranger in an anonymous chat room. It is a moral judgment dressed up as a factual prediction: it does not say what is being ruined, how, or what the evidence is. It only puts the burden of proof on you. The point of the trap is not to make you prove “I am right.” It is to make you prove “I am not wrong.” Once you accept that question, you are already inside. The other person does not want an answer; they want your guilt and compliance. The more you explain, the more material you hand over. The way out is not to win. It is to step out: do not take part in the trial.',
+                },
+                {
+                    type: 'mermaid',
+                    code: `flowchart TD
+    A["You are ruining yourself"] --> B["I am not"]
+    B --> C["Then what are you taking?"]
+    C --> D["What dose?"]
+    D --> E["Where does it come from?"]
+    E --> F["Do your parents know?"]
+    F --> G["Which city are you in?"]
+    G --> H["When is your next appointment?"]
+    H --> I["A linkable profile"]
+    B --> J["The more you justify"]
+    J --> K["The more material they have"]
+    K --> I`,
+                    caption:
+                        'The chain does not start with “how old are you.” It starts with “you are ruining yourself.” Once self-justification begins, the questions run through medication, family, location, and time; the more you explain, the more complete the chain becomes. The diagram is synthetic and does not correspond to any real conversation.',
+                },
+                {
+                    type: 'p',
+                    text: 'Unpacked, the chain has three parts. The identity chain connects age, school year, city, school or hospital, and appointment times. The medical chain connects medication, dose, where it comes from, whether your parents know, and where the money comes from. The emotional chain is the other person questioning your identity, you starting to justify yourself, the other person labelling you, and you justifying harder. The first two are information; the third is the engine. What usually pulls people in is not the first question. It is the thought “I have to prove I am not the kind of person they say I am.”',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Identity chain: age, school year, city, school or hospital, appointment times.',
+                        'Medical chain: medication, dose, where it comes from, whether your parents know, where the money comes from.',
+                        'Emotional chain: questioning, your self-justification, their labelling, harder self-justification, more disclosure.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'So the first step in defence is not a more perfect answer. It is to tell what the other person is actually doing. A moral trial has no falsifiable conclusion; you cannot persuade someone who has already convicted you with data. A factual error, by contrast, can be dismantled. Before you answer, ask yourself: are they discussing a fact, or demanding that I prove myself? If it is the latter, you can say: “You can oppose HRT, but ‘you are ruining yourself’ is your judgment, not my fact. My medical situation is not part of this conversation.” You do not owe anyone a defence of your existence. You only need to decide which facts are worth correcting.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'important',
+                    text: 'When the other person starts labelling you with psychiatric diagnoses or words like “addiction,” this is not a conversation. It is turning you into something that can be classified and searched. The safest answer is not a more accurate explanation. It is to end the conversation.',
+                },
+                {
+                    type: 'ul',
+                    items: [
+                        'Do not accept the frame: do not defend your existence, and do not treat “you are ruining yourself” as a charge you have to rebut.',
+                        'Do not answer private questions: age, dose, prescription, parents, city, and appointment times are not required for a chat.',
+                        'Move from “me” to “the claim”: are you asking about my medication, or are you making a claim about the risks of HRT? The latter can be discussed with public literature.',
+                        'Do not stay for the fight: stop once the facts are clear; if they keep diagnosing you, ignore them, change channels, or close the window.',
+                        'If you have already said too much: stop adding details, note what leaked, assess whether it can be linked to your real identity, and if necessary change your nickname or account and warn anyone who might be affected.',
+                    ],
+                },
+                {
+                    type: 'p',
+                    text: 'If you decide to push back, separate two layers: the factual layer and the values layer. The factual layer dismantles a false claim; the values layer dismantles the standard they are using to judge you. Neither layer needs your personal data. The factual layer has three steps: name the logical problem, give the public fact, and stop.',
+                },
+                {
+                    type: 'ol',
+                    items: [
+                        'Name the logical problem: they are using a moral judgment or a diagnostic label in place of an argument. “You are using ‘you are ruining yourself’ in place of evidence.”',
+                        'Give the public fact: use public knowledge only, and do not describe your own regimen. “Estradiol is not a PED; dependence is not one of its pharmacological properties; the literature says it modulates the reward system, not that it is addictive.”',
+                        'Do not stay for the fight: stop once the facts are stated. “The facts are on the table. If you want to keep diagnosing me, that is your business. I am not staying for it.”',
+                    ],
+                },
+                {
+                    type: 'quote',
+                    text: 'Them: “Hormones are drugs, and you are controlled by them.” You: “Hormones are not drugs. Estradiol is not a PED, and it does not improve athletic performance; dependence is not one of its pharmacological properties; clinically it is used for replacement therapy, with a therapeutic window and monitoring. The literature says it modulates the reward system, not that it is addictive. If you want to discuss the literature, I can give you reviews; if you want to diagnose me, this conversation is over.”',
+                },
+                {
+                    type: 'p',
+                    text: 'The values layer suits a different opponent: the self-described liberal, anti-authority, “logical” geek. Facts are often not enough with this type, because they will treat your explanation as new debate material. The more effective move is to mirror their frame: do not prove that you are right; make them prove themselves. You can ask: “Aren’t you a liberal? Then why do you support using the patriarchal rulebook to control my body? Aren’t you anti-authority? Then why are you standing with power and trying to take away my right to decide what happens to my own body?” The goal is not to persuade them. It is to let the audience see that the freedom they talk about applies only to themselves. This move only works on people who care about their self-image; with someone who purely wants to humiliate or drain you, they will just change the subject and you will be dragged along. So pushback is optional, but leaving is always the default.',
+                },
+                {
+                    type: 'quote',
+                    text: 'You: “Aren’t you a liberal? Then why are you using the patriarchal rulebook of ‘what a body should be’? Aren’t you a geek? Aren’t geeks supposed to oppose arbitrary power? Then why are you trying to decide what happens to my body for the authorities?” If they start explaining “that is not what I meant,” they have already fallen into their own self-justification trap.',
+                },
+                {
+                    type: 'warn',
+                    kind: 'note',
+                    text: 'Both professional knowledge and the mirrored counter are for dismantling frames, not for announcing an identity. Say “the public reviews say,” not “I work on this”; ask “why are you using patriarchy to control my body,” and do not add “because I use it myself.” The first is public knowledge; the second turns your expertise, your history, and your medication into new linkage points. This case is synthetic. Do not publish a real chat log verbatim: nicknames, timestamps, channel names, doses, and birthday posts are all linkable fragments.',
+                },
+            ],
+        },
+        {
             id: 'family',
             title: 'Living with family: check-ins, medication, and hiding it',
             level: 'basic',
