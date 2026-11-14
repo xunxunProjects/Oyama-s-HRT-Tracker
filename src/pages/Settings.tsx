@@ -35,6 +35,7 @@ interface SettingsProps {
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
+    onNavigateToVoice: () => void;
     onNavigateToLanguage: () => void;
     onNavigateToAppearance: () => void;
     onNavigateToWeight: () => void;
@@ -169,6 +170,7 @@ const Settings: React.FC<SettingsProps> = ({
     pkParams,
     onNavigateToPKParams,
     onNavigateToHRTMode,
+    onNavigateToVoice,
     onNavigateToLanguage,
     onNavigateToAppearance,
     onNavigateToWeight,
@@ -304,6 +306,7 @@ const Settings: React.FC<SettingsProps> = ({
                     }
                     onClick={() => navTo(onNavigateToPKParams, 'general')}
                 />
+                <NavRow label={t('voice.title')} onClick={() => navTo(onNavigateToVoice, 'general')} />
             </div>
 
             {/* What's left on hand. */}

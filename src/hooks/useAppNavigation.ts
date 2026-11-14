@@ -50,6 +50,7 @@ export type ViewKey =
     | 'settings-cat-states'
     | 'settings-simulator'
     | 'forecast'
+    | 'voice'
     | 'supplies'
     | 'plan';
 
@@ -59,6 +60,7 @@ export type ViewKey =
  */
 const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     forecast: 'home',
+    voice: 'settings',
     plan: 'home',
     share: 'home',
     'lab-calibration': 'lab',
@@ -108,12 +110,14 @@ const parentOf = (view: ViewKey): ViewKey | undefined => (view === 'admin' ? 'se
  */
 const ALSO_UNDER: Partial<Record<ViewKey, ViewKey>> = {
     supplies: 'home',
+    voice: 'home',
 };
 
 const VIEW_ORDER: ViewKey[] = [
     'home',
     'plan',
     'forecast',
+    'voice',
     'share',
     'history',
     'lab',
