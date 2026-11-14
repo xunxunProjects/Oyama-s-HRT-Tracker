@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { House, Log, Labs, Gear, Account, Shield } from '../components/icons';
+import type { ElementType } from 'react';
+import { House, Log, Labs, Gear, Account, Shield, Users } from '../components/icons';
+import { voteStatusAt } from '../../communityVote';
 import { runViewMove, type ViewMove } from '../motion/viewMove';
 import { useTranslation } from '../contexts/LanguageContext';
 import {
@@ -155,6 +157,14 @@ type Direction = 'forward' | 'backward';
 const directionOf = (from: ViewKey, to: ViewKey): Direction =>
     VIEW_ORDER.indexOf(to) >= VIEW_ORDER.indexOf(from) ? 'forward' : 'backward';
 
+/** A sidebar destination. The badge is the quiet dot that marks an open vote. */
+interface NavItem {
+    id: string;
+    label: string;
+    icon: ElementType;
+    badge?: boolean;
+}
+
 export const useAppNavigation = (user: any) => {
     const { t } = useTranslation();
 
@@ -166,6 +176,15 @@ export const useAppNavigation = (user: any) => {
     const [move, setMove] = useState<ViewMove>('fade');
     // Set while a page from ALSO_UNDER is open under the other tab.
     const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(null);
+    // Whether the funding vote still has an open door in the sidebar. It
+    // closes on its own at the deadline, without waiting for a reload.
+    const [voteOpen, setVoteOpen] = useState(() => voteStatusAt(Math.floor(Date.now() / 1000)) !== 'closed');
+    useEffect(() => {
+        const id = window.setInterval(() => {
+            setVoteOpen(voteStatusAt(Math.floor(Date.now() / 1000)) !== 'closed');
+        }, 60_000);
+        return () => window.clearInterval(id);
+    }, []);
     const mainScrollRef = useRef<HTMLDivElement>(null);
     // The view on screen, for the history listener, which outlives renders.
     const viewRef = useRef<ViewKey>('home');
@@ -352,13 +371,19 @@ export const useAppNavigation = (user: any) => {
     }, [currentView]);
 
     // --- Derived Data ---
-    const navItems = [
+    const navItems: NavItem[] = [
         { id: 'home', label: t('nav.home'), icon: House },
         { id: 'history', label: t('nav.history'), icon: Log },
         { id: 'lab', label: t('nav.lab'), icon: Labs },
         { id: 'settings', label: t('nav.settings'), icon: Gear },
         { id: 'account', label: t('nav.account'), icon: Account },
     ];
+
+    // The funding vote is a page of Settings, but while ballots are open it
+    // gets a door of its own. The dot goes when the box closes with it.
+    if (voteOpen) {
+        navItems.push({ id: 'settings-community', label: t('settings.community'), icon: Users, badge: true });
+    }
 
     if (user?.isAdmin) {
         navItems.push({ id: 'admin', label: t('nav.admin'), icon: Shield });

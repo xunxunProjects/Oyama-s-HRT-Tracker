@@ -5,9 +5,11 @@ import { handleF2fService } from '../../../f2f';
 import { toolVersionBody } from '../../../toolApi';
 import { exchangeF2fCliCode } from '../../../f2f';
 import { handleCommunityVotePublic } from '../../../communityVoteServer';
-import { getClientIP } from '../../../requestInput';
+import { getClientIP, readSmallJsonBody } from '../../../requestInput';
 import { checkRateLimit } from '../rateLimit';
 import { NOTICE_COLUMNS, type SiteNoticeRow, serializeNotice } from '../notice';
+import { handleDonationPublic, readDonationPayout, upsertDonationTrade, validateMoneroAddress } from '../donation';
+import { createAnonPayInvoice, parseInvoiceRequest, parseTrocadorTrade, webhookKeyMatches } from '../trocador';
 
 export async function handlePublicRoutes(ctx: RequestContext): Promise<Response | null> {
     const { request, env, url, corsHeaders, jsonError, withSecurityHeaders } = ctx;
@@ -125,6 +127,111 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
                     'Content-Type': 'application/json',
                     'Cache-Control': 'no-store',
                 },
+            }),
+        );
+    }
+
+    // /api/donation GET
+    if (url.pathname === '/api/donation' && request.method === 'GET') {
+        const clientIP = getClientIP(request, env);
+        const limitKey = clientIP ? `donation:${clientIP}` : 'donation:global-noip';
+        if (!(await checkRateLimit(env, limitKey, clientIP ? 60 : 300))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+
+        const result = await handleDonationPublic(env);
+        return withSecurityHeaders(
+            new Response(JSON.stringify(result.body), {
+                status: result.status,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'public, max-age=60',
+                },
+            }),
+        );
+    }
+
+    // /api/donation/invoice POST
+    // Creates an indirect Trocador invoice. The payout address never leaves the
+    // server, and the donor cannot edit the destination or amount.
+    if (url.pathname === '/api/donation/invoice' && request.method === 'POST') {
+        const clientIP = getClientIP(request, env);
+        const limitKey = clientIP ? `donation:invoice:${clientIP}` : 'donation:invoice:global-noip';
+        if (!(await checkRateLimit(env, limitKey, clientIP ? 10 : 30))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+
+        const parsedBody = await readSmallJsonBody(request);
+        if (!parsedBody.ok) {
+            return parsedBody.tooLarge
+                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+        }
+        const parsed = parseInvoiceRequest(parsedBody.value);
+        if ('error' in parsed) return jsonError('INVALID_REQUEST', parsed.error, 400);
+
+        const payout = await readDonationPayout(env);
+        if (!payout || !validateMoneroAddress(payout)) {
+            return jsonError('UNAVAILABLE', 'Trocador donations are not configured', 503);
+        }
+
+        const publicOrigin = (env.PUBLIC_APP_ORIGIN || url.origin).replace(/\/$/, '');
+        const webhookKey = env.TROCADOR_WEBHOOK_KEY ?? '';
+        const webhookUrl =
+            webhookKey && publicOrigin.startsWith('https://') ? `${publicOrigin}/api/donation/webhook` : '';
+
+        try {
+            const invoice = await createAnonPayInvoice({
+                tickerFrom: parsed.value.ticker,
+                networkFrom: parsed.value.network,
+                payoutAddress: payout,
+                webhookUrl,
+                webhookKey: webhookUrl ? webhookKey : '',
+            });
+            return withSecurityHeaders(
+                new Response(JSON.stringify({ invoice: { id: invoice.id, url: invoice.url } }), {
+                    status: 200,
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-store',
+                    },
+                }),
+            );
+        } catch {
+            return jsonError('UPSTREAM_ERROR', 'Could not create the exchange invoice. Please try again.', 502);
+        }
+    }
+
+    // /api/donation/webhook POST
+    // Trocador signs the request with the Webhook-Key header. The trade is
+    // recorded idempotently because Trocador only retains it for about 14 days.
+    if (url.pathname === '/api/donation/webhook' && request.method === 'POST') {
+        const expected = env.TROCADOR_WEBHOOK_KEY ?? '';
+        if (!expected) return jsonError('UNAVAILABLE', 'Webhook is not configured', 503);
+        if (!webhookKeyMatches(request.headers.get('Webhook-Key'), expected)) {
+            return jsonError('FORBIDDEN', 'Forbidden', 403);
+        }
+
+        const parsedBody = await readSmallJsonBody(request);
+        if (!parsedBody.ok) {
+            return parsedBody.tooLarge
+                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+        }
+        const trade = parseTrocadorTrade(parsedBody.value);
+        if (!trade) return jsonError('INVALID_REQUEST', 'Invalid trade body', 400);
+        await upsertDonationTrade(env, trade, parsedBody.value);
+
+        return withSecurityHeaders(
+            new Response(JSON.stringify({ ok: true }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
             }),
         );
     }

@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Check, Close, Info, Lock } from '../components/icons';
+import { Check, Close, Copy, Info, Lock } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Lang } from '../i18n/translations';
 import { apiEndpoint, apiErrorCode, apiErrorFrom, apiFetch } from '../services/apiClient';
 import { countHrtDaysSince } from '../utils/communityVote';
 import { fill } from '../utils/regimenText';
+import { donationService, type DonationConfig } from '../services/donation';
 import {
     ADDITIONAL_CURRENCIES,
     ADDITIONAL_CURRENCY_MAJORITY,
@@ -77,6 +78,38 @@ const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ chi
         {children}
     </div>
 );
+
+const AddressRow: React.FC<{
+    label: string;
+    address: string;
+    t: (key: string) => string;
+}> = ({ label, address, t }) => {
+    const [copied, setCopied] = useState(false);
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(address);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Selecting the text by hand still works.
+        }
+    };
+    return (
+        <div className="rounded-[var(--radius-md)] border-(length:--hairline) border-[var(--border)] p-3">
+            <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-semibold text-[var(--text)]">{label}</span>
+                <button
+                    onClick={() => void copy()}
+                    className="inline-flex items-center gap-1 text-xs text-[var(--accent-ink)]"
+                >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? t('vote.donation.copied') : t('vote.donation.copy')}
+                </button>
+            </div>
+            <p className="mt-1.5 break-all font-mono text-xs leading-relaxed text-[var(--text)]">{address}</p>
+        </div>
+    );
+};
 
 const Bar: React.FC<{ value: number; total: number }> = ({ value, total }) => (
     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -358,6 +391,50 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
         return { split, accepted: outcome.accepted, added: outcome.addedCurrencies };
     }, [status, vote]);
 
+    const [donation, setDonation] = useState<DonationConfig | null>(null);
+    const [donationFailed, setDonationFailed] = useState(false);
+    const [invoiceBusy, setInvoiceBusy] = useState(false);
+    const [invoiceError, setInvoiceError] = useState(false);
+    const [otherTicker, setOtherTicker] = useState('');
+    const [otherNetwork, setOtherNetwork] = useState('');
+
+    // The addresses are only meaningful once the vote has passed. The page
+    // asks for them once; the vote itself keeps polling above.
+    useEffect(() => {
+        if (status !== 'closed' || !final?.accepted) return;
+        let cancelled = false;
+        setDonationFailed(false);
+        void donationService
+            .get()
+            .then(value => {
+                if (!cancelled) setDonation(value);
+            })
+            .catch(() => {
+                if (!cancelled) setDonationFailed(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [status, final?.accepted]);
+
+    const startInvoice = async (ticker: string, network: string) => {
+        setInvoiceBusy(true);
+        setInvoiceError(false);
+        try {
+            const invoice = await donationService.createInvoice(ticker, network);
+            // `noopener` makes window.open() return null even when the tab
+            // opened, which would also navigate this page in the fallback.
+            // Open the tab, then cut the opener reference instead.
+            const opened = window.open(invoice.url, '_blank');
+            if (opened) opened.opener = null;
+            else window.location.assign(invoice.url);
+        } catch {
+            setInvoiceError(true);
+        } finally {
+            setInvoiceBusy(false);
+        }
+    };
+
     if (loading && !vote) {
         return (
             <div className="md:pb-32">
@@ -409,7 +486,163 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
             />
 
             <div className={`${PAGE_COLUMN} mt-3 space-y-7`}>
-                <p className="text-sm leading-relaxed text-[var(--text)]">{t('vote.intro')}</p>
+                <p className="text-sm leading-relaxed text-[var(--text)]">
+                    {final ? t('vote.intro.closed') : t('vote.intro')}
+                </p>
+
+                {final && (
+                    <Card className="bg-[var(--surface-muted)]">
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
+                        {tally.ballots === 0 ? (
+                            <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
+                        ) : (
+                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text)]">
+                                <p>{splitText(final.split, t)}</p>
+                                <p>
+                                    {final.accepted
+                                        ? t('vote.tally.final_accept_yes')
+                                        : t('vote.tally.final_accept_no')}
+                                </p>
+                                {final.accepted && (
+                                    <p>
+                                        {fill(t('vote.tally.final_currencies'), {
+                                            currencies: [
+                                                currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
+                                                ...final.added.map(id => currencyLabel(id, t)),
+                                            ].join(t('list.sep')),
+                                        })}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                            {t('vote.tally.final_note')}
+                        </p>
+                    </Card>
+                )}
+
+                {final?.accepted && (
+                    <Card>
+                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.donation.title')}</h2>
+                        <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">
+                            {t('vote.donation.body')}
+                        </p>
+                        {donation && (donation.monero || donation.trocador) ? (
+                            <>
+                                {donation.monero && (
+                                    <div className="mt-4">
+                                        <AddressRow
+                                            label={currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t)}
+                                            address={donation.monero}
+                                            t={t}
+                                        />
+                                        <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                                            {t('vote.donation.direct_note')}
+                                        </p>
+                                    </div>
+                                )}
+                                {donation.trocador ? (
+                                    <div className="mt-4 space-y-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => void startInvoice('btc', 'Mainnet')}
+                                            disabled={invoiceBusy}
+                                            className="btn-primary w-full"
+                                        >
+                                            {invoiceBusy ? t('vote.donation.creating') : t('vote.donation.bitcoin')}
+                                        </button>
+                                        <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+                                            {t('vote.donation.swap_note')}
+                                        </p>
+                                        <form
+                                            className="space-y-2"
+                                            onSubmit={event => {
+                                                event.preventDefault();
+                                                if (!otherTicker.trim() || !otherNetwork.trim() || invoiceBusy) return;
+                                                void startInvoice(otherTicker.trim(), otherNetwork.trim());
+                                            }}
+                                        >
+                                            <p className="text-xs font-medium text-[var(--text)]">
+                                                {t('vote.donation.other')}
+                                            </p>
+                                            <div className="flex flex-col gap-2 sm:flex-row">
+                                                <input
+                                                    value={otherTicker}
+                                                    onChange={event => setOtherTicker(event.target.value)}
+                                                    placeholder={t('vote.donation.ticker_placeholder')}
+                                                    autoComplete="off"
+                                                    autoCapitalize="none"
+                                                    spellCheck={false}
+                                                    maxLength={12}
+                                                    className="input-base flex-1"
+                                                />
+                                                <input
+                                                    value={otherNetwork}
+                                                    onChange={event => setOtherNetwork(event.target.value)}
+                                                    placeholder={t('vote.donation.network_placeholder')}
+                                                    autoComplete="off"
+                                                    spellCheck={false}
+                                                    maxLength={32}
+                                                    list="donation-networks"
+                                                    className="input-base flex-1"
+                                                />
+                                                <datalist id="donation-networks">
+                                                    <option value="Mainnet" />
+                                                    <option value="TRC20" />
+                                                    <option value="ERC20" />
+                                                    <option value="BEP20" />
+                                                </datalist>
+                                                <button
+                                                    type="submit"
+                                                    disabled={
+                                                        invoiceBusy || !otherTicker.trim() || !otherNetwork.trim()
+                                                    }
+                                                    className="btn-primary w-full sm:w-auto"
+                                                >
+                                                    {invoiceBusy
+                                                        ? t('vote.donation.creating')
+                                                        : t('vote.donation.continue')}
+                                                </button>
+                                            </div>
+                                            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+                                                {t('vote.donation.network_hint')}
+                                            </p>
+                                        </form>
+                                    </div>
+                                ) : (
+                                    <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                                        {t('vote.donation.trocador_unavailable')}
+                                    </p>
+                                )}
+                                {invoiceError && (
+                                    <p className="mt-2 text-sm text-[var(--danger)]">
+                                        {t('vote.donation.invoice_failed')}
+                                    </p>
+                                )}
+                                <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                                    {t('vote.donation.risk_note')}
+                                </p>
+                                <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+                                    {t('vote.donation.split_note')}
+                                </p>
+                                <a
+                                    href="https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/blob/main/DONATE.md"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-3 inline-block text-xs text-[var(--accent-ink)] underline"
+                                >
+                                    {t('vote.donation.verify')}
+                                </a>
+                            </>
+                        ) : donationFailed ? (
+                            <p className="mt-3 text-sm text-[var(--danger)]">{t('vote.donation.unavailable')}</p>
+                        ) : donation ? (
+                            <p className="mt-3 text-sm text-[var(--text-muted)]">{t('vote.donation.unavailable')}</p>
+                        ) : (
+                            <p className="mt-3 text-sm text-[var(--text-muted)]">{t('vote.loading')}</p>
+                        )}
+                    </Card>
+                )}
 
                 <Section title={t('vote.why.title')}>
                     <p>{t('vote.why.body')}</p>
@@ -743,37 +976,6 @@ const CommunityVote: React.FC<CommunityVoteProps> = ({ onBack, onSignIn }) => {
                         <p className="mt-5 text-xs text-[var(--text-muted)]">{t('vote.tally.not_final')}</p>
                     )}
                 </section>
-
-                {final && (
-                    <Card className="bg-[var(--surface-muted)]">
-                        <h2 className="text-sm font-semibold text-[var(--text)]">{t('vote.tally.final')}</h2>
-                        {tally.ballots === 0 ? (
-                            <p className="mt-2 text-sm text-[var(--text-muted)]">{t('vote.tally.none')}</p>
-                        ) : (
-                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text)]">
-                                <p>{splitText(final.split, t)}</p>
-                                <p>
-                                    {final.accepted
-                                        ? t('vote.tally.final_accept_yes')
-                                        : t('vote.tally.final_accept_no')}
-                                </p>
-                                {final.accepted && (
-                                    <p>
-                                        {fill(t('vote.tally.final_currencies'), {
-                                            currencies: [
-                                                currencyLabel(ALWAYS_SUPPORTED_CURRENCY, t),
-                                                ...final.added.map(id => currencyLabel(id, t)),
-                                            ].join(t('list.sep')),
-                                        })}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                        <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-                            {t('vote.tally.final_note')}
-                        </p>
-                    </Card>
-                )}
 
                 <p className="border-t-(length:--hairline) border-[var(--border)] pt-5 text-xs leading-relaxed text-[var(--text-muted)]">
                     {t('vote.footer')}

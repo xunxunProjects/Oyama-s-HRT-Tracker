@@ -1248,6 +1248,10 @@ export const UK = {
     'milktea.receipt_title': 'Моє замовлення',
     'milktea.footer': 'Ось і вся пасхалка. Дякуємо, що користуєтеся цим маленьким інструментом.',
     'settings.community': 'Підтримка спільноти',
+    'settings.section.support': 'Підтримка',
+    'settings.support.title': 'Підтримати проєкт',
+    'settings.support.value_open': 'Голосування · до 15.11',
+    'settings.support.value_closed': 'Monero · обмін інших монет',
     'vote.title': 'Голосування щодо пожертв',
     'vote.status.upcoming': 'Ще не відкрито',
     'vote.status.open': 'Голосування триває',
@@ -1256,6 +1260,8 @@ export const UK = {
     'vote.date_range': '{open} – {close} (UTC)',
     'vote.intro':
         'Це пропозиція щодо пожертв від спільноти, а не чинне правило. Коли голосування завершиться, мейнтейнери за його підсумками вирішать, чи приймати пожертви, як їх ділити і які валюти підтримувати.',
+    'vote.intro.closed':
+        'Голосування завершено. Нижче підсумок; якщо спільнота погодилася приймати пожертви, адреси також тут.',
     'vote.why.title': 'Навіщо приймати пожертви',
     'vote.why.body':
         'Сервери, домени, резервне копіювання і постійна підтримка коштують грошей щомісяця. Пожертви позбавляють проєкт залежності від гаманця одного мейнтейнера і залишають більше часу на нові функції та безпеку. Кожну транзакцію буде опубліковано.',
@@ -1345,6 +1351,30 @@ export const UK = {
     'vote.tally.final_accept_no': 'Спільнота не погодилася приймати пожертви, тому адреси не буде опубліковано.',
     'vote.tally.final_currencies': 'Підтримуються: {currencies}',
     'vote.tally.final_note': 'Це дорадче голосування, мейнтейнери виконають його підсумок.',
+    'vote.donation.title': 'Пожертвувати',
+    'vote.donation.body':
+        'За замовчуванням підтримуються Monero і Bitcoin. Іншу монету можна знайти нижче; вона обмінюється на Monero, тому проєкт зберігає лише Monero. Пожертви розподіляються за підсумком вище.',
+    'vote.donation.copy': 'Копіювати',
+    'vote.donation.copied': 'Скопійовано',
+    'vote.donation.direct_note':
+        'Прямий переказ без обміну. Перед надсиланням перевірте перші та останні 4 символи адреси.',
+    'vote.donation.bitcoin': 'Пожертвувати Bitcoin',
+    'vote.donation.other': 'Інші монети',
+    'vote.donation.ticker_placeholder': 'Монета (наприклад, eth, usdt)',
+    'vote.donation.network_placeholder': 'Мережа (наприклад, Mainnet, TRC20)',
+    'vote.donation.continue': 'Перейти до Trocador',
+    'vote.donation.creating': 'Створюємо замовлення…',
+    'vote.donation.invoice_failed': 'Не вдалося створити замовлення на обмін. Спробуйте пізніше.',
+    'vote.donation.network_hint': 'Перевірте монету та мережу; кошти, надіслані не в тій мережі, повернути неможливо.',
+    'vote.donation.swap_note':
+        'Bitcoin, Ethereum та інші монети обмінюються на Monero через Trocador; проєкт їх не зберігає.',
+    'vote.donation.trocador_unavailable': 'Bitcoin та інші монети зараз недоступні; Monero можна пожертвувати напряму.',
+    'vote.donation.risk_note':
+        'Обмін виконують Trocador і партнерські біржі. Зупинені та повернені угоди, а також помилки з мережею обробляють вони; проєкт не зберігає кошти. Пожертва зараховується лише після надходження Monero.',
+    'vote.donation.split_note':
+        'Пропорція 30/30/40 розраховується всередині проєкту; три платежі надсилати не потрібно.',
+    'vote.donation.verify': 'Перевірити DONATE.md на GitHub',
+    'vote.donation.unavailable': 'Інформація про пожертви зараз недоступна. Спробуйте пізніше.',
     'vote.project': 'проєкт',
     'vote.footer': 'Є запитання щодо пропозиції? Поставте їх у репозиторії на GitHub або в чаті спільноти.',
     'vote.loading': 'Завантажуємо голосування…',
@@ -1354,5 +1384,8 @@ export const UK = {
     'vote.prompt.body': 'Вирішіть, як ділити пожертви, які валюти підтримувати і чи приймати пожертви взагалі.',
     'vote.prompt.early': 'Дострокове голосування відкрито',
     'vote.prompt.deadline': 'Голосування завершиться {date} (UTC)',
+    'vote.prompt.days_left': 'Залишилося {n} дн.',
+    'vote.prompt.one_day_left': 'Залишився 1 день',
+    'vote.prompt.under_a_day': 'Менше дня',
     'vote.prompt.go': 'Перейти',
 } as const;

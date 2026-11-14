@@ -7,6 +7,13 @@ import { isMemorialAccount, logDeletion } from '../userHelpers';
 import { readSmallJsonBody } from '../../../requestInput';
 import { LIVE_SESSION_SQL } from './sessions';
 import { MAX_NOTICE_BODY, NOTICE_COLUMNS, NOTICE_LANGS, type SiteNoticeRow, serializeNotice } from '../notice';
+import {
+    DONATION_COLUMNS,
+    type DonationRow,
+    ensureDonationSchema,
+    parseDonationDraft,
+    serializeDonation,
+} from '../donation';
 
 import type { RequestContext } from '../../../worker';
 
@@ -134,6 +141,51 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
             }),
         );
     }
+    // --- Donation addresses ---
+    // The page only reads these after the vote closes, but the editor shows
+    // whatever is stored so the operator can fill them in ahead of time.
+    if (url.pathname === '/api/admin/donation' && request.method === 'GET') {
+        await ensureDonationSchema(env);
+        const row = await env.DB.prepare(
+            `SELECT ${DONATION_COLUMNS} FROM donation_addresses WHERE id = 1`,
+        ).first<DonationRow>();
+        return withSecurityHeaders(
+            new Response(JSON.stringify({ donation: row ? serializeDonation(row) : null }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }),
+        );
+    }
+
+    if (url.pathname === '/api/admin/donation' && request.method === 'PUT') {
+        const parsedBody = await readSmallJsonBody(request);
+        if (!parsedBody.ok) {
+            return parsedBody.tooLarge
+                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+        }
+        const parsed = parseDonationDraft(parsedBody.value);
+        if ('error' in parsed) return jsonError('INVALID_REQUEST', parsed.error, 400);
+
+        await ensureDonationSchema(env);
+        const saved = await env.DB.prepare(
+            `INSERT INTO donation_addresses (id, monero_address, monero_payout_address, updated_at)
+               VALUES (1, ?1, ?2, unixepoch())
+               ON CONFLICT(id) DO UPDATE SET
+                 monero_address = ?1, monero_payout_address = ?2, updated_at = unixepoch()
+               RETURNING ${DONATION_COLUMNS}`,
+        )
+            .bind(parsed.value.monero, parsed.value.moneroPayout)
+            .first<DonationRow>();
+
+        return withSecurityHeaders(
+            new Response(JSON.stringify({ donation: saved ? serializeDonation(saved) : null }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }),
+        );
+    }
+
     // Search users (with backup stats, paginated)
     if (url.pathname === '/api/admin/users' && request.method === 'GET') {
         const query = url.searchParams.get('q')?.trim();

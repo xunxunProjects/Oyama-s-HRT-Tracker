@@ -30,7 +30,7 @@ anonymous donors a privacy-preserving option even if the vote adds nothing
 else.
 
 The official opening is **2026-10-29 08:00:00 UTC**, and the deadline is
-**2026-11-20 23:59:59 UTC**. People who find the page before the official
+**2026-11-15 23:59:59 UTC**. People who find the page before the official
 opening may vote early: ballots are accepted through the deadline, and
 `isVoteAcceptingBallots` is the single rule the page, the Overview nudge, and
 the Worker use. Before the official opening the public status is still

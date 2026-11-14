@@ -13,13 +13,19 @@ stays short for a long time, development will slow down.
 
 ## Where the money goes
 
-- 40% — project development and maintenance (infrastructure, releases, reviews)
 - 30% — [@fantuanmtf](https://github.com/fantuanmtf)
 - 30% — [@SmirnovaOyama](https://github.com/SmirnovaOyama)
+- 40% — project development and maintenance (infrastructure, releases, reviews)
 
 ## Channels
 
-- Monero: `86fnX9pg9VqD5SjJNDjbxKemf5wEvHz7mDojKztJyov8PVKCGVeC7QKijLQrb9QT7KabaXhXFn3HoPbDvWAk6dYrUBgB9p5`
-- Bitcoin: `bc1qdgfj0rm0tguna4nk36lxmeq45h59hscusrthk2`
+- Monero (direct): `83cW4PFAGbjT1RiP1q5HG2gcKWqZXG4DRGcyXvPDBzUmVxMi6LgXZGjZn8hLp6CT6hCzysxyiS6H9Ss8JqQGqmKE9neYCm9`
+- Bitcoin, Ethereum and other coins: use the donation button on the Community
+  funding page. Trocador converts them to Monero; the project does not hold the
+  original coin.
+
+Only the Monero address is published. Other coins are handled by Trocador and
+its partner exchanges; the project does not custody funds. A donation counts
+once Monero arrives. If this file and the app disagree, use the app.
 
 Thank you. Steady progress and good health to everyone who uses this tool.

@@ -6,6 +6,8 @@ interface NavItem {
     id: string;
     label: string;
     icon: React.ElementType; // Changed from ReactElement to ElementType
+    /** A small accent dot for a page with something to do. */
+    badge?: boolean;
 }
 
 interface SidebarProps {
@@ -110,17 +112,23 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                         : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
                                 }`}
                             >
-                                {doodle ? (
-                                    <Doodle name={doodle} size={2.25} />
-                                ) : (
-                                    <span className="grid size-9 shrink-0 place-items-center">
+                                <span className="relative grid size-9 shrink-0 place-items-center">
+                                    {doodle ? (
+                                        <Doodle name={doodle} size={2.25} />
+                                    ) : (
                                         <Icon
                                             size={22}
                                             className={isActive ? 'text-[var(--accent-ink)]' : ''}
                                             strokeWidth={isActive ? 2 : 1.75}
                                         />
-                                    </span>
-                                )}
+                                    )}
+                                    {item.badge && (
+                                        <span
+                                            aria-hidden="true"
+                                            className="absolute end-0.5 top-0.5 size-1.5 rounded-full bg-[var(--accent)]"
+                                        />
+                                    )}
+                                </span>
                                 <span className="side-label">{item.label}</span>
                             </button>
                         );

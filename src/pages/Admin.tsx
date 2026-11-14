@@ -24,6 +24,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
 import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
+import { donationService, DonationAddresses } from '../services/donation';
 import { apiEndpoint } from '../services/apiClient';
 import { Lang } from '../i18n/translations';
 import { BusyLabel } from '../components/StableLabel';
@@ -35,19 +36,19 @@ import DateTimePicker from '../components/DateTimePicker';
 import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
 
 /*
- * The admin area, laid out like Settings: on a phone a list of three rows,
+ * The admin area, laid out like Settings: on a phone a list of four rows,
  * each opening its own level (a history entry, so the system Back steps out
  * of it); on a wide screen the same page header and column as every other
- * page, with the three as tabs. Everything is in the page's own scroller, so
+ * page, with the four as tabs. Everything is in the page's own scroller, so
  * the bottom bar's clearance (scroll-pb-nav) applies and nothing scrolls
  * sideways.
  */
 
-type AdminCat = 'users' | 'notice' | 'system';
+type AdminCat = 'users' | 'notice' | 'donation' | 'system';
 type MobileView = 'list' | AdminCat;
 type UserTool = 'menu' | 'backups' | '2fa' | 'password' | 'edit';
 
-const CAT_ORDER: readonly AdminCat[] = ['users', 'notice', 'system'];
+const CAT_ORDER: readonly AdminCat[] = ['users', 'notice', 'donation', 'system'];
 const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
 const TOOL_ORDER: readonly UserTool[] = ['menu', 'backups', '2fa', 'password', 'edit'];
 
@@ -204,6 +205,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts, sign-in and cloud backups' },
         { id: 'notice', label: 'Notice', Icon: Megaphone, hint: 'The banner across the top of the site' },
+        { id: 'donation', label: 'Donation', Icon: Flower, hint: 'Direct Monero and Trocador payout' },
         { id: 'system', label: 'System', Icon: Server, hint: 'Storage and server status' },
     ];
 
@@ -1150,6 +1152,64 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             </div>
         );
 
+    // ── Donation ─────────────────────────────────────────────────────────
+    // Direct Monero is public; the Trocador payout is a different subaddress
+    // that stays server-side. Both can be rotated without a deploy.
+    const [donation, setDonation] = useState<DonationAddresses | null>(null);
+    const [donationLoading, setDonationLoading] = useState(false);
+    const [donationSaving, setDonationSaving] = useState(false);
+    const [donationMonero, setDonationMonero] = useState('');
+    const [donationPayout, setDonationPayout] = useState('');
+    const [donationError, setDonationError] = useState<string | null>(null);
+
+    const applyDonation = (d: DonationAddresses | null) => {
+        setDonation(d);
+        setDonationMonero(d?.monero ?? '');
+        setDonationPayout(d?.moneroPayout ?? '');
+    };
+
+    const fetchDonation = useCallback(async () => {
+        if (!token) return;
+        setDonationLoading(true);
+        setDonationError(null);
+        try {
+            applyDonation(await donationService.getStored(token));
+        } catch (e: any) {
+            setDonationError(e?.message || 'Could not load the donation addresses.');
+        } finally {
+            setDonationLoading(false);
+        }
+    }, [token]);
+
+    // Loaded on opening the category, like the notice editor: the users list
+    // is what the page opens on, and this is a request nobody asked for yet.
+    useEffect(() => {
+        if ((wide ? cat : mobileView) === 'donation') void fetchDonation();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cat, mobileView, wide]);
+
+    const saveDonation = async () => {
+        if (!token) return;
+        setDonationSaving(true);
+        setDonationError(null);
+        try {
+            applyDonation(
+                await donationService.save(token, {
+                    monero: donationMonero,
+                    moneroPayout: donationPayout,
+                }),
+            );
+            showDialog('alert', 'Donation addresses saved.');
+        } catch (e: any) {
+            showDialog('alert', e?.message || 'Could not save the donation addresses.');
+        } finally {
+            setDonationSaving(false);
+        }
+    };
+
+    const directConfigured = !!donation?.monero;
+    const trocadorConfigured = !!donation?.moneroPayout;
+
     // ── System ───────────────────────────────────────────────────────────
     const [storage, setStorage] = useState<StorageReport | null>(null);
     const [storageLoading, setStorageLoading] = useState(false);
@@ -1166,6 +1226,69 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             setStorageLoading(false);
         }
     };
+
+    const renderDonation = () =>
+        donationLoading ? (
+            busy
+        ) : (
+            <div>
+                <p className={`text-xs ${muted} mb-4`}>
+                    Shown on the community funding page after the vote closes. The direct address is public; the
+                    Trocador payout address is only used server-side for swapped coins and is never returned to the
+                    browser.
+                </p>
+
+                <label className="field-label mb-2" htmlFor="donation-monero">
+                    Direct Monero address (public)
+                </label>
+                <input
+                    id="donation-monero"
+                    value={donationMonero}
+                    onChange={e => setDonationMonero(e.target.value)}
+                    className="input-base font-mono text-xs"
+                    placeholder="8…"
+                    autoComplete="off"
+                    spellCheck={false}
+                />
+                <p className="field-hint">
+                    Validated with the Monero Base58 checksum. Leave empty to hide the direct option.
+                </p>
+
+                <label className="field-label mb-2 mt-4" htmlFor="donation-payout">
+                    Trocador payout address (private)
+                </label>
+                <input
+                    id="donation-payout"
+                    value={donationPayout}
+                    onChange={e => setDonationPayout(e.target.value)}
+                    className="input-base font-mono text-xs"
+                    placeholder="8…"
+                    autoComplete="off"
+                    spellCheck={false}
+                />
+                <p className="field-hint">
+                    Use a different Monero subaddress from the public one. Trocador sends BTC, ETH and other swapped
+                    coins here. Leave empty to disable the exchange option.
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                    <span className={`text-xs ${muted}`}>
+                        Direct: {directConfigured ? 'set' : 'not set'} · Trocador:{' '}
+                        {trocadorConfigured ? 'ready' : 'not set'}
+                    </span>
+                    <button
+                        onClick={saveDonation}
+                        disabled={donationSaving}
+                        className="btn-primary disabled:opacity-45 disabled:pointer-events-none"
+                    >
+                        <BusyLabel busy={donationSaving} size={16}>
+                            Save
+                        </BusyLabel>
+                    </button>
+                </div>
+                {donationError && <p className="field-hint is-error">{donationError}</p>}
+            </div>
+        );
 
     // Storage is fetched on demand: the worker reads every backup body to
     // measure it, so it is not worth doing on every visit.
@@ -1212,11 +1335,17 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     );
 
     const catContent = (id: AdminCat) =>
-        id === 'users' ? renderUsers() : id === 'notice' ? renderNotice() : renderSystem();
+        id === 'users'
+            ? renderUsers()
+            : id === 'notice'
+              ? renderNotice()
+              : id === 'donation'
+                ? renderDonation()
+                : renderSystem();
 
     return (
         <div className="relative md:pb-32">
-            {/* ── Phone: the three rows, then one of them ─────────────── */}
+            {/* ── Phone: the four rows, then one of them ─────────────── */}
             {!wide && (
                 <div>
                     <div key={mobileView} className={mobileAnim}>
@@ -1259,7 +1388,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             )}
 
             {/* ── Wide screen: the page header and column every page has,
-                with the three as tabs under the title. ── */}
+                with the four as tabs under the title. ── */}
             {wide && (
                 <div>
                     <PageHeader title="Admin" />

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { Lang } from '../i18n/translations';
 import { apiEndpoint, apiFetch } from '../services/apiClient';
-import { communityVotePromptState, countHrtDaysSince } from '../utils/communityVote';
+import { communityVotePromptState, countHrtDaysSince, voteDaysLeft } from '../utils/communityVote';
 import { fill } from '../utils/regimenText';
 import type { VoteMe, VotePublic } from '../../communityVote';
 
@@ -48,6 +48,9 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
     const [publicVote, setPublicVote] = useState<VotePublic | null>(null);
     const [me, setMe] = useState<VoteMe | null>(null);
     const [hrtDays, setHrtDays] = useState(0);
+    // Refreshed with the public vote below, so the countdown never reads the
+    // clock during render.
+    const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
     useEffect(() => {
         let active = true;
@@ -56,7 +59,10 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
                 const res = await fetch(apiEndpoint('/api/vote'), { cache: 'no-store' });
                 if (!res.ok) throw new Error('vote unavailable');
                 const data = (await res.json()) as VotePublic;
-                if (active) setPublicVote(data);
+                if (active) {
+                    setPublicVote(data);
+                    setNowSec(Math.floor(Date.now() / 1000));
+                }
             } catch {
                 if (active) setPublicVote(null);
             }
@@ -127,6 +133,12 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
 
     const early = publicVote.vote.status === 'upcoming' && publicVote.vote.acceptsBallots;
     const title = prompt === 'signin' ? t('vote.prompt.signin') : t('vote.prompt.unvoted');
+    // The last week is the one where a deadline is worth a number. Whole days
+    // keep it calm: 47 hours is "1 day", and the final day counts down as
+    // "under a day" rather than pretending there is still a full one.
+    const secondsLeft = publicVote.vote.closesAt - nowSec;
+    const showCountdown = secondsLeft > 0 && secondsLeft <= 7 * 86_400;
+    const daysLeft = voteDaysLeft(publicVote.vote.closesAt, nowSec);
 
     return (
         <section
@@ -136,6 +148,15 @@ const CommunityVotePrompt: React.FC<CommunityVotePromptProps> = ({ onVote, onSig
             <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs font-medium text-[var(--accent-ink)]">{t('vote.prompt.title')}</p>
                 {early && <span className="text-xs text-[var(--text-muted)]">{t('vote.prompt.early')}</span>}
+                {showCountdown && (
+                    <span className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-xs font-medium text-[var(--accent-ink)]">
+                        {daysLeft > 1
+                            ? fill(t('vote.prompt.days_left'), { n: daysLeft })
+                            : daysLeft === 1
+                              ? t('vote.prompt.one_day_left')
+                              : t('vote.prompt.under_a_day')}
+                    </span>
+                )}
             </div>
             <h2 id="community-vote-prompt-title" className="mt-2 text-sm font-semibold text-[var(--text)]">
                 {title}

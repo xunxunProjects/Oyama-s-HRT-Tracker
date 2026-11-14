@@ -16,7 +16,7 @@ import {
     type VoteSubmitResponse,
 } from '../communityVote';
 import { handleCommunityVoteMe, handleCommunityVotePublic, handleCommunityVoteSubmit } from '../communityVoteServer';
-import { communityVotePromptState, countHrtDaysSince } from '../src/utils/communityVote';
+import { communityVotePromptState, countHrtDaysSince, voteDaysLeft } from '../src/utils/communityVote';
 
 const DAY = 86_400;
 const NOW = COMMUNITY_VOTE_OPENS_AT + 5 * DAY;
@@ -147,9 +147,9 @@ afterEach(() => {
 });
 
 describe('community vote rules', () => {
-    it('starts at 08:00 UTC on 29 October and closes at the end of 20 November', () => {
+    it('starts at 08:00 UTC on 29 October and closes at the end of 15 November', () => {
         expect(COMMUNITY_VOTE_OPENS_AT).toBe(Date.UTC(2026, 9, 29, 8) / 1000);
-        expect(COMMUNITY_VOTE_CLOSES_AT).toBe(Date.UTC(2026, 10, 20, 23, 59, 59) / 1000);
+        expect(COMMUNITY_VOTE_CLOSES_AT).toBe(Date.UTC(2026, 10, 15, 23, 59, 59) / 1000);
         expect(voteStatusAt(COMMUNITY_VOTE_OPENS_AT - 1)).toBe('upcoming');
         expect(voteStatusAt(COMMUNITY_VOTE_OPENS_AT)).toBe('open');
         expect(voteStatusAt(COMMUNITY_VOTE_CLOSES_AT)).toBe('open');
@@ -267,6 +267,17 @@ describe('home page vote prompt', () => {
         expect(communityVotePromptState({ ...eligible, acceptsBallots: false })).toBe('hidden');
         expect(communityVotePromptState({ ...eligible, accountEligible: false })).toBe('hidden');
         expect(communityVotePromptState({ ...eligible, hrtDays: MIN_HRT_DAYS - 1 })).toBe('hidden');
+    });
+});
+
+describe('vote countdown', () => {
+    it('counts whole days left and never goes below zero', () => {
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT)).toBe(0);
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT - 1)).toBe(0);
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT - DAY)).toBe(1);
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT - 2 * DAY - 1)).toBe(2);
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT - 7 * DAY)).toBe(7);
+        expect(voteDaysLeft(COMMUNITY_VOTE_CLOSES_AT, COMMUNITY_VOTE_CLOSES_AT + 1)).toBe(0);
     });
 });
 

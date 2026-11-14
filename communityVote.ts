@@ -13,8 +13,8 @@ export const COMMUNITY_VOTE_KEY = 'funding-2026-11';
 
 /** 2026-10-29 08:00:00 UTC: the official opening. Ballots are accepted before this. */
 export const COMMUNITY_VOTE_OPENS_AT = Math.floor(Date.UTC(2026, 9, 29, 8, 0, 0) / 1000);
-/** 2026-11-20 23:59:59 UTC. */
-export const COMMUNITY_VOTE_CLOSES_AT = Math.floor(Date.UTC(2026, 10, 20, 23, 59, 59) / 1000);
+/** 2026-11-15 23:59:59 UTC. */
+export const COMMUNITY_VOTE_CLOSES_AT = Math.floor(Date.UTC(2026, 10, 15, 23, 59, 59) / 1000);
 
 export const MIN_ACCOUNT_AGE_DAYS = 10;
 export const MIN_HRT_DAYS = 5;
