@@ -502,9 +502,28 @@ select:focus-visible {
         color: var(--text-muted);
         cursor: not-allowed;
     }
+    /* A field the browser filled in (a saved name or password on the sign-in
+       page, or a suggestion picked while typing). Chrome and Safari force
+       background-image: none !important on it, which takes both lines away,
+       and the inset shadow that paints over their tint covers the rest. So
+       here the lines are drawn with shadows instead, in the same place as
+       the pictures: the rule 1px thick, 2px up from the bottom, and on
+       focus the 1.5px ink line over it. Listed top first: a strip of
+       background under the line, the line, then the cover. */
     .input-base:-webkit-autofill {
-        -webkit-box-shadow: 0 0 0 100px var(--bg) inset;
         -webkit-text-fill-color: var(--text);
+        caret-color: var(--text);
+        box-shadow:
+            inset 0 -2px 0 var(--bg),
+            inset 0 -3px 0 var(--ink-rule-color),
+            inset 0 0 0 100px var(--bg);
+        transition: box-shadow var(--duration-quick) var(--ease-standard);
+    }
+    .input-base:-webkit-autofill:focus {
+        box-shadow:
+            inset 0 -2px 0 var(--bg),
+            inset 0 -3.5px 0 var(--ink-run-color),
+            inset 0 0 0 100px var(--bg);
     }
     /* Several lines don't sit on one rule, so a text area keeps a box: a
        findable hairline that darkens to the text colour on focus. */
