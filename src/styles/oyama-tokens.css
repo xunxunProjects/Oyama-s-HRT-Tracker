@@ -249,6 +249,10 @@
        out per theme because an image can't read var(). */
     --ink-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3.5H320' fill='none' stroke='%238c8981' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
     --ink-run: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3.25H320' fill='none' stroke='%231a1916' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+    /* The same two lines as plain colours, for a field the browser has filled
+       in, where it takes background images away (index.css). */
+    --ink-rule-color: #8c8981;
+    --ink-run-color: #1a1916;
 }
 
 .dark {
@@ -323,4 +327,8 @@
     --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 24px 56px rgba(0, 0, 0, 0.6);
     --ink-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3.5H320' fill='none' stroke='%23858279' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
     --ink-run: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3.25H320' fill='none' stroke='%23f9f9f7' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+    /* The same two lines as plain colours, for a field the browser has filled
+       in, where it takes background images away (index.css). */
+    --ink-rule-color: #858279;
+    --ink-run-color: #f9f9f7;
 }
