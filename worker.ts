@@ -89,7 +89,7 @@ function withSecurityHeaders(response: Response): Response {
     // X-XSS-Protection header is gone: the filter it switched on could itself
     // be used as an oracle, and modern browsers ignore it.
     newResponse.headers.set('Strict-Transport-Security', 'max-age=31536000');
-    newResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    newResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
     newResponse.headers.set(
         'Content-Security-Policy',
         // font-src allows data: because Vite inlines the smallest KaTeX font

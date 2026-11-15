@@ -57,6 +57,7 @@ const MODE_SUFFIXES = [
     'plan-at',
     'supplies',
     'deletions',
+    'voice-checks',
 ] as const;
 const SHARED_SUFFIXES = [
     'weight',

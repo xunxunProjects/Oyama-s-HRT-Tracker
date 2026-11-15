@@ -5,7 +5,66 @@
  * The language has three plural forms, and the code only picks between a
  * `_one` key and the plain one, so a plain "{n} записів" would also print "2 записів" and "21 записів".
  */
+const VOICE_UK = {
+    'voice.title': 'Голос',
+    'voice.subtitle': 'Прочитайте фіксоване речення і подивіться, наскільки ваш тон близький до обраного напряму.',
+    'voice.mode.transfem': 'Поточна мета: фемінізація',
+    'voice.mode.transmasc': 'Поточна мета: маскулінізація',
+    'voice.mode.note': 'Слідує режиму ГТ у налаштуваннях. Оцінка відображає лише тон, а не всі особливості голосу.',
+    'voice.intro.title': 'Що це за оцінка?',
+    'voice.intro.body':
+        'У тихій кімнаті прочитайте речення нижче за 5 секунд. Застосунок оцінить медіанний тон мовлення і порівняє його з поточною метою. Що вища оцінка, то ближче тон до цього напряму; це не судження про ваш гендер.',
+    'voice.passage.title': 'Прочитайте це речення',
+    'voice.passage.zh': '今天天气很好，我准备出门走一走，顺便买点东西。',
+    'voice.passage.en': 'The north wind and the sun were disputing which was the stronger.',
+    'voice.passage.ru': 'Сегодня хорошая погода, я собираюсь немного прогуляться и купить кое-что по дороге.',
+    'voice.passage.uk': 'Сьогодні гарна погода, я збираюся трохи прогулятися й купити дещо дорогою.',
+    'voice.start': 'Почати запис',
+    'voice.stop': 'Стоп',
+    'voice.recording': 'Триває запис…',
+    'voice.analyzing': 'Аналіз…',
+    'voice.remaining': 'Залишилося {n} с',
+    'voice.live_hz': 'Зараз {hz} Гц',
+    'voice.level': 'Рівень',
+    'voice.result.title': 'Цей результат',
+    'voice.result.median': 'Медіана {hz} Гц',
+    'voice.result.range': 'Діапазон {low}–{high} Гц',
+    'voice.result.announce': 'Запис завершено. Оцінка {score}, медіанна висота {hz} Гц.',
+    'voice.result.retry': 'Ще раз',
+    'voice.axis.far': 'Далі від мети',
+    'voice.axis.near': 'Ближче до мети',
+    'voice.axis.higher': 'Напрям мети: вище',
+    'voice.axis.lower': 'Напрям мети: нижче',
+    'voice.bucket.great': 'Чудово',
+    'voice.bucket.good': 'Добре',
+    'voice.bucket.keep': 'Продовжуйте',
+    'voice.bucket.needs': 'Потрібна практика',
+    'voice.bucket.start': 'Лише початок',
+    'voice.history.title': 'Недавні перевірки',
+    'voice.history.empty':
+        'Для цієї мови записів ще немає. Після зміни мови історія розділяється за прочитаним текстом.',
+    'voice.history.date_score': '{date} · {score} · {hz} Гц',
+    'voice.clear': 'Видалити локальні записи голосу',
+    'voice.clear_confirm':
+        'Видалити записи голосу цього акаунта в обох режимах — фемінізації та маскулінізації? Це не можна скасувати.',
+    'voice.disclaimer':
+        'Це оцінка тону за мікрофоном телефона, а не оцінка голосової терапії. Тон — лише частина голосу; резонанс, інтонація й манера мовлення також важливі. Зупиніться, якщо болить горло.',
+    'voice.evidence.title': 'Підстави',
+    'voice.error.unsupported': 'Цей браузер не підтримує мікрофон або сторінка відкрита не за HTTPS/localhost.',
+    'voice.error.permission':
+        'Доступ до мікрофона заборонено. Дозвольте його в браузері або системних налаштуваннях і повторіть.',
+    'voice.error.no_mic': 'Мікрофон не знайдено.',
+    'voice.error.busy': 'Мікрофон зайнятий іншим застосунком.',
+    'voice.error.too_short': 'Запис занадто короткий. Читайте щонайменше 2 секунди.',
+    'voice.error.too_quiet': 'Занадто тихо або занадто шумно, чіткий тон не знайдено. Повторіть.',
+    'voice.error.desktop': 'Настільна версія може не підтримувати мікрофон. Використовуйте браузерну версію.',
+    'voice.error.generic': 'Не вдалося записати. Повторіть.',
+    'voice.save_failed': 'Результат на екрані, але зберегти його на пристрої не вдалося.',
+    'voice.entry': 'Перевірка голосу',
+} as const;
+
 export const UK = {
+    ...VOICE_UK,
     'settings.section.model': 'На чому ґрунтуються оцінки',
     'settings.section.supplies': 'Запаси',
     'settings.section.display': 'Мова і відображення',
