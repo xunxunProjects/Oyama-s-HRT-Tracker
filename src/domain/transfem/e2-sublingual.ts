@@ -130,7 +130,7 @@ export const e2SublingualModule: PkRouteModule = {
         }
         return (theta + (1 - theta) * _activePKParams.e2_oral_bio) * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const extras = event.extras ?? {};
         let theta = _activePKParams.e2_sl_standard;
         if (extras[ExtraKey.sublingualTheta] !== undefined) {
@@ -154,7 +154,7 @@ export const e2SublingualModule: PkRouteModule = {
         const F_fast = toE2;
         const F_slow = _activePKParams.e2_oral_bio * toE2;
         const F = theta * F_fast + (1 - theta) * F_slow;
-        const k3 = e2Clearance(event, birthYear);
+        const k3 = e2Clearance(event, birthYear, bodyWeightKG);
         const params: PKParams = {
             Frac_fast: theta,
             k1_fast,

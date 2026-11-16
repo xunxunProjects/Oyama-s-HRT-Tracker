@@ -135,6 +135,14 @@ export function popPKCovariateFactors(
     return { clFactor, vFactor };
 }
 
+export function weightK3Factor(
+    weightKG: number,
+    params: PopPKCovariateParams = DEFAULT_POP_PK_COVARIATE_PARAMS,
+): number {
+    const { clFactor, vFactor } = popPKCovariateFactors(weightKG, null, null, params);
+    return clFactor / vFactor;
+}
+
 export function ageClearanceMultiplier(hormone: 'e2' | 't', birthYear: number | null, timeH: number): number {
     if (birthYear === null) return 1;
     const age = ageAtH(birthYear, timeH);

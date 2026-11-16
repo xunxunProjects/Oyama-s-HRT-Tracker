@@ -10,9 +10,9 @@ export const tPelletModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const F = getToE2Factor(event.ester);
-        const k3 = tClearance(event, birthYear);
+        const k3 = tClearance(event, birthYear, bodyWeightKG);
         const releaseRateUGPerDayP = (event.extras ?? {})[ExtraKey.releaseRateUGPerDay];
         const rateMGhP =
             typeof releaseRateUGPerDayP === 'number' &&

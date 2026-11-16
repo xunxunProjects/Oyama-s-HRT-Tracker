@@ -10,8 +10,8 @@ export const tPatchModule: PkRouteModule = {
     bioavailability(route, ester) {
         return route === Route.patchApply ? T_PatchPK.F * getToE2Factor(ester) : 0;
     },
-    resolveParams(event, birthYear) {
-        const k3 = tClearance(event, birthYear);
+    resolveParams(event, birthYear, bodyWeightKG) {
+        const k3 = tClearance(event, birthYear, bodyWeightKG);
         if (event.route === Route.patchRemove) return zeroPKParams(k3);
 
         const F = T_PatchPK.F * getToE2Factor(event.ester);

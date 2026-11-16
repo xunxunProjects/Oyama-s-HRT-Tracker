@@ -66,7 +66,7 @@ export function e2RouteCurves(
         const models = sorted
             .filter(isE2Event)
             .map(e => {
-                const base = resolveParams(e, born);
+                const base = resolveParams(e, born, bodyWeightKG);
                 const params: PKParams =
                     absMul === 1 ? base : { ...base, k1_fast: base.k1_fast * absMul, k1_slow: base.k1_slow * absMul };
                 return {
