@@ -488,7 +488,7 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 
 ## 10) 局限
 - 个体差异大多未建模：肝功能、SHBG、体脂、并用药等可能改变 `F` 与各速率常数（SHBG 与游离 E2 有一个可选的子模型，默认关闭，见 §18）。化验校准（§16）只能事后修正 E2 的整体幅度与清除。
-- **年龄**：Age is now split into bands with a provisional puberty ramp, but Tanner stage, sex-specific SHBG/free-hormone baselines, weight allometry, body composition, and GnRH-agonist effects are still unmodeled. Under 10 is outside the validated range; under 19 is labelled extrapolated.
+- **年龄与体重**：年龄已按年龄段（age bands）处理，并带有临时的青春期斜坡（provisional puberty ramp）；体重异速增长（weight allometry）已实现：清除率 `CL ∝ (BW/70)^0.75`，表观分布容积 `V ∝ BW`。Tanner 分期、性别特异性 SHBG/游离激素基线、体成分与 GnRH 激动剂的影响仍未建模。10 岁以下属于**验证范围之外**；19 岁以下标注为外推。
 - 凝胶的面积/负荷非线性：当前未在模型中体现；存在低剂量低估与高剂量高估的潜在风险。
 - 注射溶剂/体积影响：对扩散 `k₁` 的影响尚未显式参数化，现仅能通过代码常量 `depotK1Corr` 整体近似。
 - 口服 E2 与舌下 E2 吞咽部分的雌酮及其硫酸酯储库只用一个一阶库（`kE1Pool`）近似，其速率取自口服 EV 后测得的 E2 半衰期；模型不输出雌酮浓度，口服 EV 也不经此库（§5）。
@@ -706,7 +706,7 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
 | 19 | 1.00 |
 
 - **斜率与影响**：睾酮 s = ln(1821/1390)/40 ≈ 0.68%/岁，E2 s = ln(1/0.75)/52 ≈ 0.55%/岁。各路由的 AUC 都是 F·D/k₃，所以总暴露按 1/m 变化；注射的 k₃ 是 flip‑flop 下的有效值，乘以 m 同样按 1/m 改变暴露，曲线形状也略有变化。吸收速率、酯水解、口服雌酮库 `kE1Pool` 与 CPA 都不变。
-- **分段说明**：成人支（`age >= 19`）没有改动，75 岁以上仍取 75 岁的值，所以成人的预测与之前相同。19 岁以下的支路目前只是**体型与成熟度的占位近似**：在 Tanner 分期、体重异速增长（weight allometry）与 SHBG/游离激素协变量实现之前，用上面的分段线性斜坡表示青春期清除率的上升。10 岁以下沿用 0.70，属于**验证范围之外**，UI 会给出警告；18.0–18.99 岁也会提示为外推。这一支路的证据很少，主要来自 Turner 综合征、跨性别青少年，以及儿童他克莫司与 CYP3A4 成熟（ontogeny）的研究。**这不是给药建议。**
+- **分段说明**：成人支（`age >= 19`）没有改动，75 岁以上仍取 75 岁的值，所以成人的预测与之前相同。19 岁以下的支路目前仍是**成熟度的占位近似**：在 Tanner 分期与性别特异性 SHBG/游离激素协变量实现之前，用上面的分段线性斜坡表示青春期清除率的上升；体重已另行按异速增长进入清除率（见下文“体重（清除率）”）。10 岁以下沿用 0.70，属于**验证范围之外**，UI 会给出警告；18.0–18.99 岁也会提示为外推。这一支路的证据很少，主要来自 Turner 综合征、跨性别青少年，以及儿童他克莫司与 CYP3A4 成熟（ontogeny）的研究。**这不是给药建议。**
 - **基准 54 岁**：默认参数所依据人群的平均年龄：Aveed 试验 54.2 岁、AndroGel 1.62% 试验 53.8 岁（说明书 §14），口服戊酸雌二醇研究 54.0 岁（Zhang 2024，Table 1，口服雌酮库即取自该研究）。不填出生年份等同于 54 岁，模型与此前完全相同，`tests/` 中的文献对照也不受影响。
 - **数值**（m 为清除速率的倍数，浓度的倍数为 1/m；10 至 18 岁的数值为**临时值，未经临床验证**）：
 
@@ -722,6 +722,20 @@ Doll 2022 另报告 0-8 h 的 AUC 为口服的 1.8 倍（总浓度）；按 issu
   - [Age/Tanner reference intervals, 2026](https://pubmed.ncbi.nlm.nih.gov/42554720/)
   - [Tacrolimus puberty PK, 2017](https://pubmed.ncbi.nlm.nih.gov/27966227/)
   - [Anderson & Holford, size + maturation, 2009](https://pubmed.ncbi.nlm.nih.gov/19252334/)
+
+### 体重（清除率）
+
+体重只进入清除率，不改变表观分布容积的线性关系：
+
+$$V(BW) = vd_{perKG} \times BW$$
+
+$$k_3(BW) = k_3(70) \times (BW/70)^{-0.25}$$
+
+因此
+
+$$CL(BW) = k_3(BW)\,V(BW) = CL(70) \times (BW/70)^{0.75}$$
+
+70 kg 时因子恰为 1，因此既有 70 kg 预测不变。0.75 的清除率指数来自 Anderson & Holford（2009）的异速增长框架（PMID 19252334）。Tanner 分期、性别特异性 SHBG/游离激素、体成分与 GnRH 激动剂影响仍未建模。
 
 ---
 
