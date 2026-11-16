@@ -5,7 +5,10 @@ import {
     Ester,
     Route,
     ageAtH,
+    ageBand,
     ageClearanceMultiplier,
+    ageModelInfo,
+    ageNotice,
     applyPKOverrides,
     computeCalibration,
     interpolateConcentration_CPA,
@@ -41,6 +44,79 @@ describe('age at a moment', () => {
     });
 });
 
+describe('age bands', () => {
+    it('maps age to a band at the boundaries', () => {
+        expect(ageBand(9.99)).toBe('prepubertal');
+        expect(ageBand(10)).toBe('earlyPuberty');
+        expect(ageBand(12.99)).toBe('earlyPuberty');
+        expect(ageBand(13)).toBe('midPuberty');
+        expect(ageBand(15.99)).toBe('midPuberty');
+        expect(ageBand(16)).toBe('latePuberty');
+        expect(ageBand(18.99)).toBe('latePuberty');
+        expect(ageBand(19)).toBe('adult');
+        expect(ageBand(75)).toBe('adult');
+        expect(ageBand(75.01)).toBe('older');
+    });
+});
+
+describe('age model info', () => {
+    it('returns no band without a birth year', () => {
+        expect(ageModelInfo(null, NOW_H)).toEqual({
+            ageYears: null,
+            band: null,
+            isMinor: false,
+            isExtrapolated: false,
+            maturationFactor: 1,
+        });
+    });
+
+    it('marks minors and extrapolation', () => {
+        const nine = ageModelInfo(bornAt(9), NOW_H);
+        expect(nine.band).toBe('prepubertal');
+        expect(nine.isMinor).toBe(true);
+        expect(nine.isExtrapolated).toBe(true);
+        expect(nine.maturationFactor).toBeCloseTo(0.7, 6);
+        expect(ageNotice(nine)).toBe('prepubertal');
+
+        const twelve = ageModelInfo(bornAt(12), NOW_H);
+        expect(twelve.band).toBe('earlyPuberty');
+        expect(twelve.isMinor).toBe(true);
+        expect(twelve.isExtrapolated).toBe(true);
+        expect(twelve.maturationFactor).toBeGreaterThan(0.76);
+        expect(twelve.maturationFactor).toBeCloseTo(0.79, 2);
+        expect(ageNotice(twelve)).toBe('minor');
+
+        const adult = ageModelInfo(bornAt(54), NOW_H);
+        expect(adult.band).toBe('adult');
+        expect(adult.isMinor).toBe(false);
+        expect(adult.isExtrapolated).toBe(false);
+        expect(adult.maturationFactor).toBe(1);
+        expect(ageNotice(adult)).toBeNull();
+
+        const older = ageModelInfo(bornAt(80), NOW_H);
+        expect(older.band).toBe('older');
+        expect(older.isMinor).toBe(false);
+        expect(older.isExtrapolated).toBe(true);
+        expect(ageNotice(older)).toBeNull();
+    });
+
+    it('warns about late-puberty extrapolation at exact ages', () => {
+        // ageAtH counts from mid-year, so this puts a 1970 birth at exactly `age`.
+        const atAge = (age: number) => (AT_REF + 0.5 + age - 1970) * 365.2425 * 24;
+        const noticeAt = (age: number) => ageNotice(ageModelInfo(AT_REF, atAge(age)));
+
+        for (const age of [18, 18.5, 18.99]) {
+            expect(ageModelInfo(AT_REF, atAge(age)).band).toBe('latePuberty');
+            expect(noticeAt(age)).toBe('extrapolated');
+        }
+        expect(noticeAt(17.99)).toBe('minor');
+        expect(noticeAt(19)).toBeNull();
+        expect(noticeAt(80)).toBeNull();
+        expect(noticeAt(9)).toBe('prepubertal');
+        expect(ageNotice(ageModelInfo(null, NOW_H))).toBeNull();
+    });
+});
+
 describe('ageClearanceMultiplier', () => {
     /** The multiplier for someone born in AT_REF, at the moment they are exactly `age`. */
     const at = (hormone: 'e2' | 't', age: number) =>
@@ -69,9 +145,40 @@ describe('ageClearanceMultiplier', () => {
         expect(at('t', 70)).toBeLessThan(1);
     });
 
-    it('holds its end value outside 19–75', () => {
+    it('ramps through puberty and holds only above 75', () => {
+        const slope = {
+            t: Math.log(1821 / 1390) / (67 - 27),
+            e2: Math.log(1 / 0.75) / (79 - 27),
+        };
         for (const h of ['e2', 't'] as const) {
-            expect(at(h, 12)).toBeCloseTo(at(h, 19), 12);
+            const adult19 = Math.exp(-slope[h] * (19 - AGE_REF_YEARS));
+
+            expect(at(h, 9)).toBeCloseTo(at(h, 10), 12);
+            expect(at(h, 10) / at(h, 19)).toBeCloseTo(0.7, 12);
+            expect(at(h, 12) / at(h, 19)).toBeCloseTo(0.78, 12);
+            expect(at(h, 15) / at(h, 19)).toBeCloseTo(0.9, 12);
+            expect(at(h, 19)).toBeCloseTo(adult19, 12);
+            expect(at(h, 19) / at(h, 18.999)).toBeCloseTo(1, 4);
+            expect(at(h, 90)).toBeCloseTo(at(h, 75), 12);
+
+            let previous = at(h, 10);
+            for (let age = 10.05; age <= 19; age += 0.05) {
+                const current = at(h, age);
+                expect(current).toBeGreaterThanOrEqual(previous - 1e-12);
+                previous = current;
+            }
+        }
+    });
+
+    it('leaves the adult branch unchanged', () => {
+        const slope = {
+            t: Math.log(1821 / 1390) / (67 - 27),
+            e2: Math.log(1 / 0.75) / (79 - 27),
+        };
+        for (const h of ['e2', 't'] as const) {
+            for (const age of [19, 25, 54, 70, 75]) {
+                expect(at(h, age)).toBeCloseTo(Math.exp(-slope[h] * (age - AGE_REF_YEARS)), 12);
+            }
             expect(at(h, 90)).toBeCloseTo(at(h, 75), 12);
         }
     });

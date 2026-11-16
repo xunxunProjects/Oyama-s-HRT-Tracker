@@ -89,10 +89,13 @@ export { DEFAULT_HPG_PARAMS, hpgAxisCurve } from './features/hpg';
 export type { LipidParams } from './features/lipids';
 export { DEFAULT_LIPID_PARAMS, lipidCurve } from './features/lipids';
 
-export type { PopPKCovariateParams } from './features/popPK';
+export type { AgeBand, AgeModelInfo, PopPKCovariateParams } from './features/popPK';
 export {
     AGE_REF_YEARS,
     ageAtH,
+    ageBand,
+    ageModelInfo,
+    ageNotice,
     DEFAULT_POP_PK_COVARIATE_PARAMS,
     popPKCovariateFactors,
     ageClearanceMultiplier,
