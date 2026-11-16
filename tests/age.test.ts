@@ -99,6 +99,22 @@ describe('age model info', () => {
         expect(older.isExtrapolated).toBe(true);
         expect(ageNotice(older)).toBeNull();
     });
+
+    it('warns about late-puberty extrapolation at exact ages', () => {
+        // ageAtH counts from mid-year, so this puts a 1970 birth at exactly `age`.
+        const atAge = (age: number) => (AT_REF + 0.5 + age - 1970) * 365.2425 * 24;
+        const noticeAt = (age: number) => ageNotice(ageModelInfo(AT_REF, atAge(age)));
+
+        for (const age of [18, 18.5, 18.99]) {
+            expect(ageModelInfo(AT_REF, atAge(age)).band).toBe('latePuberty');
+            expect(noticeAt(age)).toBe('extrapolated');
+        }
+        expect(noticeAt(17.99)).toBe('minor');
+        expect(noticeAt(19)).toBeNull();
+        expect(noticeAt(80)).toBeNull();
+        expect(noticeAt(9)).toBe('prepubertal');
+        expect(ageNotice(ageModelInfo(null, NOW_H))).toBeNull();
+    });
 });
 
 describe('ageClearanceMultiplier', () => {

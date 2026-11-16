@@ -41,6 +41,8 @@ describe('age model copy', () => {
             expect(pack['age.band']).toContain('{range}');
             expect(pack['age.warning.minor']).toBeTruthy();
             expect(pack['age.warning.prepubertal']).toBeTruthy();
+            expect(pack['age.warning.extrapolated']).toBeTruthy();
+            expect(pack['age.explain']).toContain('{ref}');
         });
     }
 });

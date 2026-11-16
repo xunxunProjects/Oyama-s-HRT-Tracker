@@ -20,6 +20,12 @@ const BAND_RANGE: Record<AgeBand, string> = {
     older: '>75',
 };
 
+const NOTICE_KEY = {
+    prepubertal: 'age.warning.prepubertal',
+    minor: 'age.warning.minor',
+    extrapolated: 'age.warning.extrapolated',
+} as const;
+
 // The year of birth rather than an age, so the value never goes stale and each
 // dose is modelled at the age it was taken. Optional, so it can be removed.
 const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) => {
@@ -41,6 +47,9 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
     const nowH = Date.now() / 3_600_000;
     const info = valid ? ageModelInfo(year, nowH) : null;
     const notice = info ? ageNotice(info) : null;
+    const describedBy = ['age-help', info?.band ? 'age-band' : null, notice ? 'age-warning' : null]
+        .filter(Boolean)
+        .join(' ');
 
     // A form, so the keyboard's Done / Go key saves as well as the button.
     const handleSubmit = (e: React.FormEvent) => {
@@ -76,7 +85,7 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                             onChange={e => setYearStr(e.target.value)}
                             aria-label={t('age.birth_year')}
                             aria-invalid={showError}
-                            aria-describedby="age-help"
+                            aria-describedby={describedBy}
                             className="input-base text-[1.625rem] font-light tabular-nums text-[var(--text)] w-32 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             placeholder={String(thisYear - 25)}
                             style={{ fontSize: '40px' }}
@@ -105,13 +114,13 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                 </p>
 
                 {info && info.band && (
-                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    <p id="age-band" className="mt-2 text-xs text-[var(--text-muted)]">
                         {fill(t('age.band'), { range: BAND_RANGE[info.band] })}
                     </p>
                 )}
                 {notice && (
-                    <p role="status" className="mt-3 text-xs leading-relaxed text-[var(--warning)]">
-                        {t(notice === 'prepubertal' ? 'age.warning.prepubertal' : 'age.warning.minor')}
+                    <p id="age-warning" role="status" className="mt-3 text-xs leading-relaxed text-[var(--warning)]">
+                        {t(NOTICE_KEY[notice])}
                     </p>
                 )}
 

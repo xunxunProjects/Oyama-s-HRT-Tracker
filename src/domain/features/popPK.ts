@@ -54,10 +54,11 @@ export function ageModelInfo(birthYear: number | null, timeH: number): AgeModelI
     };
 }
 
-/** The age caveat to show, if any: puberty before 10, then minority under 18. */
-export function ageNotice(info: AgeModelInfo): 'prepubertal' | 'minor' | null {
+/** The age caveat to show, if any: puberty before 10, minority under 18, then 18–18.99 late-puberty extrapolation. */
+export function ageNotice(info: AgeModelInfo): 'prepubertal' | 'minor' | 'extrapolated' | null {
     if (info.band === 'prepubertal') return 'prepubertal';
     if (info.isMinor) return 'minor';
+    if (info.isExtrapolated && info.ageYears !== null && info.ageYears < 19) return 'extrapolated';
     return null;
 }
 
