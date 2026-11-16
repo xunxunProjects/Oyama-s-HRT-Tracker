@@ -5,6 +5,7 @@ import {
     Ester,
     Route,
     ageAtH,
+    ageBand,
     ageClearanceMultiplier,
     applyPKOverrides,
     computeCalibration,
@@ -38,6 +39,21 @@ describe('age at a moment', () => {
         for (const bad of [1899, 2025, 1990.5, NaN, Infinity, '1990', null, undefined]) {
             expect(isPlausibleBirthYear(bad)).toBe(false);
         }
+    });
+});
+
+describe('age bands', () => {
+    it('maps age to a band at the boundaries', () => {
+        expect(ageBand(9.99)).toBe('prepubertal');
+        expect(ageBand(10)).toBe('earlyPuberty');
+        expect(ageBand(12.99)).toBe('earlyPuberty');
+        expect(ageBand(13)).toBe('midPuberty');
+        expect(ageBand(15.99)).toBe('midPuberty');
+        expect(ageBand(16)).toBe('latePuberty');
+        expect(ageBand(18.99)).toBe('latePuberty');
+        expect(ageBand(19)).toBe('adult');
+        expect(ageBand(75)).toBe('adult');
+        expect(ageBand(75.01)).toBe('older');
     });
 });
 

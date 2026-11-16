@@ -3,7 +3,19 @@
 // -----------------------------------------------------------------------------
 // Age
 // -----------------------------------------------------------------------------
-//
+
+/** Life stage by age in years: puberty in three stages, then adult and older. */
+export type AgeBand = 'prepubertal' | 'earlyPuberty' | 'midPuberty' | 'latePuberty' | 'adult' | 'older';
+
+export function ageBand(ageYears: number): AgeBand {
+    if (ageYears < 10) return 'prepubertal';
+    if (ageYears < 13) return 'earlyPuberty';
+    if (ageYears < 16) return 'midPuberty';
+    if (ageYears < 19) return 'latePuberty';
+    if (ageYears <= 75) return 'adult';
+    return 'older';
+}
+
 // Clearance of estradiol and testosterone falls with age. With a year of birth
 // the clearance rate k3 is scaled log-linearly in age, relative to the mean age
 // of the people the defaults were fitted on: 54.2 years in Aveed's trial and
