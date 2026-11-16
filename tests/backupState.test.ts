@@ -35,6 +35,7 @@ const modeBlock = (id: string) => ({
     events: [event(id)],
     labResults: [],
     doseTemplates: [],
+    intimacy: [],
     deletions: emptyTombstones(),
 });
 

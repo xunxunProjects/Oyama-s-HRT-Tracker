@@ -1,8 +1,8 @@
 export type ModeKey = 'transfem' | 'transmasc';
 export const MODE_KEYS: readonly ModeKey[] = ['transfem', 'transmasc'];
 
-export type RecordKind = 'events' | 'labResults' | 'doseTemplates';
-export const RECORD_KINDS: readonly RecordKind[] = ['events', 'labResults', 'doseTemplates'];
+export type RecordKind = 'events' | 'labResults' | 'doseTemplates' | 'intimacy';
+export const RECORD_KINDS: readonly RecordKind[] = ['events', 'labResults', 'doseTemplates', 'intimacy'];
 
 /** id -> epoch ms the record was deleted. */
 export type TombstoneMap = Record<string, number>;
@@ -12,6 +12,8 @@ export interface ModeBlock {
     events: any[];
     labResults: any[];
     doseTemplates: any[];
+    /** Sexual activity records (beta). Synced and backed up like the others, never shared. */
+    intimacy: any[];
     deletions: Tombstones;
     /** The medication plan. `undefined` = the payload said nothing about it. */
     plan?: any[];
@@ -77,11 +79,11 @@ export const hasOwn = (record: object, key: string): boolean => Object.prototype
 export const nullMap = <T>(): Record<string, T> => Object.create(null) as Record<string, T>;
 
 export function emptyTombstones(): Tombstones {
-    return { events: nullMap(), labResults: nullMap(), doseTemplates: nullMap() };
+    return { events: nullMap(), labResults: nullMap(), doseTemplates: nullMap(), intimacy: nullMap() };
 }
 
 function emptyModeBlock(): ModeBlock {
-    return { events: [], labResults: [], doseTemplates: [], deletions: emptyTombstones() };
+    return { events: [], labResults: [], doseTemplates: [], intimacy: [], deletions: emptyTombstones() };
 }
 
 export function emptySyncState(): SyncState {

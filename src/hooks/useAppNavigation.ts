@@ -53,6 +53,7 @@ export type ViewKey =
     | 'settings-simulator'
     | 'forecast'
     | 'supplies'
+    | 'intimacy'
     | 'plan';
 
 /**
@@ -84,6 +85,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-simulator': 'settings',
     'pk-params': 'settings',
     supplies: 'settings',
+    intimacy: 'settings',
     sessions: 'account',
     'hrt-security': 'account',
     f2f: 'account',
@@ -133,6 +135,7 @@ const VIEW_ORDER: ViewKey[] = [
     'edit-avatar',
     'pk-params',
     'supplies',
+    'intimacy',
     'settings-hrt-mode',
     'settings-language',
     'settings-appearance',

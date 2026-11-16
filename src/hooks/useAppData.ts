@@ -44,6 +44,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { RecordKind, SyncState, Tombstones } from '../utils/syncMerge';
+import { IntimacyRecord, sanitizeImportedIntimacy } from '../utils/intimacy';
 
 /** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
 const LOCAL_OWNER = 'local';
@@ -56,6 +57,7 @@ const MODE_SUFFIXES = [
     'plan',
     'plan-at',
     'supplies',
+    'intimacy',
     'deletions',
 ] as const;
 const SHARED_SUFFIXES = [
@@ -253,6 +255,16 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             .map(normalizeSupply)
             .filter((x): x is Supply => x !== null);
     const [supplies, setSupplies] = useState<Supply[]>(() => loadSupplies(mode));
+    // Sexual activity records (beta). Kept and synced like lab results, so
+    // switching the beta off hides them without losing them.
+    const loadIntimacy = (m: 'transfem' | 'transmasc'): IntimacyRecord[] => {
+        try {
+            return sanitizeImportedIntimacy(loadJSON<unknown>(keyFor(m, 'intimacy'), []));
+        } catch {
+            return [];
+        }
+    };
+    const [intimacy, setIntimacy] = useState<IntimacyRecord[]>(() => loadIntimacy(mode));
     const [pkParams, setPkParamsState] = useState<PKCustomParams | null>(() => {
         const saved = localStorage.getItem(sharedKey('pk-params'));
         if (!saved) return null;
@@ -312,6 +324,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setDoseTemplates(loadJSON(keyFor(mode, 'dose-templates'), [] as DoseTemplate[]));
         setQuickDoses(loadJSON(keyFor(mode, 'quick-doses'), [] as QuickDose[]));
         setSupplies(loadSupplies(mode));
+        setIntimacy(loadIntimacy(mode));
         setPlan(loadPlan(mode));
         // Mode-independent, but still per-account, so they reload on the same beat.
         const savedWeight = localStorage.getItem(sharedKey('weight'));
@@ -350,7 +363,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         loadedScopeRef.current = scope;
         setReadyScope(prev => (prev === scope ? prev : scope));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, quickDoses, supplies, plan]);
+    }, [events, labResults, doseTemplates, quickDoses, supplies, plan, intimacy]);
 
     useEffect(() => {
         if (loadedScopeRef.current !== scope) return;
@@ -394,6 +407,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'supplies'), JSON.stringify(supplies));
     }, [supplies, scope]);
+    useEffect(() => {
+        if (loadedScopeRef.current !== scope) return;
+        localStorage.setItem(keyFor(mode, 'intimacy'), JSON.stringify(intimacy));
+    }, [intimacy, scope]);
     useEffect(() => {
         if (loadedScopeRef.current !== scope) return;
         localStorage.setItem(keyFor(mode, 'plan'), JSON.stringify(plan));
@@ -680,6 +697,18 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         );
     };
 
+    const saveIntimacy = (record: IntimacyRecord) => {
+        const next = stamp(record);
+        if (!intimacy.some(r => r.id === record.id)) forgetDeletions('intimacy', [record.id]);
+        setIntimacy(prev =>
+            prev.some(r => r.id === record.id) ? prev.map(r => (r.id === record.id ? next : r)) : [...prev, next],
+        );
+    };
+    const deleteIntimacy = (id: string) => {
+        recordDeletions('intimacy', [id]);
+        setIntimacy(prev => prev.filter(r => r.id !== id));
+    };
+
     const addTemplate = (template: DoseTemplate) => {
         forgetDeletions('doseTemplates', [template.id]);
         setDoseTemplates(prev => [...prev, stamp(template)]);
@@ -730,7 +759,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
      */
     const processImportedData = (parsed: any, { check = false }: { check?: boolean } = {}): boolean => {
         try {
-            const active: ImportActiveRecords = { events, labResults, doseTemplates, weight, birthYear };
+            const active: ImportActiveRecords = { events, labResults, doseTemplates, intimacy, weight, birthYear };
             const result = processImportedDataToStorage(
                 parsed,
                 { storage: localStorage, owner, mode, active },
@@ -740,6 +769,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             if (result.events !== undefined) setEvents(result.events);
             if (result.labResults !== undefined) setLabResults(result.labResults);
             if (result.doseTemplates !== undefined) setDoseTemplates(result.doseTemplates);
+            if (result.intimacy !== undefined) setIntimacy(result.intimacy);
             if (result.weight !== undefined) setWeight(result.weight);
             if (result.birthYear !== undefined) setBirthYear(result.birthYear);
             if (result.pkParams !== undefined) setPkParams(result.pkParams);
@@ -756,7 +786,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
 
     const mergeImportedData = (parsed: any): boolean => {
         try {
-            const active: ImportActiveRecords = { events, labResults, doseTemplates, weight, birthYear };
+            const active: ImportActiveRecords = { events, labResults, doseTemplates, intimacy, weight, birthYear };
             const result = mergeImportedDataToStorage(parsed, { storage: localStorage, owner, mode, active });
 
             // Append only the new ids, using the same functional setters as
@@ -767,6 +797,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             if (result.birthYear !== undefined) setBirthYear(result.birthYear);
             if (result.labResults.length > 0) setLabResults(prev => [...prev, ...result.labResults]);
             if (result.doseTemplates.length > 0) setDoseTemplates(prev => [...prev, ...result.doseTemplates]);
+            if (result.intimacy.length > 0) setIntimacy(prev => [...prev, ...result.intimacy]);
 
             showDialog('alert', (t('account.merge_success') as string).replace('{n}', String(result.mergedCount)));
             return true;
@@ -782,6 +813,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             events,
             labResults,
             doseTemplates,
+            intimacy,
             weight,
             birthYear,
             pkParams,
@@ -795,6 +827,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         quickDoses,
         supplies,
         plan,
+        intimacy,
         weight,
         pkParams,
         calibrationMethod,
@@ -836,6 +869,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         if (active?.doseTemplates !== undefined) setDoseTemplates(active.doseTemplates);
         if (active?.quickDoses !== undefined) setQuickDoses(active.quickDoses);
         if (active?.supplies !== undefined) setSupplies(active.supplies);
+        if (active?.intimacy !== undefined) setIntimacy(active.intimacy);
         if (active?.plan !== undefined) {
             touchPlan();
             setPlan(active.plan);
@@ -868,6 +902,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         if (active?.doseTemplates !== undefined) setDoseTemplates(active.doseTemplates);
         if (active?.quickDoses !== undefined) setQuickDoses(active.quickDoses);
         if (active?.supplies !== undefined) setSupplies(active.supplies);
+        if (active?.intimacy !== undefined) setIntimacy(active.intimacy);
         if (active?.plan !== undefined) {
             touchPlan();
             setPlan(active.plan);
@@ -898,6 +933,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setEvents(applied.active.events);
         setLabResults(applied.active.labResults);
         setDoseTemplates(applied.active.doseTemplates);
+        setIntimacy(applied.active.intimacy);
         if (applied.active.plan !== undefined) setPlan(applied.active.plan);
         if (applied.weight !== undefined) setWeightState(applied.weight);
         if (applied.birthYear !== undefined) setBirthYearState(applied.birthYear);
@@ -966,6 +1002,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         supplies,
         saveSupply,
         deleteSupply,
+        intimacy,
+        saveIntimacy,
+        deleteIntimacy,
         processImportedData,
         mergeImportedData,
         buildExportPayload,

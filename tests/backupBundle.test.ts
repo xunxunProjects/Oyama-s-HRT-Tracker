@@ -198,6 +198,7 @@ const activeFrom = (storage: MemoryStorage, mode: ModeKey): CompleteBackupActive
         quickDoses: read('quick-doses'),
         supplies: read('supplies'),
         plan: read('plan'),
+        intimacy: read('intimacy'),
         weight: Number(storage.getItem('hrt-weight') ?? '70'),
         pkParams: JSON.parse(storage.getItem('hrt-pk-params') ?? 'null') as PKCustomParams | null,
         calibrationMethod: (storage.getItem('hrt-cal-method') as 'ekf') ?? 'mipd',
@@ -610,6 +611,7 @@ describe('complete backup bundle data layer', () => {
             },
             labResults: {},
             doseTemplates: {},
+            intimacy: {},
         };
 
         const preview = inspectCompleteBackupBundle(bundle, context(new MemoryStorage()));
@@ -629,7 +631,7 @@ describe('complete backup bundle data layer', () => {
         const capped = build(seed());
         const many: Record<string, number> = {};
         for (let i = 0; i <= TOMBSTONE_MAX_PER_KIND; i++) many[`t${i}`] = NOW - 1 - i;
-        capped.modes.transfem.deletions = { events: many, labResults: {}, doseTemplates: {} };
+        capped.modes.transfem.deletions = { events: many, labResults: {}, doseTemplates: {}, intimacy: {} };
         const cappedPreview = inspectCompleteBackupBundle(capped, context(new MemoryStorage()));
         expect(cappedPreview.issues.join(' ')).toContain(`${TOMBSTONE_MAX_PER_KIND}-per-kind cap`);
         const cappedImpact = cappedPreview.deletionImpact.find(
@@ -655,13 +657,17 @@ describe('complete backup bundle data layer', () => {
             events: { newer: NOW - 1_000, older: NOW - 1_000 },
             labResults: {},
             doseTemplates: {},
+            intimacy: {},
         };
         const local = new MemoryStorage();
         local.setItem(
             key('transfem', 'events'),
             JSON.stringify([event('newer', { updatedAt: NOW - 500 }), event('older', { updatedAt: NOW - 2_000 })]),
         );
-        local.setItem(key('transfem', 'deletions'), JSON.stringify({ events: {}, labResults: {}, doseTemplates: {} }));
+        local.setItem(
+            key('transfem', 'deletions'),
+            JSON.stringify({ events: {}, labResults: {}, doseTemplates: {}, intimacy: {} }),
+        );
 
         const preview = inspectCompleteBackupBundle(bundle, context(local));
         expect(preview.conflicts.join(' ')).toContain('local record newer is newer than the incoming tombstone');
@@ -689,7 +695,12 @@ describe('complete backup bundle data layer', () => {
         local.setItem(key('transfem', 'events'), JSON.stringify([]));
         local.setItem(
             key('transfem', 'deletions'),
-            JSON.stringify({ events: { old: NOW - 1_000, revived: NOW - 1_000 }, labResults: {}, doseTemplates: {} }),
+            JSON.stringify({
+                events: { old: NOW - 1_000, revived: NOW - 1_000 },
+                labResults: {},
+                doseTemplates: {},
+                intimacy: {},
+            }),
         );
 
         const bundle = build(seed());
@@ -699,7 +710,7 @@ describe('complete backup bundle data layer', () => {
         ];
         bundle.modes.transfem.labResults = [];
         bundle.modes.transfem.doseTemplates = [];
-        bundle.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {} };
+        bundle.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} };
 
         const preview = inspectCompleteBackupBundle(bundle, context(local));
         expect(preview.conflicts.join(' ')).toContain('hidden by a local deletion');
@@ -897,14 +908,14 @@ describe('complete backup bundle data layer', () => {
         local.setItem(key('transfem', 'events'), JSON.stringify([]));
         local.setItem(
             key('transfem', 'deletions'),
-            JSON.stringify({ events: { revived: tombstoneAt }, labResults: {}, doseTemplates: {} }),
+            JSON.stringify({ events: { revived: tombstoneAt }, labResults: {}, doseTemplates: {}, intimacy: {} }),
         );
 
         const bundle = build(seed());
         bundle.modes.transfem.events = [event('revived', { updatedAt: tombstoneAt - 1_000 })];
         bundle.modes.transfem.labResults = [];
         bundle.modes.transfem.doseTemplates = [];
-        bundle.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {} };
+        bundle.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} };
 
         const preview = inspectCompleteBackupBundle(bundle, context(local));
         expect(preview.blocked).not.toContain('transfem.events');
@@ -941,7 +952,7 @@ describe('complete backup bundle data layer', () => {
         omittedLocal.setItem(key('transfem', 'events'), JSON.stringify([]));
         omittedLocal.setItem(
             key('transfem', 'deletions'),
-            JSON.stringify({ events: { revived: tombstoneAt }, labResults: {}, doseTemplates: {} }),
+            JSON.stringify({ events: { revived: tombstoneAt }, labResults: {}, doseTemplates: {}, intimacy: {} }),
         );
         const omitted = build(seed());
         omitted.modes.transfem.events = [event('revived', { updatedAt: tombstoneAt - 1_000 })];
@@ -981,6 +992,7 @@ describe('complete backup bundle data layer', () => {
                 events: { [id]: NOW - 1_000 },
                 labResults: {},
                 doseTemplates: {},
+                intimacy: {},
             };
             const tombstonePreview = inspectCompleteBackupBundle(inheritedTombstone, context(new MemoryStorage()));
             expect(tombstonePreview.blocked).toContain('transfem.deletions');
@@ -992,6 +1004,7 @@ describe('complete backup bundle data layer', () => {
             events: { constructor: NOW - 1_000 },
             labResults: {},
             doseTemplates: {},
+            intimacy: {},
         };
         const tombstonePreview = inspectCompleteBackupBundle(protoTombstone, context(new MemoryStorage()));
         expect(tombstonePreview.blocked).toContain('transfem.deletions');
@@ -1002,13 +1015,13 @@ describe('complete backup bundle data layer', () => {
         local.setItem(key('transfem', 'events'), JSON.stringify([]));
         local.setItem(
             key('transfem', 'deletions'),
-            JSON.stringify({ events: { constructor: NOW - 1_000 }, labResults: {}, doseTemplates: {} }),
+            JSON.stringify({ events: { constructor: NOW - 1_000 }, labResults: {}, doseTemplates: {}, intimacy: {} }),
         );
         const inherited = build(seed());
         inherited.modes.transfem.events = [event('ordinary', { updatedAt: NOW - 2_000 })];
         inherited.modes.transfem.labResults = [];
         inherited.modes.transfem.doseTemplates = [];
-        inherited.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {} };
+        inherited.modes.transfem.deletions = { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} };
         const inheritedPreview = inspectCompleteBackupBundle(inherited, context(local));
         expect(inheritedPreview.conflicts.join(' ')).not.toContain('hidden by a local deletion');
         mergeCompleteBackupBundleToStorage(inherited, context(local));
@@ -1023,7 +1036,7 @@ describe('complete backup bundle data layer', () => {
                     events: [event('toString'), event('valueOf')],
                     labResults: [],
                     doseTemplates: [],
-                    deletions: { events: {}, labResults: {}, doseTemplates: {} },
+                    deletions: { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} },
                 },
             },
         });
@@ -1039,7 +1052,7 @@ describe('complete backup bundle data layer', () => {
                     doseTemplates: [],
                     // Only valueOf is an explicit deletion; toString must not
                     // inherit Object.prototype.toString as a tombstone value.
-                    deletions: { events: { valueOf: NOW - 1_000 }, labResults: {}, doseTemplates: {} },
+                    deletions: { events: { valueOf: NOW - 1_000 }, labResults: {}, doseTemplates: {}, intimacy: {} },
                 },
             },
         });
@@ -1177,7 +1190,12 @@ describe('complete backup bundle data layer', () => {
         );
         storage.setItem(
             key('transfem', 'deletions'),
-            JSON.stringify({ events: { live: NOW - 1_000, future: future }, labResults: {}, doseTemplates: {} }),
+            JSON.stringify({
+                events: { live: NOW - 1_000, future: future },
+                labResults: {},
+                doseTemplates: {},
+                intimacy: {},
+            }),
         );
         storage.setItem('hrt-weight-at', String(future));
         storage.setItem('hrt-pk-params-at', String(future));
@@ -1198,7 +1216,7 @@ describe('complete backup bundle data layer', () => {
     });
 
     it('reports nothing applied when every category is blocked', () => {
-        const emptyDeletions = { events: {}, labResults: {}, doseTemplates: {} };
+        const emptyDeletions = { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} };
         const blockedBundle = {
             format: COMPLETE_BACKUP_FORMAT,
             formatVersion: COMPLETE_BACKUP_FORMAT_VERSION,
@@ -1246,7 +1264,7 @@ describe('complete backup bundle data layer', () => {
 
     it('reports an id present as both a record and a tombstone in one bundle', () => {
         const bundle = build(seed());
-        const emptyDeletions = { events: {}, labResults: {}, doseTemplates: {} };
+        const emptyDeletions = { events: {}, labResults: {}, doseTemplates: {}, intimacy: {} };
         bundle.modes.transfem.events = [event('both', { updatedAt: NOW - 2_000 })];
         bundle.modes.transfem.labResults = [];
         bundle.modes.transfem.doseTemplates = [];

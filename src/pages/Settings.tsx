@@ -58,6 +58,10 @@ interface SettingsProps {
     onNavigateToAdmin: () => void;
     onNavigateToSupplies: () => void;
     supplyCount: number;
+    intimacyBeta: boolean;
+    setIntimacyBeta: (v: boolean) => void;
+    intimacyCount: number;
+    onNavigateToIntimacy: () => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -192,6 +196,10 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToAdmin,
     onNavigateToSupplies,
     supplyCount,
+    intimacyBeta,
+    setIntimacyBeta,
+    intimacyCount,
+    onNavigateToIntimacy,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -329,6 +337,25 @@ const Settings: React.FC<SettingsProps> = ({
                     value={supplyCount > 0 ? fill(t('supplies.count'), { n: supplyCount }) : undefined}
                     onClick={() => navTo(onNavigateToSupplies, 'general')}
                 />
+            </div>
+
+            {/* Features still being tried out. Sexual activity records stay
+                out of sight entirely until switched on here. */}
+            <SectionHeading title={t('settings.section.beta')} />
+            <div className={section}>
+                <SwitchRow
+                    label={t('intimacy.beta')}
+                    desc={t('intimacy.beta_desc')}
+                    checked={intimacyBeta}
+                    onChange={setIntimacyBeta}
+                />
+                {intimacyBeta && (
+                    <NavRow
+                        label={t('intimacy.open')}
+                        value={intimacyCount > 0 ? fill(t('intimacy.count'), { n: intimacyCount }) : undefined}
+                        onClick={() => navTo(onNavigateToIntimacy, 'general')}
+                    />
+                )}
             </div>
 
             {/* How the app looks and speaks. */}

@@ -33,11 +33,14 @@ import {
     writeTombstonesToStorage,
 } from './backupState';
 import { MODE_KEYS, ModeKey, RecordKind } from './syncMerge';
+import { IntimacyRecord, sanitizeImportedIntimacy } from './intimacy';
 
 export interface ImportActiveRecords {
     events: DoseEvent[];
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
+    /** Sexual activity records (beta); absent counts as none. */
+    intimacy?: IntimacyRecord[];
     weight: number;
     birthYear: number | null;
 }
@@ -54,6 +57,7 @@ export interface ProcessImportedDataResult {
     events?: DoseEvent[];
     labResults?: LabResult[];
     doseTemplates?: DoseTemplate[];
+    intimacy?: IntimacyRecord[];
     weight?: number;
     birthYear?: number;
     pkParams?: PKCustomParams;
@@ -64,6 +68,7 @@ export interface MergeImportedDataResult {
     events: DoseEvent[];
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
+    intimacy: IntimacyRecord[];
     weight?: number;
     birthYear?: number;
     mergedCount: number;
@@ -190,12 +195,13 @@ export function processImportedDataToStorage(
     let newBirthYear: number | undefined = undefined;
     let newLabs: LabResult[] = [];
     let newTemplates: DoseTemplate[] = [];
+    let newIntimacy: IntimacyRecord[] = [];
     let newPkParams: PKCustomParams | undefined = undefined;
     let importedOtherMode = false;
     // Which kinds the payload actually speaks about, tracked one by one. A
     // present-but-empty array still means "none"; only an absent key is
     // silence.
-    const replaced = { events: false, labResults: false, doseTemplates: false };
+    const replaced = { events: false, labResults: false, doseTemplates: false, intimacy: false };
 
     // New multi-mode payload: { modes: { transfem: {...}, transmasc: {...} } }
     if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
@@ -206,7 +212,12 @@ export function processImportedDataToStorage(
             const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
             const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
             const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+            const ints = Array.isArray(block.intimacy) ? sanitizeImportedIntimacy(block.intimacy) : [];
             if (m === mode) {
+                if (Array.isArray(block.intimacy)) {
+                    newIntimacy = ints;
+                    replaced.intimacy = true;
+                }
                 if (Array.isArray(block.events)) {
                     newEvents = evs;
                     replaced.events = true;
@@ -263,6 +274,21 @@ export function processImportedDataToStorage(
                             clock(),
                         );
                         storage.setItem(modeKeyFor(owner, m, 'dose-templates'), JSON.stringify(tmps));
+                    });
+                    importedOtherMode = true;
+                }
+                if (Array.isArray(block.intimacy)) {
+                    otherModeWrites.push(() => {
+                        reconcileReplacementInStorage(
+                            storage,
+                            owner,
+                            m,
+                            'intimacy',
+                            readRecords<IntimacyRecord>(storage, owner, m, 'intimacy'),
+                            ints,
+                            clock(),
+                        );
+                        storage.setItem(modeKeyFor(owner, m, 'intimacy'), JSON.stringify(ints));
                     });
                     importedOtherMode = true;
                 }
@@ -358,6 +384,7 @@ export function processImportedDataToStorage(
         newBirthYear === undefined &&
         !newLabs.length &&
         !newTemplates.length &&
+        !newIntimacy.length &&
         !newPkParams
     )
         throw new Error('No valid entries');
@@ -389,6 +416,10 @@ export function processImportedDataToStorage(
         );
         result.doseTemplates = newTemplates;
     }
+    if (replaced.intimacy) {
+        reconcileReplacementInStorage(storage, owner, mode, 'intimacy', active.intimacy ?? [], newIntimacy, clock());
+        result.intimacy = newIntimacy;
+    }
     if (newWeight !== undefined) result.weight = newWeight;
     if (newBirthYear !== undefined) result.birthYear = newBirthYear;
     if (newPkParams !== undefined) result.pkParams = newPkParams;
@@ -414,6 +445,7 @@ export function mergeImportedDataToStorage(
     let incomingBirthYear: number | undefined = undefined;
     let incomingLabs: LabResult[] = [];
     let incomingTemplates: DoseTemplate[] = [];
+    let incomingIntimacy: IntimacyRecord[] = [];
     let mergedOther = 0;
 
     if (parsed && typeof parsed === 'object' && parsed.modes && typeof parsed.modes === 'object') {
@@ -424,11 +456,16 @@ export function mergeImportedDataToStorage(
             const evs = Array.isArray(block.events) ? sanitizeImportedEvents(block.events) : [];
             const ls = Array.isArray(block.labResults) ? sanitizeImportedLabResults(block.labResults) : [];
             const tmps = Array.isArray(block.doseTemplates) ? sanitizeImportedTemplates(block.doseTemplates) : [];
+            const ints = Array.isArray(block.intimacy) ? sanitizeImportedIntimacy(block.intimacy) : [];
             if (m === mode) {
                 incomingEvents = evs;
                 incomingLabs = ls;
                 incomingTemplates = tmps;
+                incomingIntimacy = ints;
             } else {
+                if (ints.length) {
+                    mergedOther += appendOtherModeRecords(storage, owner, m, 'intimacy', 'intimacy', ints, clock());
+                }
                 // Merge into the other mode's storage directly. The historical
                 // order was: compute all three id sets, clear all three kinds'
                 // tombstones, then write the kinds that gained records.
@@ -532,7 +569,8 @@ export function mergeImportedDataToStorage(
         !incomingWeight &&
         incomingBirthYear === undefined &&
         !incomingLabs.length &&
-        !incomingTemplates.length
+        !incomingTemplates.length &&
+        !incomingIntimacy.length
     )
         throw new Error('No valid entries');
 
@@ -540,6 +578,7 @@ export function mergeImportedDataToStorage(
         events: [],
         labResults: [],
         doseTemplates: [],
+        intimacy: [],
         mergedCount: mergedOther,
     };
 
@@ -592,6 +631,21 @@ export function mergeImportedDataToStorage(
             clock(),
         );
         result.doseTemplates = newOnes;
+    }
+
+    if (incomingIntimacy.length > 0) {
+        const existingIds = new Set((active.intimacy ?? []).map(r => r.id));
+        const newOnes = incomingIntimacy.filter(r => !existingIds.has(r.id));
+        result.mergedCount += newOnes.length;
+        forgetTombstones(
+            storage,
+            owner,
+            mode,
+            'intimacy',
+            incomingIntimacy.map(r => r.id),
+            clock(),
+        );
+        result.intimacy = newOnes;
     }
 
     return result;

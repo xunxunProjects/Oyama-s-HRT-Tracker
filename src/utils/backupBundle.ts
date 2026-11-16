@@ -44,6 +44,7 @@ import type { Lang } from '../i18n/translations';
 import { legacyCpaItem, normalizePlanItem, type PlanItem } from './plan';
 import { normalizeSupply, type Pack, type Supply } from './regimen';
 import { cleanDoseMG } from './cleanDose';
+import { isIntimacyKind, normalizeIntimacyRecord, type IntimacyRecord } from './intimacy';
 import {
     MAX_IMPORT_ENTRIES,
     loadJSONFromStorage,
@@ -105,6 +106,7 @@ export interface CompleteBackupMode {
     quickDoses?: QuickDose[];
     supplies?: Supply[];
     plan?: PlanItem[];
+    intimacy?: IntimacyRecord[];
 }
 
 export interface CompleteBackupCalibration {
@@ -136,6 +138,7 @@ export interface CompleteBackupActive {
     quickDoses: QuickDose[];
     supplies: Supply[];
     plan: PlanItem[];
+    intimacy: IntimacyRecord[];
     weight: number;
     pkParams: PKCustomParams | null;
     calibrationMethod: CalibrationMethod;
@@ -159,6 +162,7 @@ export interface BundleCounts {
     quickDoses: number;
     supplies: number;
     plan: number;
+    intimacy: number;
 }
 
 export type ScalarPreviewAction = 'added' | 'updated' | 'skipped' | 'unchanged' | 'conflict' | 'blocked';
@@ -284,7 +288,15 @@ interface Validation<T> {
     error?: string;
 }
 
-const ARRAY_CATEGORIES = ['events', 'labResults', 'doseTemplates', 'quickDoses', 'supplies', 'plan'] as const;
+const ARRAY_CATEGORIES = [
+    'events',
+    'labResults',
+    'doseTemplates',
+    'quickDoses',
+    'supplies',
+    'plan',
+    'intimacy',
+] as const;
 type ArrayCategory = (typeof ARRAY_CATEGORIES)[number];
 
 const CATEGORY_SUFFIX: Record<ArrayCategory, string> = {
@@ -294,14 +306,19 @@ const CATEGORY_SUFFIX: Record<ArrayCategory, string> = {
     quickDoses: 'quick-doses',
     supplies: 'supplies',
     plan: 'plan',
+    intimacy: 'intimacy',
 };
 
-const STAMPED_CATEGORIES: ReadonlySet<ArrayCategory> = new Set(['events', 'labResults', 'doseTemplates']);
+const STAMPED_CATEGORIES: ReadonlySet<ArrayCategory> = new Set(['events', 'labResults', 'doseTemplates', 'intimacy']);
+
+/** Added after the format was set: a file without it is not missing anything. */
+const OPTIONAL_CATEGORIES: ReadonlySet<ArrayCategory> = new Set(['intimacy']);
 
 const KIND_CATEGORY: Record<RecordKind, ArrayCategory> = {
     events: 'events',
     labResults: 'labResults',
     doseTemplates: 'doseTemplates',
+    intimacy: 'intimacy',
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -453,6 +470,21 @@ const validateLabResult = (raw: unknown, path: string, now?: number): Validation
     return { value };
 };
 
+const validateIntimacy = (raw: unknown, path: string, now?: number): Validation<IntimacyRecord> => {
+    if (!isObject(raw)) return { error: `${path}: record must be an object` };
+    if (!isRecordId(raw.id)) return { error: `${path}: id must be a non-empty string and not a prototype name` };
+    if (!isFiniteNumber(raw.timeH) || raw.timeH < EVENT_TIME_H_MIN || raw.timeH > EVENT_TIME_H_MAX)
+        return { error: `${path}: timeH is outside the accepted range` };
+    if (!isIntimacyKind(raw.kind)) return { error: `${path}: unknown kind` };
+    const stamp = readStamp(raw.updatedAt, now);
+    if (stamp.error) return { error: `${path}: ${stamp.error}` };
+    const value = normalizeIntimacyRecord(raw);
+    if (!value) return { error: `${path}: invalid record` };
+    if (stamp.value !== undefined) value.updatedAt = stamp.value;
+    else delete value.updatedAt;
+    return { value };
+};
+
 const validateTemplate = (raw: unknown, path: string, now?: number): Validation<DoseTemplate> => {
     if (!isObject(raw)) return { error: `${path}: record must be an object` };
     if (!isRecordId(raw.id)) return { error: `${path}: id must be a non-empty string and not a prototype name` };
@@ -586,6 +618,7 @@ const VALIDATORS: Record<ArrayCategory, (raw: unknown, path: string, now?: numbe
     quickDoses: validateQuickDose,
     supplies: validateSupply,
     plan: validatePlan,
+    intimacy: validateIntimacy,
 };
 
 const validateArray = <T>(
@@ -686,6 +719,7 @@ const validateTombstones = (
                 events: { future: [], expired: [], overCap: [] },
                 labResults: { future: [], expired: [], overCap: [] },
                 doseTemplates: { future: [], expired: [], overCap: [] },
+                intimacy: { future: [], expired: [], overCap: [] },
             },
             notes: [],
         };
@@ -698,6 +732,7 @@ const validateTombstones = (
                 events: { future: [], expired: [], overCap: [] },
                 labResults: { future: [], expired: [], overCap: [] },
                 doseTemplates: { future: [], expired: [], overCap: [] },
+                intimacy: { future: [], expired: [], overCap: [] },
             },
             notes: [],
         };
@@ -705,11 +740,22 @@ const validateTombstones = (
     const events = validateTombstoneMap(raw.events, `${path}.events`, now);
     const labResults = validateTombstoneMap(raw.labResults, `${path}.labResults`, now);
     const doseTemplates = validateTombstoneMap(raw.doseTemplates, `${path}.doseTemplates`, now);
+    const intimacy = validateTombstoneMap(raw.intimacy, `${path}.intimacy`, now);
     return {
-        value: { events: events.value, labResults: labResults.value, doseTemplates: doseTemplates.value },
-        errors: [...events.errors, ...labResults.errors, ...doseTemplates.errors],
-        drops: { events: events.drops, labResults: labResults.drops, doseTemplates: doseTemplates.drops },
-        notes: [...events.notes, ...labResults.notes, ...doseTemplates.notes],
+        value: {
+            events: events.value,
+            labResults: labResults.value,
+            doseTemplates: doseTemplates.value,
+            intimacy: intimacy.value,
+        },
+        errors: [...events.errors, ...labResults.errors, ...doseTemplates.errors, ...intimacy.errors],
+        drops: {
+            events: events.drops,
+            labResults: labResults.drops,
+            doseTemplates: doseTemplates.drops,
+            intimacy: intimacy.drops,
+        },
+        notes: [...events.notes, ...labResults.notes, ...doseTemplates.notes, ...intimacy.notes],
     };
 };
 
@@ -732,6 +778,7 @@ const readLocalTombstones = (storage: StorageLike, owner: string, mode: ModeKey)
         events: clean(raw.events),
         labResults: clean(raw.labResults),
         doseTemplates: clean(raw.doseTemplates),
+        intimacy: clean(raw.intimacy),
     };
 };
 
@@ -937,6 +984,7 @@ const cleanExportTombstones = (raw: Tombstones, path: string, now: number, issue
     events: cleanExportTombstoneMap(raw.events, `${path}.events`, now, issues),
     labResults: cleanExportTombstoneMap(raw.labResults, `${path}.labResults`, now, issues),
     doseTemplates: cleanExportTombstoneMap(raw.doseTemplates, `${path}.doseTemplates`, now, issues),
+    intimacy: cleanExportTombstoneMap(raw.intimacy, `${path}.intimacy`, now, issues),
 });
 
 const readBoundedStampString = (
@@ -995,6 +1043,7 @@ export function buildCompleteBackupBundleReportFromStorage(
         quickDoses: active.quickDoses,
         supplies: active.supplies,
         plan: active.plan,
+        intimacy: active.intimacy,
     };
     const envelopeIssues: string[] = [];
     if (!isIsoDate(createdAt)) envelopeIssues.push('createdAt must be an ISO date string');
@@ -1181,7 +1230,7 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
         for (const category of ARRAY_CATEGORIES) {
             const path = `${mode}.${category}`;
             if (blockRaw[category] === undefined) {
-                missing.push(path);
+                if (!OPTIONAL_CATEGORIES.has(category)) missing.push(path);
                 continue;
             }
             categoryCounts[path] = Array.isArray(blockRaw[category]) ? blockRaw[category].length : 0;
@@ -1196,7 +1245,7 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
             missing.push(`${mode}.deletions`);
         } else {
             if (isObject(blockRaw.deletions)) {
-                const total = ['events', 'labResults', 'doseTemplates'].reduce((sum, kind) => {
+                const total = RECORD_KINDS.reduce((sum, kind) => {
                     const map = blockRaw.deletions[kind];
                     const count = isObject(map) ? Object.keys(map).length : 0;
                     categoryCounts[`${mode}.deletions.${kind}`] = count;
@@ -1205,7 +1254,7 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
                 categoryCounts[`${mode}.deletions`] = total;
             }
             const tombstones = validateTombstones(blockRaw.deletions, `${mode}.deletions`, now);
-            for (const kind of ['events', 'labResults', 'doseTemplates'] as const) {
+            for (const kind of RECORD_KINDS) {
                 tombstoneDrops[`${mode}.deletions.${kind}`] = tombstones.drops[kind];
             }
             tombstoneNotes.push(...tombstones.notes);
@@ -1311,10 +1360,11 @@ const zeroCounts = (): BundleCounts => ({
     quickDoses: 0,
     supplies: 0,
     plan: 0,
+    intimacy: 0,
 });
 
 const countTombstones = (t: Tombstones): number =>
-    Object.keys(t.events).length + Object.keys(t.labResults).length + Object.keys(t.doseTemplates).length;
+    RECORD_KINDS.reduce((sum, kind) => sum + Object.keys(t[kind]).length, 0);
 
 const localArrayFor = (context: CompleteBackupContext, mode: ModeKey, category: ArrayCategory): unknown[] => {
     if (mode === context.mode) return context.active[category];
@@ -2162,7 +2212,8 @@ const replacementTombstones = (
                 if (!hasOwn(map, id) || at > map[id]) map[id] = at;
             }
         }
-        for (const id of heldIds(context, mode, category)) map[id] = now;
+        const silent = block[category] === undefined && OPTIONAL_CATEGORIES.has(category);
+        if (!silent) for (const id of heldIds(context, mode, category)) map[id] = now;
         for (const record of block[category] ?? []) delete map[record.id];
         out[kind] = pruneTombstoneMap(map, now);
     }
@@ -2220,7 +2271,7 @@ export function replaceCompleteBackupBundleToStorage(
         for (const category of ARRAY_CATEGORIES) {
             const records = block[category];
             if (records === undefined) {
-                errors.push(`${mode}.${category} is required for replace`);
+                if (!OPTIONAL_CATEGORIES.has(category)) errors.push(`${mode}.${category} is required for replace`);
                 continue;
             }
             const seen = new Set<string>();
@@ -2252,6 +2303,9 @@ export function replaceCompleteBackupBundleToStorage(
         const block = parsed.modes[mode]!;
         const modeResult: CompleteBackupMode = {};
         for (const category of ARRAY_CATEGORIES) {
+            // A file from before a category existed says nothing about it,
+            // so what this device holds there stays as it is.
+            if (block[category] === undefined && OPTIONAL_CATEGORIES.has(category)) continue;
             const records = block[category] ?? [];
             writes.push({
                 key: modeKeyFor(context.owner, mode, CATEGORY_SUFFIX[category]),

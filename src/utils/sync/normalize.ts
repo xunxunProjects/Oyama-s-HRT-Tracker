@@ -32,6 +32,7 @@ export function normalizeSyncState(payload: unknown): SyncState {
             state.modes[mk].events = asArray(m.events);
             state.modes[mk].labResults = asArray(m.labResults);
             state.modes[mk].doseTemplates = asArray(m.doseTemplates);
+            state.modes[mk].intimacy = asArray(m.intimacy);
             state.modes[mk].deletions = sanitizeTombstones(m.deletions);
             if (m.plan !== undefined) state.modes[mk].plan = asArray(m.plan);
             if (typeof m.planUpdatedAt === 'number') state.modes[mk].planUpdatedAt = m.planUpdatedAt;

@@ -35,6 +35,7 @@
   - [Doses and plans](#doses-and-plans)
   - [Lab results](#lab-results)
   - [Supplies](#supplies)
+  - [Sexual activity (beta)](#sexual-activity-beta)
   - [Backup and sharing](#backup-and-sharing)
   - [Where the model comes from](#where-the-model-comes-from)
 - [Command-line tools](#command-line-tools)
@@ -105,10 +106,16 @@ See [DONATE.md](./DONATE.md) for how donations are split (40% project, 30% @fant
 - Keep track of how much of each medicine you have
 - Logged doses are subtracted automatically, and the overview warns you before you run out
 
+## Sexual activity (beta)
+
+- Off unless you switch it on in Settings; while it is off, nothing of it shows
+- Note solo or partnered activity with optional orgasm, duration, how it felt and a note, with no assumptions about bodies, genders or orientation
+- Kept on your device and in your encrypted backups, never in share links
+
 ## Backup and sharing
 
 - Back up to the cloud with end-to-end encryption, or export a file
-- Share a read-only link to your dose history and curve; the key lives only in the link, and lab results, weight and account details are never included
+- Share a read-only link to your dose history and curve; the key lives only in the link, and lab results, sexual activity records, weight and account details are never included
 - Read the [privacy notice](./PRIVACY.md) for every detail
 
 ## Where the model comes from

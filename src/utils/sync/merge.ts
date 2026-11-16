@@ -7,6 +7,7 @@ const CONTENT_FIELDS: Record<RecordKind, readonly string[]> = {
     events: ['route', 'ester', 'doseMG', 'timeH', 'extras'],
     labResults: ['unit', 'concValue', 'timeH', 'assay'],
     doseTemplates: ['name', 'route', 'ester', 'doseMG', 'extras'],
+    intimacy: ['timeH', 'kind', 'orgasm', 'durationMin', 'satisfaction', 'note'],
 };
 
 export function stableString(value: unknown): string {
@@ -153,6 +154,7 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
                 local.modes[m].deletions.doseTemplates,
                 remote.modes[m].deletions.doseTemplates,
             ),
+            intimacy: mergeTombstoneMaps(local.modes[m].deletions.intimacy, remote.modes[m].deletions.intimacy),
         };
         merged.modes[m] = {
             events: mergeKind('events', local.modes[m].events, remote.modes[m].events, deletions.events, stats),
@@ -168,6 +170,13 @@ export function mergeSyncStates(local: SyncState, remote: SyncState | null): Mer
                 local.modes[m].doseTemplates,
                 remote.modes[m].doseTemplates,
                 deletions.doseTemplates,
+                stats,
+            ),
+            intimacy: mergeKind(
+                'intimacy',
+                local.modes[m].intimacy,
+                remote.modes[m].intimacy,
+                deletions.intimacy,
                 stats,
             ),
             deletions,

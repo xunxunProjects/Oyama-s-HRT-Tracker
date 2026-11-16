@@ -27,6 +27,7 @@ export function sanitizeTombstones(raw: unknown): Tombstones {
         events: sanitizeTombstoneMap(src.events),
         labResults: sanitizeTombstoneMap(src.labResults),
         doseTemplates: sanitizeTombstoneMap(src.doseTemplates),
+        intimacy: sanitizeTombstoneMap(src.intimacy),
     };
 }
 
@@ -47,6 +48,7 @@ export function pruneTombstones(t: Tombstones, now: number): Tombstones {
         events: pruneTombstoneMap(t.events, now),
         labResults: pruneTombstoneMap(t.labResults, now),
         doseTemplates: pruneTombstoneMap(t.doseTemplates, now),
+        intimacy: pruneTombstoneMap(t.intimacy, now),
     };
 }
 

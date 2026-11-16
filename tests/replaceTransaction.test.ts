@@ -135,6 +135,7 @@ const active: CompleteBackupActive = {
     quickDoses: [],
     supplies: [],
     plan: [],
+    intimacy: [],
     weight: 70,
     pkParams: null,
     calibrationMethod: 'mipd',
@@ -246,6 +247,7 @@ describe('complete-backup replace transaction', () => {
             events: { 'old-masc': NOW },
             labResults: { 'old-masc-lab': NOW },
             doseTemplates: {},
+            intimacy: {},
         });
         expect(result.modes.transfem?.deletions?.events).toEqual(transfem.events);
 

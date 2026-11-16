@@ -183,7 +183,8 @@ export function describeCompleteBackupReplace(
             counts.doseTemplates +
             counts.quickDoses +
             counts.supplies +
-            counts.plan,
+            counts.plan +
+            counts.intimacy,
         0,
     );
     return joinSentences([

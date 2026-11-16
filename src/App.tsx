@@ -32,6 +32,8 @@ import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
 import Forecast from './pages/Forecast';
 import Supplies from './pages/Supplies';
+import Intimacy from './pages/Intimacy';
+import { INTIMACY_BETA_KEY } from './utils/intimacy';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
@@ -103,6 +105,15 @@ const AppContent = () => {
         localStorage.setItem('app-show-prediction', String(showPrediction));
     }, [showPrediction]);
 
+    // Sexual activity records (beta). Off unless switched on in Settings, and
+    // a choice for this device: with it off nothing of the feature shows, while
+    // any records already kept stay where they are.
+    const [intimacyBeta, setIntimacyBeta] = useState<boolean>(() => localStorage.getItem(INTIMACY_BETA_KEY) === 'true');
+    useEffect(() => {
+        if (intimacyBeta) localStorage.setItem(INTIMACY_BETA_KEY, 'true');
+        else localStorage.removeItem(INTIMACY_BETA_KEY);
+    }, [intimacyBeta]);
+
     // Use Custom Hooks
     const {
         events,
@@ -165,6 +176,9 @@ const AppContent = () => {
         supplies,
         saveSupply,
         deleteSupply,
+        intimacy,
+        saveIntimacy,
+        deleteIntimacy,
     } = useAppData(showDialog, { withPrediction: showPrediction });
     const nowH = currentTime.getTime() / 3600000;
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
@@ -270,7 +284,8 @@ const AppContent = () => {
             (currentView === 'settings-milk-tea' ||
                 currentView === 'settings-cat-states' ||
                 currentView === 'settings-simulator')) ||
-        (!ageBeta && currentView === 'settings-age');
+        (!ageBeta && currentView === 'settings-age') ||
+        (!intimacyBeta && currentView === 'intimacy');
     useEffect(() => {
         if (pageGone) handleViewChange(tabForView(currentView));
     }, [pageGone, currentView, handleViewChange]);
@@ -341,6 +356,7 @@ const AppContent = () => {
         events,
         labResults,
         doseTemplates,
+        intimacy,
         weight,
         birthYear,
         pkParams,
@@ -1128,6 +1144,10 @@ const AppContent = () => {
                             onNavigateToAdmin={() => handleViewChange('admin')}
                             onNavigateToSupplies={() => handleViewChange('supplies')}
                             supplyCount={supplies.length}
+                            intimacyBeta={intimacyBeta}
+                            setIntimacyBeta={setIntimacyBeta}
+                            intimacyCount={intimacy.length}
+                            onNavigateToIntimacy={() => handleViewChange('intimacy')}
                         />
                     )}
 
@@ -1296,6 +1316,15 @@ const AppContent = () => {
                             events={events}
                             regimens={regimens}
                             nowH={nowH}
+                        />
+                    )}
+
+                    {currentView === 'intimacy' && intimacyBeta && (
+                        <Intimacy
+                            onBack={() => handleViewChange('settings')}
+                            records={intimacy}
+                            onSave={saveIntimacy}
+                            onDelete={deleteIntimacy}
                         />
                     )}
 

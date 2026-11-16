@@ -20,6 +20,7 @@ import {
 import { MODE_KEYS, ModeKey, SyncState, Tombstones, pruneTombstones, sanitizeTombstones } from './syncMerge';
 import { cleanDoseMG } from './cleanDose';
 import { legacyCpaItem, normalizePlanItem, type PlanItem } from './plan';
+import { sanitizeImportedIntimacy, type IntimacyRecord } from './intimacy';
 
 /** Minimal storage surface used by the pure backup helpers. */
 export interface StorageLike {
@@ -111,6 +112,8 @@ export interface ActiveBackupState {
     events: DoseEvent[];
     labResults: LabResult[];
     doseTemplates: DoseTemplate[];
+    /** Sexual activity records (beta). Absent = read from storage. */
+    intimacy?: IntimacyRecord[];
     weight: number;
     birthYear: number | null;
     pkParams: PKCustomParams | null;
@@ -132,6 +135,8 @@ export interface ExportPayload {
             events: DoseEvent[];
             labResults: LabResult[];
             doseTemplates: DoseTemplate[];
+            /** Sexual activity records (beta). Never part of a share link. */
+            intimacy: IntimacyRecord[];
             deletions: Tombstones;
             /** Left out while this device has never had a plan, so it can't erase another device's. */
             plan?: PlanItem[];
@@ -153,6 +158,7 @@ export interface AppliedSyncedState {
         events: DoseEvent[];
         labResults: LabResult[];
         doseTemplates: DoseTemplate[];
+        intimacy: IntimacyRecord[];
         deletions: Tombstones;
         /** Set when the synced state carried a plan for this mode. */
         plan?: PlanItem[];
@@ -285,6 +291,15 @@ export const sanitizeImportedTemplates = (raw: any): DoseTemplate[] => {
         .filter((item): item is DoseTemplate => item !== null);
 };
 
+/** A mode's sexual activity records as stored; unreadable entries are left out. */
+export const readIntimacyFromStorage = (storage: StorageLike, owner: string, mode: ModeKey): IntimacyRecord[] => {
+    try {
+        return sanitizeImportedIntimacy(loadJSONFromStorage<unknown>(storage, modeKeyFor(owner, mode, 'intimacy'), []));
+    } catch {
+        return [];
+    }
+};
+
 /**
  * A mode's stored plan, read the way the app loads it: before plans were kept
  * per mode, cyproterone had a standalone choice, and that still counts as the
@@ -326,6 +341,7 @@ export const buildExportPayloadFromStorage = (
         events: loadJSONFromStorage<DoseEvent[]>(storage, modeKeyFor(owner, m, 'events'), []),
         labResults: loadJSONFromStorage<LabResult[]>(storage, modeKeyFor(owner, m, 'lab-results'), []),
         doseTemplates: loadJSONFromStorage<DoseTemplate[]>(storage, modeKeyFor(owner, m, 'dose-templates'), []),
+        intimacy: readIntimacyFromStorage(storage, owner, m),
         deletions: readTombstonesFromStorage(storage, owner, m),
         ...planFields(readPlanFromStorage(storage, owner, m), readPlanStamp(storage, owner, m)),
     });
@@ -338,6 +354,7 @@ export const buildExportPayloadFromStorage = (
         events: active.events,
         labResults: active.labResults,
         doseTemplates: active.doseTemplates,
+        intimacy: active.intimacy ?? readIntimacyFromStorage(storage, owner, activeMode),
         deletions: readTombstonesFromStorage(storage, owner, activeMode),
         ...planFields(
             active.plan ?? readPlanFromStorage(storage, owner, activeMode),
@@ -386,6 +403,7 @@ export const applySyncedStateToStorage = (
         events: sanitizeImportedEvents(state.modes[m].events),
         labResults: sanitizeImportedLabResults(state.modes[m].labResults),
         doseTemplates: sanitizeImportedTemplates(state.modes[m].doseTemplates),
+        intimacy: sanitizeImportedIntimacy(state.modes[m].intimacy),
         deletions: sanitizeTombstones(state.modes[m].deletions),
         plan: Array.isArray(state.modes[m].plan)
             ? (state.modes[m].plan as unknown[]).map(normalizePlanItem).filter((x): x is PlanItem => x !== null)
@@ -398,6 +416,7 @@ export const applySyncedStateToStorage = (
         storage.setItem(modeKeyFor(owner, block.m, 'events'), JSON.stringify(block.events));
         storage.setItem(modeKeyFor(owner, block.m, 'lab-results'), JSON.stringify(block.labResults));
         storage.setItem(modeKeyFor(owner, block.m, 'dose-templates'), JSON.stringify(block.doseTemplates));
+        storage.setItem(modeKeyFor(owner, block.m, 'intimacy'), JSON.stringify(block.intimacy));
         if (block.plan !== undefined) {
             storage.setItem(modeKeyFor(owner, block.m, 'plan'), JSON.stringify(block.plan));
             if (block.planUpdatedAt > 0) {

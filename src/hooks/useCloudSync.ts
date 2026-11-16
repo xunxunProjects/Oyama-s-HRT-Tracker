@@ -102,6 +102,7 @@ interface Options {
     events: unknown;
     labResults: unknown;
     doseTemplates: unknown;
+    intimacy: unknown;
     weight: unknown;
     birthYear: unknown;
     pkParams: unknown;
@@ -164,6 +165,7 @@ export const useCloudSync = ({
     events,
     labResults,
     doseTemplates,
+    intimacy,
     weight,
     birthYear,
     pkParams,
@@ -526,7 +528,7 @@ export const useCloudSync = ({
             if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, weight, birthYear, pkParams, plan, modelSettings]);
+    }, [events, labResults, doseTemplates, intimacy, weight, birthYear, pkParams, plan, modelSettings]);
 
     const syncNow = useCallback(async () => {
         const outcome = await runSync(true);
