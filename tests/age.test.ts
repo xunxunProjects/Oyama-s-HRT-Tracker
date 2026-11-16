@@ -129,9 +129,40 @@ describe('ageClearanceMultiplier', () => {
         expect(at('t', 70)).toBeLessThan(1);
     });
 
-    it('holds its end value outside 19–75', () => {
+    it('ramps through puberty and holds only above 75', () => {
+        const slope = {
+            t: Math.log(1821 / 1390) / (67 - 27),
+            e2: Math.log(1 / 0.75) / (79 - 27),
+        };
         for (const h of ['e2', 't'] as const) {
-            expect(at(h, 12)).toBeCloseTo(at(h, 19), 12);
+            const adult19 = Math.exp(-slope[h] * (19 - AGE_REF_YEARS));
+
+            expect(at(h, 9)).toBeCloseTo(at(h, 10), 12);
+            expect(at(h, 10) / at(h, 19)).toBeCloseTo(0.7, 12);
+            expect(at(h, 12) / at(h, 19)).toBeCloseTo(0.78, 12);
+            expect(at(h, 15) / at(h, 19)).toBeCloseTo(0.9, 12);
+            expect(at(h, 19)).toBeCloseTo(adult19, 12);
+            expect(at(h, 19) / at(h, 18.999)).toBeCloseTo(1, 4);
+            expect(at(h, 90)).toBeCloseTo(at(h, 75), 12);
+
+            let previous = at(h, 10);
+            for (let age = 10.05; age <= 19; age += 0.05) {
+                const current = at(h, age);
+                expect(current).toBeGreaterThanOrEqual(previous - 1e-12);
+                previous = current;
+            }
+        }
+    });
+
+    it('leaves the adult branch unchanged', () => {
+        const slope = {
+            t: Math.log(1821 / 1390) / (67 - 27),
+            e2: Math.log(1 / 0.75) / (79 - 27),
+        };
+        for (const h of ['e2', 't'] as const) {
+            for (const age of [19, 25, 54, 70, 75]) {
+                expect(at(h, age)).toBeCloseTo(Math.exp(-slope[h] * (age - AGE_REF_YEARS)), 12);
+            }
             expect(at(h, 90)).toBeCloseTo(at(h, 75), 12);
         }
     });

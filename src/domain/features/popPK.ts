@@ -84,15 +84,23 @@ export function ageNotice(info: AgeModelInfo): 'prepubertal' | 'minor' | null {
 //     significant difference in oral estradiol valerate kinetics between women
 //     under 60 and over 65.
 //
-// Outside 19–75, the ages the testosterone study covered, the multiplier
-// holds at its end value. Cyproterone, the absorption rates and the oral
-// estrone pool are left as they are. Lab results still correct estradiol from
-// here: the calibration's personal clearance starts from the adjusted model.
+// Ages 19 and over use the adult log-linear curve above and hold at 75, the
+// oldest age the testosterone study covered. Ages 10–18.99 use adult(19) times
+// a provisional maturation ramp with anchors 10 → 0.70, 12 → 0.78, 15 → 0.90,
+// 19 → 1.00; ages under 10 hold the lowest ramp value, 0.70, and the UI labels
+// them as outside the validated range. The ramp is a provisional assumption,
+// not a validated Tanner-stage model. Cyproterone, the absorption rates and the
+// oral estrone pool are left as they are. Lab results still correct estradiol
+// from here: the calibration's personal clearance starts from the adjusted model.
 export const AGE_REF_YEARS = 54;
-const AGE_RANGE_YEARS = [19, 75] as const;
+const AGE_MAX_YEARS = 75;
 const AGE_CLEARANCE_SLOPE = {
     t: Math.log(1821 / 1390) / (67 - 27),
     e2: Math.log(1 / 0.75) / (79 - 27),
+};
+const ADULT_CLEARANCE_AT_19 = {
+    t: Math.exp(-AGE_CLEARANCE_SLOPE.t * (19 - AGE_REF_YEARS)),
+    e2: Math.exp(-AGE_CLEARANCE_SLOPE.e2 * (19 - AGE_REF_YEARS)),
 };
 const HOURS_PER_YEAR = 365.2425 * 24;
 
@@ -128,7 +136,7 @@ export function popPKCovariateFactors(
 
 export function ageClearanceMultiplier(hormone: 'e2' | 't', birthYear: number | null, timeH: number): number {
     if (birthYear === null) return 1;
-    const [lo, hi] = AGE_RANGE_YEARS;
-    const age = Math.min(hi, Math.max(lo, ageAtH(birthYear, timeH)));
-    return Math.exp(-AGE_CLEARANCE_SLOPE[hormone] * (age - AGE_REF_YEARS));
+    const age = ageAtH(birthYear, timeH);
+    if (age < 19) return ADULT_CLEARANCE_AT_19[hormone] * pubertyMaturationFactor(age);
+    return Math.exp(-AGE_CLEARANCE_SLOPE[hormone] * (Math.min(AGE_MAX_YEARS, age) - AGE_REF_YEARS));
 }
