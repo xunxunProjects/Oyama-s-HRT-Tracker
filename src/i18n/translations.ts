@@ -490,7 +490,7 @@ export const TRANSLATIONS_BASE = {
             '雌二醇与睾酮的清除会随年龄变化。在成年人中，清除会随年龄略微变慢，所以同样的剂量，年纪越大读数越高，每年约 0.5% 到 0.7%。19 岁以下使用暂定的青春期爬坡：清除率从 10 岁时成人值的 70% 逐步升至 19 岁时的成人值。留空时按 {ref} 岁估算，即模型所依据研究的平均年龄。睾酮的证据比雌二醇更充分；无论哪种，化验结果都会校正雌二醇的估计。环丙孕酮不做调整。',
         'age.band': '模型年龄区间：{range}',
         'age.warning.minor': '本模型以成人为基础。18 岁以下的估算属于外推，不是给药建议；调整方案请与临床医生讨论。',
-        'age.warning.prepubertal': '10 岁以下超出模型的验证范围，估算不可靠；请与临床医生讨论。',
+        'age.warning.prepubertal': '10 岁以下超出模型验证范围。估算不可靠，也不是给药建议；调整方案请与临床医生讨论。',
         'age.warning.extrapolated':
             '这个年龄超出成人验证范围。估算使用暂定的青春期爬坡，不是给药建议；调整方案请与临床医生讨论。',
         'age.remove': '移除出生年份',
@@ -1880,7 +1880,7 @@ export const TRANSLATIONS_BASE = {
         'age.warning.minor':
             'This model is built for adults. Under 18, the estimate is an extrapolation and not a dosing recommendation; discuss changes with a clinician.',
         'age.warning.prepubertal':
-            "Under 10 is outside the model's validated range. The estimate is not reliable; discuss with a clinician.",
+            "Under 10 is outside the model's validated range. The estimate is not reliable and is not a dosing recommendation; discuss changes with a clinician.",
         'age.warning.extrapolated':
             'This age is outside the adult-validated range. The estimate uses the provisional puberty ramp and is not a dosing recommendation; discuss changes with a clinician.',
         'age.remove': 'Remove year of birth',
@@ -3117,7 +3117,7 @@ const ZH_TW = {
         '雌二醇與睪固酮的清除會隨年齡變化。在成年人中，清除會隨年齡略微變慢，所以同樣的劑量，年紀越大讀數越高，每年約 0.5% 到 0.7%。19 歲以下使用暫定的青春期爬坡：清除率從 10 歲時成人值的 70% 逐步升至 19 歲時的成人值。留空時按 {ref} 歲估算，即模型所依據研究的平均年齡。睪固酮的證據比雌二醇更充分；無論哪種，檢驗結果都會校正雌二醇的估計。環丙孕酮不做調整。',
     'age.band': '模型年齡區間：{range}',
     'age.warning.minor': '本模型以成人為基礎。18 歲以下的估算屬於外推，不是給藥建議；調整方案請與臨床醫師討論。',
-    'age.warning.prepubertal': '10 歲以下超出模型的驗證範圍，估算不可靠；請與臨床醫師討論。',
+    'age.warning.prepubertal': '10 歲以下超出模型驗證範圍。估算不可靠，也不是給藥建議；調整方案請與臨床醫師討論。',
     'age.warning.extrapolated':
         '這個年齡超出成人驗證範圍。估算使用暫定的青春期爬坡，不是給藥建議；調整方案請與臨床醫師討論。',
     'age.remove': '移除出生年份',
@@ -4429,7 +4429,7 @@ export const TRANSLATIONS = {
             '雌二醇同睪固酮嘅清除會隨年紀變化。成年人嘅清除會隨年紀慢少少，所以同一個劑量，年紀越大讀數越高，每年大約 0.5% 至 0.7%。19 歲以下會用暫定嘅青春期爬坡：清除率由 10 歲時成人值嘅 70% 逐步升到 19 歲嘅成人值。留空嘅話就當 {ref} 歲計，即係模型參考嗰啲研究嘅平均年齡。睪固酮嘅證據比雌二醇充分；點都好，檢驗結果都會校正雌二醇嘅估計。環丙孕酮唔會調整。',
         'age.band': '模型年齡區間：{range}',
         'age.warning.minor': '本模型以成人為基礎。18 歲以下嘅估算屬於外推，唔係給藥建議；調整方案請同臨床醫生傾。',
-        'age.warning.prepubertal': '10 歲以下超出模型嘅驗證範圍，估算唔可靠；請同臨床醫生傾。',
+        'age.warning.prepubertal': '10 歲以下超出模型驗證範圍。估算唔可靠，亦唔係給藥建議；調整方案請同臨床醫生傾。',
         'age.warning.extrapolated':
             '呢個年紀超出成人驗證範圍。估算用暫定嘅青春期爬坡，唔係給藥建議；調整方案請同臨床醫生傾。',
         'age.remove': '移除出生年份',
@@ -5218,7 +5218,8 @@ export const TRANSLATIONS = {
         'age.band': 'モデルの年齢帯：{range}',
         'age.warning.minor':
             '本モデルは成人向けです。18歳未満の推定は外挿であり、投与量の提案ではありません。変更は臨床医と相談してください。',
-        'age.warning.prepubertal': '10歳未満はモデルの検証範囲外です。推定は信頼できません。臨床医と相談してください。',
+        'age.warning.prepubertal':
+            '10歳未満はモデルの検証範囲外です。推定は信頼できず、投与量の提案でもありません。変更は臨床医と相談してください。',
         'age.warning.extrapolated':
             'この年齢は成人で検証された範囲外です。推定には暫定的な思春期ランプを使用しており、投与量の提案ではありません。変更は臨床医と相談してください。',
         'age.remove': '生まれ年を削除',
@@ -6479,7 +6480,7 @@ export const TRANSLATIONS = {
         'age.warning.minor':
             '이 모델은 성인을 기준으로 합니다. 18세 미만의 추정치는 외삽이며 투여 권고가 아닙니다. 변경은 임상의와 상담하세요.',
         'age.warning.prepubertal':
-            '10세 미만은 모델의 검증 범위를 벗어납니다. 추정치를 신뢰할 수 없습니다. 임상의와 상담하세요.',
+            '10세 미만은 모델 검증 범위를 벗어납니다. 추정치는 신뢰할 수 없으며 투여 권고도 아닙니다. 변경은 임상의와 상담하세요.',
         'age.warning.extrapolated':
             '이 나이는 성인 검증 범위를 벗어납니다. 추정치는 잠정적인 사춘기 램프를 사용하며 투여 권고가 아닙니다. 변경은 임상의와 상담하세요.',
         'age.remove': '출생 연도 삭제',
@@ -7674,7 +7675,7 @@ export const TRANSLATIONS = {
         'age.warning.minor':
             'Bu model yetişkinler için tasarlanmıştır. 18 yaş altındaki tahminler ekstrapolasyondur ve doz önerisi değildir; değişiklikleri bir klinisyenle görüşün.',
         'age.warning.prepubertal':
-            '10 yaş altı modelin doğrulanmış aralığının dışındadır. Tahmin güvenilir değildir; bir klinisyenle görüşün.',
+            '10 yaş altı, modelin doğrulanmış aralığının dışındadır. Tahmin güvenilir değildir ve doz önerisi de değildir; değişiklikleri bir klinisyenle görüşün.',
         'age.warning.extrapolated':
             'Bu yaş, yetişkinlerde doğrulanmış aralığın dışındadır. Tahmin, geçici ergenlik rampasını kullanır ve doz önerisi değildir; değişiklikleri bir klinisyenle görüşün.',
         'age.remove': 'Doğum yılını kaldır',
