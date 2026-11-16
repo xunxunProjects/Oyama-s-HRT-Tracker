@@ -11,8 +11,8 @@ export const tScModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return ester === Ester.T ? 0 : _getTInjFF(ester) * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
-        const k3 = tClearance(event, birthYear);
+    resolveParams(event, birthYear, bodyWeightKG) {
+        const k3 = tClearance(event, birthYear, bodyWeightKG);
         if (event.ester === Ester.T) return zeroPKParams(k3);
 
         const Frac_fast = (T_DepotPK.Frac_fast as any)[event.ester] ?? 0.35;

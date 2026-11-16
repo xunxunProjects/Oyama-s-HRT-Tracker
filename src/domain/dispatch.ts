@@ -58,13 +58,15 @@ export function getBioavailabilityMultiplier(
     return module ? module.bioavailability(route, ester, extras) : 0;
 }
 
-export function resolveParams(event: DoseEvent, birthYear: number | null): PKParams {
+export function resolveParams(event: DoseEvent, birthYear: number | null, bodyWeightKG: number): PKParams {
     const module = moduleFor(event.route, event.ester);
-    if (module) return module.resolveParams(event, birthYear);
+    if (module) return module.resolveParams(event, birthYear, bodyWeightKG);
 
     // No route module owns this combination. Keep the old zeroed fallback, with
     // the clearance rate the event's hormone would have used.
     return zeroPKParams(
-        isTestosteroneEster(event.ester) ? tClearance(event, birthYear) : e2Clearance(event, birthYear),
+        isTestosteroneEster(event.ester)
+            ? tClearance(event, birthYear, bodyWeightKG)
+            : e2Clearance(event, birthYear, bodyWeightKG),
     );
 }

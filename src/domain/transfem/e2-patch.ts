@@ -10,8 +10,8 @@ export const e2PatchModule: PkRouteModule = {
     bioavailability(route, ester) {
         return route === Route.patchApply ? getToE2Factor(ester) : 0;
     },
-    resolveParams(event, birthYear) {
-        const k3 = e2Clearance(event, birthYear);
+    resolveParams(event, birthYear, bodyWeightKG) {
+        const k3 = e2Clearance(event, birthYear, bodyWeightKG);
         if (event.route === Route.patchRemove) return zeroPKParams(k3);
 
         const F = getToE2Factor(event.ester);

@@ -105,7 +105,7 @@ export function runSimulation(
     const precomputed = sortedEvents
         .filter(e => e.route !== Route.patchRemove)
         .map(e => {
-            const params = resolveParams(e, born);
+            const params = resolveParams(e, born, bodyWeightKG);
             const model = new PrecomputedEventModel(e, sortedEvents, params);
             const maxLifetimeH = computeMaxLifetimeH(params, e, sortedEvents);
             return { model, ester: e.ester, startTimeH: e.timeH, maxLifetimeH };

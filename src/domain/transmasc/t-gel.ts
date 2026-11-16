@@ -20,14 +20,14 @@ export const tGelModule: PkRouteModule = {
     bioavailability(_route, ester, extras) {
         return _getTGelBio(gelSiteFromExtras(extras)) * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const F = _getTGelBio(gelSiteFromExtras(event.extras ?? {})) * getToE2Factor(event.ester);
         return {
             Frac_fast: 1.0,
             k1_fast: T_GelPK.k1,
             k1_slow: 0,
             k2: 0,
-            k3: tClearance(event, birthYear),
+            k3: tClearance(event, birthYear, bodyWeightKG),
             F,
             rateMGh: 0,
             F_fast: F,

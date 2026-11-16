@@ -22,7 +22,7 @@ export const e2InjectionModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return _getE2InjFF(ester) * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const F = _getE2InjFF(event.ester) * getToE2Factor(event.ester);
         const Frac_fast = TwoPartDepotPK.Frac_fast[event.ester] ?? 0.5;
         const k1_fast = (TwoPartDepotPK.k1_fast[event.ester] ?? 0.1) * CorePK.depotK1Corr;
@@ -33,7 +33,7 @@ export const e2InjectionModule: PkRouteModule = {
             k1_fast,
             k1_slow,
             k2,
-            k3: e2Clearance(event, birthYear),
+            k3: e2Clearance(event, birthYear, bodyWeightKG),
             F,
             rateMGh: 0,
             F_fast: F,

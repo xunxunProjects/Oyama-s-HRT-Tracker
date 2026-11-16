@@ -11,7 +11,7 @@ export const e2OralModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return _activePKParams.e2_oral_bio * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const toE2 = getToE2Factor(event.ester);
         // EV: one step at kAbsEV. Everything else: absorption, then the estrone
         // pool (see OralPK.kE1Pool).
@@ -23,7 +23,7 @@ export const e2OralModule: PkRouteModule = {
             k1_fast: k1Value,
             k1_slow: 0,
             k2: k2Value,
-            k3: e2Clearance(event, birthYear),
+            k3: e2Clearance(event, birthYear, bodyWeightKG),
             F,
             rateMGh: 0,
             F_fast: F,

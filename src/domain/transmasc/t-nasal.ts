@@ -10,8 +10,8 @@ export const tNasalModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return ester === Ester.T ? 0.08 * getToE2Factor(ester) : 0;
     },
-    resolveParams(event, birthYear) {
-        const k3 = tClearance(event, birthYear);
+    resolveParams(event, birthYear, bodyWeightKG) {
+        const k3 = tClearance(event, birthYear, bodyWeightKG);
         if (event.ester !== Ester.T) return zeroPKParams(k3);
 
         const F = 0.08 * getToE2Factor(event.ester);

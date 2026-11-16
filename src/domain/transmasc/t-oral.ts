@@ -24,8 +24,8 @@ export const tOralModule: PkRouteModule = {
     bioavailability(_route, ester) {
         return ester === Ester.TU ? 0.05 * getToE2Factor(ester) : 0;
     },
-    resolveParams(event, birthYear) {
-        const k3 = tClearance(event, birthYear);
+    resolveParams(event, birthYear, bodyWeightKG) {
+        const k3 = tClearance(event, birthYear, bodyWeightKG);
         if (event.ester !== Ester.TU) return zeroPKParams(k3);
 
         const F = 0.05 * getToE2Factor(event.ester);

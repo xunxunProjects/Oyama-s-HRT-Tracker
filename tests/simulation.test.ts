@@ -95,14 +95,18 @@ describe('runSimulation: superposition and scaling', () => {
         twice.timeH.forEach((_, i) => expect(twice.concPGmL_E2[i]).toBeCloseTo(once.concPGmL_E2[i], 9));
     });
 
-    it('concentration scales linearly with dose and inversely with body weight', () => {
+    it('concentration scales linearly with dose and as BW^-0.75 with body weight', () => {
         const t0 = NOW_H - 50;
         const base = runSimulation([dose(Route.oral, Ester.E2, 2, t0)], 70)!;
         const doubleDose = runSimulation([dose(Route.oral, Ester.E2, 4, t0)], 70)!;
         const doubleWeight = runSimulation([dose(Route.oral, Ester.E2, 2, t0)], 140)!;
         const t = t0 + 3;
         expect(E2(doubleDose, t)! / E2(base, t)!).toBeCloseTo(2, 9);
-        expect(E2(doubleWeight, t)! / E2(base, t)!).toBeCloseTo(0.5, 9);
+        // Body weight now scales clearance as BW^0.75 while V stays linear in BW,
+        // so exposure follows BW^-0.75 rather than the old 1/BW: a heavier body
+        // also clears estradiol more slowly (see tests/popPK.test.ts).
+        const weightRatio = trapz(doubleWeight.timeH, doubleWeight.concPGmL_E2) / trapz(base.timeH, base.concPGmL_E2);
+        expect(weightRatio).toBeCloseTo(Math.pow(2, -0.75), 5);
     });
 
     it('the order events are passed in does not matter', () => {

@@ -14,6 +14,6 @@ export interface PkRouteModule {
     readonly routes: readonly Route[];
     readonly esters: readonly Ester[];
     bioavailability(route: Route, ester: Ester, extras: Partial<Record<ExtraKey, number>>): number;
-    resolveParams(event: DoseEvent, birthYear: number | null): PKParams;
+    resolveParams(event: DoseEvent, birthYear: number | null, bodyWeightKG: number): PKParams;
     buildAmount(event: DoseEvent, allEvents: DoseEvent[], params: PKParams): AmountModel;
 }

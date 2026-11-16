@@ -20,7 +20,7 @@ export const e2GelModule: PkRouteModule = {
     bioavailability(_route, ester, extras) {
         return _getGelBio(gelSiteFromExtras(extras)) * getToE2Factor(ester);
     },
-    resolveParams(event, birthYear) {
+    resolveParams(event, birthYear, bodyWeightKG) {
         const F = _getGelBio(gelSiteFromExtras(event.extras ?? {})) * getToE2Factor(event.ester);
         // Under flip-flop kinetics (k1 << k3), the terminal decline is absorption-
         // limited, so k1 is set from the reported apparent elimination half-life of
@@ -45,7 +45,7 @@ export const e2GelModule: PkRouteModule = {
             k1_fast: k1,
             k1_slow: 0,
             k2: 0,
-            k3: e2Clearance(event, birthYear),
+            k3: e2Clearance(event, birthYear, bodyWeightKG),
             F,
             rateMGh: 0,
             F_fast: F,
