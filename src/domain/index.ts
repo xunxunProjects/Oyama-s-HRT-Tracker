@@ -98,6 +98,7 @@ export {
     ageNotice,
     DEFAULT_POP_PK_COVARIATE_PARAMS,
     popPKCovariateFactors,
+    weightK3Factor,
     ageClearanceMultiplier,
 } from './features/popPK';
 
