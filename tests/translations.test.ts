@@ -32,6 +32,19 @@ describe('language packs', () => {
     });
 });
 
+describe('age model copy', () => {
+    const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
+
+    for (const lang of locales) {
+        it(`${lang} has age band and warning copy`, () => {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            expect(pack['age.band']).toContain('{range}');
+            expect(pack['age.warning.minor']).toBeTruthy();
+            expect(pack['age.warning.prepubertal']).toBeTruthy();
+        });
+    }
+});
+
 describe('Russian and Ukrainian', () => {
     const en = TRANSLATIONS.en as Record<string, string>;
     const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();

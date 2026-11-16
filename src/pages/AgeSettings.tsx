@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { isPlausibleBirthYear, BIRTH_YEAR_MIN, AGE_REF_YEARS } from '../../logic';
+import { isPlausibleBirthYear, BIRTH_YEAR_MIN, AGE_REF_YEARS, ageModelInfo, ageNotice } from '../../logic';
+import type { AgeBand } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
 import { fill } from '../utils/regimenText';
 
@@ -9,6 +10,15 @@ interface AgeSettingsProps {
     onSave: (birthYear: number | null) => void;
     onBack: () => void;
 }
+
+const BAND_RANGE: Record<AgeBand, string> = {
+    prepubertal: '<10',
+    earlyPuberty: '10–12',
+    midPuberty: '13–15',
+    latePuberty: '16–18',
+    adult: '19–75',
+    older: '>75',
+};
 
 // The year of birth rather than an age, so the value never goes stale and each
 // dose is modelled at the age it was taken. Optional, so it can be removed.
@@ -27,6 +37,10 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
     const year = Number(yearStr);
     const valid = yearStr.trim() !== '' && isPlausibleBirthYear(year, thisYear);
     const showError = tried && !valid;
+
+    const nowH = Date.now() / 3_600_000;
+    const info = valid ? ageModelInfo(year, nowH) : null;
+    const notice = info ? ageNotice(info) : null;
 
     // A form, so the keyboard's Done / Go key saves as well as the button.
     const handleSubmit = (e: React.FormEvent) => {
@@ -89,6 +103,17 @@ const AgeSettings: React.FC<AgeSettingsProps> = ({ birthYear, onSave, onBack }) 
                 <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
                     {fill(t('age.explain'), { ref: AGE_REF_YEARS })}
                 </p>
+
+                {info && info.band && (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                        {fill(t('age.band'), { range: BAND_RANGE[info.band] })}
+                    </p>
+                )}
+                {notice && (
+                    <p role="status" className="mt-3 text-xs leading-relaxed text-[var(--warning)]">
+                        {t(notice === 'prepubertal' ? 'age.warning.prepubertal' : 'age.warning.minor')}
+                    </p>
+                )}
 
                 <button type="submit" className="btn-primary w-full mt-6">
                     {t('btn.save')}

@@ -488,6 +488,9 @@ export const TRANSLATIONS_BASE = {
         'age.desc': '用于调整雌二醇与睾酮的清除速度',
         'age.explain':
             '雌二醇与睾酮的清除会随年龄略微变慢，所以同样的剂量，年纪越大读数越高，每年约 0.5% 到 0.7%。留空时按 {ref} 岁估算，即模型所依据研究的平均年龄。睾酮的证据比雌二醇更充分；无论哪种，化验结果都会校正雌二醇的估计。环丙孕酮不做调整。',
+        'age.band': '模型年龄区间：{range}',
+        'age.warning.minor': '本模型以成人为基础。18 岁以下的估算属于外推，不是给药建议；调整方案请与临床医生讨论。',
+        'age.warning.prepubertal': '10 岁以下超出模型的验证范围，估算不可靠；请与临床医生讨论。',
         'age.remove': '移除出生年份',
         'settings.age_beta': '年龄调整（Beta）',
         'settings.age_beta_desc': '按年龄调整估算。睾酮的证据较充分，雌二醇的证据并不一致',
@@ -1871,6 +1874,11 @@ export const TRANSLATIONS_BASE = {
         'age.desc': 'Adjusts how fast estradiol and testosterone are cleared',
         'age.explain':
             'Estradiol and testosterone are cleared a little more slowly with age, so the same dose reads a little higher later in life: about 0.5 to 0.7% a year. Left blank, the estimate is as for a {ref}-year-old, the average age in the studies the model was fitted on. The evidence is firmer for testosterone than for estradiol, and blood tests correct the estradiol estimate either way. Cyproterone is not adjusted.',
+        'age.band': 'Model age band: {range}',
+        'age.warning.minor':
+            'This model is built for adults. Under 18, the estimate is an extrapolation and not a dosing recommendation; discuss changes with a clinician.',
+        'age.warning.prepubertal':
+            "Under 10 is outside the model's validated range. The estimate is not reliable; discuss with a clinician.",
         'age.remove': 'Remove year of birth',
         'settings.age_beta': 'Age adjustment (beta)',
         'settings.age_beta_desc':
@@ -3103,6 +3111,9 @@ const ZH_TW = {
     'age.desc': '用於調整雌二醇與睪固酮的清除速度',
     'age.explain':
         '雌二醇與睪固酮的清除會隨年齡略微變慢，所以同樣的劑量，年紀越大讀數越高，每年約 0.5% 到 0.7%。留空時按 {ref} 歲估算，即模型所依據研究的平均年齡。睪固酮的證據比雌二醇更充分；無論哪種，檢驗結果都會校正雌二醇的估計。環丙孕酮不做調整。',
+    'age.band': '模型年齡區間：{range}',
+    'age.warning.minor': '本模型以成人為基礎。18 歲以下的估算屬於外推，不是給藥建議；調整方案請與臨床醫師討論。',
+    'age.warning.prepubertal': '10 歲以下超出模型的驗證範圍，估算不可靠；請與臨床醫師討論。',
     'age.remove': '移除出生年份',
     'settings.age_beta': '年齡調整（Beta）',
     'settings.age_beta_desc': '按年齡調整估算。睪固酮的證據較充分，雌二醇的證據並不一致',
@@ -4410,6 +4421,9 @@ export const TRANSLATIONS = {
         'age.desc': '用嚟調整雌二醇同睪固酮嘅清除速度',
         'age.explain':
             '雌二醇同睪固酮嘅清除會隨年紀慢少少，所以同一個劑量，年紀越大讀數越高，每年大約 0.5% 至 0.7%。留空嘅話就當 {ref} 歲計，即係模型參考嗰啲研究嘅平均年齡。睪固酮嘅證據比雌二醇充分；點都好，檢驗結果都會校正雌二醇嘅估計。環丙孕酮唔會調整。',
+        'age.band': '模型年齡區間：{range}',
+        'age.warning.minor': '本模型以成人為基礎。18 歲以下嘅估算屬於外推，唔係給藥建議；調整方案請同臨床醫生傾。',
+        'age.warning.prepubertal': '10 歲以下超出模型嘅驗證範圍，估算唔可靠；請同臨床醫生傾。',
         'age.remove': '移除出生年份',
         'settings.age_beta': '年齡調整（Beta）',
         'settings.age_beta_desc': '按年紀調整估算。睪固酮嘅證據比較充分，雌二醇嘅證據就唔一致',
@@ -5193,6 +5207,10 @@ export const TRANSLATIONS = {
         'age.desc': 'エストラジオールとテストステロンが消失する速さの調整に使用されます',
         'age.explain':
             'エストラジオールとテストステロンは年齢とともにやや遅く消失するため、同じ用量でも年齢が上がるほど値がやや高くなります（年に約 0.5〜0.7%）。空欄のときは、モデルの元になった研究の平均年齢である {ref} 歳として推定します。根拠はエストラジオールよりテストステロンの方が確かです。いずれの場合も、エストラジオールの推定は血液検査の結果で補正されます。シプロテロンは調整しません。',
+        'age.band': 'モデルの年齢帯：{range}',
+        'age.warning.minor':
+            '本モデルは成人向けです。18歳未満の推定は外挿であり、投与量の提案ではありません。変更は臨床医と相談してください。',
+        'age.warning.prepubertal': '10歳未満はモデルの検証範囲外です。推定は信頼できません。臨床医と相談してください。',
         'age.remove': '生まれ年を削除',
         'settings.age_beta': '年齢による調整（Beta）',
         'settings.age_beta_desc':
@@ -6447,6 +6465,11 @@ export const TRANSLATIONS = {
         'age.desc': '에스트라디올과 테스토스테론이 제거되는 속도를 조정합니다',
         'age.explain':
             '에스트라디올과 테스토스테론은 나이가 들수록 조금씩 느리게 제거되므로, 같은 용량이라도 나이가 들수록 수치가 다소 높게 나옵니다(연간 약 0.5~0.7%). 비워 두면 모델의 근거가 된 연구의 평균 나이인 {ref}세를 기준으로 추정합니다. 근거는 에스트라디올보다 테스토스테론 쪽이 더 확실하며, 어느 쪽이든 에스트라디올 추정치는 혈액 검사 결과로 보정됩니다. 사이프로테론은 조정하지 않습니다.',
+        'age.band': '모델 연령대: {range}',
+        'age.warning.minor':
+            '이 모델은 성인을 기준으로 합니다. 18세 미만의 추정치는 외삽이며 투여 권고가 아닙니다. 변경은 임상의와 상담하세요.',
+        'age.warning.prepubertal':
+            '10세 미만은 모델의 검증 범위를 벗어납니다. 추정치를 신뢰할 수 없습니다. 임상의와 상담하세요.',
         'age.remove': '출생 연도 삭제',
         'settings.age_beta': '나이 보정 (Beta)',
         'settings.age_beta_desc':
@@ -7635,6 +7658,11 @@ export const TRANSLATIONS = {
         'age.desc': 'Estradiol ve testosteronun vücuttan atılma hızını ayarlar',
         'age.explain':
             'Estradiol ve testosteron yaşla birlikte biraz daha yavaş atılır; bu yüzden aynı doz ileri yaşlarda biraz daha yüksek ölçülür: yılda yaklaşık %0,5 ile %0,7. Boş bırakılırsa tahmin, modelin dayandığı çalışmalardaki ortalama yaş olan {ref} yaşına göre yapılır. Kanıtlar testosteron için estradiolden daha güçlüdür; her durumda kan tahlilleri estradiol tahminini düzeltir. Siproteron ayarlanmaz.',
+        'age.band': 'Model yaş aralığı: {range}',
+        'age.warning.minor':
+            'Bu model yetişkinler için tasarlanmıştır. 18 yaş altındaki tahminler ekstrapolasyondur ve doz önerisi değildir; değişiklikleri bir klinisyenle görüşün.',
+        'age.warning.prepubertal':
+            '10 yaş altı modelin doğrulanmış aralığının dışındadır. Tahmin güvenilir değildir; bir klinisyenle görüşün.',
         'age.remove': 'Doğum yılını kaldır',
         'settings.age_beta': 'Yaş ayarı (beta)',
         'settings.age_beta_desc':
