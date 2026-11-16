@@ -7,6 +7,8 @@ import {
     ageAtH,
     ageBand,
     ageClearanceMultiplier,
+    ageModelInfo,
+    ageNotice,
     applyPKOverrides,
     computeCalibration,
     interpolateConcentration_CPA,
@@ -54,6 +56,48 @@ describe('age bands', () => {
         expect(ageBand(19)).toBe('adult');
         expect(ageBand(75)).toBe('adult');
         expect(ageBand(75.01)).toBe('older');
+    });
+});
+
+describe('age model info', () => {
+    it('returns no band without a birth year', () => {
+        expect(ageModelInfo(null, NOW_H)).toEqual({
+            ageYears: null,
+            band: null,
+            isMinor: false,
+            isExtrapolated: false,
+            maturationFactor: 1,
+        });
+    });
+
+    it('marks minors and extrapolation', () => {
+        const nine = ageModelInfo(bornAt(9), NOW_H);
+        expect(nine.band).toBe('prepubertal');
+        expect(nine.isMinor).toBe(true);
+        expect(nine.isExtrapolated).toBe(true);
+        expect(nine.maturationFactor).toBeCloseTo(0.7, 6);
+        expect(ageNotice(nine)).toBe('prepubertal');
+
+        const twelve = ageModelInfo(bornAt(12), NOW_H);
+        expect(twelve.band).toBe('earlyPuberty');
+        expect(twelve.isMinor).toBe(true);
+        expect(twelve.isExtrapolated).toBe(true);
+        expect(twelve.maturationFactor).toBeGreaterThan(0.76);
+        expect(twelve.maturationFactor).toBeCloseTo(0.79, 2);
+        expect(ageNotice(twelve)).toBe('minor');
+
+        const adult = ageModelInfo(bornAt(54), NOW_H);
+        expect(adult.band).toBe('adult');
+        expect(adult.isMinor).toBe(false);
+        expect(adult.isExtrapolated).toBe(false);
+        expect(adult.maturationFactor).toBe(1);
+        expect(ageNotice(adult)).toBeNull();
+
+        const older = ageModelInfo(bornAt(80), NOW_H);
+        expect(older.band).toBe('older');
+        expect(older.isMinor).toBe(false);
+        expect(older.isExtrapolated).toBe(true);
+        expect(ageNotice(older)).toBeNull();
     });
 });
 

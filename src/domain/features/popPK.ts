@@ -16,6 +16,51 @@ export function ageBand(ageYears: number): AgeBand {
     return 'older';
 }
 
+export interface AgeModelInfo {
+    ageYears: number | null;
+    band: AgeBand | null;
+    isMinor: boolean;
+    isExtrapolated: boolean;
+    maturationFactor: number;
+}
+
+/** Maturation factor: 0.7 before 10, rising through puberty to 1 at 19. */
+function pubertyMaturationFactor(ageYears: number): number {
+    if (ageYears < 10) return 0.7;
+    if (ageYears >= 19) return 1;
+    if (ageYears < 12) return 0.7 + (0.78 - 0.7) * ((ageYears - 10) / 2);
+    if (ageYears < 15) return 0.78 + (0.9 - 0.78) * ((ageYears - 12) / 3);
+    return 0.9 + (1 - 0.9) * ((ageYears - 15) / 4);
+}
+
+/** Age, band and flags at `timeH`; no age or band without a year of birth. */
+export function ageModelInfo(birthYear: number | null, timeH: number): AgeModelInfo {
+    if (birthYear === null) {
+        return {
+            ageYears: null,
+            band: null,
+            isMinor: false,
+            isExtrapolated: false,
+            maturationFactor: 1,
+        };
+    }
+    const ageYears = ageAtH(birthYear, timeH);
+    return {
+        ageYears,
+        band: ageBand(ageYears),
+        isMinor: ageYears < 18,
+        isExtrapolated: ageYears < 19 || ageYears > 75,
+        maturationFactor: pubertyMaturationFactor(ageYears),
+    };
+}
+
+/** The age caveat to show, if any: puberty before 10, then minority under 18. */
+export function ageNotice(info: AgeModelInfo): 'prepubertal' | 'minor' | null {
+    if (info.band === 'prepubertal') return 'prepubertal';
+    if (info.isMinor) return 'minor';
+    return null;
+}
+
 // Clearance of estradiol and testosterone falls with age. With a year of birth
 // the clearance rate k3 is scaled log-linearly in age, relative to the mean age
 // of the people the defaults were fitted on: 54.2 years in Aveed's trial and
