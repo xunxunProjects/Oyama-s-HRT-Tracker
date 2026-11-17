@@ -29,12 +29,7 @@ function reauthRequiredResponse(): Response {
 }
 
 async function getStepUpToken(adminToken: string, force = false): Promise<string | null> {
-    if (
-        !force &&
-        cached &&
-        cached.adminToken === adminToken &&
-        cached.expiresAt > Date.now()
-    ) {
+    if (!force && cached && cached.adminToken === adminToken && cached.expiresAt > Date.now()) {
         return cached.token;
     }
     if (!promptHandler) return null;
@@ -59,8 +54,7 @@ async function getStepUpToken(adminToken: string, force = false): Promise<string
         if (typeof body.token !== 'string') {
             throw new ApiError(500, 'INVALID_RESPONSE', 'Admin re-authentication returned no token');
         }
-        const expiresAt =
-            typeof body.expiresAt === 'number' ? body.expiresAt : Date.now() + 5 * 60 * 1000;
+        const expiresAt = typeof body.expiresAt === 'number' ? body.expiresAt : Date.now() + 5 * 60 * 1000;
         cached = {
             adminToken,
             token: body.token,
@@ -75,12 +69,7 @@ async function getStepUpToken(adminToken: string, force = false): Promise<string
     return inFlight;
 }
 
-function sendWithStepUp(
-    adminToken: string,
-    path: string,
-    init: RequestInit,
-    stepUp: string,
-): Promise<Response> {
+function sendWithStepUp(adminToken: string, path: string, init: RequestInit, stepUp: string): Promise<Response> {
     const headers = new Headers(init.headers);
     headers.set('Authorization', `Bearer ${adminToken}`);
     headers.set('X-Admin-Reauth', stepUp);
@@ -93,11 +82,7 @@ function sendWithStepUp(
  * stale token is cleared and the request is retried once, so a password change
  * or a just-expired step-up does not lose the operator's action.
  */
-export async function adminWrite(
-    adminToken: string,
-    path: string,
-    init: RequestInit = {},
-): Promise<Response> {
+export async function adminWrite(adminToken: string, path: string, init: RequestInit = {}): Promise<Response> {
     let stepUp = await getStepUpToken(adminToken);
     if (!stepUp) return reauthRequiredResponse();
 

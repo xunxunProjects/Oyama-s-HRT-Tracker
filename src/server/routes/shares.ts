@@ -69,10 +69,7 @@ export async function handleSharesRoute(
         // shape here keeps a cached pre-encryption client from writing
         // health data that the server can read.
         if (body.encryptedSnapshot === undefined) {
-            return shareJson(
-                { code: 'ENCRYPTION_REQUIRED', message: 'Shares must be encrypted in the browser' },
-                400,
-            );
+            return shareJson({ code: 'ENCRYPTION_REQUIRED', message: 'Shares must be encrypted in the browser' }, 400);
         }
         const sealed = sanitizeEncryptedShareSnapshot(body.encryptedSnapshot);
         if (!sealed.envelope) {

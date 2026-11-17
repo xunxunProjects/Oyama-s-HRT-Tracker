@@ -55,7 +55,9 @@ describe.skipIf(!hasSqlite)('share encryption is mandatory', () => {
             bcrypt.hashSync(PASSWORD, 4),
         );
         env = { DB: d1(db), JWT_SECRET } as unknown as Env;
-        token = ((await call('/api/login', { body: { username: 'Alice', password: PASSWORD } })).body?.token as string) ?? '';
+        token =
+            ((await call('/api/login', { body: { username: 'Alice', password: PASSWORD } })).body?.token as string) ??
+            '';
         expect(token).not.toBe('');
     });
 

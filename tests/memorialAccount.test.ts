@@ -75,9 +75,9 @@ describe.skipIf(!hasSqlite)('memorial accounts', () => {
         const list = await call('GET', '/api/admin/users', undefined, admin);
         expect(list.body.users.find((u: any) => u.id === 'user-1').memorial).toBe(true);
 
-        expect(
-            (await call('DELETE', '/api/admin/users/user-1', undefined, admin, adminHeaders)).response.status,
-        ).toBe(409);
+        expect((await call('DELETE', '/api/admin/users/user-1', undefined, admin, adminHeaders)).response.status).toBe(
+            409,
+        );
         expect(
             (await call('DELETE', '/api/admin/users/user-1/backups', undefined, admin, adminHeaders)).response.status,
         ).toBe(409);

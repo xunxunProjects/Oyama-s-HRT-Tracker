@@ -44,8 +44,7 @@ const ADMIN_PASSWORD = 'quiet maple orbit 73';
 
 const loginAdmin = () => call('/api/login', { body: { username: 'admin', password: ADMIN_PASSWORD } });
 
-const reauthAdmin = (token: string) =>
-    call('/api/admin/reauth', { body: { password: ADMIN_PASSWORD }, token });
+const reauthAdmin = (token: string) => call('/api/admin/reauth', { body: { password: ADMIN_PASSWORD }, token });
 
 const jwtPayload = (token: string) =>
     JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as Record<string, any>;
