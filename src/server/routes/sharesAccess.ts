@@ -69,7 +69,7 @@ export async function handleSharesAccessRoute(ctx: RequestContext): Promise<Resp
 
     const tokenHash = await sha256Hex(body.token);
     const share = (await env.DB.prepare(
-        'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at, failed_attempts, locked_until FROM dosage_shares WHERE token_hash = ?',
+        'SELECT password_hash, expires_at, is_live, share_mode, created_at, updated_at, failed_attempts, locked_until, encrypted FROM dosage_shares WHERE token_hash = ?',
     )
         .bind(tokenHash)
         .first()) as {
@@ -81,6 +81,7 @@ export async function handleSharesAccessRoute(ctx: RequestContext): Promise<Resp
         updated_at: number | null;
         failed_attempts: number | null;
         locked_until: number | null;
+        encrypted: number;
     } | null;
 
     if (!share) {
@@ -94,6 +95,17 @@ export async function handleSharesAccessRoute(ctx: RequestContext): Promise<Resp
         return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, {
             'Retry-After': '60',
         });
+    }
+
+    if (Number(share.encrypted) !== 1) {
+        ctx.ctx.waitUntil(
+            env.DB.prepare(
+                "UPDATE dosage_shares SET snapshot_json = 'null', password_hash = NULL, key_wrapped = NULL WHERE token_hash = ?",
+            )
+                .bind(tokenHash)
+                .run(),
+        );
+        return shareJson({ code: 'SHARE_EXPIRED', message: 'This share link is no longer available' }, 410);
     }
 
     const createdAt = share.created_at * 1000;
@@ -165,7 +177,7 @@ export async function handleSharesAccessRoute(ctx: RequestContext): Promise<Resp
     const snapshotRow = await env.DB.prepare('SELECT snapshot_json, encrypted FROM dosage_shares WHERE token_hash = ?')
         .bind(tokenHash)
         .first<{ snapshot_json: string; encrypted: number }>();
-    if (!snapshotRow || snapshotRow.snapshot_json === 'null') {
+    if (!snapshotRow || snapshotRow.snapshot_json === 'null' || snapshotRow.encrypted !== 1) {
         return shareJson({ code: 'SHARE_NOT_FOUND', message: 'Share not found' }, 404);
     }
     const stored = JSON.parse(snapshotRow.snapshot_json);
@@ -175,7 +187,7 @@ export async function handleSharesAccessRoute(ctx: RequestContext): Promise<Resp
         createdAt,
         updatedAt,
         expiresAt,
-        ...(snapshotRow.encrypted === 1 ? { encryptedSnapshot: stored } : { snapshot: stored }),
+        encryptedSnapshot: stored,
         ...(viewerPass ? { viewerPass } : {}),
     });
 }

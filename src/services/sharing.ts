@@ -249,25 +249,6 @@ export const sharingService = {
         return (await response.json()) as { updated: number; updatedAt: number };
     },
 
-    /** Live links made before share encryption shipped still take a plaintext snapshot. */
-    async syncLegacyLive(
-        authToken: string,
-        snapshot: SharedDosageSnapshot,
-        signal?: AbortSignal,
-    ): Promise<{ updated: number; updatedAt: number }> {
-        const response = await apiFetch(apiEndpoint('/api/shares/live'), {
-            method: 'PUT',
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ snapshot }),
-            signal,
-        });
-        if (!response.ok) throw await readError(response);
-        return (await response.json()) as { updated: number; updatedAt: number };
-    },
-
     async replaceWrappedKeys(authToken: string, keys: { id: string; wrappedKey: WrappedShareKey }[]): Promise<void> {
         const response = await apiFetch(apiEndpoint('/api/shares/keys'), {
             method: 'PUT',

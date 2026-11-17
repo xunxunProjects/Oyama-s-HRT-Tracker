@@ -12,19 +12,15 @@ import {
 import { unwrapShareKey } from '../services/shareCrypto';
 import { CLOUD_KEY_CHANGED_EVENT, getCloudKey } from '../utils/cloudBackup';
 
-/** The owner's live links for one mode, split by how each one is updated. */
+/** The owner's live links whose key this device can unwrap. */
 interface LiveTargets {
-    /** Encrypted links whose key this device could unwrap. */
     encrypted: { id: string; key: string }[];
-    /** Links made before share encryption shipped. */
-    legacy: boolean;
 }
 
-const NO_TARGETS: LiveTargets = { encrypted: [], legacy: false };
+const NO_TARGETS: LiveTargets = { encrypted: [] };
 
 const findLiveTargets = async (shares: ShareSummary[], mode: HRTMode): Promise<LiveTargets> => {
     const live = shares.filter(share => !share.expired && share.live);
-    const legacy = live.some(share => !share.encrypted && share.mode === mode);
     const cloudKey = getCloudKey();
     const encrypted: LiveTargets['encrypted'] = [];
     if (cloudKey) {
@@ -36,7 +32,7 @@ const findLiveTargets = async (shares: ShareSummary[], mode: HRTMode): Promise<L
             if (opened && opened.mode === mode) encrypted.push({ id: share.id, key: opened.key });
         }
     }
-    return { encrypted, legacy };
+    return { encrypted };
 };
 
 // Each request stays under the worker's 2 MiB body limit.
@@ -49,9 +45,6 @@ const syncTargets = async (
     signal: AbortSignal,
 ): Promise<number> => {
     let updated = 0;
-    if (targets.legacy) {
-        updated += (await sharingService.syncLegacyLive(authToken, snapshot, signal)).updated;
-    }
     let batch: Parameters<typeof sharingService.syncEncryptedLive>[1] = [];
     let batchChars = 0;
     const flush = async () => {
@@ -87,7 +80,7 @@ export const useLiveShareSync = ({
     calibrationFn,
 }: LiveShareSyncOptions): void => {
     const [targets, setTargets] = useState<LiveTargets>(NO_TARGETS);
-    const hasLiveShare = targets.legacy || targets.encrypted.length > 0;
+    const hasLiveShare = targets.encrypted.length > 0;
     const [refreshTick, setRefreshTick] = useState(0);
     const baselineSnapshotRef = useRef<ReturnType<typeof buildSharedDosageSnapshot> | null>(null);
     const pendingSnapshotRef = useRef<ReturnType<typeof buildSharedDosageSnapshot> | null>(null);
@@ -114,7 +107,7 @@ export const useLiveShareSync = ({
                 .then(shares => findLiveTargets(shares, mode))
                 .then(next => {
                     if (!cancelled) {
-                        const found = next.legacy || next.encrypted.length > 0;
+                        const found = next.encrypted.length > 0;
                         // A fresh object on every poll would restart the pending sync.
                         setTargets(previous => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
                         if (found && !previouslyFound) {

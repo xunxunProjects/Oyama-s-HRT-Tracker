@@ -4,12 +4,7 @@ import bcrypt from 'bcryptjs';
 import { checkRateLimit } from '../rateLimit';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from '../../../requestInput';
 import { sha256Hex } from '../../../workerUtil';
-import {
-    DosageShareSnapshot,
-    isJsonObject,
-    sanitizeEncryptedShareSnapshot,
-    sanitizeShareSnapshot,
-} from '../../../shareSnapshotSchema';
+import { isJsonObject, sanitizeEncryptedShareSnapshot } from '../../../shareSnapshotSchema';
 import {
     MAX_ACTIVE_SHARES_PER_USER,
     MAX_EXPIRED_SHARE_TOMBSTONES_PER_USER,
@@ -70,38 +65,26 @@ export async function handleSharesRoute(
         }
         const live = body.live === true;
 
-        // Current clients send `encryptedSnapshot`, sealed in the browser.
-        // A plaintext `snapshot` is still accepted from app versions cached
-        // before encryption shipped, so their share button keeps working
-        // until they update.
-        const encrypted = body.encryptedSnapshot !== undefined;
-        let sealedSnapshotJson: string | null = null;
+        // Shares must be sealed in the browser. Rejecting the old plaintext
+        // shape here keeps a cached pre-encryption client from writing
+        // health data that the server can read.
+        if (body.encryptedSnapshot === undefined) {
+            return shareJson(
+                { code: 'ENCRYPTION_REQUIRED', message: 'Shares must be encrypted in the browser' },
+                400,
+            );
+        }
+        const sealed = sanitizeEncryptedShareSnapshot(body.encryptedSnapshot);
+        if (!sealed.envelope) {
+            return shareJson({ code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' }, 400);
+        }
+        const snapshotJson = JSON.stringify(sealed.envelope);
         let keyWrapped: string | null = null;
-        let legacySnapshot: DosageShareSnapshot | null = null;
-        if (encrypted) {
-            const sealed = sanitizeEncryptedShareSnapshot(body.encryptedSnapshot);
-            if (!sealed.envelope) {
-                return shareJson({ code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' }, 400);
+        if (live) {
+            keyWrapped = sanitizeWrappedShareKey(body.wrappedKey);
+            if (!keyWrapped) {
+                return shareJson({ code: 'INVALID_REQUEST', message: 'A live encrypted share needs wrappedKey' }, 400);
             }
-            sealedSnapshotJson = JSON.stringify(sealed.envelope);
-            if (live) {
-                keyWrapped = sanitizeWrappedShareKey(body.wrappedKey);
-                if (!keyWrapped) {
-                    return shareJson(
-                        { code: 'INVALID_REQUEST', message: 'A live encrypted share needs wrappedKey' },
-                        400,
-                    );
-                }
-            }
-        } else {
-            const sanitized = sanitizeShareSnapshot(body.snapshot);
-            if (!sanitized.snapshot) {
-                return shareJson(
-                    { code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' },
-                    400,
-                );
-            }
-            legacySnapshot = sanitized.snapshot;
         }
 
         let password: string | null = null;
@@ -137,11 +120,6 @@ export async function handleSharesRoute(
             return shareJson({ code: 'INVALID_EXPIRATION', message: 'expiresAt must be before the end of 2100' }, 400);
         }
 
-        // Treat the server receipt time as the snapshot provenance time;
-        // clients cannot backdate or future-date a public snapshot. For an
-        // encrypted share the page shows the row's own created_at instead.
-        if (legacySnapshot) legacySnapshot.createdAt = nowSeconds * 1000;
-        const snapshotJson = legacySnapshot ? JSON.stringify(legacySnapshot) : sealedSnapshotJson!;
         if (new TextEncoder().encode(snapshotJson).byteLength > MAX_SHARE_REQUEST_BYTES) {
             return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
         }
@@ -191,10 +169,10 @@ export async function handleSharesRoute(
                 expiresAtSeconds,
                 live ? 1 : 0,
                 // The mode of an encrypted share stays inside its wrapped key.
-                legacySnapshot?.mode ?? null,
+                null,
                 nowSeconds,
                 nowSeconds,
-                encrypted ? 1 : 0,
+                1,
                 keyWrapped,
             )
             .run();
@@ -205,8 +183,8 @@ export async function handleSharesRoute(
                 token: rawShareToken,
                 url: `${shareOriginFor(url, env)}/share/#${rawShareToken}`,
                 live,
-                mode: legacySnapshot?.mode ?? null,
-                encrypted,
+                mode: null,
+                encrypted: true,
                 wrappedKey: keyWrapped ? JSON.parse(keyWrapped) : null,
                 createdAt: nowSeconds * 1000,
                 updatedAt: nowSeconds * 1000,
@@ -240,95 +218,45 @@ export async function handleSharesRoute(
         // Encrypted live shares: the browser seals the snapshot once per
         // link, with that link's own key, and names the link it is for.
         // Only the owner's still-active encrypted live links are touched.
-        if (body.updates !== undefined) {
-            if (!Array.isArray(body.updates) || body.updates.length > MAX_LIVE_UPDATES_PER_REQUEST) {
-                return shareJson({ code: 'INVALID_REQUEST', message: 'updates must be an array' }, 400);
+        if (body.updates === undefined) {
+            return shareJson(
+                { code: 'ENCRYPTION_REQUIRED', message: 'Live shares must be encrypted in the browser' },
+                400,
+            );
+        }
+        if (!Array.isArray(body.updates) || body.updates.length > MAX_LIVE_UPDATES_PER_REQUEST) {
+            return shareJson({ code: 'INVALID_REQUEST', message: 'updates must be an array' }, 400);
+        }
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const seenIds = new Set<string>();
+        const statements: D1PreparedStatement[] = [];
+        for (const update of body.updates) {
+            if (
+                !isJsonObject(update) ||
+                typeof update.id !== 'string' ||
+                update.id.length < 1 ||
+                update.id.length > 64 ||
+                seenIds.has(update.id)
+            ) {
+                return shareJson({ code: 'INVALID_REQUEST', message: 'Each update needs a unique id' }, 400);
             }
-            const nowSeconds = Math.floor(Date.now() / 1000);
-            const seenIds = new Set<string>();
-            const statements: D1PreparedStatement[] = [];
-            for (const update of body.updates) {
-                if (
-                    !isJsonObject(update) ||
-                    typeof update.id !== 'string' ||
-                    update.id.length < 1 ||
-                    update.id.length > 64 ||
-                    seenIds.has(update.id)
-                ) {
-                    return shareJson({ code: 'INVALID_REQUEST', message: 'Each update needs a unique id' }, 400);
-                }
-                seenIds.add(update.id);
-                const sealed = sanitizeEncryptedShareSnapshot(update.encryptedSnapshot);
-                if (!sealed.envelope) {
-                    return shareJson(
-                        { code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' },
-                        400,
-                    );
-                }
-                statements.push(
-                    env.DB.prepare(
-                        `UPDATE dosage_shares
+            seenIds.add(update.id);
+            const sealed = sanitizeEncryptedShareSnapshot(update.encryptedSnapshot);
+            if (!sealed.envelope) {
+                return shareJson({ code: 'INVALID_SNAPSHOT', message: sealed.error || 'Invalid share snapshot' }, 400);
+            }
+            statements.push(
+                env.DB.prepare(
+                    `UPDATE dosage_shares
                SET snapshot_json = ?, updated_at = ?
                WHERE id = ? AND user_id = ? AND is_live = 1 AND encrypted = 1
                  AND (expires_at IS NULL OR expires_at > ?)`,
-                    ).bind(JSON.stringify(sealed.envelope), nowSeconds, update.id, userId, nowSeconds),
-                );
-            }
-            const results = statements.length > 0 ? await env.DB.batch(statements) : [];
-            const updated = results.reduce((count, result) => count + (result.meta.changes ?? 0), 0);
-            return shareJson({ updated, updatedAt: nowSeconds * 1000 });
+                ).bind(JSON.stringify(sealed.envelope), nowSeconds, update.id, userId, nowSeconds),
+            );
         }
-
-        // Plaintext live shares made before encryption shipped. Never
-        // touches an encrypted row, so an app version cached from before
-        // cannot overwrite a sealed link with a readable snapshot.
-        const sanitized = sanitizeShareSnapshot(body.snapshot);
-        if (!sanitized.snapshot) {
-            return shareJson({ code: 'INVALID_SNAPSHOT', message: sanitized.error || 'Invalid share snapshot' }, 400);
-        }
-
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        sanitized.snapshot.createdAt = nowSeconds * 1000;
-        const validatedSnapshotJson = JSON.stringify(sanitized.snapshot);
-        if (new TextEncoder().encode(validatedSnapshotJson).byteLength > MAX_SHARE_REQUEST_BYTES) {
-            return shareJson({ code: 'SNAPSHOT_TOO_LARGE', message: 'Share snapshot exceeds the 2 MiB limit' }, 413);
-        }
-
-        const activeLiveShares = await env.DB.prepare(
-            `SELECT id FROM dosage_shares
-             WHERE user_id = ? AND is_live = 1 AND encrypted = 0
-               AND share_mode = ?
-               AND (expires_at IS NULL OR expires_at > ?)`,
-        )
-            .bind(userId, sanitized.snapshot.mode, nowSeconds)
-            .all<{ id: string }>();
-
-        // Give every link a different set of opaque event identifiers. This
-        // prevents recipients of separate links from correlating otherwise
-        // identical records through caller-provided/local IDs.
-        const updates = (activeLiveShares.results || []).map(({ id }) => {
-            const snapshotForShare: DosageShareSnapshot = {
-                ...sanitized.snapshot!,
-                events: sanitized.snapshot!.events.map(event => ({
-                    ...event,
-                    id: crypto.randomUUID(),
-                    extras: { ...event.extras },
-                })),
-            };
-            return env.DB.prepare(
-                `UPDATE dosage_shares
-               SET snapshot_json = ?, updated_at = ?
-               WHERE id = ? AND user_id = ? AND is_live = 1 AND encrypted = 0
-                 AND share_mode = ?
-                 AND (expires_at IS NULL OR expires_at > ?)`,
-            ).bind(JSON.stringify(snapshotForShare), nowSeconds, id, userId, sanitized.snapshot!.mode, nowSeconds);
-        });
-        const results = updates.length > 0 ? await env.DB.batch(updates) : [];
+        const results = statements.length > 0 ? await env.DB.batch(statements) : [];
         const updated = results.reduce((count, result) => count + (result.meta.changes ?? 0), 0);
-        return shareJson({
-            updated,
-            updatedAt: nowSeconds * 1000,
-        });
+        return shareJson({ updated, updatedAt: nowSeconds * 1000 });
     }
 
     // Re-seal live link keys after a password change. The cloud key that
