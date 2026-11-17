@@ -1,5 +1,6 @@
 import { Lang } from '../i18n/translations';
 import { apiEndpoint, apiFetch, apiErrorFrom } from './apiClient';
+import { adminWrite } from './adminReauth';
 
 export type NoticeLevel = 'info' | 'warn';
 
@@ -58,12 +59,9 @@ export const noticeService = {
     },
 
     async save(token: string, draft: NoticeDraft): Promise<SiteNotice | null> {
-        const res = await apiFetch(apiEndpoint('/api/admin/notice'), {
+        const res = await adminWrite(token, '/api/admin/notice', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(draft),
         });
         if (!res.ok) throw await apiErrorFrom(res);
@@ -72,10 +70,7 @@ export const noticeService = {
     },
 
     async clear(token: string): Promise<void> {
-        const res = await apiFetch(apiEndpoint('/api/admin/notice'), {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await adminWrite(token, '/api/admin/notice', { method: 'DELETE' });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 };

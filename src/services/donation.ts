@@ -1,4 +1,5 @@
 import { apiEndpoint, apiErrorFrom, apiFetch } from './apiClient';
+import { adminWrite } from './adminReauth';
 
 export interface DonationConfig {
     /** The public direct-donation Monero subaddress. */
@@ -49,12 +50,9 @@ export const donationService = {
     },
 
     async save(token: string, draft: DonationDraft): Promise<DonationAddresses | null> {
-        const res = await apiFetch(apiEndpoint('/api/admin/donation'), {
+        const res = await adminWrite(token, '/api/admin/donation', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(draft),
         });
         if (!res.ok) throw await apiErrorFrom(res);
