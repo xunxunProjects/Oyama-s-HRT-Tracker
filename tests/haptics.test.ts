@@ -2,10 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { haptic, hapticsEnabled, setHapticsEnabled } from '../src/utils/haptics';
 
 // No DOM here, so stand in just enough of one: a page in touch or mouse mode,
-// a reduced-motion setting, a phone that can or can't vibrate.
+// a phone that can or can't vibrate.
 let store: Record<string, string>;
 let input: string;
-let reduce: boolean;
 let clicks: number;
 
 function stubDevice(ua: string, withVibrate: boolean) {
@@ -17,7 +16,6 @@ function stubDevice(ua: string, withVibrate: boolean) {
 beforeEach(() => {
     store = {};
     input = 'touch';
-    reduce = false;
     clicks = 0;
     vi.stubGlobal('localStorage', {
         getItem: (k: string) => store[k] ?? null,
@@ -25,7 +23,7 @@ beforeEach(() => {
         removeItem: (k: string) => void delete store[k],
     });
     vi.stubGlobal('window', {
-        matchMedia: (q: string) => ({ matches: q.includes('reduced-motion') ? reduce : true }),
+        matchMedia: () => ({ matches: true }),
         setTimeout: (fn: () => void) => fn(),
     });
     const el = () => ({
@@ -59,14 +57,11 @@ describe('haptic', () => {
         expect(clicks).toBe(3);
     });
 
-    it('stays quiet with a mouse, with reduced motion, or when switched off', () => {
+    it('stays quiet with a mouse or when switched off', () => {
         const vibrate = stubDevice('Mozilla/5.0 (Linux; Android 15)', true);
         input = 'mouse';
         haptic();
         input = 'touch';
-        reduce = true;
-        haptic();
-        reduce = false;
         setHapticsEnabled(false);
         expect(hapticsEnabled()).toBe(false);
         haptic();

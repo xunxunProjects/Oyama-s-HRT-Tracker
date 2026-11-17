@@ -9,9 +9,10 @@
 // only does this while the press that led here is still fresh, so a tap after
 // a slow network answer may stay quiet; that's fine, it's a nicety.
 //
-// Only a touch screen gets any of this (a laptop has nothing to buzz), never
-// with reduced motion asked for, and never when it's switched off in
-// Appearance. The choice stays on this device.
+// Only a touch screen gets any of this (a laptop has nothing to buzz), and
+// never when it's switched off in Settings. The choice stays on this device.
+// Reduced motion doesn't silence it: iOS keeps its own system haptics on with
+// that setting, and the switch here is the way to turn these off.
 
 export type HapticKind = 'tap' | 'success' | 'error';
 
@@ -53,9 +54,13 @@ let iosLabel: HTMLLabelElement | null = null;
 function iosTick(): void {
     if (!iosLabel || !iosLabel.isConnected) {
         const label = document.createElement('label');
+        // Kept on screen and drawn (iOS may skip the tick for a switch that
+        // isn't), just one clipped, nearly clear pixel in the corner. Inert, so
+        // the label's click doesn't pull focus off whatever was pressed.
+        label.inert = true;
         label.setAttribute('aria-hidden', 'true');
         label.style.cssText =
-            'position:fixed;inset-inline-start:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+            'position:fixed;top:0;left:0;width:1px;height:1px;overflow:hidden;opacity:0.01;pointer-events:none';
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.setAttribute('switch', '');
@@ -76,7 +81,6 @@ const PATTERNS: Record<HapticKind, number | number[]> = {
 export function haptic(kind: HapticKind = 'tap'): void {
     if (typeof window === 'undefined' || !hapticsEnabled()) return;
     if (document.documentElement.getAttribute('data-input') !== 'touch') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     try {
         if (typeof navigator.vibrate === 'function' && !isIOS()) {
             navigator.vibrate(PATTERNS[kind]);
