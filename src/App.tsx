@@ -85,6 +85,7 @@ import SiteNoticeBanner from './components/SiteNotice';
 import JsDependencyNotice from './components/JsDependencyNotice';
 import UpdatePrompt from './components/UpdatePrompt';
 import { copyText } from './utils/clipboard';
+import { haptic } from './utils/haptics';
 
 const AppContent = () => {
     const { t, lang, setLang } = useTranslation();
@@ -688,6 +689,7 @@ const AppContent = () => {
     const [planLogs, setPlanLogs] = useState<{ itemId: string; eventId: string }[]>([]);
     const handleLogPlanItem = (item: PlanItem) => {
         const eventId = uuidv4();
+        haptic('success');
         addEvent(planEvent(item, eventId, Date.now()));
         setPlanLogs(logs => [...logs, { itemId: item.id, eventId }]);
     };
@@ -1027,6 +1029,7 @@ const AppContent = () => {
                             setIsQuickAddOpen={setIsQuickAddOpen}
                             doseTemplates={doseTemplates}
                             onSaveEvent={e => {
+                                haptic('success');
                                 if (events.find(p => p.id === e.id)) updateEvent(e);
                                 else addEvent(e);
                             }}
@@ -1054,6 +1057,7 @@ const AppContent = () => {
                             events={events}
                             simulation={simulation}
                             onSaveLabResult={r => {
+                                haptic('success');
                                 if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
                                 else addLabResult(r);
                             }}

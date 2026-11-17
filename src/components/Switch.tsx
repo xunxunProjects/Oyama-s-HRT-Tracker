@@ -1,4 +1,5 @@
 import React from 'react';
+import { haptic } from '../utils/haptics';
 
 /**
  * The one on/off switch in the app, at iOS proportions: a 22px knob on a
@@ -27,7 +28,10 @@ const Switch: React.FC<{
         aria-checked={checked}
         aria-label={label}
         aria-describedby={describedBy}
-        onClick={() => onChange(!checked)}
+        onClick={() => {
+            haptic('tap');
+            onChange(!checked);
+        }}
         className={`relative inline-flex switch-track h-[1.625rem] w-11 shrink-0 items-center rounded-full ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
     >
         <span

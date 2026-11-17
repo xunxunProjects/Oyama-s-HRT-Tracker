@@ -124,6 +124,8 @@ export const RU = {
     'settings.cat_style.pink': 'Розовый',
     'settings.pixel_cats': 'Пиксельные котики',
     'settings.pixel_cats_desc': 'Показывать пиксельных котиков в обзоре и на пустых страницах',
+    'settings.haptics': 'Тактильный отклик',
+    'settings.haptics_desc': 'Лёгкая вибрация при сохранении, переключении и подтверждении',
     'settings.prediction': 'Кривая прогноза',
     'settings.prediction_desc': 'Продолжать график обзора после текущего момента пунктиром, по вашему плану приёма',
     'app.title': 'HRT Tracker',

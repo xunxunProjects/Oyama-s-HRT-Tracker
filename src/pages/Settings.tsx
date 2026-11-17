@@ -6,6 +6,7 @@ import { DoseEvent, PKCustomParams } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { usePixelCats, CatStyle } from '../contexts/PixelCatContext';
 import Switch from '../components/Switch';
+import { hapticsEnabled, hapticsSupported, setHapticsEnabled } from '../utils/haptics';
 import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
@@ -200,6 +201,7 @@ const Settings: React.FC<SettingsProps> = ({
     // A hint, not a countdown: the row is read when Settings opens. The page
     // behind it always has the live status.
     const [voteClosed] = useState(() => voteStatusAt(Math.floor(Date.now() / 1000)) === 'closed');
+    const [haptics, setHaptics] = useState(hapticsEnabled);
 
     const selectCat = (c: SettingsCat) => {
         _savedCat = c;
@@ -378,6 +380,18 @@ const Settings: React.FC<SettingsProps> = ({
                             ))}
                         </div>
                     </div>
+                )}
+                {/* Only where the device can buzz: a laptop has nothing to feel. */}
+                {hapticsSupported() && (
+                    <SwitchRow
+                        label={t('settings.haptics')}
+                        desc={t('settings.haptics_desc')}
+                        checked={haptics}
+                        onChange={on => {
+                            setHapticsEnabled(on);
+                            setHaptics(on);
+                        }}
+                    />
                 )}
             </div>
 

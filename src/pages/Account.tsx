@@ -50,6 +50,7 @@ import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 import { BusyLabel } from '../components/StableLabel';
+import { haptic } from '../utils/haptics';
 
 interface LocalData {
     events: any[];
@@ -168,6 +169,9 @@ const Account: React.FC<AccountProps> = ({
     const [password, setPassword] = useState('');
     const [authError, setAuthError] = useState<string | null>(null);
     const [authLoading, setAuthLoading] = useState(false);
+    useEffect(() => {
+        if (authError) haptic('error');
+    }, [authError]);
     const [needsTOTP, setNeedsTOTP] = useState(false);
     const [twoFAMethod, setTwoFAMethod] = useState<'totp' | 'passkey' | null>(null);
     const [totpCode, setTotpCode] = useState('');

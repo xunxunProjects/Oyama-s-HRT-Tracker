@@ -123,6 +123,8 @@ export const UK = {
     'settings.cat_style.pink': 'Рожевий',
     'settings.pixel_cats': 'Піксельні котики',
     'settings.pixel_cats_desc': 'Показувати піксельних котиків в огляді та на порожніх сторінках',
+    'settings.haptics': 'Тактильний відгук',
+    'settings.haptics_desc': 'Легка вібрація під час збереження, перемикання та підтвердження',
     'settings.prediction': 'Крива прогнозу',
     'settings.prediction_desc': 'Продовжувати графік огляду після поточного моменту пунктиром, за вашим планом прийому',
     'app.title': 'HRT Tracker',

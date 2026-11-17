@@ -2,6 +2,7 @@ import { useState, useEffect, useId } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { PromptPlace, useInlineHost } from '../contexts/DialogContext';
 import { useEscape } from '../hooks/useEscape';
+import { haptic } from '../utils/haptics';
 
 interface PasswordPromptProps {
     isOpen: boolean;
@@ -51,6 +52,11 @@ const PasswordPrompt = ({
             setCode('');
         }
     }, [isOpen]);
+
+    // A wrong password gets two light ticks, so it's felt as well as read.
+    useEffect(() => {
+        if (isOpen && error) haptic('error');
+    }, [isOpen, error]);
 
     if (!isOpen) return null;
 

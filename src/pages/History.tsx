@@ -17,6 +17,7 @@ import type { DoseTemplate } from '../components/DoseForm';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 import { inertWhen } from '../utils/inert';
+import { haptic } from '../utils/haptics';
 
 const MAX_BATCH_COUNT = 365;
 
@@ -286,6 +287,7 @@ const History: React.FC<HistoryProps> = ({
                     extras: { ...e.extras },
                 });
             }
+            haptic('success');
             onAddEvents(list);
         } else {
             onSaveEvent(e);

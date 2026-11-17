@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from './LanguageContext';
 import { isSteppingBack } from '../hooks/navHistory';
 import { PAGE_COLUMN } from '../components/PageHeader';
+import { haptic } from '../utils/haptics';
 
 type DialogType = 'alert' | 'confirm';
 
@@ -275,7 +276,10 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
     // ("Deleted." after "Delete this?") would otherwise be shut by the close
     // that came after it.
     const handleConfirm = useCallback(() => {
-        const run = promptRef.current?.onConfirm;
+        const current = promptRef.current;
+        const run = current?.onConfirm;
+        // A confirm gone through gets a tap; an alert's OK is only a dismiss.
+        if (current?.type === 'confirm') haptic('tap');
         close();
         run?.();
     }, [close]);
