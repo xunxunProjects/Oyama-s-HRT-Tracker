@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import bcrypt from 'bcryptjs';
 import worker, { type Env } from '../worker';
-import { generateTOTPSecret, hotp } from '../src/server/totp';
+import { generateTOTPSecret, hmacSha256Hex, hotp } from '../src/server/totp';
 import { d1, hasSqlite, migratedDatabase, type SqliteDatabase } from './sqliteD1';
 
 // Security-sensitive account changes must prove the second factor, not only
@@ -242,5 +242,47 @@ describe.skipIf(!hasSqlite)('second-factor step-up for account changes', () => {
             password_hash: string;
         };
         expect(bcrypt.compareSync(NEW_PASSWORD, after.password_hash)).toBe(true);
+    });
+
+    it('requires a second factor before deleting a passkey-only account', async () => {
+        db.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').run('user-1');
+        db.prepare(
+            'INSERT INTO passkeys (id, user_id, credential_id, public_key_x, public_key_y, counter, device_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ).run('passkey-1', 'user-1', 'credential-1', 'x', 'y', 0, 'test');
+        const backupCode = 'ABCD-EFGH-IJKL';
+        const codeHash = await hmacSha256Hex(JWT_SECRET, backupCode.replace(/-/g, '').toLowerCase());
+        db.prepare('INSERT INTO backup_codes (id, user_id, code_hash) VALUES (?, ?, ?)').run(
+            'code-1',
+            'user-1',
+            codeHash,
+        );
+
+        const refused = await call('/api/user/me', {
+            method: 'DELETE',
+            token,
+            body: { password: PASSWORD },
+        });
+        expect(refused.response.status).toBe(403);
+        expect(refused.body?.code).toBe('STEP_UP_REQUIRED');
+        expect((db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get('user-1') as { n: number }).n).toBe(1);
+
+        const accepted = await call('/api/user/me', {
+            method: 'DELETE',
+            token,
+            body: { password: PASSWORD, backup_code: backupCode },
+        });
+        expect(accepted.response.status).toBe(200);
+        expect((db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get('user-1') as { n: number }).n).toBe(0);
+    });
+
+    it('allows password-only account deletion when no second factor exists', async () => {
+        db.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').run('user-1');
+        const accepted = await call('/api/user/me', {
+            method: 'DELETE',
+            token,
+            body: { password: PASSWORD },
+        });
+        expect(accepted.response.status).toBe(200);
+        expect((db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get('user-1') as { n: number }).n).toBe(0);
     });
 });
