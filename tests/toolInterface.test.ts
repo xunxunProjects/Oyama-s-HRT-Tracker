@@ -40,6 +40,15 @@ const login = async (password = PASSWORD) => {
     return result;
 };
 
+const ADMIN_PASSWORD = 'quiet maple orbit 73';
+
+const loginAdmin = () => call('/api/login', { body: { username: 'admin', password: ADMIN_PASSWORD } });
+
+const reauthAdmin = (token: string) => call('/api/admin/reauth', { body: { password: ADMIN_PASSWORD }, token });
+
+const jwtPayload = (token: string) =>
+    JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as Record<string, any>;
+
 describe('/api/tool/v1', () => {
     beforeEach(async () => {
         db = migratedDatabase();
@@ -419,12 +428,22 @@ describe('/api/tool/v1', () => {
                 'hash',
             );
 
-            const admin = await call('/api/login', {
-                body: { username: 'admin', password: 'quiet maple orbit 73' },
+            const admin = await loginAdmin();
+            const adminToken = admin.body?.token as string;
+
+            const refused = await call('/api/admin/users/user-1/password', {
+                body: { newPassword: 'amber river quiet lantern' },
+                token: adminToken,
             });
+            expect(refused.response.status).toBe(403);
+            expect(refused.body?.code).toBe('ADMIN_REAUTH_REQUIRED');
+
+            const reauth = await reauthAdmin(adminToken);
+            expect(reauth.response.status).toBe(200);
             const reset = await call('/api/admin/users/user-1/password', {
                 body: { newPassword: 'amber river quiet lantern' },
-                token: admin.body?.token as string,
+                token: adminToken,
+                headers: { 'X-Admin-Reauth': reauth.body?.token as string },
             });
             expect(reset.response.status).toBe(200);
             expect(reset.body?.credentialsCleared).toBe(true);
@@ -438,6 +457,50 @@ describe('/api/tool/v1', () => {
             expect(db.prepare('SELECT totp_secret FROM users WHERE id = ?').get('user-1')).toEqual({
                 totp_secret: null,
             });
+        });
+
+        it('requires a revocable admin session', async () => {
+            env = {
+                ...env,
+                ADMIN_USERNAME: 'admin',
+                ADMIN_PASSWORD: 'quiet maple orbit 73',
+            } as unknown as Env;
+            const admin = await loginAdmin();
+            const adminToken = admin.body?.token as string;
+            const sid = jwtPayload(adminToken).sid;
+            expect(typeof sid).toBe('string');
+
+            const revoked = await call(`/api/user/sessions/${sid}`, {
+                method: 'DELETE',
+                token: adminToken,
+            });
+            expect(revoked.response.status).toBe(200);
+
+            const after = await call('/api/admin/users', { token: adminToken });
+            expect(after.response.status).toBe(401);
+        });
+
+        it('binds an admin reauthentication token to its session', async () => {
+            env = {
+                ...env,
+                ADMIN_USERNAME: 'admin',
+                ADMIN_PASSWORD: 'quiet maple orbit 73',
+            } as unknown as Env;
+            const first = await loginAdmin();
+            const second = await loginAdmin();
+            const firstToken = first.body?.token as string;
+            const secondToken = second.body?.token as string;
+
+            const reauth = await reauthAdmin(firstToken);
+            expect(reauth.response.status).toBe(200);
+
+            const wrongSession = await call('/api/admin/users/user-1/password', {
+                body: { newPassword: 'amber river quiet lantern' },
+                token: secondToken,
+                headers: { 'X-Admin-Reauth': reauth.body?.token as string },
+            });
+            expect(wrongSession.response.status).toBe(403);
+            expect(wrongSession.body?.code).toBe('ADMIN_REAUTH_REQUIRED');
         });
 
         it('answers malformed admin pagination instead of 500', async () => {

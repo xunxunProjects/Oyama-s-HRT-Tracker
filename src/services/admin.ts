@@ -1,4 +1,5 @@
 import { apiFetch, apiErrorFrom } from './apiClient';
+import { adminWrite } from './adminReauth';
 import type { BackupMeta } from './cloud';
 
 export interface AdminUser {
@@ -56,6 +57,20 @@ export interface PaginatedUsers {
 }
 
 export const adminService = {
+    /** Exchange the admin password for the short-lived write step-up token. */
+    async reauth(token: string, password: string): Promise<{ token: string; expiresAt: number }> {
+        const res = await apiFetch('/api/admin/reauth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ password }),
+        });
+        if (!res.ok) throw await apiErrorFrom(res);
+        return (await res.json()) as { token: string; expiresAt: number };
+    },
+
     async getUsers(token: string, query?: string, page: number = 1, limit: number = 20): Promise<PaginatedUsers> {
         const params = new URLSearchParams();
         if (query) params.set('q', query);
@@ -79,9 +94,8 @@ export const adminService = {
     },
 
     async deleteUser(token: string, userId: string): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
@@ -95,32 +109,26 @@ export const adminService = {
     },
 
     async deleteBackup(token: string, userId: string, backupId: string): Promise<void> {
-        const res = await apiFetch(
+        const res = await adminWrite(
+            token,
             `/api/admin/users/${encodeURIComponent(userId)}/backups/${encodeURIComponent(backupId)}`,
-            {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            },
+            { method: 'DELETE' },
         );
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async purgeBackups(token: string, userId: string): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/backups`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/backups`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     /** Also signs the target out everywhere; the count comes back so the operator sees it. */
     async changeUserPassword(token: string, userId: string, newPassword: string): Promise<{ sessionsRevoked: number }> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/password`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newPassword }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
@@ -129,30 +137,26 @@ export const adminService = {
     },
 
     async changeUsername(token: string, userId: string, username: string): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/username`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/username`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async setMemorial(token: string, userId: string, memorial: boolean): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/memorial`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/memorial`, {
             method: 'PUT',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ memorial }),
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
 
     async resetAvatar(token: string, userId: string): Promise<void> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/avatar`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/avatar`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw await apiErrorFrom(res);
     },
@@ -167,12 +171,9 @@ export const adminService = {
 
     /** Erase a user's second factors. Omit `scope` to clear every one of them. */
     async clearUser2FA(token: string, userId: string, scope: TwoFactorScope = 'all'): Promise<Cleared2FA> {
-        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
+        const res = await adminWrite(token, `/api/admin/users/${encodeURIComponent(userId)}/2fa`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ scope }),
         });
         if (!res.ok) throw await apiErrorFrom(res);

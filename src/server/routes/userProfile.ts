@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 
 import { passwordCheckAllowed } from '../rateLimit';
 import { validateUsername, validatePassword, reservedForAdmin } from '../validation';
-import { consumeTOTP, verifyAndConsumeBackupCode } from '../totp';
 import { checkStepUp } from '../stepUp';
 import { ensureCommunityVoteSchema } from '../../../communityVoteServer';
 import { logDeletion } from '../userHelpers';
@@ -103,13 +102,13 @@ export async function handleUserProfileRoute(
                 ? jsonError('TOO_LARGE', 'Request body is too large', 413)
                 : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
         }
-        const { password, code, backup_code } = parsedBody.value;
+        const { password, code } = parsedBody.value;
         if (!(await passwordCheckAllowed(env, userId)))
             return jsonError('RATE_LIMITED', 'Too many attempts. Please try again later.', 429, {
                 'Retry-After': '60',
             });
         if (typeof password !== 'string') return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
-        const user = (await env.DB.prepare('SELECT password_hash, created_at, totp_secret FROM users WHERE id = ?')
+        const user = (await env.DB.prepare('SELECT password_hash, created_at FROM users WHERE id = ?')
             .bind(userId)
             .first()) as any;
 
@@ -119,14 +118,15 @@ export async function handleUserProfileRoute(
 
         if (!user || !passwordValid) return jsonError('INVALID_CREDENTIALS', 'Incorrect password', 401);
 
-        if (user.totp_secret) {
-            if (!code && !backup_code) {
-                return jsonError('TWO_FACTOR_REQUIRED', '2FA code required', 400);
-            }
-            const twoFAValid = backup_code
-                ? await verifyAndConsumeBackupCode(env, userId, String(backup_code), jwtSecret)
-                : await consumeTOTP(env, userId, user.totp_secret, String(code));
-            if (!twoFAValid) return jsonError('TWO_FACTOR_INVALID', 'Invalid 2FA code', 400);
+        const stepUp = await checkStepUp(env, userId, jwtSecret, {
+            ...parsedBody.value,
+            totp_code: parsedBody.value.totp_code ?? code,
+        });
+        if (stepUp === 'required') {
+            return jsonError('STEP_UP_REQUIRED', 'A current second factor is required', 403);
+        }
+        if (stepUp === 'invalid') {
+            return jsonError('TWO_FACTOR_INVALID', 'Invalid second factor', 401);
         }
 
         const deletedAt = Math.floor(Date.now() / 1000);

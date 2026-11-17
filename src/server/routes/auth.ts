@@ -196,15 +196,29 @@ export async function handleAuthRoute(ctx: RequestContext, jwtSecret: string): P
         };
 
         if (isAdminName && timingSafeEqual(password, adminP!)) {
-            const secret = new TextEncoder().encode(jwtSecret);
-            const token = await new SignJWT({ sub: 'admin', username: 'Admin', role: 'admin' })
-                .setProtectedHeader({ alg: 'HS256' })
-                .setIssuedAt()
-                .setExpirationTime('1d')
-                .sign(secret);
             await env.DB.prepare(
                 "INSERT OR IGNORE INTO users (id, username, password_hash) VALUES ('admin', 'Admin', 'env_managed')",
             ).run();
+            // The admin used to be the one token without a session row, which
+            // meant logout and revocation could not touch it until its 1-day
+            // expiry. Give the operator a normal revocable session too.
+            const adminSessionId = crypto.randomUUID();
+            const adminUserAgent = (request.headers.get('User-Agent') || 'Unknown').slice(0, 500);
+            const adminLoginIP = getClientIP(request, env) ?? 'unknown';
+            await env.DB.prepare('INSERT INTO sessions (id, user_id, device_info, ip) VALUES (?, ?, ?, ?)')
+                .bind(adminSessionId, 'admin', adminUserAgent, adminLoginIP)
+                .run();
+            const secret = new TextEncoder().encode(jwtSecret);
+            const token = await new SignJWT({
+                sub: 'admin',
+                username: 'Admin',
+                role: 'admin',
+                sid: adminSessionId,
+            })
+                .setProtectedHeader({ alg: 'HS256' })
+                .setIssuedAt()
+                .setExpirationTime('8h')
+                .sign(secret);
             await clearMisses();
             const adminDevicePass = await signLoginDevicePass(jwtSecret, account, `admin:${adminP}`);
             const adminBody = {

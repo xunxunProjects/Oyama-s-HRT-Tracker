@@ -548,16 +548,17 @@ export default {
                 if (tokenScope !== undefined && tokenScope !== 'f2f') {
                     return sessionInvalid('Invalid token');
                 }
-                // Every session token minted by this worker carries a `sid` (login,
-                // register and passkey-verify all insert a sessions row first); the
-                // admin token is the one deliberate exception.
-                if (payload.role !== 'admin' && !sessionId) {
+                // Every session token minted by this worker carries a `sid`
+                // (login, register, passkey-verify and admin login all insert a
+                // sessions row first). A token without one is not a session.
+                if (!sessionId) {
                     return sessionInvalid('Invalid token');
                 }
                 const userId = payload.sub as string;
 
-                // Session validation (only for user JWTs with a session ID)
-                if (sessionId && payload.role !== 'admin') {
+                // Session validation applies to admin sessions too, so logout
+                // and revocation actually end an admin token's life.
+                if (sessionId) {
                     const session = (await env.DB.prepare(
                         'SELECT last_used_at FROM sessions WHERE id = ? AND user_id = ?',
                     )

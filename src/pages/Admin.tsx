@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useSyncExternalStore } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
 import {
     Trash,
     Busy,
@@ -21,6 +21,8 @@ import { formatBytes } from '../utils/helpers';
 import { adminService, AdminUser, AdminUser2FA, TwoFactorScope, StorageReport } from '../services/admin';
 import type { BackupMeta } from '../services/cloud';
 import { useDialog } from '../contexts/DialogContext';
+import PasswordPrompt from '../components/PasswordPrompt';
+import { setAdminReauthPrompt } from '../services/adminReauth';
 import { useEscape } from '../hooks/useEscape';
 import { settingsSection, rowBleed } from '../components/SettingsListItem';
 import { noticeService, NoticeLevel, SiteNotice } from '../services/notice';
@@ -201,6 +203,32 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const wide = useWide();
     const [cat, setCat] = useState<AdminCat>(_savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
+
+    const [reauthOpen, setReauthOpen] = useState(false);
+    const reauthResolve = useRef<((password: string | null) => void) | null>(null);
+
+    useEffect(() => {
+        setAdminReauthPrompt(
+            () =>
+                new Promise<string | null>(resolve => {
+                    reauthResolve.current = resolve;
+                    setReauthOpen(true);
+                }),
+        );
+        return () => {
+            setAdminReauthPrompt(null);
+            const resolve = reauthResolve.current;
+            reauthResolve.current = null;
+            resolve?.(null);
+        };
+    }, []);
+
+    const finishReauth = (password: string | null) => {
+        setReauthOpen(false);
+        const resolve = reauthResolve.current;
+        reauthResolve.current = null;
+        resolve?.(password);
+    };
 
     const cats: { id: AdminCat; label: string; Icon: React.ElementType; hint: string }[] = [
         { id: 'users', label: 'Users', Icon: Users, hint: 'Accounts, sign-in and cloud backups' },
@@ -1345,6 +1373,14 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
     return (
         <div className="relative md:pb-32">
+            <PasswordPrompt
+                isOpen={reauthOpen}
+                onClose={() => finishReauth(null)}
+                onConfirm={password => finishReauth(password)}
+                title="Confirm admin password"
+                description="This action changes account data. Enter the admin password to continue."
+                masked
+            />
             {/* ── Phone: the four rows, then one of them ─────────────── */}
             {!wide && (
                 <div>

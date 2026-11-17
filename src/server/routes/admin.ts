@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
+import { SignJWT, jwtVerify } from 'jose';
 
 import { passwordCheckAllowed } from '../rateLimit';
+import { timingSafeEqual } from '../security';
 import { validateUsername, validatePassword, reservedForAdmin } from '../validation';
 import { ensureCommunityVoteSchema } from '../../../communityVoteServer';
 import { isMemorialAccount, logDeletion } from '../userHelpers';
@@ -23,6 +25,80 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
     if (!url.pathname.startsWith('/api/admin/')) return null;
 
     if (payload.role !== 'admin') return jsonError('FORBIDDEN', 'Forbidden', 403);
+
+    const requireAdminReauth = async (): Promise<Response | null> => {
+        if (request.method === 'GET' || url.pathname === '/api/admin/reauth') return null;
+        const stepUp = request.headers.get('X-Admin-Reauth');
+        if (!stepUp) return jsonError('ADMIN_REAUTH_REQUIRED', 'Admin re-authentication required', 403);
+        try {
+            const { payload: stepUpPayload } = await jwtVerify(stepUp, new TextEncoder().encode(ctx.jwtSecret), {
+                algorithms: ['HS256'],
+            });
+            if (
+                stepUpPayload.purpose !== 'admin-reauth' ||
+                stepUpPayload.sub !== 'admin' ||
+                stepUpPayload.role !== 'admin' ||
+                stepUpPayload.sid !== payload.sid
+            ) {
+                return jsonError('ADMIN_REAUTH_REQUIRED', 'Admin re-authentication required', 403);
+            }
+        } catch {
+            return jsonError('ADMIN_REAUTH_REQUIRED', 'Admin re-authentication required', 403);
+        }
+        return null;
+    };
+
+    // A destructive admin action needs the admin to prove the password again,
+    // not just present a token that could have been stolen from a browser.
+    // The resulting token is short-lived and bound to this admin session.
+    if (url.pathname === '/api/admin/reauth' && request.method === 'POST') {
+        if (!env.ADMIN_PASSWORD) {
+            return jsonError('NOT_CONFIGURED', 'Admin re-authentication is not configured', 503);
+        }
+        if (!(await passwordCheckAllowed(env, 'admin'))) {
+            return jsonError('RATE_LIMITED', 'Too many requests. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
+        const parsedBody = await readSmallJsonBody(request);
+        if (!parsedBody.ok) {
+            return parsedBody.tooLarge
+                ? jsonError('TOO_LARGE', 'Request body is too large', 413)
+                : jsonError('INVALID_REQUEST', 'Invalid JSON body', 400);
+        }
+        const password = (parsedBody.value as any).password;
+        if (typeof password !== 'string' || !timingSafeEqual(password, env.ADMIN_PASSWORD)) {
+            return jsonError('INVALID_CREDENTIALS', 'Invalid credentials', 401);
+        }
+        if (typeof payload.sid !== 'string' || !payload.sid) {
+            return jsonError('ADMIN_REAUTH_REQUIRED', 'Admin re-authentication required', 403);
+        }
+        const secret = new TextEncoder().encode(ctx.jwtSecret);
+        const token = await new SignJWT({
+            sub: 'admin',
+            username: 'Admin',
+            role: 'admin',
+            sid: payload.sid,
+            purpose: 'admin-reauth',
+        })
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt()
+            .setExpirationTime('5m')
+            .sign(secret);
+        return withSecurityHeaders(
+            new Response(JSON.stringify({ token, expiresAt: Date.now() + 5 * 60 * 1000 }), {
+                status: 200,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-store',
+                },
+            }),
+        );
+    }
+
+    const reauthError = await requireAdminReauth();
+    if (reauthError) return reauthError;
 
     // The user list reports each account's 2FA posture and the /2fa routes
     // below read and clear it, so the column and table both have to exist
@@ -427,9 +503,9 @@ export async function handleAdminRoute(ctx: RequestContext, payload: any): Promi
         // last_used_at so the idle timeout never fired either — the one
         // recovery path an operator has left the foothold in place. The
         // self-service change already does this, and so does the 2FA reset
-        // below. Unqualified DELETE is right here: the caller is the admin,
-        // whose token carries no `sid` and skips the session lookup, so this
-        // cannot sign the operator out.
+        // below. The batch below deletes the target user's sessions; the
+        // admin now has a real session row and is subject to the same
+        // middleware lookup as everyone else.
         // Counted before the batch — D1 exposes no portable per-statement
         // row count, and the admin UI reports what was removed.
         const sessRow = await env.DB.prepare(
