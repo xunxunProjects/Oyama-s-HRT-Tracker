@@ -126,7 +126,12 @@ export function createRequestContext(
     corsHeaders: Record<string, string>,
     privateCacheHeaders: Record<string, string>,
     withSecurityHeadersFn: (response: Response) => Response,
-    jsonErrorFn: (code: ApiErrorCode, message: string, status: number, extraHeaders?: Record<string, string>) => Response,
+    jsonErrorFn: (
+        code: ApiErrorCode,
+        message: string,
+        status: number,
+        extraHeaders?: Record<string, string>,
+    ) => Response,
     shareJsonFn: (body: unknown, status?: number, extraHeaders?: Record<string, string>) => Response,
     sessionInvalidFn: (message: string) => Response,
 ): RequestContext {
