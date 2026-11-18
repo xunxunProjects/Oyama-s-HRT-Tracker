@@ -25,7 +25,7 @@ Two findings from the 2026-11-18 codebase review are cheap to fix and have a lar
 | `src/pages/ShareSettings.tsx`          |      1 | `formatStamp(..., lang: string)` indexes `LOCALE_MAP`                                             |
 | `src/pages/TwoFactor.tsx`              |      1 | `setTotpEnabled(s.totp)` receives `boolean \| undefined`                                          |
 
-The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIAL`, `MIGRATION_REQUIRED`, `STEP_UP_REQUIRED`, `UNAVAILABLE`, and `UPSTREAM_ERROR`, none of which are in `ApiErrorCode`. The `string` annotation is what hides that.
+The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIAL`, `MIGRATION_REQUIRED`, `STEP_UP_REQUIRED`, `UNAVAILABLE`, `UPSTREAM_ERROR`, `ADMIN_REAUTH_REQUIRED`, and `NOT_CONFIGURED`, none of which are in `ApiErrorCode`. The `string` annotation is what hides that.
 
 ### 1.2 The first screen downloads every page
 

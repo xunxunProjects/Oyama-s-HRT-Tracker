@@ -24,7 +24,7 @@ Two cleanup PRs that are easier to land while the tree is quiet. Neither is a us
 
 ### PR 1 — TypeScript strict
 
-- Add the five error codes that `jsonError` already uses but `ApiErrorCode` does not declare: `ACCOUNT_MEMORIAL`, `MIGRATION_REQUIRED`, `STEP_UP_REQUIRED`, `UNAVAILABLE`, `UPSTREAM_ERROR`.
+- Add the seven error codes that `jsonError` already uses but `ApiErrorCode` does not declare: `ACCOUNT_MEMORIAL`, `MIGRATION_REQUIRED`, `STEP_UP_REQUIRED`, `UNAVAILABLE`, `UPSTREAM_ERROR`, `ADMIN_REAUTH_REQUIRED`, `NOT_CONFIGURED`.
 - Change `RequestContext.jsonError` and the `jsonErrorFn` parameter of `createRequestContext` from `code: string` to `code: ApiErrorCode`. Existing call sites pass string literals, so this is type-only.
 - Type the ester lookup tables in `src/domain/constants.ts` as `Partial<Record<Ester, number>>`; keep all current runtime fallbacks.
 - Small nullability fixes in `src/utils/authError.ts`, `src/utils/backupBundle.ts`, `src/pages/ShareSettings.tsx`, `src/pages/TwoFactor.tsx`, and `tests/backupBundle.test.ts`.

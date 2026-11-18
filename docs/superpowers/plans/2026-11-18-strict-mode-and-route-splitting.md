@@ -72,7 +72,7 @@
 
 **Interfaces:**
 
-- Produces: `ApiErrorCode` additionally contains `'ACCOUNT_MEMORIAL' | 'MIGRATION_REQUIRED' | 'STEP_UP_REQUIRED' | 'UNAVAILABLE' | 'UPSTREAM_ERROR'`.
+- Produces: `ApiErrorCode` additionally contains `'ACCOUNT_MEMORIAL' | 'MIGRATION_REQUIRED' | 'STEP_UP_REQUIRED' | 'UNAVAILABLE' | 'UPSTREAM_ERROR' | 'ADMIN_REAUTH_REQUIRED' | 'NOT_CONFIGURED'`.
 - Produces: `RequestContext.jsonError: (code: ApiErrorCode, message: string, status: number, extraHeaders?: Record<string, string>) => Response`.
 - Produces: `createRequestContext(..., jsonErrorFn: (code: ApiErrorCode, ...) => Response, ...)`.
 
@@ -87,7 +87,7 @@ npx tsc --noEmit --strict 2>&1 | grep -c '^worker.ts'
 
 Expected: 27 error lines total; the worker count is `10`.
 
-- [ ] **Step 2: Add the five missing codes to `ApiErrorCode`**
+- [ ] **Step 2: Add the seven missing codes to `ApiErrorCode`**
 
 The union currently ends with `'INTERNAL'`. Add these members next to their related codes:
 
@@ -101,11 +101,13 @@ The union currently ends with `'INTERNAL'`. Add these members next to their rela
     | 'UNAVAILABLE'
     | 'UPSTREAM_ERROR'
     | 'NOT_IMPLEMENTED'
+    | 'NOT_CONFIGURED'
     | 'STEP_UP_REQUIRED'
+    | 'ADMIN_REAUTH_REQUIRED'
     | 'INTERNAL';
 ```
 
-These are the five literal codes used by `jsonError` that the union lacked. `NO_SNAPSHOT` stays even though no current `jsonError` literal uses it.
+These are the seven literal codes used by `jsonError` that the union lacked; narrowing the signature also exposes `ADMIN_REAUTH_REQUIRED` and `NOT_CONFIGURED` in `src/server/routes/admin.ts`. `NO_SNAPSHOT` stays even though no current `jsonError` literal uses it.
 
 - [ ] **Step 3: Narrow the two function signatures**
 
