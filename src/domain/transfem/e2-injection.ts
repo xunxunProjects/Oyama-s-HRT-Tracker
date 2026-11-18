@@ -12,7 +12,7 @@ export function _getE2InjFF(ester: Ester): number {
     if (ester === Ester.EC) return p.e2_ff_EC;
     if (ester === Ester.EN) return p.e2_ff_EN;
     if (ester === Ester.EU) return p.e2_ff_EU;
-    if (ester === Ester.E2) return InjectionPK.formationFraction[Ester.E2];
+    if (ester === Ester.E2) return InjectionPK.formationFraction[Ester.E2] ?? 1;
     return 0.08;
 }
 

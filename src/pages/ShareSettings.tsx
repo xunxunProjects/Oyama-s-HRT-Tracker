@@ -6,6 +6,7 @@ import { CopyTick } from '../components/Tick';
 import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
 import { useTranslation } from '../contexts/LanguageContext';
+import type { Lang } from '../i18n/translations';
 import { getShareCopy } from '../i18n/share';
 import {
     CreatedShare,
@@ -50,7 +51,7 @@ const toLocalDateTimeValue = (timestamp: number): string => {
 
 // `toLocaleString()` renders seconds, which makes every timestamp in the list
 // read as noise. Share stamps only ever matter to the minute.
-const formatStamp = (timestamp: number, lang: string): string =>
+const formatStamp = (timestamp: number, lang: Lang): string =>
     new Date(timestamp).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
         month: 'short',
         day: 'numeric',

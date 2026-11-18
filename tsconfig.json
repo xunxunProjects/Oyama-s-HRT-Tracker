@@ -5,6 +5,7 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    "strict": true,
     "types": ["node", "@cloudflare/workers-types"],
     "moduleResolution": "bundler",
     "isolatedModules": true,
