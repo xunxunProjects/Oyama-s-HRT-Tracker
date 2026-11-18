@@ -41,6 +41,12 @@ const CREATED_AT = '2030-01-01T00:00:00.000Z';
 const NOW = Date.UTC(2030, 0, 2);
 const TOMBSTONE_AT = NOW - 60_000;
 
+const modeOf = (result: ReturnType<typeof mergeCompleteBackupBundleToStorage>, key: ModeKey) => {
+    const mode = result.modes[key];
+    if (!mode) throw new Error(`merge result has no ${key} mode`);
+    return mode;
+};
+
 /** Fails selected setItem calls so a mid-import write error can be tested. */
 class FlakyStorage extends MemoryStorage {
     private calls = 0;
@@ -276,8 +282,8 @@ describe('complete backup bundle data layer', () => {
         const result = mergeCompleteBackupBundleToStorage(bundle, context(target));
         expect(result.blocked).toEqual([]);
         expect(result.added).toBe(22);
-        expect(result.modes.transfem.events?.[0].id).toBe('tf-e1');
-        expect(result.modes.transmasc.events?.[0].id).toBe('tm-e1');
+        expect(modeOf(result, 'transfem').events?.[0].id).toBe('tf-e1');
+        expect(modeOf(result, 'transmasc').events?.[0].id).toBe('tm-e1');
         expect(JSON.parse(target.getItem(key('transfem', 'supplies'))!)).toHaveLength(6);
         expect(JSON.parse(target.getItem(key('transmasc', 'supplies'))!)).toHaveLength(6);
         expect(JSON.parse(target.getItem(key('transfem', 'supplies'))!)[4].pack).toEqual({ kind: 'patch' });
@@ -315,7 +321,7 @@ describe('complete backup bundle data layer', () => {
         expect(target.getItem(key('transfem', 'supplies'))).toBeNull();
         // Other categories still land.
         expect(target.getItem(key('transfem', 'events'))).not.toBeNull();
-        expect(result.modes.transmasc.supplies).toHaveLength(6);
+        expect(modeOf(result, 'transmasc').supplies).toHaveLength(6);
 
         for (const pack of [{ kind: 'unknown' }, { kind: 'pill' }, { kind: 'vial', ml: 0, mgPerMl: 40 }]) {
             const invalid = JSON.parse(JSON.stringify(bundle)) as CompleteBackupBundle;
@@ -338,7 +344,7 @@ describe('complete backup bundle data layer', () => {
 
         const merged = mergeCompleteBackupBundleToStorage(duplicate, context(new MemoryStorage()));
         expect(merged.blocked).toContain('transfem.supplies');
-        expect(merged.modes.transfem.supplies).toBeUndefined();
+        expect(modeOf(merged, 'transfem').supplies).toBeUndefined();
 
         const invalid = JSON.parse(JSON.stringify(bundle)) as CompleteBackupBundle;
         (invalid.modes.transfem.events![0] as { route: unknown }).route = 'not-a-route';
@@ -346,8 +352,8 @@ describe('complete backup bundle data layer', () => {
         expect(invalidPreview.blocked).toContain('transfem.events');
         expect(invalidPreview.issues.join(' ')).toContain('unknown route');
         const invalidMerge = mergeCompleteBackupBundleToStorage(invalid, context(new MemoryStorage()));
-        expect(invalidMerge.modes.transfem.events).toBeUndefined();
-        expect(invalidMerge.modes.transfem.labResults).toHaveLength(1);
+        expect(modeOf(invalidMerge, 'transfem').events).toBeUndefined();
+        expect(modeOf(invalidMerge, 'transfem').labResults).toHaveLength(1);
     });
 
     it('aborts a category when the same id exists without a reliable updatedAt', () => {
@@ -374,8 +380,8 @@ describe('complete backup bundle data layer', () => {
         expect(result.blocked).toContain('transfem.supplies');
         expect(JSON.parse(local.getItem(key('transfem', 'events'))!)).toHaveLength(1);
         expect(JSON.parse(local.getItem(key('transfem', 'supplies'))!)).toHaveLength(1);
-        expect(result.modes.transfem.events).toBeUndefined();
-        expect(result.modes.transmasc.events?.[0].id).toBe('tm-e1');
+        expect(modeOf(result, 'transfem').events).toBeUndefined();
+        expect(modeOf(result, 'transmasc').events?.[0].id).toBe('tm-e1');
     });
 
     it('applies newer timestamps and skips older ones for stamped records', () => {

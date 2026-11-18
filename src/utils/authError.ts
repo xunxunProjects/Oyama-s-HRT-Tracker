@@ -1,5 +1,6 @@
 import { ApiError, apiErrorCode } from '../services/apiClient';
 import { LOCALE_MAP } from './helpers';
+import type { Lang } from '../i18n/translations';
 
 /**
  * The words for a failed sign-in. The worker answers in English, and showing
@@ -7,7 +8,7 @@ import { LOCALE_MAP } from './helpers';
  * The two failures a person causes by typing get the translated line; anything
  * else keeps the server's message, which is at least specific.
  */
-export const describeAuthError = (err: unknown, t: (key: string) => string, lang?: string): string => {
+export const describeAuthError = (err: unknown, t: (key: string) => string, lang?: Lang): string => {
     const code = apiErrorCode(err);
     if (code === 'INVALID_CREDENTIALS') return t('auth.invalid_credentials');
     if (code === 'TWO_FACTOR_INVALID') return t('account.2fa_verify_failed');
