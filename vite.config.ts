@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { resolveApiOrigin } from './e2e/apiOrigin';
 
 export default defineConfig(() => {
     return {
@@ -9,7 +10,7 @@ export default defineConfig(() => {
             host: '0.0.0.0',
             proxy: {
                 '/api': {
-                    target: process.env.E2E_API_ORIGIN ?? 'http://127.0.0.1:8787',
+                    target: resolveApiOrigin(),
                     changeOrigin: true,
                     secure: false,
                 },

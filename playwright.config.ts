@@ -2,13 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { resolveApiPort } from './e2e/apiOrigin';
 
 /**
  * Local runs may have a browser cached under an older revision than the
  * Playwright package expects. Point at it explicitly when asked; CI installs
  * the matching browser instead.
  */
-const apiPort = process.env.E2E_API_PORT ?? '8787';
+const apiPort = resolveApiPort();
 
 const executablePath =
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||

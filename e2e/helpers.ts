@@ -1,7 +1,8 @@
 import { expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { resolveApiOrigin } from './apiOrigin';
 
-export const API_ORIGIN = process.env.E2E_API_ORIGIN ?? 'http://127.0.0.1:8787';
+export const API_ORIGIN = resolveApiOrigin();
 export const SYNTHETIC_PASSWORD = 'Synthetic-E2E-Pass-2026!';
 
 export type Mode = 'transfem' | 'transmasc';
