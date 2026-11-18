@@ -58,6 +58,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Bundle budget and precache coverage
+        run: npm run size
+
   browser:
     name: Browser E2E
     runs-on: ubuntu-latest
