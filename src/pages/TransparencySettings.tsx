@@ -14,7 +14,7 @@ interface TransparencyStats {
     self_deleted_count: number;
     admin_deleted_7d: number;
     self_deleted_7d: number;
-    recent_registrations: { anon_id: string; created_at: number }[];
+    recent_registrations: number[];
     server_time: number;
 }
 
@@ -156,14 +156,10 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                             {t('transparency.recent.empty')}
                         </p>
                     ) : (
-                        (stats?.recent_registrations ?? []).map((r, idx) => (
-                            <div
-                                key={`${r.anon_id}-${r.created_at}-${idx}`}
-                                className="flex items-center justify-between py-3"
-                            >
-                                <span className="text-sm text-[var(--text)]">user_{r.anon_id}***</span>
+                        (stats?.recent_registrations ?? []).map((createdAt, idx) => (
+                            <div key={`${createdAt}-${idx}`} className="flex items-center justify-end py-3">
                                 <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                                    {formatRelative(r.created_at, now, t)}
+                                    {formatRelative(createdAt, now, t)}
                                 </span>
                             </div>
                         ))

@@ -14,6 +14,7 @@ import {
     verifyPasskeyAssertion,
 } from '../webauthn';
 import { timingSafeEqual } from '../security';
+import { consumeWebAuthnChallenge, storeWebAuthnChallenge } from '../webauthnChallenges';
 import { isMemorialAccount, MEMORIAL_MESSAGE } from '../userHelpers';
 import { signLoginDevicePass, loginDevicePassValid } from '../loginDevice';
 import { addToolLoginFields, toolVersionBody } from '../../../toolApi';
@@ -388,17 +389,21 @@ export async function handleAuthRoute(ctx: RequestContext, jwtSecret: string): P
         const secret = new TextEncoder().encode(jwtSecret);
 
         let credentialIds: string[] = [];
+        let challengeUserId: string | null = null;
         if (username) {
             const userRow = (await env.DB.prepare('SELECT id FROM users WHERE username = ?')
                 .bind(String(username).trim())
                 .first()) as any;
             if (userRow) {
+                challengeUserId = userRow.id;
                 const rows = await env.DB.prepare('SELECT credential_id FROM passkeys WHERE user_id = ?')
                     .bind(userRow.id)
                     .all();
                 credentialIds = (rows.results || []).map((r: any) => r.credential_id);
             }
         }
+
+        await storeWebAuthnChallenge(env, challenge, 'passkey-auth', challengeUserId);
 
         const challengeToken = await new SignJWT({ challenge, purpose: 'passkey-auth', origin })
             .setProtectedHeader({ alg: 'HS256' })
@@ -449,6 +454,9 @@ export async function handleAuthRoute(ctx: RequestContext, jwtSecret: string): P
         }
         if (challengePayload.purpose !== 'passkey-auth') {
             return jsonError('INVALID_REQUEST', 'Invalid challenge purpose', 400);
+        }
+        if (!(await consumeWebAuthnChallenge(env, challengePayload.challenge as string, 'passkey-auth'))) {
+            return jsonError('INVALID_REQUEST', 'Challenge already used or expired', 400);
         }
 
         const passkeyRow = (await env.DB.prepare('SELECT * FROM passkeys WHERE credential_id = ?')

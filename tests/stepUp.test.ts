@@ -201,6 +201,23 @@ describe.skipIf(!hasSqlite)('second-factor step-up for account changes', () => {
         expect((db.prepare('SELECT COUNT(*) AS n FROM passkeys').get() as { n: number }).n).toBe(0);
     });
 
+    it('rejects a replayed passkey registration challenge', async () => {
+        const registration = await makeRegistration();
+        const body = {
+            ...registration,
+            password: PASSWORD,
+            totp_code: await currentTotp(),
+        };
+
+        const first = await call('/api/user/passkey/register', { token, body });
+        expect(first.response.status).toBe(201);
+
+        const replay = await call('/api/user/passkey/register', { token, body });
+        expect(replay.response.status).toBe(400);
+        expect(replay.body?.code).toBe('INVALID_REQUEST');
+        expect((db.prepare('SELECT COUNT(*) AS n FROM passkeys').get() as { n: number }).n).toBe(1);
+    });
+
     it('requires a current second factor before enrolling a new passkey', async () => {
         const registration = await makeRegistration();
 
@@ -217,11 +234,12 @@ describe.skipIf(!hasSqlite)('second-factor step-up for account changes', () => {
         expect(refused.body?.code).toBe('STEP_UP_REQUIRED');
         expect((db.prepare('SELECT COUNT(*) AS n FROM passkeys').get() as { n: number }).n).toBe(0);
 
+        const acceptedRegistration = await makeRegistration();
         const accepted = await call('/api/user/passkey/register', {
             token,
             body: {
-                challengeToken: registration.challengeToken,
-                credential: registration.credential,
+                challengeToken: acceptedRegistration.challengeToken,
+                credential: acceptedRegistration.credential,
                 deviceName: 'laptop',
                 password: PASSWORD,
                 totp_code: await currentTotp(),

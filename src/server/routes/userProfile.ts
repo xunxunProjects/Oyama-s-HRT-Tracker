@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-import { passwordCheckAllowed } from '../rateLimit';
+import { checkRateLimit, passwordCheckAllowed } from '../rateLimit';
 import { validateUsername, validatePassword, reservedForAdmin } from '../validation';
 import { checkStepUp } from '../stepUp';
 import { ensureCommunityVoteSchema } from '../../../communityVoteServer';
@@ -172,6 +172,11 @@ export async function handleUserProfileRoute(
 
     // Avatar PUT
     if (url.pathname === '/api/user/avatar' && request.method === 'PUT') {
+        if (!(await checkRateLimit(env, `avatar-upload:${userId}`, 10))) {
+            return jsonError('RATE_LIMITED', 'Too many avatar uploads. Please try again later.', 429, {
+                'Retry-After': '60',
+            });
+        }
         const body = await readSmallBody(request, 5 * 1024 * 1024);
         if (!body.ok) {
             return body.tooLarge

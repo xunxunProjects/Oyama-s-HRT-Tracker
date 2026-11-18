@@ -249,14 +249,18 @@ export const sharingService = {
         return (await response.json()) as { updated: number; updatedAt: number };
     },
 
-    async replaceWrappedKeys(authToken: string, keys: { id: string; wrappedKey: WrappedShareKey }[]): Promise<void> {
+    async replaceWrappedKeys(
+        authToken: string,
+        keys: { id: string; wrappedKey: WrappedShareKey }[],
+        password: string,
+    ): Promise<void> {
         const response = await apiFetch(apiEndpoint('/api/shares/keys'), {
             method: 'PUT',
             headers: {
                 Authorization: `Bearer ${authToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ keys }),
+            body: JSON.stringify({ keys, password }),
         });
         if (!response.ok) throw await readError(response);
     },
@@ -281,7 +285,12 @@ export const notifyLiveSharesChanged = (): void => {
  * to the new one, so this account's devices can keep those links updated.
  * Keys this device cannot open are left as they are.
  */
-export async function rewrapLiveShareKeys(authToken: string, oldCloudKey: string, newCloudKey: string): Promise<void> {
+export async function rewrapLiveShareKeys(
+    authToken: string,
+    oldCloudKey: string,
+    newCloudKey: string,
+    password: string,
+): Promise<void> {
     const shares = await sharingService.list(authToken);
     const keys: { id: string; wrappedKey: WrappedShareKey }[] = [];
     for (const share of shares) {
@@ -289,5 +298,5 @@ export async function rewrapLiveShareKeys(authToken: string, oldCloudKey: string
         const opened = await unwrapShareKey(share.wrappedKey, oldCloudKey);
         if (opened) keys.push({ id: share.id, wrappedKey: await wrapShareKey(opened.key, opened.mode, newCloudKey) });
     }
-    if (keys.length > 0) await sharingService.replaceWrappedKeys(authToken, keys);
+    if (keys.length > 0) await sharingService.replaceWrappedKeys(authToken, keys, password);
 }

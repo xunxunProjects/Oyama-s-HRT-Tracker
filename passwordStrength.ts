@@ -12,7 +12,7 @@ export type PasswordStrength = 'weak' | 'fair' | 'strong';
 export const MIN_PASSWORD_LENGTH = 8;
 
 /** Below this many estimated bits a password is refused. */
-export const WEAK_BITS = 40;
+export const WEAK_BITS = 50;
 /** At or above this many estimated bits a password reads as strong. */
 export const STRONG_BITS = 60;
 

@@ -930,6 +930,11 @@ export default {
                 }
                 await sweepExpiredShares(env);
                 try {
+                    await env.DB.prepare('DELETE FROM webauthn_challenges WHERE expires_at <= ?').bind(now).run();
+                } catch (e) {
+                    console.error('Failed to sweep WebAuthn challenges:', e);
+                }
+                try {
                     await sweepF2fCohorts(env);
                 } catch (e) {
                     console.error('Failed to sweep F2F cohorts:', e);

@@ -57,6 +57,7 @@ COPY --from=build /app/src/server/totp.ts ./src/server/totp.ts
 COPY --from=build /app/src/server/stepUp.ts ./src/server/stepUp.ts
 COPY --from=build /app/src/server/storageBudget.ts ./src/server/storageBudget.ts
 COPY --from=build /app/src/server/webauthn.ts ./src/server/webauthn.ts
+COPY --from=build /app/src/server/webauthnChallenges.ts ./src/server/webauthnChallenges.ts
 COPY --from=build /app/src/server/validation.ts ./src/server/validation.ts
 COPY --from=build /app/src/server/userHelpers.ts ./src/server/userHelpers.ts
 COPY --from=build /app/migrations ./migrations

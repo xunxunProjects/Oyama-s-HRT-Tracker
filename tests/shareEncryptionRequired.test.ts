@@ -86,6 +86,57 @@ describe.skipIf(!hasSqlite)('share encryption is mandatory', () => {
         expect(result.body?.code).toBe('ENCRYPTION_REQUIRED');
     });
 
+    it('requires the owner password before rotating live-share wrapped keys', async () => {
+        const envelope = { e2ee: 1, z: 0, iv: 'AAAAAAAAAAAAAAAA', data: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' };
+        const wrappedKey = { cloud: 1, iv: 'AAAAAAAAAAAAAAAA', data: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' };
+        const created = await call('/api/shares', {
+            token,
+            body: {
+                encryptedSnapshot: envelope,
+                live: true,
+                wrappedKey,
+                expiresAt: Date.now() + 3_600_000,
+            },
+        });
+        expect(created.response.status).toBe(201);
+        const id = created.body?.id as string;
+        expect(id).toBeTruthy();
+        const original = (
+            db.prepare('SELECT key_wrapped FROM dosage_shares WHERE id = ?').get(id) as {
+                key_wrapped: string;
+            }
+        ).key_wrapped;
+
+        const replacement = { cloud: 1, iv: 'BBBBBBBBBBBBBBBB', data: 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB' };
+        const withoutPassword = await call('/api/shares/keys', {
+            method: 'PUT',
+            token,
+            body: { keys: [{ id, wrappedKey: replacement }] },
+        });
+        expect(withoutPassword.response.status).toBe(401);
+
+        const wrongPassword = await call('/api/shares/keys', {
+            method: 'PUT',
+            token,
+            body: { password: 'wrong password here', keys: [{ id, wrappedKey: replacement }] },
+        });
+        expect(wrongPassword.response.status).toBe(401);
+
+        const rotated = await call('/api/shares/keys', {
+            method: 'PUT',
+            token,
+            body: { password: PASSWORD, keys: [{ id, wrappedKey: replacement }] },
+        });
+        expect(rotated.response.status).toBe(200);
+        expect(rotated.body?.updated).toBe(1);
+        const updated = (
+            db.prepare('SELECT key_wrapped FROM dosage_shares WHERE id = ?').get(id) as {
+                key_wrapped: string;
+            }
+        ).key_wrapped;
+        expect(updated).not.toBe(original);
+    });
+
     it('refuses and scrubs a legacy plaintext row', async () => {
         const tokenHash = await hashToken(RAW_TOKEN);
         const now = Math.floor(Date.now() / 1000);

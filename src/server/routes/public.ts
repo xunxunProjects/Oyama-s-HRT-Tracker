@@ -69,19 +69,12 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
             env.DB.prepare("SELECT COUNT(*) AS n FROM deletion_log WHERE reason = 'self' AND deleted_at >= ?")
                 .bind(now - 7 * day)
                 .first<{ n: number }>(),
-            env.DB.prepare(
-                "SELECT id, created_at FROM users WHERE id != 'admin' ORDER BY created_at DESC LIMIT 10",
-            ).all<{ id: string; created_at: number }>(),
+            env.DB.prepare("SELECT created_at FROM users WHERE id != 'admin' ORDER BY created_at DESC LIMIT 10").all<{
+                created_at: number;
+            }>(),
         ]);
 
-        const recent = (recentRows.results || []).map(r => ({
-            anon_id: String(r.id)
-                .replace(/[^a-f0-9]/gi, '')
-                .slice(0, 4)
-                .toLowerCase()
-                .padEnd(4, '0'),
-            created_at: Math.floor((r.created_at ?? 0) / HOUR) * HOUR,
-        }));
+        const recent = (recentRows.results || []).map(r => Math.floor((r.created_at ?? 0) / HOUR) * HOUR);
 
         const body = {
             total_users: totalUsersRow?.n ?? 0,
@@ -288,17 +281,7 @@ export async function handlePublicRoutes(ctx: RequestContext): Promise<Response 
             if (!userId) return genericNotFound();
 
             const object = await env.AVATAR_BUCKET.get(`hrt-tracker-user-avatar/${userId}`);
-            if (!object) {
-                return withSecurityHeaders(
-                    new Response(null, {
-                        status: 204,
-                        headers: {
-                            'Access-Control-Allow-Origin': '*',
-                            'Cache-Control': 'no-store',
-                        },
-                    }),
-                );
-            }
+            if (!object) return genericNotFound();
 
             const headers = new Headers();
             object.writeHttpMetadata(headers);

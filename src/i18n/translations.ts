@@ -891,6 +891,8 @@ export const TRANSLATIONS_BASE = {
         'account.sign_out': '退出登录',
         'account.sign_out_confirm':
             '你的记录会随账户保留在这台设备上，再次登录后就会回来。退出期间，这里只显示退出后记下的内容。',
+        'account.sign_out_confirm_clear':
+            '退出登录会从这台设备删除本地健康记录；云端的加密备份仍保留在你的账户中，重新登录后可以恢复。',
         'auth.sign_in': '登录',
         'auth.sign_up': '注册',
         'auth.username': '用户名',
@@ -2298,6 +2300,8 @@ export const TRANSLATIONS_BASE = {
         'account.sign_out': 'Sign out',
         'account.sign_out_confirm':
             "Your records stay on this device with your account, and come back when you sign in again. While you're signed out, the app shows only what you record after signing out.",
+        'account.sign_out_confirm_clear':
+            'Signing out removes this account\u2019s local health records from this device. Encrypted cloud backups stay in your account and can be restored after you sign in again.',
         'auth.sign_in': 'Sign in',
         'auth.sign_up': 'Sign up',
         'auth.username': 'Username',

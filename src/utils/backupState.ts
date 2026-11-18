@@ -186,6 +186,44 @@ export const nsFor = (owner: string, suffix: string): string =>
 export const modeKeyFor = (owner: string, mode: ModeKey, suffix: string): string =>
     nsFor(owner, mode === 'transmasc' ? `masc-${suffix}` : suffix);
 
+/** Every localStorage key suffix that belongs to a signed-in account. */
+export const MODE_SUFFIXES = [
+    'events',
+    'lab-results',
+    'dose-templates',
+    'quick-doses',
+    'plan',
+    'plan-at',
+    'supplies',
+    'deletions',
+] as const;
+export const SHARED_SUFFIXES = [
+    'weight',
+    'pk-params',
+    'cal-method',
+    'cal-history-mode',
+    'weight-at',
+    'pk-params-at',
+    'birth-year',
+    'birth-year-at',
+    'age-beta',
+    'model-settings-at',
+] as const;
+
+/**
+ * Remove the account's unencrypted health records from this device. Called on
+ * explicit sign-out and account deletion so a shared device does not keep the
+ * previous user's dose history. Cloud backups are unaffected; signed-out
+ * (`local`) records are deliberately left alone.
+ */
+export function clearAccountHealthData(storage: StorageLike, owner: string): void {
+    if (owner === 'local') return;
+    for (const mode of MODE_KEYS) {
+        for (const suffix of MODE_SUFFIXES) storage.removeItem(modeKeyFor(owner, mode, suffix));
+    }
+    for (const suffix of SHARED_SUFFIXES) storage.removeItem(nsFor(owner, suffix));
+}
+
 export const loadJSONFromStorage = <T>(storage: StorageLike, key: string, fallback: T): T => {
     try {
         const s = storage.getItem(key);

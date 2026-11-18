@@ -48,57 +48,6 @@ import { RecordKind, SyncState, Tombstones } from '../utils/syncMerge';
 /** Namespace used while signed out. Its keys are the original, un-prefixed ones. */
 const LOCAL_OWNER = 'local';
 
-const MODE_SUFFIXES = [
-    'events',
-    'lab-results',
-    'dose-templates',
-    'quick-doses',
-    'plan',
-    'plan-at',
-    'supplies',
-    'deletions',
-] as const;
-const SHARED_SUFFIXES = [
-    'weight',
-    'pk-params',
-    'cal-method',
-    'cal-history-mode',
-    'weight-at',
-    'pk-params-at',
-    'birth-year',
-    'birth-year-at',
-    'age-beta',
-    'model-settings-at',
-] as const;
-
-/**
- * First sign-in on this device adopts whatever was recorded while signed out.
- *
- * The entries are *moved*, not copied: leaving a copy behind under the
- * signed-out names is exactly the leak this namespacing exists to close, since
- * the next person to use the device would land on them. Adoption is skipped
- * once the account's namespace holds anything, so signing in on a second device
- * can't overwrite records already there.
- */
-function adoptSignedOutData(owner: string): void {
-    if (owner === LOCAL_OWNER) return;
-    const moves: [string, string][] = [];
-    for (const m of ['transfem', 'transmasc'] as const) {
-        for (const s of MODE_SUFFIXES) {
-            moves.push([modeKeyFor(LOCAL_OWNER, m, s), modeKeyFor(owner, m, s)]);
-        }
-    }
-    for (const s of SHARED_SUFFIXES) moves.push([nsFor(LOCAL_OWNER, s), nsFor(owner, s)]);
-
-    if (moves.some(([, to]) => localStorage.getItem(to) !== null)) return;
-    for (const [from, to] of moves) {
-        const value = localStorage.getItem(from);
-        if (value === null) continue;
-        localStorage.setItem(to, value);
-        localStorage.removeItem(from);
-    }
-}
-
 export type { DoseTemplate, QuickDose } from '../utils/backupState';
 
 /** One day's worth of dose records, as the history list renders them. */
@@ -298,14 +247,11 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
 
     // Reload every piece of scoped state whenever the HRT mode OR the signed-in
     // account changes. Signing out drops `owner` back to the signed-out
-    // namespace, which is empty once the account adopted it — that is what stops
-    // the next person on a shared device from seeing the last one's records.
+    // namespace, so the next person on a shared device does not see the previous
+    // account's records. Signed-out records are never auto-adopted into an
+    // account; doing so would mix one person's dose history into another's.
     //
-    // Declared before the persist effects on purpose: on mount it runs first, so
-    // adoption happens before any persist effect can write an empty array into
-    // the account's namespace and make adoption think it was already used.
     useEffect(() => {
-        adoptSignedOutData(owner);
         loadedScopeRef.current = null;
         setEvents(loadJSON(keyFor(mode, 'events'), [] as DoseEvent[]));
         setLabResults(loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]));

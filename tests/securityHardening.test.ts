@@ -74,3 +74,33 @@ describe('public avatar reads', () => {
         expect(response.headers.get('Retry-After')).toBe('60');
     });
 });
+
+describe('avatar uploads', () => {
+    it('are rate limited before reading the request body or R2', async () => {
+        const env = {
+            DB: {
+                prepare: (sql: string) => {
+                    if (!sql.includes('FROM sessions WHERE id')) {
+                        throw new Error(`unexpected query: ${sql}`);
+                    }
+                    return {
+                        bind: () => ({ first: async () => ({ last_used_at: NOW }) }),
+                    };
+                },
+            },
+            JWT_SECRET,
+            RL_PER_MINUTE_10: { limit: async () => ({ success: false }) },
+        } as unknown as Env;
+        const response = await worker.fetch(
+            new Request('https://example.com/api/user/avatar', {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${await sessionToken('HS256')}` },
+                body: 'not read',
+            }),
+            env,
+            ctx,
+        );
+        expect(response.status).toBe(429);
+        expect(response.headers.get('Retry-After')).toBe('60');
+    });
+});
