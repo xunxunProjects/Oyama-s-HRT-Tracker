@@ -113,7 +113,7 @@ export interface RequestContext {
     corsHeaders: Record<string, string>;
     privateCacheHeaders: Record<string, string>;
     withSecurityHeaders: (response: Response) => Response;
-    jsonError: (code: string, message: string, status: number, extraHeaders?: Record<string, string>) => Response;
+    jsonError: (code: ApiErrorCode, message: string, status: number, extraHeaders?: Record<string, string>) => Response;
     shareJson: (body: unknown, status?: number, extraHeaders?: Record<string, string>) => Response;
     sessionInvalid: (message: string) => Response;
 }
@@ -126,7 +126,7 @@ export function createRequestContext(
     corsHeaders: Record<string, string>,
     privateCacheHeaders: Record<string, string>,
     withSecurityHeadersFn: (response: Response) => Response,
-    jsonErrorFn: (code: string, message: string, status: number, extraHeaders?: Record<string, string>) => Response,
+    jsonErrorFn: (code: ApiErrorCode, message: string, status: number, extraHeaders?: Record<string, string>) => Response,
     shareJsonFn: (body: unknown, status?: number, extraHeaders?: Record<string, string>) => Response,
     sessionInvalidFn: (message: string) => Response,
 ): RequestContext {
@@ -167,10 +167,17 @@ export type ApiErrorCode =
     | 'UNSUPPORTED_MEDIA'
     | 'RATE_LIMITED'
     | 'ACCOUNT_LOCKED'
+    | 'ACCOUNT_MEMORIAL'
     | 'STORAGE_FULL'
     | 'SCHEMA_OUTDATED'
+    | 'MIGRATION_REQUIRED'
     | 'SERVICE_UNAVAILABLE'
+    | 'UNAVAILABLE'
+    | 'UPSTREAM_ERROR'
     | 'NOT_IMPLEMENTED'
+    | 'NOT_CONFIGURED'
+    | 'STEP_UP_REQUIRED'
+    | 'ADMIN_REAUTH_REQUIRED'
     | 'INTERNAL';
 
 /** D1's wording when the database has hit its plan's size cap. */
