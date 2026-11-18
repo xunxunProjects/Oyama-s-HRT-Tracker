@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Baseline to beat: entry gzip **758,416 bytes (740.6 KiB)**; **27** strict errors; **40** static page imports in `src/App.tsx`.
+- Baseline to beat (measured on `766e3cb`): entry gzip **772,440 bytes (754.3 KiB)**; **27** strict errors; **40** static page imports in `src/App.tsx`.
 - Do not add `noUncheckedIndexedAccess` or any compiler flag other than `strict`.
 - Do not change storage keys, URLs, history behavior, export formats, or API response bodies.
 - Keep `Home`, `Onboarding`, and `PublicShare` eager; lazy-load the other 37 pages.
@@ -838,10 +838,10 @@ npx vitest run tests/lazyPages.test.ts
 npm run build
 ENTRY=$(grep -o 'assets/index-[^"]*\.js' dist/index.html | head -1)
 grep -c 'jsPDF' "dist/$ENTRY"
-grep -c 'katex' "dist/$ENTRY"
+grep -c 'katex.render' "dist/$ENTRY"
 ```
 
-Expected: typecheck passes; the registry test passes; the build succeeds; both `grep -c` commands print `0`.
+Expected: typecheck passes; the registry test passes; the build succeeds; both `grep -c` commands print `0`. Do not grep for the bare word `katex`: the entry's dynamic-import manifest names the separate `katex.min-*.js` chunk, even though the library is no longer in the entry.
 
 - [ ] **Step 9: Run the focused browser tests**
 
@@ -926,7 +926,7 @@ The current `dist` is still the old build. Run:
 node scripts/bundle-size.mjs
 ```
 
-Expected: exits 1 with the entry over 550 KiB (the baseline is about 740.6 KiB gzip). This is the failing test for the budget.
+Expected: exits 1 with the entry over 550 KiB (the pre-split baseline was about 754.3 KiB gzip). If `dist` has already been rebuilt after Task 7, the split entry passes instead; exercise the failure path with `BUNDLE_BUDGET_KB=1` in Step 5.
 
 - [ ] **Step 3: Add the package script and CI step**
 
@@ -1028,7 +1028,7 @@ Capture for the PR description:
 
 ```bash
 npm run size
-git diff --stat 6ede362...HEAD
+git diff --stat 766e3cb...HEAD
 ```
 
 Include the entry gzip before/after, the number of page chunks, and the precache count. Do not adjust the 550 KiB budget to hide a regression; if the entry is over, split another heavy dependency or eager page.
