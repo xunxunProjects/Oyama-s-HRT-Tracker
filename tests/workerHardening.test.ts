@@ -4,14 +4,27 @@ import type { Env } from '../worker';
 import { getClientIP } from '../requestInput';
 
 // Request handling around the client address, the passkey origin and request
-// bodies that parse as JSON but carry the wrong types. None of these paths
-// should reach the database, so any query fails the test loudly.
+// bodies that parse as JSON but carry the wrong types. Passkey options now
+// store a one-time challenge, so that INSERT is the only allowed database
+// write; every other query fails the test loudly.
 
 const JWT_SECRET = 'K7fQ2vRm9pLxT4wYzA6bC1dE8fG3hJ5n';
 const noDb = new Proxy(
     {},
     {
-        get() {
+        get(_target, property) {
+            if (property === 'prepare') {
+                return (sql: string) => {
+                    if (sql.includes('webauthn_challenges')) {
+                        return {
+                            bind: () => ({
+                                run: async () => ({ meta: { changes: 1 } }),
+                            }),
+                        };
+                    }
+                    throw new Error('unexpected database access');
+                };
+            }
             throw new Error('unexpected database access');
         },
     },

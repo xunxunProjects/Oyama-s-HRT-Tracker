@@ -63,7 +63,7 @@ describe('password strength', () => {
     });
 
     it('treats a moderate password as fair', () => {
-        expect(passwordStrength('Kf8mz2Qw')).toBe('fair');
+        expect(passwordStrength('Kf8mz2Qw9')).toBe('fair');
     });
 
     it('counts non-Latin characters', () => {

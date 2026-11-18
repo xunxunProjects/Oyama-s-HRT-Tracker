@@ -275,6 +275,21 @@ export async function handleSharesRoute(
         if (!isJsonObject(body) || !Array.isArray(body.keys) || body.keys.length > MAX_LIVE_UPDATES_PER_REQUEST) {
             return shareJson({ code: 'INVALID_REQUEST', message: 'keys must be an array' }, 400);
         }
+        const password = typeof body.password === 'string' ? body.password : '';
+        const owner =
+            (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
+                .bind(userId)
+                .first<{ password_hash: string | null }>()) ?? null;
+        const passwordOk = await bcrypt.compare(
+            password,
+            owner?.password_hash || '$2a$10$CCCCCCCCCCCCCCCCCCCCC.O0D3I6./CCCCCCCCCCCCCCCCCCCCCCC',
+        );
+        if (!passwordOk) {
+            return shareJson(
+                { code: 'INVALID_CREDENTIALS', message: 'Current password is required to rotate share keys' },
+                401,
+            );
+        }
         const statements: D1PreparedStatement[] = [];
         for (const entry of body.keys) {
             const wrapped = isJsonObject(entry) ? sanitizeWrappedShareKey(entry.wrappedKey) : null;

@@ -5,6 +5,7 @@ import { passwordCheckAllowed } from '../rateLimit';
 import { readSmallJsonBody } from '../../../requestInput';
 import { generateAndStoreBackupCodes } from '../totp';
 import { checkStepUp } from '../stepUp';
+import { consumeWebAuthnChallenge, storeWebAuthnChallenge } from '../webauthnChallenges';
 import {
     allowedPasskeyOrigins,
     b64urlDecode,
@@ -59,6 +60,7 @@ export async function handlePasskeysRoute(
         })();
         const challenge = b64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
         const secret = new TextEncoder().encode(jwtSecret);
+        await storeWebAuthnChallenge(env, challenge, 'passkey-register', userId);
         const challengeToken = await new SignJWT({
             challenge,
             purpose: 'passkey-register',
@@ -116,6 +118,9 @@ export async function handlePasskeysRoute(
         }
         if (challengePayload.purpose !== 'passkey-register' || challengePayload.uid !== userId) {
             return jsonError('INVALID_REQUEST', 'Invalid challenge', 400);
+        }
+        if (!(await consumeWebAuthnChallenge(env, challengePayload.challenge as string, 'passkey-register'))) {
+            return jsonError('INVALID_REQUEST', 'Challenge already used or expired', 400);
         }
         const expectedOrigin = challengePayload.origin as string;
         if (!allowedPasskeyOrigins(url, env).has(expectedOrigin)) {

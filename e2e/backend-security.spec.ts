@@ -33,8 +33,7 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
         expect(text).not.toContain('password');
         expect(text).not.toContain('@');
         for (const entry of body.recent_registrations) {
-            expect(Object.keys(entry).sort()).toEqual(['anon_id', 'created_at']);
-            expect(entry.anon_id).toMatch(/^[a-f0-9]{4}$/);
+            expect(typeof entry).toBe('number');
         }
     });
 
@@ -43,10 +42,10 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
     }) => {
         const user = await registerUser(request, 'avatar');
 
-        // An account with no avatar must not make the browser log a 404 every
-        // time Account renders; an unknown username still gets a plain 404.
+        // Both an account with no avatar and an unknown username get the same
+        // 404, so this endpoint cannot be used to enumerate accounts.
         const missing = await request.get(`${API_ORIGIN}/api/user/avatar/${user.user.username}`);
-        expect(missing.status()).toBe(204);
+        expect(missing.status()).toBe(404);
         const unknown = await request.get(`${API_ORIGIN}/api/user/avatar/no-such-user-${Date.now()}`);
         expect(unknown.status()).toBe(404);
 
@@ -98,7 +97,7 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
     test('avatar upload rejects XML external entities without storing or expanding them', async ({ request }) => {
         const user = await registerUser(request, 'xxe');
         const avatarUrl = `${API_ORIGIN}/api/user/avatar/${user.user.username}`;
-        expect((await request.get(avatarUrl)).status()).toBe(204);
+        expect((await request.get(avatarUrl)).status()).toBe(404);
 
         const xxe = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
@@ -108,7 +107,7 @@ test.describe('local Worker security contract (L3 browser harness)', () => {
             data: Buffer.from(xxe),
         });
         expect(upload.status()).toBe(415);
-        expect((await request.get(avatarUrl)).status()).toBe(204);
+        expect((await request.get(avatarUrl)).status()).toBe(404);
     });
 
     test('one account cannot read or delete another account content', async ({ request }) => {

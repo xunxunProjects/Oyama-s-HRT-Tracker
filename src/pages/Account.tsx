@@ -275,7 +275,7 @@ const Account: React.FC<AccountProps> = ({
     // and the empty History that followed read as the records being wiped. A
     // plain confirm rather than a red one, since nothing is destroyed.
     const confirmSignOut = () => {
-        showDialog('confirm', t('account.sign_out_confirm'), onLogout, {
+        showDialog('confirm', t('account.sign_out_confirm_clear'), onLogout, {
             title: t('account.sign_out'),
             confirmLabel: t('account.sign_out'),
         });

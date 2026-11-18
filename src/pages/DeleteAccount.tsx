@@ -16,7 +16,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [code, setCode] = useState('');
     const [backupCode, setBackupCode] = useState('');
     const [useBackup, setUseBackup] = useState(false);
-    const [totpEnabled, setTotpEnabled] = useState(false);
+    const [twoFAEnabled, setTwoFAEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const id = useId();
@@ -28,11 +28,11 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         if (!token) return;
         authService
             .get2FAStatus(token)
-            .then(s => setTotpEnabled(!!s.totp))
+            .then(s => setTwoFAEnabled(!!s.enabled))
             .catch(() => {});
     }, [token]);
 
-    const twoFAReady = !totpEnabled || (useBackup ? !!backupCode.trim() : code.length === 6);
+    const twoFAReady = !twoFAEnabled || (useBackup ? !!backupCode.trim() : code.length === 6);
 
     const handleSubmit = async (ev: React.FormEvent) => {
         ev.preventDefault();
@@ -42,8 +42,8 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         try {
             await deleteAccount(
                 password,
-                totpEnabled && !useBackup ? code : undefined,
-                totpEnabled && useBackup ? backupCode.trim() : undefined,
+                twoFAEnabled && !useBackup ? code : undefined,
+                twoFAEnabled && useBackup ? backupCode.trim() : undefined,
             );
             // Account is gone and the auth context logs out; leave this view so
             // we don't linger on a delete page for a now-signed-out user, and
@@ -53,9 +53,9 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             showDialog('alert', t('account.delete_done'), undefined, { title: t('account.delete_account') });
         } catch (e: any) {
             const code = apiErrorCode(e);
-            if (code === 'TWO_FACTOR_REQUIRED' || code === 'TWO_FACTOR_INVALID') {
+            if (code === 'TWO_FACTOR_REQUIRED' || code === 'TWO_FACTOR_INVALID' || code === 'STEP_UP_REQUIRED') {
                 // Surface the 2FA field even if the status probe failed earlier.
-                setTotpEnabled(true);
+                setTwoFAEnabled(true);
                 setError(t('account.2fa_verify_failed'));
             } else if (code === 'INVALID_CREDENTIALS') {
                 setError(t('account.current_password_wrong'));
@@ -132,7 +132,7 @@ const DeleteAccount: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         />
                     </div>
 
-                    {totpEnabled &&
+                    {twoFAEnabled &&
                         (useBackup ? (
                             <div>
                                 <label htmlFor={`${id}-backup`} className={labelCls}>

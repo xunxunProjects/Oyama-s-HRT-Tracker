@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService, User, AuthResponse, rememberDevicePass, sessionIdFromToken } from '../services/auth';
 import { cacheCloudKey, deriveAndCacheCloudKey, getCloudKey } from '../utils/cloudBackup';
+import { clearAccountHealthData } from '../utils/backupState';
 import { rewrapLiveShareKeys } from '../services/sharing';
 import { UNAUTHORIZED_EVENT } from '../services/apiClient';
 import { useDialog } from './DialogContext';
@@ -112,8 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Clear this device's copy of the session. Split out so the forced sign-out
     // below can reuse it without trying to revoke a session the server has
-    // already destroyed.
-    const clearLocalSession = () => {
+    // already destroyed. Explicit sign-out and account deletion also remove the
+    // account's unencrypted health records; a forced 401 leaves them in place so
+    // a temporary network/session problem does not destroy local data.
+    const clearLocalSession = (clearHealthData = false) => {
+        if (clearHealthData && user) clearAccountHealthData(localStorage, user.id);
         setToken(null);
         setUser(null);
         localStorage.removeItem('auth_token');
@@ -139,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 /* revoke is best-effort */
             }
         }
-        clearLocalSession();
+        clearLocalSession(true);
     };
 
     // When the server reports the session is no longer valid, drop the stale
@@ -185,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // password has already changed either way.
         const newCloudKey = getCloudKey();
         if (oldCloudKey && newCloudKey && oldCloudKey !== newCloudKey) {
-            await rewrapLiveShareKeys(token, oldCloudKey, newCloudKey).catch(() => undefined);
+            await rewrapLiveShareKeys(token, oldCloudKey, newCloudKey, newPass).catch(() => undefined);
         }
     };
 
@@ -193,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!token) return;
         await authService.deleteAccount(token, password, code, backupCode);
         // The account delete already dropped every sessions row for this user.
-        clearLocalSession();
+        clearLocalSession(true);
     };
 
     return (
