@@ -444,6 +444,7 @@ export const UK = {
     'btn.cancel': 'Скасувати',
     'btn.ok': 'OK',
     'btn.copy': 'Копіювати',
+    'common.loading': 'Завантаження…',
     'common.or': 'або',
     'error.generic': 'Щось пішло не так. Спробуйте ще раз.',
     'error.title': 'Щось пішло не так',
