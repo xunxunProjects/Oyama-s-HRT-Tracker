@@ -19,7 +19,7 @@ test.describe('share password entropy display (L3 browser)', () => {
         await seedStorage(
             context,
             signedInStorage(user, {
-                'hrt-events': JSON.stringify([event]),
+                [`hrt-u${user.user.id}-events`]: JSON.stringify([event]),
             }),
         );
         await gotoApp(page);
