@@ -8,6 +8,8 @@ import { join } from 'node:path';
  * Playwright package expects. Point at it explicitly when asked; CI installs
  * the matching browser instead.
  */
+const apiPort = process.env.E2E_API_PORT ?? '8787';
+
 const executablePath =
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
     [
@@ -43,7 +45,7 @@ export default defineConfig({
     webServer: [
         {
             command: 'bash e2e/start-worker.sh',
-            url: 'http://127.0.0.1:8787/api/notice',
+            url: `http://127.0.0.1:${apiPort}/api/notice`,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,
         },

@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation, LanguageProvider } from './contexts/LanguageContext';
 import { useDialog, DialogProvider } from './contexts/DialogContext';
 import { HRTModeProvider, useHRTMode } from './contexts/HRTModeContext';
 import { PixelCatProvider } from './contexts/PixelCatContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageLoading from './components/PageLoading';
 import { AppTheme } from './constants';
 import { DoseEvent, decompressData, encryptData, decryptData } from '../logic';
 import { v4 as uuidv4 } from 'uuid';
 import { PlanItem, planEvent } from './utils/plan';
-import Plan from './pages/Plan';
 import { parseCloudBackup } from './utils/cloudBackup';
 import {
     COMPLETE_BACKUP_FORMAT,
@@ -30,8 +30,6 @@ import {
 } from './utils/backupWarnings';
 import { useAppData } from './hooks/useAppData';
 import { useAppNavigation, tabForView, ViewKey } from './hooks/useAppNavigation';
-import Forecast from './pages/Forecast';
-import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
 
@@ -44,43 +42,48 @@ import { cloudService } from './services/cloud';
 
 // Pages
 import Home from './pages/Home';
-import History from './pages/History';
-import Lab from './pages/Lab';
-import CalibrationSettings from './pages/CalibrationSettings';
-import Settings from './pages/Settings';
-import Account from './pages/Account';
-import Admin from './pages/Admin';
-import SessionsPage from './pages/Sessions';
-import HrtSecurityPage from './pages/HrtSecurity';
-import F2fPage from './pages/F2f';
-import TwoFactorPage from './pages/TwoFactor';
-import ChangePasswordPage from './pages/ChangePassword';
-import DeleteAccountPage from './pages/DeleteAccount';
-import EditProfilePage from './pages/EditProfile';
-import EditAvatarPage from './pages/EditAvatar';
-import PKParamsPage from './pages/PKParams';
-import HRTModeSettings from './pages/HRTModeSettings';
-import LanguageSettings from './pages/LanguageSettings';
-import AppearanceSettings from './pages/AppearanceSettings';
-import WeightSettings from './pages/WeightSettings';
-import AgeSettings from './pages/AgeSettings';
-import ExportSettings from './pages/ExportSettings';
-import ImportSettings from './pages/ImportSettings';
-import TransparencySettings from './pages/TransparencySettings';
-import Credits from './pages/Credits';
-import CommunityVote from './pages/CommunityVote';
-import Disclaimer from './pages/Disclaimer';
-import OpSec from './pages/OpSec';
-import PKDemos from './pages/PKDemos';
-import ModelGuide from './pages/ModelGuide';
-import CalibrationGuide from './pages/CalibrationGuide';
-import MilkTeaEasterEgg from './pages/MilkTeaEasterEgg';
-import CatStates from './pages/CatStates';
-import Simulator from './pages/Simulator';
 import PublicShare from './pages/PublicShare';
-import { parseShareFragment } from './services/shareCrypto';
-import ShareSettings from './pages/ShareSettings';
 import Onboarding, { markOnboardingSeen, shouldShowOnboarding } from './pages/Onboarding';
+import { parseShareFragment } from './services/shareCrypto';
+import {
+    Plan,
+    Forecast,
+    Supplies,
+    History,
+    Lab,
+    CalibrationSettings,
+    Settings,
+    Account,
+    Admin,
+    SessionsPage,
+    HrtSecurityPage,
+    F2fPage,
+    TwoFactorPage,
+    ChangePasswordPage,
+    DeleteAccountPage,
+    EditProfilePage,
+    EditAvatarPage,
+    PKParamsPage,
+    HRTModeSettings,
+    LanguageSettings,
+    AppearanceSettings,
+    WeightSettings,
+    AgeSettings,
+    ExportSettings,
+    ImportSettings,
+    TransparencySettings,
+    Credits,
+    CommunityVote,
+    Disclaimer,
+    OpSec,
+    PKDemos,
+    ModelGuide,
+    CalibrationGuide,
+    MilkTeaEasterEgg,
+    CatStates,
+    Simulator,
+    ShareSettings,
+} from './routes/lazyPages';
 import SiteNoticeBanner from './components/SiteNotice';
 import JsDependencyNotice from './components/JsDependencyNotice';
 import UpdatePrompt from './components/UpdatePrompt';
@@ -940,375 +943,381 @@ const AppContent = () => {
                     key={currentView}
                     className={`main-view flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav bg-[var(--bg)] ${supportsViewTransitions || (move !== 'push' && move !== 'pop') ? '' : `view-in-${move}`}`}
                 >
-                    {currentView === 'home' && (
-                        <Home
-                            t={t}
-                            currentLevel={currentLevel}
-                            currentCPA={currentCPA}
-                            currentT={currentT}
-                            currentStatus={currentStatus}
-                            events={events}
-                            simulation={simulation}
-                            simulationAhead={simulationAhead}
-                            showPrediction={showPrediction}
-                            labResults={labResults}
-                            onEditEvent={handleEditEvent}
-                            calibrationFn={calibrationFn}
-                            theme={theme}
-                            onNavigateToHistory={() => {
-                                setIsQuickAddOpen(true);
-                                handleViewChange('history');
-                            }}
-                            onNavigateToLab={() => {
-                                setIsQuickAddLabOpen(true);
-                                handleViewChange('lab');
-                            }}
-                            onNavigateToShare={() => handleViewChange('share')}
-                            authToken={token}
-                            onAuthRequired={() => requireSignIn('share', 'share')}
-                            regimens={regimens}
-                            plan={plan}
-                            onLogPlanItem={handleLogPlanItem}
-                            undoableIds={undoableIds}
-                            onUndoPlanLog={handleUndoPlanLog}
-                            onNavigateToPlan={() => handleViewChange('plan')}
-                            onNavigateToSupplies={() => handleViewChange('supplies')}
-                            supplies={supplies}
-                            nowH={nowH}
-                            onNavigateToForecast={() => handleViewChange('forecast')}
-                            supplyLeadDays={supplyLeadDays}
-                            onNavigateToCommunityVote={() => openCommunityVote('home')}
-                            onCommunityVoteSignIn={() => signInForCommunityVote('home')}
-                        />
-                    )}
+                    <Suspense fallback={<PageLoading />}>
+                        {currentView === 'home' && (
+                            <Home
+                                t={t}
+                                currentLevel={currentLevel}
+                                currentCPA={currentCPA}
+                                currentT={currentT}
+                                currentStatus={currentStatus}
+                                events={events}
+                                simulation={simulation}
+                                simulationAhead={simulationAhead}
+                                showPrediction={showPrediction}
+                                labResults={labResults}
+                                onEditEvent={handleEditEvent}
+                                calibrationFn={calibrationFn}
+                                theme={theme}
+                                onNavigateToHistory={() => {
+                                    setIsQuickAddOpen(true);
+                                    handleViewChange('history');
+                                }}
+                                onNavigateToLab={() => {
+                                    setIsQuickAddLabOpen(true);
+                                    handleViewChange('lab');
+                                }}
+                                onNavigateToShare={() => handleViewChange('share')}
+                                authToken={token}
+                                onAuthRequired={() => requireSignIn('share', 'share')}
+                                regimens={regimens}
+                                plan={plan}
+                                onLogPlanItem={handleLogPlanItem}
+                                undoableIds={undoableIds}
+                                onUndoPlanLog={handleUndoPlanLog}
+                                onNavigateToPlan={() => handleViewChange('plan')}
+                                onNavigateToSupplies={() => handleViewChange('supplies')}
+                                supplies={supplies}
+                                nowH={nowH}
+                                onNavigateToForecast={() => handleViewChange('forecast')}
+                                supplyLeadDays={supplyLeadDays}
+                                onNavigateToCommunityVote={() => openCommunityVote('home')}
+                                onCommunityVoteSignIn={() => signInForCommunityVote('home')}
+                            />
+                        )}
 
-                    {currentView === 'plan' && (
-                        <Plan
-                            onBack={() => handleViewChange('home')}
-                            plan={plan}
-                            onSave={savePlanItem}
-                            onDelete={deletePlanItem}
-                            events={events}
-                        />
-                    )}
+                        {currentView === 'plan' && (
+                            <Plan
+                                onBack={() => handleViewChange('home')}
+                                plan={plan}
+                                onSave={savePlanItem}
+                                onDelete={deletePlanItem}
+                                events={events}
+                            />
+                        )}
 
-                    {currentView === 'forecast' && (
-                        <Forecast
-                            onBack={() => handleViewChange('home')}
-                            events={events}
-                            weight={weight}
-                            birthYear={modelBirthYear}
-                            labResults={labResults}
-                            calibration={calibration}
-                            calibrationMethod={calibrationMethod}
-                            calibrationHistoryMode={calibrationHistoryMode}
-                            regimens={regimens}
-                            nowH={nowH}
-                            isDarkMode={isDarkMode}
-                            onSaveTemplate={addTemplate}
-                        />
-                    )}
+                        {currentView === 'forecast' && (
+                            <Forecast
+                                onBack={() => handleViewChange('home')}
+                                events={events}
+                                weight={weight}
+                                birthYear={modelBirthYear}
+                                labResults={labResults}
+                                calibration={calibration}
+                                calibrationMethod={calibrationMethod}
+                                calibrationHistoryMode={calibrationHistoryMode}
+                                regimens={regimens}
+                                nowH={nowH}
+                                isDarkMode={isDarkMode}
+                                onSaveTemplate={addTemplate}
+                            />
+                        )}
 
-                    {currentView === 'share' && token && (
-                        <ShareSettings
-                            onBack={() => handleViewChange('home')}
-                            authToken={token}
-                            mode={mode}
-                            events={events}
-                            simulation={simulation}
-                            calibrationFn={calibrationFn}
-                        />
-                    )}
+                        {currentView === 'share' && token && (
+                            <ShareSettings
+                                onBack={() => handleViewChange('home')}
+                                authToken={token}
+                                mode={mode}
+                                events={events}
+                                simulation={simulation}
+                                calibrationFn={calibrationFn}
+                            />
+                        )}
 
-                    {currentView === 'history' && (
-                        <History
-                            t={t}
-                            isQuickAddOpen={isQuickAddOpen}
-                            setIsQuickAddOpen={setIsQuickAddOpen}
-                            doseTemplates={doseTemplates}
-                            onSaveEvent={e => {
-                                if (events.find(p => p.id === e.id)) updateEvent(e);
-                                else addEvent(e);
-                            }}
-                            onDeleteEvent={deleteEvent}
-                            onAddEvents={addEvents}
-                            onDeleteEvents={deleteEvents}
-                            onSaveTemplate={addTemplate}
-                            onDeleteTemplate={deleteTemplate}
-                            groupedEvents={groupedEvents}
-                            events={events}
-                            quickDoses={quickDoses}
-                            onAddQuickDose={addQuickDose}
-                            onDeleteQuickDose={deleteQuickDose}
-                            openEditId={editFromOverview}
-                            onOpenEditHandled={() => setEditFromOverview(null)}
-                        />
-                    )}
+                        {currentView === 'history' && (
+                            <History
+                                t={t}
+                                isQuickAddOpen={isQuickAddOpen}
+                                setIsQuickAddOpen={setIsQuickAddOpen}
+                                doseTemplates={doseTemplates}
+                                onSaveEvent={e => {
+                                    if (events.find(p => p.id === e.id)) updateEvent(e);
+                                    else addEvent(e);
+                                }}
+                                onDeleteEvent={deleteEvent}
+                                onAddEvents={addEvents}
+                                onDeleteEvents={deleteEvents}
+                                onSaveTemplate={addTemplate}
+                                onDeleteTemplate={deleteTemplate}
+                                groupedEvents={groupedEvents}
+                                events={events}
+                                quickDoses={quickDoses}
+                                onAddQuickDose={addQuickDose}
+                                onDeleteQuickDose={deleteQuickDose}
+                                openEditId={editFromOverview}
+                                onOpenEditHandled={() => setEditFromOverview(null)}
+                            />
+                        )}
 
-                    {currentView === 'lab' && (
-                        <Lab
-                            t={t}
-                            isQuickAddLabOpen={isQuickAddLabOpen}
-                            setIsQuickAddLabOpen={setIsQuickAddLabOpen}
-                            labResults={labResults}
-                            events={events}
-                            simulation={simulation}
-                            onSaveLabResult={r => {
-                                if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
-                                else addLabResult(r);
-                            }}
-                            onDeleteLabResult={deleteLabResult}
-                            onClearLabResults={clearLabResults}
-                            calibrationMethod={calibrationMethod}
-                            calibration={calibration}
-                            onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
-                            lang={lang}
-                        />
-                    )}
+                        {currentView === 'lab' && (
+                            <Lab
+                                t={t}
+                                isQuickAddLabOpen={isQuickAddLabOpen}
+                                setIsQuickAddLabOpen={setIsQuickAddLabOpen}
+                                labResults={labResults}
+                                events={events}
+                                simulation={simulation}
+                                onSaveLabResult={r => {
+                                    if (labResults.find(prev => prev.id === r.id)) updateLabResult(r);
+                                    else addLabResult(r);
+                                }}
+                                onDeleteLabResult={deleteLabResult}
+                                onClearLabResults={clearLabResults}
+                                calibrationMethod={calibrationMethod}
+                                calibration={calibration}
+                                onOpenCalibrationSettings={() => handleViewChange('lab-calibration')}
+                                lang={lang}
+                            />
+                        )}
 
-                    {currentView === 'lab-calibration' && (
-                        <CalibrationSettings
-                            method={calibrationMethod}
-                            setMethod={setCalibrationMethod}
-                            historyMode={calibrationHistoryMode}
-                            setHistoryMode={setCalibrationHistoryMode}
-                            calibration={calibration}
-                            onOpenGuide={() => handleViewChange('lab-calibration-guide')}
-                            onBack={() => handleViewChange('lab')}
-                        />
-                    )}
+                        {currentView === 'lab-calibration' && (
+                            <CalibrationSettings
+                                method={calibrationMethod}
+                                setMethod={setCalibrationMethod}
+                                historyMode={calibrationHistoryMode}
+                                setHistoryMode={setCalibrationHistoryMode}
+                                calibration={calibration}
+                                onOpenGuide={() => handleViewChange('lab-calibration-guide')}
+                                onBack={() => handleViewChange('lab')}
+                            />
+                        )}
 
-                    {currentView === 'lab-calibration-guide' && (
-                        <CalibrationGuide weight={weight} onBack={() => handleViewChange('lab-calibration')} />
-                    )}
+                        {currentView === 'lab-calibration-guide' && (
+                            <CalibrationGuide weight={weight} onBack={() => handleViewChange('lab-calibration')} />
+                        )}
 
-                    {currentView === 'settings' && (
-                        <Settings
-                            t={t}
-                            lang={lang}
-                            theme={theme}
-                            languageOptions={languageOptions}
-                            onClearAllEvents={clearAllEvents}
-                            events={events}
-                            showDialog={showDialog}
-                            onNavigateToDisclaimer={() => handleViewChange('settings-disclaimer')}
-                            onNavigateToOpSec={() => handleViewChange('settings-opsec')}
-                            onShowIntro={() => setShowOnboarding(true)}
-                            onNavigateToTransparency={() => handleViewChange('settings-transparency')}
-                            onNavigateToCredits={() => handleViewChange('settings-credits')}
-                            onNavigateToCommunity={() => openCommunityVote('settings')}
-                            weight={weight}
-                            birthYear={birthYear}
-                            ageBeta={ageBeta}
-                            setAgeBeta={setAgeBeta}
-                            pkParams={pkParams}
-                            onNavigateToPKParams={() => handleViewChange('pk-params')}
-                            onNavigateToPKDemos={() => handleViewChange('settings-pk-viz')}
-                            onNavigateToModelGuide={() => handleViewChange('settings-model')}
-                            onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
-                            onNavigateToLanguage={() => handleViewChange('settings-language')}
-                            onNavigateToAppearance={() => handleViewChange('settings-appearance')}
-                            onNavigateToWeight={() => handleViewChange('settings-weight')}
-                            onNavigateToAge={() => handleViewChange('settings-age')}
-                            onNavigateToExport={() => handleViewChange('settings-export')}
-                            onNavigateToImport={() => handleViewChange('settings-import')}
-                            autoSync={autoSync}
-                            setAutoSync={setAutoSync}
-                            isLoggedIn={!!user}
-                            devMode={devMode}
-                            setDevMode={setDevMode}
-                            hideSiteLabel={hideSiteLabel}
-                            setHideSiteLabel={setHideSiteLabel}
-                            showPrediction={showPrediction}
-                            setShowPrediction={setShowPrediction}
-                            onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
-                            onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
-                            onNavigateToSimulator={() => handleViewChange('settings-simulator')}
-                            isAdmin={!!user?.isAdmin}
-                            onNavigateToAdmin={() => handleViewChange('admin')}
-                            onNavigateToSupplies={() => handleViewChange('supplies')}
-                            supplyCount={supplies.length}
-                        />
-                    )}
+                        {currentView === 'settings' && (
+                            <Settings
+                                t={t}
+                                lang={lang}
+                                theme={theme}
+                                languageOptions={languageOptions}
+                                onClearAllEvents={clearAllEvents}
+                                events={events}
+                                showDialog={showDialog}
+                                onNavigateToDisclaimer={() => handleViewChange('settings-disclaimer')}
+                                onNavigateToOpSec={() => handleViewChange('settings-opsec')}
+                                onShowIntro={() => setShowOnboarding(true)}
+                                onNavigateToTransparency={() => handleViewChange('settings-transparency')}
+                                onNavigateToCredits={() => handleViewChange('settings-credits')}
+                                onNavigateToCommunity={() => openCommunityVote('settings')}
+                                weight={weight}
+                                birthYear={birthYear}
+                                ageBeta={ageBeta}
+                                setAgeBeta={setAgeBeta}
+                                pkParams={pkParams}
+                                onNavigateToPKParams={() => handleViewChange('pk-params')}
+                                onNavigateToPKDemos={() => handleViewChange('settings-pk-viz')}
+                                onNavigateToModelGuide={() => handleViewChange('settings-model')}
+                                onNavigateToHRTMode={() => handleViewChange('settings-hrt-mode')}
+                                onNavigateToLanguage={() => handleViewChange('settings-language')}
+                                onNavigateToAppearance={() => handleViewChange('settings-appearance')}
+                                onNavigateToWeight={() => handleViewChange('settings-weight')}
+                                onNavigateToAge={() => handleViewChange('settings-age')}
+                                onNavigateToExport={() => handleViewChange('settings-export')}
+                                onNavigateToImport={() => handleViewChange('settings-import')}
+                                autoSync={autoSync}
+                                setAutoSync={setAutoSync}
+                                isLoggedIn={!!user}
+                                devMode={devMode}
+                                setDevMode={setDevMode}
+                                hideSiteLabel={hideSiteLabel}
+                                setHideSiteLabel={setHideSiteLabel}
+                                showPrediction={showPrediction}
+                                setShowPrediction={setShowPrediction}
+                                onNavigateToMilkTea={() => handleViewChange('settings-milk-tea')}
+                                onNavigateToCatStates={() => handleViewChange('settings-cat-states')}
+                                onNavigateToSimulator={() => handleViewChange('settings-simulator')}
+                                isAdmin={!!user?.isAdmin}
+                                onNavigateToAdmin={() => handleViewChange('admin')}
+                                onNavigateToSupplies={() => handleViewChange('supplies')}
+                                supplyCount={supplies.length}
+                            />
+                        )}
 
-                    {currentView === 'settings-hrt-mode' && (
-                        <HRTModeSettings onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-hrt-mode' && (
+                            <HRTModeSettings onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-language' && (
-                        <LanguageSettings
-                            lang={lang}
-                            setLang={setLang}
-                            languageOptions={languageOptions}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'settings-language' && (
+                            <LanguageSettings
+                                lang={lang}
+                                setLang={setLang}
+                                languageOptions={languageOptions}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'settings-appearance' && (
-                        <AppearanceSettings
-                            theme={theme}
-                            setTheme={setTheme}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'settings-appearance' && (
+                            <AppearanceSettings
+                                theme={theme}
+                                setTheme={setTheme}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'settings-weight' && (
-                        <WeightSettings
-                            weight={weight}
-                            onSave={setWeight}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'settings-weight' && (
+                            <WeightSettings
+                                weight={weight}
+                                onSave={setWeight}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'settings-age' && ageBeta && (
-                        <AgeSettings
-                            birthYear={birthYear}
-                            onSave={setBirthYear}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'settings-age' && ageBeta && (
+                            <AgeSettings
+                                birthYear={birthYear}
+                                onSave={setBirthYear}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'settings-export' && (
-                        <ExportSettings
-                            events={events}
-                            labResults={labResults}
-                            weight={weight}
-                            onExport={handleExportConfirm}
-                            onQuickExport={handleQuickExport}
-                            onExportCompleteBackup={handleCompleteBackupExport}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'settings-export' && (
+                            <ExportSettings
+                                events={events}
+                                labResults={labResults}
+                                weight={weight}
+                                onExport={handleExportConfirm}
+                                onQuickExport={handleQuickExport}
+                                onExportCompleteBackup={handleCompleteBackupExport}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'settings-import' && (
-                        <ImportSettings
-                            onImportJson={importEventsFromJson}
-                            onReplaceJson={replaceCompleteBackupFromJson}
-                            onBack={() => handleViewChange('settings')}
-                            onNavigateToExport={() => handleViewChange('settings-export')}
-                        />
-                    )}
+                        {currentView === 'settings-import' && (
+                            <ImportSettings
+                                onImportJson={importEventsFromJson}
+                                onReplaceJson={replaceCompleteBackupFromJson}
+                                onBack={() => handleViewChange('settings')}
+                                onNavigateToExport={() => handleViewChange('settings-export')}
+                            />
+                        )}
 
-                    {currentView === 'account' && (
-                        <Account
-                            t={t}
-                            user={user}
-                            token={token}
-                            onLogout={logout}
-                            onCloudSave={handleCloudSave}
-                            onCloudLoad={handleCloudLoad}
-                            onCloudMerge={handleCloudMerge}
-                            localData={{ events, labResults, doseTemplates, weight }}
-                            onNavigate={v => handleViewChange(v as ViewKey)}
-                            twoFAEnabled={twoFAEnabled}
-                            onTwoFAStatusChange={setTwoFAEnabled}
-                            syncStatus={syncState.status}
-                            syncErrorCode={syncState.errorCode}
-                            lastSyncedAt={syncState.lastSyncedAt}
-                            signInReason={signInReason}
-                        />
-                    )}
+                        {currentView === 'account' && (
+                            <Account
+                                t={t}
+                                user={user}
+                                token={token}
+                                onLogout={logout}
+                                onCloudSave={handleCloudSave}
+                                onCloudLoad={handleCloudLoad}
+                                onCloudMerge={handleCloudMerge}
+                                localData={{ events, labResults, doseTemplates, weight }}
+                                onNavigate={v => handleViewChange(v as ViewKey)}
+                                twoFAEnabled={twoFAEnabled}
+                                onTwoFAStatusChange={setTwoFAEnabled}
+                                syncStatus={syncState.status}
+                                syncErrorCode={syncState.errorCode}
+                                lastSyncedAt={syncState.lastSyncedAt}
+                                signInReason={signInReason}
+                            />
+                        )}
 
-                    {currentView === 'sessions' && token && (
-                        <SessionsPage token={token} onBack={() => handleViewChange('account')} />
-                    )}
+                        {currentView === 'sessions' && token && (
+                            <SessionsPage token={token} onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'hrt-security' && token && (
-                        <HrtSecurityPage token={token} onBack={() => handleViewChange('account')} />
-                    )}
+                        {currentView === 'hrt-security' && token && (
+                            <HrtSecurityPage token={token} onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'f2f' && token && (
-                        <F2fPage token={token} onBack={() => handleViewChange('account')} />
-                    )}
+                        {currentView === 'f2f' && token && (
+                            <F2fPage token={token} onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'two-factor' && token && (
-                        <TwoFactorPage
-                            token={token}
-                            enabled={twoFAEnabled}
-                            onStatusChange={setTwoFAEnabled}
-                            onBack={() => handleViewChange('account')}
-                        />
-                    )}
+                        {currentView === 'two-factor' && token && (
+                            <TwoFactorPage
+                                token={token}
+                                enabled={twoFAEnabled}
+                                onStatusChange={setTwoFAEnabled}
+                                onBack={() => handleViewChange('account')}
+                            />
+                        )}
 
-                    {currentView === 'change-password' && (
-                        <ChangePasswordPage onBack={() => handleViewChange('account')} />
-                    )}
+                        {currentView === 'change-password' && (
+                            <ChangePasswordPage onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'delete-account' && (
-                        <DeleteAccountPage onBack={() => handleViewChange('account')} />
-                    )}
+                        {currentView === 'delete-account' && (
+                            <DeleteAccountPage onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'edit-profile' && <EditProfilePage onBack={() => handleViewChange('account')} />}
+                        {currentView === 'edit-profile' && (
+                            <EditProfilePage onBack={() => handleViewChange('account')} />
+                        )}
 
-                    {currentView === 'edit-avatar' && user && token && (
-                        <EditAvatarPage
-                            username={user.username}
-                            token={token}
-                            onBack={() => handleViewChange('account')}
-                        />
-                    )}
+                        {currentView === 'edit-avatar' && user && token && (
+                            <EditAvatarPage
+                                username={user.username}
+                                token={token}
+                                onBack={() => handleViewChange('account')}
+                            />
+                        )}
 
-                    {currentView === 'settings-transparency' && (
-                        <TransparencySettings onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-transparency' && (
+                            <TransparencySettings onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
+                        {currentView === 'settings-credits' && <Credits onBack={() => handleViewChange('settings')} />}
 
-                    {currentView === 'settings-community' && (
-                        <CommunityVote
-                            onBack={() => handleViewChange(communityVoteReturn)}
-                            onSignIn={() => signInForCommunityVote(communityVoteReturn)}
-                        />
-                    )}
+                        {currentView === 'settings-community' && (
+                            <CommunityVote
+                                onBack={() => handleViewChange(communityVoteReturn)}
+                                onSignIn={() => signInForCommunityVote(communityVoteReturn)}
+                            />
+                        )}
 
-                    {currentView === 'settings-opsec' && <OpSec onBack={() => handleViewChange('settings')} />}
+                        {currentView === 'settings-opsec' && <OpSec onBack={() => handleViewChange('settings')} />}
 
-                    {currentView === 'settings-pk-viz' && <PKDemos onBack={() => handleViewChange('settings')} />}
+                        {currentView === 'settings-pk-viz' && <PKDemos onBack={() => handleViewChange('settings')} />}
 
-                    {currentView === 'settings-model' && (
-                        <ModelGuide weight={weight} onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-model' && (
+                            <ModelGuide weight={weight} onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-disclaimer' && (
-                        <Disclaimer onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-disclaimer' && (
+                            <Disclaimer onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-milk-tea' && devMode && (
-                        <MilkTeaEasterEgg onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-milk-tea' && devMode && (
+                            <MilkTeaEasterEgg onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-cat-states' && devMode && (
-                        <CatStates onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-cat-states' && devMode && (
+                            <CatStates onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'settings-simulator' && devMode && (
-                        <Simulator onBack={() => handleViewChange('settings')} />
-                    )}
+                        {currentView === 'settings-simulator' && devMode && (
+                            <Simulator onBack={() => handleViewChange('settings')} />
+                        )}
 
-                    {currentView === 'supplies' && (
-                        <Supplies
-                            onBack={() => handleViewChange('settings')}
-                            supplies={supplies}
-                            onSave={saveSupply}
-                            onDelete={deleteSupply}
-                            leadDays={supplyLeadDays}
-                            onLeadDaysChange={setSupplyLeadDays}
-                            events={events}
-                            regimens={regimens}
-                            nowH={nowH}
-                        />
-                    )}
+                        {currentView === 'supplies' && (
+                            <Supplies
+                                onBack={() => handleViewChange('settings')}
+                                supplies={supplies}
+                                onSave={saveSupply}
+                                onDelete={deleteSupply}
+                                leadDays={supplyLeadDays}
+                                onLeadDaysChange={setSupplyLeadDays}
+                                events={events}
+                                regimens={regimens}
+                                nowH={nowH}
+                            />
+                        )}
 
-                    {currentView === 'pk-params' && (
-                        <PKParamsPage
-                            pkParams={pkParams}
-                            onSave={setPkParams}
-                            onReset={clearPkParams}
-                            onBack={() => handleViewChange('settings')}
-                        />
-                    )}
+                        {currentView === 'pk-params' && (
+                            <PKParamsPage
+                                pkParams={pkParams}
+                                onSave={setPkParams}
+                                onReset={clearPkParams}
+                                onBack={() => handleViewChange('settings')}
+                            />
+                        )}
 
-                    {currentView === 'admin' && user?.isAdmin && <Admin onBack={() => handleViewChange('settings')} />}
+                        {currentView === 'admin' && user?.isAdmin && (
+                            <Admin onBack={() => handleViewChange('settings')} />
+                        )}
+                    </Suspense>
                 </div>
 
                 {/* The bottom bar on a phone (components/BottomNav.tsx). Mobile
