@@ -2,12 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { resolveApiPort } from './e2e/apiOrigin';
 
 /**
  * Local runs may have a browser cached under an older revision than the
  * Playwright package expects. Point at it explicitly when asked; CI installs
  * the matching browser instead.
  */
+const apiPort = resolveApiPort();
+
 const executablePath =
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
     [
@@ -43,7 +46,7 @@ export default defineConfig({
     webServer: [
         {
             command: 'bash e2e/start-worker.sh',
-            url: 'http://127.0.0.1:8787/api/notice',
+            url: `http://127.0.0.1:${apiPort}/api/notice`,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,
         },

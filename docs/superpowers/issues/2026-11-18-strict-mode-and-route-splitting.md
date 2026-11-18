@@ -18,7 +18,7 @@ Title: chore: enable TypeScript strict mode and split page bundles (tracking)
 Two cleanup PRs that are easier to land while the tree is quiet. Neither is a user-visible bug fix; they reduce first-load cost and make future changes safer.
 
 - **TypeScript is not in strict mode.** `tsconfig.json` has no `strict` flag, and CI only runs `npx tsc --noEmit`. Enabling it surfaces 27 errors (measured on `upstream/main` at `766e3cb`). This codebase contains PK math, crypto-adjacent code, and backup parsing; the missing checks are worth having.
-- **Every page is in the entry bundle.** `src/App.tsx` statically imports 40 pages. The entry JS is 2.4 MB raw / 758,416 bytes gzip (≈741 KiB), and it includes `jsPDF` (only used by Export Settings) and KaTeX (only used by the PK visualization). The PWA precaches 78 files / ≈9.5 MB.
+- **Every page is in the entry bundle.** `src/App.tsx` statically imports 40 pages. The entry JS is 2.4 MB raw / 772,440 bytes gzip (≈754 KiB), and it includes `jsPDF` (only used by Export Settings) and KaTeX (only used by the PK visualization). The PWA precaches 78 files / ≈9.5 MB.
 
 ## Plan
 

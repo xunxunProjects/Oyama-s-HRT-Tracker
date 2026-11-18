@@ -29,7 +29,7 @@ The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIA
 
 ### 1.2 The first screen downloads every page
 
-`src/App.tsx` statically imports 40 page modules. The built entry is 2.4 MB raw, 758,416 bytes gzip (740.6 KiB). It contains `jsPDF` (used only by `ExportSettings` → `ExportSection`) and KaTeX (used only by `PKVisualization` → `ExplainMath`). The PWA precaches 78 files, about 9.5 MB.
+`src/App.tsx` statically imports 40 page modules. The built entry is 2.4 MB raw, 772,440 bytes gzip (754.3 KiB) on `766e3cb`. It contains `jsPDF` (used only by `ExportSettings` → `ExportSection`) and KaTeX (used only by `PKVisualization` → `ExplainMath`). The PWA precaches 78 files, about 9.5 MB.
 
 `OpSec.tsx` already shows the intended pattern: `mermaidPromise ??= import('mermaid')`.
 
@@ -76,3 +76,10 @@ The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIA
 The heads-up issue draft is at
 `docs/superpowers/issues/2026-11-18-strict-mode-and-route-splitting.md`.
 It lists the hot files and the rules for new pages, error codes, and ester tables.
+
+## 7. Results (2026-11-18)
+
+- Baseline on `766e3cb`: entry 2,459.64 kB raw / 772.44 kB Vite gzip (754.3 KiB); 27 strict errors.
+- After both changes: entry 1,241.5 KiB raw / 397.3 KiB gzip, a 47.3% gzip reduction; 37 lazy pages, with `Home`, `Onboarding`, and `PublicShare` eager.
+- Build: 118 JS assets, all precached; 127 precache entries, 9,251.81 KiB.
+- Verification: `npx tsc --noEmit`, lint, format, 96 test files / 997 tests + 4 expected failures, build, `npm run size`, and 27 Playwright tests all pass.

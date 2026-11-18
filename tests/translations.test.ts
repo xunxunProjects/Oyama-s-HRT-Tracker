@@ -32,6 +32,17 @@ describe('language packs', () => {
     });
 });
 
+describe('loading copy', () => {
+    const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
+
+    for (const lang of locales) {
+        it(`${lang} has a loading label`, () => {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            expect(pack['common.loading']).toBeTruthy();
+        });
+    }
+});
+
 describe('age model copy', () => {
     const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
 
