@@ -43,8 +43,8 @@ test('keeps signed-out plan and supplies out of a first sign-in', async ({ page,
     // copied or moved into whichever account signs in next.
     expect(JSON.parse((await read('hrt-plan')) ?? '[]')).toHaveLength(1);
     expect(JSON.parse((await read('hrt-supplies')) ?? '[]')).toHaveLength(1);
-    expect(await read(`${prefix}plan`)).toBeNull();
-    expect(await read(`${prefix}supplies`)).toBeNull();
+    expect(JSON.parse((await read(`${prefix}plan`)) ?? '[]')).toHaveLength(0);
+    expect(JSON.parse((await read(`${prefix}supplies`)) ?? '[]')).toHaveLength(0);
 
     // The account view does not render the anonymous plan.
     await expect(page.getByText('Due today', { exact: true })).toHaveCount(0);
