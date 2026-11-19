@@ -73,6 +73,37 @@
     }
 }
 
+/* Tabular columns stay in reading order while their glyphs move vertically. */
+.rolling-number {
+    display: inline-block;
+    position: relative;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.rolling-number-places {
+    display: inline-flex;
+    align-items: baseline;
+    padding: 0.16em 0.24em;
+    margin: -0.16em -0.24em;
+}
+
+/* One feather across the reading lets ink spread across digit boundaries.
+   The transparent ends sit outside the text line. */
+.rolling-number-places[data-moving] {
+    mask-image: linear-gradient(transparent, black 0.28em, black calc(100% - 0.28em), transparent);
+}
+
+/* Fade the ink as it travels. Both glyphs share a baseline and their blur
+   can extend beyond the column in every direction. */
+.rolling-digit {
+    display: inline-grid;
+}
+
+.rolling-digit > span {
+    grid-area: 1 / 1;
+}
+
 /* ── pages ───────────────────────────────────────────────────────────────────
    Moves between views run as view transitions (motion/viewMove.ts), and only
    the page area takes part: the sidebar and the bottom bar are left out of it
