@@ -14,7 +14,7 @@ import {
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
-import AnimatedNumber from '../components/AnimatedNumber';
+import RollingNumber from '../components/RollingNumber';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
 import DoseDoodle from '../components/DoseDoodle';
@@ -270,7 +270,11 @@ const Home: React.FC<HomeProps> = ({
                           {primary.value > 0 ? (
                               <>
                                   <span className={on}>
-                                      <AnimatedNumber value={primary.value} decimals={primary.decimals} />
+                                      <RollingNumber
+                                          key={primary.unit}
+                                          value={primary.value}
+                                          decimals={primary.decimals}
+                                      />
                                   </span>
                                   <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
                               </>
@@ -280,7 +284,13 @@ const Home: React.FC<HomeProps> = ({
                       </p>
                       {companion && companion.value > 0 && (
                           <p className={`mt-1 text-xs tabular-nums ${muted}`}>
-                              {companion.label} {companion.value.toFixed(companion.decimals)} {companion.unit}
+                              {companion.label}{' '}
+                              <RollingNumber
+                                  key={companion.unit}
+                                  value={companion.value}
+                                  decimals={companion.decimals}
+                              />{' '}
+                              {companion.unit}
                           </p>
                       )}
                       {primary.value > 0 && (
@@ -425,7 +435,8 @@ const Home: React.FC<HomeProps> = ({
                                                 {primary.value > 0 ? (
                                                     <>
                                                         <span className={on}>
-                                                            <AnimatedNumber
+                                                            <RollingNumber
+                                                                key={primary.unit}
                                                                 value={primary.value}
                                                                 decimals={primary.decimals}
                                                             />
@@ -477,7 +488,8 @@ const Home: React.FC<HomeProps> = ({
                                                     {companion.value > 0 ? (
                                                         <>
                                                             <span className={on}>
-                                                                <AnimatedNumber
+                                                                <RollingNumber
+                                                                    key={companion.unit}
                                                                     value={companion.value}
                                                                     decimals={companion.decimals}
                                                                 />
@@ -582,9 +594,11 @@ const Home: React.FC<HomeProps> = ({
                                                 >
                                                     {fillNodes(t(sentence), {
                                                         verb: t(`plan.verb.${item.route}`),
-                                                        done: st.kind === 'due' ? st.done : 0,
-                                                        total: st.kind === 'due' ? st.total : 0,
-                                                        left: st.kind === 'due' ? st.total - st.done : 0,
+                                                        done: st.kind === 'due' && <RollingNumber value={st.done} />,
+                                                        total: st.kind === 'due' && <RollingNumber value={st.total} />,
+                                                        left: st.kind === 'due' && (
+                                                            <RollingNumber value={st.total - st.done} />
+                                                        ),
                                                         day:
                                                             st.kind === 'rest' ? (
                                                                 <span className="whitespace-nowrap">
@@ -678,7 +692,11 @@ const Home: React.FC<HomeProps> = ({
                                                 ? fill(t('supplies.used_up'), { name })
                                                 : fillNodes(t('supplies.running_low'), {
                                                       name,
-                                                      n: Math.max(0, Math.round((runOutH - nowH) / 24)),
+                                                      n: (
+                                                          <RollingNumber
+                                                              value={Math.max(0, Math.round((runOutH - nowH) / 24))}
+                                                          />
+                                                      ),
                                                       date: (
                                                           <span className="whitespace-nowrap">
                                                               {dueLabel(runOutH, lang, false, nowH)}
