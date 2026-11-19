@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 
 import { useTranslation } from '../contexts/LanguageContext';
+import { appLocale } from '../i18n/locale';
 import { apiEndpoint } from '../services/apiClient';
 
 interface TransparencyStats {
@@ -14,13 +15,28 @@ interface TransparencyStats {
     self_deleted_count: number;
     admin_deleted_7d: number;
     self_deleted_7d: number;
-    recent_registrations: number[];
-    server_time: number;
+    recent_registrations: unknown;
+    server_time: unknown;
 }
 
 const REFRESH_INTERVAL_MS = 30_000;
 
 const rowBase = 'flex items-baseline justify-between py-[18px] border-b-(length:--hairline) border-[var(--border)]';
+
+function isUnixTimestamp(value: unknown): value is number {
+    return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function registrationTimes(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .map((entry: unknown) =>
+            // Older Workers wrapped the timestamp in an object.
+            entry && typeof entry === 'object' && 'created_at' in entry ? entry.created_at : entry,
+        )
+        .filter(isUnixTimestamp);
+}
 
 interface TransparencySettingsProps {
     onBack: () => void;
@@ -64,7 +80,8 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
         };
     }, [load]);
 
-    const now = stats?.server_time ?? Math.floor(Date.now() / 1000);
+    const now = isUnixTimestamp(stats?.server_time) ? stats.server_time : Math.floor((lastUpdated ?? 0) / 1000);
+    const recent = registrationTimes(stats?.recent_registrations);
 
     // Until figures have actually arrived (still loading, or the load failed)
     // every number is a dash: a 0 here would read as "nobody uses this" and
@@ -76,13 +93,16 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
             {/* Header */}
             <PageHeader onBack={onBack} title={t('transparency.title')} />
 
-            {lastUpdated && (
-                <p className="px-6 md:px-8 text-xs tabular-nums text-[var(--text-muted)] mb-6">
-                    {t('transparency.last_updated').replace('{t}', new Date(lastUpdated).toLocaleTimeString())}
-                </p>
-            )}
-
             <div className={PAGE_COLUMN}>
+                {lastUpdated !== null && (
+                    <p className="mt-2 mb-3 text-xs tabular-nums text-[var(--text-muted)]">
+                        {t('transparency.last_updated').replace(
+                            '{t}',
+                            new Date(lastUpdated).toLocaleTimeString(appLocale()),
+                        )}
+                    </p>
+                )}
+
                 {error && (
                     <div className="mt-2 mb-4 flex items-center justify-between gap-4">
                         <p className="text-sm text-[var(--danger)]">{error}</p>
@@ -151,13 +171,14 @@ const TransparencySettings: React.FC<TransparencySettingsProps> = ({ onBack }) =
                 </h2>
 
                 <div className="divide-y-(length:--hairline) divide-[var(--border)]">
-                    {stats && (stats.recent_registrations ?? []).length === 0 ? (
+                    {stats && recent.length === 0 ? (
                         <p className="py-6 text-sm text-center text-[var(--text-muted)]">
                             {t('transparency.recent.empty')}
                         </p>
                     ) : (
-                        (stats?.recent_registrations ?? []).map((createdAt, idx) => (
-                            <div key={`${createdAt}-${idx}`} className="flex items-center justify-end py-3">
+                        recent.map((createdAt, idx) => (
+                            <div key={`${createdAt}-${idx}`} className="flex items-center justify-between gap-4 py-3">
+                                <span className="text-sm text-[var(--text)]">user_***</span>
                                 <span className="text-xs text-[var(--text-muted)] tabular-nums">
                                     {formatRelative(createdAt, now, t)}
                                 </span>
