@@ -132,7 +132,7 @@ npm run tauri:dev
 | `src/components/`                       | Shared UI pieces, charts and forms. 共享的界面组件、图表与表单。                                                                                                                   |
 | `src/contexts/`, `src/hooks/`           | React state: auth, language, app data, cloud sync. React 状态：登录、语言、应用数据、云同步。                                                                                      |
 | `src/services/`                         | Calls to the Worker API. 调用 Worker API 的代码。                                                                                                                                  |
-| `src/i18n/`                             | Translations (`translations.ts`) and share-page copy (`share.ts`). 界面翻译与分享页文案。                                                                                          |
+| `src/i18n/`                             | One language pack per file under `locales/`, the `translations.ts` aggregator, and share-page copy (`share.ts`). 界面翻译（`locales/` 下每种语言一个文件）、聚合文件与分享页文案。 |
 | `logic.ts`                              | The pharmacokinetic model: dose events, parameters, simulation. See [Algorithm Explanation.md](./Algorithm%20Explanation.md). 药代动力学模型：给药事件、参数与模拟，详见算法说明。 |
 | `tests/`                                | Unit tests for `logic.ts` (Vitest). 针对 `logic.ts` 的单元测试（Vitest）。                                                                                                         |
 | `worker.ts`, `backupPolicy.ts`          | Cloudflare Worker backend: API, auth, D1 database, R2 avatar storage, scheduled cleanup. Cloudflare Worker 后端：API、认证、D1 数据库、R2 头像存储与定时清理。                     |
@@ -227,24 +227,28 @@ A few things need extra care:
 
 ## Translations 翻译
 
-All interface text lives in [`src/i18n/translations.ts`](./src/i18n/translations.ts).
-Each language is an object of `"key": "text"` pairs, and components read them
-with `t('key')`.
+All interface text lives in [`src/i18n/locales/`](./src/i18n/locales), one file
+per language. Each file is an object of `"key": "text"` pairs, and components
+read them with `t('key')`. [`src/i18n/translations.ts`](./src/i18n/translations.ts)
+composes the packs and exports `Lang` and `TRANSLATIONS`.
 
-所有界面文字都在 [`src/i18n/translations.ts`](./src/i18n/translations.ts) 中。每种语言是一组
+所有界面文字都在 [`src/i18n/locales/`](./src/i18n/locales) 中，每种语言一个文件。每个文件是一组
 `"key": "text"` 键值对，组件通过 `t('key')` 读取。
+[`src/i18n/translations.ts`](./src/i18n/translations.ts) 负责组合这些语言包，并导出 `Lang` 与
+`TRANSLATIONS`。
 
 ### Improving an existing language 改进已有语言
 
-Find the key in that language's block and edit the text. Keep placeholders such
-as `{doses}` exactly as they are. Some blocks are built on others:
+Find the key in that language's file and edit the text. Keep placeholders such
+as `{doses}` exactly as they are. Some packs are built on others:
 
-在对应语言的区块中找到键并修改文字，`{doses}` 这类占位符请原样保留。部分语言区块建立在其他区块之上：
+在对应语言的文件中找到键并修改文字，`{doses}` 这类占位符请原样保留。部分语言包建立在其他语言包之上：
 
-- `en` spreads `TRANSLATIONS_BASE.en`, and `yue` (Cantonese) spreads `ZH_TW`, so
-  a Traditional Chinese change also reaches Cantonese unless `yue` overrides it.
+- `yue` (Cantonese) spreads `ZH_TW`, and `tr` (Turkish) spreads `EN_BASE`, so a
+  Traditional Chinese or English change also reaches them unless they override
+  the key.
 
-  `en` 展开自 `TRANSLATIONS_BASE.en`，`yue`（粤语）展开自 `ZH_TW`，因此修改正体中文也会影响粤语，除非 `yue` 自己覆盖了该键。
+  `yue`（粤语）展开自 `ZH_TW`，`tr`（土耳其语）展开自 `EN_BASE`，因此修改正体中文或英语也会影响它们，除非它们自己覆盖了该键。
 
 - A key missing from a language falls back along the chain in `FALLBACK` in
   `src/contexts/LanguageContext.tsx`, ending at English or Simplified Chinese.
@@ -253,22 +257,22 @@ as `{doses}` exactly as they are. Some blocks are built on others:
 
 ### Adding a new string 新增文字
 
-Add the key to both `TRANSLATIONS_BASE.zh` and `TRANSLATIONS_BASE.en`. Between
-them those two carry every key, so nothing ever shows a raw key. Add the other
-languages too if you can; if not, say so in the pull request and the fallback
-covers them until someone translates it.
+Add the key to both `src/i18n/locales/zh.ts` and `src/i18n/locales/en.ts`.
+Between them those two packs carry every key, so nothing ever shows a raw key.
+Add the other languages too if you can; if not, say so in the pull request and
+the fallback covers them until someone translates it.
 
-请同时在 `TRANSLATIONS_BASE.zh` 和 `TRANSLATIONS_BASE.en` 中添加该键，这两种语言合起来覆盖所有键，
+请同时在 `src/i18n/locales/zh.ts` 和 `src/i18n/locales/en.ts` 中添加该键，这两个语言包合起来覆盖所有键，
 所以界面上永远不会出现裸键名。能翻译其他语言最好；如果不能，请在 PR 中说明，回退机制会先顶上，直到有人补全。
 
 ### Adding a new language 新增语言
 
-1. Add its code to the `Lang` type at the top of `translations.ts` and add a
-   block for it in `TRANSLATIONS`. Start by translating the keys you can; the
-   rest fall back.
+1. Add `src/i18n/locales/<code>.ts` exporting the pack, add its code to the
+   `Lang` type in `translations.ts`, and import it into `TRANSLATIONS` there.
+   Start by translating the keys you can; the rest fall back.
 
-   在 `translations.ts` 顶部的 `Lang` 类型中加入语言代码，并在 `TRANSLATIONS` 中添加对应区块。
-   先翻译你能翻译的键，其余会自动回退。
+   新建 `src/i18n/locales/<code>.ts` 导出语言包，在 `translations.ts` 的 `Lang` 类型中加入语言代码，
+   并在该文件的 `TRANSLATIONS` 中导入它。先翻译你能翻译的键，其余会自动回退。
 
 2. Add it to `LANG_LOCALE` and `FALLBACK` in `src/contexts/LanguageContext.tsx`
    (and to `RTL_LANGS` if it is written right to left).
@@ -282,10 +286,10 @@ covers them until someone translates it.
    在 `src/utils/helpers.tsx` 的 `LOCALE_MAP`、`src/i18n/share.ts` 的分享页文案，以及
    `src/App.tsx` 的语言选择列表（`languageOptions`）中加入该语言。
 
-4. For site notices, add it to `noticeLangs` in `src/pages/Admin.tsx` and to
-   `NOTICE_LANGS` in `worker.ts`.
+4. For site notices, add it to `NOTICE_LANGS` in `src/pages/Admin.tsx` and in
+   `src/server/notice.ts`.
 
-   为了支持站点公告，在 `src/pages/Admin.tsx` 的 `noticeLangs` 与 `worker.ts` 的 `NOTICE_LANGS` 中加入该语言。
+   为了支持站点公告，在 `src/pages/Admin.tsx` 与 `src/server/notice.ts` 的 `NOTICE_LANGS` 中加入该语言。
 
 The typechecker points out any `Record<Lang, …>` you missed, so run
 `npx tsc --noEmit` when you are done.
