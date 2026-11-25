@@ -3,16 +3,18 @@
 This page is for the person who has to keep an instance running. Pick one of
 the three production paths, or use the local path for development.
 
-> **Use the latest release, `v1.5.2` (2026-10-30), for production.** Do not
-> deploy `main`; it may contain unreleased changes. `v1.5.2` is a security
-> release: it caps decompressed share snapshots at 20 MiB and disables
-> Wrangler's Local Explorer and local observability APIs in the Docker runtime.
-> The VPS-native unit in [Deployment-VPS](Deployment-VPS) sets the same switches
-> and its proxy example blocks `/cdn-cgi/*`; apply those lines if your unit
-> predates them.
-> It also refreshes the npm and Rust dependency trees. If you need a fix that is
-> only on `main`, wait for the next release rather than deploying an untagged
-> commit.
+> **Use the latest release, `v1.5.3` (2026-10-31), for production.** Do not
+> deploy `main`; it may contain unreleased changes. `v1.5.3` is a security
+> release: `TRUSTED_IP_SOURCE` defaults to `none`, so per-address limits share
+> one bucket until you configure the proxy header. The Docker entrypoint writes
+> `none` unless you opt in, Cloudflare keeps `cf`, and an unknown value fails
+> closed. It builds on `v1.5.2`, which caps decompressed share snapshots at
+> 20 MiB and disables Wrangler's Local Explorer and local observability APIs in
+> the Docker runtime. The VPS-native unit in [Deployment-VPS](Deployment-VPS)
+> sets the same switches and its proxy example blocks `/cdn-cgi/*`; apply those
+> lines if your unit predates them.
+> If you need a fix that is only on `main`, wait for the next release rather
+> than deploying an untagged commit.
 
 ## Choose a path
 
@@ -113,7 +115,7 @@ session metadata, so protect the database and the host.
 
 | Pitfall                                  | What to do                                                                                                                                              |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Building from `main`                     | Check out the release tag (`v1.5.2`); never deploy an untagged commit                                                                                   |
+| Building from `main`                     | Check out the release tag (`v1.5.3`); never deploy an untagged commit                                                                                   |
 | Copying the maintainer's `wrangler.toml` | Replace the D1 `database_id` and the R2 `bucket_name` with your own; delete the `[[previews.*]]` blocks                                                 |
 | Missing migrations                       | The container applies them on start; Cloudflare uses `npm run wrangler:migrate:remote`; VPS-native uses the local migration command with `--persist-to` |
 | Exposing `8787`                          | Keep `HRT_BIND_HOST=127.0.0.1`; terminate TLS in a proxy. `--mode lan` is trusted-network only                                                          |
@@ -134,7 +136,7 @@ session metadata, so protect the database and the host.
 - [ ] `TRUSTED_IP_SOURCE` matches the proxy, and the proxy overwrites the
       client-address header.
 - [ ] `PUBLIC_APP_ORIGIN` set when the proxy changes the `Host` header.
-- [ ] The deployment is pinned to the `v1.5.2` tag.
+- [ ] The deployment is pinned to the `v1.5.3` tag.
 - [ ] If `hrt://` is enabled: certificate, key, and service token are mode 600,
       the raw port is published only where clients need it, and the service
       token is long and random.

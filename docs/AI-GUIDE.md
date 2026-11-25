@@ -3,7 +3,7 @@
 > **Audience:** AI coding agents and the people directing them. Read this file
 > before changing code.
 >
-> **Scope:** Oyama's HRT Tracker v1.5.4, commit `bc793ab`, 2026-11-25. If this
+> **Scope:** Oyama's HRT Tracker v1.5.4, commit `1491f56`, 2026-11-25. If this
 > file disagrees with the code, the code wins. Update this file in the same
 > pull request when a change makes part of it wrong.
 >
@@ -117,7 +117,7 @@ Important product constraints:
 
 | Path                                                        | Responsibility                                                                                                        |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `migrations/`                                               | D1 schema history. `0000`–`0013` exist at this snapshot. Add the next number; never edit a shipped migration.         |
+| `migrations/`                                               | D1 schema history. `0000`–`0019` exist at this snapshot. Add the next number; never edit a shipped migration.         |
 | `wrangler.toml`                                             | Worker entry, assets binding, D1/R2 bindings, rate-limit bindings, and cron trigger.                                  |
 | `src-tauri/`                                                | Tauri 1.8 desktop shell (Rust). It wraps the same web build; it is not a second frontend.                             |
 | `hrt-server/`                                               | Optional Node 22 raw TLS adapter for the `hrt/1` protocol. Disabled unless `HRT_RAW_ENABLED=1`.                       |

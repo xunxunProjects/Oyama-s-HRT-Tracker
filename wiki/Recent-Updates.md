@@ -4,15 +4,16 @@ This is a transparency report for the last 40 merged pull requests. It is a
 factual index, not a security audit, a release note, or a claim that every change
 is equally important.
 
-> **Current release:** `v1.5.2` (2026-10-30) is a security patch release. It
-> caps decompressed share snapshots at 20 MiB, disables Wrangler's Local
-> Explorer and local observability APIs in the Docker runtime, and refreshes the
-> npm and Rust dependencies. The detailed table below remains the 1.5.1
-> snapshot.
+> **Current release:** `v1.5.3` (2026-10-31) is a security patch release. It
+> defaults `TRUSTED_IP_SOURCE` to `none`, writes that default from the Docker
+> entrypoint, keeps `cf` for Cloudflare, and fails closed on an unknown value.
+> It builds on `v1.5.2`, which caps share decompression at 20 MiB and disables
+> Wrangler's Local Explorer in the Docker runtime. `main` is at 1.5.4 and
+> contains unreleased security work (#292 and #321); there is no 1.5.4 tag yet.
 
-- **Snapshot:** 2026-10-28
-- **Window:** 2026-10-18 to 2026-10-28 (UTC)
-- **Pull requests:** #122 to #175, 40 merged
+- **Snapshot:** 2026-11-25
+- **Window:** 2026-11-07 to 2026-11-25 (UTC)
+- **Pull requests:** #283 to #334, 40 merged
 - **Source:** GitHub pull request list, `state=merged`, sorted by merge time
 - **Excluded:** pull requests closed without merging, drafts, and direct commits
   that never had a pull request
@@ -22,17 +23,19 @@ evidence of a change to the app, so it is out of scope for this report.
 
 ## At a glance
 
-| Measure             | Value                             |
-| ------------------- | --------------------------------- |
-| Merged PRs          | 40                                |
-| Authors             | @fantuanmtf 23, @SmirnovaOyama 17 |
-| Feature work        | 12                                |
-| Fixes               | 13                                |
-| Documentation       | 7                                 |
-| Security-tagged     | 5                                 |
-| Release             | 1                                 |
-| Chores / governance | 2                                 |
-| Date range          | 2026-10-18 to 2026-10-28          |
+| Measure         | Value                             |
+| --------------- | --------------------------------- |
+| Merged PRs      | 40                                |
+| Authors         | @SmirnovaOyama 23, @fantuanmtf 17 |
+| Feature work    | 19                                |
+| Fixes           | 10                                |
+| Documentation   | 2                                 |
+| Security-tagged | 2                                 |
+| Refactors       | 3                                 |
+| Performance     | 2                                 |
+| Chores          | 2                                 |
+| Release         | 0                                 |
+| Date range      | 2026-11-07 to 2026-11-25          |
 
 The type column is a light classification from the pull request title and scope.
 It is not a review verdict. A fix can be security-relevant without carrying a
@@ -44,69 +47,73 @@ The following merged changes are worth reading together with
 [Security-Researchers](Security-Researchers). The list is based on titles and
 touched areas, not on a fresh audit.
 
-- **Release and signing:** #175 documents release signing and key custody;
-  #165 is the 1.5.1 release, which contains the two Low-severity fixes from
-  2026-10-22.
-- **Worker and sessions:** #152 refuses `alg:none` tokens and stops private
-  responses from being cached; #122 gives passkey sign-ins a device pass;
-  #135 hardens auth throttling and request bodies.
-- **Dependencies and runtime:** #155 patches the Node runtime and dependency
-  advisories; #156 hardens auth headers and Rust dependencies.
-- **F2F and key material:** #147 validates uploaded keys and rate-limits F2F
-  routes; #141 adds signed device requests to the raw transport; #142, #143,
-  #144, and #148 add the F2F cohort, escrow, keyring export, and one-time CLI
-  login codes.
-- **Regression fixes:** #162 hardens the calibration axes and fixes security
-  regressions found after the first 1.5.1 build.
-- **Tool API and backups:** #133 and #134 add and bound the `hrt-tool` API;
-  #129 adds verified device backup export/import.
-- **Docs:** #123 corrects the entropy figure that assumes every character is
-  random; #171 and #173 document the F2F keyring setup.
+- **Unreleased security patches:** #292 adds step-up authentication for MFA,
+  passkeys, recovery codes, and password changes; revoking an HRT device now
+  deletes its paired session; paired tokens are bound to the device fingerprint
+  and limited to the tool API; a global storage budget bounds D1 writes. #321
+  removes the legacy plaintext share path, requires step-up for account
+  deletion, makes admin sessions revocable, and requires a fresh admin password
+  for destructive writes. Both are on `main` for 1.5.4, not in `v1.5.3`.
+- **Availability of backup writes:** #298 keeps backups working when the storage
+  budget migration has not been applied, instead of failing every write.
+- **Admin controls:** #301 lets an administrator keep an account as a memorial;
+  #286 polishes the admin page and fixes its scrolling on phones.
+- **Offline and bundle surface:** #332 limits the install precache to the app
+  shell and keeps `/api` responses out of Cache Storage; #334 keeps a lazy
+  `index` chunk from being mistaken for the entry and installed eagerly; #325
+  splits page bundles by route so an unvisited page is not downloaded at
+  startup.
+- **Type safety:** #324 enables TypeScript strict mode across the app and Worker.
+- **Privacy guidance:** #295, #296, #297, and #312 expand and translate the OpSec
+  guide, including network diagrams and self-justification traps.
+- **Model integrity:** #282 adds a chemiluminescence assay and a PK
+  cross-validation tool; #290 corrects numbers in the model demos; #308 and
+  #310 settle the sublingual mucosal-exposure change.
 
 ## Merged pull requests
 
-| Date (UTC) | Pull request                                                           | Author         | Type     | Change                                                                           |
-| ---------- | ---------------------------------------------------------------------- | -------------- | -------- | -------------------------------------------------------------------------------- |
-| 2026-10-28 | [#175](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/175) | @fantuanmtf    | docs     | docs(security): document release signing and key custody                         |
-| 2026-10-28 | [#174](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/174) | @SmirnovaOyama | chore    | chore: stop tracking tsconfig.tsbuildinfo                                        |
-| 2026-10-28 | [#173](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/173) | @SmirnovaOyama | docs     | F2F how-to: say what to replace in each command; Turkish strings back in Turkish |
-| 2026-10-27 | [#168](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/168) | @SmirnovaOyama | fix      | fix(f2f): keep the CLI login code on one line on phones                          |
-| 2026-10-27 | [#166](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/166) | @SmirnovaOyama | fix      | Calm the add buttons: cross-fade to Cancel                                       |
-| 2026-10-27 | [#167](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/167) | @SmirnovaOyama | fix      | Records page: pinned day label no longer overlaps an open record                 |
-| 2026-10-27 | [#171](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/171) | @SmirnovaOyama | docs     | F2F keyring: a how-to for people new to OpenPGP                                  |
-| 2026-10-27 | [#170](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/170) | @SmirnovaOyama | fix      | 1.5.1 follow-ups: no frozen page moves, prompts in the right place               |
-| 2026-10-27 | [#165](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/165) | @SmirnovaOyama | release  | Oyama Tracker 1.5.1: drawn by hand, no pop-ups, a motion system                  |
-| 2026-10-27 | [#164](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/164) | @SmirnovaOyama | fix      | fix(ui): keep buttons the same size while busy or after copying                  |
-| 2026-10-27 | [#162](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/162) | @fantuanmtf    | fix      | fix: harden calibration axes and security regressions                            |
-| 2026-10-27 | [#158](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/158) | @SmirnovaOyama | fix      | fix(f2f): explain missing migrations and polish the keyring page                 |
-| 2026-10-25 | [#160](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/160) | @fantuanmtf    | fix      | fix(overview): read drifting doses as one regimen (#159)                         |
-| 2026-10-23 | [#157](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/157) | @fantuanmtf    | feat     | feat(deploy): add dependency checker and Docker installer                        |
-| 2026-10-23 | [#156](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/156) | @fantuanmtf    | security | security: harden auth headers and Rust dependencies                              |
-| 2026-10-23 | [#155](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/155) | @fantuanmtf    | security | security(deps): patch Node runtime and dependency advisories                     |
-| 2026-10-23 | [#154](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/154) | @fantuanmtf    | feat     | feat(share): allow links to expire through 2100                                  |
-| 2026-10-22 | [#153](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/153) | @fantuanmtf    | docs     | docs(wiki): add persona-based entry points and deployment guides                 |
-| 2026-10-22 | [#152](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/152) | @fantuanmtf    | security | fix(worker): harden token verification and private response caching              |
-| 2026-10-22 | [#151](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/151) | @fantuanmtf    | docs     | docs(wiki): add the usage, deployment, dependency, and security guides           |
-| 2026-10-21 | [#150](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/150) | @fantuanmtf    | docs     | docs: link the hrt-tool command-line client                                      |
-| 2026-10-20 | [#149](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/149) | @fantuanmtf    | fix      | fix: address website smoke-test findings                                         |
-| 2026-10-20 | [#148](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/148) | @fantuanmtf    | feat     | feat(f2f): add one-time CLI login codes                                          |
-| 2026-10-20 | [#147](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/147) | @fantuanmtf    | security | fix(f2f): validate uploaded keys and rate-limit F2F routes                       |
-| 2026-10-20 | [#144](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/144) | @fantuanmtf    | feat     | feat(f2f): export a GPG-importable cohort keyring                                |
-| 2026-10-20 | [#143](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/143) | @fantuanmtf    | feat     | feat(f2f): add operator-provisioned cohort escrow keys                           |
-| 2026-10-20 | [#142](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/142) | @fantuanmtf    | feat     | feat(f2f): add the face-to-face cohort registry                                  |
-| 2026-10-20 | [#141](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/141) | @fantuanmtf    | feat     | feat(hrt): add the self-hosted raw transport with signed device requests         |
-| 2026-10-20 | [#125](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/125) | @SmirnovaOyama | feat     | Age adjustment (beta): year of birth scales estradiol and testosterone clearance |
-| 2026-10-20 | [#138](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/138) | @SmirnovaOyama | feat     | Age adjustment (beta), brought up to date with main (replaces #125)              |
-| 2026-10-20 | [#137](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/137) | @SmirnovaOyama | fix      | Tidy float tails off stored doses, and pin down the v2 export's flat copy        |
-| 2026-10-20 | [#132](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/132) | @SmirnovaOyama | feat     | feat: say whether a complete backup came from this account                       |
-| 2026-10-19 | [#136](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/136) | @fantuanmtf    | fix      | fix(ui): correct the lab calibration exclusion message                           |
-| 2026-10-19 | [#135](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/135) | @fantuanmtf    | security | fix(security): harden deployment, auth throttling and request bodies             |
-| 2026-10-19 | [#134](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/134) | @fantuanmtf    | fix      | fix: bound tool snapshot body reads and map D1 row limits                        |
-| 2026-10-19 | [#133](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/133) | @fantuanmtf    | feat     | feat: add hrt-tool /api/tool/v1 interface                                        |
-| 2026-10-19 | [#129](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/129) | @fantuanmtf    | feat     | feat: complete device backup export/import with verification preview             |
-| 2026-10-19 | [#130](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/130) | @SmirnovaOyama | chore    | Add fantuanmtf as a maintainer                                                   |
-| 2026-10-18 | [#123](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/123) | @SmirnovaOyama | docs     | Say which entropy figure assumes every character is random                       |
-| 2026-10-18 | [#122](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/122) | @SmirnovaOyama | fix      | Give passkey sign-ins a device pass too                                          |
+| Date (UTC) | Pull request                                                           | Author         | Type     | Change                                                                                         |
+| ---------- | ---------------------------------------------------------------------- | -------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| 2026-11-25 | [#334](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/334) | @fantuanmtf    | fix      | fix(pwa): keep lazy index chunks out of the precache                                           |
+| 2026-11-25 | [#333](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/333) | @fantuanmtf    | refactor | refactor(admin): split admin page into focused panels                                          |
+| 2026-11-25 | [#332](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/332) | @fantuanmtf    | perf     | perf(pwa): precache only the app shell                                                         |
+| 2026-11-25 | [#331](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/331) | @fantuanmtf    | refactor | refactor(app): split app shell into focused modules                                            |
+| 2026-11-25 | [#330](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/330) | @fantuanmtf    | refactor | refactor(i18n): split translations into locale modules                                         |
+| 2026-11-19 | [#328](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/328) | @SmirnovaOyama | feat     | Animate changing home readings with soft vertical motion                                       |
+| 2026-11-19 | [#326](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/326) | @SmirnovaOyama | fix      | Fix transparency center layout and registration times                                          |
+| 2026-11-18 | [#325](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/325) | @fantuanmtf    | perf     | perf(web): split page bundles by route                                                         |
+| 2026-11-18 | [#324](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/324) | @fantuanmtf    | chore    | chore(types): enable TypeScript strict mode                                                    |
+| 2026-11-17 | [#321](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/321) | @fantuanmtf    | security | fix(security): encrypt shares, require deletion step-up, and revoke admin sessions             |
+| 2026-11-16 | [#319](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/319) | @fantuanmtf    | feat     | feat(pk): add allometric body-weight scaling to clearance                                      |
+| 2026-11-16 | [#317](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/317) | @fantuanmtf    | feat     | feat(age): replace the under-19 clearance clamp with bands and a puberty ramp                  |
+| 2026-11-15 | [#314](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/314) | @SmirnovaOyama | fix      | Keep the field lines when the browser fills a field in                                         |
+| 2026-11-14 | [#313](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/313) | @SmirnovaOyama | chore    | Credits: new maintainer avatar                                                                 |
+| 2026-11-14 | [#311](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/311) | @fantuanmtf    | feat     | feat(vote): accept donations via Monero and Trocador                                           |
+| 2026-11-14 | [#312](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/312) | @fantuanmtf    | feat     | Add an OpSec scenario on self-justification traps                                              |
+| 2026-11-12 | [#310](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/310) | @SmirnovaOyama | fix      | Revert "Give sublingual esters the same mucosal exposure as estradiol" (#309)                  |
+| 2026-11-12 | [#309](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/309) | @SmirnovaOyama | feat     | Give sublingual esters the same mucosal exposure as estradiol                                  |
+| 2026-11-12 | [#308](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/308) | @SmirnovaOyama | feat     | Let the mucosal share of sublingual estradiol fall at its own rate                             |
+| 2026-11-11 | [#307](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/307) | @SmirnovaOyama | fix      | Slide the phone bottom bar away while reading down a page                                      |
+| 2026-11-11 | [#306](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/306) | @SmirnovaOyama | feat     | Personal PK calibration: per-route levels, absorption speed, MCMC                              |
+| 2026-11-11 | [#305](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/305) | @SmirnovaOyama | feat     | Make the lab test method a dropdown                                                            |
+| 2026-11-11 | [#304](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/304) | @fantuanmtf    | docs     | docs: add PK model references to Credits                                                       |
+| 2026-11-10 | [#300](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/300) | @SmirnovaOyama | feat     | Sync the calibration method and age beta between devices                                       |
+| 2026-11-09 | [#301](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/301) | @SmirnovaOyama | feat     | Let admins keep an account as a memorial                                                       |
+| 2026-11-09 | [#296](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/296) | @fantuanmtf    | feat     | feat(opsec): add Mermaid network guidance and protocol sections                                |
+| 2026-11-09 | [#299](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/299) | @SmirnovaOyama | feat     | Let the device simulator show the app on the live site                                         |
+| 2026-11-09 | [#298](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/298) | @SmirnovaOyama | fix      | Keep backups working when the storage budget migration is missing                              |
+| 2026-11-09 | [#297](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/297) | @SmirnovaOyama | feat     | Translate the OpSec guide into every language and tidy its formatting                          |
+| 2026-11-09 | [#295](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/295) | @fantuanmtf    | feat     | feat(opsec): expand high-threat, body-safety, and transmasculine guidance                      |
+| 2026-11-08 | [#292](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/292) | @fantuanmtf    | security | Security fixes for 1.5.4: MFA step-up, HRT device revocation, storage budget                   |
+| 2026-11-08 | [#291](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/291) | @SmirnovaOyama | feat     | Add Russian and Ukrainian                                                                      |
+| 2026-11-08 | [#290](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/290) | @SmirnovaOyama | fix      | Fix wrong numbers in the model demos                                                           |
+| 2026-11-08 | [#289](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/289) | @SmirnovaOyama | feat     | Move the Overview reading into the sidebar on wide short touch screens, add a device simulator |
+| 2026-11-08 | [#287](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/287) | @SmirnovaOyama | fix      | Make the wide layout work with a touch laptop screen                                           |
+| 2026-11-08 | [#288](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/288) | @SmirnovaOyama | fix      | Fit onboarding and the sidebar to wide short screens                                           |
+| 2026-11-08 | [#286](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/286) | @SmirnovaOyama | fix      | Polish the admin page and fix its scrolling on phones                                          |
+| 2026-11-08 | [#285](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/285) | @SmirnovaOyama | feat     | Glide the model explanation charts between states                                              |
+| 2026-11-08 | [#284](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/284) | @SmirnovaOyama | feat     | Open the model explanation as an in-app page                                                   |
+| 2026-11-07 | [#283](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/pull/283) | @fantuanmtf    | docs     | docs: add optional donation addresses (Monero + BTC)                                           |
 
 ## How to refresh this page
 

@@ -1,6 +1,6 @@
 # Local development
 
-> This is not a production deployment. For production, pin the `v1.5.2`
+> This is not a production deployment. For production, pin the `v1.5.3`
 > release tag. For a loopback-only personal instance, see [Local-Tool](Local-Tool).
 
 The app has two servers in development:
@@ -98,6 +98,7 @@ npm run lint              # ESLint
 npm run format:check      # Prettier
 npm test                  # Vitest
 npm run build             # production bundle
+npm run size              # entry and precache budgets
 python3 scripts/set_version.py --check
 ```
 
@@ -111,9 +112,10 @@ npm run test:e2e
 `playwright.config.ts` starts its own Worker on `:8787` and Vite on `:3000`,
 with a temporary D1/R2 directory and a random `JWT_SECRET` for each run. It
 reuses an existing server only outside CI, so stop your own `:8787` and `:3000`
-processes first if the ports are taken. If Playwright cannot find a browser
-that matches the package version, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to a
-Chromium binary.
+processes first if the ports are taken. Set `E2E_API_PORT=8788` to move the
+throwaway Worker (and the Vite proxy) when another process owns 8787. If
+Playwright cannot find a browser that matches the package version, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` to a Chromium binary.
 
 ## Docker while developing
 

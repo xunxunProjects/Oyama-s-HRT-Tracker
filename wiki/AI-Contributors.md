@@ -56,7 +56,14 @@ npm run lint
 npm run format:check
 npm test
 npm run build
+npm run size
 ```
+
+`npm run size` checks the entry bundle and the install precache against the
+budgets in `scripts/bundle-size.mjs`. Run it after every production build; a
+route that is accidentally pulled back into the app shell fails the check.
+Run `npm run test:e2e` when the change affects a user flow or the API. It needs
+the built app and a free local port; set `E2E_API_PORT=8788` if 8787 is busy.
 
 Tools (when the change touches `tools/`):
 
@@ -74,7 +81,7 @@ claim it passed.
 
 ## Version policy
 
-- Production deployments use the latest release tag (`v1.5.2`), never `main`.
+- Production deployments use the latest release tag (`v1.5.3`), never `main`.
 - Security researchers use the latest commit; say which commit you tested.
 - A release is built from a tag, with CI, and published. Do not retag or move a
   release.

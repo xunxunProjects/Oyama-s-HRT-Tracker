@@ -12,7 +12,7 @@
 
 ## Checklist 自查清单
 
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run format:check`, `npm test` and `npm run build` pass locally 本地类型检查、代码检查、格式检查、单元测试与构建通过
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run format:check`, `npm test`, `npm run build` and `npm run size` pass locally 本地类型检查、代码检查、格式检查、单元测试、构建与包体积检查通过
 - [ ] New interface text is in every language pack under `src/i18n/locales/` (at minimum `zh` and `en`) 新增界面文字已加入 `src/i18n/locales/` 下的语言包（至少 `zh` 与 `en`）
 - [ ] Model changes in `src/domain/` (exposed through `logic.ts`) cite their source 对 `src/domain/` 模型的修改已注明来源
 - [ ] Database changes are a new file in `migrations/` 数据库修改以新迁移文件的形式提交
