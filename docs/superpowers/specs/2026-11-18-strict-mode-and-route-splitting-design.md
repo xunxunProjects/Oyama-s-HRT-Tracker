@@ -1,7 +1,8 @@
 # TypeScript Strict Mode and Route-Level Code Splitting
 
 Date: 2026-11-18
-Status: Proposed
+Updated: 2026-11-25 — the PWA precache policy is superseded by #329 PR 3.
+Status: Implemented
 Scope: Two sequential quality changes to the web client and the Worker's shared types.
 
 ## 1. Why
@@ -37,7 +38,7 @@ The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIA
 
 1. Turn on `strict: true` without changing runtime behavior, after fixing the 27 errors.
 2. Load every page except `Home`, `Onboarding`, and `PublicShare` through `React.lazy`.
-3. Keep the PWA fully offline-capable: every built JS asset must stay in the Workbox precache.
+3. Keep a usable offline shell on low-bandwidth connections: precache the app shell (entry JS/CSS, HTML, manifest, and icons), then cache lazy route chunks and their CSS after the first visit. Do not precache every built JS asset.
 4. Make a stale-chunk failure recover once, then fall through to the existing `ErrorBoundary` instead of a blank page.
 5. Enforce the improvement with a CI bundle budget and a precache-coverage check.
 
@@ -57,8 +58,8 @@ The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIA
 - Lazy imports use one shared helper. The first chunk failure for a module reloads the page once per tab; a second failure throws to `ErrorBoundary`.
 - `Home`, `Onboarding`, and `PublicShare` stay eager. `Onboarding` is a first-run screen; `PublicShare` is a separate `/share` entry.
 - The entry chunk must be at most 550 KiB gzip, at least 25% below the 740.6 KiB baseline.
-- `scripts/bundle-size.mjs` must fail when the entry exceeds the budget, and when any `dist/assets/*.js` is absent from `dist/sw.js`.
-- Do not lower `maximumFileSizeToCacheInBytes` unless no built chunk exceeds the default 2 MiB. The precache check is the guard.
+- `scripts/bundle-size.mjs` must fail when the entry exceeds the budget, when a non-shell JS or CSS file leaks into `dist/sw.js`, or when the core precache exceeds its budget. Lazy route chunks are runtime-cached, not precached.
+- `maximumFileSizeToCacheInBytes` is 2 MiB: enough for the current ~1.3 MiB entry and its icons, but low enough that a new eager import cannot silently turn the install into a full-bundle download.
 - Commands used by the plan: `npx tsc --noEmit`, `npm test`, `npm run lint`, `npm run format:check`, `npm run build`, `npm run size`, `npm run test:e2e`.
 
 ## 5. Acceptance criteria
@@ -66,7 +67,7 @@ The Worker union is also incomplete: `jsonError` is called with `ACCOUNT_MEMORIA
 - `npx tsc --noEmit` passes with `"strict": true` in `tsconfig.json`.
 - `npx tsc --noEmit --strict` also passes (the flag is now redundant, not contradictory).
 - Existing unit tests, lint, formatting, build, and the Playwright suite pass.
-- `npm run size` reports an entry gzip at or below 550 KiB and confirms every built JS asset is precached.
+- `npm run size` reports an entry gzip at or below 550 KiB, confirms only the app shell is precached, and confirms the lazy-chunk runtime caches exist.
 - `src/App.tsx` has no static page imports except `Home`, `Onboarding`, and `PublicShare`.
 - Opening `Settings → Data management → Export data` still works; `PKVisualization` and `OpSec` still work.
 - No change to user-visible copy except the new transient "Loading…" label.
@@ -81,5 +82,5 @@ It lists the hot files and the rules for new pages, error codes, and ester table
 
 - Baseline on `766e3cb`: entry 2,459.64 kB raw / 772.44 kB Vite gzip (754.3 KiB); 27 strict errors.
 - After both changes: entry 1,241.5 KiB raw / 397.3 KiB gzip, a 47.3% gzip reduction; 37 lazy pages, with `Home`, `Onboarding`, and `PublicShare` eager.
-- Build: 118 JS assets, all precached; 127 precache entries, 9,251.81 KiB.
+- Build (2026-11-18): 118 JS assets, all precached; 127 precache entries, 9,251.81 KiB. Superseded on 2026-11-25: only the app shell is precached; lazy chunks are runtime-cached.
 - Verification: `npx tsc --noEmit`, lint, format, 96 test files / 997 tests + 4 expected failures, build, `npm run size`, and 27 Playwright tests all pass.
