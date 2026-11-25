@@ -93,7 +93,7 @@ export default defineConfig(
         },
     },
     {
-        files: ['src/pages/Admin.tsx', 'src/pages/Settings.tsx'],
+        files: ['src/pages/admin/**/*.{ts,tsx}', 'src/pages/Settings.tsx'],
         rules: {
             'react-hooks/globals': 'warn',
         },

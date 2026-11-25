@@ -8,7 +8,7 @@ export const Lab = lazyWithRetry(() => import('../pages/Lab'), 'Lab');
 export const CalibrationSettings = lazyWithRetry(() => import('../pages/CalibrationSettings'), 'CalibrationSettings');
 export const Settings = lazyWithRetry(() => import('../pages/Settings'), 'Settings');
 export const Account = lazyWithRetry(() => import('../pages/Account'), 'Account');
-export const Admin = lazyWithRetry(() => import('../pages/Admin'), 'Admin');
+export const Admin = lazyWithRetry(() => import('../pages/admin'), 'Admin');
 export const SessionsPage = lazyWithRetry(() => import('../pages/Sessions'), 'Sessions');
 export const HrtSecurityPage = lazyWithRetry(() => import('../pages/HrtSecurity'), 'HrtSecurity');
 export const F2fPage = lazyWithRetry(() => import('../pages/F2f'), 'F2f');
