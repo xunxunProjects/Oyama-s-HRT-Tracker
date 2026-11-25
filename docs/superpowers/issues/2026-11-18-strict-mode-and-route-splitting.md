@@ -34,14 +34,16 @@ No response shapes, PK formulas, migrations, or version numbers change. Existing
 
 ### PR 2 — Route-level code splitting
 
+> **2026-11-25 update (#329 PR 3):** the precache rule below was superseded. Only the app shell is precached now; lazy chunks are runtime-cached after the first visit, so a Tor install no longer downloads the whole app.
+
 - Add `src/routes/lazyPages.ts` with 37 lazy page exports. Keep `Home`, `Onboarding`, and `PublicShare` eager.
 - Wrap the page switch in `App.tsx` with `<Suspense fallback={<PageLoading />}>`.
 - Add `src/utils/lazyWithRetry.ts`: if a chunk fails because a deploy replaced the hashed asset while a tab was open, reload once for that module; if it fails again, surface the error to the existing error boundary.
 - Load `jsPDF` and KaTeX only with the pages that use them.
 - Add `scripts/bundle-size.mjs` and `npm run size` to CI:
   - entry gzip budget: 550 KiB (overridable with `BUNDLE_BUDGET_KB`);
-  - every built `dist/assets/*.js` file must appear in the service-worker precache.
-- Remove the 4 MiB Workbox `maximumFileSizeToCacheInBytes` override if no chunk needs it.
+  - every built `dist/assets/*.js` file must stay **out** of the service-worker precache unless it is the entry; lazy chunks are runtime-cached.
+- Lower Workbox `maximumFileSizeToCacheInBytes` to 2 MiB; the entry is about 1.3 MiB, and heavy lazy chunks must not be precached.
 - Add an E2E check for Back/Forward after visiting a lazy page, and keep the existing KaTeX and Mermaid coverage.
 
 ## What this means if you have work in flight
@@ -71,7 +73,7 @@ Manual checks for PR 2:
 - Load the app on a cold cache, open Settings, then navigate to Export data; the lazy chunks load without a flash of the wrong page.
 - Navigate to Export Settings and back; jsPDF is fetched only on that page.
 - Visit the PK visualization; KaTeX still renders.
-- Reload once while offline after a first visit; the precache still covers the app shell.
+- Reload once while offline after a first visit; the precache covers the app shell, and any lazy page visited while online still works offline.
 
 ## Out of scope
 

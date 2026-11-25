@@ -29,6 +29,10 @@ export function loadLazyModule<P>(
     { storage, reload }: LoadLazyModuleOptions,
 ): Promise<{ default: ComponentType<P> }> {
     return importer().catch(error => {
+        // Reloading cannot fetch a chunk while the browser is offline. Show
+        // the error boundary immediately instead of reloading into the same
+        // missing chunk.
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) throw error;
         try {
             if (shouldReloadForChunkFailure(moduleId, storage, reload)) {
                 return new Promise<never>(() => {});

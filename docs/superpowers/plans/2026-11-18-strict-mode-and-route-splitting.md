@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-18-strict-mode-and-route-splitting-design.md`
 
+> **2026-11-25 update (#329 PR 3):** The PWA precache policy below changed. Do not enforce “every built `dist/assets/*.js` must appear in `dist/sw.js`”; that requirement made a Tor install download about 9.2 MiB. The current policy precaches only the app shell and runtime-caches lazy chunks. See the 2026-11-25 update in the spec and the current `scripts/bundle-size.mjs`.
+
 ## Global Constraints
 
 - Baseline to beat (measured on `766e3cb`): entry gzip **772,440 bytes (754.3 KiB)**; **27** strict errors; **40** static page imports in `src/App.tsx`.
@@ -18,7 +20,7 @@
 - Keep `Home`, `Onboarding`, and `PublicShare` eager; lazy-load the other 37 pages.
 - Keep every existing ester-table fallback (`?? 0`, `?? 0.5`, etc.); the partial typing must not change model output.
 - `ApiErrorCode` in `worker.ts` is the only list of Worker error codes. Every `jsonError` literal must be a member.
-- Every built `dist/assets/*.js` must appear in `dist/sw.js`; the PWA must stay fully offline-capable.
+- Precache only the app shell (entry JS/CSS, HTML, manifest, icons). Every other built `dist/assets/*.js` is a lazy chunk and must stay out of `dist/sw.js`; it is runtime-cached after the first visit.
 - Entry budget: **550 KiB gzip**, enforced by `npm run size`.
 - No new runtime dependencies.
 - Commands: `npx tsc --noEmit`, `npm test`, `npm run lint`, `npm run format:check`, `npm run build`, `npm run size`, `npm run test:e2e`.
@@ -28,7 +30,7 @@
 - **Stale chunk after a deploy:** the first failed page import reloads once; a second failure shows `ErrorBoundary`, not a blank screen. Pinned by `tests/lazyWithRetry.test.ts`.
 - **Back/Forward onto a lazy page:** the chunk loads and the page renders after history navigation. Pinned by `e2e/lazy-routes.spec.ts`.
 - **Heavy libraries leave the entry:** `jsPDF` and KaTeX move into lazy chunks, and the Export/PK pages still work. Pinned by the build grep step and `e2e/pk-visualization.spec.ts`.
-- **Offline completeness:** a page chunk dropped by Workbox's size limit fails `npm run size`. Pinned by `scripts/bundle-size.mjs`.
+- **Core precache only:** lazy chunks must stay out of the install precache, and the shell precache must stay under budget. Pinned by `scripts/bundle-size.mjs`.
 - **Unknown ester values:** an ester absent from a PK table still receives its documented fallback, not `NaN` or `0` by accident. Pinned by `tests/routes.test.ts`, `tests/params-and-units.test.ts`, and `tests/literature.test.ts`.
 - **New Worker error code:** adding a `jsonError('…')` outside `ApiErrorCode` fails typecheck. Pinned by the Task 1 strict run.
 
@@ -862,7 +864,9 @@ git commit -m "perf(web): split pages behind React.lazy"
 
 ---
 
-### Task 8: Enforce the bundle budget and PWA precache coverage
+### Task 8: Enforce the bundle budget and core precache policy
+
+> **Superseded 2026-11-25 (#329 PR 3):** The “every JS asset in `sw.js`” check in the steps below is historical. The current script enforces the opposite: only the app shell may be precached, and lazy chunks are runtime-cached.
 
 **Files:**
 

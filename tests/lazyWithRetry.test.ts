@@ -75,6 +75,20 @@ describe('lazy chunk reload', () => {
         expect(reload).not.toHaveBeenCalled();
     });
 
+    it('does not reload or touch sessionStorage while offline', async () => {
+        const storage = memoryStorage();
+        const reload = vi.fn();
+        vi.stubGlobal('navigator', { onLine: false });
+
+        try {
+            await expect(loadLazyModule(rejectImport, 'Plan', { storage, reload })).rejects.toBe(chunkError);
+            expect(reload).not.toHaveBeenCalled();
+            expect(storage.getItem('hrt-chunk-reload')).toBeNull();
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
     it('wraps the loader in a React.lazy component', () => {
         const Lazy = lazyWithRetry(() => Promise.resolve({ default: () => null }), 'Plan');
         expect((Lazy as { $$typeof?: symbol }).$$typeof).toBe(Symbol.for('react.lazy'));
