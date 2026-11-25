@@ -16,6 +16,20 @@ export default defineConfig(() => {
                 },
             },
         },
+        build: {
+            rollupOptions: {
+                output: {
+                    // The PWA precache matches the entry as assets/index-*.js.
+                    // A lazy chunk whose module is named `index` would land in
+                    // the same namespace and be installed eagerly. Prefix only
+                    // those ambiguous chunks.
+                    chunkFileNames: chunkInfo =>
+                        /^index(?:-|$)/.test(chunkInfo.name)
+                            ? 'assets/chunk-[name]-[hash].js'
+                            : 'assets/[name]-[hash].js',
+                },
+            },
+        },
         plugins: [
             react(),
             VitePWA({
