@@ -79,34 +79,34 @@ Important product constraints:
 
 ### Source and entry points
 
-| Path                     | Responsibility                                                                                                       |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `index.tsx`              | Browser entry; mounts `src/App.tsx`.                                                                                 |
-| `src/App.tsx`            | Providers, `/share` route selection, and the view switch.                                                            |
-| `src/pages/`             | One file per screen.                                                                                                 |
-| `src/components/`        | Shared UI, charts, forms, icons, and doodles.                                                                        |
-| `src/contexts/`          | React context: auth, language, HRT mode, dialogs, pixel cat.                                                         |
-| `src/hooks/`             | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                               |
-| `src/services/`          | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                         |
-| `src/utils/`             | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities. |
-| `src/i18n/`              | `translations.ts` (all UI strings), `share.ts` (share-page copy), `locale.ts` (locale detection).                    |
-| `src/data/developers.ts` | Credits data for the developer wall.                                                                                 |
-| `src/constants.ts`       | Shared UI constants.                                                                                                 |
-| `logic.ts`               | Pharmacokinetic model, dose/lab types, simulation, calibration, and model validation. Shared with tests.             |
-| `shbg.ts`                | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.     |
-| `worker.ts`              | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`.               |
-| `toolApi.ts`             | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                   |
-| `contentStore.ts`        | Content-row SQL shared by the website and tool APIs, including retention pruning.                                    |
-| `backupPolicy.ts`        | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                          |
-| `passwordStrength.ts`    | Password length/byte limits and strength estimate. Shared by client and Worker.                                      |
-| `shareExpiry.ts`         | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                 |
-| `shareSnapshotSchema.ts` | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.           |
-| `f2f.ts`                 | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                            |
-| `hrtPairing.ts`          | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                       |
-| `requestInput.ts`        | Client-address extraction and bounded JSON body reads for the Worker.                                                |
-| `workerUtil.ts`          | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                     |
-| `communityVote.ts`       | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.            |
-| `communityVoteServer.ts` | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                          |
+| Path                     | Responsibility                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.tsx`              | Browser entry; mounts `src/App.tsx`.                                                                                                        |
+| `src/App.tsx`            | Providers, `/share` route selection, and the view switch.                                                                                   |
+| `src/pages/`             | One file per screen.                                                                                                                        |
+| `src/components/`        | Shared UI, charts, forms, icons, and doodles.                                                                                               |
+| `src/contexts/`          | React context: auth, language, HRT mode, dialogs, pixel cat.                                                                                |
+| `src/hooks/`             | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                                                      |
+| `src/services/`          | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                                                |
+| `src/utils/`             | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities.                        |
+| `src/i18n/`              | `locales/` (one UI-string pack per language), `translations.ts` (aggregator), `share.ts` (share-page copy), `locale.ts` (locale detection). |
+| `src/data/developers.ts` | Credits data for the developer wall.                                                                                                        |
+| `src/constants.ts`       | Shared UI constants.                                                                                                                        |
+| `logic.ts`               | Pharmacokinetic model, dose/lab types, simulation, calibration, and model validation. Shared with tests.                                    |
+| `shbg.ts`                | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.                            |
+| `worker.ts`              | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`.                                      |
+| `toolApi.ts`             | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                                          |
+| `contentStore.ts`        | Content-row SQL shared by the website and tool APIs, including retention pruning.                                                           |
+| `backupPolicy.ts`        | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                                                 |
+| `passwordStrength.ts`    | Password length/byte limits and strength estimate. Shared by client and Worker.                                                             |
+| `shareExpiry.ts`         | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                                        |
+| `shareSnapshotSchema.ts` | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.                                  |
+| `f2f.ts`                 | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                                                   |
+| `hrtPairing.ts`          | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                                              |
+| `requestInput.ts`        | Client-address extraction and bounded JSON body reads for the Worker.                                                                       |
+| `workerUtil.ts`          | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                                            |
+| `communityVote.ts`       | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.                                   |
+| `communityVoteServer.ts` | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                                                 |
 
 ### Supporting directories
 
@@ -199,9 +199,10 @@ The share key must never be sent to the server. It belongs in the URL fragment
   the v3 document and `src/styles/oyama-tokens.css` win.
 - Use the existing tokens and components. Do not hard-code colors, spacing,
   radii, or shadows.
-- Every visible string goes through `t()`. Add the key to every language
-  object in `src/i18n/translations.ts`; `tests/translations.test.ts` checks
-  parity. Share-page copy is in `src/i18n/share.ts`.
+- Every visible string goes through `t()`. Add the key to every language pack
+  under `src/i18n/locales/`; `translations.ts` composes them and
+  `tests/translations.test.ts` checks parity. Share-page copy is in
+  `src/i18n/share.ts`.
 - No pop-ups: follow the inline-prompt and inline-choice patterns described in
   the design system.
 
@@ -364,7 +365,7 @@ Treat these as hard constraints, not suggestions:
 
 | Goal                            | Read / edit                                                                                                                                           | Verify                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Change UI copy or add a string  | `src/i18n/translations.ts` (all languages), `src/i18n/share.ts` for share pages                                                                       | `npx vitest run tests/translations.test.ts`, `npm run build`            |
+| Change UI copy or add a string  | `src/i18n/locales/*.ts` (one file per language), `src/i18n/translations.ts` (aggregator), `src/i18n/share.ts` for share pages                         | `npx vitest run tests/translations.test.ts`, `npm run build`            |
 | Add or change a screen          | `src/pages/`, `src/App.tsx`, `src/hooks/useAppNavigation.ts` (`ViewKey`, `VIEW_ORDER`, `VIEW_TAB`), translations                                      | typecheck, unit tests, `npm run build`, Playwright if user-visible      |
 | Change visual design            | `design/system/README.md`, `src/styles/oyama-tokens.css`, existing components                                                                         | visual check at phone and desktop widths; no hard-coded tokens          |
 | Add an API endpoint             | `worker.ts` (correct route group), `src/services/apiClient.ts`, client service, docs if public                                                        | `npx tsc --noEmit`, `tests/routes.test.ts`, hardening/cache tests       |
