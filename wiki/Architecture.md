@@ -35,19 +35,24 @@ a particular deployment.
 
 ## Components
 
-| Component      | Location                                                                | Responsibility                                                                           |
-| -------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Web app        | `src/` (React 18, Vite 6, TypeScript)                                   | Dose/lab/weight UI, model, local storage, client-side encryption                         |
-| Worker         | `worker.ts`, `toolApi.ts`, `contentStore.ts`, `hrtPairing.ts`, `f2f.ts` | Static assets, `/api/*`, auth, rate limits, D1/R2 access                                 |
-| Database       | D1 (`hrt-tracker-prod`)                                                 | Accounts, sessions, login backoff, encrypted backups, share rows, passkeys, 2FA, notices |
-| Object storage | R2 (`AVATAR_BUCKET`)                                                    | Avatars and retained content objects                                                     |
-| Raw transport  | `hrt-server/` (Node 22)                                                 | Optional TLS 1.3 adapter for `hrt/1`; disabled by default                                |
-| Desktop        | `src-tauri/` (Tauri 1.8)                                                | Wraps the web app; points at a server with `VITE_API_ORIGIN`                             |
-| CLI            | `tools/hrt-tool`, `tools/hrt-cold`, `tools/hrt-f2f`                     | Terminal client, offline cold backup, F2F keyrings                                       |
+| Component      | Location                                                                                      | Responsibility                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Web app        | `src/` (React 18, Vite 6, TypeScript)                                                         | Dose/lab/weight UI, local storage, client-side encryption                                |
+| App shell      | `src/app/`                                                                                    | Providers, data/navigation wiring, view switch, guards, backup actions                   |
+| Domain model   | `src/domain/`, façade `logic.ts`                                                              | Dose/lab types, PK modules, calibration, simulation, advisory rules                      |
+| Worker         | `worker.ts`, `src/server/routes/`, `toolApi.ts`, `contentStore.ts`, `hrtPairing.ts`, `f2f.ts` | Static assets, `/api/*`, auth, rate limits, D1/R2 access                                 |
+| PWA shell      | `src/routes/lazyPages.ts`, `vite.config.ts`                                                   | Lazy route chunks; install precache is the app shell only                                |
+| Database       | D1 (`hrt-tracker-prod`)                                                                       | Accounts, sessions, login backoff, encrypted backups, share rows, passkeys, 2FA, notices |
+| Object storage | R2 (`AVATAR_BUCKET`)                                                                          | Avatars and retained content objects                                                     |
+| Raw transport  | `hrt-server/` (Node 22)                                                                       | Optional TLS 1.3 adapter for `hrt/1`; disabled by default                                |
+| Desktop        | `src-tauri/` (Tauri 1.8)                                                                      | Wraps the web app; points at a server with `VITE_API_ORIGIN`                             |
+| CLI            | `tools/hrt-tool`, `tools/hrt-cold`, `tools/hrt-f2f`                                           | Terminal client, offline cold backup, F2F keyrings                                       |
 
 ## Request flow
 
-1. The browser loads the built app from the Worker's `ASSETS` binding.
+1. The browser loads the built app from the Worker's `ASSETS` binding. The
+   service worker installs with only the app shell in its precache; lazy page
+   chunks enter a runtime cache after the user opens that page.
 2. API calls go to `/api/*` with a Bearer token (web session, tool session, or
    an F2F-scoped token). The Worker validates the token, applies rate limits,
    and scopes database access by `user_id`.
@@ -59,6 +64,19 @@ a particular deployment.
 5. If `HRT_RAW_ENABLED=1`, the `hrt-server` process accepts the raw `hrt/1`
    protocol, verifies device signatures, and forwards allowlisted
    `/api/tool/v1/*` calls to the Worker over loopback.
+6. Offline, the app shell and pages already opened in this browser work. A page
+   that has never been visited cannot load its chunk. `/api` is never cached.
+
+## Offline and low-bandwidth behavior
+
+`vite.config.ts` keeps the install precache to the app shell: entry JS/CSS,
+HTML, icons, and the web manifest. Lazy route JS/CSS, images, and fonts are
+cached on first successful use (`route-chunks-v1`, `route-styles-v1`,
+`static-assets-v1`). `/api` is `NetworkOnly`, so account, backup, share, and
+health responses never enter Cache Storage. This keeps the first visit small on
+Tor and slow links; the trade-off is that an unvisited page is unavailable
+offline. `npm run size` enforces the entry (550 KiB gzip) and precache (3 MiB
+raw) budgets.
 
 ## Trust boundaries
 
@@ -76,12 +94,15 @@ operational consequences.
 
 ## Chapters
 
-- **UI and model:** `src/pages`, `src/services`, `src/hooks`; the model and
-  calibration live in the browser.
-- **API:** `worker.ts` route groups: public, authenticated user, admin, shares,
-  content, tool, F2F.
+- **UI and model:** `src/pages`, `src/app`, `src/services`, `src/hooks`; the
+  model and calibration live in `src/domain/` behind the `logic.ts` façade.
+- **API:** `worker.ts` dispatch and `src/server/routes/` route groups: public,
+  auth, user, admin, shares, content, sessions, 2FA, passkeys; plus tool, F2F,
+  and voting modules.
 - **Storage:** D1 migrations `migrations/0000`–`0013`; R2 avatar/content
   objects.
+- **Offline:** app-shell precache plus per-route runtime caches in
+  `vite.config.ts`; see the section above.
 - **Raw transport:** `hrt-server/`, ALPN `hrt/1`, four-byte big-endian length
   plus JSON frames.
 - **CLI:** `tools/` (see the Tools wiki).
@@ -91,7 +112,12 @@ operational consequences.
 ## Canonical sources
 
 - `README.md` — user-facing feature and self-hosting overview.
-- `worker.ts` — HTTP routes, auth, rate limits, D1/R2 access.
+- `worker.ts` — Worker entry, middleware, auth gate, rate limits, and dispatch.
+- `src/server/routes/` — concrete `/api/*` route handlers.
+- `src/app/` — signed-in shell composition.
+- `src/domain/` — pharmacokinetic model and simulation.
+- `src/routes/lazyPages.ts` — page-level code splitting.
+- `vite.config.ts` — PWA precache/runtime-cache policy and size budgets.
 - `toolApi.ts` — tool-scoped snapshot and version endpoints.
 - `hrt-server/` — raw TLS adapter and pairing.
 - `migrations/` — schema history.

@@ -46,18 +46,21 @@ at your port and no `webServer`, as described in `CONTRIBUTING.md`.
 
 ## Repository layout
 
-| Path          | Contents                                                     |
-| ------------- | ------------------------------------------------------------ |
-| `src/`        | React app, pages, hooks, services, i18n, model               |
-| `worker.ts`   | Worker entry: assets, `/api/*`, auth, rate limits, D1/R2     |
-| `toolApi.ts`  | Tool-scoped snapshot, version, and login endpoints           |
-| `hrt-server/` | Optional raw `hrt/1` TLS adapter (Node 22)                   |
-| `src-tauri/`  | Tauri 1.8 desktop wrapper                                    |
-| `migrations/` | D1 schema, `0000`–`0013`                                     |
-| `tests/`      | Vitest and Worker unit tests                                 |
-| `e2e/`        | Playwright specs and the local Worker launcher               |
-| `docker/`     | Entrypoint, reconcile script, container image support        |
-| `wiki/`       | Source for this wiki; published by `scripts/publish-wiki.sh` |
+| Path                 | Contents                                                               |
+| -------------------- | ---------------------------------------------------------------------- |
+| `src/`               | React app, pages, app shell, hooks, services, i18n, model              |
+| `src/app/`           | App shell: providers, data/navigation wiring, view switch, guards      |
+| `src/domain/`        | Pharmacokinetic model, calibration, simulation (façade: `logic.ts`)    |
+| `worker.ts`          | Worker entry: assets, middleware, auth gate, rate limits, dispatch     |
+| `src/server/routes/` | Route handlers for public, auth, user, shares, content, and admin APIs |
+| `toolApi.ts`         | Tool-scoped snapshot, version, and login endpoints                     |
+| `hrt-server/`        | Optional raw `hrt/1` TLS adapter (Node 22)                             |
+| `src-tauri/`         | Tauri 1.8 desktop wrapper                                              |
+| `migrations/`        | D1 schema, `0000`–`0013`                                               |
+| `tests/`             | Vitest and Worker unit tests                                           |
+| `e2e/`               | Playwright specs and the local Worker launcher                         |
+| `docker/`            | Entrypoint, reconcile script, container image support                  |
+| `wiki/`              | Source for this wiki; published by `scripts/publish-wiki.sh`           |
 
 See [Architecture](Architecture) for the component and request-flow view.
 
@@ -83,12 +86,13 @@ Route groups:
 | Account | `/api/register`, `/api/login`, `/api/tool/v1/login`                                                       | None, rate-limited                            |
 | User    | `/api/user/profile`, `/api/user/password`, `/api/user/sessions`, `/api/user/2fa/*`, `/api/user/passkeys*` | Bearer session                                |
 | Shares  | `/api/shares`, `/api/shares/live`, `/api/shares/keys`                                                     | Owner session; `/api/shares/access` is public |
-| Content | `/api/content`, `/api/content/:id`                                                                        | Owner session                                 |
+| Content | `/api/content`                                                                                            | Owner session                                 |
 | Admin   | `/api/admin/users`, `/api/admin/storage`, `/api/admin/users/:id/*`                                        | Admin role                                    |
 | Vote    | `GET /api/vote` (public), `GET /api/vote/me`, `POST /api/vote`                                            | None for the tally; Bearer session to vote    |
 | Tool    | `/api/tool/v1/hrt/*`, `/api/tool/v1/f2f/*`                                                                | Tool session or F2F-scoped token              |
 
-The full route inventory is in `worker.ts`; the tool subset is in `toolApi.ts`.
+The full route inventory is in `worker.ts` dispatch plus `src/server/routes/`;
+the tool subset is in `toolApi.ts`.
 
 ## Calling the API locally
 

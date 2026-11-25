@@ -3,6 +3,10 @@
 > 口径：仓库内被 Git 跟踪的源代码文件，单文件 **> 20 KB**。
 > 已排除 `node_modules/`、`.git/`、`dist/`、`coverage/`、`.wrangler/`。
 > 体积取整到 KB，行数来自 `wc -l`。这不是“代码质量判决”，只是拆分优先级清单。
+>
+> **历史快照：** 本文是 2026-11-05 的审计记录，下面的体积和行数保留当时的数据。
+> 2026-11-25 已完成一批拆分，见下方“2026-11-25 更新”；判断当前文件大小时请以仓库
+> 现状为准，不要使用旧行数。
 
 ## 总览
 
@@ -11,6 +15,25 @@
 - 七个 UI 巨石（Account、ResultChart、DoseForm、App、Admin、TwoFactor、Home）合计约 **432 KB / 8,557 行**。
 - 七个数据/样式巨石（translations、opsec、share、motion.css、index.css、PixelCat、Doodle）合计约 **737 KB**。
 - `.wrangler/tmp/dev-yWq0kb/worker.js`（811 KB）是构建产物，**不是清算对象**。
+
+## 2026-11-25 更新
+
+截至 `bc793ab`，原审计中的 P0 和部分 P1/P3 已完成：
+
+| 原目标                     | 现状                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `logic.ts`                 | 4 行兼容 façade，实现在 `src/domain/`（`index.ts` 165 行 + 各领域模块）                                                            |
+| `worker.ts`                | 957 行入口；路由在 `src/server/routes/` 的 10 个模块，`toolApi.ts`、`hrtPairing.ts`、`f2f.ts`、`communityVoteServer.ts` 仍在根目录 |
+| `src/App.tsx`              | 10 行组合根；Provider、数据接线、view switch、guards 在 `src/app/` 的 9 个文件                                                     |
+| `src/pages/Admin.tsx`      | 已删除；拆为 `src/pages/admin/` 的 14 个文件（外壳、shared、users/、Notice、Donation、System）                                     |
+| `src/i18n/translations.ts` | 35 行聚合器；九种语言在 `src/i18n/locales/`                                                                                        |
+| `src/utils/syncMerge.ts`   | façade；实现在 `src/utils/sync/` 的 5 个文件                                                                                       |
+| PWA 首访                   | 安装只预缓存 app shell（8 项，约 1.8 MiB raw）；lazy 路由 chunk 首次访问后进入 runtime cache；入口约 397.9 KiB gzip                |
+
+原审计中仍未拆的 P1/P2 项包括 `backupBundle.ts`、`backupImport.ts`、
+`useAppData.ts`、`Account.tsx`、`DoseForm.tsx`、`ResultChart.tsx`、
+`TwoFactor.tsx`、`Home.tsx` 等；本文件旧表的行数仍是 2026-11-05 的数值。
+`npm run size` 现在会检查入口 550 KiB gzip 与 precache 3 MiB raw 的预算。
 
 ## 优先级
 
@@ -25,7 +48,7 @@
 
 ## P0：领域巨石
 
-### `logic.ts` — 200 KB / 4,898 行 / 142 个导出
+### `logic.ts` — 200 KB / 4,898 行 / 142 个导出（历史数据；现已拆分）
 
 **内容**：类型与枚举、游离/生物可利用 T、Hct、闭经、体成分、血脂、VTE、性腺切除、5α 还原酶、GnRH、剂量建议、校准栈（EKF/MIPD/OU-Kalman/Full Bayes）、PK 参数表、`getBioavailabilityMultiplier`、`resolveParams`、`PrecomputedEventModel`、`runSimulation`、插值、跨男整合、HPG、加密/压缩、实验室时间。
 
@@ -33,7 +56,7 @@
 
 **拆法**：见下方“logic.ts 目标结构”。根 `logic.ts` 保留为纯 façade（`export *`），不改 97 个导入点。
 
-### `worker.ts` — 223 KB / 4,165 行
+### `worker.ts` — 223 KB / 4,165 行（历史数据；现已拆分）
 
 **内容**：Cloudflare Worker 入口与几乎全部 HTTP 路由：登录/注册、JWT、2FA/Passkey、用户资料/头像、会话、分享链接、内容/备份、管理员、公告、投票、HRT/F2F 分发、限流。
 
