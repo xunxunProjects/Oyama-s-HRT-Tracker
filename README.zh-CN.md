@@ -165,8 +165,7 @@ docker compose up -d --build
 在其他设备上通过 http 访问（例如 `http://192.168.1.5:8787`）时，需要先把端口发布到
 局域网接口——把 compose 里的映射改成 `"8787:8787"`——或在前面加一个反向代理。
 通过普通 http 访问时，备份、导出和分享链接依然是端到端加密的。不过浏览器只在
-https（或 `localhost`）下开放少数功能：安装为应用、离线使用和
-通行密钥登录。需要这些功能时，可以在容器前面加一个 https 反向代理，例如
+https（或 `localhost`）下开放少数功能：安装为应用、离线打开应用外壳与已经访问过的页面、通行密钥登录。需要这些功能时，可以在容器前面加一个 https 反向代理，例如
 [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
 （`caddy reverse-proxy --from 你的域名 --to localhost:8787`）或
 [Tailscale Serve](https://tailscale.com/kb/1312/serve)。

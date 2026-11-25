@@ -1,6 +1,6 @@
 # Cloudflare Workers
 
-> **Production: deploy the `v1.5.2` release tag.** Do not deploy `main`; it is
+> **Production: deploy the `v1.5.3` release tag.** Do not deploy `main`; it is
 > not a release.
 
 This is the serverless deployment: the web app is served by a Cloudflare
@@ -41,9 +41,10 @@ Copy the `database_id` it prints into the `[[d1_databases]]` block of
 `wrangler.toml`, replacing the maintainer's ID. **Keep the name
 `hrt-tracker-prod`**: the npm migration scripts pass that name explicitly.
 
-The repository ships 14 migrations (`migrations/0000` through `0013`). They
+The repository ships 20 migrations (`migrations/0000` through `0019`). They
 create the account, session, backup, share, invitation, rate-limit, pairing,
-F2F, and community-vote tables. Do not create tables by hand.
+F2F, community-vote, storage-budget, memorial-account, donation, Trocador, and
+WebAuthn-challenge tables. Do not create tables by hand.
 
 ## 3. Create the avatar bucket
 
@@ -152,7 +153,8 @@ bucket.
 ## Updating
 
 ```bash
-git pull
+git fetch --tags
+git checkout v1.5.3        # replace with the new release tag
 npm install
 npm run wrangler:migrate:remote
 npm run build

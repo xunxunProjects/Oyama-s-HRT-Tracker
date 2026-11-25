@@ -193,7 +193,11 @@ Add to the common skeleton:
 - the exact requests for each role, with two test accounts;
 - whether the problem is on the web app, the Worker API, the raw `hrt://`
   transport, or the desktop wrapper;
-- whether the response differs from the documented permission model.
+- whether the response differs from the documented permission model. For a
+  credential or admin finding, say whether the step-up check was bypassed:
+  current TOTP or backup code for account changes, a session-bound
+  `X-Admin-Reauth` token for destructive admin writes, or the device fingerprint
+  and tool-API scope for a paired `hrt://` token.
 
 ## Privacy and metadata reports
 
@@ -222,7 +226,8 @@ template and mention the release tag and checksum.
 Denial of service, load testing, and brute force against a live instance are out
 of scope. A logic flaw that lets one account exhaust a shared resource (for
 example, unbounded rows, storage, or a queue) can still be reported as Low or
-Medium with a local reproduction. Do not run a high-volume test against a public
+Medium with a local reproduction. The global storage budget is one such control;
+a way around it is in scope. Do not run a high-volume test against a public
 instance.
 
 ## Evidence hygiene
