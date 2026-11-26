@@ -20,6 +20,24 @@ export {
     highestSeverity,
 } from './features/safety';
 
+export type {
+    HydrationParams,
+    HydrationState,
+    UrineColorLevel,
+    WaterIntake,
+} from './features/hydration';
+export {
+    CUP_ML,
+    DEFAULT_HYDRATION_PARAMS,
+    DEFAULT_HYDRATION_STATE,
+    applyPlasmaVolume,
+    estimatePlasmaVolumeL,
+    estimateTbwL,
+    hydrationDelta,
+    plasmaVolumeRatio,
+    urineColorOffset,
+} from './features/hydration';
+
 export { computeCalibration } from './calibration/index';
 
 export type { EKFState } from './calibration/legacy';
