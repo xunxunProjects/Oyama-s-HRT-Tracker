@@ -115,21 +115,21 @@ const HowStage: React.FC<{ curve: CurveData | null; active: boolean }> = ({ curv
 /** The welcome stage: the cat, with the hormones' own structures drifting round it. */
 const WelcomeStage: React.FC = () => {
     const drift: [string, CSSProperties][] = [
-        ['E2', { left: '4%', top: '8%', '--d': '9s', '--r0': '-8deg', '--r1': '4deg' } as CSSProperties],
+        ['E2', { left: '2%', top: '6%', '--d': '9s', '--r0': '-8deg', '--r1': '4deg' } as CSSProperties],
         ['CPA', { right: '2%', top: '4%', '--d': '11s', '--r0': '6deg', '--r1': '-4deg' } as CSSProperties],
-        ['SPIRO', { left: '0%', bottom: '6%', '--d': '10s', '--r0': '4deg', '--r1': '-6deg' } as CSSProperties],
-        ['T', { right: '4%', bottom: '8%', '--d': '12s', '--r0': '-5deg', '--r1': '5deg' } as CSSProperties],
+        ['SPIRO', { left: '10%', bottom: '2%', '--d': '10s', '--r0': '4deg', '--r1': '-6deg' } as CSSProperties],
+        ['T', { right: '10%', bottom: '4%', '--d': '12s', '--r0': '-5deg', '--r1': '5deg' } as CSSProperties],
     ];
     return (
         <div className="relative h-full w-full">
             {drift.map(([id, style]) => (
-                <span key={id} className="ob-float absolute opacity-50" style={style}>
-                    <Molecule id={id} fallback="vial" size="lg" />
+                <span key={id} className="ob-float absolute opacity-40" style={style}>
+                    <Molecule id={id} fallback="vial" size="sm" />
                 </span>
             ))}
             <div className="absolute inset-0 flex items-center justify-center">
                 <span className="ob-pop">
-                    <PixelCat pose="donut" size={150} />
+                    <PixelCat pose="donut" size={112} />
                 </span>
             </div>
         </div>
@@ -265,7 +265,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
             list: true,
             stage: () => (
                 <div className="flex h-full w-full flex-col">
-                    <div className="h-28 shrink-0">
+                    <div className="h-24 shrink-0">
                         <WelcomeStage />
                     </div>
                     <div
