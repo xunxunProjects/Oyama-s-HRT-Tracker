@@ -1,5 +1,7 @@
 import { Ester, Route } from '../types';
 import type { DoseEvent, PKCustomParams, SimulationResult } from '../types';
+import type { HydrationState } from '../features/hydration';
+import { applyPlasmaVolume, plasmaVolumeRatio } from '../features/hydration';
 import { CorePK, DEFAULT_PK_PARAMS, T_CorePK, T_ESTERS, isPlausibleBirthYear, isUnmodelledDrug } from '../constants';
 import { resolveParams } from '../dispatch';
 import { PrecomputedEventModel, computeMaxLifetimeH } from '../shared/eventModel';
@@ -38,7 +40,7 @@ export function runSimulation(
     events: DoseEvent[],
     bodyWeightKG: number,
     birthYear: number | null = null,
-    options: { swallowedE2?: boolean; [key: string]: unknown } = {},
+    options: { swallowedE2?: boolean; hydration?: HydrationState; [key: string]: unknown } = {},
 ): SimulationResult | null {
     // Whether the optional bicalutamide PK submodel (issue #206 §3) is on.
     // Off by default, like the SHBG submodel in shbg.ts.
@@ -349,6 +351,15 @@ export function runSimulation(
         result.tVisceralFat = integ.viscFat;
         result.endogenousE2PgMl = result.concNGdL_T.map(c => endogenousBackground('intact', 1, 0.05 * c).e2Endo);
         result.dhtNgDl = result.concNGdL_T.map(c => dhtFromTestosterone(c, 0));
+    }
+
+    // Opt-in hydration beta: display-only plasma-volume dilution. The main
+    // curves, AUC and all PK parameters above are deliberately untouched.
+    if (options.hydration) {
+        const pvRatio = plasmaVolumeRatio(timeH, options.hydration, bodyWeightKG);
+        result.pvRatio = pvRatio;
+        result.concPGmL_E2_pv = applyPlasmaVolume(result.concPGmL_E2, pvRatio, options.hydration.alpha);
+        result.concNGdL_T_pv = applyPlasmaVolume(result.concNGdL_T, pvRatio, options.hydration.alpha);
     }
 
     return result;

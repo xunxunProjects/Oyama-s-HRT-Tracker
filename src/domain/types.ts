@@ -141,6 +141,11 @@ export interface SimulationResult {
     // of sublingual ones, so it passed the liver before the rest of the body.
     // The SHBG model in shbg.ts reads it.
     concPGmL_E2_swallowed?: number[];
+    // Opt-in hydration beta: observation-layer plasma-volume scaling only.
+    // These never feed back into the model curve or its AUC.
+    pvRatio?: number[];
+    concPGmL_E2_pv?: number[];
+    concNGdL_T_pv?: number[];
 }
 
 // --- Lab Results & Calibration ---
