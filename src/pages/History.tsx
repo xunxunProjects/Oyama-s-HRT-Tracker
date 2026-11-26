@@ -111,6 +111,7 @@ interface HistoryProps {
      *  the Overview's chart) sent someone here to change it. */
     openEditId?: string | null;
     onOpenEditHandled?: () => void;
+    safetyReminderEnabled: boolean;
 }
 
 const History: React.FC<HistoryProps> = ({
@@ -131,6 +132,7 @@ const History: React.FC<HistoryProps> = ({
     onDeleteQuickDose,
     openEditId,
     onOpenEditHandled,
+    safetyReminderEnabled,
 }) => {
     const { showDialog } = useDialog();
     const [editingId, setEditingId] = useState<string | null>(openEditId ?? null);
@@ -491,6 +493,7 @@ const History: React.FC<HistoryProps> = ({
                                     isInline={true}
                                     hideHeader={true}
                                     events={allEvents}
+                                    safetyReminderEnabled={safetyReminderEnabled}
                                 />
                             </div>
                         )}
@@ -651,6 +654,7 @@ const History: React.FC<HistoryProps> = ({
                             isInline={true}
                             events={events ?? allEvents}
                             quickDoses={quickDoses}
+                            safetyReminderEnabled={safetyReminderEnabled}
                             onAddQuickDose={onAddQuickDose}
                             onDeleteQuickDose={onDeleteQuickDose}
                         />

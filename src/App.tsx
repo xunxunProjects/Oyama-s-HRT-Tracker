@@ -984,6 +984,7 @@ const AppContent = () => {
                             onCommunityVoteSignIn={() => signInForCommunityVote('home')}
                             safetyAlerts={safety.alerts}
                             onOpenSafetySettings={() => handleViewChange('settings')}
+                            safetyReminderEnabled={safety.enabled}
                         />
                     )}
 
@@ -1042,6 +1043,7 @@ const AppContent = () => {
                             onDeleteTemplate={deleteTemplate}
                             groupedEvents={groupedEvents}
                             events={events}
+                            safetyReminderEnabled={safety.enabled}
                             quickDoses={quickDoses}
                             onAddQuickDose={addQuickDose}
                             onDeleteQuickDose={deleteQuickDose}

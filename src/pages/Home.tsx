@@ -74,6 +74,7 @@ interface HomeProps {
     onCommunityVoteSignIn: () => void;
     safetyAlerts: SafetyAlert[];
     onOpenSafetySettings: () => void;
+    safetyReminderEnabled: boolean;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -110,6 +111,7 @@ const Home: React.FC<HomeProps> = ({
     onCommunityVoteSignIn,
     safetyAlerts,
     onOpenSafetySettings,
+    safetyReminderEnabled,
 }) => {
     const isDarkMode =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -505,7 +507,7 @@ const Home: React.FC<HomeProps> = ({
                             </>
                         )}
 
-                        {hasAdvisory && (
+                        {safetyReminderEnabled && hasAdvisory && (
                             <div className={hasReading ? 'mt-3' : ''}>
                                 <DoseAdvisoryNotice advisory={doseAdvisory} hormoneAdvisory={hormoneAdvisory} t={t} />
                             </div>

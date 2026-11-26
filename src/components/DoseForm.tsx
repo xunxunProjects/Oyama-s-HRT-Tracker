@@ -92,6 +92,8 @@ interface DoseFormProps {
     /** Existing doses: a new dose starts on the route and drug of the last
      *  one, and recent use shows whether it is already running high. */
     events?: DoseEvent[];
+    /** Whether the inline dose guide and recent-use advisory are shown. */
+    safetyReminderEnabled?: boolean;
 }
 
 // A stored dose as it is put back into a field: "12.5", not "12.500". Still
@@ -135,6 +137,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
     onAddQuickDose,
     onDeleteQuickDose,
     events = [],
+    safetyReminderEnabled = true,
 }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
@@ -1194,7 +1197,8 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         {/* Dose guide for non-injection routes. Only once there is a
                             dose to place: before that it was three lines of
                             "enter a dose" and bare thresholds on every new form. */}
-                        {doseGuide &&
+                        {safetyReminderEnabled &&
+                            doseGuide &&
                             (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
                                 <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)] flex gap-2">
                                     <span className="icon-line text-xs">
@@ -1232,7 +1236,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             )}
 
                         {/* Recent-use heads-up — logged doses already running high */}
-                        {doseAdvisory && (
+                        {safetyReminderEnabled && doseAdvisory && (
                             <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)]">
                                 <DoseAdvisoryLine advisory={doseAdvisory} t={t} />
                             </div>
