@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { baseStorage, gotoApp, nowHours, seedStorage } from './helpers';
 
-// The Oyama Journal layout: five tabs, Search first, a medicine's own page,
+// The Oyama Journal layout: five tabs, the Journal first, a medicine's own page,
 // the Journal's panels, the account inside Settings, and a real address for
 // every page, kept across a reload and walked back with Back.
 
@@ -12,11 +12,14 @@ const seeded = () =>
         ]),
     });
 
-test('opens on Search and finds a medicine by what it is sold as', async ({ page, context }) => {
+test('opens on the Journal, and Search finds a medicine by what it is sold as', async ({ page, context }) => {
     await seedStorage(context, seeded());
     await gotoApp(page);
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Journal' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL(/\/search$/);
 
     await page.getByRole('combobox', { name: 'Search medicines' }).fill('Progynova');
     const hit = page.getByRole('button', { name: /Estradiol valerate/ });
@@ -33,8 +36,7 @@ test("the Journal's panels have their own addresses, kept across a reload", asyn
     await seedStorage(context, seeded());
     await gotoApp(page);
 
-    await page.getByRole('button', { name: 'Journal', exact: true }).click();
-    await expect(page).toHaveURL(/\/journal$/);
+    await expect(page).toHaveURL(/\/$/);
     await page.getByRole('tab', { name: 'Stats' }).click();
     await expect(page).toHaveURL(/\/journal\/stats$/);
     await expect(page.getByText('Most used')).toBeVisible();

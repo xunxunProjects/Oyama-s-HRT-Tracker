@@ -146,14 +146,14 @@ const isPanel = (v: ViewKey) => PANELS.includes(v);
 const litTab = (tab: ViewKey): ViewKey => (isPanel(tab) ? 'history' : tab);
 
 const VIEW_ORDER: ViewKey[] = [
-    'home',
-    'kind',
-    'med',
     'history',
     'history-stats',
     'history-weight',
     'forecast',
     'share',
+    'home',
+    'kind',
+    'med',
     'lab',
     'lab-calibration',
     'lab-calibration-guide',
@@ -197,13 +197,13 @@ const directionOf = (from: ViewKey, to: ViewKey): Direction =>
 /**
  * Where the app opens: the page a reload left on screen (its history entry
  * survives the reload), else the page the address names (a link, a bookmark,
- * an address typed in), else the Overview.
+ * an address typed in), else the Journal.
  */
 const openingPage = (): { view: ViewKey; under?: ViewKey; param?: string } => {
     const entry = readNavEntry();
     if (entry) return { view: entry.view, under: entry.under, param: entry.cat };
     const named = parsePath(window.location.pathname);
-    return named ? { view: named.view, param: named.cat } : { view: 'home' };
+    return named ? { view: named.view, param: named.cat } : { view: 'history' };
 };
 
 /** A sidebar destination. The badge is the quiet dot that marks an open vote. */
@@ -390,7 +390,7 @@ export const useAppNavigation = (user: any) => {
         }
         const named = parsePath(window.location.pathname);
         if (!named) {
-            replaceNavEntry('home', 0);
+            replaceNavEntry('history', 0);
             return;
         }
         const tab = tabForView(named.view);
@@ -462,11 +462,11 @@ export const useAppNavigation = (user: any) => {
     }, [currentView]);
 
     // --- Derived Data ---
-    // Oyama Journal's five, in its order: Search, Journal, the flask (its
-    // mix, our labs), the heart (its saved, our plan), Settings.
+    // The Journal first, where the app opens, then Search, the flask (labs),
+    // the heart (the plan) and Settings.
     const navItems: NavItem[] = [
-        { id: 'home', label: t('nav.search'), icon: Search },
         { id: 'history', label: t('nav.journal'), icon: Log },
+        { id: 'home', label: t('nav.search'), icon: Search },
         { id: 'lab', label: t('nav.lab'), icon: Labs },
         { id: 'plan', label: t('nav.plan'), icon: Heart },
         { id: 'settings', label: t('nav.settings'), icon: Gear },

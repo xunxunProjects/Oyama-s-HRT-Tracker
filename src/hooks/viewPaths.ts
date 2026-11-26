@@ -17,19 +17,20 @@ import { getShareCopy } from '../i18n/share';
  *   address lands in the browser's history, on a device that may be shared.
  */
 export const VIEW_PATH: Record<ViewKey, string> = {
-    // Search, and what it opens: a kind of medicine, and a medicine. A
-    // medicine's own address is only /meds: which one stays in the page's
-    // history entry (see the rules above).
-    home: '/',
-    kind: '/kind',
-    med: '/meds',
-
-    // The journal, its panels, and the pages its "now" opens.
-    history: '/journal',
+    // The journal, where the app opens, its panels, and the pages its "now"
+    // opens.
+    history: '/',
     'history-stats': '/journal/stats',
     'history-weight': '/journal/weight',
     forecast: '/journal/forecast',
     share: '/journal/share',
+
+    // Search, and what it opens: a kind of medicine, and a medicine. A
+    // medicine's own address is only /meds: which one stays in the page's
+    // history entry (see the rules above).
+    home: '/search',
+    kind: '/kind',
+    med: '/meds',
 
     lab: '/labs',
     'lab-calibration': '/labs/calibration',
@@ -90,9 +91,11 @@ export const pathFor = (view: ViewKey, cat?: string): string => {
     return cat && CATS_OF[view]?.includes(cat) ? `${base}/${cat}` : base;
 };
 
-const BY_PATH = new Map<string, ViewKey>(
-    (Object.entries(VIEW_PATH) as [ViewKey, string][]).map(([view, path]) => [path, view]),
-);
+const BY_PATH = new Map<string, ViewKey>([
+    ...(Object.entries(VIEW_PATH) as [ViewKey, string][]).map(([view, path]): [string, ViewKey] => [path, view]),
+    // The journal's address before it opened the app.
+    ['/journal', 'history'],
+]);
 
 /**
  * The page an address names, or null for one that names none. Case and a
