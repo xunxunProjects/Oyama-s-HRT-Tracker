@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import Segmented from '../components/Segmented';
 import ExplainMath from '../components/ExplainMath';
-import AnimatedNumber from '../components/AnimatedNumber';
+import Odometer from '../components/Odometer';
 import { CorePK, DEFAULT_PK_PARAMS, OralPK, T_CorePK, T_GelPK } from '../../logic';
 
 const MODELS = [
@@ -133,7 +133,7 @@ export default function PKVisualization() {
                     <p className="field-label">{t('pk_viz.result')}</p>
                     <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">
                         {/* Estradiol in pg/mL, testosterone in ng/dL, as lab reports give them. */}
-                        <AnimatedNumber value={concentration * params.scale} decimals={0} /> {params.unit}
+                        <Odometer value={concentration * params.scale} decimals={0} places={4} /> {params.unit}
                     </p>
                     <p className="mt-2 text-xs text-[var(--text-muted)]">{t('pk_viz.disclaimer')}</p>
                 </div>

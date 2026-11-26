@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import Doodle, { NAV_DOODLES } from './Doodle';
 import { PHONE_TAB_ICONS } from './PhoneTabIcons';
 
 interface NavTab {
@@ -27,6 +28,14 @@ interface NavTab {
  * sits over what's being read; a short scroll back up, the top of the page or
  * its end brings it back, and so does every new page. `pageKey` is the page
  * being shown, so the bar knows when that happens.
+ *
+ * It also stays out of the way for as long as something on the page holds it
+ * there (useNavHeldAway): a dose or a lab being logged, whose Save would
+ * otherwise sit under the bar, and the plan's wizard with its own buttons.
+ *
+ * Each tab is the hand-drawn doodle the sidebar shows for it (NAV_DOODLES),
+ * so the two bars read as one set; the line icons are only a fallback for a
+ * tab with no drawing.
  */
 const BottomNav: React.FC<{
     tabs: NavTab[];
@@ -87,7 +96,9 @@ const BottomNav: React.FC<{
         };
     }, []);
 
-    const hidden = useScrollAway(pageKey);
+    const scrolledAway = useScrollAway(pageKey);
+    const held = useSyncExternalStore(watchHolds, () => holds > 0);
+    const hidden = scrolledAway || held;
 
     useEffect(() => {
         if (!pill || placed) return;
@@ -110,6 +121,7 @@ const BottomNav: React.FC<{
                     />
                 )}
                 {tabs.map(({ id, icon, label }) => {
+                    const doodle = NAV_DOODLES[id];
                     const TabIcon = PHONE_TAB_ICONS[id] ?? icon;
                     const isActive = activeTab === id;
                     return (
@@ -126,7 +138,11 @@ const BottomNav: React.FC<{
                                 }}
                                 className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
                             >
-                                <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                                {doodle ? (
+                                    <Doodle name={doodle} size={1.875} className="-my-1" />
+                                ) : (
+                                    <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                                )}
                             </span>
                             <span className="whitespace-nowrap text-xs leading-4 font-medium">{label}</span>
                         </button>
@@ -136,6 +152,34 @@ const BottomNav: React.FC<{
         </nav>
     );
 };
+
+// How many things on the page are holding the bar away just now.
+let holds = 0;
+const holdWatchers = new Set<() => void>();
+const watchHolds = (fn: () => void) => {
+    holdWatchers.add(fn);
+    return () => {
+        holdWatchers.delete(fn);
+    };
+};
+const setHolds = (by: number) => {
+    holds += by;
+    holdWatchers.forEach(fn => fn());
+};
+
+/**
+ * Keeps the phone's bottom bar out of the way while `active`, wherever the
+ * page is scrolled: for a task that needs the whole screen and is closed by
+ * its own buttons (a form being filled in, the plan's wizard). The bar comes
+ * back the moment the last one holding it lets go.
+ */
+export function useNavHeldAway(active = true) {
+    useEffect(() => {
+        if (!active) return;
+        setHolds(1);
+        return () => setHolds(-1);
+    }, [active]);
+}
 
 /** How far the page must move one way before the bar follows, so a finger
  * resting on the glass or a small correction doesn't make it flicker. */

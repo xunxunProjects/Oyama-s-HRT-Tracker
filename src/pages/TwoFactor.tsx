@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { apiErrorCode } from '../services/apiClient';
 import {
-    Busy,
     Check,
     Alert,
     Eye,
@@ -27,6 +26,7 @@ import { SettingsIconBox, settingsMuted, settingsOn } from '../components/Settin
 import PasswordPrompt from '../components/PasswordPrompt';
 import { copyText } from '../utils/clipboard';
 import { BusyLabel, SwapLabel } from '../components/StableLabel';
+import { WaitMark, Waiting } from '../components/Waiting';
 
 interface TwoFactorPageProps {
     token: string;
@@ -482,11 +482,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                     {/* ===== TOTP TAB ===== */}
                     {activeTab === 'totp' && (
                         <div className="space-y-5">
-                            {totpEnabled === null && (
-                                <div className="flex justify-center py-10">
-                                    <Busy className={`animate-spin ${muted}`} size={20} />
-                                </div>
-                            )}
+                            {totpEnabled === null && <Waiting className="justify-center py-10" />}
 
                             {totpEnabled === true && !success && (
                                 <>
@@ -584,9 +580,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                             line listing them again only said it twice. */}
                                             <p className={`text-sm ${muted}`}>{t('account.2fa_scan_qr')}</p>
                                             {setupLoading ? (
-                                                <div className="flex justify-center py-8">
-                                                    <Busy className={`animate-spin ${muted}`} size={24} />
-                                                </div>
+                                                <Waiting className="justify-center py-8" />
                                             ) : uri ? (
                                                 <div className="flex justify-center py-2">
                                                     <div className="p-3 bg-white rounded-lg inline-block">
@@ -768,9 +762,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             )}
 
                             {passkeyLoading ? (
-                                <div className="flex justify-center py-6">
-                                    <Busy className={`animate-spin ${muted}`} size={20} />
-                                </div>
+                                <Waiting className="justify-center py-6" />
                             ) : passkeys.length === 0 ? (
                                 <div className={`flex flex-col items-center gap-2 py-10 text-center ${muted}`}>
                                     <SettingsIconBox icon={Devices} />
@@ -801,7 +793,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                                 className={`tap-target shrink-0 p-1.5 rounded-md ${muted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                             >
                                                 {deleteLoadingId === pk.id ? (
-                                                    <Busy size={14} strokeWidth={1.5} className="animate-spin" />
+                                                    <WaitMark size={14} />
                                                 ) : (
                                                     <Close size={14} strokeWidth={1.5} />
                                                 )}
@@ -819,7 +811,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                                     disabled={registerLoading}
                                     className={primaryBtn}
                                 >
-                                    {registerLoading ? <Busy size={14} className="animate-spin" /> : <Plus size={14} />}
+                                    {registerLoading ? <WaitMark size={14} /> : <Plus size={14} />}
                                     {passkeys.length === 0
                                         ? t('account.passkey_add')
                                         : t('account.passkey_add_another')}
@@ -869,11 +861,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
                             disabled={backupLoading}
                             className={`flex items-center gap-1 text-sm font-medium ${on} hover:opacity-70 disabled:opacity-40 mt-3 transition-opacity`}
                         >
-                            {backupLoading ? (
-                                <Busy size={13} strokeWidth={1.5} className="animate-spin" />
-                            ) : (
-                                <Retry size={13} strokeWidth={1.5} />
-                            )}
+                            {backupLoading ? <WaitMark size={13} /> : <Retry size={13} strokeWidth={1.5} />}
                             {backupRemaining !== null && backupRemaining > 0
                                 ? t('account.backup_codes_regenerate')
                                 : t('account.backup_codes_generate')}

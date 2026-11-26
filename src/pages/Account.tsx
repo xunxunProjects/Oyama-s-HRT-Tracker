@@ -4,7 +4,6 @@ import {
     Logout,
     CheckCircle,
     Pencil,
-    Busy,
     Trash,
     Cloud,
     Drive,
@@ -50,6 +49,7 @@ import { formatBytes, formatRelative, LOCALE_MAP } from '../utils/helpers';
 import { useTranslation } from '../contexts/LanguageContext';
 import { MAX_CLOUD_BACKUPS } from '../../backupPolicy';
 import { BusyLabel } from '../components/StableLabel';
+import { WaitMark, Waiting } from '../components/Waiting';
 
 interface LocalData {
     events: any[];
@@ -100,7 +100,7 @@ type UnlockTarget = { purpose: 'expand'; rawData: any; backupId: string } | { pu
 const SyncIcon: React.FC<{ status: SyncStatus; className?: string }> = ({ status, className }) => {
     switch (status) {
         case 'syncing':
-            return <Busy size={18} className={`${className} animate-spin`} />;
+            return <WaitMark size={18} className={className} />;
         case 'synced':
             return <CheckCircle size={18} className={className} />;
         case 'locked':
@@ -750,7 +750,7 @@ const Account: React.FC<AccountProps> = ({
                             fixes that, so leave this one out of reach until it
                             has been. */}
                             <SettingsListItem
-                                icon={savingCloud ? <Busy className={`${iconCls} animate-spin`} size={18} /> : CloudUp}
+                                icon={savingCloud ? <WaitMark className={iconCls} size={18} /> : CloudUp}
                                 title={t('account.backup_cloud')}
                                 description={t('account.backup_cloud_desc')}
                                 onClick={handleSave}
@@ -772,9 +772,7 @@ const Account: React.FC<AccountProps> = ({
 
                             {/* Backup list */}
                             {backupsLoading ? (
-                                <div className="flex justify-center py-6">
-                                    <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
-                                </div>
+                                <Waiting className="justify-center py-6" />
                             ) : backupsFailed ? (
                                 <div className="py-6 flex flex-col items-center gap-2 text-center">
                                     <p
@@ -858,12 +856,7 @@ const Account: React.FC<AccountProps> = ({
                                             <div className="disclosure-inner">
                                                 <div className="pb-4 pt-1 space-y-3">
                                                     {expandLoading === b.id ? (
-                                                        <div className="flex justify-center py-6">
-                                                            <Busy
-                                                                className="animate-spin text-[var(--text-muted)]"
-                                                                size={20}
-                                                            />
-                                                        </div>
+                                                        <Waiting className="justify-center py-6" />
                                                     ) : expandedData[b.id] ? (
                                                         (() => {
                                                             const data = expandedData[b.id];

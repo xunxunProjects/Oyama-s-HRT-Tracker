@@ -73,35 +73,53 @@
     }
 }
 
-/* Tabular columns stay in reading order while their glyphs move vertically. */
-.rolling-number {
-    display: inline-block;
-    position: relative;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
+/* ── the odometer ────────────────────────────────────────────────────────────
+   A number on reels that roll as one (Odometer.tsx): the Overview's readings,
+   the plan's counts, the model pages' figures. */
 
-.rolling-number-places {
+.odo {
     display: inline-flex;
     align-items: baseline;
-    padding: 0.16em 0.24em;
-    margin: -0.16em -0.24em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
-
-/* One feather across the reading lets ink spread across digit boundaries.
-   The transparent ends sit outside the text line. */
-.rolling-number-places[data-moving] {
-    mask-image: linear-gradient(transparent, black 0.28em, black calc(100% - 0.28em), transparent);
+.odo-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
 }
-
-/* Fade the ink as it travels. Both glyphs share a baseline and their blur
-   can extend beyond the column in every direction. */
-.rolling-digit {
-    display: inline-grid;
+.odo-group {
+    display: inline-flex;
+    align-items: baseline;
 }
-
-.rolling-digit > span {
-    grid-area: 1 / 1;
+/* One place: a window one digit wide (1ch: every figure is that wide, set
+   tabular) and one line tall onto its reel, fading at top and bottom like a
+   drum seen through a slot. Odometer.tsx opens and folds a leading place by
+   its width, frame by frame, in step with the roll. */
+.odo-slot {
+    position: relative;
+    display: inline-block;
+    width: 1ch;
+    height: 1em;
+    line-height: 1;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+}
+.odo-reel {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+}
+.odo-digit {
+    display: block;
+    height: 1em;
+    line-height: 1;
+    text-align: center;
+}
+.odo-point {
+    width: 0.28em;
+    text-align: center;
 }
 
 /* ── pages ───────────────────────────────────────────────────────────────────
@@ -158,7 +176,8 @@
     mix-blend-mode: normal;
 }
 
-/* Scrolled out of the way while a page is read (BottomNav's useScrollAway):
+/* Scrolled out of the way while a page is read (BottomNav's useScrollAway),
+   or held there while a dose is being logged (useNavHeldAway):
    it eases down past the screen's edge and back, never bounces. Someone
    moving through it with a keyboard keeps it in view. */
 .bottom-nav {
@@ -350,6 +369,52 @@ path.ink-draw {
         busy-turn 1.2s linear infinite;
 }
 
+/* The wait itself (Waiting.tsx): rail ticks that write out the curve of one
+   dose, a quick rise, a peak and a long tail, left to right, hold it, and let
+   it wash away from the same end. Every tick runs the same 2.8s round, each
+   a little after the one before it (its delay is set inline), so the writing
+   and the washing both travel the way you read. A tick at rest is a faint
+   stub (--rest is the stub's share of the tick's full height). */
+@keyframes wait-write {
+    0% {
+        transform: scaleY(var(--rest));
+        opacity: 0.3;
+        animation-timing-function: var(--ease-out);
+    }
+    11%,
+    52% {
+        transform: none;
+        opacity: 1;
+        animation-timing-function: var(--ease-standard);
+    }
+    63%,
+    100% {
+        transform: scaleY(var(--rest));
+        opacity: 0.3;
+    }
+}
+.wait-rail {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+.wait-mark {
+    display: inline-flex;
+}
+.wait-tick {
+    flex: none;
+    width: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    transform-origin: bottom;
+    animation: wait-write 2.8s linear infinite both;
+}
+/* Nothing at all for the first 300ms: a quick answer never flashes it. */
+.wait-quiet,
+.wait-mark {
+    animation: fade-in 1ms linear 300ms both;
+}
+
 /* ── in place ───────────────────────────────────────────────────────────── */
 
 /* An inline prompt or notice, put into the page where it was asked for. */
@@ -407,6 +472,11 @@ path.ink-draw {
     transition:
         left var(--duration-base) var(--ease-out),
         width var(--duration-base) var(--ease-out);
+}
+/* A tab's label in its two weights, one over the other (Tabs.tsx): the
+   semibold fades up on the chosen tab as the underline reaches it. */
+.tab-ink {
+    transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 /* ── the sidebar ─────────────────────────────────────────────────────────────
@@ -581,10 +651,17 @@ path.ink-draw {
 }
 .rail-label {
     animation: fade-in 320ms var(--ease-standard) both;
-    transition:
-        left var(--duration-base) var(--ease-standard),
-        transform var(--duration-base) var(--ease-standard),
-        color var(--duration-base) var(--ease-standard);
+    /* No transition on left or transform: the label follows the reading tick,
+       which is placed fresh each frame when the value glides. Easing it here
+       made it trail behind the tick it names. */
+    transition: color var(--duration-base) var(--ease-standard);
+}
+/* The status flown from the reading's tick goes where the tick goes, in the
+   same frame: the reading moves with its value (a drag, a typed amount, or
+   the intro's glide drawn frame by frame), and a slide of the label's own
+   left it trailing behind, restarted on every frame. Only its colour eases. */
+.rail-label.rail-flag {
+    transition: color var(--duration-base) var(--ease-standard);
 }
 
 /* The calibration plot: each calibrated lab glides from its raw-model twin to
@@ -1030,6 +1107,10 @@ path.ink-draw {
     .ink-icon.animate-spin {
         animation: fade-in 1ms linear 300ms both;
     }
+    /* And the curve stands there, written, without being rewritten. */
+    .wait-tick {
+        animation: none;
+    }
     /* Hold a single resting pose instead of flicking between frames. */
     .px-ear-rest,
     .px-ear-twitch,
@@ -1073,6 +1154,7 @@ path.ink-draw {
     .switch-knob,
     .chev,
     .chip-slide,
+    .tab-ink,
     .rail-tick,
     .rail-label,
     .cal-mark,

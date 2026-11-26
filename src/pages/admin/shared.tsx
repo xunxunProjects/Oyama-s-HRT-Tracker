@@ -1,8 +1,9 @@
 import React, { useState, useSyncExternalStore } from 'react';
-import { Busy, ChevronRight } from '../../components/icons';
+import { ChevronRight } from '../../components/icons';
 import { apiEndpoint } from '../../services/apiClient';
 import type { AdminUser } from '../../services/admin';
 import { Lang } from '../../i18n/translations';
+import { Waiting } from '../../components/Waiting';
 
 export const muted = 'text-[var(--text-muted)]';
 export const on = 'text-[var(--text)]';
@@ -123,11 +124,7 @@ export const FactorRow: React.FC<{ label: string; state: string; children: React
     </div>
 );
 
-export const BusyState: React.FC = () => (
-    <div className="flex justify-center py-8">
-        <Busy className={`animate-spin ${muted}`} size={20} />
-    </div>
-);
+export const BusyState: React.FC = () => <Waiting className="justify-center py-8" />;
 
 export const has2FA = (u: AdminUser) => (u.has_totp ?? 0) > 0 || (u.passkey_count ?? 0) > 0;
 

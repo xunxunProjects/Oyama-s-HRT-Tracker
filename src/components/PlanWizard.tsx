@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Ester, GEL_SITE_ORDER, GNRH_AGONISTS, Route, SL_TIER_ORDER, SublingualTierParams } from '../../logic';
 import Tick from './Tick';
+import { useNavHeldAway } from './BottomNav';
 import Doodle from './Doodle';
 import DoseRings from './DoseRings';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -72,9 +73,6 @@ interface PlanWizardProps {
     plan: PlanItem[];
     onAdd: (item: PlanItem) => void;
     onCancel: () => void;
-    /** Its bar of buttons sits above the phone's bottom bar, as on the Plan
-     *  page. The intro has none, so there it goes down to the screen's edge. */
-    aboveNav?: boolean;
 }
 
 /**
@@ -86,8 +84,12 @@ interface PlanWizardProps {
  * Choosing a route fills in everything after it with what is usual for that
  * route, so the later screens open already answered and Next is enough when
  * the usual fits.
+ *
+ * While it runs, the phone's bottom bar steps aside (useNavHeldAway), so its
+ * own bar of buttons goes down to the screen's edge, as in the intro.
  */
-const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav = true }) => {
+const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel }) => {
+    useNavHeldAway();
     const { t } = useTranslation();
     const { mode } = useHRTMode();
 
@@ -343,9 +345,7 @@ const PlanWizard: React.FC<PlanWizardProps> = ({ plan, onAdd, onCancel, aboveNav
                 </div>
             </div>
 
-            <div
-                className={`sticky bottom-0 shrink-0 border-t-(length:--hairline) border-[var(--border)] glass glass-bar px-6 pt-4 ${aboveNav ? 'pb-4 max-md:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'}`}
-            >
+            <div className="sticky bottom-0 shrink-0 border-t-(length:--hairline) border-[var(--border)] glass glass-bar px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
                 <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <div className="justify-self-start">
                         {at > 0 && (

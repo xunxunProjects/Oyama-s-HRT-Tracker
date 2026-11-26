@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Busy, Plus, Trash } from '../components/icons';
+import { Alert, Plus, Trash } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { useTranslation } from '../contexts/LanguageContext';
 import { formatRelative } from '../utils/helpers';
 import { hrtService, HrtDevice, HrtRequest, HrtStatus, HrtTrustedIp } from '../services/hrt';
+import { Waiting } from '../components/Waiting';
 
 interface HrtSecurityProps {
     token: string;
@@ -115,9 +116,7 @@ const HrtSecurity: React.FC<HrtSecurityProps> = ({ token, onBack }) => {
             <PageHeader onBack={onBack} title={t('hrt.title')} subtitle={t('hrt.subtitle')} />
             <div className={`${PAGE_COLUMN} mt-2 space-y-4`}>
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
-                    </div>
+                    <Waiting className="justify-center py-16" />
                 ) : (
                     <>
                         {error && (

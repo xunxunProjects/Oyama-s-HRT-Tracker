@@ -17,7 +17,10 @@ const muted = 'text-[var(--text-muted)]';
  * one and on the next.
  *
  * Every label reserves its bold width up front, so choosing a tab (which sets
- * it semibold) never nudges the tabs beside it.
+ * it semibold) never nudges the tabs beside it. The label is set twice, in
+ * the regular weight and the semibold, one over the other, and choosing a tab
+ * fades between them (.tab-ink) while the underline is on its way: the weight
+ * arrives with the bar rather than snapping on ahead of it.
  *
  * This is for switching whole panels of a page. A compact choice of a few
  * short options inside a form or toolbar is a Segmented control.
@@ -57,10 +60,13 @@ function Tabs<K extends string>({
                     >
                         {icon}
                         <span className="grid">
-                            <span aria-hidden="true" className="invisible col-start-1 row-start-1 font-semibold">
+                            <span
+                                aria-hidden="true"
+                                className={`tab-ink col-start-1 row-start-1 font-semibold ${selected ? '' : 'opacity-0'}`}
+                            >
                                 {label}
                             </span>
-                            <span className={`col-start-1 row-start-1 ${selected ? 'font-semibold' : ''}`}>
+                            <span className={`tab-ink col-start-1 row-start-1 ${selected ? 'opacity-0' : ''}`}>
                                 {label}
                             </span>
                         </span>

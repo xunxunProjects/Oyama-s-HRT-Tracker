@@ -46,7 +46,10 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
 
     const [lo, hi] = [Math.log10(domain[0]), Math.log10(domain[1])];
     const at = (v: number) => Math.min(1, Math.max(0, (Math.log10(Math.max(v, domain[0])) - lo) / (hi - lo)));
-    const cur = Math.round(at(value) * last);
+    // Where the reading is, between ticks as much as on them: the marker and
+    // its label glide with the value rather than hopping tick to tick.
+    const pos = at(value) * last;
+    const cur = Math.round(pos);
     const bandL = Math.ceil(at(band.low) * last);
     const bandR = Math.floor(at(band.high) * last);
 
@@ -62,13 +65,14 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
         >
             {/* The label's own anchor slides from its left edge to its right edge
                 along the scale, so it always sits over the current tick and never
-                runs off either end. Lands once the wave has reached its tick. */}
+                runs off either end. It moves with the tick, frame for frame
+                (.rail-flag), and lands once the wave has reached its tick. */}
             {label && (
                 <span
-                    className={`rail-label absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
+                    className={`rail-label rail-flag absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
                     style={{
-                        left: x(cur),
-                        transform: `translateX(-${((cur / last) * 100).toFixed(2)}%)`,
+                        left: x(pos),
+                        transform: `translateX(-${((pos / last) * 100).toFixed(2)}%)`,
                         animationDelay: `${cur * WAVE_MS + 180}ms`,
                     }}
                 >
@@ -78,10 +82,10 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
 
             <div ref={setRow} className="flex h-[18px] items-end justify-between">
                 {Array.from({ length: count }, (_, i) => {
-                    const reached = i <= cur;
+                    const reached = i <= pos;
                     const look =
                         i === cur
-                            ? `h-[18px] w-[3px] bg-current ${tone}`
+                            ? 'h-2 w-[1.5px] bg-transparent'
                             : i >= bandL && i <= bandR
                               ? `h-[11px] w-[1.5px] ${reached ? 'bg-[var(--accent-ink)]' : 'bg-[var(--accent-ink)]/40'}`
                               : `h-2 w-[1.5px] ${reached ? 'bg-[var(--text-muted)]' : 'bg-[var(--border)]'}`;
@@ -95,6 +99,12 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
                     );
                 })}
             </div>
+
+            {/* The reading: one tall tick in the status colour, wherever the value is. */}
+            <span
+                className={`rail-tick pointer-events-none absolute bottom-[18px] h-[18px] w-[3px] -translate-x-1/2 rounded-full bg-current ${tone}`}
+                style={{ left: x(pos), animationDelay: `${cur * WAVE_MS}ms` }}
+            />
 
             {(
                 [

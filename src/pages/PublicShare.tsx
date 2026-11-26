@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Clock, Eye, EyeOff, Busy, LockKeyhole } from '../components/icons';
+import { Alert, Clock, Eye, EyeOff, LockKeyhole } from '../components/icons';
 import { DoseEvent, Ester, ExtraKey, getToE2Factor, isEstradiolEster, isTestosteroneEster, Route } from '../../logic';
 import Doodle from '../components/Doodle';
 import ResultChart from '../components/ResultChart';
@@ -15,6 +15,7 @@ import {
     isTerminalLiveShareError,
     sharingService,
 } from '../services/sharing';
+import { Waiting } from '../components/Waiting';
 
 interface PublicShareProps {
     token: string | null;
@@ -232,13 +233,9 @@ const PublicShare: React.FC<PublicShareProps> = ({ token, shareKey }) => {
                     className="flex min-h-[65vh] flex-col items-center justify-center px-6 text-center"
                     aria-live="polite"
                 >
-                    <Busy
-                        size={24}
-                        strokeWidth={1.5}
-                        className="mb-4 animate-spin text-[var(--accent-ink)]"
-                        aria-hidden="true"
-                    />
-                    <p className="text-sm text-muted">{copy.loading}</p>
+                    <Waiting wide className="w-full max-w-xs">
+                        {copy.loading}
+                    </Waiting>
                 </div>
             </PublicShell>
         );

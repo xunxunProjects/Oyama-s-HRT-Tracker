@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Alert, Busy, ChevronDown } from '../components/icons';
+import { Alert, ChevronDown } from '../components/icons';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { settingsSection } from '../components/SettingsListItem';
 import { useDialog } from '../contexts/DialogContext';
@@ -7,6 +7,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { BusyLabel, SwapLabel } from '../components/StableLabel';
 import { apiErrorCode } from '../services/apiClient';
 import { f2fService, F2fMember, F2fStatus } from '../services/f2f';
+import { Waiting } from '../components/Waiting';
 
 interface F2fProps {
     token: string;
@@ -305,9 +306,7 @@ const F2f: React.FC<F2fProps> = ({ token, onBack }) => {
             <PageHeader onBack={onBack} title={t('f2f.title')} subtitle={t('f2f.subtitle')} />
             <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <Busy className="animate-spin text-[var(--text-muted)]" size={20} />
-                    </div>
+                    <Waiting className="justify-center py-16" />
                 ) : loadError ? (
                     <div className="flex flex-col items-center gap-2 py-14 text-center">
                         <p role="alert" className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">

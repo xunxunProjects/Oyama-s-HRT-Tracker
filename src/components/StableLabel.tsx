@@ -1,5 +1,6 @@
 import React from 'react';
-import { Busy, Close, Plus } from './icons';
+import { Close, Plus } from './icons';
+import { WaitMark } from './Waiting';
 
 /**
  * The width of whichever of two stacked labels is shown, kept up to date, for
@@ -127,6 +128,6 @@ export const BusyLabel: React.FC<{ busy: boolean; size?: number; children: React
 }) => (
     <span className="relative inline-flex items-center justify-center">
         <span className={`inline-flex items-center gap-1.5 ${busy ? 'invisible' : ''}`}>{children}</span>
-        {busy && <Busy size={size} className="absolute animate-spin" aria-hidden="true" />}
+        {busy && <WaitMark size={size} className="absolute" />}
     </span>
 );
