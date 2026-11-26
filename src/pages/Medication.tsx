@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Ester,
     ExtraKey,
@@ -11,7 +11,6 @@ import {
 } from '../../logic';
 import PageHeader, { PAGE_COLUMN, headerActionAccent } from '../components/PageHeader';
 import { Molecule, Formula, useStructure } from '../components/Molecule';
-import Odometer from '../components/Odometer';
 import LevelRail from '../components/LevelRail';
 import Segmented from '../components/Segmented';
 import Tick from '../components/Tick';
@@ -50,6 +49,8 @@ import { fill, frequencyLabel } from '../utils/regimenText';
  */
 
 const muted = 'text-[var(--text-muted)]';
+/** An amount as it is taken: 2, 1.5, 1.25 (never 1.25 rounded to 1.3). */
+const fmtAmount = (v: number) => String(Math.round(v * 100) / 100);
 const LEVELS: DoseLevelKey[] = ['low', 'medium', 'high', 'very_high'];
 
 /** The series the model draws for a medicine, and its unit. */
@@ -143,6 +144,11 @@ const Medication = ({
     const planAmount = mine ? (isPatch ? (mine.extras[ExtraKey.releaseRateUGPerDay] ?? usual) : mine.doseMG) : null;
     const [picked, setPicked] = useState<Record<string, number>>({});
     const amount = (r && picked[r]) ?? planAmount ?? usual;
+    // Dragging the rail: the number follows the finger at once; the curve,
+    // which runs the model, catches up when there is time.
+    const railRef = useRef<HTMLDivElement>(null);
+    const [dragging, setDragging] = useState(false);
+    const curveAmount = useDeferredValue(amount);
 
     // The level guide, where there is one for this amount and route.
     const guide = r && med && !isTransmasc && isEstradiolEster(med.id) ? DOSE_GUIDE_CONFIG[r] : undefined;
@@ -151,7 +157,7 @@ const Medication = ({
     const [startMs] = useState(() => Math.round(Date.now() / 60000) * 60000);
     // One dose's curve. Cheap enough to run on every change of the amount
     // (the model steps an hour at a time over at most four months).
-    const startEv = r && med?.modelled ? doseEvent(r, med.id, amount, startMs / 3600000) : null;
+    const startEv = r && med?.modelled ? doseEvent(r, med.id, curveAmount, startMs / 3600000) : null;
     const curve = startEv ? curveOf(startEv, weight, birthYear) : [];
     const series = med ? seriesOf(med.id) : null;
 
@@ -172,16 +178,21 @@ const Medication = ({
     const logged = events.filter(e => e.ester === med.id).sort((a, b) => b.timeH - a.timeH);
 
     // The rail: a band from the guide's medium step, ends either side of the
-    // whole guide. The amount drags along it on a log scale.
+    // whole guide, on the log scale LevelRail draws. The amount snaps to a step
+    // a dose comes in: a quarter milligram under 4, a half under 10, then
+    // whole ones; a patch by 25 µg a day.
     const domain: [number, number] = guide
         ? [guide.thresholds[0] / 4, guide.thresholds[3] * 1.6]
         : [Math.max(usual / 8, 0.01), usual * 8];
-    const toSlider = (v: number) => Math.log(v / domain[0]) / Math.log(domain[1] / domain[0]);
-    const fromSlider = (s: number) => domain[0] * Math.pow(domain[1] / domain[0], s);
-    const stepOf = (v: number) => (v >= 100 ? 5 : v >= 10 ? 0.5 : v >= 1 ? 0.25 : 0.05);
-    const snap = (v: number) => Math.round(v / stepOf(v)) * stepOf(v);
-    // As few decimals as the amount has: 5, 12.5, 4.75.
-    const decimals = Number.isInteger(amount) ? 0 : Number.isInteger(Math.round(amount * 1000) / 100) ? 1 : 2;
+    const fromRail = (f: number) => domain[0] * Math.pow(domain[1] / domain[0], f);
+    const stepOf = (v: number) => (isPatch ? 25 : v < 4 ? 0.25 : v < 10 ? 0.5 : 1);
+    const snap = (v: number) => Math.max(stepOf(v), Math.round(v / stepOf(v)) * stepOf(v));
+    const setAmount = (v: number) => setPicked(p => (p[r] === v ? p : { ...p, [r]: v }));
+    const amountAt = (clientX: number) => {
+        const box = railRef.current?.getBoundingClientRect();
+        if (!box || !box.width) return amount;
+        return snap(fromRail(Math.min(1, Math.max(0, (clientX - box.left) / box.width))));
+    };
 
     return (
         <>
@@ -233,7 +244,7 @@ const Medication = ({
                             className={`mt-4 flex items-center gap-1 text-start text-sm tabular-nums ${muted} hover:text-[var(--text)]`}
                         >
                             {[
-                                mine && `${formatGuideNumber(planAmount ?? 0)} ${unit} · ${frequencyLabel(mine, t)}`,
+                                mine && `${fmtAmount(planAmount ?? 0)} ${unit} · ${frequencyLabel(mine, t)}`,
                                 logged.length > 0 &&
                                     (logged.length === 1
                                         ? t('stats.one_dose')
@@ -261,38 +272,56 @@ const Medication = ({
                     <p className={`text-xs font-medium ${muted}`}>
                         {fill(t('med.in_unit'), { route: t(`regimen.route.${r}`), unit })}
                     </p>
-                    <p className="font-display mt-1.5 inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)]">
-                        <span className="text-[var(--text)]">
-                            <Odometer key={`${med.id}-${r}`} value={amount} decimals={decimals} places={decimals + 3} />
-                        </span>
+                    <p className="font-display mt-1.5 flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)]">
+                        <span className="text-[var(--text)]">{fmtAmount(amount)}</span>
                         <span className={`text-sm font-normal tracking-normal ${muted}`}>{unit}</span>
                     </p>
 
                     {guide && level && (
-                        <div className="relative mt-3">
+                        // The rail itself is the slider: press anywhere on it and
+                        // slide, or use the arrow keys.
+                        <div
+                            ref={railRef}
+                            role="slider"
+                            tabIndex={0}
+                            aria-label={t('med.how_much')}
+                            aria-valuemin={domain[0]}
+                            aria-valuemax={domain[1]}
+                            aria-valuenow={amount}
+                            aria-valuetext={`${fmtAmount(amount)} ${unit}`}
+                            className="relative mt-3 cursor-ew-resize select-none rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-ink)]"
+                            style={{ touchAction: 'pan-y' }}
+                            onPointerDown={e => {
+                                if (e.button !== 0) return;
+                                try {
+                                    e.currentTarget.setPointerCapture(e.pointerId);
+                                } catch {
+                                    /* already let go */
+                                }
+                                setDragging(true);
+                                setAmount(amountAt(e.clientX));
+                            }}
+                            onPointerMove={e => {
+                                if (dragging) setAmount(amountAt(e.clientX));
+                            }}
+                            onPointerUp={() => setDragging(false)}
+                            onPointerCancel={() => setDragging(false)}
+                            onKeyDown={e => {
+                                const step = stepOf(amount);
+                                if (e.key === 'ArrowRight' || e.key === 'ArrowUp')
+                                    setAmount(snap(Math.min(domain[1], amount + step)));
+                                else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown')
+                                    setAmount(snap(Math.max(domain[0], amount - step)));
+                                else return;
+                                e.preventDefault();
+                            }}
+                        >
                             <LevelRail
                                 value={amount}
                                 band={{ low: guide.thresholds[0], high: guide.thresholds[1] }}
                                 domain={domain}
                                 label={t(`dose.guide.level.${level}`)}
                                 tone={LEVEL_BADGE_STYLES[level]}
-                            />
-                            {/* The rail drags: an invisible slider over it, as the journal's dose rail has. */}
-                            <input
-                                type="range"
-                                min={0}
-                                max={1}
-                                step={0.001}
-                                value={toSlider(amount)}
-                                aria-label={t('med.how_much')}
-                                aria-valuetext={`${formatGuideNumber(amount)} ${unit}`}
-                                onChange={e =>
-                                    setPicked(p => ({
-                                        ...p,
-                                        [r]: Math.max(stepOf(amount), snap(fromSlider(Number(e.target.value)))),
-                                    }))
-                                }
-                                className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
                             />
                         </div>
                     )}
@@ -307,7 +336,7 @@ const Medication = ({
                                     <button
                                         key={lv}
                                         type="button"
-                                        onClick={() => setPicked(p => ({ ...p, [r]: hi }))}
+                                        onClick={() => setAmount(hi)}
                                         className="w-full min-h-12 flex items-center justify-between gap-3 py-2 text-start"
                                     >
                                         <span className="min-w-0">
