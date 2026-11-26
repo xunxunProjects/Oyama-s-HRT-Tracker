@@ -10,10 +10,12 @@ import {
     getHormoneLevelAdvisory,
     isT_LabUnit,
     CPA_MIN_NGML,
+    SafetyAlert,
 } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
+import SafetyAlertNotice from '../components/SafetyAlertNotice';
 import AnimatedNumber from '../components/AnimatedNumber';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
@@ -70,6 +72,8 @@ interface HomeProps {
     /** Bottom-of-page community vote nudge; opens the vote page or sign-in. */
     onNavigateToCommunityVote: () => void;
     onCommunityVoteSignIn: () => void;
+    safetyAlerts: SafetyAlert[];
+    onOpenSafetySettings: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -104,6 +108,8 @@ const Home: React.FC<HomeProps> = ({
     onNavigateToSupplies,
     onNavigateToCommunityVote,
     onCommunityVoteSignIn,
+    safetyAlerts,
+    onOpenSafetySettings,
 }) => {
     const isDarkMode =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -502,6 +508,16 @@ const Home: React.FC<HomeProps> = ({
                         {hasAdvisory && (
                             <div className={hasReading ? 'mt-3' : ''}>
                                 <DoseAdvisoryNotice advisory={doseAdvisory} hormoneAdvisory={hormoneAdvisory} t={t} />
+                            </div>
+                        )}
+
+                        {safetyAlerts.length > 0 && (
+                            <div className={hasReading || hasAdvisory ? 'mt-3' : ''}>
+                                <SafetyAlertNotice
+                                    alerts={safetyAlerts}
+                                    t={t}
+                                    onOpenSettings={onOpenSafetySettings}
+                                />
                             </div>
                         )}
 
