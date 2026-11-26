@@ -23,6 +23,16 @@ const EN: Pack = {
     'onboarding.kicker.weight': 'Body weight',
     'onboarding.kicker.plan': 'Your medicines',
     'onboarding.kicker.privacy': 'Yours',
+    'onboarding.plan_subtitle': "Once it's in, one tap in the Journal logs a dose. Not sure yet? Skip it.",
+    'settings.pixel_cats_desc': 'Show pixel cats in the Journal, Search and empty pages',
+    'settings.prediction_desc': "Continue the Journal's chart past now as a dashed line, on your medication plan",
+    'supplies.empty_hint': 'Add what you have on hand, and the Journal will warn you before it runs out',
+    'forecast.method':
+        'Same model and calibration as the Journal ({cal}). Range: {runs} runs at the logged miss rate {miss}, timing spread ±{jitter}, calibration error ±{err}.',
+    'forecast.method_nocal':
+        'Same model as the Journal; no blood tests, so uncalibrated. Range: {runs} runs at the logged miss rate {miss}, timing spread ±{jitter}.',
+    'model_doc.lead':
+        'The curve in the Journal is an estimate worked out from every dose you log, not a measurement. The charts below use the same calculation.',
 
     'nav.search': 'Search',
     'nav.journal': 'Journal',
@@ -133,6 +143,15 @@ const ZH: Pack = {
     'onboarding.kicker.weight': '体重',
     'onboarding.kicker.plan': '在用的药',
     'onboarding.kicker.privacy': '属于你的',
+    'onboarding.plan_subtitle': '填好后，在日志里点一下就能记下用药。不确定可以先跳过。',
+    'settings.pixel_cats_desc': '在日志、搜索和空白页面显示像素猫猫',
+    'settings.prediction_desc': '在日志图表中，用虚线画出此后按用药方案的估算浓度',
+    'supplies.empty_hint': '记下手头的药量，快用完之前会在日志提醒你',
+    'forecast.method':
+        '模型与校准和日志里的一样（{cal}）。区间：按记录中的漏服率 {miss}、时间偏差 ±{jitter}、校准误差 ±{err} 模拟 {runs} 次。',
+    'forecast.method_nocal':
+        '模型和日志里的一样；尚无血检，未校准。区间：按记录中的漏服率 {miss}、时间偏差 ±{jitter} 模拟 {runs} 次。',
+    'model_doc.lead': '日志里的曲线是按你记下的每一次用药算出来的估计值，不是测量值。下面的图用的是同一套计算。',
 
     'nav.search': '搜索',
     'nav.journal': '日志',
@@ -243,6 +262,15 @@ const ZH_TW: Pack = {
     'onboarding.kicker.weight': '體重',
     'onboarding.kicker.plan': '在用的藥',
     'onboarding.kicker.privacy': '屬於你的',
+    'onboarding.plan_subtitle': '填好後，在日誌裡點一下就能記下用藥。不確定可以先跳過。',
+    'settings.pixel_cats_desc': '在日誌、搜尋與空白頁面顯示像素貓貓',
+    'settings.prediction_desc': '在日誌圖表中，用虛線畫出之後按用藥方案的估算濃度',
+    'supplies.empty_hint': '記下手邊的藥量，快用完之前會在日誌提醒你',
+    'forecast.method':
+        '模型與校準和日誌裡的一樣（{cal}）。區間：按紀錄中的漏服率 {miss}、時間偏差 ±{jitter}、校準誤差 ±{err} 模擬 {runs} 次。',
+    'forecast.method_nocal':
+        '模型和日誌裡的一樣；尚無血檢，未校準。區間：按紀錄中的漏服率 {miss}、時間偏差 ±{jitter} 模擬 {runs} 次。',
+    'model_doc.lead': '日誌裡的曲線是依你記下的每一次用藥算出來的估計值，不是測量值。下面的圖用的是同一套計算。',
 
     'nav.search': '搜尋',
     'nav.journal': '日誌',
@@ -353,6 +381,15 @@ const YUE: Pack = {
     'weight.log': '記體重',
     'dose.now': '而家',
     'med.day0': '而家',
+    'onboarding.plan_subtitle': '填好之後，喺日誌撳一下就記低用藥。未確定可以先跳過。',
+    'settings.pixel_cats_desc': '喺日誌、搜尋同空白頁面顯示像素貓貓',
+    'settings.prediction_desc': '喺日誌圖表度，用虛線畫出之後照用藥方案嘅估算濃度',
+    'supplies.empty_hint': '記低手頭有幾多藥，就嚟用晒之前會喺日誌提你',
+    'forecast.method':
+        '模型同校準同日誌入面一樣（{cal}）。區間：按記錄入面嘅漏服率 {miss}、時間偏差 ±{jitter}、校準誤差 ±{err} 模擬 {runs} 次。',
+    'forecast.method_nocal':
+        '模型同日誌入面一樣；未有血檢，未校準。區間：按記錄入面嘅漏服率 {miss}、時間偏差 ±{jitter} 模擬 {runs} 次。',
+    'model_doc.lead': '日誌入面條曲線係按你記低嘅每一次用藥計出嚟嘅估計值，唔係量度值。下面啲圖用嘅係同一套計法。',
 };
 
 const JA: Pack = {
@@ -369,6 +406,16 @@ const JA: Pack = {
     'onboarding.kicker.weight': '体重',
     'onboarding.kicker.plan': '使っている薬',
     'onboarding.kicker.privacy': 'あなたのもの',
+    'onboarding.plan_subtitle': '入れておくと、「記録」からタップ一つで残せます。わからなければ飛ばしても大丈夫です。',
+    'settings.pixel_cats_desc': '「記録」「検索」と空のページにドット絵の猫を表示します',
+    'settings.prediction_desc': '「記録」のグラフで、現在以降の推定濃度を服薬プランに沿って破線で表示します',
+    'supplies.empty_hint': '手元の在庫を登録すると、なくなる前に「記録」でお知らせします',
+    'forecast.method':
+        'モデルと補正は「記録」と同じ（{cal}）。範囲：記録上の投与漏れ率 {miss}、時刻のばらつき ±{jitter}、補正誤差 ±{err} で {runs} 回シミュレーション。',
+    'forecast.method_nocal':
+        'モデルは「記録」と同じ。血液検査がないため未補正。範囲：記録上の投与漏れ率 {miss}、時刻のばらつき ±{jitter} で {runs} 回シミュレーション。',
+    'model_doc.lead':
+        '「記録」のグラフは、記録した一回ごとの投与から計算した推定値で、測定値ではありません。下の図も同じ計算を使っています。',
 
     'nav.search': '検索',
     'nav.journal': '記録',
@@ -479,6 +526,17 @@ const KO: Pack = {
     'onboarding.kicker.weight': '체중',
     'onboarding.kicker.plan': '쓰는 약',
     'onboarding.kicker.privacy': '당신의 것',
+    'onboarding.plan_subtitle':
+        '입력해 두면 기록장에서 한 번 탭으로 기록할 수 있습니다. 잘 모르겠다면 건너뛰어도 됩니다.',
+    'settings.pixel_cats_desc': '기록장, 검색, 빈 페이지에 픽셀 고양이를 표시합니다',
+    'settings.prediction_desc': '기록장 차트에서 현재 이후의 추정 농도를 복용 계획에 따라 점선으로 표시합니다',
+    'supplies.empty_hint': '가진 약의 양을 기록하면 떨어지기 전에 기록장에서 알려 드립니다',
+    'forecast.method':
+        '모델과 보정은 기록장과 같습니다({cal}). 범위: 기록상 누락률 {miss}, 시간 편차 ±{jitter}, 보정 오차 ±{err}로 {runs}회 시뮬레이션.',
+    'forecast.method_nocal':
+        '모델은 기록장과 같습니다. 혈액 검사가 없어 보정하지 않았습니다. 범위: 기록상 누락률 {miss}, 시간 편차 ±{jitter}로 {runs}회 시뮬레이션.',
+    'model_doc.lead':
+        '기록장의 곡선은 기록한 모든 투여로 계산한 추정치이며 측정값이 아닙니다. 아래 그림도 같은 계산을 씁니다.',
 
     'nav.search': '검색',
     'nav.journal': '기록장',
@@ -589,6 +647,17 @@ const RU: Pack = {
     'onboarding.kicker.weight': 'Вес',
     'onboarding.kicker.plan': 'Ваши препараты',
     'onboarding.kicker.privacy': 'Ваше',
+    'onboarding.plan_subtitle':
+        'Когда план добавлен, одно касание в журнале отмечает дозу. Пока не уверены? Пропустите.',
+    'settings.pixel_cats_desc': 'Показывать пиксельных котиков в журнале, поиске и на пустых страницах',
+    'settings.prediction_desc': 'Продолжать график журнала после текущего момента пунктиром, по вашему плану приёма',
+    'supplies.empty_hint': 'Добавьте то, что есть под рукой, и журнал предупредит вас, прежде чем оно закончится',
+    'forecast.method':
+        'Та же модель и калибровка, что в журнале ({cal}). Диапазон: прогонов {runs} при записанной доле пропусков {miss}, разброс времени ±{jitter}, ошибка калибровки ±{err}.',
+    'forecast.method_nocal':
+        'Та же модель, что в журнале; анализов крови нет, поэтому без калибровки. Диапазон: прогонов {runs} при записанной доле пропусков {miss}, разброс времени ±{jitter}.',
+    'model_doc.lead':
+        'Кривая в журнале это оценка, рассчитанная по всем записанным дозам, а не измерение. Графики ниже используют тот же расчёт.',
 
     'nav.search': 'Поиск',
     'nav.journal': 'Журнал',
@@ -699,6 +768,16 @@ const TR: Pack = {
     'onboarding.kicker.weight': 'Vücut ağırlığı',
     'onboarding.kicker.plan': 'İlaçlarınız',
     'onboarding.kicker.privacy': 'Sizin',
+    'onboarding.plan_subtitle': "Girersen Günlük'te tek dokunuşla doz kaydedebilirsin. Emin değilsen atla.",
+    'settings.pixel_cats_desc': "Günlük'te, aramada ve boş sayfalarda piksel kedileri göster",
+    'settings.prediction_desc': 'Günlük grafiğini, ilaç planınıza göre şu andan sonrası için kesikli çizgiyle sürdürür',
+    'supplies.empty_hint': 'Elindeki stoku ekle, bitmeden önce Günlük seni uyarır',
+    'forecast.method':
+        'Model ve kalibrasyon Günlük ile aynı ({cal}). Aralık: kayıtlardaki atlama oranı {miss}, zaman sapması ±{jitter}, kalibrasyon hatası ±{err} ile {runs} simülasyon.',
+    'forecast.method_nocal':
+        'Model Günlük ile aynı; kan tahlili olmadığı için kalibre edilmedi. Aralık: kayıtlardaki atlama oranı {miss}, zaman sapması ±{jitter} ile {runs} simülasyon.',
+    'model_doc.lead':
+        "Günlük'teki eğri, kaydettiğin her dozdan hesaplanan bir tahmindir, ölçüm değildir. Aşağıdaki grafikler de aynı hesabı kullanır.",
 
     'nav.search': 'Ara',
     'nav.journal': 'Günlük',
@@ -809,6 +888,17 @@ const UK: Pack = {
     'onboarding.kicker.weight': 'Вага',
     'onboarding.kicker.plan': 'Ваші препарати',
     'onboarding.kicker.privacy': 'Ваше',
+    'onboarding.plan_subtitle': 'Коли план додано, один дотик у журналі позначає дозу. Поки не впевнені? Пропустіть.',
+    'settings.pixel_cats_desc': 'Показувати піксельних котиків у журналі, пошуку та на порожніх сторінках',
+    'settings.prediction_desc':
+        'Продовжувати графік журналу після поточного моменту пунктиром, за вашим планом прийому',
+    'supplies.empty_hint': 'Додайте те, що є під рукою, і журнал попередить вас, перш ніж воно закінчиться',
+    'forecast.method':
+        'Та сама модель і калібрування, що в журналі ({cal}). Діапазон: прогонів {runs} за записаної частки пропусків {miss}, розкид часу ±{jitter}, похибка калібрування ±{err}.',
+    'forecast.method_nocal':
+        'Та сама модель, що в журналі; аналізів крові немає, тому без калібрування. Діапазон: прогонів {runs} за записаної частки пропусків {miss}, розкид часу ±{jitter}.',
+    'model_doc.lead':
+        'Крива в журналі це оцінка, розрахована за всіма записаними дозами, а не вимірювання. Графіки нижче використовують той самий розрахунок.',
 
     'nav.search': 'Пошук',
     'nav.journal': 'Журнал',
