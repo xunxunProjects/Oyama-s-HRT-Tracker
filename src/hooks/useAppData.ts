@@ -11,6 +11,8 @@ import {
     computeCalibration,
     CalibrationMethod,
     CalibrationHistoryMode,
+    HydrationState,
+    UrineColorLevel,
     normalizeCalibrationMethod,
     PKCustomParams,
     applyPKOverrides,
@@ -40,6 +42,7 @@ import {
     replaceCompleteBackupBundleToStorage,
     type CompleteBackupActive,
 } from '../utils/backupBundle';
+import { loadHydrationState, saveHydrationState } from '../utils/hydrationState';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -167,6 +170,43 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     // What the model is given. With the beta off the year of birth is kept,
     // and still synced, but left out, so switching it back on brings it back.
     const modelBirthYear = ageBeta ? birthYear : null;
+
+    // Physiology beta: changes what the chart draws, so it syncs with the other
+    // model settings. The hydration logs behind it stay on this device only.
+    const [physiologyBeta, setPhysiologyBetaState] = useState<boolean>(
+        () => localStorage.getItem(sharedKey('physiology-beta')) === 'true',
+    );
+    const setPhysiologyBeta = (v: boolean) => {
+        setPhysiologyBetaState(v);
+        localStorage.setItem(sharedKey('physiology-beta'), String(v));
+        touchModelSettings();
+    };
+    const [hydration, setHydration] = useState<HydrationState>(() =>
+        loadHydrationState(localStorage, owner),
+    );
+    const newWaterId = () =>
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `water-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const addWater = (timeH: number, cups: number) => {
+        setHydration(prev => ({
+            ...prev,
+            water: [...prev.water, { id: newWaterId(), timeH, cups, updatedAt: Date.now() }],
+        }));
+    };
+    const removeWater = (id: string) => {
+        setHydration(prev => ({ ...prev, water: prev.water.filter(w => w.id !== id) }));
+    };
+    const setUrineColor = (level: UrineColorLevel | null) => {
+        setHydration(prev => ({ ...prev, urineColor: level }));
+    };
+    const setBodyFatPercent = (value: number | null) => {
+        setHydration(prev => ({ ...prev, bodyFatPercent: value }));
+    };
+    const setHydrationAlpha = (value: number) => {
+        setHydration(prev => ({ ...prev, alpha: value }));
+    };
+
     const [labResults, setLabResults] = useState<LabResult[]>(() =>
         loadJSON(keyFor(mode, 'lab-results'), [] as LabResult[]),
     );
@@ -268,6 +308,8 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             localStorage.getItem(sharedKey('cal-history-mode')) === 'forward' ? 'forward' : 'retrospective',
         );
         setAgeBetaState(loadAgeBeta());
+        setPhysiologyBetaState(localStorage.getItem(sharedKey('physiology-beta')) === 'true');
+        setHydration(loadHydrationState(localStorage, owner));
         setPkParamsState(sanitizePKParams(loadJSON<unknown>(sharedKey('pk-params'), null)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope]);
@@ -296,7 +338,7 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         loadedScopeRef.current = scope;
         setReadyScope(prev => (prev === scope ? prev : scope));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [events, labResults, doseTemplates, quickDoses, supplies, plan]);
+    }, [events, labResults, doseTemplates, quickDoses, supplies, plan, hydration]);
 
     useEffect(() => {
         if (loadedScopeRef.current !== scope) return;
@@ -346,6 +388,10 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         // The plan now carries what the standalone cyproterone choice used to.
         localStorage.removeItem(sharedKey('cpa-plan'));
     }, [plan, scope]);
+    useEffect(() => {
+        if (loadedScopeRef.current !== scope) return;
+        saveHydrationState(localStorage, owner, hydration);
+    }, [hydration, owner, scope]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -852,13 +898,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
             setCalibrationMethodState(applied.modelSettings.calibrationMethod);
             setCalibrationHistoryModeState(applied.modelSettings.calibrationHistoryMode);
             setAgeBetaState(applied.modelSettings.ageBeta);
+            setPhysiologyBetaState(applied.modelSettings.physiologyBeta);
         }
     };
 
-    // A change of any of the three, for cloud sync to schedule a push on.
+    // A change of any of these, for cloud sync to schedule a push on. The
+    // hydration logs themselves are deliberately not in this object.
     const modelSettings = useMemo<ModelSettings>(
-        () => ({ calibrationMethod, calibrationHistoryMode, ageBeta }),
-        [calibrationMethod, calibrationHistoryMode, ageBeta],
+        () => ({ calibrationMethod, calibrationHistoryMode, ageBeta, physiologyBeta }),
+        [calibrationMethod, calibrationHistoryMode, ageBeta, physiologyBeta],
     );
 
     return {
@@ -883,6 +931,14 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setCalibrationHistoryMode,
         ageBeta,
         setAgeBeta,
+        physiologyBeta,
+        setPhysiologyBeta,
+        hydration,
+        addWater,
+        removeWater,
+        setUrineColor,
+        setBodyFatPercent,
+        setHydrationAlpha,
         modelSettings,
         calibration,
         currentLevel,

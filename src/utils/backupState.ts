@@ -58,6 +58,7 @@ export interface ModelSettings {
     calibrationMethod: CalibrationMethod;
     calibrationHistoryMode: CalibrationHistoryMode;
     ageBeta: boolean;
+    physiologyBeta: boolean;
 }
 
 /** Before the age beta was per account it lived under this one global key. */
@@ -79,14 +80,21 @@ export const sanitizeModelSettings = (raw: unknown): ModelSettings | null => {
     }
     if (r.calibrationHistoryMode !== 'forward' && r.calibrationHistoryMode !== 'retrospective') return null;
     if (typeof r.ageBeta !== 'boolean') return null;
-    return { calibrationMethod: method, calibrationHistoryMode: r.calibrationHistoryMode, ageBeta: r.ageBeta };
+    const physiologyBeta = r.physiologyBeta === undefined ? false : r.physiologyBeta;
+    if (typeof physiologyBeta !== 'boolean') return null;
+    return {
+        calibrationMethod: method,
+        calibrationHistoryMode: r.calibrationHistoryMode,
+        ageBeta: r.ageBeta,
+        physiologyBeta,
+    };
 };
 
 /**
  * What this device has chosen, and when. `undefined` while it has never stored
- * any of the three: leaving them out then keeps a fresh device's defaults from
- * overwriting what another device picked. Choices made before these settings
- * synced carry the floor stamp of 1, so any real edit wins over them.
+ * any of these settings: leaving them out then keeps a fresh device's defaults
+ * from overwriting what another device picked. Choices made before these
+ * settings synced carry the floor stamp of 1, so any real edit wins over them.
  */
 export const readModelSettingsFromStorage = (
     storage: StorageLike,
@@ -95,13 +103,17 @@ export const readModelSettingsFromStorage = (
     const method = storage.getItem(nsFor(owner, 'cal-method'));
     const history = storage.getItem(nsFor(owner, 'cal-history-mode'));
     const ageBeta = storage.getItem(nsFor(owner, 'age-beta')) ?? storage.getItem(LEGACY_AGE_BETA_KEY);
+    const physiologyBeta = storage.getItem(nsFor(owner, 'physiology-beta'));
     const at = Number(storage.getItem(nsFor(owner, 'model-settings-at'))) || 0;
-    if (method === null && history === null && ageBeta === null && at === 0) return undefined;
+    if (method === null && history === null && ageBeta === null && physiologyBeta === null && at === 0) {
+        return undefined;
+    }
     return {
         value: {
             calibrationMethod: normalizeCalibrationMethod(method),
             calibrationHistoryMode: history === 'forward' ? 'forward' : 'retrospective',
             ageBeta: ageBeta === 'true',
+            physiologyBeta: physiologyBeta === 'true',
         },
         at: at || 1,
     };
@@ -207,7 +219,9 @@ export const SHARED_SUFFIXES = [
     'birth-year',
     'birth-year-at',
     'age-beta',
+    'physiology-beta',
     'model-settings-at',
+    'hydration',
 ] as const;
 
 /**
@@ -481,6 +495,7 @@ export const applySyncedStateToStorage = (
             storage.setItem(nsFor(owner, 'cal-method'), next.calibrationMethod);
             storage.setItem(nsFor(owner, 'cal-history-mode'), next.calibrationHistoryMode);
             storage.setItem(nsFor(owner, 'age-beta'), String(next.ageBeta));
+            storage.setItem(nsFor(owner, 'physiology-beta'), String(next.physiologyBeta));
             if (state.modelSettingsUpdatedAt > 0) {
                 storage.setItem(nsFor(owner, 'model-settings-at'), String(state.modelSettingsUpdatedAt));
             }
