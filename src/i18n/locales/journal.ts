@@ -10,6 +10,13 @@ import type { Lang } from '../translations';
 type Pack = Record<string, string>;
 
 const EN: Pack = {
+    'regimen.route.nasal': 'Nasal spray',
+    'regimen.route.sc': 'Subcutaneous',
+    'regimen.route.pellet': 'Pellet',
+    'route.nasal': 'Nasal spray',
+    'route.sc': 'Subcutaneous',
+    'route.pellet': 'Pellet',
+
     'onboarding.kicker.mode': 'Mode',
     'onboarding.kicker.how': 'How it works',
     'onboarding.kicker.weight': 'Body weight',
@@ -161,6 +168,13 @@ const EN: Pack = {
 };
 
 const ZH: Pack = {
+    'regimen.route.nasal': '鼻喷',
+    'regimen.route.sc': '皮下注射',
+    'regimen.route.pellet': '皮下植入',
+    'route.nasal': '鼻喷',
+    'route.sc': '皮下注射',
+    'route.pellet': '皮下植入',
+
     'onboarding.kicker.mode': '模式',
     'onboarding.kicker.how': '怎么估算',
     'onboarding.kicker.weight': '体重',
@@ -311,6 +325,13 @@ const ZH: Pack = {
 };
 
 const ZH_TW: Pack = {
+    'regimen.route.nasal': '鼻噴',
+    'regimen.route.sc': '皮下注射',
+    'regimen.route.pellet': '皮下植入',
+    'route.nasal': '鼻噴',
+    'route.sc': '皮下注射',
+    'route.pellet': '皮下植入',
+
     'onboarding.kicker.mode': '模式',
     'onboarding.kicker.how': '怎麼估算',
     'onboarding.kicker.weight': '體重',
@@ -484,6 +505,13 @@ const YUE: Pack = {
 };
 
 const JA: Pack = {
+    'regimen.route.nasal': '点鼻',
+    'regimen.route.sc': '皮下注射',
+    'regimen.route.pellet': 'ペレット',
+    'route.nasal': '点鼻',
+    'route.sc': '皮下注射',
+    'route.pellet': 'ペレット',
+
     'onboarding.kicker.mode': 'モード',
     'onboarding.kicker.how': 'しくみ',
     'onboarding.kicker.weight': '体重',
@@ -635,6 +663,13 @@ const JA: Pack = {
 };
 
 const KO: Pack = {
+    'regimen.route.nasal': '코 분무',
+    'regimen.route.sc': '피하 주사',
+    'regimen.route.pellet': '펠릿',
+    'route.nasal': '코 분무',
+    'route.sc': '피하 주사',
+    'route.pellet': '펠릿',
+
     'onboarding.kicker.mode': '모드',
     'onboarding.kicker.how': '작동 방식',
     'onboarding.kicker.weight': '체중',
@@ -787,6 +822,13 @@ const KO: Pack = {
 };
 
 const RU: Pack = {
+    'regimen.route.nasal': 'Назальный спрей',
+    'regimen.route.sc': 'Подкожно',
+    'regimen.route.pellet': 'Имплант',
+    'route.nasal': 'Назальный спрей',
+    'route.sc': 'Подкожно',
+    'route.pellet': 'Имплант',
+
     'onboarding.kicker.mode': 'Режим',
     'onboarding.kicker.how': 'Как это работает',
     'onboarding.kicker.weight': 'Вес',
@@ -937,6 +979,13 @@ const RU: Pack = {
 };
 
 const TR: Pack = {
+    'regimen.route.nasal': 'Burun spreyi',
+    'regimen.route.sc': 'Deri altı',
+    'regimen.route.pellet': 'Pelet',
+    'route.nasal': 'Burun spreyi',
+    'route.sc': 'Deri altı',
+    'route.pellet': 'Pelet',
+
     'onboarding.kicker.mode': 'Mod',
     'onboarding.kicker.how': 'Nasıl çalışır',
     'onboarding.kicker.weight': 'Vücut ağırlığı',
@@ -1090,6 +1139,13 @@ const TR: Pack = {
 };
 
 const UK: Pack = {
+    'regimen.route.nasal': 'Назальний спрей',
+    'regimen.route.sc': 'Підшкірно',
+    'regimen.route.pellet': 'Імплант',
+    'route.nasal': 'Назальний спрей',
+    'route.sc': 'Підшкірно',
+    'route.pellet': 'Імплант',
+
     'onboarding.kicker.mode': 'Режим',
     'onboarding.kicker.how': 'Як це працює',
     'onboarding.kicker.weight': 'Вага',

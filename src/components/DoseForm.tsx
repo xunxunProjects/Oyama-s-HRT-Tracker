@@ -38,6 +38,7 @@ import { cleanDoseMG } from '../utils/cleanDose';
 import { inertWhen } from '../utils/inert';
 import { WaitMark } from './Waiting';
 import { DOSE_GUIDE_CONFIG, LEVEL_BADGE_STYLES, formatGuideNumber, type DoseLevelKey } from '../data/doseGuide';
+import LevelRail from './LevelRail';
 
 export interface DoseTemplate {
     id: string;
@@ -89,7 +90,9 @@ const ROUTE_MENU_ORDER = [
 ];
 const menuRoutes = (isTransmasc: boolean): Route[] => {
     const all = [...ROUTE_MENU_ORDER, ...Object.values(Route).filter(r => !ROUTE_MENU_ORDER.includes(r))];
-    if (!isTransmasc) return all;
+    // The testosterone-only routes (nasal spray, subcutaneous, pellet) have no
+    // drug to offer in feminizing mode.
+    if (!isTransmasc) return all.filter(r => r !== Route.nasal && r !== Route.sc && r !== Route.pellet);
     // Transmasc: no oral/sublingual; no patches (T patches are uncommon and
     // not realistically modeled with the current µg/day scheme).
     return all.filter(
@@ -681,6 +684,15 @@ const DoseForm: React.FC<DoseFormProps> = ({
         ? `${doseGuide.config.thresholds.map(threshold => `≤ ${formatGuideNumber(threshold)}`).join(', ')} ${guideUnitLabel}`
         : '';
     const guideBadgeClass = doseGuide?.level ? LEVEL_BADGE_STYLES[doseGuide.level] : '';
+    // A choice of a few, as Oyama Journal's form offers routes: a row of
+    // chips, the chosen one in the accent's wash.
+    const chip = (active: boolean) =>
+        `chip ${active ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : 'chip-static text-[var(--text-muted)] hover:text-[var(--text)]'}`;
+    const nowLocal = () => {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    };
+
     // The record a delete confirm is about, as its row reads: what, how much,
     // and how and when it was taken. With a dozen identical CPA rows the
     // time is what tells them apart.
@@ -865,29 +877,39 @@ const DoseForm: React.FC<DoseFormProps> = ({
             >
                 {/* Time */}
                 <div ref={timeRowRef}>
-                    <button
-                        ref={timeButtonRef}
-                        type="button"
-                        onClick={() => setIsDatePickerOpen(v => !v)}
-                        className="w-full flex items-center justify-between py-[18px] border-b-(length:--hairline) border-[var(--border)] text-start"
-                    >
-                        <span className="text-sm text-[var(--text)]">{t('field.time')}</span>
-                        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                            <span className="text-sm tabular-nums">
-                                {dateStr
-                                    ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
-                                          month: 'short',
-                                          day: 'numeric',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                          hour12: false,
-                                      })
-                                    : '—'}
-                            </span>
-                            <SelectChevron open={isDatePickerOpen} />
-                        </div>
-                    </button>
+                    <div className="flex items-center gap-2 border-b-(length:--hairline) border-[var(--border)]">
+                        <button
+                            ref={timeButtonRef}
+                            type="button"
+                            onClick={() => setIsDatePickerOpen(v => !v)}
+                            className="min-w-0 flex-1 flex items-center justify-between py-[18px] text-start"
+                        >
+                            <span className="text-sm text-[var(--text)]">{t('field.time')}</span>
+                            <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                                <span className="text-sm tabular-nums">
+                                    {dateStr
+                                        ? new Date(dateStr).toLocaleString(LOCALE_MAP[lang] || 'en-US', {
+                                              month: 'short',
+                                              day: 'numeric',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              hour12: false,
+                                          })
+                                        : '—'}
+                                </span>
+                                <SelectChevron open={isDatePickerOpen} />
+                            </div>
+                        </button>
+                        {/* Now, in one tap, as the journal's form has it. */}
+                        <button
+                            type="button"
+                            onClick={() => setDateStr(nowLocal())}
+                            className="shrink-0 inline-flex h-8 items-center px-2.5 text-sm font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
+                        >
+                            {t('dose.now')}
+                        </button>
+                    </div>
                     <DateTimePicker
                         isOpen={isDatePickerOpen}
                         inline
@@ -904,16 +926,25 @@ const DoseForm: React.FC<DoseFormProps> = ({
                     />
                 </div>
 
-                {/* Route */}
-                <CustomSelect
-                    label={t('field.route')}
-                    value={route}
-                    onChange={val => setRoute(val as Route)}
-                    options={availableRoutes.map(r => ({
-                        value: r,
-                        label: t(`route.${r}`),
-                    }))}
-                />
+                {/* Route: a row of chips, as the journal sets its routes. */}
+                <div>
+                    <span className="field-label block mb-2">{t('field.route')}</span>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label={t('field.route')}>
+                        {availableRoutes.map(r => (
+                            <button
+                                key={r}
+                                type="button"
+                                className={chip(route === r)}
+                                aria-pressed={route === r}
+                                onClick={() => setRoute(r)}
+                            >
+                                {t(`regimen.route.${r}`) !== `regimen.route.${r}`
+                                    ? t(`regimen.route.${r}`)
+                                    : t(`route.${r}`)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 {route === Route.patchRemove && (
                     <div className="text-xs text-[var(--text-muted)] bg-[var(--surface-hover)] p-3 rounded-[var(--radius-md)]">
@@ -924,7 +955,30 @@ const DoseForm: React.FC<DoseFormProps> = ({
                 {route !== Route.patchRemove && (
                     <>
                         {/* Ester Selection */}
-                        {availableEsters.length > 1 && (
+                        {availableEsters.length > 1 && availableEsters.length <= 4 && (
+                            <div>
+                                <span className="field-label block mb-2">{t('field.ester')}</span>
+                                <div className="flex flex-wrap gap-2" role="group" aria-label={t('field.ester')}>
+                                    {availableEsters.map(e => (
+                                        <button
+                                            key={e}
+                                            type="button"
+                                            className={chip(ester === e)}
+                                            aria-pressed={ester === e}
+                                            onClick={() => setEster(e)}
+                                        >
+                                            {drugLabel(e, t)}
+                                        </button>
+                                    ))}
+                                </div>
+                                {productNames(route, ester, t) && (
+                                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                                        {productNames(route, ester, t)}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        {availableEsters.length > 4 && (
                             <CustomSelect
                                 label={t('field.ester')}
                                 value={ester}
@@ -1174,37 +1228,59 @@ const DoseForm: React.FC<DoseFormProps> = ({
                             "enter a dose" and bare thresholds on every new form. */}
                         {doseGuide &&
                             (doseGuide.value !== null || (doseGuide.showRateHint && parseFloat(rawDose) > 0)) && (
-                                <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)] flex gap-2">
-                                    <span className="icon-line text-xs">
-                                        <Info className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                                    </span>
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-[var(--text)]">
-                                                {t('dose.guide.title')}
-                                            </span>
-                                            {doseGuide.level && (
-                                                <span className={`text-xs font-medium ${guideBadgeClass}`}>
-                                                    {t(`dose.guide.level.${doseGuide.level}`)}
+                                <div className="mt-2 pt-2 border-t-(length:--hairline) border-[var(--border)]">
+                                    {/* Where the amount falls, on the rail the journal reads
+                                        a dose off: the medium step in the accent, the amount
+                                        its one tall tick, its level flown above it. */}
+                                    {doseGuide.value !== null && doseGuide.level && (
+                                        <div className="mb-3">
+                                            <LevelRail
+                                                value={doseGuide.value}
+                                                band={{
+                                                    low: doseGuide.config.thresholds[0],
+                                                    high: doseGuide.config.thresholds[1],
+                                                }}
+                                                domain={[
+                                                    doseGuide.config.thresholds[0] / 4,
+                                                    doseGuide.config.thresholds[3] * 1.6,
+                                                ]}
+                                                label={t(`dose.guide.level.${doseGuide.level}`)}
+                                                tone={LEVEL_BADGE_STYLES[doseGuide.level]}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <span className="icon-line text-xs">
+                                            <Info className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                        </span>
+                                        <div className="space-y-0.5 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-semibold text-[var(--text)]">
+                                                    {t('dose.guide.title')}
                                                 </span>
+                                                {doseGuide.level && (
+                                                    <span className={`text-xs font-medium ${guideBadgeClass}`}>
+                                                        {t(`dose.guide.level.${doseGuide.level}`)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-[var(--text-muted)]">
+                                                {t('dose.guide.current')}:{' '}
+                                                {doseGuide.value !== null
+                                                    ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}`
+                                                    : t('dose.guide.current_blank')}
+                                            </p>
+                                            {guideRangeText && (
+                                                <p className="text-xs text-[var(--text-muted)] leading-snug">
+                                                    {t('dose.guide.reference')}: {guideRangeText}
+                                                </p>
+                                            )}
+                                            {doseGuide.showRateHint && (
+                                                <p className="text-xs text-[var(--warning)] leading-snug">
+                                                    {t('dose.guide.patch_rate_hint')}
+                                                </p>
                                             )}
                                         </div>
-                                        <p className="text-xs text-[var(--text-muted)]">
-                                            {t('dose.guide.current')}:{' '}
-                                            {doseGuide.value !== null
-                                                ? `${formatGuideNumber(doseGuide.value)} ${guideUnitLabel}`
-                                                : t('dose.guide.current_blank')}
-                                        </p>
-                                        {guideRangeText && (
-                                            <p className="text-xs text-[var(--text-muted)] leading-snug">
-                                                {t('dose.guide.reference')}: {guideRangeText}
-                                            </p>
-                                        )}
-                                        {doseGuide.showRateHint && (
-                                            <p className="text-xs text-[var(--warning)] leading-snug">
-                                                {t('dose.guide.patch_rate_hint')}
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             )}
