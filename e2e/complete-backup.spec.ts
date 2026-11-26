@@ -504,8 +504,8 @@ test.describe('complete backup import (L3 browser)', () => {
         await expect(page.locator('[data-prompt="alert"]')).toContainText('Backup merged.');
         await dismissAlert(page);
 
-        await page.getByRole('button', { name: 'History', exact: true }).click();
-        await page.getByRole('button', { name: 'Add dose', exact: true }).first().click();
+        await page.getByRole('button', { name: 'Journal', exact: true }).click();
+        await page.getByRole('button', { name: 'Log', exact: true }).first().click();
         await page.waitForTimeout(300);
 
         expect(await page.evaluate(() => (window as unknown as { __backupXss?: number }).__backupXss)).toBeUndefined();

@@ -6,7 +6,9 @@ test('hides the hrt-tool sign-in entry when the Worker capability is off', async
     await seedStorage(context, signedInStorage(user));
 
     await gotoApp(page);
-    await page.getByRole('button', { name: 'Account' }).click();
+    // The account lives in Settings, as the first tile.
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('button', { name: /^Account/ }).click();
 
     // The local Worker has no HRT_RAW_ENABLED/HRT_SERVICE_TOKEN, so the page
     // would answer 404 to every hrt endpoint. Offering the entry anyway leaves

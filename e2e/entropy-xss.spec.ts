@@ -24,6 +24,8 @@ test.describe('share password entropy display (L3 browser)', () => {
         );
         await gotoApp(page);
 
+        // Sharing opens from the Journal's "now", where the Overview's reading went.
+        await page.getByRole('button', { name: 'Journal', exact: true }).click();
         await page.getByRole('button', { name: 'Share', exact: true }).click();
         await expect(page.getByRole('button', { name: /Share dosage details/ })).toBeVisible();
         await page.getByRole('switch', { name: 'Protect with a password' }).click();
