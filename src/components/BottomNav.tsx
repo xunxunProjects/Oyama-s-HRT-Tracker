@@ -1,6 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import Doodle, { NAV_DOODLES } from './Doodle';
-import { PHONE_TAB_ICONS } from './PhoneTabIcons';
+import { Icon, type GlyphName } from './icons';
 
 interface NavTab {
     id: string;
@@ -33,9 +32,8 @@ interface NavTab {
  * there (useNavHeldAway): a dose or a lab being logged, whose Save would
  * otherwise sit under the bar, and the plan's wizard with its own buttons.
  *
- * Each tab is the hand-drawn doodle the sidebar shows for it (NAV_DOODLES),
- * so the two bars read as one set; the line icons are only a fallback for a
- * tab with no drawing.
+ * Each tab is its icon in outline, filled in the accent for the tab showing,
+ * as the sidebar draws them.
  */
 const BottomNav: React.FC<{
     tabs: NavTab[];
@@ -121,8 +119,8 @@ const BottomNav: React.FC<{
                     />
                 )}
                 {tabs.map(({ id, icon, label }) => {
-                    const doodle = NAV_DOODLES[id];
-                    const TabIcon = PHONE_TAB_ICONS[id] ?? icon;
+                    const glyph = TAB_GLYPHS[id];
+                    const TabIcon = icon;
                     const isActive = activeTab === id;
                     return (
                         <button
@@ -138,10 +136,10 @@ const BottomNav: React.FC<{
                                 }}
                                 className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
                             >
-                                {doodle ? (
-                                    <Doodle name={doodle} size={1.875} className="-my-1" />
+                                {glyph ? (
+                                    <Icon name={glyph} size={24} weight={isActive ? 'fill' : 'regular'} />
                                 ) : (
-                                    <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                                    <TabIcon size={24} />
                                 )}
                             </span>
                             <span className="whitespace-nowrap text-xs leading-4 font-medium">{label}</span>
@@ -151,6 +149,18 @@ const BottomNav: React.FC<{
             </div>
         </nav>
     );
+};
+
+/** Each tab's icon, outline at rest and filled while its tab is showing. */
+export const TAB_GLYPHS: Record<string, GlyphName> = {
+    home: 'search',
+    history: 'log',
+    lab: 'labs',
+    plan: 'heart',
+    settings: 'gear',
+    account: 'account',
+    admin: 'shield',
+    'settings-community': 'users',
 };
 
 // How many things on the page are holding the bar away just now.

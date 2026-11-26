@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Doodle, { NAV_DOODLES } from './Doodle';
+import { Icon } from './icons';
+import { TAB_GLYPHS } from './BottomNav';
 import { currentInputMode } from '../utils/inputMode';
 
 interface NavItem {
@@ -94,8 +95,8 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                 <div className="flex-1 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
                     {navItems.map(item => {
                         const isActive = currentView === item.id;
-                        const Icon = item.icon;
-                        const doodle = NAV_DOODLES[item.id];
+                        const ItemIcon = item.icon;
+                        const glyph = TAB_GLYPHS[item.id];
                         return (
                             <button
                                 key={item.id}
@@ -113,10 +114,15 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 }`}
                             >
                                 <span className="relative grid size-9 shrink-0 place-items-center">
-                                    {doodle ? (
-                                        <Doodle name={doodle} size={2.25} />
-                                    ) : (
+                                    {glyph ? (
                                         <Icon
+                                            name={glyph}
+                                            size={24}
+                                            weight={isActive ? 'fill' : 'regular'}
+                                            className={isActive ? 'text-[var(--accent-ink)]' : ''}
+                                        />
+                                    ) : (
+                                        <ItemIcon
                                             size={22}
                                             className={isActive ? 'text-[var(--accent-ink)]' : ''}
                                             strokeWidth={isActive ? 2 : 1.75}

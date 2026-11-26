@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { ElementType } from 'react';
-import { Search, Log, Labs, Gear, Bookmark, Shield, Users } from '../components/icons';
+import { Search, Log, Labs, Gear, Heart, Shield, Users } from '../components/icons';
 import { voteStatusAt } from '../../communityVote';
 import { runViewMove, type ViewMove } from '../motion/viewMove';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -468,7 +468,7 @@ export const useAppNavigation = (user: any) => {
         { id: 'home', label: t('nav.search'), icon: Search },
         { id: 'history', label: t('nav.journal'), icon: Log },
         { id: 'lab', label: t('nav.lab'), icon: Labs },
-        { id: 'plan', label: t('nav.plan'), icon: Bookmark },
+        { id: 'plan', label: t('nav.plan'), icon: Heart },
         { id: 'settings', label: t('nav.settings'), icon: Gear },
     ];
 

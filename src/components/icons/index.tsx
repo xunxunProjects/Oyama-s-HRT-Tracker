@@ -1,5 +1,4 @@
-import { Icon, type IconProps, type IconComponent } from './Icon';
-import type { GlyphName } from './glyphs';
+import { Icon, type IconProps, type IconComponent, type GlyphName } from './Icon';
 
 export { Icon };
 export type { IconProps, IconComponent, GlyphName };
@@ -18,6 +17,7 @@ export const Log = glyph('log', 'Log');
 export const Labs = glyph('labs', 'Labs');
 export const Gear = glyph('gear', 'Gear');
 export const Account = glyph('account', 'Account');
+export const Heart = glyph('heart', 'Heart');
 export const Shield = glyph('shield', 'Shield');
 export const ShieldOff = glyph('shield-off', 'ShieldOff');
 export const Sliders = glyph('sliders', 'Sliders');

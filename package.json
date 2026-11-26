@@ -45,6 +45,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261029.1",
     "@eslint/js": "^10.0.1",
+    "@phosphor-icons/core": "^2.1.1",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@tauri-apps/cli": "^1.6.3",
