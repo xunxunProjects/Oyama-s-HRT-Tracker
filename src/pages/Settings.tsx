@@ -58,6 +58,8 @@ interface SettingsProps {
     onNavigateToAdmin: () => void;
     onNavigateToSupplies: () => void;
     supplyCount: number;
+    safetyReminderEnabled: boolean;
+    setSafetyReminderEnabled: (v: boolean) => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -192,6 +194,8 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToAdmin,
     onNavigateToSupplies,
     supplyCount,
+    safetyReminderEnabled,
+    setSafetyReminderEnabled,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -318,6 +322,16 @@ const Settings: React.FC<SettingsProps> = ({
                         )
                     }
                     onClick={() => navTo(onNavigateToPKParams, 'general')}
+                />
+            </div>
+
+            <SectionHeading title={t('settings.section.safety')} />
+            <div className={section}>
+                <SwitchRow
+                    label={t('settings.safety_reminder')}
+                    desc={t('settings.safety_reminder_desc')}
+                    checked={safetyReminderEnabled}
+                    onChange={setSafetyReminderEnabled}
                 />
             </div>
 

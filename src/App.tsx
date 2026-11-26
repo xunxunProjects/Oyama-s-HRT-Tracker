@@ -34,6 +34,8 @@ import Forecast from './pages/Forecast';
 import Supplies from './pages/Supplies';
 import { useLiveShareSync } from './hooks/useLiveShareSync';
 import { describeSyncError, useCloudSync } from './hooks/useCloudSync';
+import { useSafetyAlerts } from './hooks/useSafetyAlerts';
+import SafetyAlertModal from './components/SafetyAlertModal';
 
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
@@ -167,6 +169,7 @@ const AppContent = () => {
         deleteSupply,
     } = useAppData(showDialog, { withPrediction: showPrediction });
     const nowH = currentTime.getTime() / 3600000;
+    const safety = useSafetyAlerts({ events, simulation, labResults, providedNowH: nowH });
     // How far ahead a supply counts as running low. A preference, so it stays on the device.
     const [supplyLeadDays, setSupplyLeadDaysState] = useState(
         () => Number(localStorage.getItem('hrt-supply-lead-days')) || 14,
@@ -979,6 +982,8 @@ const AppContent = () => {
                             supplyLeadDays={supplyLeadDays}
                             onNavigateToCommunityVote={() => openCommunityVote('home')}
                             onCommunityVoteSignIn={() => signInForCommunityVote('home')}
+                            safetyAlerts={safety.alerts}
+                            onOpenSafetySettings={() => handleViewChange('settings')}
                         />
                     )}
 
@@ -1128,6 +1133,8 @@ const AppContent = () => {
                             onNavigateToAdmin={() => handleViewChange('admin')}
                             onNavigateToSupplies={() => handleViewChange('supplies')}
                             supplyCount={supplies.length}
+                            safetyReminderEnabled={safety.enabled}
+                            setSafetyReminderEnabled={safety.setEnabled}
                         />
                     )}
 
@@ -1333,6 +1340,18 @@ const AppContent = () => {
                 }}
                 onConfirm={handlePasswordSubmit}
             />
+
+            {safety.activeAlert && (
+                <SafetyAlertModal
+                    alert={safety.activeAlert}
+                    t={t}
+                    onClose={safety.dismiss}
+                    onOpenSettings={() => {
+                        safety.dismiss();
+                        handleViewChange('settings');
+                    }}
+                />
+            )}
         </div>
     );
 };
