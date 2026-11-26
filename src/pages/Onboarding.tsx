@@ -1,18 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Close } from '../components/icons';
+import React, { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Plus, Close, Check, ChevronLeft } from '../components/icons';
+import { Molecule } from '../components/Molecule';
 import { BODY_WEIGHT_KG_MAX, BODY_WEIGHT_KG_MIN, ExtraKey, Route, isPlausibleBodyWeightKG } from '../../logic';
 import Tick from '../components/Tick';
 import PixelCat from '../components/PixelCat';
-import Doodle, { DoodleName } from '../components/Doodle';
-import Point, { type MarkState } from '../components/Point';
-import DoseRings from '../components/DoseRings';
+import Doodle from '../components/Doodle';
 import PlanWizard from '../components/PlanWizard';
 import PageHeader from '../components/PageHeader';
 import OnboardingCurve, { useOnboardingCurve, BEATS, type Beat, type CurveData } from '../components/OnboardingCurve';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useDialog } from '../contexts/DialogContext';
-import { Lang, TRANSLATIONS } from '../i18n/translations';
+import type { Lang } from '../i18n/translations';
 import { PlanItem, PLAN_DRUGS } from '../utils/plan';
 import { asTitle, frequencyLabel, gelSiteName, regimenLabel } from '../utils/regimenText';
 
@@ -49,33 +48,6 @@ export const markOnboardingSeen = (): void => {
 const divider = 'border-b-(length:--hairline) border-[var(--border)]';
 
 /**
- * The three slots of the "how it works" step, and the only step that splits in
- * two on a wide window — because the chart is the only thing in the intro that
- * gains anything from a column of its own. Drawn at the width of a phone it was
- * a thumbnail beside 500px of empty ground; given half a wide window it draws
- * at roughly the size the Overview will draw it.
- *
- * On a phone the three stack in the order they have always read in: heading,
- * chart, rows. On a wide window the chart takes the left column and spans both
- * rows, with the words beside it.
- */
-const Head: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="min-w-0 lg:col-start-2 lg:row-start-1 short:col-start-2 short:row-start-1">{children}</div>
-);
-
-const Stage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="mt-4 flex items-center justify-center lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:mt-0 short:col-start-1 short:row-start-1 short:row-span-2 short:mt-0">
-        {children}
-    </div>
-);
-
-const Body: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="mt-4 min-w-0 lg:col-start-2 lg:row-start-2 lg:mt-0 short:col-start-2 short:row-start-2 short:mt-0">
-        {children}
-    </div>
-);
-
-/**
  * Softens the last rows of the language list while any are still below the
  * fold. The list's scrollbar is hidden like every other scroller in the app, so
  * without this a row can end flush against the footer and read as the end of
@@ -87,33 +59,18 @@ const fadeMask = (above: boolean, below: boolean): string =>
 /** Read straight out of the packs to size the greeting — see the welcome step. */
 const SUBTITLE_KEY = 'onboarding.welcome_subtitle';
 
-/** Rows of the "how it works" step, in beat order — see BEATS. */
-const HOW_ROWS: { mark: DoodleName; title: string; desc: string }[] = [
-    { mark: 'syringe', title: 'onboarding.how_log', desc: 'onboarding.how_log_desc' },
-    { mark: 'chart', title: 'onboarding.how_chart', desc: 'onboarding.how_chart_desc' },
-    { mark: 'vial', title: 'onboarding.how_calibrate', desc: 'onboarding.how_calibrate_desc' },
-];
-
 /**
- * The "how it works" step: the chart is the argument and the three rows are
- * its captions, one per beat. The sequence plays itself once on arrival, since
- * most people will just watch — but a film that runs while the title is still
- * being read is a film half missed, so every row is also a button that replays
- * the chart from that beat, and a Replay appears once the whole thing has run.
- *
- * Owns its clock, and is mounted only while the step is showing, so leaving
- * and coming back starts the story from the top.
+ * The "how it works" stage: the model's own curve playing its three beats
+ * (the doses, the level they make, the fit to a blood test), as Oyama
+ * Journal's intro plays a live piece of the app on each screen. Mounted
+ * afresh each time its screen comes in, so the story starts from the top.
  */
-const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
+const HowStage: React.FC<{ curve: CurveData | null; active: boolean }> = ({ curve, active }) => {
     const { t } = useTranslation();
     const [beat, setBeat] = useState<Beat>(0);
-    // Bumped on every replay: a beat restarted from its own start is the same
-    // state twice, and the chart and marks need something to remount on.
     const [playKey, setPlayKey] = useState(0);
     const [finished, setFinished] = useState(false);
-    // Nothing plays until the engine has answered; the marks wait grey rather
-    // than acting out a chart that isn't there yet.
-    const live = !!curve;
+    const live = !!curve && active;
 
     useEffect(() => {
         if (!live || finished) return;
@@ -124,69 +81,58 @@ const HowStep: React.FC<{ curve: CurveData | null }> = ({ curve }) => {
         return () => window.clearTimeout(handle);
     }, [live, beat, playKey, finished]);
 
-    const play = (from: Beat) => {
-        setBeat(from);
-        setFinished(false);
-        setPlayKey(k => k + 1);
-    };
-
-    const stateOf = (i: number): MarkState => {
-        if (!live) return 'asleep';
-        if (finished || i < beat) return 'done';
-        return i === beat ? 'playing' : 'asleep';
-    };
-
     return (
-        <>
-            <Head>
-                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.how_title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.how_subtitle')}</p>
-            </Head>
-            {/* The three rows below say what the app does; this says it. The
-                curve, the doses and the fit are the engine's own output, so
-                what is promised here is what the Overview will draw. Given a
-                column to itself it draws at something like the size it will be
-                on the Overview, instead of at thumbnail size beside 500px of
-                empty page. */}
-            <Stage>
-                <div className="w-full">
-                    <OnboardingCurve
-                        data={curve}
-                        beat={beat}
-                        playKey={playKey}
-                        caption={t('onboarding.how_chart_caption')}
-                        legend={{
-                            model: t('onboarding.how_chart_legend_model'),
-                            labs: t('onboarding.how_chart_legend_labs'),
-                        }}
-                        action={
-                            finished && (
-                                <button
-                                    type="button"
-                                    onClick={() => play(0)}
-                                    className="ms-auto rounded-md px-1.5 py-0.5 text-xs text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
-                                >
-                                    {t('onboarding.how_replay')}
-                                </button>
-                            )
-                        }
-                    />
-                </div>
-            </Stage>
-            <Body>
-                {HOW_ROWS.map(({ mark, title, desc }, i) => (
-                    <Point
-                        key={mark}
-                        mark={mark}
-                        title={t(title)}
-                        desc={t(desc)}
-                        state={stateOf(i)}
-                        onClick={() => play(i as Beat)}
-                    />
-                ))}
-                <p className="mt-5 text-xs leading-relaxed text-muted">{t('onboarding.how_note')}</p>
-            </Body>
-        </>
+        <div className="w-full">
+            <OnboardingCurve
+                data={curve}
+                beat={beat}
+                playKey={playKey}
+                caption={t('onboarding.how_chart_caption')}
+                legend={{
+                    model: t('onboarding.how_chart_legend_model'),
+                    labs: t('onboarding.how_chart_legend_labs'),
+                }}
+                action={
+                    finished && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setBeat(0);
+                                setFinished(false);
+                                setPlayKey(k => k + 1);
+                            }}
+                            className="ms-auto rounded-md px-1.5 py-0.5 text-xs text-[var(--accent-ink)] hover:bg-[var(--surface-hover)]"
+                        >
+                            {t('onboarding.how_replay')}
+                        </button>
+                    )
+                }
+            />
+        </div>
+    );
+};
+
+/** The welcome stage: the cat, with the hormones' own structures drifting round it. */
+const WelcomeStage: React.FC = () => {
+    const drift: [string, CSSProperties][] = [
+        ['E2', { left: '4%', top: '8%', '--d': '9s', '--r0': '-8deg', '--r1': '4deg' } as CSSProperties],
+        ['CPA', { right: '2%', top: '4%', '--d': '11s', '--r0': '6deg', '--r1': '-4deg' } as CSSProperties],
+        ['SPIRO', { left: '0%', bottom: '6%', '--d': '10s', '--r0': '4deg', '--r1': '-6deg' } as CSSProperties],
+        ['T', { right: '4%', bottom: '8%', '--d': '12s', '--r0': '-5deg', '--r1': '5deg' } as CSSProperties],
+    ];
+    return (
+        <div className="relative h-full w-full">
+            {drift.map(([id, style]) => (
+                <span key={id} className="ob-float absolute opacity-50" style={style}>
+                    <Molecule id={id} fallback="vial" size="lg" />
+                </span>
+            ))}
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className="ob-pop">
+                    <PixelCat pose="donut" size={150} />
+                </span>
+            </div>
+        </div>
     );
 };
 
@@ -255,8 +201,6 @@ const Onboarding: React.FC<OnboardingProps> = ({
     );
 
     const [step, setStep] = useState(0);
-    // Only so the step change slides the way the app's view changes do.
-    const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
     const langListRef = useRef<HTMLDivElement>(null);
     const [langsBelow, setLangsBelow] = useState(false);
@@ -287,252 +231,290 @@ const Onboarding: React.FC<OnboardingProps> = ({
     }, [step]);
 
     const modeOptions = [
-        { value: 'transfem', labelKey: 'mode.transfem', descKey: 'onboarding.mode_transfem_desc' },
-        { value: 'transmasc', labelKey: 'mode.transmasc', descKey: 'onboarding.mode_transmasc_desc' },
+        {
+            value: 'transfem',
+            labelKey: 'mode.transfem',
+            descKey: 'onboarding.mode_transfem_desc',
+            doodle: Route.injection,
+        },
+        {
+            value: 'transmasc',
+            labelKey: 'mode.transmasc',
+            descKey: 'onboarding.mode_transmasc_desc',
+            doodle: Route.gel,
+        },
     ] as const;
 
-    const steps = [
-        // The cat is the welcome, so it gets the room. Whatever it happens to be
-        // doing at this hour is the greeting — the schedule is the point, and a
-        // pose reserved for first-timers would be the one cat in the app that
-        // isn't living out its day. It obeys the "show pixel cats" preference
-        // like every other cat: someone replaying the intro with them switched
-        // off asked not to see one.
-        // `h-full` only where it earns its keep. On a phone it is what lets the
-        // greeting stay put while the languages scroll under it. On a wide
-        // window there is room for all seven, and filling the height there
-        // pinned this step to the top with a slab of empty page under the last
-        // language — while every other step sat centred, so stepping between
-        // them jumped the page. Sized to its content it centres like the rest.
-        <div
-            key="welcome"
-            className="flex h-full flex-col pt-6 text-center lg:h-auto short:grid short:h-full short:grid-cols-2 short:grid-rows-[minmax(0,1fr)] short:items-center short:gap-x-12 short:pt-0"
-        >
-            {/* The greeting holds its place; only the list below it travels.
-                Seven languages don't fit under the cat on a short screen, and
-                scrolling the whole step would carry away the one sentence
-                explaining what is being chosen. */}
-            <div className="shrink-0">
-                <div className="flex justify-center">
-                    <PixelCat pose="donut" size={176} className="short:h-auto short:w-32" />
-                </div>
-                <h1 className="mt-6 text-[1.625rem] font-semibold text-body short:mt-4">
-                    {t('onboarding.welcome_title')}
-                </h1>
-                {/* Every translation of the sentence stacked into one grid cell,
-                    the inactive ones hidden but still taking up their space, so
-                    the box is as tall as the longest one at whatever width this
-                    is. The list below therefore starts at the same y in every
-                    language — otherwise picking Türkçe after 简体中文 grows the
-                    sentence by a line and slides the list down under the finger
-                    that just tapped it. A fixed height can't stand in for this:
-                    the longest runs to four lines at 320px and three at 375px. */}
-                <div className="mx-auto mt-3 grid max-w-sm">
-                    {languageOptions.map(({ value }) => {
-                        const current = value === lang;
-                        const text = current
-                            ? t(SUBTITLE_KEY)
-                            : (TRANSLATIONS as Record<string, Record<string, string>>)[value]?.[SUBTITLE_KEY];
-                        if (!text) return null;
-                        return (
-                            <p
+    // Each screen as Oyama Journal's intro sets one: a stage (here, where the
+    // choice is made, or a live piece of the app), then a kicker, a title and
+    // a line of words under it.
+    const screens: {
+        key: 'welcome' | 'mode' | 'how' | 'weight' | 'plan' | 'privacy';
+        kicker: string;
+        title: string;
+        body: React.ReactNode;
+        stage: (active: boolean) => React.ReactNode;
+        /** Tall enough for a list; the rest sit in the middle. */
+        list?: boolean;
+    }[] = [
+        {
+            key: 'welcome',
+            kicker: 'Oyama HRT',
+            title: t('onboarding.welcome_title'),
+            body: t(SUBTITLE_KEY),
+            list: true,
+            stage: () => (
+                <div className="flex h-full w-full flex-col">
+                    <div className="h-28 shrink-0">
+                        <WelcomeStage />
+                    </div>
+                    <div
+                        ref={langListRef}
+                        onScroll={syncLangsBelow}
+                        style={
+                            langsBelow || langsAbove
+                                ? {
+                                      maskImage: fadeMask(langsAbove, langsBelow),
+                                      WebkitMaskImage: fadeMask(langsAbove, langsBelow),
+                                  }
+                                : undefined
+                        }
+                        className="mt-2 min-h-0 flex-1 overflow-y-auto scrollbar-hide text-start"
+                    >
+                        {languageOptions.map(({ value, label }) => (
+                            <button
                                 key={value}
-                                className={`col-start-1 row-start-1 text-sm leading-relaxed text-muted ${current ? '' : 'invisible'}`}
+                                onClick={() => setLang(value as Lang)}
+                                aria-pressed={lang === value}
+                                className={`flex w-full items-center justify-between gap-4 py-3 text-start ${divider} last:border-b-0`}
                             >
-                                {text}
-                            </p>
-                        );
-                    })}
+                                <span className={`text-sm text-body ${lang === value ? 'font-semibold' : ''}`}>
+                                    {label}
+                                </span>
+                                <Tick on={lang === value} />
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
-            {/* Narrower than the step's max-w-md: the labels are one or two
-                words, and across the full column the check would drift far
-                enough from its language to stop reading as one row.
-
-                min-h keeps the list usable rather than letting flex-1 squeeze
-                it to nothing on a very short viewport — past that point the
-                step outgrows its box and the outer scroller takes over, which
-                is the graceful way to lose the pinned greeting. */}
-            <div
-                ref={langListRef}
-                onScroll={syncLangsBelow}
-                style={
-                    langsBelow || langsAbove
-                        ? {
-                              maskImage: fadeMask(langsAbove, langsBelow),
-                              WebkitMaskImage: fadeMask(langsAbove, langsBelow),
-                          }
-                        : undefined
-                }
-                className="mx-auto mt-7 min-h-[7.5rem] w-full max-w-xs flex-1 overflow-y-auto scrollbar-hide text-start lg:flex-none short:mt-0 short:max-h-full short:min-h-0 short:flex-none"
-            >
-                {languageOptions.map(({ value, label }) => (
-                    <button
-                        key={value}
-                        onClick={() => setLang(value as Lang)}
-                        aria-pressed={lang === value}
-                        className={`flex w-full items-center justify-between gap-4 py-3.5 text-start ${divider} last:border-b-0`}
-                    >
-                        <span className={`text-sm text-body ${lang === value ? 'font-semibold' : ''}`}>{label}</span>
-                        <Tick on={lang === value} />
-                    </button>
-                ))}
-            </div>
-        </div>,
-
-        <div key="mode" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
-            <div>
-                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.mode_title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.mode_subtitle')}</p>
-            </div>
-            <div className="mt-6 short:mt-0">
-                {modeOptions.map(({ value, labelKey, descKey }) => (
-                    <button
-                        key={value}
-                        onClick={() => setMode(value)}
-                        className={`flex w-full items-center justify-between gap-4 py-4 text-start ${divider} last:border-b-0`}
-                    >
-                        <span>
-                            <span className={`block text-sm text-body ${mode === value ? 'font-semibold' : ''}`}>
-                                {t(labelKey)}
+            ),
+        },
+        {
+            key: 'mode',
+            kicker: t('onboarding.kicker.mode'),
+            title: t('onboarding.mode_title'),
+            body: t('onboarding.mode_subtitle'),
+            stage: () => (
+                <div className="w-full">
+                    {modeOptions.map(({ value, labelKey, descKey, doodle }) => (
+                        <button
+                            key={value}
+                            onClick={() => setMode(value)}
+                            aria-pressed={mode === value}
+                            className={`flex w-full items-center gap-3.5 py-4 text-start ${divider} last:border-b-0`}
+                        >
+                            <Doodle name={doodle} />
+                            <span className="min-w-0 flex-1">
+                                <span className={`block text-sm text-body ${mode === value ? 'font-semibold' : ''}`}>
+                                    {t(labelKey)}
+                                </span>
+                                <span className="mt-0.5 block text-xs leading-relaxed text-muted">{t(descKey)}</span>
                             </span>
-                            <span className="mt-0.5 block text-xs leading-relaxed text-muted">{t(descKey)}</span>
-                        </span>
-                        <Tick on={mode === value} />
-                    </button>
-                ))}
-            </div>
-        </div>,
-
-        <HowStep key="how" curve={curve} />,
-
-        // Prefilled with what the model is using right now — 70 kg on a fresh
-        // install — so Next on its own is an answer, and it is the answer the
-        // chart would have used anyway.
-        <div key="weight" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
-            <div>
-                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.weight_title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.weight_subtitle')}</p>
-            </div>
-            <div className="short:pt-7">
-                {/* The field is drawn as a figure on a rule, not an .input-base
-                box, so it takes the text-field focus treatment by hand: the
-                rule turns terracotta while the figure is being edited. */}
-                <label
-                    className={`mt-8 flex items-baseline gap-3 pb-2 ${divider} focus-within:border-[var(--text)] short:mt-0`}
-                >
-                    <input
-                        type="number"
-                        inputMode="decimal"
-                        min={BODY_WEIGHT_KG_MIN}
-                        max={BODY_WEIGHT_KG_MAX}
-                        step="any"
-                        value={weightStr}
-                        onChange={e => typeWeight(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') forward();
-                        }}
-                        onFocus={e => e.currentTarget.select()}
-                        aria-label={t('status.weight')}
-                        className="figure-input min-w-0 flex-1 bg-transparent text-[1.625rem] font-semibold tabular-nums text-body outline-none select-text"
-                    />
-                    <span className="shrink-0 text-sm text-muted">kg</span>
-                </label>
-                {/* Always laid out, only shown when wrong: a line appearing and
-                vanishing as a figure passes through "6" on its way to "65"
-                would bob the centred step. An empty field says nothing; Next
-                is just off. */}
-                <p
-                    className={`mt-3 text-xs leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
-                >
-                    {t('error.weightRange')}
-                </p>
-            </div>
-        </div>,
-
-        // Optional, and says so: someone who doesn't know their dose yet, or
-        // only wants the log, walks past with Next.
-        <div key="plan" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
-            <div>
-                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.plan_title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.plan_subtitle')}</p>
-            </div>
-            <div className="mt-4 short:mt-0">
-                {plan.map(item => (
-                    <div key={item.id} className={`flex items-center gap-3.5 py-4 ${divider}`}>
-                        <Doodle name={item.route} />
-                        <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-body">{regimenLabel(item, t)}</p>
-                            <p className="mt-0.5 text-xs leading-relaxed text-muted">
-                                {asTitle(frequencyLabel(item, t))}
-                                {item.route === Route.gel && `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
-                            </p>
+                            <Tick on={mode === value} />
+                        </button>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            key: 'how',
+            kicker: t('onboarding.kicker.how'),
+            title: t('onboarding.how_title'),
+            body: t('onboarding.how_subtitle'),
+            stage: active => <HowStage key={String(active)} curve={curve} active={active} />,
+        },
+        {
+            key: 'weight',
+            kicker: t('onboarding.kicker.weight'),
+            title: t('onboarding.weight_title'),
+            body: t('onboarding.weight_subtitle'),
+            // Prefilled with what the model is using right now — 70 kg on a
+            // fresh install — so Next on its own is an answer.
+            stage: () => (
+                <div className="w-full max-w-[16rem]">
+                    <label
+                        className={`flex items-baseline justify-center gap-3 pb-2 ${divider} focus-within:border-[var(--text)]`}
+                    >
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            min={BODY_WEIGHT_KG_MIN}
+                            max={BODY_WEIGHT_KG_MAX}
+                            step="any"
+                            value={weightStr}
+                            onChange={e => typeWeight(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') forward();
+                            }}
+                            onFocus={e => e.currentTarget.select()}
+                            aria-label={t('status.weight')}
+                            className="figure-input w-32 min-w-0 bg-transparent text-center font-display text-[3rem] font-light leading-none tracking-[-0.035em] tabular-nums text-body outline-none select-text"
+                        />
+                        <span className="shrink-0 text-sm text-muted">kg</span>
+                    </label>
+                    <p
+                        className={`mt-3 text-center text-xs leading-relaxed text-[var(--danger)] ${weightStr !== '' && !weightOk ? '' : 'invisible'}`}
+                    >
+                        {t('error.weightRange')}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            key: 'plan',
+            kicker: t('onboarding.kicker.plan'),
+            title: t('onboarding.plan_title'),
+            body: t('onboarding.plan_subtitle'),
+            list: true,
+            stage: () => (
+                <div className="h-full w-full overflow-y-auto scrollbar-hide">
+                    {plan.length === 0 && (
+                        <div className="flex justify-center pt-2 pb-4">
+                            <Doodle name={isTransmasc ? Route.gel : Route.injection} size={4.5} />
                         </div>
-                        {/* Confirmed like on the Plan page: on a replayed intro
-                            these are rows someone has been living with. */}
+                    )}
+                    {plan.map(item => (
+                        <div key={item.id} className={`flex items-center gap-3.5 py-3.5 ${divider}`}>
+                            <Doodle name={item.route} />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-body">{regimenLabel(item, t)}</p>
+                                <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                                    {asTitle(frequencyLabel(item, t))}
+                                    {item.route === Route.gel &&
+                                        `, ${gelSiteName(item.extras[ExtraKey.gelSite] ?? 0, t)}`}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), {
+                                        danger: true,
+                                    })
+                                }
+                                aria-label={t('btn.delete')}
+                                className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
+                            >
+                                <Close size={16} />
+                            </button>
+                        </div>
+                    ))}
+                    {canAddPlan && (
                         <button
                             type="button"
-                            onClick={() =>
-                                showDialog('confirm', t('plan.delete_confirm'), () => onDeletePlanItem(item.id), {
-                                    danger: true,
-                                })
-                            }
-                            aria-label={t('btn.delete')}
-                            className="shrink-0 rounded-md p-1.5 text-muted hover:bg-[var(--surface-hover)]"
+                            onClick={() => setAddingPlan(true)}
+                            className={`flex w-full items-center gap-3.5 py-3.5 text-start ${plan.length ? '' : 'justify-center'}`}
                         >
-                            <Close size={16} />
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--accent-ink)]">
+                                <Plus size={20} />
+                            </span>
+                            <span className="text-sm font-medium text-[var(--accent-ink)]">{t('plan.add')}</span>
                         </button>
-                    </div>
-                ))}
-                {canAddPlan && (
-                    <button
-                        type="button"
-                        onClick={() => setAddingPlan(true)}
-                        className={`flex w-full items-center gap-3.5 py-4 text-start ${divider} last:border-b-0`}
-                    >
-                        {/* In a Doodle-sized box, so the label lines up with the drug names above it. */}
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--accent-ink)]">
-                            <Plus size={20} />
-                        </span>
-                        <span className="text-sm font-medium text-[var(--accent-ink)]">{t('plan.add')}</span>
-                    </button>
-                )}
-            </div>
-        </div>,
-
-        <div key="privacy" className="pt-8 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:pt-0">
-            <div>
-                <h1 className="text-[1.625rem] font-semibold text-body">{t('onboarding.privacy_title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{t('onboarding.privacy_subtitle')}</p>
-            </div>
-            <div className="mt-4 short:mt-0">
-                <Point mark="lock" title={t('onboarding.privacy_local')} desc={t('onboarding.privacy_local_desc')} />
-                <Point mark="cloud" title={t('onboarding.privacy_cloud')} desc={t('onboarding.privacy_cloud_desc')} />
-                <Point
-                    mark="caution"
-                    title={t('onboarding.privacy_medical')}
-                    desc={t('onboarding.privacy_medical_desc')}
-                />
-            </div>
-        </div>,
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'privacy',
+            kicker: t('onboarding.kicker.privacy'),
+            title: t('onboarding.privacy_title'),
+            body: (
+                <>
+                    {t('onboarding.privacy_subtitle')}{' '}
+                    <span className="text-[var(--danger)]">{t('onboarding.privacy_medical_desc')}</span>
+                </>
+            ),
+            stage: () => (
+                <div className="flex w-full max-w-[20rem] flex-col items-center">
+                    <span className="ob-pop">
+                        <Doodle name="lock" size={5.5} />
+                    </span>
+                    <ul className="mt-5 flex w-full flex-col gap-2.5">
+                        {[
+                            t('onboarding.privacy_local'),
+                            t('onboarding.privacy_cloud'),
+                            t('onboarding.privacy_medical'),
+                        ].map(line => (
+                            <li key={line} className="flex items-center gap-2.5 text-sm text-[var(--text)]">
+                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
+                                    <Check size={13} strokeWidth={2.4} />
+                                </span>
+                                {line}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ),
+        },
     ];
 
-    const isLast = step === steps.length - 1;
-    // Steps are named by their keys, not their places, so adding one doesn't
-    // quietly hand another step's layout to whatever slid into its index.
-    const current = steps[step].key;
+    const last = screens.length - 1;
+    const isLast = step === last;
+    const current = screens[step].key;
     // Only the weight can be left in a state the app can't use. Skip still
     // leaves, keeping the last plausible figure.
     const ready = current !== 'weight' || weightOk;
 
-    const go = (next: number) => {
-        setDirection(next > step ? 'forward' : 'backward');
-        setStep(next);
-    };
-    const forward = () => {
+    const go = (next: number) => setStep(Math.max(0, Math.min(last, next)));
+    function forward() {
         if (!ready) return;
         if (isLast) onDone();
         else go(step + 1);
+    }
+
+    // The arrow keys turn the screens, as in the journal's intro.
+    useEffect(() => {
+        const on = (e: KeyboardEvent) => {
+            const typing = e.target instanceof HTMLInputElement;
+            if (typing) return;
+            if (e.key === 'ArrowRight' && ready) setStep(s => Math.min(last, s + 1));
+            else if (e.key === 'ArrowLeft') setStep(s => Math.max(0, s - 1));
+        };
+        window.addEventListener('keydown', on);
+        return () => window.removeEventListener('keydown', on);
+    }, [last, ready]);
+
+    // A swipe: sideways moves the screens with the finger; let go past a
+    // fifth of the width (or flicked) and it turns.
+    const [drag, setDrag] = useState(0);
+    const press = useRef<{ x: number; y: number; t: number; id: number; axis?: 'x' | 'y' } | null>(null);
+    const frame = useRef<HTMLDivElement>(null);
+    const still = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const onDown = (e: React.PointerEvent) => {
+        if (e.button !== 0) return;
+        press.current = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+    };
+    const onMove = (e: React.PointerEvent) => {
+        const p = press.current;
+        if (!p || p.id !== e.pointerId) return;
+        const dx = e.clientX - p.x;
+        const dy = e.clientY - p.y;
+        if (!p.axis && Math.hypot(dx, dy) > 8) {
+            p.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+            if (p.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+        }
+        if (p.axis !== 'x') return;
+        const edge = (step === 0 && dx > 0) || (step === last && dx < 0) || (dx < 0 && !ready);
+        setDrag(edge ? dx * 0.3 : dx);
+    };
+    const onUp = (e: React.PointerEvent) => {
+        const p = press.current;
+        press.current = null;
+        if (!p || p.axis !== 'x') return setDrag(0);
+        const dx = e.clientX - p.x;
+        const w = frame.current?.clientWidth ?? 360;
+        const fast = Math.abs(dx) / Math.max(1, performance.now() - p.t) > 0.5;
+        if ((dx < -w / 5 || (fast && dx < -30)) && step < last && ready) go(step + 1);
+        else if ((dx > w / 5 || (fast && dx > 30)) && step > 0) go(step - 1);
+        setDrag(0);
     };
 
     // The plan's questions take the intro's place while they run, under a
@@ -563,73 +545,113 @@ const Onboarding: React.FC<OnboardingProps> = ({
     return (
         <div
             data-prompt-area
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('onboarding.welcome_title')}
             className="flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
-            <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] short:pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
+            {/* The name, as the journal's intro shows its own, and Skip. */}
+            <div className="mx-auto flex w-full max-w-lg shrink-0 items-center gap-2.5 px-6 pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
+                <img src="/pwa-192x192.png" alt="" width={30} height={30} className="size-[30px] rounded-[8px]" />
+                <span className="font-display text-[1.25rem] leading-none tracking-[-0.015em]">
+                    <span className="font-normal text-[var(--text)]">Oyama</span>{' '}
+                    <span className="font-light text-[var(--text-muted)]">Tracker</span>
+                </span>
                 <button
+                    type="button"
                     onClick={onDone}
-                    className={`rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
+                    className={`ms-auto rounded-full px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
                     tabIndex={isLast ? -1 : 0}
                 >
                     {t('onboarding.skip')}
                 </button>
             </div>
 
-            {/* `safe center`, not `start`: on a phone the step is usually taller
-                than the space for it anyway, so this was invisible there. On a
-                wide, short-content window — mode, how-it-works, privacy — start
-                left the card glued to the top of the flex area with a slab of
-                empty page below it down to the footer. Centering fixes that
-                without touching step 0, whose `h-full` already exactly fills
-                the cross axis; `safe` is what keeps a step that overflows a
-                short window scrolling from the top instead of clipping. */}
-            <div className="onboarding-steps flex flex-1 overflow-y-auto scrollbar-hide px-6">
-                {/* The welcome step pins its greeting and scrolls its own list,
-                    so it needs the scroller's height to divide up; the rest are
-                    read top to bottom and just grow.
-
-                    Only the chart step widens on a wide window, into the two
-                    columns its Head / Stage / Body slots are placed in. The
-                    others are a heading and a list of rows or a single field:
-                    given a second column there is nothing to put in it, and a
-                    column of empty ground beside a list is worse than a centred
-                    one. */}
+            <div
+                ref={frame}
+                className="relative mx-auto w-full max-w-lg flex-1 overflow-hidden"
+                style={{ touchAction: 'pan-y' }}
+                onPointerDown={onDown}
+                onPointerMove={onMove}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+            >
                 <div
-                    key={step}
-                    className={`mx-auto w-full max-w-md short:max-w-4xl
-                        ${current === 'how' ? 'lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-center lg:gap-x-14 lg:gap-y-5 short:grid short:grid-cols-2 short:items-center short:gap-x-12 short:gap-y-4' : ''}
-                        ${current === 'welcome' ? 'h-full pb-6 lg:h-auto short:h-full short:pb-4' : 'pb-8 short:py-4'}
-                        ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className="flex h-full"
+                    style={{
+                        transform: `translate3d(calc(${-step * 100}% + ${drag}px), 0, 0)`,
+                        transition: drag || still() ? 'none' : 'transform 560ms cubic-bezier(0.22, 0.9, 0.24, 1)',
+                    }}
                 >
-                    {steps[step]}
+                    {screens.map((s, k) => (
+                        <section
+                            key={s.key}
+                            className="ob-screen flex h-full w-full shrink-0 flex-col overflow-y-auto scrollbar-hide px-6 pt-5"
+                            data-active={k === step}
+                            aria-hidden={k !== step}
+                            {...(k === step ? {} : { inert: '' })}
+                        >
+                            <div
+                                className={`ob-stage relative grid flex-1 place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-5 ${s.list ? 'min-h-[17rem] max-h-[26rem]' : 'min-h-[15rem] max-h-[24rem]'}`}
+                            >
+                                {s.stage(k === step)}
+                            </div>
+                            <div className="pt-7 pb-4">
+                                <p
+                                    className="ob-rise text-sm font-semibold text-[var(--accent-ink)]"
+                                    style={{ '--i': 0 } as CSSProperties}
+                                >
+                                    {s.kicker}
+                                </p>
+                                <h1
+                                    className="ob-rise mt-2 font-display text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em]"
+                                    style={{ '--i': 1 } as CSSProperties}
+                                >
+                                    {s.title}
+                                </h1>
+                                <p
+                                    className="ob-rise mt-3 text-[0.9375rem] leading-relaxed text-[var(--text-muted)]"
+                                    style={{ '--i': 2 } as CSSProperties}
+                                >
+                                    {s.body}
+                                </p>
+                            </div>
+                        </section>
+                    ))}
                 </div>
             </div>
 
-            {/* Both labels stay on one line. Wrapped, "Get started" spilled
-                out of its 40px button at a common phone width and the footer
-                grew under the finger on the last step. The 1fr columns widen
-                to fit an unwrapped label, and below 360px the footer takes
-                16px gutters and a closer gap so two labels and the rings
-                still fit side by side in every language. */}
-            <div
-                className={`shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t-(length:--hairline) border-[var(--border)] max-[360px]:px-4 short:pt-3 short:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]`}
-            >
-                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2 short:max-w-4xl">
-                    <div className="justify-self-start">
-                        {step > 0 && (
-                            <button onClick={() => go(step - 1)} className="btn-secondary whitespace-nowrap">
-                                {t('onboarding.back')}
-                            </button>
-                        )}
-                    </div>
-
-                    <DoseRings count={steps.length} at={step} />
-
-                    <div className="justify-self-end">
-                        <button onClick={forward} disabled={!ready} className="btn-primary whitespace-nowrap">
-                            {t(isLast ? 'onboarding.start' : 'onboarding.next')}
+            <div className="mx-auto w-full max-w-lg shrink-0 px-6 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+                <div className="mb-4 flex gap-1.5" aria-hidden="true">
+                    {screens.map((s, k) => (
+                        <button
+                            key={s.key}
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => (k <= step || ready ? go(k) : undefined)}
+                            className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--border)]"
+                        >
+                            <span
+                                className="block h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
+                                style={{ width: k <= step ? '100%' : '0%' }}
+                            />
                         </button>
-                    </div>
+                    ))}
+                </div>
+                <div className="flex items-center gap-3">
+                    {step > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => go(step - 1)}
+                            className="btn-secondary !px-3"
+                            aria-label={t('onboarding.back')}
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                    )}
+                    <button type="button" onClick={forward} disabled={!ready} className="btn-primary flex-1">
+                        {t(isLast ? 'onboarding.start' : 'onboarding.next')}
+                    </button>
                 </div>
             </div>
         </div>

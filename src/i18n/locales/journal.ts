@@ -10,6 +10,12 @@ import type { Lang } from '../translations';
 type Pack = Record<string, string>;
 
 const EN: Pack = {
+    'onboarding.kicker.mode': 'Mode',
+    'onboarding.kicker.how': 'How it works',
+    'onboarding.kicker.weight': 'Body weight',
+    'onboarding.kicker.plan': 'Your medicines',
+    'onboarding.kicker.privacy': 'Yours',
+
     'nav.search': 'Search',
     'nav.journal': 'Journal',
     'nav.plan': 'Plan',
@@ -155,6 +161,12 @@ const EN: Pack = {
 };
 
 const ZH: Pack = {
+    'onboarding.kicker.mode': '模式',
+    'onboarding.kicker.how': '怎么估算',
+    'onboarding.kicker.weight': '体重',
+    'onboarding.kicker.plan': '在用的药',
+    'onboarding.kicker.privacy': '属于你的',
+
     'nav.search': '搜索',
     'nav.journal': '日志',
     'nav.plan': '方案',
@@ -299,6 +311,12 @@ const ZH: Pack = {
 };
 
 const ZH_TW: Pack = {
+    'onboarding.kicker.mode': '模式',
+    'onboarding.kicker.how': '怎麼估算',
+    'onboarding.kicker.weight': '體重',
+    'onboarding.kicker.plan': '在用的藥',
+    'onboarding.kicker.privacy': '屬於你的',
+
     'nav.search': '搜尋',
     'nav.journal': '日誌',
     'nav.plan': '方案',
@@ -466,6 +484,12 @@ const YUE: Pack = {
 };
 
 const JA: Pack = {
+    'onboarding.kicker.mode': 'モード',
+    'onboarding.kicker.how': 'しくみ',
+    'onboarding.kicker.weight': '体重',
+    'onboarding.kicker.plan': '使っている薬',
+    'onboarding.kicker.privacy': 'あなたのもの',
+
     'nav.search': '検索',
     'nav.journal': '記録',
     'nav.plan': 'プラン',
@@ -611,6 +635,12 @@ const JA: Pack = {
 };
 
 const KO: Pack = {
+    'onboarding.kicker.mode': '모드',
+    'onboarding.kicker.how': '작동 방식',
+    'onboarding.kicker.weight': '체중',
+    'onboarding.kicker.plan': '쓰는 약',
+    'onboarding.kicker.privacy': '당신의 것',
+
     'nav.search': '검색',
     'nav.journal': '기록장',
     'nav.plan': '계획',
@@ -757,6 +787,12 @@ const KO: Pack = {
 };
 
 const RU: Pack = {
+    'onboarding.kicker.mode': 'Режим',
+    'onboarding.kicker.how': 'Как это работает',
+    'onboarding.kicker.weight': 'Вес',
+    'onboarding.kicker.plan': 'Ваши препараты',
+    'onboarding.kicker.privacy': 'Ваше',
+
     'nav.search': 'Поиск',
     'nav.journal': 'Журнал',
     'nav.plan': 'План',
@@ -901,6 +937,12 @@ const RU: Pack = {
 };
 
 const TR: Pack = {
+    'onboarding.kicker.mode': 'Mod',
+    'onboarding.kicker.how': 'Nasıl çalışır',
+    'onboarding.kicker.weight': 'Vücut ağırlığı',
+    'onboarding.kicker.plan': 'İlaçlarınız',
+    'onboarding.kicker.privacy': 'Sizin',
+
     'nav.search': 'Ara',
     'nav.journal': 'Günlük',
     'nav.plan': 'Plan',
@@ -1048,6 +1090,12 @@ const TR: Pack = {
 };
 
 const UK: Pack = {
+    'onboarding.kicker.mode': 'Режим',
+    'onboarding.kicker.how': 'Як це працює',
+    'onboarding.kicker.weight': 'Вага',
+    'onboarding.kicker.plan': 'Ваші препарати',
+    'onboarding.kicker.privacy': 'Ваше',
+
     'nav.search': 'Пошук',
     'nav.journal': 'Журнал',
     'nav.plan': 'План',
