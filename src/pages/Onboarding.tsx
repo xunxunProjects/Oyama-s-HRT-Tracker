@@ -592,7 +592,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
                             {...(k === step ? {} : { inert: '' })}
                         >
                             <div
-                                className={`ob-stage relative grid flex-1 place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-5 ${s.list ? 'min-h-[17rem] max-h-[26rem]' : 'min-h-[15rem] max-h-[24rem]'}`}
+                                className={`ob-stage relative grid flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-5 ${s.list ? 'min-h-[17rem] max-h-[26rem]' : 'min-h-[15rem] max-h-[24rem]'}`}
                             >
                                 {s.stage(k === step)}
                             </div>
