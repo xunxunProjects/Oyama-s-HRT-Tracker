@@ -7,6 +7,18 @@
  */
 export const UK = {
     'settings.section.model': 'На чому ґрунтуються оцінки',
+    'settings.section.safety': 'Безпека',
+    'settings.safety_reminder': 'Нагадування про безпеку',
+    'settings.safety_reminder_desc': 'Спливні вікна про екстремальні значення, повідомлення на головній і червоні крапки; після вимкнення все ховається.',
+    'safety.modal.title_extreme': 'Виявлено екстремальне значення',
+    'safety.modal.title_cumulative': 'Сумарна доза занадто висока',
+    'safety.modal.body': 'Якщо ви погано почуваєтеся, зверніться по медичну допомогу.',
+    'safety.modal.disable_hint': 'Вимкнути можна в розділі Налаштування → Безпека → Нагадування про безпеку',
+    'safety.modal.close': 'Закрити',
+    'safety.notice.critical': 'Виявлено екстремальне значення. Будь ласка, перевірте.',
+    'safety.notice.high': 'Є повідомлення про безпеку, яке потребує уваги.',
+    'safety.notice.notice': 'Є повідомлення про безпеку.',
+    'safety.notice.settings': 'Налаштування',
     'settings.section.supplies': 'Запаси',
     'settings.section.display': 'Мова і відображення',
     'settings.section.admin': 'Адміністрування',

@@ -7,6 +7,18 @@
  */
 export const RU = {
     'settings.section.model': 'На чём основаны оценки',
+    'settings.section.safety': 'Безопасность',
+    'settings.safety_reminder': 'Напоминания о безопасности',
+    'settings.safety_reminder_desc': 'Всплывающие окна об экстремальных значениях, уведомления на главной и красные точки; при выключении всё скрывается.',
+    'safety.modal.title_extreme': 'Обнаружено экстремальное значение',
+    'safety.modal.title_cumulative': 'Суммарная доза слишком высока',
+    'safety.modal.body': 'Если вы чувствуете себя плохо, обратитесь за медицинской помощью.',
+    'safety.modal.disable_hint': 'Отключить можно в разделе Настройки → Безопасность → Напоминания о безопасности',
+    'safety.modal.close': 'Закрыть',
+    'safety.notice.critical': 'Обнаружено экстремальное значение. Пожалуйста, проверьте.',
+    'safety.notice.high': 'Есть уведомление о безопасности, требующее внимания.',
+    'safety.notice.notice': 'Есть уведомление о безопасности.',
+    'safety.notice.settings': 'Настройки',
     'settings.section.supplies': 'Запасы',
     'settings.section.display': 'Язык и отображение',
     'settings.section.admin': 'Администрирование',

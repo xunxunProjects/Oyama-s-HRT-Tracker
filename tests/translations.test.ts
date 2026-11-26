@@ -50,6 +50,34 @@ describe('age model copy', () => {
     }
 });
 
+describe('safety reminder copy', () => {
+    const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
+    const keys = [
+        'settings.section.safety',
+        'settings.safety_reminder',
+        'settings.safety_reminder_desc',
+        'safety.modal.title_extreme',
+        'safety.modal.title_cumulative',
+        'safety.modal.body',
+        'safety.modal.disable_hint',
+        'safety.modal.close',
+        'safety.notice.critical',
+        'safety.notice.high',
+        'safety.notice.notice',
+        'safety.notice.settings',
+    ] as const;
+
+    for (const lang of locales) {
+        it(`${lang} has every safety reminder key`, () => {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            for (const key of keys) {
+                expect(Object.prototype.hasOwnProperty.call(pack, key), `${lang} missing ${key}`).toBe(true);
+                expect(pack[key]).toBeTruthy();
+            }
+        });
+    }
+});
+
 describe('Russian and Ukrainian', () => {
     const en = TRANSLATIONS.en as Record<string, string>;
     const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
