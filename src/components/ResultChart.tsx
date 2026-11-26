@@ -223,7 +223,7 @@ const cpaMeaningful = (v: number | null | undefined) => v != null && v >= CPA_MI
 // Linear read-off of a sampled series at an arbitrary time, so the edges of a
 // window can be valued exactly rather than by the nearest sample outside it.
 const valueAt = (
-    data: { t: number; p: number | null; s: number | null; a?: number | null }[],
+    data: { t: number; p: number | null; s: number | null; a: number | null }[],
     key: 'p' | 's' | 'a',
     time: number,
 ): number | null => {

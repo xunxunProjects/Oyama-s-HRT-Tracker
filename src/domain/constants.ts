@@ -2,6 +2,9 @@
 import { Ester, LabAssay } from './types';
 import type { PKCustomParams } from './types';
 
+/** Only the esters with a PK entry appear; callers supply their own fallback. */
+type EsterRateTable = Partial<Record<Ester, number>>;
+
 export const T_ESTERS: ReadonlySet<Ester> = new Set<Ester>([Ester.T, Ester.TC, Ester.TE, Ester.TU]);
 
 export function isTestosteroneEster(e: Ester): boolean {
@@ -171,7 +174,11 @@ export const T_PatchPK = {
     F: 1.0, // zero‑order input uses the nominal release rate directly
 };
 
-export const TwoPartDepotPK = {
+export const TwoPartDepotPK: {
+    Frac_fast: EsterRateTable;
+    k1_fast: EsterRateTable;
+    k1_slow: EsterRateTable;
+} = {
     Frac_fast: {
         [Ester.EB]: 0.9,
         [Ester.EV]: 0.4,
@@ -198,7 +205,7 @@ export const TwoPartDepotPK = {
     },
 };
 
-export const InjectionPK = {
+export const InjectionPK: { formationFraction: EsterRateTable } = {
     formationFraction: {
         [Ester.EB]: 0.1092,
         [Ester.EV]: 0.0623,
@@ -209,7 +216,7 @@ export const InjectionPK = {
     },
 };
 
-export const EsterPK = {
+export const EsterPK: { k2: EsterRateTable } = {
     k2: { [Ester.EB]: 0.09, [Ester.EV]: 0.07, [Ester.EC]: 0.045, [Ester.EN]: 0.015, [Ester.EU]: 0.012, [Ester.E2]: 0 },
 };
 

@@ -15,5 +15,8 @@ trap 'rm -rf "$PERSIST"' EXIT
 seconds="$(date +%s)"
 secret="${E2E_JWT_SECRET:-${seconds}$(openssl rand -hex 32)}"
 
+# Keep this default in sync with e2e/apiOrigin.ts.
+PORT="${E2E_API_PORT:-8787}"
+
 npx wrangler d1 migrations apply hrt-tracker-prod --local --persist-to "$PERSIST" >/dev/null
-exec npx wrangler dev --local --port 8787 --persist-to "$PERSIST" --var "JWT_SECRET:$secret"
+exec npx wrangler dev --local --port "$PORT" --persist-to "$PERSIST" --var "JWT_SECRET:$secret"

@@ -3,7 +3,7 @@
 This page lists what the tracker uses directly and why. It is an overview, not
 a lockfile: the exact resolved versions are in `package-lock.json`,
 `src-tauri/Cargo.lock`, and the Docker/Workers build logs. Ranges below match
-`package.json` at version 1.5.2.
+`package.json` at version 1.5.4.
 
 ## Runtime libraries
 
@@ -20,6 +20,9 @@ a lockfile: the exact resolved versions are in `package-lock.json`,
 | `jspdf-autotable`    | `^5.0.9`  | Tables in the PDF export                                 |
 | `react-easy-crop`    | `^5.5.7`  | Avatar cropping                                          |
 | `uuid`               | `^11.1.1` | Client-side identifiers                                  |
+| `framer-motion`      | `^14.9.1` | Page and reading transitions                             |
+| `katex`              | `^0.19.1` | Model formulas in the explanation and PK pages           |
+| `mermaid`            | `^12.3.0` | Diagrams in the OpSec guide, loaded only on that page    |
 
 The cryptography is deliberately split: the browser holds the keys and does
 the encryption; the Worker stores ciphertext and verifies sessions. The server

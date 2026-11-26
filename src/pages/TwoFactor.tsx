@@ -177,7 +177,7 @@ const TwoFactorPage: React.FC<TwoFactorPageProps> = ({ token, enabled, onStatusC
             .get2FAStatus(token)
             .then(s => {
                 if (cancelled) return;
-                setTotpEnabled(s.totp);
+                setTotpEnabled(s.totp ?? false);
                 if (!s.totp) initSetup();
                 if (s.totp || s.passkey) fetchBackupRemaining();
             })

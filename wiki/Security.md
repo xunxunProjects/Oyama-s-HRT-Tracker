@@ -28,10 +28,12 @@ security model is documented in the Tools wiki.
 ## What the server can see
 
 - **Accounts and sessions.** Usernames, password hashes, session records, and
-  login metadata are stored server-side.
+  login metadata are stored server-side. Paired HRT devices store a fingerprint
+  and a token bound to it; the token is limited to the tool API.
 - **Encrypted backups and shares.** The browser encrypts them before upload,
   and the key is kept by the user or carried in the share link. The server
-  stores ciphertext it is not designed to read.
+  stores ciphertext it is not designed to read. The share API rejects plaintext
+  snapshots; migration 0018 expired and blanked the legacy plaintext rows.
 - **Avatars.** Stored in R2 and served as content.
 - **Optional F2F material.** Cohort and escrow records exist only when the
   operator enables F2F; escrow private keys are encrypted with an operator key.
@@ -40,6 +42,27 @@ security model is documented in the Tools wiki.
 
 Dose records, labs, weight, and the model run in the browser by default. If a
 user exports a backup, the file is their responsibility.
+
+## Account protections
+
+- **Step-up for credential changes.** When an account has a second factor,
+  changing the password, enrolling or deleting a passkey, or regenerating
+  recovery codes requires the current TOTP code or a backup code as well as the
+  password. Accounts without a second factor keep the password-only flow.
+- **Step-up for account deletion.** A passkey-only account must supply a backup
+  code; a TOTP account must supply a current code or a backup code. Deletion is
+  not a password-only action once a second factor exists.
+- **Admin re-authentication.** Destructive admin writes need a short-lived
+  `X-Admin-Reauth` token, bound to the admin session, that is issued only after
+  the administrator re-enters the admin password. Admin sessions are revocable
+  like user sessions.
+- **Device revocation.** Revoking an HRT device deletes its paired session; a
+  paired token also has to present the matching device fingerprint and cannot
+  be used as a full web session.
+- **Storage budget.** A global D1 ceiling (9 GiB by default) is checked before
+  backup and share writes, so open registration and per-account quotas cannot
+  fill the database and deny every user. Operators can tune it with
+  `MAX_STORED_CONTENT_BYTES`.
 
 ## Hardening a self-hosted deployment
 
@@ -59,6 +82,12 @@ The deployment pages carry the exact commands; this is the checklist.
       append the client-address header. Otherwise clients can choose their own
       address, or every visitor shares one rate-limit bucket.
 - [ ] Set `PUBLIC_APP_ORIGIN` when the proxy changes the `Host` header.
+- [ ] Set a unique admin password. Non-GET admin writes then require a fresh
+      password confirmation and a short-lived, session-bound step-up token.
+- [ ] Apply every migration, including `0014_storage_budget` (the `storage_usage`
+      counter) and `0018_purge_plaintext_shares`. Until 0014 is applied, the
+      Worker logs a warning and writes without the budget check; until 0018 is
+      applied, old plaintext share rows may remain.
 - [ ] If `hrt://` is enabled, keep the certificate, key, and service token at
       mode `600`, publish the raw port only where clients need it, and use a
       long random token.
@@ -69,7 +98,8 @@ The deployment pages carry the exact commands; this is the checklist.
 - [ ] Do not run with `ENVIRONMENT=development` on a public instance.
 - [ ] Treat backups and exports as medical data even though they are encrypted.
 - [ ] Keep up with releases. Dependabot and CodeQL watch the repository, and
-      fixes ship in new versions.
+      fixes ship in new versions. The latest release is `v1.5.3`; security work
+      merged after a tag stays unreleased until the next version.
 
 The Worker sends a strict Content-Security-Policy with `script-src 'self'`.
 Cloudflare features that inject scripts (Web Analytics, the JS
@@ -87,7 +117,8 @@ brute force and bulk abuse; they are not an authorization boundary.
 ## If something goes wrong
 
 1. Rotate `JWT_SECRET` to invalidate sessions, then rotate the administrator
-   password and any `hrt://` service token.
+   password and any `hrt://` service token. Revoke paired HRT devices and admin
+   sessions explicitly as well.
 2. If a backup or share key may have leaked, tell affected users to rotate the
    share and re-create the backup; rotating the server secret does not re-encrypt
    payloads.

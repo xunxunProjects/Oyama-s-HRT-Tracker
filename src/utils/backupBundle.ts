@@ -1192,19 +1192,20 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
             }
             block[category] = result.values;
         }
-        if (blockRaw.deletions === undefined) {
+        const deletions = blockRaw.deletions;
+        if (deletions === undefined) {
             missing.push(`${mode}.deletions`);
         } else {
-            if (isObject(blockRaw.deletions)) {
+            if (isObject(deletions)) {
                 const total = ['events', 'labResults', 'doseTemplates'].reduce((sum, kind) => {
-                    const map = blockRaw.deletions[kind];
+                    const map = deletions[kind];
                     const count = isObject(map) ? Object.keys(map).length : 0;
                     categoryCounts[`${mode}.deletions.${kind}`] = count;
                     return sum + count;
                 }, 0);
                 categoryCounts[`${mode}.deletions`] = total;
             }
-            const tombstones = validateTombstones(blockRaw.deletions, `${mode}.deletions`, now);
+            const tombstones = validateTombstones(deletions, `${mode}.deletions`, now);
             for (const kind of ['events', 'labResults', 'doseTemplates'] as const) {
                 tombstoneDrops[`${mode}.deletions.${kind}`] = tombstones.drops[kind];
             }

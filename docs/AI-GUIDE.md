@@ -3,7 +3,7 @@
 > **Audience:** AI coding agents and the people directing them. Read this file
 > before changing code.
 >
-> **Scope:** Oyama's HRT Tracker v1.5.2, commit `0880de5`, 2026-10-30. If this
+> **Scope:** Oyama's HRT Tracker v1.5.4, commit `1491f56`, 2026-11-25. If this
 > file disagrees with the code, the code wins. Update this file in the same
 > pull request when a change makes part of it wrong.
 >
@@ -43,7 +43,7 @@ adjunct drugs that have no level model.
 
 ```
 Browser / PWA ──HTTPS──┐
-Desktop (Tauri) ───────┼──> Cloudflare Worker (worker.ts) ──> D1 (metadata + ciphertext)
+Desktop (Tauri) ───────┼──> Cloudflare Worker (worker.ts + src/server/routes) ──> D1 (metadata + ciphertext)
 hrt-tool (HTTPS) ──────┘         │
 hrt-tool (raw hrt/1) ──> hrt-server ──> Worker
                                   └──> R2 (avatars)
@@ -51,15 +51,15 @@ hrt-tool (raw hrt/1) ──> hrt-server ──> Worker
 
 There are two largely independent halves:
 
-- **Browser half** (`src/`, `logic.ts`): React UI, local storage, the
+- **Browser half** (`src/`, `src/domain/`): React UI, local storage, the
   pharmacokinetic model, calibration, client-side crypto, export/import.
-- **Server half** (`worker.ts` and its modules): static assets, `/api/*`,
-  authentication, rate limits, D1, R2, scheduled cleanup.
+- **Server half** (`worker.ts` and `src/server/routes/`): static assets,
+  `/api/*`, authentication, rate limits, D1, R2, scheduled cleanup.
 
 A few pure TypeScript modules are shared by both halves:
-`backupPolicy.ts`, `passwordStrength.ts`, `shareExpiry.ts`, and
-`shareSnapshotSchema.ts`. Keep them free of React, DOM, and Worker-only APIs so
-both bundles can import them.
+`backupPolicy.ts`, `passwordStrength.ts`, `shareExpiry.ts`,
+`shareSnapshotSchema.ts`, and `communityVote.ts`. Keep them free of React, DOM,
+and Worker-only APIs so both bundles can import them.
 
 Important product constraints:
 
@@ -79,42 +79,46 @@ Important product constraints:
 
 ### Source and entry points
 
-| Path                     | Responsibility                                                                                                       |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `index.tsx`              | Browser entry; mounts `src/App.tsx`.                                                                                 |
-| `src/App.tsx`            | Providers, `/share` route selection, and the view switch.                                                            |
-| `src/pages/`             | One file per screen.                                                                                                 |
-| `src/components/`        | Shared UI, charts, forms, icons, and doodles.                                                                        |
-| `src/contexts/`          | React context: auth, language, HRT mode, dialogs, pixel cat.                                                         |
-| `src/hooks/`             | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                               |
-| `src/services/`          | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                         |
-| `src/utils/`             | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities. |
-| `src/i18n/`              | `translations.ts` (all UI strings), `share.ts` (share-page copy), `locale.ts` (locale detection).                    |
-| `src/data/developers.ts` | Credits data for the developer wall.                                                                                 |
-| `src/constants.ts`       | Shared UI constants.                                                                                                 |
-| `logic.ts`               | Pharmacokinetic model, dose/lab types, simulation, calibration, and model validation. Shared with tests.             |
-| `shbg.ts`                | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.     |
+| Path                      | Responsibility                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.tsx`               | Browser entry; mounts `src/App.tsx`.                                                                                                        |
+| `src/App.tsx`             | Provider composition only; mounts `src/app/AppContent`.                                                                                     |
+| `src/app/`                | App shell: providers, data/navigation composition, view switch, guards, preferences, account flows, backup actions, plan logging.           |
+| `src/pages/`              | One file or subfolder per screen. Admin lives in `src/pages/admin/`.                                                                        |
+| `src/components/`         | Shared UI, charts, forms, icons, and doodles.                                                                                               |
+| `src/contexts/`           | React context: auth, language, HRT mode, dialogs, pixel cat.                                                                                |
+| `src/hooks/`              | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                                                      |
+| `src/routes/lazyPages.ts` | Lazy page imports and chunk-retry wrapper; Home, Onboarding, and PublicShare stay eager.                                                    |
+| `src/services/`           | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                                                |
+| `src/utils/`              | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities.                        |
+| `src/utils/sync/`         | Tombstone, normalize, merge, and fingerprint helpers for cloud revisions; `syncMerge.ts` is a façade.                                       |
+| `src/i18n/`               | `locales/` (one UI-string pack per language), `translations.ts` (aggregator), `share.ts` (share-page copy), `locale.ts` (locale detection). |
+| `src/data/developers.ts`  | Credits data for the developer wall.                                                                                                        |
+| `src/constants.ts`        | Shared UI constants.                                                                                                                        |
+| `logic.ts`                | Compatibility façade for the pharmacokinetic model; implementation lives in `src/domain/`.                                                  |
+| `src/domain/`             | Dose/lab types, PK modules, calibration, simulation, hormone features, advisory rules, crypto, and model validation.                        |
 | `src/domain/features/hydration.ts` | Pure optional plasma-volume beta: TBW/PV estimates, urine-color offsets, a two-compartment gut/plasma water model, `pvRatio`, and the `C_beta` observation-layer transform. Does not change clearance, dose, AUC, or the main concentration arrays. |
 | `src/utils/hydrationState.ts` | Local-only hydration log sanitization and namespaced storage for water events, urine color, body fat %, and alpha. |
-| `worker.ts`              | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`.               |
-| `toolApi.ts`             | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                   |
-| `contentStore.ts`        | Content-row SQL shared by the website and tool APIs, including retention pruning.                                    |
-| `backupPolicy.ts`        | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                          |
-| `passwordStrength.ts`    | Password length/byte limits and strength estimate. Shared by client and Worker.                                      |
-| `shareExpiry.ts`         | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                 |
-| `shareSnapshotSchema.ts` | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.           |
-| `f2f.ts`                 | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                            |
-| `hrtPairing.ts`          | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                       |
-| `requestInput.ts`        | Client-address extraction and bounded JSON body reads for the Worker.                                                |
-| `workerUtil.ts`          | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                     |
-| `communityVote.ts`       | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.            |
-| `communityVoteServer.ts` | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                          |
-
+| `shbg.ts`                 | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.                            |
+| `worker.ts`               | Worker entry: static assets, middleware, auth gate, rate limits, `/api/*` dispatch, D1/R2 access, and `scheduled()`.                        |
+| `src/server/routes/`      | Route handlers for public, auth, user profile, sessions, 2FA, passkeys, shares, content, and admin APIs.                                    |
+| `toolApi.ts`              | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                                          |
+| `contentStore.ts`         | Content-row SQL shared by the website and tool APIs, including retention pruning.                                                           |
+| `backupPolicy.ts`         | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                                                 |
+| `passwordStrength.ts`     | Password length/byte limits and strength estimate. Shared by client and Worker.                                                             |
+| `shareExpiry.ts`          | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                                        |
+| `shareSnapshotSchema.ts`  | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.                                  |
+| `f2f.ts`                  | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                                                   |
+| `hrtPairing.ts`           | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                                              |
+| `requestInput.ts`         | Client-address extraction and bounded JSON body reads for the Worker.                                                                       |
+| `workerUtil.ts`           | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                                            |
+| `communityVote.ts`        | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.                                   |
+| `communityVoteServer.ts`  | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                                                 |
 ### Supporting directories
 
 | Path                                                        | Responsibility                                                                                                        |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `migrations/`                                               | D1 schema history. `0000`–`0013` exist at this snapshot. Add the next number; never edit a shipped migration.         |
+| `migrations/`                                               | D1 schema history. `0000`–`0019` exist at this snapshot. Add the next number; never edit a shipped migration.         |
 | `wrangler.toml`                                             | Worker entry, assets binding, D1/R2 bindings, rate-limit bindings, and cron trigger.                                  |
 | `src-tauri/`                                                | Tauri 1.8 desktop shell (Rust). It wraps the same web build; it is not a second frontend.                             |
 | `hrt-server/`                                               | Optional Node 22 raw TLS adapter for the `hrt/1` protocol. Disabled unless `HRT_RAW_ENABLED=1`.                       |
@@ -133,16 +137,39 @@ Important product constraints:
 
 ### App shell and navigation
 
-- `src/App.tsx` chooses `PublicShare` when the path is `/share` (the token and
-  key live in the URL fragment), otherwise it mounts the providers and
-  `AppContent`.
+- `src/App.tsx` is only provider composition:
+  `<AppProviders><AppContent /></AppProviders>`.
+- `src/app/AppProviders.tsx` owns the provider stack and `PublicShare` selection
+  for `/share` (the token and key live in the URL fragment). The share page stays
+  outside the signed-in app, so it never mounts account, sync, or local-data
+  layers.
+- `src/app/AppContent.tsx` calls `useAppShell()` and renders `AppViews`.
+- `src/app/useAppShell.ts` composes app data, navigation, preferences, account
+  flows, cloud sync, backup actions, plan logging, and the view-gone guard.
+- `src/app/AppViews.tsx` owns the view switch, sidebar/bottom navigation, site
+  notices, update prompt, onboarding, and the password prompt.
 - `src/hooks/useAppNavigation.ts` owns `ViewKey` and `currentView`. Adding a
   page means adding a `ViewKey`, a view entry in `VIEW_ORDER`, a tab mapping in
-  `VIEW_TAB`, and the render branch in `App.tsx`.
+  `VIEW_TAB`, a lazy export in `src/routes/lazyPages.ts`, and the render branch in
+  `AppViews.tsx`.
 - `src/hooks/navHistory.ts` integrates with the browser History API so Back
   behaves like a stack, including scroll restoration.
 - There is no React Router, no URL for each page, and no server-side route
   table. Do not add one for a normal screen.
+
+### PWA and offline
+
+- Workbox precaches only the app shell: the entry JS/CSS, HTML, icons, and web
+  manifest. Lazy route chunks are **not** in the install precache; they enter
+  `route-chunks-v1` after the user opens that page. A page that has never been
+  visited will not open offline.
+- `/api` is `NetworkOnly`. Account, backup, share, and health responses must
+  never enter a Cache Storage bucket.
+- `npm run size` enforces the budgets: the entry stays under 550 KiB gzip and
+  the install precache under 3 MiB raw. `BUNDLE_BUDGET_KB` and
+  `PRECACHE_BUDGET_KIB` can override them for a one-off check.
+- This is a deliberate low-bandwidth/Tor trade-off. Do not "fix" an unvisited
+  offline page by precaching every route chunk again.
 
 ### Pages
 
@@ -150,18 +177,18 @@ Important product constraints:
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Core tracking         | `Home`, `History`, `Lab`, `Plan`, `Forecast`, `Supplies`                                                                                                                                                                   |
 | Settings              | `Settings`, `AppearanceSettings`, `LanguageSettings`, `HRTModeSettings`, `WeightSettings`, `AgeSettings`, `HydrationSettings`, `PKParams`, `ExportSettings`, `ImportSettings`, `TransparencySettings`, `Credits`, `CommunityVote`, `Disclaimer` |
-| Account and security  | `Account`, `ChangePassword`, `DeleteAccount`, `EditProfile`, `EditAvatar`, `Sessions`, `TwoFactor`, `HrtSecurity`, `F2f`, `Admin`                                                                                          |
-| Public and onboarding | `PublicShare`, `Onboarding`                                                                                                                                                                                                |
+| Account and security  | `Account`, `ChangePassword`, `DeleteAccount`, `EditProfile`, `EditAvatar`, `Sessions`, `TwoFactor`, `HrtSecurity`, `F2f`, `Admin` (`src/pages/admin/`)                                                                     || Public and onboarding | `PublicShare`, `Onboarding`                                                                                                                                                                                                |
 | Developer/easter egg  | `CatStates`, `MilkTeaEasterEgg` (dev mode only)                                                                                                                                                                            |
 
 ### State and data flow
 
 - `src/hooks/useAppData.ts` is the central data hook. It reads and writes
-  namespaced `localStorage` keys, runs `logic.ts`, and exposes dose, lab,
-  weight, supply, plan, calibration, and import/export operations.
+  namespaced `localStorage` keys, runs the model through the `logic.ts` façade,
+  and exposes dose, lab, weight, supply, plan, calibration, and import/export
+  operations.
 - Storage is namespaced by account and HRT mode. When changing a persisted
   shape, update `src/utils/backupState.ts`, `backupImport.ts`,
-  `backupBundle.ts`, and `syncMerge.ts` together; old browser data and old
+  `backupBundle.ts`, and `src/utils/sync/` together; old browser data and old
   backups must still load.
 - `physiologyBeta` is an opt-in model setting (default off) because it changes
   what the chart draws: with hydration enabled, `runSimulation` may return
@@ -208,29 +235,39 @@ The share key must never be sent to the server. It belongs in the URL fragment
   the v3 document and `src/styles/oyama-tokens.css` win.
 - Use the existing tokens and components. Do not hard-code colors, spacing,
   radii, or shadows.
-- Every visible string goes through `t()`. Add the key to every language
-  object in `src/i18n/translations.ts`; `tests/translations.test.ts` checks
-  parity. Share-page copy is in `src/i18n/share.ts`.
+- Every visible string goes through `t()`. Add the key to every language pack
+  under `src/i18n/locales/`; `translations.ts` composes them and
+  `tests/translations.test.ts` checks parity. Share-page copy is in
+  `src/i18n/share.ts`.
 - No pop-ups: follow the inline-prompt and inline-choice patterns described in
   the design system.
 
 ## 4. Backend
 
 `worker.ts` is the single Worker entry. It serves `dist/` through the `ASSETS`
-binding and dispatches `/api/*` in a long, ordered `fetch` handler.
+binding, applies the shared middleware (security headers, CORS, rate limits,
+auth gate), and dispatches `/api/*` in an ordered `fetch` handler. Concrete
+handlers live in `src/server/routes/` and the root server modules listed below.
 
 ### Route groups
 
-| Group              | Prefix / examples                                                                                               | Main code                |
-| ------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Public             | `/api/register`, `/api/login`, `/api/transparency`, `/api/notice`, passkey options/verify, `/api/shares/access` | `worker.ts`              |
-| Authenticated user | `/api/user/*` (profile, password, sessions, 2FA, avatar), `/api/content*`, `/api/shares*`                       | `worker.ts`              |
-| Admin              | `/api/admin/*` (users, storage, backups, notices, password/username/2FA resets)                                 | `worker.ts`              |
-| Community vote     | `GET /api/vote` (public), `GET /api/vote/me`, `POST /api/vote`                                                  | `communityVoteServer.ts` |
-| Tool               | `/api/tool/v1/*`                                                                                                | `toolApi.ts`             |
-| F2F                | `/api/f2f/*`                                                                                                    | `f2f.ts`                 |
-| HRT pairing        | `/api/hrt/*`                                                                                                    | `hrtPairing.ts`          |
-| Scheduled          | `scheduled()` every 6 hours: expired sessions, shares, pairing rows, F2F sweep                                  | `worker.ts`              |
+| Group          | Prefix / examples                                                                                          | Main code                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Public         | `/api/transparency`, `/api/notice`, `/api/vote`, `/api/donation`, avatar GET, tool version/compute         | `src/server/routes/public.ts`       |
+| Share access   | `POST /api/shares/access`                                                                                  | `src/server/routes/sharesAccess.ts` |
+| Auth           | `/api/register`, `/api/login`, `/api/tool/v1/login`, passkey options/verify                                | `src/server/routes/auth.ts`         |
+| User profile   | `/api/user/profile`, `/api/user/password`, `DELETE /api/user/me`, `/api/user/avatar`                       | `src/server/routes/userProfile.ts`  |
+| Sessions       | `/api/user/sessions`                                                                                       | `src/server/routes/sessions.ts`     |
+| Two-factor     | `/api/user/2fa*`                                                                                           | `src/server/routes/twoFactor.ts`    |
+| Passkeys       | `/api/user/passkeys*`                                                                                      | `src/server/routes/passkeys.ts`     |
+| Shares         | `/api/shares`, `/api/shares/live`, `/api/shares/keys`                                                      | `src/server/routes/shares.ts`       |
+| Content        | `/api/content`                                                                                             | `src/server/routes/content.ts`      |
+| Admin          | `/api/admin/*` (users, storage, backups, notices, donation settings, password/username/2FA resets, reauth) | `src/server/routes/admin.ts`        |
+| Community vote | `GET /api/vote/me`, `POST /api/vote`                                                                       | `communityVoteServer.ts`            |
+| Tool           | protected `/api/tool/v1/*`                                                                                 | `toolApi.ts`                        |
+| F2F            | `/api/f2f/*`                                                                                               | `f2f.ts`                            |
+| HRT pairing    | `/api/hrt/*`                                                                                               | `hrtPairing.ts`                     |
+| Scheduled      | `scheduled()` every 6 hours: expired sessions, shares, pairing rows, F2F sweep                             | `worker.ts`                         |
 
 ### Shared server helpers
 
@@ -254,7 +291,8 @@ binding and dispatches `/api/*` in a long, ordered `fetch` handler.
   `requestInput.ts` exists).
 - **Route order matters.** Public and unauthenticated routes are handled before
   the JWT check; authenticated routes are grouped after it. Add a route in the
-  matching block, not at the top by habit.
+  matching dispatch block in `worker.ts` and put the handler in the matching
+  `src/server/routes/` module, not at the top by habit.
 - **D1 access is scoped by `user_id`.** Never trust a client-provided user id.
 - **Admin is environment-configured.** There is no promote-to-admin route.
 - **Rate limits live in `wrangler.toml`.** If you add an endpoint that needs a
@@ -264,9 +302,10 @@ binding and dispatches `/api/*` in a long, ordered `fetch` handler.
 
 ## 5. Model, data, and migrations
 
-### The model (`logic.ts`)
+### The model (`logic.ts` façade and `src/domain/`)
 
-`logic.ts` contains the dose/lab types and the simulation. Key concepts:
+The implementation lives in `src/domain/`; `logic.ts` only re-exports the public
+surface for existing imports and tests. Key concepts:
 
 | Concept             | Meaning                                                                                 |
 | ------------------- | --------------------------------------------------------------------------------------- |
@@ -297,7 +336,8 @@ Rules for model changes:
 - `src/utils/backupState.ts` owns the stored shapes and migration of old keys.
 - `src/utils/backupBundle.ts` builds and inspects the complete bundle.
 - `src/utils/backupImport.ts` merges or replaces imported data.
-- `src/utils/syncMerge.ts` merges cloud revisions.
+- `src/utils/syncMerge.ts` is a façade for `src/utils/sync/`, which merges cloud
+  revisions.
 - `src/utils/backupWarnings.ts` explains compatibility warnings.
 - Cloud revisions are full copies, capped at 2 MiB and at five retained
   revisions. Retention is by generation/horizon, not simply "the newest five".
@@ -371,23 +411,23 @@ Treat these as hard constraints, not suggestions:
 
 ## 7. Change recipes
 
-| Goal                            | Read / edit                                                                                                                                           | Verify                                                                  |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Change UI copy or add a string  | `src/i18n/translations.ts` (all languages), `src/i18n/share.ts` for share pages                                                                       | `npx vitest run tests/translations.test.ts`, `npm run build`            |
-| Add or change a screen          | `src/pages/`, `src/App.tsx`, `src/hooks/useAppNavigation.ts` (`ViewKey`, `VIEW_ORDER`, `VIEW_TAB`), translations                                      | typecheck, unit tests, `npm run build`, Playwright if user-visible      |
-| Change visual design            | `design/system/README.md`, `src/styles/oyama-tokens.css`, existing components                                                                         | visual check at phone and desktop widths; no hard-coded tokens          |
-| Add an API endpoint             | `worker.ts` (correct route group), `src/services/apiClient.ts`, client service, docs if public                                                        | `npx tsc --noEmit`, `tests/routes.test.ts`, hardening/cache tests       |
-| Change the database             | New file in `migrations/`, `worker.ts` queries, tests                                                                                                 | fresh local D1 + upgrade path; `tests/workerHardening.test.ts`          |
-| Change backup format            | `src/utils/backupState.ts`, `backupBundle.ts`, `backupImport.ts`, `syncMerge.ts`, `backupWarnings.ts`, `backupPolicy.ts`, `docs/backup-schema-audit/` | `backupBundle`, `backupImport`, `backupState`, `backupWarnings` tests   |
-| Change share format or crypto   | `src/services/shareCrypto.ts`, `shareSnapshot.ts`, `sharing.ts`, `shareSnapshotSchema.ts`, `shareExpiry.ts`                                           | `shareCrypto`, `shareExpiry`, `sharePasswordLockout`, `f2f`/share tests |
-| Change the PK model             | `logic.ts`, `Algorithm Explanation.md`, `tests/literature.test.ts`, `tests/simulation.test.ts`, `tests/hrtEndToEnd.test.ts`                           | targeted simulation/literature tests, then full `npm test`              |
-| Change auth, sessions, or 2FA   | `worker.ts`, `src/services/auth.ts`, `src/contexts/AuthContext.tsx`, `SECURITY.md`                                                                    | `loginLockout`, `securityHardening`, `workerHardening`, `routes` tests  |
-| Change deployment or versions   | `Dependency-Detection.sh`, `docker-install.sh`, `Dockerfile`, `compose.yaml`, `scripts/set_version.py`, `README.md`, `wiki/Deployment*`               | `deploymentScripts`, `dockerRuntime`, `set_version.py --check`          |
-| Change docs or wiki             | `docs/`, `wiki/` (source), `README.md`, `README.zh-CN.md`                                                                                             | `npx prettier --check` on tracked files; publish wiki if needed         |
-| Add or upgrade a dependency     | `package.json`, `package-lock.json` (only with a dependency change), security floors                                                                  | `npm ci`, audit, full test/build; explain why the dependency is needed  |
-| Touch the desktop shell         | `src-tauri/`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`                                                                                           | `npm run tauri:build` or at least Rust checks, `rustDependencies` test  |
-| Touch F2F, tool API, or `hrt/1` | `f2f.ts`, `hrtPairing.ts`, `toolApi.ts`, `hrt-server/`, the matching `docs/` page                                                                     | `f2f`, `hrtPairing`, `hrtServer`, `toolInterface` tests                 |
-| Fix a bug                       | Reproduce first, add a regression test, then fix                                                                                                      | targeted test, full `npm test`, typecheck, build                        |
+| Goal                            | Read / edit                                                                                                                                                             | Verify                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Change UI copy or add a string  | `src/i18n/locales/*.ts` (one file per language), `src/i18n/translations.ts` (aggregator), `src/i18n/share.ts` for share pages                                           | `npx vitest run tests/translations.test.ts`, `npm run build`            |
+| Add or change a screen          | `src/pages/`, `src/routes/lazyPages.ts`, `src/app/AppViews.tsx`, `src/hooks/useAppNavigation.ts` (`ViewKey`, `VIEW_ORDER`, `VIEW_TAB`), translations                    | typecheck, unit tests, `npm run build`, Playwright if user-visible      |
+| Change visual design            | `design/system/README.md`, `src/styles/oyama-tokens.css`, existing components                                                                                           | visual check at phone and desktop widths; no hard-coded tokens          |
+| Add an API endpoint             | `worker.ts` dispatch + matching `src/server/routes/` module, `src/services/apiClient.ts`, client service, docs if public                                                | `npx tsc --noEmit`, `tests/routes.test.ts`, hardening/cache tests       |
+| Change the database             | New file in `migrations/`, `worker.ts` or route-module queries, tests                                                                                                   | fresh local D1 + upgrade path; `tests/workerHardening.test.ts`          |
+| Change backup format            | `src/utils/backupState.ts`, `backupBundle.ts`, `backupImport.ts`, `src/utils/sync/`, `backupWarnings.ts`, `backupPolicy.ts`, `docs/backup-schema-audit/`                | `backupBundle`, `backupImport`, `backupState`, `backupWarnings` tests   |
+| Change share format or crypto   | `src/services/shareCrypto.ts`, `shareSnapshot.ts`, `sharing.ts`, `shareSnapshotSchema.ts`, `shareExpiry.ts`                                                             | `shareCrypto`, `shareExpiry`, `sharePasswordLockout`, `f2f`/share tests |
+| Change the PK model             | `src/domain/`, `logic.ts` façade, `Algorithm Explanation.md`, `tests/literature.test.ts`, `tests/simulation.test.ts`, `tests/hrtEndToEnd.test.ts`                       | targeted simulation/literature tests, then full `npm test`              |
+| Change auth, sessions, or 2FA   | `src/server/routes/auth.ts`, `sessions.ts`, `twoFactor.ts`, `passkeys.ts`, `worker.ts` auth gate, `src/services/auth.ts`, `src/contexts/AuthContext.tsx`, `SECURITY.md` | `loginLockout`, `securityHardening`, `workerHardening`, `routes` tests  |
+| Change deployment or versions   | `Dependency-Detection.sh`, `docker-install.sh`, `Dockerfile`, `compose.yaml`, `scripts/set_version.py`, `README.md`, `wiki/Deployment*`                                 | `deploymentScripts`, `dockerRuntime`, `set_version.py --check`          |
+| Change docs or wiki             | `docs/`, `wiki/` (source), `README.md`, `README.zh-CN.md`                                                                                                               | `npx prettier --check` on tracked files; publish wiki if needed         |
+| Add or upgrade a dependency     | `package.json`, `package-lock.json` (only with a dependency change), security floors                                                                                    | `npm ci`, audit, full test/build; explain why the dependency is needed  |
+| Touch the desktop shell         | `src-tauri/`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`                                                                                                             | `npm run tauri:build` or at least Rust checks, `rustDependencies` test  |
+| Touch F2F, tool API, or `hrt/1` | `f2f.ts`, `hrtPairing.ts`, `toolApi.ts`, `hrt-server/`, the matching `docs/` page                                                                                       | `f2f`, `hrtPairing`, `hrtServer`, `toolInterface` tests                 |
+| Fix a bug                       | Reproduce first, add a regression test, then fix                                                                                                                        | targeted test, full `npm test`, typecheck, build                        |
 
 ## 8. Build, test, and CI
 
@@ -408,6 +448,8 @@ npx tsc --noEmit
 npm run lint
 npm run format:check
 npm test
+npm run build               # production build into dist/
+npm run size                # entry + precache budgets
 npm run test:e2e            # needs `npx playwright install chromium`
 python3 scripts/set_version.py --check
 ```
@@ -416,10 +458,10 @@ python3 scripts/set_version.py --check
 
 The `CI` workflow (`.github/workflows/ci.yml`) runs two jobs:
 
-| Job                 | Gates                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| Typecheck and build | version agreement, lint, Prettier check, `tsc --noEmit`, unit tests, production build          |
-| Browser E2E         | build, then Playwright against Vite + `wrangler dev --local` with throwaway D1/R2 under `/tmp` |
+| Job                 | Gates                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| Typecheck and build | version agreement, lint, Prettier check, `tsc --noEmit`, unit tests, production build, `npm run size` |
+| Browser E2E         | build, then Playwright against Vite + `wrangler dev --local` with throwaway D1/R2 under `/tmp`        |
 
 Separate workflows cover CodeQL, desktop builds, Docker publishing, and
 releases. A change is not done because one test passed: run the gates that the

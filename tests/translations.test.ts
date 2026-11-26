@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -9,16 +9,22 @@ import { TRANSLATIONS } from '../src/i18n/translations';
 // strings added in 1.5.1, the F2F how-to among them, reached readers in English.
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = readFileSync(resolve(root, 'src/i18n/translations.ts'), 'utf8').split('\n');
+const localeDir = resolve(root, 'src/i18n/locales');
+const localeSources = readdirSync(localeDir)
+    .filter(file => file.endsWith('.ts') && file !== 'index.ts')
+    .sort()
+    .map(file => ({ file, lines: readFileSync(resolve(localeDir, file), 'utf8').split('\n') }));
 
 describe('language packs', () => {
     it('spread a base pack only before their own strings', () => {
-        const late = source.flatMap((line, i) => {
-            if (!/^\s*\.\.\./.test(line)) return [];
-            let before = i - 1;
-            while (before >= 0 && source[before].trim() === '') before--;
-            return source[before].trimEnd().endsWith('{') ? [] : [`line ${i + 1}: ${line.trim()}`];
-        });
+        const late = localeSources.flatMap(({ file, lines }) =>
+            lines.flatMap((line, i) => {
+                if (!/^\s*\.\.\./.test(line)) return [];
+                let before = i - 1;
+                while (before >= 0 && lines[before].trim() === '') before--;
+                return lines[before].trimEnd().endsWith('{') ? [] : [`${file}:${i + 1}: ${line.trim()}`];
+            }),
+        );
         expect(late).toEqual([]);
     });
 
@@ -30,6 +36,17 @@ describe('language packs', () => {
             expect(tr[key]).not.toBe(en[key]);
         }
     });
+});
+
+describe('loading copy', () => {
+    const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
+
+    for (const lang of locales) {
+        it(`${lang} has a loading label`, () => {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            expect(pack['common.loading']).toBeTruthy();
+        });
+    }
 });
 
 describe('age model copy', () => {

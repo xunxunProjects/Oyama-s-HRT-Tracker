@@ -194,7 +194,8 @@ To open the app over plain http from another device (for example
 reverse proxy first. Backups, exports and share links stay end-to-end encrypted
 over plain http too. Browsers do hold back a few features until the page is
 served over https (or opened as `localhost`): installing it as an app, offline
-use, and passkey sign-in. To get those, put the container behind any https
+access to the app shell and pages you have already opened, and passkey sign-in.
+To get those, put the container behind any https
 reverse proxy, such as [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy)
 (`caddy reverse-proxy --from your.domain --to localhost:8787`) or
 [Tailscale Serve](https://tailscale.com/kb/1312/serve).

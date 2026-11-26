@@ -476,6 +476,7 @@ export const RU = {
     'btn.cancel': 'Отмена',
     'btn.ok': 'ОК',
     'btn.copy': 'Копировать',
+    'common.loading': 'Загрузка…',
     'common.or': 'или',
     'error.generic': 'Что-то пошло не так. Попробуйте ещё раз.',
     'error.title': 'Что-то пошло не так',
